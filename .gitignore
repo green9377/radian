@@ -13,8 +13,13 @@ dist/
 # database backups — real customer data, and far too big for git
 backups/
 *.dump
-_backup.log
-_restore.log
+
+# the .bat files' scratch output (_build.log, _api_log.txt, _migrate_out.txt …).
+# এগুলো প্রতিবার চালালেই নতুন করে লেখা হয় — git-এ রাখলে প্রতিটা commit-এ
+# অর্থহীন পরিবর্তন দেখাবে, আর log-এ কখনো connection string ছাপা হলে সেটাও
+# চিরকালের জন্য history-তে থেকে যেত।
+_*.log
+_*.txt
 
 # OS / editor junk
 .DS_Store
