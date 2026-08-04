@@ -1,6 +1,0 @@
-radian_web  |  GET /products/velvet-red-24-premium-roses 200 in 371ms (next.js: 124ms, application-code: 246ms)
-radian_web  |  GET /categories/flower 200 in 187ms (next.js: 91ms, application-code: 96ms)
-radian_web  |  GET /products/velvet-red-24-premium-roses 200 in 175ms (next.js: 54ms, application-code: 121ms)
-radian_web  |  GET /categories/flower 200 in 264ms (next.js: 53ms, application-code: 210ms)
-radian_web  |  GET /categories/flower 200 in 1260ms (next.js: 325ms, application-code: 935ms)
-radian_web  |  GET /products/velvet-red-24-premium-roses 200 in 339ms (next.js: 146ms, application-code: 193ms)
