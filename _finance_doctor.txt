@@ -1,0 +1,67 @@
+
+############################################################
+#  FINANCE DOCTOR — read only, nothing is changed          #
+############################################################
+
+=== 1. THE DRIFT CHECK — books versus the shop ===
+
+worst: WRONG   wrong: 1   watch: 0
+
+ WRONG  What we owe suppliers
+         books 0.00   shop 5,000.00   difference -5,000.00
+         Open Suppliers and compare bill by bill. A bill entered straight into the books, or a purchase saved while the API was down, shows up here.
+  ok    What customers owe us
+  ok    Value of the stock we hold
+  ok    Cash still with riders and couriers
+  ok    Delivered orders missing from the books
+  ok    Received purchases missing from the books
+  ok    Events waiting to be written into the books
+  ok    Entries where the two sides do not match
+  ok    A money account showing less than zero
+  ok    Goods that left the shop over a week ago and never became a sale
+
+
+=== 2. EVERY LEDGER ENTRY, JUDGED ===
+
+entry      date        verdict           amount  narration
+----------------------------------------------------------------------------------------------------
+
+  practice 0   looks real 0   opening 0   unclear 0   (of 0)
+
+
+=== 3. THE ORDERS — the one thing only you can judge ===
+
+order       date        customer            channel           total       paid  status
+----------------------------------------------------------------------------------------------------
+
+  0 orders. Do any of these names look like a real customer of yours?
+
+
+=== 4. WHAT ELSE IS SITTING IN THE BOOKS ===
+
+  partner    Sobuj (money)  (CAPITAL)
+  partner    Partner (works)  (LABOUR)
+
+  expenses 0 · incomes 0 · purchases 0 · customers 0 · items 6 · employees 5
+
+
+=== 5. SETTINGS THAT AFFECT ALL OF THE ABOVE ===
+
+  go-live date        NOT SET — every check treats the whole history as live
+  closed up to        nothing closed
+  opening posted      no
+  BIN                 not set (Mushak 6.3 waits for this)
+  expense accounts without fixed/variable: 0
+
+
+############################################################
+#  VERDICT                                                 #
+############################################################
+
+  Nothing in this ledger is backed by a trade that survives inspection.
+  The cheapest and safest move is to START THE BOOKS AGAIN rather than
+  pick through them. That also dissolves the opening-balance problem,
+  which otherwise has to be reversed by hand.
+
+  Nothing was changed by this file.
+

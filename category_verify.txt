@@ -1,0 +1,49 @@
+============================================================
+ 1. Do the tiles link to a filter the page can READ?
+============================================================
+ Looking for "?tag=" and "?occasions=" and "?colour=".
+ Seeing "?style=" here means the API is still the old build —
+ those tiles reload the page and filter nothing.
+
+{"message":"No such category","error":"Not Found","statusCode":404}
+
+============================================================
+ 2. Does the filter actually change the answer?
+============================================================
+  all products:
+  {"items":[],"total":0,"page":1,"limit":1}
+  express only (should be fewer):
+{"items":[],"total":0,"page":1,"limit":1}
+  sorted by price, low to high (first one should be the cheapest):
+{"items":[],"total":0,"page":1,"limit":1}
+
+============================================================
+ 3. The admin's hand-pick box — new "search" parameter
+============================================================
+  (empty list here = old build; the box will look broken)
+{"items":[],"total":0,"page":1,"limit":3}
+
+============================================================
+ 4. Delivery band — real names, real countdown
+============================================================
+  "minutesLeft" is minutes to today's cutoff. null = no cutoff
+  for that method (courier), and then no countdown is drawn.
+  An EMPTY list means nothing is set up in Delivery > Zones,
+  and the band falls back to the six cards in the code.
+
+[{"id":"cmrxmwpvo0000mm0yw68qkgzm","label":"3-Hour Express","eta":null,"feePaisa":30000,"minutesLeft":null},{"id":"cmsbc2wch0003pl11kiu8nr2n","label":"Schedule It","eta":null,"feePaisa":15000,"minutesLeft":null},{"id":"cmrxmwpw90001mm0y3z3a23fc","label":"Same Day","eta":null,"feePaisa":20000,"minutesLeft":null},{"id":"cmrxmwpwm0005mm0yzhzm7fuf","label":"Midnight Surprise","eta":null,"feePaisa":100000,"minutesLeft":null}]
+[{"id":"cmrxmwpwp0006mm0yoekfw8ls","label":"Nationwide Courier","eta":"1–3 days","feePaisa":15000,"minutesLeft":null}]
+
+============================================================
+ 5. The wording rows for the category page
+============================================================
+  "category.deliveryBand" is new today. Missing = the API has
+  not booted with the new code yet (these rows are created on
+  boot, there is no migration to run).
+
+{"message":"No such category","error":"Not Found","statusCode":404}
+
+============================================================
+ 6. Anything angry in the log
+============================================================
+no such service: |

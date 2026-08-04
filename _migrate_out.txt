@@ -1,0 +1,36 @@
+[1] migrate deploy 
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "radian_db", schema "public" at "postgres:5432"
+
+72 migrations found in prisma/migrations
+
+Applying migration `20260803140000_homepage_contents`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260803140000_homepage_contents/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+[2] prisma generate 
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 1.84s
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+[3] restart 
+ Container radian_api Restarting 
+ Container radian_api Started 
+[4] DONE 

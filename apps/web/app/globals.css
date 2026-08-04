@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Radian brand colors (Constitution locked) ---- */
+  --color-purple: #470066;
+  --color-purple-deep: #320049;
+  --color-ink: #2e0442;
+  --color-orchid: #cf43ea;
+  --color-orchid-soft: #f9e9fd;
+  --color-orchid-mid: #e9a8f5;
+  --color-lavender: #f7f1fb;
+  --color-lavender-deep: #efe4f7;
+  --color-rosegold: #b76e79;
+  --color-rosegold-light: #e8c9ce;
+  --color-body: #3a2547;
+  --color-body-soft: #7a6689;
+  --color-amber: #b45309;
+
+  /* ---- Typography ---- */
+  --font-display: var(--font-display), Georgia, serif;
+  --font-ui: var(--font-ui), "Century Gothic", sans-serif;
+
+  /* ---- Shape & elevation ---- */
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --shadow-soft: 0 10px 40px rgba(71, 0, 102, 0.08);
+  --shadow-lift: 0 18px 50px rgba(71, 0, 102, 0.14);
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-body);
+}
+
+/* ---- Icon button (header nav icons) ---- */
+.icon-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 11px;
+  border-radius: 12px;
+  color: var(--color-purple);
+  transition: background 0.25s;
+  font-size: 19px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.icon-btn:hover {
+  background: var(--color-lavender);
+}
+.icon-btn em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+}
+.icon-svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+/* ---- Mobile: compact header (icons only, no labels) ---- */
+@media (max-width: 640px) {
+  .icon-btn {
+    padding: 6px 8px;
+  }
+  .icon-btn em {
+    display: none;
+  }
+}
+
+/* ---- Support panel agent fade ---- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- PDP: Buy Now attention animation (FlowerAura-style shine + glow) ---- */
+@keyframes shineSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+.animate-shine {
+  animation: shineSweep 2.8s ease-in-out infinite;
+}
+
+@keyframes ctaGlow {
+  0%,
+  100% {
+    box-shadow: 0 10px 26px rgba(71, 0, 102, 0.28);
+  }
+  50% {
+    box-shadow: 0 12px 34px rgba(207, 67, 234, 0.42);
+  }
+}
+.animate-cta-glow {
+  animation: ctaGlow 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shine,
+  .animate-cta-glow {
+    animation: none;
+  }
+}
+
+/* ---- Scrollbar hide ---- */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---- Account form input (shared: input/select/textarea) ---- */
+.ipt {
+  width: 100%;
+  border: 1.5px solid var(--color-lavender-deep);
+  background: var(--color-lavender);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  color: var(--color-purple);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ipt:focus {
+  border-color: var(--color-orchid);
+}
+.ipt::placeholder {
+  color: var(--color-body-soft);
+  opacity: 0.6;
+}

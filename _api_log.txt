@@ -1,0 +1,133 @@
+===== DOCKER PS =====
+NAME              IMAGE                COMMAND                  SERVICE    CREATED        STATUS                 PORTS
+radian_api        radian-api           "docker-entrypoint.s…"   api        20 hours ago   Up 25 seconds          0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+radian_postgres   postgres:16-alpine   "docker-entrypoint.s…"   postgres   2 weeks ago    Up 2 hours (healthy)   0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+radian_web        radian-web           "docker-entrypoint.s…"   web        20 hours ago   Up 2 hours             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+
+===== API LOG (last 120 lines) =====
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHoursController {/shop-hours}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours/closures, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours/status, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours/:weekday, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours/closures, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop-hours/closures/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLayoutController {/page-sections}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/order, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/blocks, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/blocks/:key, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/blocks/:key, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category/blocks, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category/blocks/:key, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category/blocks/:key, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/page-sections/category/:slug/:key, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProductDetailController {/shop}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/addons, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/products/:slug, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mShopCatalogController {/shop}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/products, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/category/:slug, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/collections/:slug, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCheckoutController {/shop}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/delivery/menu, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/delivery/slot-load, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/checkout/quote, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/checkout, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/track, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPaymentController {/shop/payment}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/payment/session, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/payment/ipn, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/payment/return/:kind, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/payment/return/:kind, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/payment/status/:tranId, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaController {/media}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/media/upload, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBannersController {/banners}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners/settings, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners/settings, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners/:id, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/banners/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTrustController {/trust-badges}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/trust-badges, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/trust-badges, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/trust-badges/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/trust-badges/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSectionsController {/sections}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/sections, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/sections/:key, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/sections/:key/clear, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCollectionsController {/collections}:[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/collections, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/collections, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/collections/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/collections/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFooterController {/footer}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/groups, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/groups, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/groups/:id, PATCH} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/groups/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/links, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/links/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/links/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/socials, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/socials, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/socials/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/socials/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/badges, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/badges, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/badges/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/badges/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/settings, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/footer/settings, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReviewsController {/reviews}:[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews/pending-count, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews/google, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews/google, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews/:id, PATCH} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reviews/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPublicReviewsController {/shop}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/reviews, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHomeContentController {/storefront/home-content}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/storefront/home-content, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/storefront/home-content/toggle, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/storefront/home-content/reorder, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mContentController {/content}:[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/pages, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/pages/:id, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/pages, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/pages/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/pages/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/posts, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/posts/:id, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/posts, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/posts/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/posts/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/faqs, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/faqs, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/faqs/:id, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/readiness, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/public/journal, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/public/pages/:slug, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/public/footer-pages, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/content/public/faqs, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mPrisma connected[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[FinanceDriftService] [39m[32mnext drift check at 2026-08-04T20:00:00.000Z[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[RegistryService] [39m[32mregistry: 172 nodes (0 new, 0 changed, 0 retired, 0 back)[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[MarketingAutomationService] [39m[32mnext marketing sweep at 2026-08-04T20:00:00.000Z[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[IntelligenceSweep] [39m[32mnext intelligence snapshot at 2026-08-04T18:30:00.000Z[39m
+radian_api  | [32m[Nest] 37  - [39m08/04/2026, 9:56:05 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +21ms[39m
+
+===== ENDPOINT CHECK =====
+GET /items            -> 401
+GET /item-categories  -> 401
+GET /item-attributes  -> 401
+GET /units            -> 401

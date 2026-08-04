@@ -1,0 +1,11 @@
+===== VERIFY 2026-07-17T06:51:33.075Z =====
+API health /: 200
+GET /products: status=200 total=4 returned=4
+  published=3 outOfStock=3 nationwide=0 crafted=1
+  sample: Photo Mug [Flowers] ৳760 stock=0 sold=0 | Red Roses [Flowers] ৳2000 stock=8 sold=1 | Velvet Red - 24 Roses [Roses] ৳2205 stock=0 sold=0 | Velvet Red - 24 Roses [Roses] ৳2205 stock=0 sold=0
+  distinct categories on products: 2
+GET /categories: status=200 count=5
+GET /tags: status=200 count=2
+GET /channels: status=200 count=1
+GET /segments: status=200 count=2
+RESULT: DONE

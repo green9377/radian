@@ -1,0 +1,21 @@
+===== CUSTOMER SMOKE 2026-07-17T06:31:26.618Z (sfx=886618) =====
+server up: true (pid 15816)
+SEGMENT: 201 id=cmrok80cm0000gc7cirw0xmr3
+CUSTOMER: 201 id=cmrok80da0003gc7c32okx3p7 tier=new ltvPaisa=0(number) isAbroad=true segs=1 recips=1 occ=1
+GET one: recips=1 firstRecipOcc=09-03
+LIST abroad=true: total=2 firstIsAbroad=true
+DUPE-PHONE: status=400 OK rejected
+INTL-PHONE-RULE: status=400 OK rejected
+BLOCK: status=201 customerStatus=BLOCKED
+UNBLOCK: status=201 customerStatus=ACTIVE
+ADD-RECIPIENT: 201 id=cmrok80i7000dgc7ctol56v5r occ=1
+UPDATE-RECIPIENT: 200 fav=true occ=1 occLabel=Mother's Day
+REMOVE-RECIPIENT: 200
+RECIPIENTS AFTER REMOVE: 1 (added 1, removed 1 => expect 1 original)
+TIMELINE: events=6 latest='Recipient "Nabila" removed'
+DELETE: 200
+AFTER DELETE total=1 (expect 0)
+RESTORE: 201
+AFTER RESTORE total=2 (expect 1)
+RESULT: PASS
+===== CUSTOMER SMOKE DONE 2026-07-17T06:31:27.768Z =====

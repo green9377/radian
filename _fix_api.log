@@ -1,0 +1,70 @@
+Radian API fix - Thu 07/30/2026 17:43:19.73 
+ Container radian_postgres Running 
+ Container radian_api Running 
+ Container radian_web Running 
+ Container radian_postgres Waiting 
+ Container radian_postgres Healthy 
+---- prisma generate ---- 
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 1.59s
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+---- migrate status ---- 
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "radian_db", schema "public" at "postgres:5432"
+
+41 migrations found in prisma/migrations
+
+Database schema is up to date!
+---- migrate deploy ---- 
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "radian_db", schema "public" at "postgres:5432"
+
+41 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+ Container radian_api Restarting 
+ Container radian_api Started 
+---- final logs ---- 
+radian_api  | [7m   [0m [91m                                ~[0m
+radian_api  | 
+radian_api  | [96msrc/prisma/soft-delete.extension.ts[0m:[93m112[0m:[93m4[0m - [91merror[0m[90m TS1109: [0mExpression expected.
+radian_api  | 
+radian_api  | [7m112[0m    */
+radian_api  | [7m   [0m [91m   ~[0m
+radian_api  | 
+radian_api  | [96msrc/prisma/soft-delete.extension.ts[0m:[93m112[0m:[93m5[0m - [91merror[0m[90m TS1161: [0mUnterminated regular expression literal.
+radian_api  | 
+radian_api  | [7m112[0m    */
+radian_api  | [7m   [0m [91m    ~[0m
+radian_api  | 
+radian_api  | [96msrc/prisma/soft-delete.extension.ts[0m:[93m113[0m:[93m3[0m - [91merror[0m[90m TS1005: [0m',' expected.
+radian_api  | 
+radian_api  | [7m113[0m   'AppSession',
+radian_api  | [7m   [0m [91m  ~~~~~~~~~~~~[0m
+radian_api  | 
+radian_api  | [[90m11:43:43 AM[0m] Found 57 errors. Watching for file changes.
+radian_api  | 
+radian_api  | 
+radian_api  | > api@0.0.1 start:dev
+radian_api  | > nest start --watch
+radian_api  | 
+radian_api  | [2J[3J[H[[90m11:43:47 AM[0m] Starting compilation in watch mode...
+radian_api  | 

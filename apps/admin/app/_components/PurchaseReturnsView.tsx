@@ -1,0 +1,92 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { WRAP, ItemPageHead, DemoBar, DataTable, Kpi } from "./ItemUI";
+import { fmtDate } from "./PurchaseViews";
+import { listPurchaseReturns, formatTaka, type ApiPurchaseReturn } from "../_data/api";
+
+/*
+  Purchase returns — goods sent back to suppliers (DEC-PUR-006).
+  Real-world basis: the owner returned ৳106,200 of stock after Valentine 2026.
+  A return is created FROM its purchase (detail page → “Return goods”); this screen
+  is the ledger of all of them.
+*/
+
+const ROW = "grid grid-cols-1 md:grid-cols-[130px_minmax(0,1fr)_110px_120px_120px_120px] items-center gap-2 px-4 py-3";
+
+export default function PurchaseReturnsView() {
+  const [rows, setRows] = useState<ApiPurchaseReturn[]>([]);
+  const [isDemo, setIsDemo] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      setRows(await listPurchaseReturns());
+      setIsDemo(false);
+    } catch {
+      const { DEMO_PURCHASES } = await import("../_data/purchaseDemo");
+      setRows(
+        DEMO_PURCHASES.flatMap((p) =>
+          p.returns.map((r) => ({ ...r, purchase: { id: p.id, purchaseNo: p.purchaseNo, supplierName: p.supplierName } })),
+        ),
+      );
+      setIsDemo(true);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  const total = rows.reduce((s, r) => s + r.totalPaisa, 0);
+  const credit = rows.reduce((s, r) => s + r.creditPaisa, 0);
+
+  return (
+    <div className={WRAP}>
+      <ItemPageHead
+        eyebrow="Commerce · Purchases"
+        title="Returns to suppliers"
+        blurb="Money never comes back as cash — the purchase's due is cut first, anything beyond it becomes credit for the next buy (DEC-PUR-006). To create one, open the purchase and press “Return goods”."
+      />
+      {isDemo && <DemoBar what="sample returns" onRetry={load} />}
+
+      <Kpi items={[
+        { l: "Total returned", v: formatTaka(total), c: "#470066", bg: "#f5eafb", icon: "box" },
+        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#b45309", bg: "#fff4e6", icon: "cash" },
+        { l: "Became credit", v: formatTaka(credit), c: "#0e8f74", bg: "#e7f5f1", icon: "check" },
+        { l: "Returns", v: rows.length, c: "#2563a8", bg: "#e8f0fa", icon: "grid" },
+        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#b5642f", bg: "#f9efe6", icon: "user" },
+      ]} />
+
+      <DataTable head={
+        <div className={ROW + " text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95"}>
+          <span>Return</span><span>Purchase · supplier</span><span>Date</span>
+          <span className="text-right">Value</span><span className="text-right">Due cut</span><span className="text-right">Credit</span>
+        </div>
+      }>
+        {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
+        {!loading && rows.length === 0 && (
+          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No returns yet — that is a good thing.</div>
+        )}
+        {rows.map((r) => (
+          <div key={r.id} className={ROW}>
+            <span className="text-[13px] font-semibold text-purple">{r.returnNo}</span>
+            <span className="text-[13px] text-body min-w-0 truncate">
+              {r.purchase
+                ? <Link href={`/purchases/${r.purchase.id}`} className="underline decoration-lavender-deep hover:decoration-orchid">
+                    {r.purchase.purchaseNo} · {r.purchase.supplierName}
+                  </Link>
+                : "—"}
+              {r.reason && <span className="text-body-soft"> · {r.reason}</span>}
+            </span>
+            <span className="text-[12.5px] text-body-soft">{fmtDate(r.returnDate)}</span>
+            <span className="text-[13px] font-medium text-right">{formatTaka(r.totalPaisa)}</span>
+            <span className="text-[13px] text-right" style={{ color: "#b45309" }}>{formatTaka(r.dueCutPaisa)}</span>
+            <span className="text-[13px] text-right" style={{ color: r.creditPaisa > 0 ? "#0e8f74" : "#9b8aa6" }}>
+              {r.creditPaisa > 0 ? formatTaka(r.creditPaisa) : "—"}
+            </span>
+          </div>
+        ))}
+      </DataTable>
+    </div>
+  );
+}

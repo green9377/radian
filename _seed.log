@@ -1,0 +1,9 @@
+===== SEED START 2026-07-17T07:03:11.047Z =====
+DB cleaned (truncate cascade)
+categories: 52
+tags: 13
+products: 71
+channels: 5, segments: 5
+VERIFY counts -> products=71 categories=52
+RESULT: OK
+===== SEED DONE 2026-07-17T07:03:12.229Z =====

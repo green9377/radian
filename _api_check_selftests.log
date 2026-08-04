@@ -1,0 +1,14 @@
+src/items/items.selftest.ts(337,59): error TS2339: Property 'sku' does not exist on type '{ id: string; }'.
+src/items/items.selftest.ts(344,75): error TS2339: Property 'sku' does not exist on type '{ id: string; }'.
+src/orders/sales.selftest.ts(145,14): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/orders/sales.selftest.ts(146,14): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/orders/sales.selftest.ts(165,20): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/orders/sales.selftest.ts(168,20): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/orders/sales.selftest.ts(171,35): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/orders/sales.selftest.ts(244,18): error TS2339: Property 'recordPayment' does not exist on type 'OrdersService'.
+src/pos/pos.selftest.ts(204,28): error TS2345: Argument of type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' is not assignable to parameter of type 'CreatePosSaleDto'.
+  Property 'payMode' is missing in type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' but required in type 'CreatePosSaleDto'.
+src/pos/pos.selftest.ts(210,28): error TS2345: Argument of type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' is not assignable to parameter of type 'CreatePosSaleDto'.
+  Property 'payMode' is missing in type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' but required in type 'CreatePosSaleDto'.
+src/pos/pos.selftest.ts(219,28): error TS2345: Argument of type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' is not assignable to parameter of type 'CreatePosSaleDto'.
+  Property 'payMode' is missing in type '{ shiftId: string; lines: { productId: string; qty: number; }[]; payments: { method: "cash"; amountPaisa: number; }[]; }' but required in type 'CreatePosSaleDto'.

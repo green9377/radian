@@ -1,0 +1,58 @@
+# Radian API — Render Blueprint
+#
+# এই ফাইলটা থাকার মানে: Render-এ গিয়ে হাতে ১৫টা সেটিং করতে হবে না।
+# "New → Blueprint" → repo বেছে দিলে Render এখান থেকেই সব পড়ে নেয়।
+#
+# ⚠️ যে variable-গুলোতে `sync: false` লেখা, সেগুলোর মান Render **আপনাকে
+# জিজ্ঞেস করবে**। ওগুলো ইচ্ছে করে এখানে লেখা হয়নি — এই ফাইল GitHub-এ যাবে,
+# পাসওয়ার্ড GitHub-এ যাবে না।
+
+services:
+  - type: web
+    name: radian-api-demo
+    runtime: docker
+    plan: free
+    # ঢাকার সবচেয়ে কাছের Render region — প্রতিটা ক্লিকে ~২০০ms বাঁচে
+    region: singapore
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    # Render এখানে ping করে বোঝে service সত্যিই উঠেছে কিনা।
+    # /health ইচ্ছাকৃতভাবে DB ছোঁয় না — কারণ app.controller.ts-এ লেখা আছে।
+    healthCheckPath: /health
+    branch: main # main = demo। real version পরে আলাদা service, branch: production
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_REFRESH_EXPIRY_DAYS
+        value: "30"
+      - key: SSLCOMMERZ_IS_LIVE
+        value: "false" # demo = sandbox, সবসময়
+      # ↓ নিচেরগুলো Render dashboard-এ আপনি বসাবেন (repo-তে লেখা হবে না)
+      - key: DATABASE_URL # Neon-এর connection string
+        sync: false
+      - key: JWT_SECRET # আমার বানিয়ে দেওয়া demo secret
+        sync: false
+      - key: PUBLIC_API_URL # এই service-এর নিজের ঠিকানা
+        sync: false
+      - key: PUBLIC_WEB_URL # Vercel storefront-এর ঠিকানা
+        sync: false
+      - key: PUBLIC_ADMIN_URL # Vercel admin-এর ঠিকানা (CORS-এর জন্য লাগবেই)
+        sync: false
+      - key: SSLCOMMERZ_STORE_ID
+        sync: false
+      - key: SSLCOMMERZ_STORE_PASSWORD
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
+      - key: IMAGEKIT_PUBLIC_KEY
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_IMAGE_BASE
+        sync: false
+      # WhatsApp / Resend — মালিক বলেছেন key পরে বসাবেন। না দিলে শুধু ওই
+      # ফিচারগুলো চুপ থাকবে, বাকি সব চলবে।
+      #
+      # ⛔ PORT এখানে নেই এবং কখনো দেবেন না — Render নিজে দেয়। হাতে দিলে
+      #    "Application failed to respond" আসবে।

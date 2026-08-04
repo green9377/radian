@@ -1,0 +1,104 @@
+/* Delivery Management DTOs — RADIAN_DELIVERY_MODULE_ARCHITECTURE.md (DEC-DLV-001…006) */
+
+export interface MethodWriteDto {
+  label: string;
+  zone: 'DHAKA' | 'BANGLADESH';
+  kind?: 'RIDER' | 'COURIER';
+  feePaisa?: number;
+  cutoffTime?: string | null;
+  etaLabel?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  /**
+   * Does this speed get a card in the homepage's "Need It Today" band?
+   *
+   * ⚠️ Advertising, not availability — `isActive` is what decides whether a
+   * customer may pick it at checkout. Kept apart on purpose (3 Aug 2026).
+   */
+  isFeatured?: boolean;
+  /**
+   * DEC-DLV-007 — which area this price belongs to. `null` (or absent on
+   * create) = one price for the whole zone, which is what most shops want and
+   * what keeps the customer from being asked where they live.
+   */
+  areaId?: string | null;
+  /** DEC-DLV-008 — which NAME this price belongs to. */
+  typeId?: string | null;
+  actorName?: string;
+}
+
+export interface SlotWriteDto {
+  label: string;
+  capacityPerDay?: number | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  /** DEC-DLV-007 — minutes from midnight. 9am = 540. */
+  startMin?: number | null;
+  endMin?: number | null;
+  /** "08:00" — this slot's own last-order time. null = until it starts. */
+  cutoffTime?: string | null;
+}
+
+/** DEC-DLV-008 — a delivery NAME, shop-wide. Product upload shows these. */
+export interface TypeWriteDto {
+  name: string;
+  zone?: 'DHAKA' | 'BANGLADESH';
+  kind?: 'RIDER' | 'COURIER';
+  sortOrder?: number;
+  isActive?: boolean;
+  /** DEC-DLV-010 — এই delivery কোন ছাঁচের */
+  timing?:
+    | 'FROM_CONFIRM'
+    | 'TODAY_SLOT'
+    | 'PICK_DATE_SLOT'
+    | 'PICK_DATE_FIXED'
+    | 'LEAD_DAYS';
+  /** FROM_CONFIRM হলে কত মিনিটের প্রতিশ্রুতি। ২ ঘণ্টা = 120। */
+  promiseMinutes?: number | null;
+  /** দিনের কোন সময়টায় এই delivery নেওয়া যাবে। মিনিটে, ১০টা = 600। */
+  openFromMin?: number | null;
+  openToMin?: number | null;
+}
+
+/** DEC-DLV-007 — a zone or an area inside one. `parentId` null = a zone. */
+export interface AreaWriteDto {
+  name: string;
+  parentId?: string | null;
+  zone?: 'DHAKA' | 'BANGLADESH';
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface RiderWriteDto {
+  name: string;
+  phone?: string | null;
+  vehicle?: string | null;
+  photoUrl?: string | null;
+  note?: string | null;
+  isActive?: boolean;
+}
+
+export interface CourierWriteDto {
+  name: string;
+  phone?: string | null;
+  trackingUrlTemplate?: string | null;
+  note?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface AssignDto {
+  orderId: string;
+  kind: 'RIDER' | 'COURIER';
+  riderId?: string;
+  courierId?: string;
+  consignmentNo?: string;
+  note?: string;
+  actorName?: string;
+}
+
+export interface AssignmentActionDto {
+  actorName?: string;
+  failReason?: string;
+  consignmentNo?: string;
+}

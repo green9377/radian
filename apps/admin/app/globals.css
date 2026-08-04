@@ -1,0 +1,368 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Radian brand colors (Constitution locked) ---- */
+  --color-purple: #470066;
+  --color-purple-deep: #320049;
+  --color-ink: #2e0442;
+  --color-orchid: #cf43ea;
+  --color-orchid-soft: #f9e9fd;
+  --color-orchid-mid: #e9a8f5;
+  --color-lavender: #f7f1fb;
+  --color-lavender-deep: #efe4f7;
+  --color-rosegold: #b76e79;
+  --color-rosegold-light: #e8c9ce;
+  /* ---- Text (readability pass, 21 Jul 2026 — sobuj: "oder sob bold, amder gula
+     cokhe lage na"). The old --color-body-soft (#7a6689) was too pale against white:
+     field labels, table heads and hints all disappeared. Both tones are darkened;
+     "soft" is now a real reading grey, not a whisper. Change them HERE and the whole
+     admin panel follows — every screen uses these tokens. ---- */
+  --color-body: #1f0f2b;      /* #3a2547 -> #2b1638 -> now near-black plum */
+  --color-body-soft: #46354f; /* #7a6689 -> #5d4a6c -> now a real reading grey */
+
+  /* sidebar — the dark purple rail. Its text was #cbb2de on #320049, which is only
+     ~3:1 contrast: legible in a mock-up, tiring on a real working day. */
+  --color-nav-text: #e7d8f2;
+  --color-nav-dim: #b394cc;
+  --color-amber: #b45309;
+
+  /* ---- Typography ---- */
+  --font-display: var(--font-display), Georgia, serif;
+  --font-ui: var(--font-ui), "Century Gothic", sans-serif;
+
+  /* ---- Shape & elevation ---- */
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --shadow-soft: 0 10px 40px rgba(71, 0, 102, 0.08);
+  --shadow-lift: 0 18px 50px rgba(71, 0, 102, 0.14);
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-body);
+  /* The UI face (Jost / Century Gothic) is a geometric sans — at weight 400 its thin
+     even strokes disappear on a bright screen. The audited ERP looks "bold" mostly
+     because its face is heavier by default. 500 is our normal. (21 Jul, sobuj) */
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* headings and anything already asking for emphasis go one step further */
+h1, h2, h3, h4, th, label, b, strong {
+  font-weight: 600;
+}
+
+/* ---- Icon button (header nav icons) ---- */
+.icon-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 11px;
+  border-radius: 12px;
+  color: var(--color-purple);
+  transition: background 0.25s;
+  font-size: 19px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.icon-btn:hover {
+  background: var(--color-lavender);
+}
+.icon-btn em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+}
+.icon-svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+/* ---- Mobile: compact header (icons only, no labels) ---- */
+@media (max-width: 640px) {
+  .icon-btn {
+    padding: 6px 8px;
+  }
+  .icon-btn em {
+    display: none;
+  }
+}
+
+/* ---- Support panel agent fade ---- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- PDP: Buy Now attention animation (FlowerAura-style shine + glow) ---- */
+@keyframes shineSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+.animate-shine {
+  animation: shineSweep 2.8s ease-in-out infinite;
+}
+
+@keyframes ctaGlow {
+  0%,
+  100% {
+    box-shadow: 0 10px 26px rgba(71, 0, 102, 0.28);
+  }
+  50% {
+    box-shadow: 0 12px 34px rgba(207, 67, 234, 0.42);
+  }
+}
+.animate-cta-glow {
+  animation: ctaGlow 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shine,
+  .animate-cta-glow {
+    animation: none;
+  }
+}
+
+/* ---- Scrollbar hide ---- */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---- Admin form input (bold, clearly-visible boxes) ---- */
+.ipt {
+  width: 100%;
+  border: 1.5px solid #d8c6ee;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-family: var(--font-ui);
+  color: var(--color-purple);
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+/* inputs/selects without an explicit height still get a comfortable size */
+input.ipt,
+select.ipt {
+  min-height: 40px;
+}
+.ipt:hover {
+  border-color: #c6a9e8;
+}
+.ipt:focus {
+  border-color: var(--color-orchid);
+  box-shadow: 0 0 0 3px var(--color-orchid-soft);
+}
+.ipt::placeholder {
+  color: var(--color-body-soft);
+  opacity: 0.72;
+  font-weight: 500;
+}
+/* search inputs with a leading icon.
+   NOTE: .ipt sets `padding` (shorthand) and loads after Tailwind, so utilities
+   like `pl-10` are silently overridden — the icon then sits on top of the text.
+   Use `ipt ipt-icon` instead of `ipt pl-10`. */
+.ipt-icon {
+  padding-left: 40px;
+}
+/* number inputs that carry their unit in the corner — "40 MIN", "3 DAYS".
+   Same trap as .ipt-icon and it caught me anyway (1 Aug 2026): `pr-[62px]` was
+   silently dropped by the padding shorthand above, so the value printed
+   straight through the unit — "MIN0". Right-aligned so the number and its unit
+   read as one value instead of two things at opposite ends of a box. */
+.ipt-unit {
+  padding-right: 58px;
+  text-align: right;
+}
+/* the browser's own up/down arrows sit exactly where the unit label is pinned,
+   and they are useless for a quantity anyone types. */
+.ipt-unit::-webkit-outer-spin-button,
+.ipt-unit::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ipt-unit {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+select.ipt {
+  cursor: pointer;
+}
+textarea.ipt {
+  line-height: 1.55;
+  resize: vertical;
+}
+
+/* ============================================================================
+   READABILITY PASS — 21 July 2026
+   sobuj: "oder sob bold, amder gula cokhe lage na. ataw thik kro pura admin panel"
+
+   The audited ERP wins on legibility for one reason: its field labels are dark and
+   heavy while its inputs are light. Ours were the other way round — pale 11px labels
+   above a strong input box, so the eye had nothing to land on.
+
+   These are PANEL-WIDE classes. Any screen can use them; the tokens above already
+   pull the rest of the panel up.
+   ========================================================================== */
+
+/* the label above a field — dark, semibold, never grey-on-white */
+.lbl {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-purple);
+  margin-bottom: 5px;
+  font-family: var(--font-ui);
+}
+.lbl .req {
+  color: #c0392b;
+  margin-left: 2px;
+}
+
+/* the small explanation under a field — readable, not a whisper */
+.hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-body-soft);
+  margin: 4px 0 0;
+}
+
+/* a section title inside a form ("Item Information") */
+.sect-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-purple);
+  letter-spacing: 0.01em;
+  margin: 0 0 2px;
+}
+
+/* table column headings — was 10.5px pale grey, effectively invisible */
+.th {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-body-soft);
+}
+/* the same heading on a coloured (brand purple) header bar */
+.th-on-dark {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+/* body text inside a table row — one step darker than before */
+.td {
+  font-size: 13.5px;
+  color: var(--color-body);
+}
+.td-soft {
+  font-size: 12.5px;
+  color: var(--color-body-soft);
+}
+
+/* checkbox + its label, sized so the label is the click target too */
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-body);
+  cursor: pointer;
+  user-select: none;
+}
+.chk input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--color-purple);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* a horizontal rule between form sections */
+.sect-rule {
+  border: 0;
+  border-top: 1px solid var(--color-lavender-deep);
+  margin: 22px 0;
+}
+
+/* ---- compact clock field (HR-D13, attendance day sheet) ----
+   The browser's own time input is wide, tall and carries a big grey clock
+   button that fights the rest of the panel. Everything below just shrinks it
+   and makes the digits line up: the picker still opens, it is simply quiet. */
+.time-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e7dff0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.time-field:focus-within {
+  border-color: var(--color-orchid);
+  box-shadow: 0 0 0 3px rgba(160, 33, 184, 0.1);
+}
+.time-field > span {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-body-soft);
+  opacity: 0.75;
+  padding-right: 6px;
+}
+.time-field input[type="time"] {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-body);
+  padding: 7px 0;
+  width: 62px;
+}
+.time-field input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.3;
+  padding: 0;
+  margin: 0;
+  width: 13px;
+  cursor: pointer;
+}
+.time-field input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 0.7; }
+.time-field:has(input:disabled) { background: #faf8fc; opacity: 0.6; }

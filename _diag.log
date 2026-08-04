@@ -1,0 +1,61 @@
+===== RADIAN DB DIAG Fri 07/17/2026 10:38:35.53 =====
+
+[A] docker ps (names + ports)
+radian_postgres  |  postgres:16-alpine  |  0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+
+[B] container env (POSTGRES_*)
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=e485a0a5c7ea
+POSTGRES_PASSWORD=radian_pass
+POSTGRES_DB=radian_db
+POSTGRES_USER=radian_user
+GOSU_VERSION=1.19
+LANG=en_US.utf8
+PG_MAJOR=16
+PG_VERSION=16.14
+PG_SHA256=f6d077142737920858ce958ccdb75c6ee137a63b5b0853c70693d401ac7e3471
+DOCKER_PG_LLVM_DEPS=llvm21-dev 		clang21
+PGDATA=/var/lib/postgresql/data
+HOME=/root
+
+[C] password auth over TCP INSIDE container (tests the real creds)
+ current_user | current_database 
+--------------+------------------
+ radian_user  | radian_db
+(1 row)
+
+
+[D] who is listening on host port 5432
+  TCP    0.0.0.0:5432           0.0.0.0:0              LISTENING       6028
+  TCP    0.0.0.0:5432           0.0.0.0:0              LISTENING       11596
+  TCP    [::]:5432              [::]:0                 LISTENING       11596
+  TCP    [::]:5432              [::]:0                 LISTENING       6028
+
+[E] postgres container recent logs
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down...2026-07-17 03:54:04.956 UTC [41] LOG:  received fast shutdown request
+.2026-07-17 03:54:04.959 UTC [41] LOG:  aborting any active transactions
+2026-07-17 03:54:04.962 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+2026-07-17 03:54:04.964 UTC [42] LOG:  shutting down
+2026-07-17 03:54:04.968 UTC [42] LOG:  checkpoint starting: shutdown immediate
+2026-07-17 03:54:05.167 UTC [42] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.117 s, sync=0.071 s, total=0.204 s; sync files=301, longest=0.004 s, average=0.001 s; distance=4283 kB, estimate=4283 kB; lsn=0/1925D68, redo lsn=0/1925D68
+2026-07-17 03:54:05.179 UTC [41] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2026-07-17 03:54:05.292 UTC [1] LOG:  starting PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-07-17 03:54:05.293 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-07-17 03:54:05.293 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-07-17 03:54:05.300 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-07-17 03:54:05.309 UTC [64] LOG:  database system was shut down at 2026-07-17 03:54:05 UTC
+2026-07-17 03:54:05.325 UTC [1] LOG:  database system is ready to accept connections
+2026-07-17 03:59:05.397 UTC [62] LOG:  checkpoint starting: time
+2026-07-17 03:59:09.135 UTC [62] LOG:  checkpoint complete: wrote 40 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.718 s, sync=0.008 s, total=3.738 s; sync files=12, longest=0.003 s, average=0.001 s; distance=202 kB, estimate=202 kB; lsn=0/1958890, redo lsn=0/1958858
+
+===== DIAG DONE Fri 07/17/2026 10:38:36.11 =====

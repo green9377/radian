@@ -1,0 +1,30 @@
+# Radian Storefront — production image (VPS / docker-compose.prod.yml-এর জন্য)।
+# Vercel-এ deploy করলে এই ফাইল লাগে না।
+#
+# পাশের `Dockerfile` (dev) অক্ষত রইল — লোকাল compose ওটাই ব্যবহার করে।
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+#  ⚠️ NEXT_PUBLIC_* build-time-এ কোডে বসে যায় (admin/Dockerfile.prod-এ
+#  বিস্তারিত লেখা আছে)। এগুলো ভুল হলে দোকান খুলবে কিন্তু পণ্য দেখাবে না।
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_IMAGE_BASE
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_IMAGE_BASE=$NEXT_PUBLIC_IMAGE_BASE
+
+RUN npm run build
+
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]

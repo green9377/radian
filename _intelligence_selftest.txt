@@ -1,0 +1,130 @@
+
+[selftest] cleaning up anything left from last time
+
+--- the dashboard and Finance agree, to the paisa ---
+  PASS  sales on the dashboard IS the figure Finance gives  (dashboard 0 vs finance 0)
+  PASS  gross margin too — not recomputed here  (dashboard 0 vs finance 0)
+
+--- what a staff account actually receives ---
+  PASS  a manager gets the money section
+  PASS  a staff member does not
+  PASS  no cash figure reaches a staff payload
+  PASS  no break-even either
+  PASS  and margin is withheld with a reason, not silently zeroed  (Not shown for your account)
+
+--- the snapshot is a cache, and knows it ---
+  PASS  today is refused — a half-finished day is not history  (day has not closed yet)
+  PASS  yesterday is written
+  PASS  a corrupted row is overwritten by the source, not trusted  (revenue now 0, orders 0)
+
+--- a missed night catches up by itself ---
+  PASS  three days removed  (90 → 87)
+  PASS  the sweep puts back every day it finds missing — not just one  (filled 3, count 87 → 90)
+  PASS  and running it twice fills nothing more
+  PASS  and it reports anything it deliberately left for next time  (0 left)
+
+--- rates are rebuilt from money, never averaged ---
+  PASS  June margin is built from the summed money  (2059 bp (mean of the days would say 5000))
+  PASS  and is nowhere near the average of the two days
+  PASS  revenue is the sum
+
+--- a month with no data says so ---
+  PASS  March 2019 reports null, not ৳0
+  PASS  and admits it has no days behind it
+  PASS  so it gets no colour at all
+
+--- what a target may be ---
+  PASS  a margin target of 150 % is refused — and for being 150 %  (Gross margin must be between 0.01 % and 100 %)
+  PASS  so is month 13  (Month must be 1–12)
+  PASS  and a negative sales target — for being negative  (Monthly sales must be a positive amount)
+  PASS  a year of 20 is a typo, and is refused  (That year does not look right)
+  PASS  a real past year is allowed — the guard is for typos, not history
+  PASS  with no target, the month has no colour — never green
+  PASS  with a target it goes green — 1,010,000 against 500,000  (20200 bp of target)
+  PASS  clearing it takes the colour away again
+
+--- copying targets forward ---
+  PASS  it fills the empty months  (wrote 2)
+  PASS  and refuses to overwrite a month somebody already set  (skipped 1)
+  PASS  February keeps the number the owner chose  (111111)
+
+--- why the month moved: volume vs basket ---
+  PASS  both months have data, so the change can be explained
+  PASS  volume and basket add up to the whole change, to the paisa  (4200000 + -7190000 = -2990000)
+  PASS  and it names which one led  (value)
+  PASS  with nothing to compare against it says so instead of inventing a change
+
+--- weekday pattern ---
+  PASS  with no sales anywhere it reports no pattern rather than a flat one  (known=false)
+
+--- every lens answers ---
+  PASS  Sales answers
+  PASS  Delivery answers
+  PASS  Inventory answers
+  PASS  Products answers
+  PASS  Customers answers
+  PASS  Finance answers
+  PASS  Marketing answers
+  PASS  Purchases answers
+  PASS  Staff answers
+  PASS  an unknown lens is refused  (No such lens: nonsense)
+
+--- every report answers, and its total is the sum of its rows ---
+  PASS  the registry is not empty  (10 reports)
+  PASS  Profit & loss answers
+  PASS  Trial balance answers
+  PASS  Owed to us answers
+  PASS  What we owe answers
+  PASS  Sales by channel and zone answers
+  PASS  Product performance answers
+  PASS  Stock valuation answers
+  PASS  Wastage and gifts answers
+  PASS  Delivery performance answers
+  PASS  Supplier balances answers
+  PASS  Supplier balances — "We owe" total is the sum of its rows  (0 vs 0)
+  PASS  Supplier balances — "They owe us" total is the sum of its rows  (0 vs 0)
+  PASS  an unknown report is refused  (No such report: nonsense)
+  PASS  a start date after the end date is refused  (The start date is after the end date)
+
+--- one definition of average order value, not three ---
+  PASS  the dashboard and the Sales lens agree on average order value  (dashboard No orders yet this month vs lens null)
+
+--- a control that does nothing must say so ---
+  PASS  Sales declares how much of the period it uses  (full)
+  PASS  Delivery declares how much of the period it uses  (full)
+  PASS  Inventory declares how much of the period it uses  (full)
+  PASS  Products declares how much of the period it uses  (full)
+  PASS  Customers declares how much of the period it uses  (full)
+  PASS  Finance declares how much of the period it uses  (none · says why)
+  PASS  Marketing declares how much of the period it uses  (none · says why)
+  PASS  Purchases declares how much of the period it uses  (none · says why)
+  PASS  Staff declares how much of the period it uses  (none · says why)
+  PASS  a "none" lens really does answer identically for every period
+
+--- a report covers exactly the dates it was given ---
+  PASS  Product performance honours the dates it was given  (from 2019-03-01)
+  PASS  Product performance returns nothing for a period the shop did not trade in  (0 rows)
+  PASS  Wastage and gifts honours the dates it was given  (from 2019-03-01)
+  PASS  Wastage and gifts returns nothing for a period the shop did not trade in  (0 rows)
+
+--- forecast: invented is labelled, and turns real by itself ---
+  PASS  every projection says whether it is worked out or invented  (week=DEMO month=DEMO)
+  PASS  and every one explains HOW, in words
+  PASS  every projection is a range, not one confident number
+  PASS  no buying recommendation is issued at all
+  PASS  market demand is demo
+  PASS  and admits that waiting will not fix it
+
+--- forecast: an empty day is not history (condition 3) ---
+  PASS  ninety back-filled empty days do NOT make it ready  (3 trading days counted)
+  PASS  so the weekly projection is still invented
+  PASS  twenty-eight real trading days flip it to worked-out — with no human step  (31 trading days)
+  PASS  and the monthly one stays invented, because a year has not passed  (334 days still to go)
+
+--- the singleton under a double first load ---
+  PASS  six simultaneous callers all get a row
+  PASS  and exactly one row exists  (1 rows)
+
+[selftest] cleaning up
+
+================ 88 passed, 0 failed ================

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Details — Radian (Board v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#470066; --purple-deep:#320049; --ink:#2E0442;
+  --orchid:#CF43EA; --orchid-soft:#F9E9FD; --orchid-mid:#E9A8F5;
+  --lavender:#F7F1FB; --lavender-deep:#EFE4F7;
+  --rosegold:#B76E79; --rosegold-light:#E8C9CE;
+  --white:#FFFFFF; --text:#3A2547; --text-soft:#7A6689;
+  --radius-lg:28px; --radius-md:18px; --radius-sm:12px;
+  --shadow-soft:0 10px 40px rgba(71,0,102,.08);
+  --shadow-lift:0 18px 50px rgba(71,0,102,.14);
+  --font-display:'Fraunces',Georgia,serif;
+  --font-ui:'Jost','Century Gothic',Futura,-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-ui);color:var(--text);background:var(--white);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font-family:var(--font-ui);cursor:pointer;border:none;background:none}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* ---------- shared ---------- */
+.sec{padding:72px 0}
+.sec-alt{background:var(--lavender)}
+.sec-head{text-align:center;margin-bottom:44px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--orchid);font-weight:600;margin-bottom:14px;white-space:nowrap}
+.petal{width:9px;height:9px;background:var(--orchid);border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:inline-block}
+.petal.gold{background:var(--rosegold)}
+.sec-title{font-family:var(--font-display);font-size:clamp(26px,3.4vw,40px);font-weight:500;color:var(--purple);line-height:1.15}
+.sec-sub{color:var(--text-soft);margin-top:10px;font-size:16px;font-weight:300}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:17px 42px;background:var(--purple);color:#fff;border-radius:100px;font-weight:500;font-size:15.5px;letter-spacing:.03em;transition:all .3s ease;white-space:nowrap;box-shadow:0 12px 30px rgba(71,0,102,.25)}
+.btn-primary:hover{background:var(--purple-deep);transform:translateY(-2px)}
+.btn-view-all{display:inline-flex;align-items:center;gap:10px;padding:15px 44px;border:1.5px solid var(--purple);border-radius:100px;color:var(--purple);font-weight:500;font-size:15px;transition:all .3s ease;white-space:nowrap}
+.btn-view-all:hover{background:var(--purple);color:#fff}
+.btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:16px 38px;background:rgba(255,255,255,.92);color:var(--purple);border-radius:100px;font-weight:500;font-size:15px;white-space:nowrap;transition:all .3s}
+.btn-ghost:hover{background:#fff}
+svg.ic{width:1em;height:1em;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.12em}
+.ph{background:linear-gradient(150deg,#E7D3F2,#D9B8EC 45%,#EFD9F8);position:relative;overflow:hidden}
+.ph::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 78% 18%,rgba(255,255,255,.55),transparent 55%),radial-gradient(90% 70% at 18% 88%,rgba(71,0,102,.18),transparent 60%)}
+.ph .bloom{position:absolute;border-radius:50% 50% 50% 0;opacity:.8}
+.ph-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(71,0,102,.45);font-weight:600;white-space:nowrap}
+
+/* ---------- announcement + header ---------- */
+.announce{background:linear-gradient(90deg,var(--purple-deep),var(--purple) 55%,#5E1580);color:#fff;text-align:center;padding:11px 16px;font-size:13.5px;letter-spacing:.06em}
+.announce b{color:var(--orchid-mid);font-weight:600}
+header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--lavender-deep)}
+.nav-top{display:flex;align-items:center;gap:26px;padding:16px 0}
+.logo{font-weight:600;font-size:22px;letter-spacing:.34em;color:var(--purple);display:flex;align-items:center;gap:9px}
+.loc-switch{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1.5px solid var(--lavender-deep);border-radius:100px;font-size:13.5px;font-weight:500;color:var(--purple);transition:border-color .25s;white-space:nowrap}
+.loc-switch:hover{border-color:var(--orchid)}
+.loc-switch .dot{width:8px;height:8px;border-radius:50%;background:var(--orchid)}
+.search{flex:1;display:flex;align-items:center;gap:10px;background:var(--lavender);border-radius:100px;padding:12px 20px;max-width:520px}
+.search input{border:none;background:none;outline:none;font-family:var(--font-ui);font-size:14.5px;width:100%;color:var(--text)}
+.nav-icons{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{position:relative;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--purple);transition:background .25s;font-size:19px}
+.icon-btn:hover{background:var(--lavender)}
+.cart-badge{position:absolute;top:2px;right:0;background:var(--orchid);color:#fff;font-size:10px;font-weight:600;min-width:17px;height:17px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+.nav-cats{display:flex;gap:34px;justify-content:center;padding:0 0 14px;font-size:14.5px;font-weight:500;overflow-x:auto;scrollbar-width:none}
+.nav-cats::-webkit-scrollbar{display:none}
+.nav-cats a{white-space:nowrap;padding:4px 0;transition:color .25s}
+.nav-cats a:hover{color:var(--orchid)}
+.nav-cats a.hot{color:var(--orchid);font-weight:600}
+.nav-cats a.zone-hide{display:none}
+body.zone-bd .nav-cats a.zone-hide{display:none}
+
+/* ---------- breadcrumb ---------- */
+.crumb{display:flex;align-items:center;gap:9px;padding:20px 0 4px;font-size:13.5px;color:var(--text-soft);flex-wrap:wrap}
+.crumb a:hover{color:var(--orchid)}
+.crumb .sep{color:var(--lavender-deep)}
+.crumb b{color:var(--purple);font-weight:600}
+
+/* ---------- PDP core ---------- */
+.pdp-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;padding:26px 0 10px;align-items:start}
+.gallery{position:sticky;top:140px}
+.g-main{border-radius:var(--radius-lg);overflow:hidden;aspect-ratio:1/1.02;position:relative;box-shadow:var(--shadow-soft)}
+.g-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.g-thumb{border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:1/1;position:relative;cursor:pointer;border:2px solid transparent;transition:border-color .25s}
+.g-thumb.on{border-color:var(--orchid)}
+.buy h1{font-family:var(--font-display);font-size:clamp(26px,3vw,36px);font-weight:500;color:var(--purple);line-height:1.15}
+.buy .subline{font-size:15px;font-weight:300;color:var(--text-soft);margin-top:8px}
+.rate-row{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:13.5px;color:var(--text-soft);flex-wrap:wrap}
+.stars{color:var(--rosegold);font-size:15px;letter-spacing:2px}
+.price-row{display:flex;align-items:baseline;gap:12px;margin:6px 0 20px}
+.price{font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--purple);white-space:nowrap}
+.price-row .unit{font-size:13px;color:var(--text-soft)}
+.cap-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.cap{display:inline-flex;align-items:center;gap:7px;background:var(--lavender);border-radius:100px;padding:8px 16px;font-size:12.5px;font-weight:600;color:var(--purple);white-space:nowrap}
+.cap svg{color:var(--orchid);font-size:13px}
+.opt-block{margin-bottom:22px}
+.opt-label{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;font-weight:600;color:var(--purple);margin-bottom:10px}
+.opt-label small{font-size:12px;color:var(--text-soft);font-weight:400;white-space:nowrap}
+.chips{display:flex;gap:9px;flex-wrap:wrap}
+.chip{padding:10px 20px;border:1.5px solid var(--lavender-deep);border-radius:100px;font-size:13.5px;font-weight:500;color:var(--text);background:#fff;cursor:pointer;transition:all .22s;white-space:nowrap}
+.chip:hover{border-color:var(--orchid)}
+.chip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+.txt-input{width:100%;border:1.5px solid var(--lavender-deep);border-radius:var(--radius-sm);padding:13px 16px;font-family:var(--font-ui);font-size:14px;color:var(--text);outline:none;transition:border-color .25s;background:#fff}
+.txt-input:focus{border-color:var(--orchid)}
+.txt-hint{font-size:12px;color:var(--text-soft);margin-top:6px}
+.upload-box{border:1.5px dashed var(--lavender-deep);border-radius:var(--radius-sm);padding:18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .25s;background:var(--lavender)}
+.upload-box:hover{border-color:var(--orchid);background:var(--orchid-soft)}
+.upload-box .u-ic{width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;color:var(--orchid);font-size:19px;flex-shrink:0}
+.upload-box b{display:block;font-size:13.5px;color:var(--purple);font-weight:600}
+.upload-box span{font-size:12px;color:var(--text-soft)}
+
+/* add-ons */
+.addon-tray{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.addon{border:1.5px solid var(--lavender-deep);border-radius:var(--radius-md);overflow:hidden;cursor:pointer;transition:all .25s;background:#fff;position:relative}
+.addon:hover{border-color:var(--orchid-mid)}
+.addon.on{border-color:var(--orchid);box-shadow:0 6px 20px rgba(207,67,234,.15)}
+.addon .a-img{aspect-ratio:1/0.8;position:relative}
+.addon .a-body{padding:9px 10px 11px;text-align:center}
+.addon .a-body b{display:block;font-size:12px;color:var(--purple);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addon .a-body span{font-size:12px;color:var(--text-soft);white-space:nowrap}
+.addon .a-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--orchid);color:#fff;display:none;place-items:center;font-size:12px;z-index:3}
+.addon.on .a-check{display:grid}
+.addon .a-link{position:absolute;bottom:8px;left:8px;z-index:3;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.9);color:var(--purple);border-radius:100px;padding:2px 7px;font-weight:600}
+
+/* gift message */
+.gift-box{background:var(--lavender);border-radius:var(--radius-md);padding:18px 20px}
+.gift-box textarea{width:100%;border:1.5px solid var(--lavender-deep);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-ui);font-size:14px;min-height:74px;resize:vertical;outline:none;background:#fff;color:var(--text)}
+.gift-box textarea:focus{border-color:var(--orchid)}
+
+/* CTA */
+.qty-cta{display:flex;gap:12px;align-items:stretch;margin-top:26px}
+.qty{display:flex;align-items:center;border:1.5px solid var(--lavender-deep);border-radius:100px;overflow:hidden;background:#fff;flex-shrink:0}
+.qty button{width:44px;height:52px;font-size:19px;color:var(--purple);transition:background .2s}
+.qty button:hover{background:var(--lavender)}
+.qty b{width:38px;text-align:center;font-size:15px;color:var(--purple)}
+.btn-cart{flex:1}
+.btn-buynow{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:17px 30px;background:#fff;color:var(--purple);border:1.5px solid var(--purple);border-radius:100px;font-weight:600;font-size:15.5px;white-space:nowrap;transition:all .3s}
+.btn-buynow:hover{background:var(--lavender)}
+
+/* ⚠ out-of-zone panel — NEW, board v1-এ ছিল না */
+.oz-panel{display:none;margin-top:26px;border:1.5px solid #F2D9A8;background:linear-gradient(135deg,#FFF8EC,#FFFCF6);border-radius:var(--radius-md);padding:22px 24px}
+.oz-head{display:flex;gap:14px;align-items:flex-start}
+.oz-ic{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#B07A12;font-size:20px;flex-shrink:0}
+.oz-head b{display:block;font-size:15px;color:#8A5A00;font-weight:600}
+.oz-head span{font-size:13.5px;color:#9A7434}
+.oz-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn-switch{display:inline-flex;align-items:center;gap:8px;background:var(--purple);color:#fff;border-radius:100px;padding:12px 22px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.btn-alt{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--purple);border:1.5px solid var(--lavender-deep);border-radius:100px;padding:12px 22px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.btn-alt:hover{border-color:var(--orchid)}
+body.oz .oz-panel{display:block}
+body.oz .qty-cta,body.oz .offer-strip,body.oz #optZone,body.oz .addon-wrap,body.oz .gift-wrap{display:none}
+body.oz .sticky-bar .btn-primary{background:var(--lavender-deep);color:var(--text-soft);box-shadow:none;pointer-events:none}
+body.oz .sticky-bar .sp{color:var(--text-soft);text-decoration:line-through}
+#altRail{display:none}
+body.oz #altRail{display:block}
+
+/* customization band */
+.custom-band{margin-top:18px;background:linear-gradient(135deg,#E8F9EE,#F0FBF4);border:1.5px solid #C4EED4;border-radius:var(--radius-md);padding:18px 20px;display:flex;align-items:center;gap:16px}
+.custom-band .c-ic{width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#1DA851;font-size:22px;flex-shrink:0}
+.custom-band b{display:block;font-size:14.5px;color:#0E7A3D;font-weight:600}
+.custom-band span{font-size:13px;color:#3D7A55}
+.custom-band .btn-wa{margin-left:auto;background:#1DA851;color:#fff;border-radius:100px;padding:11px 22px;font-size:13.5px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+
+/* offer + trust */
+.offer-strip{display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,var(--orchid-soft),#FDF4FF);border:1.5px solid var(--orchid-mid);border-radius:var(--radius-md);padding:16px 22px;margin-top:18px}
+.offer-strip .o-ic{width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;color:var(--orchid);font-size:20px;flex-shrink:0}
+.offer-strip b{display:block;font-size:14px;color:var(--purple);font-weight:600}
+.offer-strip span{font-size:12.5px;color:var(--text-soft)}
+.trust-micro{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;padding-top:20px;border-top:1px solid var(--lavender-deep)}
+.proof-item{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:var(--purple);white-space:nowrap}
+.proof-item .petal{width:8px;height:8px}
+
+/* sticky bar (mobile) */
+.sticky-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--lavender-deep);padding:12px 20px;display:none;align-items:center;gap:14px;box-shadow:0 -8px 30px rgba(71,0,102,.1)}
+.sticky-bar .sp{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--purple);white-space:nowrap}
+.sticky-bar .sn{font-size:12px;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.sticky-bar .btn-primary{padding:13px 24px;flex:1}
+
+/* story band */
+.story-band{background:linear-gradient(135deg,#FDF9FF,var(--lavender) 55%,var(--orchid-soft));border-radius:var(--radius-lg);overflow:hidden;margin:64px 0 0}
+.story-grid{display:grid;grid-template-columns:.85fr 1.15fr;align-items:center;gap:40px}
+.story-photo{height:340px;position:relative}
+.story-photo .ph{position:absolute;inset:0;border-radius:0 200px 200px 0}
+.story-text{padding:44px 48px 44px 0}
+.story-text h2{font-family:var(--font-display);font-size:clamp(22px,2.6vw,32px);font-weight:500;color:var(--purple);line-height:1.2;margin-bottom:14px}
+.story-text p{font-size:15px;font-weight:300;color:var(--text-soft);max-width:56ch;margin-bottom:10px}
+
+/* FAQ */
+.faq-list{max-width:820px;margin:0 auto}
+.faq{background:#fff;border:1px solid var(--lavender-deep);border-radius:var(--radius-md);margin-bottom:14px;overflow:hidden;transition:box-shadow .25s}
+.faq[open]{box-shadow:var(--shadow-soft)}
+.faq summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:21px 26px;font-size:15.5px;font-weight:500;color:var(--purple);cursor:pointer}
+.faq summary::-webkit-details-marker{display:none}
+.faq .chev{transition:transform .3s;color:var(--orchid);font-size:15px;flex-shrink:0}
+.faq[open] .chev{transform:rotate(180deg)}
+.faq p{padding:0 26px 22px;font-size:14.5px;color:var(--text-soft);font-weight:300;max-width:64ch}
+
+/* product grid */
+.prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.prod{background:#fff;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-soft);transition:transform .35s,box-shadow .35s;position:relative}
+.prod:hover{transform:translateY(-7px);box-shadow:var(--shadow-lift)}
+.prod-img{aspect-ratio:1/1.04;position:relative;overflow:hidden}
+.badge{position:absolute;top:14px;left:14px;z-index:3;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.95);color:var(--purple);font-size:11.5px;font-weight:600;border-radius:100px;padding:6px 13px;white-space:nowrap;box-shadow:0 4px 14px rgba(71,0,102,.12)}
+.badge .petal{width:7px;height:7px}
+.badge.midnight{background:var(--purple);color:#fff}
+.badge.courier{background:#FFF4E3;color:#8A5A00}
+.wish{position:absolute;top:12px;right:12px;z-index:3;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--purple);transition:all .25s;font-size:17px}
+.wish:hover{color:var(--orchid);transform:scale(1.08)}
+.prod-body{padding:20px 22px 24px}
+.prod-name{font-size:16px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-meta{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--rosegold);margin:6px 0 12px;white-space:nowrap}
+.prod-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.prod-foot .price{font-size:21px}
+.btn-add{display:inline-flex;align-items:center;gap:7px;background:var(--lavender);color:var(--purple);border-radius:100px;padding:11px 20px;font-size:13.5px;font-weight:600;transition:all .25s;white-space:nowrap}
+.btn-add:hover{background:var(--purple);color:#fff}
+
+/* GBE — reviews */
+.google-card{display:flex;align-items:center;justify-content:center;gap:26px;background:#fff;border:1px solid var(--lavender-deep);border-radius:var(--radius-lg);padding:30px 44px;width:fit-content;margin:0 auto 54px;box-shadow:var(--shadow-soft);flex-wrap:wrap}
+.g-badge{width:58px;height:58px;border-radius:16px;background:var(--lavender);display:grid;place-items:center;font-family:var(--font-display);font-size:28px;font-weight:600;color:var(--purple)}
+.g-score{font-family:var(--font-display);font-size:34px;font-weight:600;color:var(--purple)}
+.g-meta{font-size:13.5px;color:var(--text-soft)}
+.g-link{font-size:13.5px;font-weight:600;color:var(--orchid);border-bottom:1px solid var(--orchid-mid);padding-bottom:2px}
+.carousel{display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 22px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.carousel>*{scroll-snap-align:start;flex-shrink:0}
+.story-card{width:340px;background:#fff;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-soft)}
+.story-img{height:170px;position:relative}
+.story-body{padding:24px 26px 28px}
+.story-quote{font-family:var(--font-display);font-size:17px;font-style:italic;color:var(--ink);line-height:1.5;margin:12px 0 18px;min-height:76px}
+.story-who{display:flex;align-items:center;gap:12px}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--orchid-mid),var(--orchid));color:#fff;display:grid;place-items:center;font-weight:600;font-size:15px}
+.story-who b{display:block;font-size:14px;color:var(--purple)}
+.story-who span{font-size:12.5px;color:var(--text-soft)}
+
+/* GBE — store */
+.store-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.store-img{border-radius:220px 220px var(--radius-lg) var(--radius-lg);overflow:hidden;height:440px;box-shadow:var(--shadow-lift)}
+.store-info .sec-head{text-align:left;margin-bottom:26px}
+.store-line{display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--lavender-deep)}
+.store-line .st-ic{width:44px;height:44px;border-radius:50%;background:var(--lavender);color:var(--purple);display:grid;place-items:center;flex-shrink:0;font-size:19px}
+.store-line b{display:block;font-size:15px;color:var(--purple);font-weight:600}
+.store-line span{font-size:14px;color:var(--text-soft)}
+.store-ctas{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+
+/* footer */
+footer{background:var(--purple-deep);color:rgba(255,255,255,.82)}
+.foot-main{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:44px;padding:64px 0 46px}
+.foot-logo{font-weight:600;font-size:26px;letter-spacing:.34em;color:#fff;display:flex;align-items:center;gap:10px}
+.foot-logo .petal{width:12px;height:12px}
+.foot-about{font-size:14px;font-weight:300;color:rgba(255,255,255,.62);margin:16px 0 22px;max-width:34ch}
+.socials{display:flex;gap:10px}
+.soc{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;color:#fff;transition:all .25s;font-size:17px}
+.soc:hover{background:var(--orchid);border-color:var(--orchid)}
+.foot-col h4{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--orchid-mid);font-weight:600;margin-bottom:18px}
+.foot-col a{display:block;font-size:14.5px;font-weight:300;color:rgba(255,255,255,.72);padding:6px 0;transition:color .25s}
+.foot-col a:hover{color:#fff}
+.foot-bottom{border-top:1px solid rgba(255,255,255,.12);padding:24px 0;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.pay-row{display:flex;gap:9px;flex-wrap:wrap}
+.pay{background:#fff;color:var(--purple);font-size:11.5px;font-weight:600;border-radius:8px;padding:7px 14px}
+.copyright{font-size:13px;color:rgba(255,255,255,.5)}
+
+/* support panel — একমাত্র support channel (Constitution) */
+.support-fab{position:fixed;right:26px;bottom:26px;z-index:80;display:inline-flex;align-items:center;gap:10px;background:var(--purple);color:#fff;border-radius:100px;padding:15px 22px;box-shadow:var(--shadow-lift);font-size:14px;font-weight:600;transition:transform .25s}
+.support-fab:hover{transform:translateY(-3px)}
+
+/* location sheet */
+.sheet-veil{position:fixed;inset:0;background:rgba(50,0,73,.5);backdrop-filter:blur(3px);z-index:90;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s}
+.sheet-veil.show{opacity:1;pointer-events:auto}
+.sheet{background:#fff;border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:34px 30px 40px;width:100%;max-width:520px;transform:translateY(40px);transition:transform .4s cubic-bezier(.2,.9,.3,1)}
+.sheet-veil.show .sheet{transform:translateY(0)}
+.sheet h3{font-family:var(--font-display);font-size:24px;color:var(--purple);font-weight:500;margin-bottom:6px}
+.sheet>p{font-size:14px;color:var(--text-soft);margin-bottom:22px}
+.zone{display:flex;align-items:center;gap:16px;border:1.5px solid var(--lavender-deep);border-radius:var(--radius-md);padding:18px 20px;margin-bottom:12px;cursor:pointer;transition:all .25s;width:100%;text-align:left}
+.zone:hover,.zone.picked{border-color:var(--orchid);background:var(--orchid-soft)}
+.zone .z-ic{width:48px;height:48px;border-radius:50%;background:var(--lavender);display:grid;place-items:center;color:var(--purple);flex-shrink:0;font-size:21px}
+.zone b{display:block;font-size:16px;color:var(--purple);font-weight:600}
+.zone span{font-size:13px;color:var(--text-soft)}
+.zone .tag{margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:var(--purple);color:#fff;border-radius:100px;padding:5px 12px}
+
+/* board-only preview panel */
+.demo-panel{position:fixed;left:18px;bottom:18px;z-index:85;background:var(--ink);color:#fff;border-radius:var(--radius-md);padding:14px 16px;box-shadow:0 16px 44px rgba(0,0,0,.35);max-width:250px}
+.demo-panel h4{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orchid-mid);margin-bottom:9px}
+.demo-panel .d-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.d-btn{background:rgba(255,255,255,.12);border-radius:100px;padding:6px 12px;font-size:11.5px;color:#fff;font-weight:500;white-space:nowrap;transition:background .2s}
+.d-btn:hover{background:rgba(255,255,255,.22)}
+.d-btn.on{background:var(--orchid)}
+.d-note{font-size:10.5px;color:rgba(255,255,255,.5);line-height:1.45;margin-top:4px}
+
+@media(max-width:1020px){
+  .pdp-grid{grid-template-columns:1fr;gap:30px}
+  .gallery{position:static}
+  .addon-tray{grid-template-columns:repeat(2,1fr)}
+  .sticky-bar{display:flex}
+  .story-grid{grid-template-columns:1fr}
+  .story-photo{height:220px}
+  .story-photo .ph{border-radius:0}
+  .story-text{padding:30px 26px 36px}
+  .prod-grid{grid-template-columns:repeat(2,1fr)}
+  .store-grid{grid-template-columns:1fr;gap:36px}
+  .store-img{height:340px}
+  .foot-main{grid-template-columns:1fr 1fr;gap:34px}
+  .search{order:3;max-width:100%;flex-basis:100%}
+  .nav-top{flex-wrap:wrap;gap:14px}
+  .demo-panel{left:12px;bottom:92px;max-width:214px}
+  .support-fab{bottom:88px;right:14px;padding:13px 18px}
+}
+@media(max-width:640px){
+  .sec{padding:52px 0}
+  .prod-grid{grid-template-columns:1fr 1fr;gap:14px}
+  .prod-body{padding:14px 15px 18px}
+  .prod-foot .price{font-size:18px}
+  .btn-add{padding:9px 14px;font-size:12.5px}
+  .foot-main{grid-template-columns:1fr}
+  .qty-cta{flex-wrap:wrap}
+  .btn-cart,.btn-buynow{flex-basis:100%}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3S4 15 4 9.6A4.6 4.6 0 0 1 12 6.7a4.6 4.6 0 0 1 8 2.9c0 5.4-8 10.7-8 10.7z"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M3 4h2l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h7.9a1.6 1.6 0 0 0 1.6-1.2L20.5 8H6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H13z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 13.5A8.3 8.3 0 0 1 10.5 4 8.3 8.3 0 1 0 20 13.5z"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v11H2zM14 10h4l3 3.4V17h-7"/><circle cx="6.5" cy="17.7" r="1.8"/><circle cx="17.5" cy="17.7" r="1.8"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4"/><path d="M8 10.5V7.7a4 4 0 0 1 8 0v2.8"/></symbol>
+<symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.4 4h13.2L20 9.5M4 9.5a2.4 2.4 0 0 0 4.5 1.2 2.4 2.4 0 0 0 4 0 2.4 2.4 0 0 0 4 0A2.4 2.4 0 0 0 20 9.5M5.5 12v8h13v-8M10 20v-5h4v5"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l1.5 4.5-2.3 1.6a12.5 12.5 0 0 0 5.7 5.7l1.6-2.3L20 15v4a1.9 1.9 0 0 1-2 2A15.6 15.6 0 0 1 3 6a1.9 1.9 0 0 1 2-2z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13.5 6.5 19 12l-5.5 5.5"/></symbol>
+<symbol id="i-wa" viewBox="0 0 24 24"><path d="M12 3.5a8.4 8.4 0 0 0-7.2 12.8L3.5 20.5l4.3-1.2A8.5 8.5 0 1 0 12 3.5z"/><path d="M9 8.8c-.3 1.9 2.4 5.6 5.4 6.3.9.2 1.9-.5 2-1.3l-2-1.2-1 .8a5.9 5.9 0 0 1-2.4-2.4l.8-1-1.2-2z"/></symbol>
+<symbol id="i-fb" viewBox="0 0 24 24"><path d="M14 8.5V7a1.5 1.5 0 0 1 1.5-1.5H17V2.8h-2.6A3.9 3.9 0 0 0 10.5 7v1.5H8V12h2.5v9H14v-9h2.5l.5-3.5z"/></symbol>
+<symbol id="i-ig" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="12" cy="12" r="3.8"/><circle cx="16.8" cy="7.2" r=".9"/></symbol>
+<symbol id="i-msgr" viewBox="0 0 24 24"><path d="M12 3a8.6 8.6 0 0 0-6 14.8V21l2.9-1.6A8.6 8.6 0 1 0 12 3z"/><path d="m7.5 13.5 3-3 2 2 4-3.5"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4"/><path d="M5.5 13v7h13v-7M12 9v11M12 9C9 9 7.2 7.6 7.6 5.8 8 4.2 10.4 4 12 6.6 13.6 4 16 4.2 16.4 5.8 16.8 7.6 15 9 12 9z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 5 5L19.5 7"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V5M7 9.5 12 4.5l5 5M5 19h14"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="m3.5 12.5 8-8H20v8.5l-8 8z"/><circle cx="16" cy="8" r="1.3"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.6"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.4a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.7M12 17.2v.2"/></symbol>
+</defs></svg>
+
+<div class="announce" id="announce"><b>⚡ 2-Hour Delivery</b> inside Dhaka &nbsp;·&nbsp; Same Day before 6 PM &nbsp;·&nbsp; Midnight surprises available</div>
+
+<header>
+  <div class="wrap">
+    <div class="nav-top">
+      <a class="logo" href="#"><span class="petal"></span>RADIAN</a>
+      <button class="loc-switch" onclick="openSheet()"><span class="dot"></span><svg class="ic"><use href="#i-pin"/></svg><span id="locLabel">Inside Dhaka</span><svg class="ic" style="font-size:12px"><use href="#i-chev"/></svg></button>
+      <div class="search"><svg class="ic" style="font-size:17px;color:var(--text-soft)"><use href="#i-search"/></svg><input type="text" placeholder="Search flowers, cakes and gifts" aria-label="Search products"></div>
+      <div class="nav-icons">
+        <a class="icon-btn" href="#" aria-label="Account"><svg class="ic"><use href="#i-user"/></svg></a>
+        <a class="icon-btn" href="#" aria-label="Wishlist"><svg class="ic"><use href="#i-heart"/></svg></a>
+        <a class="icon-btn" href="#" aria-label="Cart"><svg class="ic"><use href="#i-cart"/></svg><span class="cart-badge">2</span></a>
+      </div>
+    </div>
+    <nav class="nav-cats" aria-label="Categories" id="navCats">
+      <a href="#" class="hot" data-cat="flowers">Flowers</a>
+      <a href="#" data-cat="cakes" data-dhaka="1">Cakes</a>
+      <a href="#" data-cat="combos">Combos</a>
+      <a href="#" data-cat="chocolates">Chocolates</a>
+      <a href="#" data-cat="plants">Plants</a>
+      <a href="#" data-cat="personalised">Personalised</a>
+      <a href="#" data-cat="balloons" data-dhaka="1">Balloons</a>
+      <a href="#" data-cat="giftboxes">Gift Boxes</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="crumb" aria-label="Breadcrumb">
+    <a href="#">Home</a><span class="sep">›</span>
+    <a href="#" id="crumbCat">Flowers</a><span class="sep">›</span>
+    <a href="#" id="crumbSub">Roses</a><span class="sep">›</span>
+    <b id="crumbName">Velvet Red</b>
+  </nav>
+
+  <div class="pdp-grid">
+    <!-- ============ GALLERY (sticky) ============ -->
+    <div class="gallery">
+      <div class="g-main"><div class="ph" id="gMain" style="height:100%">
+        <span class="bloom" style="width:220px;height:220px;background:#CF43EA;top:14%;left:16%;transform:rotate(-45deg);opacity:.4"></span>
+        <span class="bloom" style="width:170px;height:170px;background:#470066;bottom:10%;right:12%;transform:rotate(135deg);opacity:.28"></span>
+        <span class="ph-note">Main product photo — tap to zoom</span>
+      </div></div>
+      <div class="g-thumbs" id="gThumbs"></div>
+    </div>
+
+    <!-- ============ BUY PANEL ============ -->
+    <div class="buy">
+      <h1 id="pName">Velvet Red — 24 Premium Roses</h1>
+      <p class="subline" id="pSub">Two dozen deep-red roses, hand-tied with eucalyptus and wrapped in signature Radian paper.</p>
+
+      <div class="rate-row">
+        <span class="stars">★★★★★</span>
+        <span><b style="color:var(--purple)">4.9</b> · 127 Google reviews</span>
+        <span>·</span><span id="pMeta">96 orders this month</span>
+      </div>
+
+      <div class="price-row"><div class="price" id="pPrice">৳ 2,450</div><span class="unit" id="pUnit">incl. free handwritten card</span></div>
+
+      <!-- zone-aware capability chips (slot picker NOT here — checkout-এ, D13) -->
+      <div class="cap-row" id="capRow"></div>
+
+      <!-- product-type driven option schema -->
+      <div id="optZone"></div>
+
+      <div class="opt-block addon-wrap">
+        <div class="opt-label">Make it even more special <small>optional add-ons</small></div>
+        <div class="addon-tray" id="addonTray"></div>
+      </div>
+
+      <div class="opt-block gift-box gift-wrap">
+        <div class="opt-label" style="margin-bottom:8px">
+          <span style="display:inline-flex;align-items:center;gap:8px"><svg class="ic" style="color:var(--orchid)"><use href="#i-gift"/></svg>Your gift message</span>
+          <small>handwritten, free</small>
+        </div>
+        <textarea placeholder="Write something they'll keep forever… or leave blank for a mystery card with just your initials." maxlength="240"></textarea>
+        <div class="txt-hint">Our florists write every card by hand. 240 characters.</div>
+      </div>
+
+      <div class="qty-cta">
+        <div class="qty"><button aria-label="Decrease quantity" onclick="qty(-1)">−</button><b id="qtyN">1</b><button aria-label="Increase quantity" onclick="qty(1)">+</button></div>
+        <button class="btn-primary btn-cart" onclick="addCart(this)">Add to Cart <svg class="ic"><use href="#i-cart"/></svg></button>
+        <button class="btn-buynow">Buy Now</button>
+      </div>
+
+      <!-- ⚠ NEW: out-of-zone state (Dhaka-only product + All Bangladesh zone) -->
+      <div class="oz-panel">
+        <div class="oz-head">
+          <div class="oz-ic"><svg class="ic"><use href="#i-truck"/></svg></div>
+          <div>
+            <b id="ozTitle">This gift can't travel outside Dhaka</b>
+            <span id="ozSub">Fresh cakes don't survive a 1–3 day courier journey — so we don't ship what we can't deliver perfectly.</span>
+          </div>
+        </div>
+        <div class="oz-actions">
+          <button class="btn-switch" onclick="pickZone('dhaka')"><svg class="ic"><use href="#i-bolt"/></svg>I'm inside Dhaka — switch</button>
+          <a class="btn-alt" href="#altRail"><svg class="ic"><use href="#i-gift"/></svg>Show gifts we can send there</a>
+        </div>
+      </div>
+
+      <!-- customization enquiry (NOT an order channel) -->
+      <div class="custom-band">
+        <div class="c-ic"><svg class="ic"><use href="#i-wa"/></svg></div>
+        <div><b id="customTitle">Want this bouquet customized?</b><span id="customSub">Different colours, sizes or a theme — chat with our floral experts.</span></div>
+        <a class="btn-wa" href="#">WhatsApp Us <svg class="ic"><use href="#i-wa"/></svg></a>
+      </div>
+
+      <div class="offer-strip">
+        <div class="o-ic"><svg class="ic"><use href="#i-tag"/></svg></div>
+        <div><b>Free midnight delivery on orders over ৳3,000</b><span>Applied automatically at checkout · Dhaka only · this week</span></div>
+      </div>
+
+      <div class="trust-micro">
+        <div class="proof-item"><span class="petal"></span>Freshness guarantee</div>
+        <div class="proof-item"><span class="petal"></span>Secure payment</div>
+        <div class="proof-item"><span class="petal gold"></span>★ 4.9 on Google</div>
+        <div class="proof-item"><span class="petal"></span>Real store in Dhaka</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STORY BAND ============ -->
+  <div class="story-band">
+    <div class="story-grid">
+      <div class="story-photo"><div class="ph">
+        <span class="bloom" style="width:180px;height:180px;background:#470066;bottom:8%;left:10%;transform:rotate(135deg);opacity:.25"></span>
+        <span class="ph-note">Florist arranging photo</span>
+      </div></div>
+      <div class="story-text">
+        <div class="eyebrow"><span class="petal gold"></span>The story behind it</div>
+        <h2 id="storyTitle">Cut This Morning, In Her Hands Tonight</h2>
+        <p id="storyP1"></p>
+        <p id="storyP2"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FAQ ============ -->
+  <section style="padding:64px 0 0">
+    <div class="faq-list">
+      <div class="sec-head" style="margin-bottom:30px">
+        <div class="eyebrow"><span class="petal"></span>Everything you're wondering</div>
+        <h2 class="sec-title">Before You Order</h2>
+      </div>
+      <details class="faq" open><summary>What exactly is included?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p id="faqIncl"></p></details>
+      <details class="faq"><summary>How do I keep it fresh?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p id="faqCare"></p></details>
+      <details class="faq"><summary>When will it arrive?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>You'll choose your exact delivery date and time slot at checkout. Inside Dhaka we offer 2-hour, same day and midnight delivery. All Bangladesh orders arrive in 1–3 days by trusted courier.</p></details>
+      <details class="faq"><summary>Can I send it anonymously or as a surprise?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>Yes — many customers do. At checkout you can mark the order as an anonymous gift; leave the card unsigned or use initials, and our rider will simply say it's "a gift from someone who cares." We never reveal sender details.</p></details>
+      <details class="faq"><summary>What if the recipient isn't home?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>Our rider calls the recipient discreetly on arrival. If unreachable, we coordinate with you immediately — we never leave a gift unattended at a door.</p></details>
+    </div>
+  </section>
+
+  <!-- ============ CROSS-SELL ============ -->
+  <section style="padding:64px 0 0">
+    <div class="sec-head" style="margin-bottom:34px">
+      <div class="eyebrow"><span class="petal"></span>Complete the moment</div>
+      <h2 class="sec-title">Pairs Beautifully With</h2>
+    </div>
+    <div class="prod-grid" id="crossRail"></div>
+  </section>
+
+  <!-- ============ OUT-OF-ZONE ALTERNATIVES (only when body.oz) ============ -->
+  <section id="altRail" style="padding:64px 0 56px">
+    <div class="sec-head" style="margin-bottom:34px">
+      <div class="eyebrow"><span class="petal gold"></span>We can still make their day</div>
+      <h2 class="sec-title">Gifts We Deliver Nationwide</h2>
+      <p class="sec-sub">Courier-safe, packed to survive the journey — same occasion, same care.</p>
+    </div>
+    <div class="prod-grid" id="altGrid"></div>
+  </section>
+
+  <div id="railSpacer" style="padding-bottom:56px"></div>
+</div>
+
+<!-- ============ GLOBAL BOTTOM EXPERIENCE (locked order) ============ -->
+<section class="sec sec-alt" id="reviews">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow"><span class="petal"></span>Real people, real moments</div>
+      <h2 class="sec-title">Why Dhaka Loves Radian</h2>
+    </div>
+    <div class="google-card">
+      <div class="g-badge">G</div>
+      <div><div class="g-score">4.9</div><div class="stars">★★★★★</div></div>
+      <div class="g-meta">Based on <b>412 Google reviews</b><br>Radian Flower &amp; Gift Shop, Dhaka</div>
+      <a class="g-link" href="#">Read them on Google →</a>
+    </div>
+    <div class="carousel">
+      <div class="story-card"><div class="story-img ph"><span class="ph-note">Customer photo</span></div>
+        <div class="story-body"><div class="stars">★★★★★</div>
+          <p class="story-quote">"Ordered at 11 PM for a midnight surprise. It arrived at 12:02. She cried. I'm never using anyone else."</p>
+          <div class="story-who"><div class="avatar">TR</div><div><b>Tanvir Rahman</b><span>Dhanmondi · Anniversary</span></div></div>
+        </div></div>
+      <div class="story-card"><div class="story-img ph" style="background:linear-gradient(150deg,#F3DCE4,#E7BFD0)"><span class="ph-note">Customer photo</span></div>
+        <div class="story-body"><div class="stars">★★★★★</div>
+          <p class="story-quote">"I'm in Sylhet, Ma is in Dhaka. Two hours later she sent me a photo holding the roses. Worth every taka."</p>
+          <div class="story-who"><div class="avatar">SA</div><div><b>Sadia Afrin</b><span>Sylhet → Dhaka · Mother's Day</span></div></div>
+        </div></div>
+      <div class="story-card"><div class="story-img ph" style="background:linear-gradient(150deg,#EFE0F6,#DEC4F0)"><span class="ph-note">Customer photo</span></div>
+        <div class="story-body"><div class="stars">★★★★★</div>
+          <p class="story-quote">"Corporate order, 40 gift boxes, one phone call. They handled everything. Our clients still mention it."</p>
+          <div class="story-who"><div class="avatar">MK</div><div><b>Mahmud Karim</b><span>Gulshan · Corporate</span></div></div>
+        </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="store">
+  <div class="wrap">
+    <div class="store-grid">
+      <div class="store-img ph"><span class="ph-note">Radian studio photo</span></div>
+      <div class="store-info">
+        <div class="sec-head">
+          <div class="eyebrow"><span class="petal gold"></span>Not just a website</div>
+          <h2 class="sec-title">Visit Our Dhaka Studio</h2>
+          <p class="sec-sub">A real shop, real florists, real accountability. Walk in and watch your bouquet being made.</p>
+        </div>
+        <div class="store-line"><div class="st-ic"><svg class="ic"><use href="#i-store"/></svg></div><div><b>Radian Flower &amp; Gift Shop</b><span>House 21, Road 7, Dhanmondi, Dhaka 1205</span></div></div>
+        <div class="store-line"><div class="st-ic"><svg class="ic"><use href="#i-clock"/></svg></div><div><b>Open every day</b><span>9:00 AM – 11:00 PM · Midnight orders by phone</span></div></div>
+        <div class="store-line"><div class="st-ic"><svg class="ic"><use href="#i-phone"/></svg></div><div><b>+880 1XXX-XXXXXX</b><span>Call or WhatsApp — we answer fast</span></div></div>
+        <div class="store-ctas">
+          <a class="btn-primary" href="#">Get Directions <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <a class="btn-view-all" href="#">Call the Studio</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-main">
+      <div>
+        <div class="foot-logo"><span class="petal"></span>RADIAN</div>
+        <p class="foot-about">Bangladesh's premium flower &amp; gift studio. Delivered in 2 hours inside Dhaka, nationwide in 1–3 days.</p>
+        <div class="socials">
+          <a class="soc" href="#" aria-label="Facebook"><svg class="ic"><use href="#i-fb"/></svg></a>
+          <a class="soc" href="#" aria-label="Instagram"><svg class="ic"><use href="#i-ig"/></svg></a>
+          <a class="soc" href="#" aria-label="Messenger"><svg class="ic"><use href="#i-msgr"/></svg></a>
+          <a class="soc" href="#" aria-label="WhatsApp"><svg class="ic"><use href="#i-wa"/></svg></a>
+        </div>
+      </div>
+      <div class="foot-col"><h4>Shop</h4><a href="#">Fresh Flowers</a><a href="#">Cakes</a><a href="#">Combos</a><a href="#">Chocolates</a><a href="#">Plants</a><a href="#">Gift Boxes</a></div>
+      <div class="foot-col"><h4>Delivery</h4><a href="#">2-Hour Delivery</a><a href="#">Same Day Delivery</a><a href="#">Midnight Delivery</a><a href="#">Nationwide Delivery</a><a href="#">Track Order</a></div>
+      <div class="foot-col"><h4>Radian</h4><a href="#">About Us</a><a href="#">Visit Our Store</a><a href="#">FAQ</a><a href="#">Refund Policy</a><a href="#">Privacy Policy</a><a href="#">Terms</a></div>
+    </div>
+    <div class="foot-bottom">
+      <div class="pay-row"><span class="pay">bKash</span><span class="pay">Nagad</span><span class="pay">Rocket</span><span class="pay">VISA</span><span class="pay">Mastercard</span><span class="pay">Cash on Delivery</span></div>
+      <div class="copyright">© 2026 Radian Flower &amp; Gift Shop. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<!-- mobile sticky buy bar -->
+<div class="sticky-bar">
+  <div><div class="sp" id="sbPrice">৳ 2,450</div><div class="sn" id="sbName">Velvet Red</div></div>
+  <button class="btn-primary" onclick="addCart(this)">Add to Cart</button>
+</div>
+
+<!-- Support Panel = একমাত্র support channel (Constitution) -->
+<button class="support-fab"><svg class="ic" style="font-size:19px"><use href="#i-help"/></svg>Need help?</button>
+
+<!-- location gate -->
+<div class="sheet-veil" id="sheetVeil">
+  <div class="sheet">
+    <h3>Where should we deliver?</h3>
+    <p>Delivery options and product availability change by location.</p>
+    <button class="zone picked" onclick="pickZone('dhaka')"><div class="z-ic"><svg class="ic"><use href="#i-bolt"/></svg></div><div><b>Inside Dhaka</b><span>2-hour, same day &amp; midnight delivery</span></div><span class="tag">Fastest</span></button>
+    <button class="zone" onclick="pickZone('bangladesh')"><div class="z-ic"><svg class="ic"><use href="#i-truck"/></svg></div><div><b>All Bangladesh</b><span>Nationwide courier, 1–3 days</span></div></button>
+  </div>
+</div>
+
+<!-- board-only preview -->
+<div class="demo-panel">
+  <h4>Board preview — demo only</h4>
+  <div class="d-row" id="demoTypes">
+    <button class="d-btn on" onclick="setType('flower',this)">Roses</button>
+    <button class="d-btn" onclick="setType('cake',this)">Cake</button>
+    <button class="d-btn" onclick="setType('mug',this)">Mug</button>
+    <button class="d-btn" onclick="setType('balloon',this)">Balloons</button>
+  </div>
+  <div class="d-row">
+    <button class="d-btn on" onclick="pickZone('dhaka')">Dhaka</button>
+    <button class="d-btn" onclick="pickZone('bangladesh')">All Bangladesh</button>
+  </div>
+  <p class="d-note">Cake / Balloons + All Bangladesh → out-of-zone state দেখো।</p>
+</div>
+
+<script>
+/* =========================================================
+   PDP CONFIG ENGINE — category template + per-product override
+   (locked decision: এক template, config-driven; Category page-এর D1/D2)
+   ========================================================= */
+
+/* catalog stub — add-ons যেগুলো আসল product, slug দিয়ে reference করা হয় */
+var CATALOG = {
+  "belgian-chocolate-box-12":  {name:"Belgian Chocolates", price:850,  bg:"#F1E0D5,#E5C4AE"},
+  "red-velvet-cake-1lb":       {name:"Red Velvet Cake",    price:1150, bg:"#F3DCE4,#E7BFD0"},
+  "midnight-surprise-combo":   {name:"Midnight Combo",     price:1890, bg:"#EBDCF2,#D8C2EA"},
+  "teddy-bloom-mini":          {name:"Mini Teddy",         price:550,  bg:"#F3DCE4,#E7BFD0"},
+  "glass-vase-classic":        {name:"Glass Vase",         price:450,  bg:"#E9E4F4,#D3C9EC"},
+  "six-red-roses":             {name:"6 Red Roses",        price:750,  bg:"#F3DCE4,#E7BFD0"},
+  "fairy-lights-warm":         {name:"Fairy Lights",       price:250,  bg:"#EBDDF4,#D6BEEB"},
+  "number-balloon":            {name:"Number Balloon",     price:300,  bg:"#F6E9D8,#EDD4B0"},
+  "birthday-candle-set":       {name:"Birthday Candles",   price:120,  bg:"#F6E9D8,#EDD4B0"},
+  "coaster-set-2":             {name:"Coaster Set",        price:290,  bg:"#E9E4F4,#D3C9EC"}
+};
+/* catalog-এ নেই এমন service add-on — inline */
+var INLINE_ADDONS = {
+  "card-upgrade": {name:"Card Upgrade",  price:150, bg:"#EFD9F8,#DFC0F2"},
+  "gift-wrap":    {name:"Premium Wrap",  price:100, bg:"#EBDDF4,#D6BEEB"},
+  "party-popper": {name:"Party Poppers", price:180, bg:"#EFD9F8,#DFC0F2"}
+};
+
+var TK = function(n){return "৳ " + n.toLocaleString("en-IN")};
+
+/* zone: "dhaka" = ঢাকার ভেতরেই কেবল, "both" = courier-safe */
+var PRODUCTS = {
+  flower: {
+    cat:"Flowers", sub:"Roses", zone:"both",
+    name:"Velvet Red — 24 Premium Roses", crumb:"Velvet Red",
+    desc:"Two dozen deep-red roses, hand-tied with eucalyptus and wrapped in signature Radian paper.",
+    price:2450, unit:"incl. free handwritten card", meta:"96 orders this month",
+    caps:[["i-bolt","2-Hour Delivery"],["i-sun","Same Day Available"],["i-moon","Midnight Available"]],
+    grad:"linear-gradient(150deg,#E7D3F2,#D9B8EC 45%,#EFD9F8)",
+    thumbs:["#E7D3F2,#D9B8EC","#F3DCE4,#E7BFD0","#EFE0F6,#DEC4F0","#EBDDF4,#D6BEEB"],
+    customTitle:"Want this bouquet customized?",
+    customSub:"Different colours, sizes or a theme — chat with our floral experts.",
+    story:["Cut This Morning, In Her Hands Tonight",
+      "Every Velvet Red begins before sunrise at our flower market run, where our florists pick only stems that pass the 5-day freshness test. By afternoon they're conditioned, arranged and wrapped in our studio.",
+      "Nothing sits in a warehouse. Nothing travels in a hot van for hours. That's why our roses arrive looking like they were picked for one person — because they were."],
+    incl:"24 premium long-stem red roses, seasonal eucalyptus greens, signature Radian matte wrap with ribbon, flower food sachet, and a free handwritten greeting card with your message.",
+    care:"Trim stems at an angle, use the included flower food, change water daily and keep away from direct sun. Expect 5–8 beautiful days — and if anything arrives less than perfect, our freshness guarantee replaces it free.",
+    options:[
+      {label:"Stem count", hint:"price updates", type:"chips", sel:1,
+       values:[["12 stems",1290],["24 stems",2450],["50 stems",4900],["100 stems",8900]]},
+      {label:"Wrapping style", type:"chips", sel:0,
+       values:[["Signature matte",0],["Kraft rustic",0],["Luxury box",350]]},
+      {label:"Add a vase", type:"chips", sel:0,
+       values:[["No vase",0],["Glass vase",450]]}
+    ],
+    addons:["belgian-chocolate-box-12","card-upgrade","teddy-bloom-mini","fairy-lights-warm"],
+    cross:["belgian-chocolate-box-12","red-velvet-cake-1lb","midnight-surprise-combo","teddy-bloom-mini"]
+  },
+
+  cake: {
+    cat:"Cakes", sub:"Celebration Cakes", zone:"dhaka",
+    name:"Red Velvet Celebration Cake", crumb:"Red Velvet Cake",
+    desc:"Layers of velvet sponge and cream-cheese frosting, baked fresh the morning of your delivery.",
+    price:1450, unit:"1 lb · serves 6–8", meta:"143 orders this month",
+    caps:[["i-sun","Same Day Available"],["i-moon","Midnight Available"],["i-clock","Baked to order"]],
+    grad:"linear-gradient(150deg,#F3D7DC,#E8B9C2 45%,#F6E3E7)",
+    thumbs:["#F3D7DC,#E8B9C2","#F6E3E7,#EDCBD3","#F1E0D5,#E5C4AE","#EBDDF4,#D6BEEB"],
+    customTitle:"Need a custom cake design?",
+    customSub:"Photo cakes, themes and tiers — chat with our bakers on WhatsApp.",
+    story:["Baked the Morning It Arrives",
+      "No freezer racks, no day-old sponge. Your cake goes into the oven the same morning it goes to their door — that's why the frosting still tastes like a bakery, not a fridge.",
+      "Every cake is finished by hand and boxed with a candle set, because someone somewhere is about to make a wish."],
+    incl:"Freshly baked red velvet cake in your chosen weight, cream-cheese frosting, complimentary candle-and-knife set, and your message piped on top in chocolate.",
+    care:"Refrigerate on arrival and serve within 10 minutes of taking it out — cream cheese frosting is at its best slightly cool. Best enjoyed the same day.",
+    ozTitle:"This cake can't travel outside Dhaka",
+    ozSub:"Fresh cream-cheese frosting doesn't survive a 1–3 day courier journey — so we don't ship what we can't deliver perfectly.",
+    options:[
+      {label:"Weight", hint:"price updates", type:"chips", sel:0,
+       values:[["1 lb",1450],["2 lb",2700],["3 lb",3900]]},
+      {label:"Flavour", type:"chips", sel:0,
+       values:[["Red velvet",0],["Chocolate fudge",0],["Vanilla berry",0]]},
+      {label:"Message on cake", type:"text", placeholder:"e.g. Happy Birthday Ammu ❤", max:40, hint:"Piped in chocolate · 40 characters"},
+      {label:"Eggless option", type:"chips", sel:0,
+       values:[["Regular",0],["Eggless",100]]}
+    ],
+    addons:["birthday-candle-set","party-popper","six-red-roses","card-upgrade"],
+    cross:["six-red-roses","belgian-chocolate-box-12","teddy-bloom-mini","midnight-surprise-combo"]
+  },
+
+  mug: {
+    cat:"Personalised", sub:"Photo Mugs", zone:"both",
+    name:"Custom Photo Mug — Ceramic White", crumb:"Custom Photo Mug",
+    desc:"Their face, your words, morning coffee forever. Dishwasher-safe ceramic printed in our studio.",
+    price:590, unit:"330 ml ceramic", meta:"74 orders this month",
+    caps:[["i-sun","Same Day Available"],["i-truck","Ships Nationwide"]],
+    grad:"linear-gradient(150deg,#E9E4F4,#D3C9EC 45%,#EFEAF8)",
+    thumbs:["#E9E4F4,#D3C9EC","#EFEAF8,#DCD3F0","#F1E0D5,#E5C4AE","#EBDDF4,#D6BEEB"],
+    customTitle:"Want a fully custom design?",
+    customSub:"Send us your idea on WhatsApp — collages, quotes, anything.",
+    story:["Printed in Our Studio, Not a Factory",
+      "Every mug is printed, heat-set and quality-checked by our own team in Dhaka — which is how a photo taken at breakfast can be a gift by dinner.",
+      "The print is dishwasher-safe and fade-resistant, so the joke, the face or the date stays exactly as bright as the day you sent it."],
+    incl:"330 ml white ceramic mug with your uploaded photo and custom text, gift-boxed with protective wrap and a free mini greeting card.",
+    care:"Dishwasher and microwave safe. Avoid abrasive scourers on the printed side and the design will outlast the coffee habit.",
+    options:[
+      {label:"Design template", type:"chips", sel:0,
+       values:[["Photo full-wrap",0],["Photo + text",0],["Text only",0]]},
+      {label:"Upload your photo", type:"upload", hint:"JPG or PNG, min 1000px"},
+      {label:"Custom text", type:"text", placeholder:"e.g. World's Okayest Brother", max:30, hint:"Printed beside your photo · 30 characters"}
+    ],
+    addons:["belgian-chocolate-box-12","card-upgrade","gift-wrap","coaster-set-2"],
+    cross:["belgian-chocolate-box-12","teddy-bloom-mini","six-red-roses","midnight-surprise-combo"]
+  },
+
+  balloon: {
+    cat:"Balloons", sub:"Balloon Bouquets", zone:"dhaka",
+    name:"Surprise Balloon Bouquet — 12 pc", crumb:"Balloon Bouquet",
+    desc:"A dozen helium balloons in your colours, weighted and ready to fill a doorway with joy.",
+    price:1190, unit:"12 helium balloons", meta:"58 orders this month",
+    caps:[["i-bolt","2-Hour Delivery"],["i-sun","Same Day Available"],["i-moon","Midnight Available"]],
+    grad:"linear-gradient(150deg,#F6DDEB,#EBC0DB 45%,#F8E7F1)",
+    thumbs:["#F6DDEB,#EBC0DB","#F8E7F1,#EFCFE3","#EFD9F8,#DFC0F2","#F6E9D8,#EDD4B0"],
+    customTitle:"Planning a bigger surprise?",
+    customSub:"Room decorations, arches and themes — chat with our team.",
+    story:["The Gift That Fills the Room",
+      "Flowers sit on a table — balloons take over the ceiling. Our bouquets arrive fully inflated with premium helium that keeps them floating for days, not hours.",
+      "Add a custom message balloon and watch someone read their name floating in the air. It never, ever gets old."],
+    incl:"12 premium helium balloons in your chosen colours, decorative weight, ribbon tails, and an optional printed message balloon at the centre.",
+    care:"Keep away from direct sun and sharp edges. Helium lift lasts 2–3 days indoors at room temperature.",
+    ozTitle:"Balloons can't travel outside Dhaka",
+    ozSub:"Helium doesn't survive a courier van — inflated balloons only work when we hand-deliver them ourselves.",
+    options:[
+      {label:"Colour theme", type:"chips", sel:0,
+       values:[["Rose & gold",0],["Purple & silver",0],["Rainbow",0],["Red romance",0]]},
+      {label:"Message balloon text", type:"text", placeholder:"e.g. Happy 25th Priya!", max:25, hint:"Printed on the centre balloon · 25 characters"},
+      {label:"Upload reference photo", type:"upload", hint:"Optional — a theme or setup you love"}
+    ],
+    addons:["number-balloon","teddy-bloom-mini","belgian-chocolate-box-12","card-upgrade"],
+    cross:["red-velvet-cake-1lb","six-red-roses","belgian-chocolate-box-12","midnight-surprise-combo"]
+  }
+};
+
+/* courier-safe alternatives — out-of-zone state-এ দেখানো হয় */
+var COURIER_SAFE = [
+  {name:"Velvet Red — 24 Roses",  price:2450, bg:"#E7D3F2,#D9B8EC", meta:"Courier-conditioned"},
+  {name:"Belgian Chocolate Box",  price:850,  bg:"#F1E0D5,#E5C4AE", meta:"Travels beautifully"},
+  {name:"Custom Photo Mug",       price:590,  bg:"#E9E4F4,#D3C9EC", meta:"Made to order"},
+  {name:"Luxury Gift Hamper",     price:3200, bg:"#EFE0F6,#DEC4F0", meta:"Nationwide favourite"}
+];
+
+/* ---------------- state ---------------- */
+var zone = "dhaka";
+var curType = "flower";
+var qtyN = 1;
+
+function el(id){return document.getElementById(id)}
+function P(){return PRODUCTS[curType]}
+function addonOf(key){return CATALOG[key] || INLINE_ADDONS[key]}
+function isCatalog(key){return !!CATALOG[key]}
+
+/* ---------------- price ---------------- */
+function basePrice(){
+  var p = P(), base = p.price, delta = 0;
+  p.options.forEach(function(o,i){
+    if(o.type!=="chips") return;
+    var sel = o.sel, v = o.values[sel];
+    /* প্রথম chips block = base price selector (stem count / weight) */
+    if(i===0 && v[1] > 0){ base = v[1]; } else { delta += v[1]; }
+  });
+  return base + delta;
+}
+function refreshPrice(){
+  var t = TK(basePrice());
+  el("pPrice").textContent = t;
+  el("sbPrice").textContent = t;
+}
+
+/* ---------------- renderers ---------------- */
+function renderCaps(){
+  var p = P();
+  var caps = (zone === "bangladesh")
+    ? [["i-truck","Nationwide Delivery, 1–3 Days"],["i-lock","Courier-Safe Packaging"]]
+    : p.caps;
+  el("capRow").innerHTML = caps.map(function(c){
+    return '<span class="cap"><svg class="ic"><use href="#'+c[0]+'"/></svg>'+c[1]+'</span>';
+  }).join("");
+}
+
+function renderThumbs(){
+  el("gThumbs").innerHTML = P().thumbs.map(function(g,i){
+    return '<div class="g-thumb'+(i===0?" on":"")+'" onclick="pickThumb(this)">'+
+           '<div class="ph" style="height:100%;background:linear-gradient(150deg,'+g+')">'+
+           '<span class="ph-note" style="font-size:8px">'+(i+1)+'</span></div></div>';
+  }).join("");
+}
+function pickThumb(t){
+  document.querySelectorAll(".g-thumb").forEach(function(x){x.classList.remove("on")});
+  t.classList.add("on");
+}
+
+function renderOptions(){
+  var z = el("optZone"); z.innerHTML = "";
+  P().options.forEach(function(o, oi){
+    var b = document.createElement("div"); b.className = "opt-block";
+    var h = '<div class="opt-label">'+o.label+(o.hint?'<small>'+o.hint+'</small>':'')+'</div>';
+
+    if(o.type === "chips"){
+      var isBase = (oi === 0 && o.values.some(function(v){return v[1] > 0}));
+      h += '<div class="chips">' + o.values.map(function(v, vi){
+        var label = v[0];
+        if(isBase){ label = v[0] + ' — ' + TK(v[1]); }        /* base price selector */
+        else if(v[1] > 0){ label = v[0] + ' +' + TK(v[1]); }  /* price modifier */
+        return '<button class="chip'+(vi===o.sel?" on":"")+'" onclick="chipSel('+oi+','+vi+',this)">'+label+'</button>';
+      }).join("") + '</div>';
+    } else if(o.type === "text"){
+      h += '<input class="txt-input" placeholder="'+o.placeholder+'" maxlength="'+o.max+'">';
+      h += '<div class="txt-hint">'+(o.hint||"")+'</div>';
+    } else if(o.type === "upload"){
+      h += '<div class="upload-box"><div class="u-ic"><svg class="ic"><use href="#i-up"/></svg></div>'+
+           '<div><b>Tap to upload</b><span>'+(o.hint||"")+'</span></div></div>';
+    }
+    b.innerHTML = h; z.appendChild(b);
+  });
+}
+function chipSel(oi, vi, node){
+  P().options[oi].sel = vi;
+  var g = node.parentElement;
+  g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on")});
+  node.classList.add("on");
+  refreshPrice();
+}
+
+function renderAddons(){
+  el("addonTray").innerHTML = P().addons.map(function(key){
+    var a = addonOf(key); if(!a) return "";
+    return '<div class="addon" onclick="this.classList.toggle(\'on\')">'+
+      '<span class="a-check"><svg class="ic"><use href="#i-check"/></svg></span>'+
+      '<div class="a-img"><div class="ph" style="height:100%;background:linear-gradient(150deg,'+a.bg+')">'+
+        '<span class="ph-note" style="font-size:8px">Photo</span>'+
+        (isCatalog(key) ? '<span class="a-link">catalog</span>' : '') +
+      '</div></div>'+
+      '<div class="a-body"><b>'+a.name+'</b><span>+'+TK(a.price)+'</span></div></div>';
+  }).join("");
+}
+
+function prodCard(name, price, bg, meta, badge){
+  var b = badge || (zone === "bangladesh"
+    ? '<span class="badge courier">🚚 1–3 days, nationwide</span>'
+    : '<span class="badge"><span class="petal"></span>Today, 2 hrs</span>');
+  return '<div class="prod"><div class="prod-img">'+b+
+    '<button class="wish" aria-label="Add to wishlist"><svg class="ic"><use href="#i-heart"/></svg></button>'+
+    '<div class="ph" style="height:100%;background:linear-gradient(150deg,'+bg+')"><span class="ph-note">Product photo</span></div></div>'+
+    '<div class="prod-body"><h3 class="prod-name">'+name+'</h3>'+
+    '<div class="prod-meta">★★★★★ <span style="color:var(--text-soft)">· '+meta+'</span></div>'+
+    '<div class="prod-foot"><div class="price">'+TK(price)+'</div>'+
+    '<button class="btn-add" onclick="miniAdd(this)">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></div>';
+}
+
+function renderCross(){
+  var metas = ["Perfect pairing","Baked fresh","Fan favourite","Extra cuddly"];
+  el("crossRail").innerHTML = P().cross.map(function(key, i){
+    var a = CATALOG[key]; if(!a) return "";
+    return prodCard(a.name, a.price, a.bg, metas[i % metas.length]);
+  }).join("");
+}
+
+function renderAlt(){
+  el("altGrid").innerHTML = COURIER_SAFE.map(function(p){
+    return prodCard(p.name, p.price, p.bg, p.meta,
+      '<span class="badge courier">🚚 1–3 days, nationwide</span>');
+  }).join("");
+}
+
+/* ---------------- zone rule ---------------- */
+function applyZoneRule(){
+  var p = P();
+  var blocked = (zone === "bangladesh" && p.zone === "dhaka");
+  document.body.classList.toggle("oz", blocked);
+  if(blocked){
+    el("ozTitle").textContent = p.ozTitle || "This gift can't travel outside Dhaka";
+    el("ozSub").textContent   = p.ozSub   || "We only ship what survives the journey — this one doesn't.";
+    renderAlt();
+  }
+  /* nav-এ Cakes / Balloons লুকাও All Bangladesh-এ */
+  document.querySelectorAll("#navCats a[data-dhaka]").forEach(function(a){
+    a.style.display = (zone === "bangladesh") ? "none" : "";
+  });
+  renderCaps();
+  renderCross();
+}
+
+function pickZone(z){
+  zone = z;
+  el("sheetVeil").classList.remove("show");
+  var lbl = el("locLabel"), ann = el("announce");
+  document.querySelectorAll(".zone").forEach(function(b){b.classList.remove("picked")});
+  var demoZoneBtns = document.querySelectorAll(".demo-panel .d-row:nth-of-type(2) .d-btn");
+
+  if(z === "dhaka"){
+    lbl.textContent = "Inside Dhaka";
+    ann.innerHTML = '<b>⚡ 2-Hour Delivery</b> inside Dhaka &nbsp;·&nbsp; Same Day before 6 PM &nbsp;·&nbsp; Midnight surprises available';
+    document.querySelectorAll(".zone")[0].classList.add("picked");
+  } else {
+    lbl.textContent = "All Bangladesh";
+    ann.innerHTML = '<b>🚚 Nationwide Delivery</b> across Bangladesh &nbsp;·&nbsp; Courier-safe gifts &nbsp;·&nbsp; Delivered in 1–3 days';
+    document.querySelectorAll(".zone")[1].classList.add("picked");
+  }
+  if(demoZoneBtns.length === 2){
+    demoZoneBtns[0].classList.toggle("on", z === "dhaka");
+    demoZoneBtns[1].classList.toggle("on", z === "bangladesh");
+  }
+  applyZoneRule();
+}
+function openSheet(){el("sheetVeil").classList.add("show")}
+
+/* ---------------- product type ---------------- */
+function setType(t, btn){
+  curType = t;
+  var p = P();
+  document.querySelectorAll("#demoTypes .d-btn").forEach(function(b){b.classList.remove("on")});
+  if(btn) btn.classList.add("on");
+
+  el("pName").textContent   = p.name;
+  el("pSub").textContent    = p.desc;
+  el("pUnit").textContent   = p.unit;
+  el("pMeta").textContent   = p.meta;
+  el("crumbCat").textContent  = p.cat;
+  el("crumbSub").textContent  = p.sub;
+  el("crumbName").textContent = p.crumb;
+  el("sbName").textContent    = p.crumb;
+  el("gMain").style.background = p.grad;
+  el("customTitle").textContent = p.customTitle;
+  el("customSub").textContent   = p.customSub;
+  el("storyTitle").textContent  = p.story[0];
+  el("storyP1").textContent     = p.story[1];
+  el("storyP2").textContent     = p.story[2];
+  el("faqIncl").textContent     = p.incl;
+  el("faqCare").textContent     = p.care;
+
+  renderThumbs(); renderOptions(); renderAddons();
+  refreshPrice(); applyZoneRule();
+}
+
+/* ---------------- misc ---------------- */
+function qty(d){ qtyN = Math.max(1, qtyN + d); el("qtyN").textContent = qtyN; }
+function addCart(btn){
+  var n = document.querySelector(".cart-badge");
+  n.textContent = +n.textContent + qtyN;
+  var old = btn.innerHTML;
+  btn.textContent = "Added to Cart ✓";
+  setTimeout(function(){ btn.innerHTML = old }, 1400);
+}
+function miniAdd(b){
+  var n = document.querySelector(".cart-badge");
+  n.textContent = +n.textContent + 1;
+  b.textContent = "Added ✓";
+  setTimeout(function(){ b.innerHTML = 'Add <svg class="ic"><use href="#i-cart"/></svg>' }, 1400);
+}
+el("sheetVeil").addEventListener("click", function(e){ if(e.target === this) this.classList.remove("show") });
+
+/* boot */
+setType("flower", document.querySelector("#demoTypes .d-btn"));
+</script>
+</body>
+</html>

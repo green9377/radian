@@ -1,0 +1,156 @@
+"use client";
+
+import Link from "next/link";
+import type { Zone } from "../../_store/useZoneStore";
+import { formatTaka, type Product } from "../../_data/products";
+import { useInWishlist, useWishlistStore } from "../../_store/useWishlistStore";
+
+/*
+  Reusable product card — Best Sellers, Delivery section, Collection,
+  Search, Related rail — সব জায়গায় এই একটাই card।
+
+  Wishlist heart এই এক জায়গা থেকেই সব page-এ কাজ করে (এক template):
+  saved হলে ভরাট গোলাপি heart, click = toggle। hydration-safe (useInWishlist
+  hydrate না হওয়া পর্যন্ত false — server/client heart মেলে)।
+
+  Badge rule (approved board): zone = All Bangladesh আর product courier-safe
+  হলে সবসময় courier badge। Image: gradient placeholder (Cloudinary later)।
+*/
+
+function HeartIcon({ filled }: { filled?: boolean }) {
+  return (
+    <svg
+      className={`w-4 h-4 stroke-current stroke-[1.8] ${filled ? "fill-current" : "fill-none"}`}
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 20.3S4 15 4 9.6A4.6 4.6 0 0 1 12 6.7a4.6 4.6 0 0 1 8 2.9c0 5.4-8 10.7-8 10.7z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg
+      className="w-[15px] h-[15px] stroke-current fill-none stroke-[1.8]"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M3 4h2.4l2.2 12.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 8H6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9.8" cy="20.6" r="1.1" />
+      <circle cx="17.6" cy="20.6" r="1.1" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      className="w-[11px] h-[11px] stroke-current fill-none stroke-[1.8]"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function Badge({ product, zone }: { product: Product; zone: Zone | null }) {
+  const kind =
+    zone === "bangladesh" && product.zone === "both"
+      ? "courier"
+      : product.badge;
+
+  const base =
+    "absolute top-[13px] left-[13px] z-[4] inline-flex items-center gap-[6px] text-[11px] font-semibold tracking-[0.04em] rounded-full px-3 py-[6px] whitespace-nowrap shadow-[0_4px_14px_rgba(71,0,102,0.12)]";
+
+  if (kind === "midnight") {
+    return (
+      <span className={`${base} bg-purple text-white`}>
+        <MoonIcon /> Midnight ready
+      </span>
+    );
+  }
+  if (kind === "courier") {
+    return (
+      <span className={`${base} bg-[#FFF4E3] text-[#8A5A00]`}>
+        🚚 1–3 days, nationwide
+      </span>
+    );
+  }
+  return (
+    <span className={`${base} bg-white/95 text-purple`}>
+      <span className="w-[7px] h-[7px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
+      Today, 2 hrs
+    </span>
+  );
+}
+
+export default function ProductCard({
+  product,
+  zone,
+}: {
+  product: Product;
+  zone: Zone | null;
+}) {
+  const saved = useInWishlist(product.slug);
+  const toggle = useWishlistStore((s) => s.toggle);
+
+  return (
+    <div className="bg-white rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift relative">
+      {/* Image */}
+      <Link
+        href={`/products/${product.slug}`}
+        className="block aspect-square relative overflow-hidden"
+        style={{ background: product.bg }}
+      >
+        <Badge product={product} zone={zone} />
+      </Link>
+
+      {/* Wishlist */}
+      <button
+        type="button"
+        onClick={() => toggle(product.slug)}
+        aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+        aria-pressed={saved}
+        className={`absolute top-[11px] right-[11px] z-[4] w-9 h-9 rounded-full grid place-items-center transition-all duration-200 hover:scale-[1.08] cursor-pointer ${
+          saved
+            ? "bg-white text-orchid"
+            : "bg-white/90 text-purple hover:text-orchid"
+        }`}
+      >
+        <HeartIcon filled={saved} />
+      </button>
+
+      {/* Body */}
+      <div className="px-3 sm:px-[19px] pt-4 pb-4 sm:pb-5">
+        <Link href={`/products/${product.slug}`}>
+          <h3 className="text-[15.5px] font-medium text-ink whitespace-nowrap overflow-hidden text-ellipsis">
+            {product.name}
+          </h3>
+        </Link>
+        <div className="flex items-center gap-[6px] text-[12px] text-rosegold mt-[5px] mb-[10px] whitespace-nowrap">
+          {product.stars}
+          <span className="text-body-soft">· {product.meta}</span>
+        </div>
+        <div className="flex items-center justify-between gap-[6px] sm:gap-[10px]">
+          <div className="font-display text-[17px] sm:text-[20px] font-semibold text-purple whitespace-nowrap">
+            {formatTaka(product.pricePaisa)}
+          </div>
+          <button className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0">
+            Add <CartIcon />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

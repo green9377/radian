@@ -1,0 +1,93 @@
+
+############################################################
+#  STARTING THE BOOKS AGAIN                                #
+############################################################
+
+      81  journal lines
+      35  journal entries
+       5  expenses
+       1  income
+       1  transfers
+       3  partner movements
+       1  loan payments
+       2  loans
+       1  fixed assets
+       2  prepaid items
+       1  carrier remittances
+      25  payslips
+       5  payroll runs
+     155  attendance days
+       4  return lines
+       4  returns
+       1  customer credits
+       5  delivery assignments
+       1  offer redemptions
+       5  order photos
+       4  order payments
+      16  order lines
+      13  orders
+       1  supplier payment splits
+       1  supplier payments
+       2  supplier adjustments
+       2  supplier credits
+      12  assembly production lines
+       4  assembly runs
+       1  stock issue lines
+       1  stock issues
+      46  stock movements
+       9  stock balances
+       3  customers
+
+  453 rows in total.
+
+  KEPT, untouched:
+    61 accounts · 6 items · 5 products · 2 suppliers
+    5 employees · 4 logins · 3 offers · 4 delivery methods
+
+  Working...
+
+    cleared     81  journal lines
+    cleared     35  journal entries
+    cleared      5  expenses
+    cleared      1  income
+    cleared      1  transfers
+    cleared      3  partner movements
+    cleared      1  loan payments
+    cleared      2  loans
+    cleared      1  fixed assets
+    cleared      2  prepaid items
+    cleared      1  carrier remittances
+    cleared     25  payslips
+    cleared      5  payroll runs
+    cleared    155  attendance days
+    cleared      4  return lines
+    cleared      4  returns
+    cleared      1  customer credits
+    cleared      5  delivery assignments
+    cleared      1  offer redemptions
+    cleared      5  order photos
+    cleared      4  order payments
+    cleared     16  order lines
+    cleared     13  orders
+    cleared      1  supplier payment splits
+    cleared      1  supplier payments
+    cleared      2  supplier adjustments
+    cleared      2  supplier credits
+    cleared     12  assembly production lines
+    cleared      4  assembly runs
+    cleared      1  stock issue lines
+    cleared      1  stock issues
+    cleared     46  stock movements
+    cleared      9  stock balances
+    cleared      3  customers
+
+    month-lock cleared (June had been closed during testing)
+
+  Done. The ledger now holds 0 entries.
+
+  Next, in this order:
+    1. Finance → Settings → set the go-live date to the day you start
+    2. Finance → Opening balances → enter the real cash, bKash, bank,
+       stock, what customers owe you and what you owe suppliers, then Post
+    3. Finance → Books vs reality → run it; everything should be green
+

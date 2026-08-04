@@ -1,0 +1,118 @@
+===== finance state part 2 ===== 
+Tue 07/28/2026 
+03:15 PM
+ 
+===== 3. EXPENSES ===== 
+ expenseNo  |  on_date   |   taka   |            category             | payee |                    note                    | approval 
+------------+------------+----------+---------------------------------+-------+--------------------------------------------+----------
+ EXP-000001 | 2026-07-26 |  1800.00 | Utility (electricity/water/gas) | DESCO | July electricity                           | AUTO
+ EXP-000002 | 2026-07-26 | 60000.00 | Shop Rent                       |       | Advance rent — needs approval · declined:  | DECLINED
+ EXP-000003 | 2026-07-27 |   100.00 | Wastage / Spoilage              | 152   |                                            | AUTO
+ EXP-000004 | 2026-07-27 | 50000.00 | Gift & Sampling                 |       |                                            | APPROVED
+ EXP-000005 | 2026-07-27 |     1.00 | Cost of Goods Sold              |       | ACCESS TEST - delete me                    | AUTO
+(5 rows)
+
+ 
+===== 4. INCOME (non-sales) ===== 
+  incomeNo  |  on_date   |  taka   | payer |        note        
+------------+------------+---------+-------+--------------------
+ INC-000001 | 2026-07-26 | 1200.00 |       | Sold empty cartons
+(1 row)
+
+ 
+===== 6. FIXED ASSETS ===== 
+  assetNo   |      name      |   bought   |   taka   | life_months | depreciated 
+------------+----------------+------------+----------+-------------+-------------
+ AST-000001 | Display fridge | 2026-07-05 | 80000.00 |          48 |     1666.67
+(1 row)
+
+ 
+===== 8. LOANS ===== 
+   loanNo   | lenderName |  kind  |   starts   | principal | rate_bp |         note          
+------------+------------+--------+------------+-----------+---------+-----------------------
+ LON-000001 | Mama       | FAMILY | 2026-07-27 | 300000.00 |       0 | checked by drift test
+(1 row)
+
+ERROR:  column p.paidOn does not exist
+LINE 1: select l."loanNo", to_char(p."paidOn",'YYYY-MM-DD') as paid_...
+                                   ^
+HINT:  Perhaps you meant to reference the column "p.paidAt".
+ 
+===== 9. CARRIER REMITTANCES ===== 
+ remittanceNo |  on_date   | carrierName |  gross  | charge |   net   
+--------------+------------+-------------+---------+--------+---------
+ RMT-000001   | 2026-07-27 | Steadfast   | 3320.00 | 120.00 | 3200.00
+(1 row)
+
+ 
+===== 10. EXPENSE ACCOUNTS MISSING FIXED/VARIABLE ===== 
+ code |              name               | behavior 
+------+---------------------------------+----------
+ 5000 | Cost of Goods Sold              | VARIABLE
+ 5100 | Wastage / Spoilage              | VARIABLE
+ 5110 | Gift & Sampling                 | VARIABLE
+ 5150 | Inventory Adjustment            | VARIABLE
+ 5200 | Delivery Cost (courier/rider)   | VARIABLE
+ 5300 | Payment Gateway Fee             | VARIABLE
+ 5310 | Packaging                       | VARIABLE
+ 5400 | Shop Rent                       | FIXED
+ 5410 | Partner Salary                  | FIXED
+ 5420 | Employee Salary                 | FIXED
+ 5430 | Utility (electricity/water/gas) | FIXED
+ 5440 | Internet & Phone                | FIXED
+ 5450 | Marketing & Ads                 | VARIABLE
+ 5460 | Transport & Conveyance          | VARIABLE
+ 5470 | Repair & Maintenance            | FIXED
+ 5480 | Bank Charge & Fees              | FIXED
+ 5490 | Miscellaneous                   | FIXED
+ 5491 | Website & Software              | FIXED
+ 5492 | Professional Fees               | FIXED
+ 5493 | Insurance                       | FIXED
+ 5494 | Import & Customs                | VARIABLE
+ 5495 | Branding & Design               | VARIABLE
+ 5496 | Event Cost                      | VARIABLE
+ 5497 | Temporary Worker                | VARIABLE
+ 5498 | Staff Food & Refreshment        | FIXED
+ 5499 | Uncategorised Expense           | FIXED
+ 5500 | Depreciation                    | FIXED
+ 5600 | Loan Interest                   | FIXED
+ 5700 | Cash Short                      | FIXED
+(29 rows)
+
+ 
+===== 13. ORDERS - are they real or seeded? ===== 
+ERROR:  column "grandTotalPaisa" does not exist
+LINE 1: ...as placed, "salesStatus", "deliveryStatus", round("grandTota...
+                                                             ^
+ 
+===== 14. WHAT IS SITTING IN EACH MONEY ACCOUNT, ENTRY BY ENTRY ===== 
+ code |    name     |  entryNo  |  on_date   |  movement  |                  narration                   
+------+-------------+-----------+------------+------------+----------------------------------------------
+ 1000 | Cash Drawer | JV-000001 | 2026-07-17 |   25000.00 | Opening balances (go-live)
+ 1000 | Cash Drawer | JV-000007 | 2026-07-21 |    1800.00 | Counter sale — cash
+ 1000 | Cash Drawer | JV-000018 | 2026-07-26 |   -5000.00 | Partner (works) took money out
+ 1000 | Cash Drawer | JV-000019 | 2026-07-26 |   -1800.00 | July electricity
+ 1000 | Cash Drawer | JV-000021 | 2026-07-26 |    1200.00 | Sold empty cartons
+ 1000 | Cash Drawer | JV-000033 | 2026-07-27 |    -100.00 | Expense EXP-000003
+ 1000 | Cash Drawer | JV-000034 | 2026-07-27 |  -50000.00 | Expense EXP-000004
+ 1000 | Cash Drawer | JV-000035 | 2026-07-27 |      -1.00 | ACCESS TEST - delete me
+ 1010 | bKash       | JV-000001 | 2026-07-17 |   40000.00 | Opening balances (go-live)
+ 1010 | bKash       | JV-000012 | 2026-07-22 |  -30000.00 | Working partner monthly salary (a cost, not 
+ 1010 | bKash       | JV-000014 | 2026-07-25 |    5000.00 | Advance taken for a pre-order — not our mone
+ 1010 | bKash       | JV-000017 | 2026-07-26 |  -30000.00 | Partner (works) — monthly salary
+ 1010 | bKash       | JV-000020 | 2026-07-26 |  -10185.00 | bKash cash-out to bank
+ 1010 | bKash       | JV-000032 | 2026-07-27 |     500.00 | RAD-D001 — payment received
+ 1040 | Bank        | JV-000025 | 2026-07-01 | -150000.00 | 6 months shop rent — paid in advance
+ 1040 | Bank        | JV-000024 | 2026-07-05 |  -80000.00 | Bought Display fridge
+ 1040 | Bank        | JV-000001 | 2026-07-17 |  150000.00 | Opening balances (go-live)
+ 1040 | Bank        | JV-000010 | 2026-07-22 |  -30000.00 | Paid the supplier — bank transfer
+ 1040 | Bank        | JV-000011 | 2026-07-22 |  -25000.00 | Shop rent — July
+ 1040 | Bank        | JV-000006 | 2026-07-23 |    4380.00 | Courier remitted this week — charge deducted
+ 1040 | Bank        | JV-000016 | 2026-07-26 |  200000.00 | Investment into the business
+ 1040 | Bank        | JV-000020 | 2026-07-26 |   10000.00 | bKash cash-out to bank
+ 1040 | Bank        | JV-000026 | 2026-07-27 | -100000.00 | Shop security deposit — deposit paid
+ 1040 | Bank        | JV-000027 | 2026-07-27 |  300000.00 | Borrowed from Mama
+ 1040 | Bank        | JV-000028 | 2026-07-27 |  -52500.00 | Mama — instalment
+ 1040 | Bank        | JV-000031 | 2026-07-27 |    3200.00 | Steadfast handed over 3,320 tk (charge deduc
+(26 rows)
+

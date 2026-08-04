@@ -1,0 +1,29 @@
+# Radian — Caddy reverse proxy (docker-compose.prod.yml-এর সাথে)。
+#
+# Caddy কী করে: বাইরের সব request নেয়, HTTPS সার্টিফিকেট নিজে Let's Encrypt
+# থেকে এনে নিজেই নবায়ন করে, তারপর ভেতরের সঠিক container-এ পাঠায়。
+# Nginx + Certbot-এর কাজটা তিন লাইনে。
+#
+# ডোমেইনের নাম .env.production থেকে আসে (WEB_DOMAIN / ADMIN_DOMAIN / API_DOMAIN)。
+# DNS-এ তিনটার A record-ই VPS-এর IP-তে থাকতে হবে, নইলে সার্টিফিকেট আসবে না。
+
+{$WEB_DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+{$ADMIN_DOMAIN} {
+	encode gzip
+	reverse_proxy admin:3001
+
+	# admin-এ আসল login আছে (AuthGate + API-র global AuthGuard)。 তবু
+	# search engine যেন ভুলেও ঢুকতে না পারে。
+	header X-Robots-Tag "noindex, nofollow"
+}
+
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy api:4000
+
+	header X-Robots-Tag "noindex, nofollow"
+}

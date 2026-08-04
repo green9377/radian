@@ -1,0 +1,105 @@
+
+=== cleaning up anything left from a previous run ===
+{"people":0,"ledgerEntries":0}
+
+=== 1. job roles ===
+  PASS  a role can be created
+  PASS  the same role name twice is refused  ("[selftest] Florist" is already on the list)
+
+=== 2. employees, one of each pay type ===
+  PASS  three employees created
+  PASS  EMP- numbers are sequential  (EMP-000001)
+  PASS  an employee with no name is refused  (The name is required)
+
+=== 3. the midnight shift is read as five hours, not minus nineteen ===
+  PASS  20:00 to 01:00 counts as 5 hours  (300 minutes)
+  PASS  09:00 to 19:00 counts as 10 hours  (600 minutes)
+  PASS  an unmarked sheet still defaults everybody to present
+
+=== 4. five days of attendance ===
+  PASS  monthly: 4 paid days, 1 absent  (4/1)
+  PASS  daily: 4.5 paid days (half day counts as half)  (4.5)
+  PASS  daily: the missing half is 0.5 absent  (0.5)
+  PASS  paid days + absent days = days recorded  (5)
+  PASS  hourly: 4 worked days x 5h = 1200 minutes  (1200)
+  PASS  hourly: paid leave still earns a day  (5)
+
+=== 5. the clock decides the status ===
+  PASS  3h of a 5h day is read as a half day  (HALF_DAY · 180m)
+  PASS  a future day cannot be marked  (That day has not happened yet (HR-R13))
+
+=== 6. no advance without a real employee (HR-D06) ===
+  PASS  an advance with no employee is refused  (Pick who this advance is for — only people on the staff list can be pa)
+  PASS  an advance to an unknown id is refused  (That person is not on the staff list)
+  PASS  an advance can be posted against a real person
+  PASS  the advance shows up as outstanding  (3000.00)
+
+=== 7. payroll build ===
+  PASS  all three are on the run  (3)
+  PASS  monthly base is the agreed figure, whatever the days  (15000.00)
+  PASS  daily base is 4.5 days x 800  (3600.00)
+  PASS  hourly base is 20h x 120  (2400.00)
+  PASS  nobody has advance recovery proposed for them (HR-R05)
+  PASS  the monthly person's absence carries a suggested deduction  (3000.00)
+  PASS  the outstanding advance is visible on the payslip
+
+=== 8. editing the draft ===
+  PASS  recovering more advance than is owed is refused  ([selftest] Monthly Person only owes 3000.00 of advance — you are tryin)
+  PASS  a deduction bigger than the pay is refused  (Deductions are more than the pay)
+  PASS  bonus is added and advance recovery netted off  (16000.00)
+  PASS  a bonus does not disturb the base
+  PASS  a deduction comes off the pay  (3400.00)
+  PASS  the run total equals the sum of the payslips  (21800.00)
+
+=== 9. approval, and what lands in the books ===
+  PASS  the run is approved
+  PASS  a journal entry was written
+  PASS  the entry balances  (22800.00 vs 22800.00)
+  PASS  salary cost went to 5420  (3 lines)
+  PASS  every salary line carries the person, not just a name
+  PASS  the recovered advance came off 1210  (1000.00)
+  PASS  only the net actually left the money account  (21800.00)
+  PASS  the advance still owed is now 2,000  (2000.00)
+  PASS  the run total was written back from the recomputed figures  (21800.00)
+
+=== 10. once approved, everything is frozen ===
+  PASS  an approved run cannot be edited  (This run is approved and cannot be edited — reverse it in Finance inst)
+  PASS  an approved run cannot be deleted  (An approved run is never deleted — reverse it in Finance (HR-R08))
+  PASS  a day inside an approved run cannot be re-marked  (This day is inside approved payroll PAY-000001 (2026-07) — it cannot b)
+  PASS  approving twice is refused  (This run is already approved)
+
+=== 11. nobody gets paid twice for the same month (HR-R22) ===
+  PASS  a second run for the same people is refused outright  (Everybody was already paid for 2026-07 — there is nobody lef)
+
+=== 12. somebody who leaves ===
+  PASS  a leaver is still reachable for a final settlement
+  PASS  but a NEW advance to a leaver is refused  ([selftest] Hourly Person is marked as left — an advance to somebody wh)
+  PASS  a leaver still appears on the days they actually worked
+  PASS  but not on today's sheet
+
+=== 13. documents are the owner's alone (HR-R26) ===
+  PASS  a MANAGER cannot list documents  (Staff documents are open to the owner only — they hold NID and contrac)
+  PASS  a MANAGER cannot attach one  (Staff documents are open to the owner only — they hold NID and contrac)
+  PASS  the owner can attach one
+  PASS  and it is listed back
+  PASS  the list does not drag the file itself along
+  PASS  an oversized file is refused  (That file is too big (about 2.5 MB is the limit) — a photo of the page)
+
+=== 14. private fields are hidden from a MANAGER (HR-R10) ===
+  PASS  the owner sees the NID
+  PASS  a manager does not
+  PASS  but a manager still sees the working fields
+
+=== 15. an employee holding money cannot be removed ===
+  PASS  removal is refused while an advance is outstanding  ([selftest] Monthly Person still has 2000.00 of advance outstanding — s)
+  PASS  somebody who owes nothing can be removed
+  PASS  and they turn up in the trash, not gone
+  PASS  and can be put back
+
+=== 16. a role in use cannot be deleted ===
+  PASS  deleting a role somebody holds is refused  (3 people hold this role — switch it off instead, so their records keep)
+
+=== cleaning up ===
+{"people":3,"ledgerEntries":2}
+
+================ 65 passed, 0 failed ================

@@ -1,0 +1,358 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Icon from "./Icon";
+import { WRAP, ACCENT, ItemPageHead, ErrBar, Field, QuickSelect, msg } from "./ItemUI";
+import {
+  getSupplier, createSupplier, updateSupplier, listSupplierTypes, createSupplierType,
+  uploadItemImage, formatTaka,
+  type ApiSupplierDetail, type ApiSupplierType, type NotifyChannel, type NotifyMode,
+} from "../_data/api";
+import { SupplierAvatar } from "./SupplierViews";
+
+/*
+  Supplier create/edit — RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md (23 Jul 2026).
+  SUP-R01: only name + type are required — a market mama without a phone number
+  must never be blocked at the door.
+  SUP-R04: opening due is shown as an input only while it has never been set;
+  after that the panel says "use an Adjustment entry".
+*/
+
+const tkToPaisa = (v: string): number => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
+};
+
+export default function SupplierEditor({ supplierId, vendorMode = false }: { supplierId?: string; vendorMode?: boolean }) {
+  const router = useRouter();
+  const isNew = !supplierId;
+
+  const [types, setTypes] = useState<ApiSupplierType[]>([]);
+  const [loaded, setLoaded] = useState<ApiSupplierDetail | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [dupWarn, setDupWarn] = useState<string | null>(null); // SUP-R01 confirm path
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [typeId, setTypeId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [market, setMarket] = useState("");
+  const [address, setAddress] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [payoutInfo, setPayoutInfo] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>("OFF");
+  const [notifyMode, setNotifyMode] = useState<NotifyMode>("MANUAL");
+  const [leadTimeHours, setLeadTimeHours] = useState("");
+  const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [openingTk, setOpeningTk] = useState("");
+  const [openingAsOf, setOpeningAsOf] = useState(() => new Date().toISOString().slice(0, 10));
+  const [openingNote, setOpeningNote] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const t = await listSupplierTypes();
+        setTypes(t);
+        if (supplierId) {
+          const s = await getSupplier(supplierId);
+          setLoaded(s);
+          setName(s.name); setNickname(s.nickname ?? ""); setTypeId(s.typeId);
+          setPhone(s.phone ?? ""); setContactPerson(s.contactPerson ?? "");
+          setMarket(s.market ?? ""); setAddress(s.address ?? "");
+          setPhotoUrl(s.photoUrl ?? null);
+          setPaymentTerms(s.paymentTerms ?? ""); setPayoutInfo(s.payoutInfo ?? "");
+          setNotifyPhone(s.notifyPhone ?? ""); setNotifyChannel(s.notifyChannel);
+          setNotifyMode(s.notifyMode);
+          setLeadTimeHours(s.leadTimeHours?.toString() ?? "");
+          setNotes(s.notes ?? ""); setStatus(s.status);
+        } else if (t.length) {
+          // DEC-SUP-009 — the door you came in through picks the behaviour
+          const preferred = vendorMode
+            ? t.find((x) => x.isFulfillment)
+            : t.find((x) => !x.isFulfillment);
+          setTypeId((preferred ?? t[0]).id);
+        }
+      } catch (e) { setErr(msg(e, "Could not load.")); }
+      finally { setLoading(false); }
+    })();
+  }, [supplierId]);
+
+  const openingLocked = !!loaded && loaded.openingDuePaisa > 0; // SUP-R04
+
+  // review fix — the form face follows the PICKED type, not just the door you
+  // came in through: editing a vendor (or switching the type mid-form) shows
+  // the vendor layout (DEC-SUP-009)
+  const isVendorForm = vendorMode || (types.find((t) => t.id === typeId)?.isFulfillment ?? false);
+
+  async function save(confirmDuplicatePhone = false) {
+    if (!name.trim()) { setErr("Give the supplier a name."); return; }
+    if (!typeId) { setErr("Pick a type — Product Supplier or Fulfillment Vendor."); return; }
+    setBusy(true); setErr(null); setDupWarn(null);
+    const body = {
+      name: name.trim(),
+      typeId,
+      nickname: nickname.trim() || undefined,
+      phone: phone.trim() || undefined,
+      confirmDuplicatePhone,
+      contactPerson: contactPerson.trim() || undefined,
+      market: market.trim() || undefined,
+      address: address.trim() || undefined,
+      photoUrl: photoUrl ?? undefined,
+      paymentTerms: paymentTerms.trim() || undefined,
+      payoutInfo: payoutInfo.trim() || undefined,
+      notifyPhone: notifyPhone.trim() || undefined,
+      notifyChannel,
+      notifyMode,
+      leadTimeHours: leadTimeHours === "" ? undefined : Math.max(0, Math.round(Number(leadTimeHours) || 0)),
+      notes: notes.trim() || undefined,
+      ...(isNew || !openingLocked
+        ? tkToPaisa(openingTk) > 0
+          ? {
+              openingDuePaisa: tkToPaisa(openingTk),
+              openingAsOf: new Date(openingAsOf).toISOString(),
+              openingNote: openingNote.trim() || undefined,
+            }
+          : {}
+        : {}),
+      ...(isNew ? {} : { status }),
+    };
+    try {
+      if (isNew) {
+        const created = await createSupplier(body);
+        router.push(`/suppliers/${created.id}`);
+      } else {
+        await updateSupplier(supplierId!, body);
+        router.push(`/suppliers/${supplierId}`);
+      }
+    } catch (e) {
+      const m = msg(e, "Could not save.");
+      if (m.startsWith("DUPLICATE_PHONE:")) setDupWarn(m.replace(/^DUPLICATE_PHONE:/, ""));
+      else setErr(m);
+    } finally { setBusy(false); }
+  }
+
+  const [photoBusy, setPhotoBusy] = useState(false);
+  async function pickPhoto(f: File | null) {
+    if (!f) return;
+    setPhotoBusy(true);
+    try { setPhotoUrl(await uploadItemImage(f, "suppliers")); }
+    catch (e) { setErr(msg(e, "Could not upload that photo.")); }
+    finally { setPhotoBusy(false); }
+  }
+
+  if (loading) return <div className={WRAP}><p className="text-[13px] text-body-soft">Loading…</p></div>;
+
+  return (
+    <div className={WRAP}>
+      <ItemPageHead
+        eyebrow={isVendorForm ? "Master Data · Suppliers · Vendors" : "Master Data · Suppliers"}
+        title={isNew ? (isVendorForm ? "New vendor" : "New supplier") : `Edit — ${loaded?.name ?? ""}`}
+        blurb={isNew
+          ? isVendorForm
+            ? "A fulfillment partner — his products go on your website, orders are sourced from him per order (DEC-SUP-009). Notify phone + lead time are the fields that matter most here."
+            : "Only a name and a type are required — everything else can come later (SUP-R01). Old-ledger due goes in the Opening due box, once."
+          : "Profile changes only — money moves on the supplier page, never here."}
+      />
+      {err && <ErrBar text={err} onClose={() => setErr(null)} />}
+
+      {/* SUP-R01 — duplicate phone warns, never blocks */}
+      {dupWarn && (
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Same phone, different supplier</b>
+          <p className="text-[13px] text-body m-0 mb-3">{dupWarn}</p>
+          <div className="flex gap-2">
+            <button onClick={() => setDupWarn(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
+              Let me check
+            </button>
+            <button onClick={() => save(true)} disabled={busy}
+              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "#b45309" }}>
+              It's fine — save anyway
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+        {/* DEC-SUP-009 — vendors read notify/lead-time FIRST, money later; the
+            flex order swaps the cards without duplicating the form */}
+        <div className="flex flex-col">
+          {/* ---------------- who ---------------- */}
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: 1 }}>
+            <b className="text-[13.5px] text-purple block mb-3">Who</b>
+            <div className="flex items-start gap-4 mb-1">
+              <label className="cursor-pointer shrink-0 group relative" title="Photo (optional)">
+                <SupplierAvatar s={{ name: name || "?", photoUrl }} size={64} />
+                <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full grid place-items-center text-white border-2 border-white" style={{ background: ACCENT }}>
+                  {photoBusy ? <span className="text-[10px] leading-none">…</span> : <Icon name="photo" size={11} />}
+                </span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)} />
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 flex-1">
+                <Field label="Name" required>
+                  <input className="ipt w-full" placeholder="Kamal Uddin, Cake Factory BD…" value={name} onChange={(e) => setName(e.target.value)} />
+                </Field>
+                <Field label="Nickname" hint="What you actually call him — searchable.">
+                  <input className="ipt w-full" placeholder="Kamal Mama" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+                </Field>
+                <Field label="Type" required hint="Product Supplier = buy → stock. Fulfillment Vendor = his product, sourced per order (cake).">
+                  <QuickSelect
+                    value={typeId}
+                    placeholder="Pick a type"
+                    onChange={setTypeId}
+                    allowClear={false}
+                    options={types.map((t) => ({ id: t.id, label: t.name }))}
+                    onCreate={async (label) => {
+                      try {
+                        const created = await createSupplierType({ name: label });
+                        setTypes((p) => [...p, created]);
+                        return created.id;
+                      } catch (e) { setErr(msg(e, "Could not create that type.")); return null; }
+                    }}
+                  />
+                </Field>
+                <Field label="Phone">
+                  <input className="ipt w-full" placeholder="01…" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </Field>
+                <Field label="Contact person" hint="Owner + manager different people? Name the one you call.">
+                  <input className="ipt w-full" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+                </Field>
+                <Field label="Market / area">
+                  <input className="ipt w-full" placeholder="Shahbagh flower market" value={market} onChange={(e) => setMarket(e.target.value)} />
+                </Field>
+              </div>
+            </div>
+            <Field label="Address">
+              <input className="ipt w-full" value={address} onChange={(e) => setAddress(e.target.value)} />
+            </Field>
+          </div>
+
+          {/* ---------------- money ---------------- */}
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: isVendorForm ? 3 : 2 }}>
+            <b className="text-[13.5px] text-purple block mb-3">Money</b>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              <Field label="Payment terms" hint="A reminder, not a rule — 'bKash per order', 'settle month-end'.">
+                <input className="ipt w-full" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+              </Field>
+              <Field label="Payout info" hint="bKash/Nagad/bank no — at hand when you send money.">
+                <input className="ipt w-full" placeholder="bKash 01…" value={payoutInfo} onChange={(e) => setPayoutInfo(e.target.value)} />
+              </Field>
+            </div>
+
+            {/* DEC-SUP-005 — opening due */}
+            {openingLocked ? (
+              <div className="rounded-[12px] px-4 py-3 mt-1 text-[12.5px]" style={{ background: "#f5f1f9", color: "#6b5878" }}>
+                Opening due is set: <b>{formatTaka(loaded!.openingDuePaisa)}</b>
+                {loaded!.openingNote ? <> · {loaded!.openingNote}</> : null} — locked (SUP-R04).
+                Wrong figure? Use an <b>Adjustment entry</b> on the supplier page; history stays honest.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4">
+                <Field label="Opening due (tk)" hint="Old-ledger due. Blank = 0.">
+                  <input className="ipt w-full" placeholder="0" inputMode="decimal" value={openingTk} onChange={(e) => setOpeningTk(e.target.value)} />
+                </Field>
+                <Field label="As of">
+                  <input type="date" className="ipt w-full" value={openingAsOf} onChange={(e) => setOpeningAsOf(e.target.value)} />
+                </Field>
+                <Field label="Opening note">
+                  <input className="ipt w-full" placeholder="Old khata till June" value={openingNote} onChange={(e) => setOpeningNote(e.target.value)} />
+                </Field>
+              </div>
+            )}
+          </div>
+
+          {/* ---------------- order notifications (DEC-SUP-003) ---------------- */}
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: isVendorForm ? 2 : 3 }}>
+            <b className="text-[13.5px] text-purple block mb-1">Order notifications</b>
+            <p className="text-[12.5px] text-body-soft mt-0 mb-3">
+              For fulfillment vendors: when his product is ordered, a message goes with the product,
+              qty and ready-by time — <b>never any customer information</b> (SUP-R07). Auto-send arrives
+              with the Automation module; today it is one manual click on the supplier page.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              <Field label="Notify phone" hint="Where order messages go — may differ from the main phone.">
+                <input className="ipt w-full" placeholder="01…" value={notifyPhone} onChange={(e) => setNotifyPhone(e.target.value)} />
+              </Field>
+              <Field label="Lead time (hours)" hint="Cake needs 4h notice → ready-by time works itself out.">
+                <input className="ipt w-full" placeholder="4" inputMode="numeric" value={leadTimeHours} onChange={(e) => setLeadTimeHours(e.target.value)} />
+              </Field>
+              <Field label="Channel">
+                <div className="flex gap-2">
+                  {(["WHATSAPP", "SMS", "OFF"] as const).map((c) => (
+                    <button key={c} type="button" onClick={() => setNotifyChannel(c)}
+                      className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
+                      style={notifyChannel === c
+                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                      {c === "WHATSAPP" ? "WhatsApp" : c === "SMS" ? "SMS" : "Off"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Mode" hint="Manual for now.">
+                <div className="flex gap-2">
+                  {(["MANUAL", "AUTO"] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setNotifyMode(m)}
+                      className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
+                      style={notifyMode === m
+                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                      {m === "MANUAL" ? "Manual" : "Auto (later)"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* ---------------- notes / status ---------------- */}
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4" style={{ order: 4 }}>
+            <Field label="Notes">
+              <textarea className="ipt w-full" rows={3} placeholder="Delivers only inside Dhaka. Closed Fridays."
+                value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
+            {!isNew && (
+              <Field label="Status" hint="Inactive = hidden from pickers; history stays (SUP-R02).">
+                <div className="flex gap-2">
+                  {(["ACTIVE", "INACTIVE"] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => setStatus(s)}
+                      className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
+                      style={status === s
+                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                      {s === "ACTIVE" ? "Active" : "Inactive"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            )}
+          </div>
+        </div>
+
+        {/* ---------------- side rail ---------------- */}
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 xl:sticky xl:top-4">
+          <b className="text-[13.5px] text-purple block mb-2">{isNew ? "Ready?" : "Save changes"}</b>
+          <p className="text-[12.5px] text-body-soft mt-0 mb-4">
+            Required: <b>name</b> + <b>type</b>. Everything else is optional — fill it when you know it.
+          </p>
+          <button onClick={() => save(false)} disabled={busy}
+            className="w-full text-white text-[13.5px] font-semibold px-4 py-3 rounded-[12px] disabled:opacity-60"
+            style={{ background: ACCENT }}>
+            {busy ? "Saving…" : isNew ? "Create supplier" : "Save changes"}
+          </button>
+          <button onClick={() => router.back()} disabled={busy}
+            className="w-full border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2.5 rounded-[12px] mt-2">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

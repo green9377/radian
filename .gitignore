@@ -1,0 +1,21 @@
+# local env files — never commit
+.env
+.env.*
+# ...except the templates, which hold placeholders only, never real values
+!.env.example
+!.env.*.example
+
+node_modules/
+.next/
+dist/
+*.tsbuildinfo
+
+# database backups — real customer data, and far too big for git
+backups/
+*.dump
+_backup.log
+_restore.log
+
+# OS / editor junk
+.DS_Store
+Thumbs.db

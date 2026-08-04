@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: radian_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radian_user
+      POSTGRES_PASSWORD: radian_pass
+      POSTGRES_DB: radian_db
+    ports:
+      # host 5433 -> container 5432। host-এ আগে থেকে একটা native postgres 5432-এ
+      # চলছে, তাই সেটার সাথে conflict এড়াতে host-side পোর্ট 5433। container network-এ
+      # (web/api → postgres:5432) কোনো পরিবর্তন নেই।
+      - "5433:5432"
+    volumes:
+      - radian_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radian_user -d radian_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: radian_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    # scripts/dev.mjs keeps the API serving through a TypeScript error instead
+    # of taking the whole shop offline for one wrong type. If that runner
+    # itself ever fails to start, `||` drops back to the old Nest watcher, so
+    # the worst case is the behaviour we had before, never a dead container.
+    command: sh -c "npm run start:dev || npm run start:dev:nest"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: radian_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+volumes:
+  radian_postgres_data:

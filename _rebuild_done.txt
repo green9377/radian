@@ -1,0 +1,5 @@
+ 
+NAME              IMAGE                COMMAND                  SERVICE    CREATED         STATUS                  PORTS
+radian_api        radian-api           "docker-entrypoint.s…"   api        6 seconds ago   Up Less than a second   0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+radian_postgres   postgres:16-alpine   "docker-entrypoint.s…"   postgres   13 days ago     Up 2 hours (healthy)    0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+radian_web        radian-web           "docker-entrypoint.s…"   web        12 days ago     Up 2 hours              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp

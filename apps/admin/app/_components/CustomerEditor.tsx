@@ -1,0 +1,996 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  createCustomer,
+  updateCustomer,
+  getCustomer,
+  setCustomerBlocked,
+  listSegmentsSafe,
+  type ApiSegment,
+  type ApiRecipient,
+  type ApiCustomer,
+} from "../_data/api";
+import {
+  SEGMENT_LABEL,
+  RELATIONSHIP_LABEL,
+  initials,
+  shortDate,
+  ago,
+  occasionDate,
+  type Segment,
+  type Recipient,
+  type RecipientOccasion,
+  type OccasionType,
+  type Relationship,
+  type CustomerStatus,
+} from "../_data/customers";
+import { formatTaka, type Zone } from "../_data/products";
+import { isDemoMode } from "../_data/demoMode";
+import Icon from "./Icon";
+import PhoneField from "./PhoneField";
+
+/*
+  Customer Editor — add / edit for Customer Management.
+  Left: section nav. Middle: the active section. Right: live "My Account" preview.
+  Data is mock (_data/customers.ts). ⇄ SWAP HERE: Customer API (:4000) will load/save.
+
+  Key rules made visible here:
+  - Phone = identity key (WhatsApp OTP, no password). INTERNATIONAL — any country.
+  - Recipients = customer-owned rich address book. Any phone/country; we contact
+    whatever number is given. They never log in or order.
+  - status blocked is NOT delete. Delete = soft-hide.
+  - Orders / lifetime value / deliveries are OWNED BY SALES — read-only (One Data, One Owner).
+*/
+
+const SECTIONS = [
+  ["profile", "Profile", "user"],
+  ["recipients", "Recipients", "pin"],
+  ["segments", "Segments & notes", "hash"],
+  ["orders", "Orders & value", "bag"],
+  ["activity", "Activity log", "clock"],
+] as const;
+type SecId = (typeof SECTIONS)[number][0];
+
+
+/* ---------- small building blocks (same visual language as ProductEditor) ---------- */
+function Card({
+  icon,
+  title,
+  hint,
+  children,
+}: {
+  icon?: string;
+  title: React.ReactNode;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-5">
+      <div className="flex items-start gap-3 mb-4">
+        {icon && (
+          <span className="w-9 h-9 rounded-[11px] bg-orchid-soft text-purple grid place-items-center shrink-0">
+            <Icon name={icon} size={19} />
+          </span>
+        )}
+        <div>
+          <h3 className="font-display text-[17px] text-purple m-0 leading-tight">
+            {title}
+          </h3>
+          {hint && (
+            <p className="text-body-soft text-[13px] mt-1 mb-0 leading-relaxed">
+              {hint}
+            </p>
+          )}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  note,
+  full,
+  children,
+}: {
+  label?: React.ReactNode;
+  note?: string;
+  full?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={"flex flex-col gap-2 " + (full ? "col-span-full" : "")}>
+      {label && (
+        <label className="text-[13.5px] font-semibold text-body tracking-[0.01em]">
+          {label}
+        </label>
+      )}
+      {children}
+      {note && <span className="text-[13px] text-body-soft">{note}</span>}
+    </div>
+  );
+}
+
+const gridCls = "grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4";
+const delBtn =
+  "border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
+const addBtn =
+  "self-start mt-3 border border-lavender-deep bg-white text-[13px] px-3.5 py-2 rounded-[10px] hover:border-orchid text-purple font-medium inline-flex items-center gap-1.5 transition-colors";
+
+let seq = 0;
+const newId = (p: string) => `${p}-new-${++seq}`;
+
+const OCC_LABEL: Record<OccasionType, string> = {
+  birthday: "Birthday",
+  anniversary: "Anniversary",
+  custom: "Custom",
+};
+
+export default function CustomerEditor({ id }: { id?: string }) {
+  const [sec, setSec] = useState<SecId>("profile");
+
+  // Profile — starts empty, filled from the API/demo record below
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState("Bangladesh");
+  const [ownLine, setOwnLine] = useState("");
+  const [status, setStatus] = useState<CustomerStatus>("active");
+
+  // Recipients (rich book)
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+
+  // Segments & notes
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [note, setNote] = useState("");
+
+  /* ⇄ SWAPPED: load/save via :4000 API */
+  const router = useRouter();
+  const [apiCustomerId, setApiCustomerId] = useState<string | null>(null);
+  /** the loaded record — source of the read-only Sales figures */
+  const [api, setApi] = useState<ApiCustomer | null>(null);
+  const [apiSegments, setApiSegments] = useState<ApiSegment[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!!id);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    listSegmentsSafe()
+      .then((r) => setApiSegments(r.items))
+      .catch(() => {});
+    if (id) {
+      getCustomer(id)
+        .then((c) => {
+          setApiCustomerId(c.id);
+          setApi(c);
+          setName(c.name);
+          setEmail(c.email ?? "");
+          setPhone(c.phone);
+          setCountry(c.country);
+          setOwnLine(c.ownAddressLine ?? "");
+          setStatus(c.status === "BLOCKED" ? "blocked" : "active");
+          setNote(c.note ?? "");
+          setSegments(((c.segments ?? []).map((s) => s.slug)) as Segment[]);
+          setRecipients(
+            (c.recipients ?? []).map((r: ApiRecipient) => ({
+              id: r.id,
+              name: r.name,
+              phone: r.phone,
+              relationship: r.relationship as Relationship,
+              zone: (r.zone === "DHAKA" ? "dhaka" : "bangladesh") as Zone,
+              addressLine: r.addressLine,
+              note: r.note ?? undefined,
+              isFavorite: r.isFavorite,
+              deliveriesCount: r.deliveriesCount,
+              lastDeliveryAt: r.lastDeliveryAt ? Date.parse(r.lastDeliveryAt) : undefined,
+              occasions: (r.occasions ?? []).map((o) => ({
+                type: o.type.toLowerCase() as OccasionType,
+                date: o.date,
+                label: o.label ?? undefined,
+              })),
+            })),
+          );
+        })
+        .catch(() => setNotFound(true))
+        .finally(() => setLoading(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  function recipientToApi(r: Recipient) {
+    return {
+      name: r.name,
+      phone: r.phone,
+      relationship: r.relationship,
+      zone: r.zone === "dhaka" ? "DHAKA" : "BANGLADESH",
+      addressLine: r.addressLine,
+      isFavorite: r.isFavorite ?? false,
+      occasions: (r.occasions ?? []).map((o) => ({
+        type: o.type.toUpperCase(),
+        date: o.date,
+        label: o.label,
+      })),
+    };
+  }
+
+  function buildDto(): Record<string, unknown> {
+    const segmentIds = segments
+      .map((slug) => apiSegments.find((s) => s.slug === slug)?.id)
+      .filter((x): x is string => !!x);
+    return {
+      name,
+      phone,
+      email: email || undefined,
+      country: country || "Bangladesh",
+      ownAddressLine: ownLine || undefined,
+      note: note || undefined,
+      whatsappVerified: true,
+      segmentIds,
+      recipients: recipients.filter((r) => r.name && r.phone).map(recipientToApi),
+    };
+  }
+
+  async function handleSave() {
+    setSaveErr(null);
+    if (!name.trim()) {
+      setSaveErr("Customer name দাও।");
+      return;
+    }
+    if (!phone.trim() || !phone.startsWith("+")) {
+      setSaveErr("Phone আন্তর্জাতিক ফরম্যাটে দাও (+country…)।");
+      return;
+    }
+    setSaving(true);
+    try {
+      const dto = buildDto();
+      if (apiCustomerId) {
+        // Live API cannot nest recipient writes yet — demo store can, so keep them there.
+        if (!isDemoMode()) delete (dto as Record<string, unknown>).recipients;
+        await updateCustomer(apiCustomerId, dto);
+      } else {
+        await createCustomer(dto);
+      }
+      router.push("/customers/list");
+      router.refresh();
+    } catch (e) {
+      setSaveErr(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /* Block state is its own action (dedicated endpoint) — it is NOT part of Save.
+     Both the top-bar button and the Profile toggle go through here, so what you
+     see is always what is stored. */
+  async function setBlocked(toBlocked: boolean) {
+    if (!apiCustomerId) {
+      setStatus(toBlocked ? "blocked" : "active"); // unsaved new customer
+      return;
+    }
+    setSaveErr(null);
+    try {
+      const updated = await setCustomerBlocked(apiCustomerId, toBlocked);
+      setStatus(updated.status === "BLOCKED" ? "blocked" : "active");
+      setApi((prev) => (prev ? { ...prev, status: updated.status } : prev));
+    } catch (e) {
+      setSaveErr(e instanceof Error ? e.message : "Block failed");
+    }
+  }
+  const handleBlock = () => setBlocked(status !== "blocked");
+
+  /* ---- recipient helpers ---- */
+  const addRecipient = () =>
+    setRecipients((list) => [
+      ...list,
+      {
+        id: newId("rcp"),
+        name: "",
+        phone: "",
+        relationship: "friend",
+        zone: "dhaka",
+        addressLine: "",
+        occasions: [],
+        deliveriesCount: 0,
+      },
+    ]);
+  const patchRcp = (rid: string, patch: Partial<Recipient>) =>
+    setRecipients((list) =>
+      list.map((r) => (r.id === rid ? { ...r, ...patch } : r)),
+    );
+  const removeRcp = (rid: string) =>
+    setRecipients((list) => list.filter((r) => r.id !== rid));
+  const toggleFav = (rid: string) =>
+    setRecipients((list) =>
+      list.map((r) => (r.id === rid ? { ...r, isFavorite: !r.isFavorite } : r)),
+    );
+  const addOccasion = (rid: string) =>
+    setRecipients((list) =>
+      list.map((r) =>
+        r.id === rid
+          ? {
+              ...r,
+              occasions: [
+                ...r.occasions,
+                { type: "birthday", date: "01-01" } as RecipientOccasion,
+              ],
+            }
+          : r,
+      ),
+    );
+  const patchOccasion = (
+    rid: string,
+    idx: number,
+    patch: Partial<RecipientOccasion>,
+  ) =>
+    setRecipients((list) =>
+      list.map((r) =>
+        r.id === rid
+          ? {
+              ...r,
+              occasions: r.occasions.map((o, i) =>
+                i === idx ? { ...o, ...patch } : o,
+              ),
+            }
+          : r,
+      ),
+    );
+  const removeOccasion = (rid: string, idx: number) =>
+    setRecipients((list) =>
+      list.map((r) =>
+        r.id === rid
+          ? { ...r, occasions: r.occasions.filter((_, i) => i !== idx) }
+          : r,
+      ),
+    );
+
+  const toggleSeg = (s: Segment) =>
+    setSegments((cur) =>
+      cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
+    );
+
+  /* Read-only Sales figures come from the loaded record (demo or live) — NOT the
+     legacy local mock, which never matches a real id. */
+  const ms = (v?: string | null) => (v ? Date.parse(v) : undefined);
+  const orders = api?.ordersCount ?? 0;
+  const ltvPaisa = api?.ltvPaisa ?? 0;
+  const t: "new" | "onetime" | "repeat" =
+    orders <= 0 ? "new" : orders === 1 ? "onetime" : "repeat";
+  const aov = orders > 0 ? Math.round(ltvPaisa / orders) : 0;
+  const avatarBg = api?.avatarBg ?? "linear-gradient(150deg,#cf43ea,#b76e79)";
+  const joinedMs = ms(api?.firstOrderAt);
+  const abroad = country.trim().toLowerCase() !== "bangladesh";
+
+  return (
+    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1500px]">
+      {/* top bar */}
+      <div className="sticky top-0 z-20 -mx-6 md:-mx-8 px-6 md:px-8 py-3.5 bg-lavender/85 backdrop-blur border-b border-lavender-deep flex items-center gap-3 mb-6">
+        <Link
+          href="/customers/list"
+          className="border border-lavender-deep bg-white text-body-soft hover:text-purple w-[38px] h-[38px] rounded-[11px] grid place-items-center shrink-0"
+          title="Back"
+        >
+          <Icon name="chevronLeft" size={19} />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-[22px] text-purple m-0 truncate leading-tight">
+            {id ? name || "Edit customer" : "Add customer"}
+          </h1>
+          <p className="text-body-soft text-[12.5px] m-0">
+            {id
+              ? `${orders} orders · ${formatTaka(ltvPaisa)} · ${phone}`
+              : "New customer — WhatsApp verified on first login"}
+          </p>
+        </div>
+        {id && (
+          <button
+            type="button"
+            onClick={handleBlock}
+            className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft"
+          >
+            {status === "blocked" ? "Unblock" : "Block"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-purple hover:bg-purple-deep text-white text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft disabled:opacity-50"
+        >
+          <Icon name="check" size={17} /> {saving ? "Saving…" : id ? "Save changes" : "Add customer"}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="text-[13px] text-body-soft mb-4">Loading customer…</div>
+      )}
+      {notFound && (
+        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+          This customer could not be loaded — it may have been deleted, or the API (:4000) is not running.{" "}
+          <Link href="/customers/list" className="underline font-medium">
+            Back to all customers
+          </Link>
+        </div>
+      )}
+      {saveErr && (
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+          {saveErr}
+        </div>
+      )}
+
+      <div className="flex gap-6 items-start">
+        {/* section nav */}
+        <nav className="w-[196px] shrink-0 sticky top-[84px] hidden md:block">
+          {SECTIONS.map(([sid, label, icon]) => (
+            <button
+              key={sid}
+              type="button"
+              onClick={() => setSec(sid)}
+              className={
+                "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[11px] text-[13.5px] mb-1 text-left transition-colors " +
+                (sec === sid
+                  ? "bg-white text-purple font-medium shadow-soft border border-lavender-deep"
+                  : "text-body-soft hover:bg-white/60 hover:text-purple")
+              }
+            >
+              <Icon name={icon} size={18} />
+              {label}
+              {sid === "recipients" && recipients.length > 0 && (
+                <span className="ml-auto text-[11px] bg-lavender-deep/70 text-purple px-1.5 py-0.5 rounded-full">
+                  {recipients.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* main column */}
+        <div className="flex-1 min-w-0">
+          {/* mobile section picker */}
+          <div className="md:hidden mb-4">
+            <select
+              className="ipt h-[44px]"
+              value={sec}
+              onChange={(e) => setSec(e.target.value as SecId)}
+            >
+              {SECTIONS.map(([sid, label]) => (
+                <option key={sid} value={sid}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* PROFILE */}
+          {sec === "profile" && (
+            <>
+              <Card
+                icon="user"
+                title="Profile"
+                hint="Phone is the login key, verified over WhatsApp."
+              >
+                <div className={gridCls}>
+                  <Field label="Full name">
+                    <input
+                      className="ipt h-[44px]"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Nusrat Jahan"
+                    />
+                  </Field>
+                  <Field label="Email" note="Optional — for receipts & offers">
+                    <input
+                      className="ipt h-[44px]"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                    />
+                  </Field>
+                  <Field
+                    label={
+                      <span className="inline-flex items-center gap-2">
+                        Phone / WhatsApp
+                        <span className="inline-flex items-center gap-1 text-[11px] text-rosegold bg-rosegold-light/80 px-2 py-0.5 rounded-full font-medium">
+                          <Icon name="shield" size={11} /> identity key
+                        </span>
+                      </span>
+                    }
+                    note="✓ Verified over WhatsApp. Pick the country code, then type the number. Changing it re-verifies the account."
+                  >
+                    <PhoneField value={phone} onChange={setPhone} />
+                  </Field>
+                  <Field
+                    label="Country"
+                    note="Where the customer lives — many order from abroad (NRB)."
+                  >
+                    <input
+                      className="ipt h-[44px]"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      placeholder="Bangladesh / United States / Saudi Arabia…"
+                    />
+                  </Field>
+                  <Field
+                    label="Account status"
+                    note="Blocked = cannot log in or order. Data is kept (not deleted). Applies immediately — no need to Save."
+                  >
+                    <div className="inline-flex bg-lavender rounded-[11px] p-[4px] gap-[4px]">
+                      {(["active", "blocked"] as CustomerStatus[]).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setBlocked(s === "blocked")}
+                          className={
+                            "text-[13px] px-4 py-2 rounded-[8px] font-medium capitalize transition-colors " +
+                            (status === s
+                              ? s === "blocked"
+                                ? "bg-white text-[#c0392b] shadow-soft"
+                                : "bg-white text-purple shadow-soft"
+                              : "text-body-soft hover:text-purple")
+                          }
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                  <Field label="Joined" note="Set by the system on first login — read-only.">
+                    <input
+                      className="ipt h-[44px] opacity-70"
+                      value={id ? shortDate(joinedMs) : "— on first login —"}
+                      disabled
+                    />
+                  </Field>
+                </div>
+              </Card>
+
+              <Card
+                icon="pin"
+                title="Own address"
+                hint="The customer’s own location."
+              >
+                <Field label="Address line" full>
+                  <input
+                    className="ipt h-[44px]"
+                    value={ownLine}
+                    onChange={(e) => setOwnLine(e.target.value)}
+                    placeholder="540 Market St, San Francisco, CA 94104"
+                  />
+                </Field>
+              </Card>
+            </>
+          )}
+
+          {/* RECIPIENTS — rich book */}
+          {sec === "recipients" && (
+            <Card
+              icon="pin"
+              title="Recipient book"
+              hint="People this customer sends gifts to, with their dates."
+            >
+              <div className="flex flex-col gap-4">
+                {recipients.map((r) => (
+                  <div
+                    key={r.id}
+                    className="border border-lavender-deep rounded-[14px] p-4 bg-lavender/40"
+                  >
+                    {/* header row */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFav(r.id)}
+                        className={
+                          "text-[12px] px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1.5 transition-colors " +
+                          (r.isFavorite
+                            ? "bg-rosegold text-white"
+                            : "border border-lavender-deep bg-white text-body-soft hover:border-orchid hover:text-purple")
+                        }
+                      >
+                        <Icon name="heart" size={13} />
+                        {r.isFavorite ? "Favourite" : "Mark favourite"}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        {r.deliveriesCount > 0 && (
+                          <span className="text-[13px] text-body-soft">
+                            {r.deliveriesCount} deliver
+                            {r.deliveriesCount === 1 ? "y" : "ies"}
+                            {r.lastDeliveryAt
+                              ? ` · last ${ago(r.lastDeliveryAt)}`
+                              : ""}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeRcp(r.id)}
+                          className={delBtn}
+                          title="Remove recipient"
+                        >
+                          <Icon name="trash" size={17} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_1fr] gap-2.5 max-md:grid-cols-1">
+                      <div>
+                        <div className="text-[13px] text-body-soft mb-1 font-medium">
+                          Recipient name
+                        </div>
+                        <input
+                          className="ipt h-[40px]"
+                          placeholder="Meem"
+                          value={r.name}
+                          onChange={(e) =>
+                            patchRcp(r.id, { name: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[13px] text-body-soft mb-1 font-medium">
+                          Relationship
+                        </div>
+                        <select
+                          className="ipt h-[40px]"
+                          value={r.relationship}
+                          onChange={(e) =>
+                            patchRcp(r.id, {
+                              relationship: e.target.value as Relationship,
+                            })
+                          }
+                        >
+                          {(
+                            Object.keys(RELATIONSHIP_LABEL) as Relationship[]
+                          ).map((rel) => (
+                            <option key={rel} value={rel}>
+                              {RELATIONSHIP_LABEL[rel]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5">
+                      <div className="text-[13px] text-body-soft mb-1 font-medium">
+                        Phone (any country)
+                      </div>
+                      <PhoneField
+                        value={r.phone}
+                        size={40}
+                        onChange={(v) => patchRcp(r.id, { phone: v })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-[200px_1fr] gap-2.5 mt-2.5 max-md:grid-cols-1">
+                      <div>
+                        <div className="text-[13px] text-body-soft mb-1 font-medium">
+                          Delivery zone
+                        </div>
+                        <select
+                          className="ipt h-[40px]"
+                          value={r.zone}
+                          onChange={(e) =>
+                            patchRcp(r.id, { zone: e.target.value as Zone })
+                          }
+                        >
+                          <option value="dhaka">Inside Dhaka</option>
+                          <option value="bangladesh">Nationwide</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div className="text-[13px] text-body-soft mb-1 font-medium">
+                          Delivery address
+                        </div>
+                        <input
+                          className="ipt h-[40px]"
+                          placeholder="House, road, area, city"
+                          value={r.addressLine}
+                          onChange={(e) =>
+                            patchRcp(r.id, { addressLine: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* occasions */}
+                    <div className="mt-3.5">
+                      <div className="text-[13px] text-body-soft mb-1.5 font-medium uppercase tracking-[0.04em]">
+                        Special dates
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {r.occasions.map((o, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 flex-wrap"
+                          >
+                            <select
+                              className="ipt h-[38px] max-w-[150px]"
+                              value={o.type}
+                              onChange={(e) =>
+                                patchOccasion(r.id, i, {
+                                  type: e.target.value as OccasionType,
+                                })
+                              }
+                            >
+                              {(
+                                Object.keys(OCC_LABEL) as OccasionType[]
+                              ).map((ot) => (
+                                <option key={ot} value={ot}>
+                                  {OCC_LABEL[ot]}
+                                </option>
+                              ))}
+                            </select>
+                            {o.type === "custom" && (
+                              <input
+                                className="ipt h-[38px] max-w-[170px]"
+                                placeholder="Label (Mother's Day)"
+                                value={o.label ?? ""}
+                                onChange={(e) =>
+                                  patchOccasion(r.id, i, {
+                                    label: e.target.value,
+                                  })
+                                }
+                              />
+                            )}
+                            <input
+                              className="ipt h-[38px] max-w-[150px]"
+                              placeholder="MM-DD"
+                              value={o.date}
+                              onChange={(e) =>
+                                patchOccasion(r.id, i, { date: e.target.value })
+                              }
+                            />
+                            <span className="text-[13px] text-body-soft">
+                              {occasionDate(o.date)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeOccasion(r.id, i)}
+                              className="text-body-soft hover:text-[#c0392b] text-[13px] px-1"
+                              title="Remove date"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addOccasion(r.id)}
+                        className="mt-2 text-[12.5px] text-purple font-medium inline-flex items-center gap-1 hover:underline"
+                      >
+                        <Icon name="plus" size={14} /> Add a special date
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {recipients.length === 0 && (
+                  <p className="text-[13px] text-body-soft">
+                    No recipients yet. Add the people this customer sends gifts
+                    to — with their birthdays & anniversaries for reminders.
+                  </p>
+                )}
+              </div>
+              <button type="button" onClick={addRecipient} className={addBtn}>
+                <Icon name="plus" size={16} /> Add recipient
+              </button>
+            </Card>
+          )}
+
+          {/* SEGMENTS & NOTES */}
+          {sec === "segments" && (
+            <>
+              <Card
+                icon="hash"
+                title="Segments"
+                hint="Marketing tags — VIP, Corporate, occasion buyers."
+              >
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(SEGMENT_LABEL) as Segment[]).map((s) => {
+                    const on = segments.includes(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggleSeg(s)}
+                        className={
+                          "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
+                          (on
+                            ? "bg-purple border-purple text-white"
+                            : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+                        }
+                      >
+                        {SEGMENT_LABEL[s]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+              <Card
+                icon="book"
+                title="Internal note"
+                hint="Private staff note — never shown to the customer."
+              >
+                <textarea
+                  className="ipt"
+                  rows={3}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="e.g. NRB in USA — sends home to Dhaka. High AOV. Prefers midnight delivery."
+                />
+              </Card>
+            </>
+          )}
+
+          {/* ORDERS — read-only, owned by Sales */}
+          {sec === "orders" && (
+            <Card
+              icon="bag"
+              title={
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  Orders &amp; value
+                  <span className="inline-flex items-center gap-1 text-[11px] text-rosegold bg-rosegold-light/80 px-2 py-0.5 rounded-full font-medium">
+                    <Icon name="shield" size={11} /> owned by Sales · read-only
+                  </span>
+                </span>
+              }
+              hint="Read-only — these come from Sales."
+            >
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  ["Total orders", String(orders)],
+                  ["Lifetime value", formatTaka(ltvPaisa)],
+                  ["Average order", aov ? formatTaka(aov) : "—"],
+                  [
+                    "Customer type",
+                    t === "repeat" ? "Repeat" : t === "onetime" ? "One-time" : "New",
+                  ],
+                  ["Last order", api?.lastOrderAt ? ago(ms(api.lastOrderAt)) : "—"],
+                  ["First order", shortDate(ms(api?.firstOrderAt))],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="bg-gradient-to-b from-lavender/70 to-lavender rounded-[12px] border border-dashed border-lavender-deep px-4 py-3"
+                  >
+                    <div className="text-[13px] text-body-soft">{label}</div>
+                    <div className="text-[19px] font-medium text-purple mt-0.5 font-display">
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] text-body-soft mt-4">
+                Full order history opens in the Sales module (arrives after
+                Customer). New/Repeat is derived from order count — not an editable
+                field.
+              </p>
+            </Card>
+          )}
+
+          {/* ACTIVITY LOG */}
+          {sec === "activity" && (
+            <Card
+              icon="clock"
+              title="Activity log"
+              hint="Who changed what, and when."
+            >
+              <div className="flex flex-col">
+                {[
+                  {
+                    who: "System",
+                    what: "Customer created on first WhatsApp login",
+                    when: joinedMs,
+                  },
+                  {
+                    who: "Rima (CS)",
+                    what: "Added recipient to the book",
+                    when: joinedMs ? joinedMs + 5 * 86_400_000 : undefined,
+                  },
+                  {
+                    who: "System",
+                    what: "Lifetime value updated from Sales (order delivered)",
+                    when: ms(api?.lastOrderAt),
+                  },
+                ].map((e, i, arr) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="w-2.5 h-2.5 rounded-full bg-orchid mt-1.5" />
+                      {i < arr.length - 1 && (
+                        <span className="w-px flex-1 bg-lavender-deep my-1" />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <div className="text-[13.5px] text-body">{e.what}</div>
+                      <div className="text-[13px] text-body-soft">
+                        {e.who} · {shortDate(e.when)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] text-body-soft">
+                Demo entries. The real log is written automatically on every save
+                (never editable).
+              </p>
+            </Card>
+          )}
+        </div>
+
+        {/* live preview — "My Account" */}
+        <aside className="w-[300px] shrink-0 sticky top-[84px] hidden lg:block">
+          <div className="text-[13px] text-body-soft font-medium uppercase tracking-[0.06em] mb-2.5 px-1">
+            Live preview · My Account
+          </div>
+          <div className="bg-white border border-lavender-deep rounded-[18px] shadow-lift overflow-hidden">
+            <div
+              className="px-5 pt-6 pb-7 text-center text-white"
+              style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}
+            >
+              <div
+                className="w-16 h-16 rounded-full mx-auto mb-2.5 grid place-items-center font-display text-[22px] border-2 border-white/50"
+                style={{ background: avatarBg }}
+              >
+                {initials(name || "?")}
+              </div>
+              <div className="font-display text-[19px] leading-tight">
+                {name || "Customer name"}
+              </div>
+              <div className="text-[12px] opacity-85 mt-0.5">
+                {phone || "+8801XXXXXXXXX"}
+              </div>
+              {status === "blocked" && (
+                <div className="inline-block mt-2 text-[11px] bg-white/20 px-2.5 py-0.5 rounded-full">
+                  Blocked
+                </div>
+              )}
+            </div>
+            <div className="p-4 text-[13px]">
+              {[
+                ["First order", id ? shortDate(joinedMs) : "—"],
+                ["Country", country || "—"],
+                ["Recipients", String(recipients.length)],
+                ["Orders", String(orders)],
+              ].map(([k, v], i, arr) => (
+                <div
+                  key={k}
+                  className={
+                    "flex justify-between py-2.5 " +
+                    (i < arr.length - 1 ? "border-b border-lavender-deep" : "")
+                  }
+                >
+                  <span className="text-body-soft">{k}</span>
+                  <span className="text-body">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* mini value summary */}
+          <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft mt-3 p-3.5 text-[12.5px]">
+            <div className="flex justify-between py-1.5 border-b border-lavender-deep">
+              <span className="text-body-soft">Lifetime value</span>
+              <span className="text-purple font-medium">
+                {formatTaka(ltvPaisa)}
+              </span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-lavender-deep">
+              <span className="text-body-soft">Avg order</span>
+              <span>{aov ? formatTaka(aov) : "—"}</span>
+            </div>
+            <div className="flex justify-between py-1.5">
+              <span className="text-body-soft">Ordering from</span>
+              <span className="text-right">
+                {abroad ? `${country} (NRB)` : "Bangladesh"}
+              </span>
+            </div>
+          </div>
+          <p className="text-[13px] text-body-soft mt-2.5 px-1">
+            This is the customer&apos;s account view — updates live as you edit.
+          </p>
+        </aside>
+      </div>
+    </div>
+  );
+}

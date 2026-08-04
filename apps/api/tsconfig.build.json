@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+
+  /*  ⚠️ POLLING, NOT FS EVENTS — 4 Aug 2026. The api container watches source
+      on a Windows bind mount, where inotify never fires for host-side edits:
+      tsc --watch compiled once at boot and then went deaf. Every "why is my
+      change not live" of the last two days traces to this. dynamicPriority
+      polls recently-changed files fast and cold files slowly, so the cost
+      stays negligible. dev.mjs polls dist/ for the same reason — both layers
+      of the reload chain now assume events simply do not arrive.  */
+  "watchOptions": {
+    "watchFile": "dynamicPriorityPolling",
+    "watchDirectory": "dynamicPriorityPolling",
+    "fallbackPolling": "dynamicPriority"
+  },
+
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "**/*.selftest.ts",
+    "src/finance/finance.doctor.ts",
+    "src/finance/finance.finish.ts",
+    "src/finance/books.reset.ts"
+  ]
+}

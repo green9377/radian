@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Employee" ADD COLUMN     "dutyHoursPerDay" DOUBLE PRECISION NOT NULL DEFAULT 8;
+
+-- AlterTable
+ALTER TABLE "PayrollLine" ADD COLUMN     "absentDays" DOUBLE PRECISION NOT NULL DEFAULT 0;

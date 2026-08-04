@@ -1,0 +1,44 @@
+===== FINALIZE START Fri 07/17/2026 12:26:50.89 =====
+
+[1/4] prisma migrate dev --name sales_module
+
+> api@0.0.1 prisma:migrate
+> prisma migrate dev --name sales_module
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "radian_db", schema "public" at "localhost:5433"
+
+Already in sync, no schema change or pending migration was found.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 238ms
+
+
+
+[2/4] prisma generate
+
+> api@0.0.1 prisma:generate
+> prisma generate
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 171ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+
+[3/4] npm run build
+
+> api@0.0.1 build
+> nest build
+
+build rc=0

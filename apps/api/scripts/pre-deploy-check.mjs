@@ -1,0 +1,251 @@
+/*
+  Radian — Pre-deploy check
+
+  কী করে: ডেটাবেজে যা আছে তার মধ্যে **যেগুলো ইন্টারনেটে যাওয়া উচিত নয়**
+  সেগুলো খুঁজে বের করে দেখায়। ইচ্ছে করলে নিরাপদ কয়েকটা নিজেই ঠিক করে।
+
+  চালানো:
+    node apps/api/scripts/pre-deploy-check.mjs          ← শুধু দেখাবে (নিরাপদ)
+    node apps/api/scripts/pre-deploy-check.mjs --fix    ← নিরাপদগুলো ঠিক করবে
+
+  ⚠️ ডিফল্ট সবসময় "শুধু দেখাও"। কোনো cleanup script-এর প্রথম কাজ মুছে ফেলা
+     হওয়া উচিত নয় — আগে দেখা, তারপর সিদ্ধান্ত।
+
+  ⚠️ --fix কখনো **হার্ড ডিলিট করে না**। Order/Product-এর `deletedAt` বসায়
+     মাত্র, কারণ পুরো app ওটাই "মুছে গেছে" হিসেবে পড়ে, আর ভুল হলে একটা
+     UPDATE-এ ফেরত আনা যায়। সত্যিকারের DELETE-এ order-এর lines, payment,
+     return সব FK-এ আটকে যেত — এবং আটকে যাওয়াটাই সঠিক আচরণ。
+
+  যা নিজে ঠিক করে না, শুধু জানায় (মানুষের সিদ্ধান্ত লাগে):
+    • খারাপ category slug — নতুন নাম কী হবে সেটা ব্যবসার সিদ্ধান্ত
+    • ডুপ্লিকেট occasion tag — কোনটা টিকবে, পণ্যগুলো কোথায় যাবে
+    • ফাঁকা policy page — লেখাটা মালিককেই লিখতে হবে
+*/
+
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+const FIX = process.argv.includes('--fix');
+
+let problems = 0;
+let fixed = 0;
+
+const B = (s) => `\x1b[1m${s}\x1b[0m`;
+const RED = (s) => `\x1b[31m${s}\x1b[0m`;
+const YEL = (s) => `\x1b[33m${s}\x1b[0m`;
+const GRN = (s) => `\x1b[32m${s}\x1b[0m`;
+const DIM = (s) => `\x1b[2m${s}\x1b[0m`;
+
+function head(n, title) {
+  console.log(`\n${B(`${n}. ${title}`)}`);
+}
+
+/*  Google-এ চলে গেলে বিব্রতকর — এগুলো ব্যক্তিগত/পরীক্ষামূলক নাম, দোকানের
+    category নয়। তালিকাটা RADIAN_DEPLOY_GUIDE.md থেকে。  */
+const BAD_CATEGORY_SLUGS = ['sobuj', 'radian', 'flower', 'demo-gifts', 'test', 'demo'];
+
+/*  CMS-D02 — টাকা নেওয়ার আগে এই চারটে পাতা publish থাকতেই হবে。
+    bKash/SSLCommerz merchant review-এ প্রথমেই এগুলো দেখে。  */
+const REQUIRED_LEGAL = [
+  'refund-policy',
+  'privacy-policy',
+  'terms-and-conditions',
+  'shipping-policy',
+];
+
+async function main() {
+  console.log(B('\n═══ Radian — Pre-deploy check ═══'));
+  console.log(
+    DIM(FIX ? 'মোড: --fix (নিরাপদ সংশোধন চালু)' : 'মোড: শুধু দেখানো (ঠিক করতে --fix দিন)'),
+  );
+
+  // ── ১. Regression-test order ────────────────────────────────────────────
+  head(1, 'Regression-test order');
+  const testOrders = await prisma.order.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { address: { contains: 'REGRESSION TEST', mode: 'insensitive' } },
+        { senderName: { contains: 'REGRESSION TEST', mode: 'insensitive' } },
+      ],
+    },
+    select: { id: true, orderNo: true, senderName: true, createdAt: true },
+  });
+
+  if (!testOrders.length) {
+    console.log(GRN('   ✓ একটাও নেই'));
+  } else {
+    problems++;
+    console.log(RED(`   ✗ ${testOrders.length}টা পাওয়া গেছে:`));
+    for (const o of testOrders.slice(0, 10)) {
+      console.log(`     ${o.orderNo} — ${o.senderName} (${o.createdAt.toISOString().slice(0, 10)})`);
+    }
+    if (testOrders.length > 10) console.log(DIM(`     …আরও ${testOrders.length - 10}টা`));
+
+    if (FIX) {
+      const r = await prisma.order.updateMany({
+        where: { id: { in: testOrders.map((o) => o.id) } },
+        data: { deletedAt: new Date() },
+      });
+      fixed += r.count;
+      console.log(GRN(`   → ${r.count}টা soft-delete করা হলো`));
+    }
+  }
+
+  // ── ২. demo-* পণ্য ──────────────────────────────────────────────────────
+  head(2, 'ডেমো পণ্য (slug `demo-` দিয়ে শুরু)');
+  const demoProducts = await prisma.product.findMany({
+    where: { deletedAt: null, slug: { startsWith: 'demo-' } },
+    select: { id: true, slug: true, name: true },
+  });
+
+  if (!demoProducts.length) {
+    console.log(GRN('   ✓ একটাও নেই'));
+  } else {
+    problems++;
+    console.log(RED(`   ✗ ${demoProducts.length}টা:`));
+    for (const p of demoProducts.slice(0, 10)) console.log(`     ${p.slug} — ${p.name}`);
+    if (demoProducts.length > 10) console.log(DIM(`     …আরও ${demoProducts.length - 10}টা`));
+
+    if (FIX) {
+      const r = await prisma.product.updateMany({
+        where: { id: { in: demoProducts.map((p) => p.id) } },
+        data: { deletedAt: new Date() },
+      });
+      fixed += r.count;
+      console.log(GRN(`   → ${r.count}টা soft-delete করা হলো`));
+    }
+  }
+
+  // ── ৩. খারাপ category slug ──────────────────────────────────────────────
+  head(3, 'Category slug যা Google-এ যাওয়া উচিত নয়');
+  const badCats = await prisma.category.findMany({
+    where: { deletedAt: null, slug: { in: BAD_CATEGORY_SLUGS } },
+    select: { id: true, slug: true, name: true, isActive: true },
+  });
+
+  if (!badCats.length) {
+    console.log(GRN('   ✓ একটাও নেই'));
+  } else {
+    problems++;
+    console.log(RED(`   ✗ ${badCats.length}টা:`));
+    for (const c of badCats) {
+      console.log(`     /categories/${c.slug} — "${c.name}" ${c.isActive ? '(চালু)' : '(বন্ধ)'}`);
+    }
+    /*  ইচ্ছে করে নিজে বদলাচ্ছি না。 নতুন slug কী হবে সেটা SEO ও ব্যবসার
+        সিদ্ধান্ত, আর slug বদলালে পুরনো ঠিকানার জন্য SeoRedirect-এ একটা
+        নিয়ম বসাতে হয় — নইলে যে লিংক কেউ শেয়ার করেছে সেটা মরে যায়。  */
+    console.log(
+      YEL('   → Admin → Categories-এ গিয়ে হাতে বদলান, এবং Admin → SEO-তে'),
+    );
+    console.log(YEL('     পুরনো → নতুন redirect বসান (নইলে শেয়ার করা লিংক মরে যাবে)'));
+  }
+
+  // ── ৪. ডুপ্লিকেট occasion tag ───────────────────────────────────────────
+  head(4, 'একই অর্থের ডুপ্লিকেট tag');
+  const tags = await prisma.tag.findMany({
+    where: { deletedAt: null },
+    select: { id: true, slug: true, name: true, _count: { select: { products: true } } },
+    orderBy: { slug: 'asc' },
+  });
+
+  /*  "love" আর "love-romance" — এক জিনিস দুই নামে。 এভাবে খুঁজি: একটা slug
+      অন্যটার শুরুর অংশ কিনা。 নিখুঁত নয়, ইঙ্গিত দেওয়ার জন্য যথেষ্ট。  */
+  const dupes = [];
+  for (const a of tags) {
+    for (const b of tags) {
+      if (a.id >= b.id) continue;
+      if (b.slug.startsWith(a.slug + '-') || a.slug.startsWith(b.slug + '-')) dupes.push([a, b]);
+    }
+  }
+
+  if (!dupes.length) {
+    console.log(GRN('   ✓ সন্দেহজনক কিছু নেই'));
+  } else {
+    problems++;
+    console.log(YEL(`   ⚠ ${dupes.length} জোড়া সন্দেহজনক:`));
+    for (const [a, b] of dupes) {
+      console.log(
+        `     "${a.slug}" (${a._count.products}টা পণ্য)  ↔  "${b.slug}" (${b._count.products}টা পণ্য)`,
+      );
+    }
+    console.log(YEL('   → কোনটা টিকবে ঠিক করে পণ্যগুলো সেখানে সরান, তারপর অন্যটা বন্ধ করুন'));
+  }
+
+  // ── ৫. Policy page ──────────────────────────────────────────────────────
+  head(5, 'Policy page (টাকা নেওয়ার পূর্বশর্ত)');
+  const pages = await prisma.contentPage.findMany({
+    where: { deletedAt: null },
+    select: { id: true, slug: true, title: true, isPublished: true, bodyHtml: true, kind: true },
+  });
+  const bySlug = new Map(pages.map((p) => [p.slug, p]));
+
+  /*  গাইডে লেখা একমাত্র নিরাপদ সংশোধন: `/return-refund-policy` নামটা লম্বা ও
+      অসঙ্গত, বাকি সব `-policy`-তে শেষ。 নতুন নামটা খালি থাকলে তবেই বদলাই。  */
+  const old = bySlug.get('return-refund-policy');
+  if (old && !bySlug.has('refund-policy')) {
+    problems++;
+    console.log(RED('   ✗ slug `return-refund-policy` → `refund-policy` হওয়া দরকার'));
+    if (FIX) {
+      await prisma.contentPage.update({
+        where: { id: old.id },
+        data: { slug: 'refund-policy' },
+      });
+      fixed++;
+      bySlug.set('refund-policy', { ...old, slug: 'refund-policy' });
+      console.log(GRN('   → বদলে দেওয়া হলো'));
+      console.log(YEL('     ⚠ Admin → SEO-তে redirect বসান: /return-refund-policy → /refund-policy'));
+    }
+  }
+
+  for (const slug of REQUIRED_LEGAL) {
+    const p = bySlug.get(slug);
+    if (!p) {
+      problems++;
+      console.log(RED(`   ✗ /${slug} — পাতাটাই নেই`));
+      continue;
+    }
+    const empty = !p.bodyHtml || p.bodyHtml.replace(/<[^>]*>/g, '').trim().length < 50;
+    if (empty) {
+      problems++;
+      console.log(RED(`   ✗ /${slug} — "${p.title}" ফাঁকা বা প্রায় ফাঁকা`));
+      console.log(DIM('       → লেখাটা মালিককে লিখতে হবে; publish করা মানেই যথেষ্ট নয়'));
+    } else if (!p.isPublished) {
+      problems++;
+      console.log(YEL(`   ⚠ /${slug} — "${p.title}" লেখা আছে কিন্তু draft`));
+      console.log(DIM('       → Admin → Content-এ গিয়ে Publish করুন'));
+    } else {
+      console.log(GRN(`   ✓ /${slug} — publish করা`));
+    }
+  }
+
+  // ── ৬. SSLCommerz live কিনা ─────────────────────────────────────────────
+  head(6, 'Payment মোড');
+  const live = process.env.SSLCOMMERZ_IS_LIVE === 'true';
+  if (live) {
+    console.log(YEL('   ⚠ SSLCOMMERZ_IS_LIVE=true — আসল টাকা。 ডেমো DB হলে এটা ভুল。'));
+  } else {
+    console.log(GRN('   ✓ sandbox (নকল টাকা) — ডেমোর জন্য ঠিক আছে'));
+  }
+
+  // ── সারাংশ ──────────────────────────────────────────────────────────────
+  console.log(B('\n═══ সারাংশ ═══'));
+  if (!problems) {
+    console.log(GRN('সব পরিষ্কার — deploy করা যায়。\n'));
+  } else {
+    console.log(`${problems}টা জায়গায় নজর দরকার。`);
+    if (FIX) console.log(GRN(`${fixed}টা নিজে ঠিক করা হলো。`));
+    else console.log(DIM('নিরাপদগুলো ঠিক করতে: --fix দিয়ে আবার চালান。'));
+    console.log('');
+  }
+}
+
+main()
+  .catch((e) => {
+    console.error('\n\x1b[31mচালানো গেল না:\x1b[0m', e.message);
+    console.error(
+      '\x1b[2mDATABASE_URL ঠিক আছে তো? apps/api ফোল্ডার থেকে চালাচ্ছেন তো?\x1b[0m',
+    );
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

@@ -1,0 +1,28 @@
+# Radian Admin — production image (VPS / docker-compose.prod.yml-এর জন্য)।
+# Vercel-এ deploy করলে এই ফাইল লাগে না, Vercel নিজেই বোঝে।
+#
+# আলাদা `.prod` নাম কেন: লোকাল dev যেন ছোঁয়াও না লাগে।
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+#  ⚠️ এখানেই বিগিনারদের সবচেয়ে কমন ফাঁদ।
+#  `NEXT_PUBLIC_` দিয়ে শুরু হওয়া variable **build-এর সময়** কোডের ভেতর
+#  বসে যায় — চালু করার সময় নয়। তাই এগুলো ARG হিসেবে build-এ দিতে হয়।
+#  Deploy-এর পরে বদলালে কিচ্ছু হবে না, **আবার build করতে হবে**।
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+RUN npm run build
+
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start"]

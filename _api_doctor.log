@@ -1,0 +1,62 @@
+ 
+===== api log ===== 
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/invite, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/:id/resend, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/:id/reset-link, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/:id/position, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/:id/overrides, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/people/:id/overrides, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/integrations, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/integrations/payment-readiness, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/integrations/:kind/:provider, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/integrations/:kind/:provider/check, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/sessions, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/sessions/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/sessions/user/:userId, DELETE} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/backups, GET} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/settings-map, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/set-password/check, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/set-password, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/forgot-password, POST} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/positions/:id, PATCH} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/administration/positions/:id, DELETE} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mShopController {/shop}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/shop/categories, GET} route[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaController {/media}:[39m[38;5;3m +0ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:26 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/media/upload, POST} route[39m[38;5;3m +1ms[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mPrisma connected[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[FinanceDriftService] [39m[32mnext drift check at 2026-07-30T20:00:00.000Z[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[MarketingAutomationService] [39m[32mnext marketing sweep at 2026-07-30T20:00:00.000Z[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[IntelligenceSweep] [39m[32mnext intelligence snapshot at 2026-07-30T18:30:00.000Z[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[RegistryService] [39m[32mregistry: 172 nodes (0 new, 0 changed, 0 retired, 0 back)[39m
+radian_api  | [32m[Nest] 34  - [39m07/30/2026, 4:15:27 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +16ms[39m
+radian_api  | [33m[Nest] 34  - [39m07/30/2026, 4:15:39 PM [33m   WARN[39m [38;5;3m[AccessGuard] [39m[33mno registry node for "/media" — every request under it is UNJUDGED. Add it to PATH_TO_NODE before enforcement is switched on.[39m
+radian_api  | 
+radian_api  | > api@0.0.1 start:dev
+radian_api  | > nest start --watch
+radian_api  | 
+radian_api  | [2J[3J[H[[90m4:48:06 PM[0m] Starting compilation in watch mode...
+radian_api  | 
+radian_api  | [96msrc/shop/shop.ts[0m:[93m183[0m:[93m3[0m - [91merror[0m[90m TS1434: [0mUnexpected keyword or identifier.
+radian_api  | 
+radian_api  | [7m183[0m   async banners(zone?: string) {
+radian_api  | [7m   [0m [91m  ~~~~~[0m
+radian_api  | 
+radian_api  | [96msrc/shop/shop.ts[0m:[93m183[0m:[93m22[0m - [91merror[0m[90m TS1109: [0mExpression expected.
+radian_api  | 
+radian_api  | [7m183[0m   async banners(zone?: string) {
+radian_api  | [7m   [0m [91m                     ~[0m
+radian_api  | 
+radian_api  | [96msrc/shop/shop.ts[0m:[93m183[0m:[93m32[0m - [91merror[0m[90m TS1005: [0m';' expected.
+radian_api  | 
+radian_api  | [7m183[0m   async banners(zone?: string) {
+radian_api  | [7m   [0m [91m                               ~[0m
+radian_api  | 
+radian_api  | [96msrc/shop/shop.ts[0m:[93m224[0m:[93m1[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+radian_api  | 
+radian_api  | [7m224[0m }
+radian_api  | [7m   [0m [91m~[0m
+radian_api  | 
+radian_api  | [[90m4:48:39 PM[0m] Found 4 errors. Watching for file changes.
+radian_api  | 
