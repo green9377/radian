@@ -163,8 +163,6 @@ export interface ApiProduct {
   advanceType?: "FULL" | "PARTIAL" | null;
   advancePercent?: number | null;
   advanceAmountPaisa?: number | null;
-  isBestSeller?: boolean;
-  isNewArrival?: boolean;
   supportsExpress?: boolean;
   supportsSameDay?: boolean;
   supportsMidnight?: boolean;
