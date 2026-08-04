@@ -102,7 +102,7 @@ Vercel-এর terms-এ Hobby প্ল্যান **অ-বাণিজ্য�
 | ৫ | নতুন `JWT_SECRET` তৈরি (demo + real আলাদা) | লোকালেরটা ইন্টারনেটে দেওয়া যাবে না |
 | ৬ | `.env.demo.example` + `.env.production.example` | কোন variable কোথায় বসবে, তালিকা করে দেওয়া |
 | ৭ | `main.ts`-এ CORS বন্ধ করা | এখন `enableCors()` খালি = পৃথিবীর যে কেউ API ডাকতে পারে |
-| ৮ | পাসওয়ার্ড-দেয়াল (admin + web middleware) | **admin-এ কোনো login নেই** — লিংক পেলেই যে কেউ order cancel/refund করতে পারবে (D10) |
+| ৮ | ~~পাসওয়ার্ড-দেয়াল~~ → ডেমো noindex তালা | **সংশোধন:** login আসলে বানানোই আছে (DEC-FIN-028 — AuthGate + global AuthGuard + role + PIN)। পুরনো guide-এর D10 তথ্যটা অচল। তাই দেয়ালের বদলে দরকার ছিল Google-কে ঠেকানো |
 | ৯ | Test data cleanup script | "(REGRESSION TEST)" order, `demo-*` পণ্য, `sobuj`/`radian`/`flower` slug — এগুলো Google-এ চলে যাবে |
 | ১০ | Policy page publish + slug fix (`/return-refund-policy` → `/refund-policy`) | bKash/SSLCommerz merchant review-এর পূর্বশর্ত |
 | ১১ | `git init` + `.gitignore` যাচাই + প্রথম commit | `.env` যেন ভুলেও না ওঠে |
@@ -183,7 +183,7 @@ _(আগাম দেখে রাখুন — Phase 3/4-এ এই তাল�
 | `.gitignore` | ✅ ঠিক আছে (`.env`, `backups/` বাদ) |
 | `apps/web/Dockerfile` | ✅ আছে |
 | `apps/admin/Dockerfile` | ❌ নেই (Vercel-এ লাগবে না, VPS-এ লাগবে) |
-| admin login / API guard | ❌ **নেই** — D10, ডেমোতে পাসওয়ার্ড-দেয়াল দিয়ে সামলাবো |
+| admin login / API guard | ✅ **আছে** — কোড পড়ে দেখলাম: `AuthGate` + global `AuthGuard` + OWNER/MANAGER/STAFF role + টাকার কাজে ৪-সংখ্যার PIN। পুরনো guide-এর "কোনো guard নেই (D10)" কথাটা অচল |
 | CORS | ❌ `enableCors()` খালি = সব খোলা |
 
 ---
