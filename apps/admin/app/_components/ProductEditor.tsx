@@ -1922,7 +1922,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         id: i.id,
         name: i.name,
         price: i.alonePaisa / 100,
-        cost: i.costPaisa / 100,
+        cost: (i.costPaisa ?? 0) / 100,
       }))
     : pendingBundles.map((p) => ({
         id: p.id,

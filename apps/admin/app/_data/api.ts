@@ -1575,6 +1575,7 @@ export interface ApiBundleList {
     slug: string;
     imageUrl: string | null;
     alonePaisa: number;
+    costPaisa?: number;
     hiddenReason: "draft" | "out-of-stock" | null;
   }[];
   /** main product-এর আজকের দাম। category-স্তরে 0। */
