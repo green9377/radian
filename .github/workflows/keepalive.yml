@@ -1,0 +1,23 @@
+# Keep the demo API awake.
+#
+# Render free tier sleeps after 15 idle minutes; first request then takes
+# 50+ seconds and the shop shows 503. Ping /health every 10 minutes.
+# /health deliberately never touches the DB, so Neon compute-hours are safe.
+#
+# Delete this file when the real deploy moves to a paid Render plan.
+
+name: keepalive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping demo API health
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 https://radian-api-qnt6.onrender.com/health || echo 000)
+          echo "health returned: $code"
+
