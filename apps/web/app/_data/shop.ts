@@ -70,7 +70,16 @@ export const baseFor = (): string =>
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${baseFor()}${path}`, { cache: "no-store" });
+    /*  ৫ আগস্ট — `no-store` ছিল, আর সেটাই দোকানকে ধীর করে রেখেছিল: প্রতিটা
+        পাতা-বদলে server আবার Render-এর ফ্রি API-কে ডাকত (প্রতি call শত-শত
+        ms)। Admin দ্রুত লাগার কারণও এটাই — সে SPA, পাতা বদলে fetch করে না।
+
+        এগুলো সবই প্রকাশ্য catalog/content পড়া — ৬০ সেকেন্ড বাসি হলে কারো
+        ক্ষতি নেই (দাম যাচাই এমনিতেই checkout-এ server-side হয়, DEC মেনে)।
+        content.ts আর seo.ts আগে থেকেই একই ৬০ সেকেন্ডের নিয়মে চলে।
+        Cart/checkout/track-এর fetch checkoutApi.ts-এ, সেগুলো যথারীতি
+        `no-store`-ই আছে。  */
+    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60 } });
     if (!res.ok) {
       console.warn(`[shop] ${path} → ${res.status}`);
       return null;

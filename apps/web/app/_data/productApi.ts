@@ -182,7 +182,9 @@ async function getJson<T>(path: string): Promise<T | null> {
   try {
     // `baseFor()`, not `API_BASE` — this page renders on the server, where
     // localhost:4000 is the web container itself. See the note in shop.ts.
-    const res = await fetch(`${baseFor()}${path}`, { cache: "no-store" });
+    // ৫ আগস্ট: `no-store` → ৬০ সেকেন্ড cache — কারণটা shop.ts-এর get()-এ।
+    // মজুদ/দামের চূড়ান্ত সত্য এমনিতেই checkout-এর server-side pricing।
+    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
