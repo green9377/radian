@@ -39,7 +39,22 @@ function corsOrigins(): string[] {
     'http://127.0.0.1:3001',
   ];
 
-  return Array.from(new Set([...fromEnv, ...localDev]));
+  /*  ৪ আগস্ট, demo deploy-এর রাতে শেখা: Render dashboard-এ env var-এর ঘরে
+      মান বসানো হয়েছে মনে হলেও save না-ও হতে পারে — form-টা মুখোশ-পরা
+      (masked) value দেখায়, তাই ভুলটা চোখেও পড়ে না। PUBLIC_WEB_URL সেভাবে
+      দু'বার হারিয়ে গ্রাহকের দোকান CORS-এ আটকে ফাঁকা হয়ে ছিল, অথচ API আর
+      admin দুটোই সুস্থ দেখাচ্ছিল।
+
+      Demo-র ঠিকানা দুটো স্থির ও প্রকাশ্য — এগুলো env-এর উপর নির্ভর না করে
+      এখানে fallback হিসেবে থাকল। Real deploy-এর নিজের domain যথারীতি
+      PUBLIC_WEB_URL/PUBLIC_ADMIN_URL env দিয়েই আসবে; এই তালিকা তখনও নিরীহ,
+      কারণ demo সাইট দুটোও আমাদেরই।  */
+  const demoFallback = [
+    'https://radian-web-tan.vercel.app',
+    'https://radian-admin.vercel.app',
+  ];
+
+  return Array.from(new Set([...fromEnv, ...localDev, ...demoFallback]));
 }
 
 async function bootstrap() {
