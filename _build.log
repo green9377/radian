@@ -1,7 +1,58 @@
-===== BUILD START Fri 07/17/2026 11:03:25.31 =====
+===== BUILD START Tue 08/04/2026 17:32:31.03 =====
 
 > api@0.0.1 build
 > nest build
 
+[96msrc/orders/orders.service.ts[0m:[93m449[0m:[93m43[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
 
-===== BUILD DONE rc=0 Fri 07/17/2026 11:03:29.57 =====
+[7m449[0m     const variantIds = lines.map((l) => l.variantId).filter((v): v is string => !!v);
+[7m   [0m [91m                                          ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m461[0m:[93m19[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m461[0m       const v = l.variantId ? vMap.get(l.variantId) : null;
+[7m   [0m [91m                  ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m461[0m:[93m42[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m461[0m       const v = l.variantId ? vMap.get(l.variantId) : null;
+[7m   [0m [91m                                         ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m464[0m:[93m36[0m - [91merror[0m[90m TS2339: [0mProperty 'variantLabel' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m464[0m           short.push(`${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''} — need ${l.qty}, have ${v.stockQty}`);
+[7m   [0m [91m                                   ~~~~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m464[0m:[93m58[0m - [91merror[0m[90m TS2339: [0mProperty 'variantLabel' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m464[0m           short.push(`${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''} — need ${l.qty}, have ${v.stockQty}`);
+[7m   [0m [91m                                                         ~~~~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m491[0m:[93m15[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m491[0m         if (l.variantId && vMap.has(l.variantId)) {
+[7m   [0m [91m              ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m491[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m491[0m         if (l.variantId && vMap.has(l.variantId)) {
+[7m   [0m [91m                                      ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m492[0m:[93m59[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m492[0m           await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { decrement: l.qty } } });
+[7m   [0m [91m                                                          ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m685[0m:[93m17[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m685[0m           if (l.variantId) {
+[7m   [0m [91m                ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m686[0m:[93m61[0m - [91merror[0m[90m TS2339: [0mProperty 'variantId' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m686[0m             await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { increment: l.qty } } });
+[7m   [0m [91m                                                            ~~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m693[0m:[93m35[0m - [91merror[0m[90m TS2339: [0mProperty 'addonIds' does not exist on type '{ name: string; deletedAt: Date | null; id: string; createdAt: Date; updatedAt: Date; orderId: string; productId: string; sizeLabel: string | null; qty: number; productType: ProductType; ... 9 more ...; refundNote: string | null; }'.
+
+[7m693[0m           for (const addonId of l.addonIds ?? []) {
+[7m   [0m [91m                                  ~~~~~~~~[0m
+[96msrc/orders/orders.service.ts[0m:[93m1159[0m:[93m7[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'variantLabel' does not exist in type 'OrderLineCreateWithoutOrderInput'.
+
+[7m1159[0m       variantLabel: l.variantLabel,
+[7m    [0m [91m      ~~~~~~~~~~~~[0m
+
+Found 12 error(s).
+
+
+===== BUILD DONE rc=1 Tue 08/04/2026 17:32:49.33 =====

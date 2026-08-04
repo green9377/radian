@@ -11,6 +11,21 @@ _মোট সময় ~৪৫ মিনিট। এক বসায় শে
 
 ---
 
+## ধাপ ০ — push করার আগে একবার (২ মিনিট)
+
+`D:\radian`-এ **`BUILD_CHECK.bat`** ডাবল-ক্লিক করুন। শেষে "পরিষ্কার" লেখা
+দেখলে এগোন。
+
+> **কেন আলাদা ফাইল, `radian_fix_generate.bat` থাকতে:** ওটা Prisma client
+> বানায় **কনটেইনারের ভেতরে**। কনটেইনারের নিজের `node_modules` আছে, তাই
+> Windows-এর ফোল্ডারটা অক্ষত থেকে যায় — অথচ `npm run build` আর VS Code
+> দুটোই Windows-েরটাই পড়ে। schema বদলালে তাই এখানে পুরনো type থেকে যায়。
+> `BUILD_CHECK.bat` সেই দিকটা ঠিক করে, আর ফলটা পর্দায় দেখায়。
+>
+> (`radian_build.bat` কিছু দেখায় না — ইচ্ছাকৃত, সব `_build.log`-এ যায়।)
+
+---
+
 ## ধাপ ১ — GitHub (১৫ মিনিট)
 
 ### ১ক. Git ইনস্টল
@@ -111,7 +126,7 @@ GitHub-এ repo-টা খুলে **ফাইলের তালিকায�
 ```
 Applying migration `2025...`
 ...
-76 migrations found
+75 migrations found
 [CORS] allowed: http://localhost:3000, ...
 [Radian API] listening on 10000 (NODE_ENV=production)
 ```
@@ -208,7 +223,7 @@ Render-এর ফ্রি service ১৫ মিনিট নীরব থাক
 এক এক করে টিক দিন。 যেটায় আটকাবেন, সেটার নাম বলবেন。
 
 - [ ] GitHub repo **Private**, আর তালিকায় খালি `.env` **নেই**
-- [ ] Render Logs-এ `76 migrations` + `listening on`
+- [ ] Render Logs-এ `75 migrations` + `listening on`
 - [ ] `<api>/health` → `{"ok":true,...}`
 - [ ] `<api>/products` → `[]` (খালি DB, ঠিক আছে)
 - [ ] Render Logs-এ `[CORS] allowed:` লাইনে দুটো vercel ঠিকানাই আছে

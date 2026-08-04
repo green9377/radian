@@ -179,7 +179,7 @@ _(আগাম দেখে রাখুন — Phase 3/4-এ এই তাল�
 | `apps/api/Dockerfile` | ❌ `CMD npm run start:dev` — production build নেই |
 | `docker-compose.prod.yml` | ❌ নেই |
 | `git` | ❌ init-ই হয়নি, কোনো backup নেই |
-| Prisma migration | ✅ **৭৬টা** (পুরনো guide-এ ২২ লেখা ছিল — সেটা অচল) |
+| Prisma migration | ✅ **৭৫টা** (পুরনো guide-এ ২২ লেখা ছিল — সেটা অচল) |
 | `.gitignore` | ✅ ঠিক আছে (`.env`, `backups/` বাদ) |
 | `apps/web/Dockerfile` | ✅ আছে |
 | `apps/admin/Dockerfile` | ❌ নেই (Vercel-এ লাগবে না, VPS-এ লাগবে) |

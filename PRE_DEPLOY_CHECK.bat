@@ -10,7 +10,8 @@ REM  শুধু দেখাতে   :  PRE_DEPLOY_CHECK.bat
 REM  ঠিক করতে      :  PRE_DEPLOY_CHECK.bat fix
 REM
 REM  ⚠️ "fix" কিছু হার্ড-ডিলিট করে না — শুধু deletedAt বসায়, ফেরত আনা যায়।
-REM  ⚠️ আগে API চালু থাকার দরকার নেই, কিন্তু DATABASE_URL লাগবে।
+REM  ⚠️ API চালু থাকার দরকার নেই, কিন্তু DATABASE_URL লাগবে।
+REM  ⚠️ পর্দার লেখা ইংরেজিতে — cmd বাংলা ফন্ট আঁকতে পারে না।
 REM ═══════════════════════════════════════════════════════════════════
 cd /d "%~dp0apps\api"
 if /i "%1"=="fix" (
@@ -18,4 +19,5 @@ if /i "%1"=="fix" (
 ) else (
   node scripts\pre-deploy-check.mjs
 )
+echo.
 pause

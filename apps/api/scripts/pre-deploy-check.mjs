@@ -54,13 +54,13 @@ const REQUIRED_LEGAL = [
 ];
 
 async function main() {
-  console.log(B('\n═══ Radian — Pre-deploy check ═══'));
+  console.log(B('\n=== Radian - Pre-deploy check ==='));
   console.log(
-    DIM(FIX ? 'মোড: --fix (নিরাপদ সংশোধন চালু)' : 'মোড: শুধু দেখানো (ঠিক করতে --fix দিন)'),
+    DIM(FIX ? 'mode: --fix  (safe fixes will be applied)' : 'mode: report only  (run with --fix to repair)'),
   );
 
   // ── ১. Regression-test order ────────────────────────────────────────────
-  head(1, 'Regression-test order');
+  head(1, 'Regression-test orders');
   const testOrders = await prisma.order.findMany({
     where: {
       deletedAt: null,
@@ -73,14 +73,14 @@ async function main() {
   });
 
   if (!testOrders.length) {
-    console.log(GRN('   ✓ একটাও নেই'));
+    console.log(GRN('   OK - none found'));
   } else {
     problems++;
-    console.log(RED(`   ✗ ${testOrders.length}টা পাওয়া গেছে:`));
+    console.log(RED(`   FOUND ${testOrders.length}:`));
     for (const o of testOrders.slice(0, 10)) {
-      console.log(`     ${o.orderNo} — ${o.senderName} (${o.createdAt.toISOString().slice(0, 10)})`);
+      console.log(`     ${o.orderNo} - ${o.senderName} (${o.createdAt.toISOString().slice(0, 10)})`);
     }
-    if (testOrders.length > 10) console.log(DIM(`     …আরও ${testOrders.length - 10}টা`));
+    if (testOrders.length > 10) console.log(DIM(`     ...and ${testOrders.length - 10} more`));
 
     if (FIX) {
       const r = await prisma.order.updateMany({
@@ -88,24 +88,24 @@ async function main() {
         data: { deletedAt: new Date() },
       });
       fixed += r.count;
-      console.log(GRN(`   → ${r.count}টা soft-delete করা হলো`));
+      console.log(GRN(`   -> soft-deleted ${r.count}`));
     }
   }
 
   // ── ২. demo-* পণ্য ──────────────────────────────────────────────────────
-  head(2, 'ডেমো পণ্য (slug `demo-` দিয়ে শুরু)');
+  head(2, 'Demo products (slug starts with `demo-`)');
   const demoProducts = await prisma.product.findMany({
     where: { deletedAt: null, slug: { startsWith: 'demo-' } },
     select: { id: true, slug: true, name: true },
   });
 
   if (!demoProducts.length) {
-    console.log(GRN('   ✓ একটাও নেই'));
+    console.log(GRN('   OK - none found'));
   } else {
     problems++;
-    console.log(RED(`   ✗ ${demoProducts.length}টা:`));
-    for (const p of demoProducts.slice(0, 10)) console.log(`     ${p.slug} — ${p.name}`);
-    if (demoProducts.length > 10) console.log(DIM(`     …আরও ${demoProducts.length - 10}টা`));
+    console.log(RED(`   FOUND ${demoProducts.length}:`));
+    for (const p of demoProducts.slice(0, 10)) console.log(`     ${p.slug} - ${p.name}`);
+    if (demoProducts.length > 10) console.log(DIM(`     ...and ${demoProducts.length - 10} more`));
 
     if (FIX) {
       const r = await prisma.product.updateMany({
@@ -113,36 +113,36 @@ async function main() {
         data: { deletedAt: new Date() },
       });
       fixed += r.count;
-      console.log(GRN(`   → ${r.count}টা soft-delete করা হলো`));
+      console.log(GRN(`   -> soft-deleted ${r.count}`));
     }
   }
 
   // ── ৩. খারাপ category slug ──────────────────────────────────────────────
-  head(3, 'Category slug যা Google-এ যাওয়া উচিত নয়');
+  head(3, 'Category slugs that must not reach Google');
   const badCats = await prisma.category.findMany({
     where: { deletedAt: null, slug: { in: BAD_CATEGORY_SLUGS } },
     select: { id: true, slug: true, name: true, isActive: true },
   });
 
   if (!badCats.length) {
-    console.log(GRN('   ✓ একটাও নেই'));
+    console.log(GRN('   OK - none found'));
   } else {
     problems++;
-    console.log(RED(`   ✗ ${badCats.length}টা:`));
+    console.log(RED(`   FOUND ${badCats.length}:`));
     for (const c of badCats) {
-      console.log(`     /categories/${c.slug} — "${c.name}" ${c.isActive ? '(চালু)' : '(বন্ধ)'}`);
+      console.log(`     /categories/${c.slug} - "${c.name}" ${c.isActive ? '(active)' : '(off)'}`);
     }
     /*  ইচ্ছে করে নিজে বদলাচ্ছি না。 নতুন slug কী হবে সেটা SEO ও ব্যবসার
         সিদ্ধান্ত, আর slug বদলালে পুরনো ঠিকানার জন্য SeoRedirect-এ একটা
         নিয়ম বসাতে হয় — নইলে যে লিংক কেউ শেয়ার করেছে সেটা মরে যায়。  */
     console.log(
-      YEL('   → Admin → Categories-এ গিয়ে হাতে বদলান, এবং Admin → SEO-তে'),
+      YEL('   -> Rename in Admin > Categories, then add a redirect in'),
     );
-    console.log(YEL('     পুরনো → নতুন redirect বসান (নইলে শেয়ার করা লিংক মরে যাবে)'));
+    console.log(YEL('      Admin > SEO (old -> new), or every shared link dies.'));
   }
 
   // ── ৪. ডুপ্লিকেট occasion tag ───────────────────────────────────────────
-  head(4, 'একই অর্থের ডুপ্লিকেট tag');
+  head(4, 'Duplicate tags (same meaning, two names)');
   const tags = await prisma.tag.findMany({
     where: { deletedAt: null },
     select: { id: true, slug: true, name: true, _count: { select: { products: true } } },
@@ -160,20 +160,20 @@ async function main() {
   }
 
   if (!dupes.length) {
-    console.log(GRN('   ✓ সন্দেহজনক কিছু নেই'));
+    console.log(GRN('   OK - nothing suspicious'));
   } else {
     problems++;
-    console.log(YEL(`   ⚠ ${dupes.length} জোড়া সন্দেহজনক:`));
+    console.log(YEL(`   ${dupes.length} suspicious pair(s):`));
     for (const [a, b] of dupes) {
       console.log(
-        `     "${a.slug}" (${a._count.products}টা পণ্য)  ↔  "${b.slug}" (${b._count.products}টা পণ্য)`,
+        `     "${a.slug}" (${a._count.products} products)  <->  "${b.slug}" (${b._count.products} products)`,
       );
     }
-    console.log(YEL('   → কোনটা টিকবে ঠিক করে পণ্যগুলো সেখানে সরান, তারপর অন্যটা বন্ধ করুন'));
+    console.log(YEL('   -> Pick the one that survives, move the products, switch the other off'));
   }
 
   // ── ৫. Policy page ──────────────────────────────────────────────────────
-  head(5, 'Policy page (টাকা নেওয়ার পূর্বশর্ত)');
+  head(5, 'Policy pages (required before taking money)');
   const pages = await prisma.contentPage.findMany({
     where: { deletedAt: null },
     select: { id: true, slug: true, title: true, isPublished: true, bodyHtml: true, kind: true },
@@ -185,7 +185,7 @@ async function main() {
   const old = bySlug.get('return-refund-policy');
   if (old && !bySlug.has('refund-policy')) {
     problems++;
-    console.log(RED('   ✗ slug `return-refund-policy` → `refund-policy` হওয়া দরকার'));
+    console.log(RED('   slug `return-refund-policy` should be `refund-policy`'));
     if (FIX) {
       await prisma.contentPage.update({
         where: { id: old.id },
@@ -193,8 +193,8 @@ async function main() {
       });
       fixed++;
       bySlug.set('refund-policy', { ...old, slug: 'refund-policy' });
-      console.log(GRN('   → বদলে দেওয়া হলো'));
-      console.log(YEL('     ⚠ Admin → SEO-তে redirect বসান: /return-refund-policy → /refund-policy'));
+      console.log(GRN('   -> renamed'));
+      console.log(YEL('      Now add a redirect in Admin > SEO: /return-refund-policy -> /refund-policy'));
     }
   }
 
@@ -202,49 +202,49 @@ async function main() {
     const p = bySlug.get(slug);
     if (!p) {
       problems++;
-      console.log(RED(`   ✗ /${slug} — পাতাটাই নেই`));
+      console.log(RED(`   /${slug} - page does not exist`));
       continue;
     }
     const empty = !p.bodyHtml || p.bodyHtml.replace(/<[^>]*>/g, '').trim().length < 50;
     if (empty) {
       problems++;
-      console.log(RED(`   ✗ /${slug} — "${p.title}" ফাঁকা বা প্রায় ফাঁকা`));
-      console.log(DIM('       → লেখাটা মালিককে লিখতে হবে; publish করা মানেই যথেষ্ট নয়'));
+      console.log(RED(`   /${slug} - "${p.title}" is empty or nearly empty`));
+      console.log(DIM('       -> the owner must write the text; publishing an empty page is not enough'));
     } else if (!p.isPublished) {
       problems++;
-      console.log(YEL(`   ⚠ /${slug} — "${p.title}" লেখা আছে কিন্তু draft`));
-      console.log(DIM('       → Admin → Content-এ গিয়ে Publish করুন'));
+      console.log(YEL(`   /${slug} - "${p.title}" is written but still a draft`));
+      console.log(DIM('       -> publish it in Admin > Content'));
     } else {
-      console.log(GRN(`   ✓ /${slug} — publish করা`));
+      console.log(GRN(`   OK - /${slug} published`));
     }
   }
 
   // ── ৬. SSLCommerz live কিনা ─────────────────────────────────────────────
-  head(6, 'Payment মোড');
+  head(6, 'Payment mode');
   const live = process.env.SSLCOMMERZ_IS_LIVE === 'true';
   if (live) {
-    console.log(YEL('   ⚠ SSLCOMMERZ_IS_LIVE=true — আসল টাকা。 ডেমো DB হলে এটা ভুল。'));
+    console.log(YEL('   SSLCOMMERZ_IS_LIVE=true - REAL money. Wrong for a demo database.'));
   } else {
-    console.log(GRN('   ✓ sandbox (নকল টাকা) — ডেমোর জন্য ঠিক আছে'));
+    console.log(GRN('   OK - sandbox (play money), correct for a demo'));
   }
 
   // ── সারাংশ ──────────────────────────────────────────────────────────────
-  console.log(B('\n═══ সারাংশ ═══'));
+  console.log(B('\n=== Summary ==='));
   if (!problems) {
-    console.log(GRN('সব পরিষ্কার — deploy করা যায়。\n'));
+    console.log(GRN('All clear - safe to deploy.\n'));
   } else {
-    console.log(`${problems}টা জায়গায় নজর দরকার。`);
-    if (FIX) console.log(GRN(`${fixed}টা নিজে ঠিক করা হলো。`));
-    else console.log(DIM('নিরাপদগুলো ঠিক করতে: --fix দিয়ে আবার চালান。'));
+    console.log(`${problems} thing(s) need attention.`);
+    if (FIX) console.log(GRN(`${fixed} fixed automatically.`));
+    else console.log(DIM('To repair the safe ones, run again with --fix'));
     console.log('');
   }
 }
 
 main()
   .catch((e) => {
-    console.error('\n\x1b[31mচালানো গেল না:\x1b[0m', e.message);
+    console.error('\n\x1b[31mCould not run:\x1b[0m', e.message);
     console.error(
-      '\x1b[2mDATABASE_URL ঠিক আছে তো? apps/api ফোল্ডার থেকে চালাচ্ছেন তো?\x1b[0m',
+      '\x1b[2mIs DATABASE_URL set? Are you running from the apps/api folder?\x1b[0m',
     );
     process.exit(1);
   })
