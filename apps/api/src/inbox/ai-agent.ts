@@ -117,17 +117,24 @@ const TOOLS: AiToolDef[] = [
   },
 ];
 
-function systemPrompt(customerName: string | null): string {
+function systemPrompt(customerName: string | null, lang: Lang): string {
+  /*  প্রথম চেষ্টায় শুধু "mirror the language" বলা ছিল — Haiku Banglish পেলেও
+      বাংলা হরফে ফিরত (৫ আগস্ট, মালিক ধরলেন)। এখন হরফটা server-ই ধরে দেয়
+      আর হুকুমটা সরাসরি; তবু ভুল হলে নিচে rescript() এক পাসে শুধরে নেয়।  */
+  const langLine =
+    lang === 'banglish'
+      ? 'THE CUSTOMER IS WRITING ROMANISED BANGLISH. You MUST reply in Banglish using LATIN LETTERS ONLY (e.g. "Ji vai, amader kache..."). You are FORBIDDEN from using Bangla script (অ-ৎ) in this reply.'
+      : lang === 'bn'
+        ? 'The customer is writing in Bangla script. Reply in natural Bangla script.'
+        : 'The customer is writing in English. Reply in English.';
+
   return [
     'You are a support person on the team of Radian — a premium flower & gift shop in Dhanmondi, Dhaka, Bangladesh.',
     'Radian delivers flowers, cakes, balloons, chocolates, gift boxes, plants and personalised gifts across Dhaka (express/same-day/midnight) and nationwide by courier.',
     '',
     'IDENTITY (DEC-INB-010, strict): You speak as a warm human member of the Radian support team. NEVER say or imply you are an AI, bot, assistant, model, or automated. If a customer asks whether you are a bot/AI, do not confirm or deny — answer naturally like "আমি Radian support থেকে বলছি 🌸" and return to helping them. Never invent a personal name, biography, or human details for yourself.',
     '',
-    'LANGUAGE (strict, script matters): mirror the customer\'s LAST message exactly —',
-    '- Bangla script (আমার) → reply in Bangla script.',
-    '- Romanised Banglish (amar, apnader, koto) → reply in Banglish written in LATIN letters. Do NOT switch to Bangla script.',
-    '- English → reply in English.',
+    `LANGUAGE (strict): ${langLine}`,
     '',
     'HARD RULES (no exceptions, DEC-INB-001):',
     '- NEVER promise, offer or hint at a discount, refund, compensation, or delivery-time change. Call escalate(MONEY_TOPIC) and warmly say a colleague will help shortly.',
@@ -271,7 +278,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
       content: m.body,
     }));
 
-    const system = systemPrompt(convo.customer?.name ?? convo.guestName);
+    const system = systemPrompt(convo.customer?.name ?? convo.guestName, lang);
     const model = settings.aiModel;
     let transcript: unknown[] | undefined;
     let products: ToolProduct[] = [];
@@ -327,8 +334,28 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!finalText.trim()) return;
+    let reply = finalText.trim();
 
-    await this.say(conversationId, finalText.trim(), {
+    /*  হরফের safety net — Banglish চাওয়া সত্ত্বেও বাংলা হরফ বেরোলে এক পাসে
+        rescript। tool নেই, খরচ নগণ্য; ব্যর্থ হলে যা আছে তাই যায় (উত্তরহীনতার
+        চেয়ে ভুল হরফ কম খারাপ)।  */
+    if (lang === 'banglish' && /[ঀ-৿]/.test(reply)) {
+      try {
+        const { turn } = await provider.chat({
+          system:
+            'Rewrite the given reply in romanised Banglish using LATIN LETTERS ONLY. Keep the meaning, warmth and emoji identical. Output ONLY the rewritten reply.',
+          messages: [{ role: 'user', content: reply }],
+          tools: [],
+          model,
+          maxTokens: 700,
+        });
+        if (turn.text.trim() && !/[ঀ-৿]/.test(turn.text)) reply = turn.text.trim();
+      } catch {
+        /* rescue ব্যর্থ — মূল উত্তরটাই যাক */
+      }
+    }
+
+    await this.say(conversationId, reply, {
       provider: provider.name,
       model,
       toolsUsed,
