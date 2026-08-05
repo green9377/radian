@@ -6610,3 +6610,90 @@ export function getPaymentReadiness(): Promise<{
 }> {
   return j("/administration/integrations/payment-readiness");
 }
+
+/* ==================== INBOX — unified customer conversations (Phase 1) ==================== */
+/*  RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-001…006।
+    Phase 1 = WEB_CHAT, মানুষ উত্তর দেয়; AI Phase 2-তে এই একই দরজা দিয়ে ঢুকবে। */
+
+export interface ApiInboxListItem {
+  id: string;
+  channel: "WEB_CHAT" | "MESSENGER" | "INSTAGRAM" | "WHATSAPP" | "SMS";
+  status: "OPEN" | "WAITING_CUSTOMER" | "RESOLVED";
+  aiEnabled: boolean;
+  unreadForStaff: number;
+  lastMessageAt: string;
+  guestName: string | null;
+  guestPhone: string | null;
+  customer: { id: string; name: string; phone: string; ordersCount: number } | null;
+  assignee: { id: string; name: string } | null;
+  lastMessage: { body: string; authorType: string; createdAt: string } | null;
+}
+
+export interface ApiInboxMessage {
+  id: string;
+  direction: "IN" | "OUT";
+  authorType: "CUSTOMER" | "AI" | "STAFF" | "SYSTEM";
+  body: string;
+  createdAt: string;
+  authorUser: { name: string } | null;
+}
+
+export interface ApiInboxDetail {
+  id: string;
+  channel: string;
+  status: "OPEN" | "WAITING_CUSTOMER" | "RESOLVED";
+  aiEnabled: boolean;
+  guestName: string | null;
+  guestPhone: string | null;
+  customer: {
+    id: string; name: string; phone: string; email: string | null;
+    ordersCount: number; lastOrderAt: string | null;
+  } | null;
+  assignee: { id: string; name: string } | null;
+  messages: ApiInboxMessage[];
+  escalations: { id: string; reason: string; createdAt: string }[];
+  createdAt: string;
+}
+
+export interface ApiInboxSetting {
+  aiGloballyEnabled: boolean;
+  aiDefaultForNew: boolean;
+  escalationAssigneeIds: string[];
+  supportOpenMin: number;
+  supportCloseMin: number;
+  offHoursMessage: string;
+  reopenWindowDays: number;
+  webChatEnabled: boolean;
+}
+
+export const listInboxConversations = (q?: { status?: string; search?: string }) => {
+  const p = new URLSearchParams();
+  if (q?.status) p.set("status", q.status);
+  if (q?.search) p.set("search", q.search);
+  const qs = p.toString();
+  return j<ApiInboxListItem[]>(`/inbox${qs ? `?${qs}` : ""}`);
+};
+
+export const getInboxBadge = () => j<{ unread: number }>("/inbox/badge");
+
+export const getInboxConversation = (id: string) => j<ApiInboxDetail>(`/inbox/${id}`);
+
+export const replyInboxConversation = (id: string, body: string) =>
+  j<ApiInboxDetail>(`/inbox/${id}/reply`, { method: "POST", body: JSON.stringify({ body }) });
+
+export const resolveInboxConversation = (id: string) =>
+  j<ApiInboxDetail>(`/inbox/${id}/resolve`, { method: "POST" });
+
+export const reopenInboxConversation = (id: string) =>
+  j<ApiInboxDetail>(`/inbox/${id}/reopen`, { method: "POST" });
+
+export const assignInboxConversation = (id: string, assigneeId: string | null) =>
+  j<ApiInboxDetail>(`/inbox/${id}/assign`, { method: "POST", body: JSON.stringify({ assigneeId }) });
+
+export const setInboxAi = (id: string, enabled: boolean) =>
+  j<ApiInboxDetail>(`/inbox/${id}/ai`, { method: "POST", body: JSON.stringify({ enabled }) });
+
+export const getInboxSettings = () => j<ApiInboxSetting>("/inbox/settings");
+
+export const updateInboxSettings = (dto: Partial<ApiInboxSetting>) =>
+  j<ApiInboxSetting>("/inbox/settings", { method: "PATCH", body: JSON.stringify(dto) });

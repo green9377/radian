@@ -131,6 +131,8 @@ const GROUPS: Group[] = [
   {
     title: "Commerce",
     items: [
+      // Inbox = সব channel-এর গ্রাহক-chat এক পর্দায় (RADIAN_INBOX_MODULE_ARCHITECTURE.md)
+      { label: "Inbox", href: "/inbox", icon: "💬" },
       {
         label: "Orders", href: "/orders", icon: "🛍",
         subs: [

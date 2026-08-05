@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import LiveChat from "./LiveChat";
 
 /*
   Floating Support Panel — the SOLE support channel of the site
@@ -84,11 +85,11 @@ const CHANNELS = [
   { icon: "wa", label: "WhatsApp Us", href: "#", bg: "#25D366" },
   { icon: "phone", label: "Call the Studio", href: "tel:+8801XXXXXXXXX", bg: "#470066" },
   { icon: "msgr", label: "Messenger", href: "#", bg: "#1877F2" },
-  { icon: "chat", label: "Live Chat", href: "#", bg: "#cf43ea" },
 ];
 
 export default function SupportPanel() {
   const [open, setOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [agent, setAgent] = useState<"female" | "male">("female");
 
   // Rotate the on-duty agent every 5 seconds
@@ -125,6 +126,22 @@ export default function SupportPanel() {
             {ch.label}
           </a>
         ))}
+        {/* Live Chat — আর মরা "#" নয়; Inbox module-এর আসল chat (Phase 1) */}
+        <button
+          onClick={() => {
+            setChatOpen(true);
+            setOpen(false);
+          }}
+          className="flex items-center gap-3 bg-white rounded-full py-[9px] pl-[9px] pr-[18px] shadow-lift text-[13.5px] font-semibold text-purple whitespace-nowrap transition-transform duration-200 hover:scale-[1.04] cursor-pointer"
+        >
+          <span
+            className="w-9 h-9 rounded-full grid place-items-center text-white shrink-0"
+            style={{ background: "#cf43ea" }}
+          >
+            <Ic name="chat" />
+          </span>
+          Live Chat
+        </button>
       </div>
 
       {/* FAB — live agent avatar with online dot */}
@@ -158,6 +175,8 @@ export default function SupportPanel() {
           </span>
         )}
       </div>
+
+      <LiveChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }

@@ -1894,6 +1894,7 @@ model Customer {
   referralCode     ReferralCode?
   referralsMade    Referral[] @relation("ReferralsMade")
   referredBy       Referral?  @relation("ReferralReceived")
+  conversations    Conversation[] // INB-RULE-007 — Inbox references, never copies
 
   // ---- OWNED BY SALES (read-only mirror; Customer module কখনো লেখে না) (DEC-CUS-004) ----
   ordersCount  Int       @default(0)
@@ -4732,6 +4733,10 @@ model AppUser {
   overrides UserAccessOverride[]
   authTokens AuthToken[]
   sessions  AppSession[]
+  // Inbox back-links (relation নামগুলোই সম্পর্ক বলে দেয়)
+  assignedConversations Conversation[]    @relation("ConversationAssignee")
+  inboxMessages         Message[]         @relation("MessageAuthor")
+  escalationAcks        EscalationEvent[] @relation("EscalationAck")
   /// HR-D01 — an optional back-link. A login account is NOT a staff member:
   /// the cook is paid but never signs in, the accountant signs in but is not
   /// on payroll. Employee owns the link (Employee.appUserId); this side exists
@@ -6386,6 +6391,173 @@ model IntelligenceSetting {
 
   /// how far back the nightly job will fill gaps it finds (INT-R05)
   snapshotBackfillDays Int @default(90)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+//  INBOX — RADIAN_INBOX_MODULE_ARCHITECTURE.md (draft 5 Aug 2026)
+//
+//  সব channel-এর গ্রাহক-কথোপকথন এক inbox-এ (DEC-INB-001…006)। Phase 1 =
+//  WEB_CHAT শুধু; Messenger/Instagram/WhatsApp/SMS পরে একই টেবিলে নামবে —
+//  connector যোগ হয়, schema বদলায় না।
+//
+//  One Data One Owner: Customer/Order এখানে কপি হয় না — FK আর read।
+// ============================================================================
+
+enum InboxChannel {
+  WEB_CHAT
+  MESSENGER
+  INSTAGRAM
+  WHATSAPP
+  SMS
+}
+
+enum ConversationStatus {
+  OPEN
+  WAITING_CUSTOMER
+  RESOLVED
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum MessageAuthor {
+  CUSTOMER
+  AI
+  STAFF
+  SYSTEM
+}
+
+enum EscalationReason {
+  MONEY_TOPIC // DEC-INB-001 — টাকার প্রসঙ্গ AI কখনো নিজে সামলায় না
+  LOW_CONFIDENCE
+  CUSTOMER_ASKED_HUMAN
+  ANGRY_CUSTOMER
+  OFF_SCRIPT
+  MANUAL
+}
+
+/// এক গ্রাহকের এক channel-এর এক thread (INB-RULE-006)।
+model Conversation {
+  id      String             @id @default(cuid())
+  channel InboxChannel       @default(WEB_CHAT)
+  status  ConversationStatus @default(OPEN)
+
+  /// INB-RULE-007 — ফোন/ইমেইল মিললে FK বসে; গ্রাহকের তথ্য কপি হয় না।
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  /// DEC-INB-006 — guest পরিচয়। skip করলে দুটোই null, chat তবু চলে।
+  guestName  String?
+  guestPhone String?
+
+  /// WEB_CHAT-এর ব্রাউজার-secret: এই key যার হাতে, thread টা তার।
+  /// অন্য channel-এ external identity (PSID/ফোন) এই কাজটা করে।
+  clientKey String @unique @default(cuid())
+
+  /// অন্য channel-এর নিজের পরিচয় (Messenger PSID, WhatsApp নম্বর) — Phase 3.
+  externalIdentity String?
+
+  /// DEC-INB-004 — staff লিখলেই false; আবার চালু per-thread, হাতে।
+  aiEnabled Boolean @default(true)
+
+  assigneeId String?
+  assignee   AppUser? @relation("ConversationAssignee", fields: [assigneeId], references: [id])
+
+  lastMessageAt  DateTime  @default(now())
+  escalatedAt    DateTime?
+  /// staff-এর unread গোনা — badge। staff thread খুললে 0।
+  unreadForStaff Int       @default(0)
+
+  messages    Message[]
+  escalations EscalationEvent[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status, lastMessageAt])
+  @@index([customerId])
+  @@index([guestPhone])
+  @@index([channel, externalIdentity])
+}
+
+/// এক কথোপকথনের এক বার্তা — যেদিকেই যাক।
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  direction  MessageDirection
+  authorType MessageAuthor
+  /// authorType=STAFF হলে কে — audit-এর অর্ধেক এখানেই।
+  authorUserId String?
+  authorUser   AppUser? @relation("MessageAuthor", fields: [authorUserId], references: [id])
+
+  body String
+
+  /// channel-এর নিজের message id — webhook duplicate ঠেকায় (Phase 3)।
+  externalMessageId String? @unique
+
+  /// authorType=AI হলে: confidence, ব্যবহৃত tool, escalation কারণ (Phase 2)।
+  aiMeta Json?
+
+  readByStaffAt DateTime?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([conversationId, createdAt])
+}
+
+/// AI (বা নিয়ম) মানুষ ডেকেছে — এমন প্রতিটা মুহূর্তের স্থায়ী রেকর্ড।
+/// Append-only log (AuditLog-এর মতো) — deletedAt নেই, ইচ্ছাকৃত: রিপোর্টের
+/// "AI কোথায় আটকায়" প্রশ্নের উত্তর এই ইতিহাসেই।
+model EscalationEvent {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  reason EscalationReason
+
+  /// কাদের খবর দেওয়া হলো — AppUser id-র তালিকা (INB-RULE-005)।
+  notifiedUserIds Json @default("[]")
+
+  acknowledgedById String?
+  acknowledgedBy   AppUser?  @relation("EscalationAck", fields: [acknowledgedById], references: [id])
+  acknowledgedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+/// Singleton। ⚠️ deletedAt নেই — IntelligenceSetting-এর মতোই; soft-delete
+/// extension এখন DERIVED বলে আলাদা তালিকায় নাম লেখাতে হয় না।
+model InboxSetting {
+  id String @id @default("singleton")
+
+  /// Phase 2-র kill-switch। Phase 1-এ AI নেই, তাই false-ই সত্যি।
+  aiGloballyEnabled Boolean @default(false)
+  /// DEC-INB-004 — নতুন thread-এ AI-র প্রাথমিক অবস্থা।
+  aiDefaultForNew   Boolean @default(true)
+
+  /// DEC-INB-003 — escalation কার কাছে যায়; খালি = সব OWNER (INB-RULE-005)।
+  escalationAssigneeIds Json @default("[]")
+
+  /// INB-RULE-008 — মিনিটে, মধ্যরাত থেকে। 540=9:00, 1320=22:00।
+  supportOpenMin  Int    @default(540)
+  supportCloseMin Int    @default(1320)
+  offHoursMessage String @default("We are closed right now — we will reply in the morning, usually by 9 AM.")
+
+  /// INB-RULE-006 — এত দিনের পুরনো RESOLVED thread নতুন করে খোলে না।
+  reopenWindowDays Int @default(30)
+
+  webChatEnabled Boolean @default(true)
 
   updatedAt DateTime @updatedAt
 }

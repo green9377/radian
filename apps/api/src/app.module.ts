@@ -56,6 +56,7 @@ import { ReviewsModule } from './storefront/reviews';
 import { LayoutModule } from './storefront/layout';
 import { HomeContentModule } from './storefront/home-content';
 import { ContentModule } from './content/content.module';
+import { InboxModule } from './inbox/inbox';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { ContentModule } from './content/content.module';
     LayoutModule,
     HomeContentModule,
     ContentModule,
+    InboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],
