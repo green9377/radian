@@ -28,7 +28,16 @@ async function rules(origin: string): Promise<Redirect[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.rules;
   try {
     const api = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || origin.replace(":3000", ":4000");
-    const res = await fetch(`${api}/seo/public`, { next: { revalidate: 60 } });
+    /*  ৫ আগস্ট — ২ সেকেন্ডের বেশি অপেক্ষা নয়। "API নাগালে না থাকলে চুপচাপ
+        পাস" নিয়মটা ছিল, কিন্তু ঘুমন্ত API error দেয় না — ৫০ সেকেন্ড ঝুলে
+        থাকে। Vercel তার আগেই middleware মেরে ফেলে, আর পুরো দোকান 504
+        (MIDDLEWARE_INVOCATION_TIMEOUT)। redirect একটা সুবিধা — তার জন্য
+        দোকান আটকে থাকতে পারে না; সময় পেরোলে AbortError হয়ে নিচের catch-এই
+        পড়ে, পাতা যথারীতি খোলে।  */
+    const res = await fetch(`${api}/seo/public`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2000),
+    });
     if (!res.ok) return cache?.rules ?? [];
     const j = (await res.json()) as { redirects?: Redirect[] };
     cache = { at: Date.now(), rules: j.redirects ?? [] };
