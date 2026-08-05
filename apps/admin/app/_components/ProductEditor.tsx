@@ -3884,144 +3884,125 @@ No bundle products yet — add them on{" "}
           {/* DELIVERY */}
           {sec === "delivery" && (
             <>
-              <Card icon="truck" title="Zone" hint="Where this product can reach. Tick each zone it sells in.">
+              <Card
+                icon="truck"
+                title="Zone & delivery"
+                hint="Tick where it sells. Each zone keeps its own deliveries — set up in Delivery → Zones · types · slots."
+              >
                 {/*
-                  DEC-DLV-011 (rev, মালিকের সংশোধন ৫ আগস্ট) — "inside dhaka ja
+                  DEC-DLV-011 (rev 2, মালিকের কথা হুবহু) — "inside dhaka ja
                   thake thakbe. national ja thakar thakbe. kon product jodi
                   just inside hoy tahole ta select krbe, kon product jodi 2
                   tai kaj kre tahole 2 tai select krbe."
 
-                  তাই zone এখন টিক-তালিকা, toggle নয়। Inside Dhaka সবসময়
-                  টিক-করা ও তালাবদ্ধ — বাংলাদেশ মানে ঢাকাসহ, "শুধু বাইরে"
-                  বলে কোনো অবস্থা নেই। Outside টিক দিলেই product-টা দেশব্যাপী
-                  (DB-তে NATIONWIDE), আর নিচে courier-এর নিজের দল খোলে।
-                */}
-                <div className="flex flex-wrap gap-2">
-                  <span
-                    className="text-[13px] px-3.5 py-2 rounded-full border font-medium bg-purple border-purple text-white opacity-90 cursor-default select-none"
-                    title="Every product sells inside Dhaka — this is home."
-                  >
-                    ✓ Inside Dhaka
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = zone === "NATIONWIDE" ? "DHAKA" : "NATIONWIDE";
-                      setZone(next);
-                      /*  Outside-এর টিক তুললে শুধু courier-দলের বাছাই ঝরে —
-                          ঢাকার speed-গুলো টিকে থাকে।  */
-                      if (next === "DHAKA")
-                        setDelivTypeIds((ids) =>
-                          ids.filter((id) =>
-                            delivTypes.some((t) => t.id === id && t.zone === "DHAKA"),
-                          ),
-                        );
-                    }}
-                    className={
-                      "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
-                      (zone === "NATIONWIDE"
-                        ? "bg-purple border-purple text-white"
-                        : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
-                    }
-                  >
-                    {zone === "NATIONWIDE" ? "✓ " : ""}Outside Dhaka — all Bangladesh (courier-safe)
-                  </button>
-                </div>
-              </Card>
-              <Card
-                icon="truck"
-                title="Delivery speed"
-                hint="Set up in Delivery → Zones · types · slots. This page only picks."
-              >
-                {/*
-                  ── নামগুলো delivery module থেকে · DEC-DLV-008 ──────────────
-                  মালিক, ১ আগস্ট ২০২৬: *"delivery module-এ যা edit বা change
-                  করা হয়, তা যেন auto পুরা system-এ কাজ করে — frontend,
-                  product upload page, আর যেখানে দরকার সব জায়গায়।"*
-
-                  ⚠️ আগে এখানে পাঁচটা নাম **কোডে লেখা** ছিল। মালিক delivery
-                  module-এ নতুন একটা ধরন বানালে সেটা এই পর্দায় কোনোদিনই আসত
-                  না। আর "Express courier (next day)" নামে একটা chip ছিল যেটা
-                  delivery module-এ কখনো ছিলই না — product-এ টিক দেওয়া যেত,
-                  কিন্তু ওই delivery দোকানে ছিল না।
-
-                  ⚠️ zone দিয়ে ছাঁকা হয়, কারণ ঢাকার ভেতরের delivery নিয়ে
-                  nationwide product-কে জিজ্ঞেস করার মানে নেই। zone বদলালে
-                  বাছাইও মুছে যায় — নাহলে "Midnight" টিক করা একটা product
-                  nationwide হয়ে বসে থাকত, আর কেউ জানত না।
-                */}
-                {/*
-                  DEC-DLV-011 — NATIONWIDE product দুই zone-এই বিক্রি হয়, তাই
-                  দুই দলের delivery-ই বাছা যায়: ঢাকার গ্রাহক পাবে টিক-দেওয়া
-                  ঢাকার speed, বাইরের গ্রাহক পাবে টিক-দেওয়া courier। আগে শুধু
-                  এক zone-এর তালিকা দেখাত — nationwide product-কে ঢাকার ২-ঘণ্টা
-                  দেওয়ার কোনো পথই ছিল না।
+                  তাই এক card, দুই ঘর — যার delivery তার নিজের ঘরে, কোনো
+                  মেশামেশি নেই। Inside Dhaka সবসময় টিক-করা (বাংলাদেশ মানে
+                  ঢাকাসহ — "শুধু বাইরে" বলে অবস্থা নেই)। Outside-এর টিক
+                  দিলে DB-তে zone=NATIONWIDE, আর সেই ঘরের courier-চিপ খোলে।
+                  নামগুলো delivery module থেকে আসে (DEC-DLV-008) — এখানে
+                  কিছুই hardcode নয়।
                 */}
                 {(() => {
-                  const groups =
-                    zone === "NATIONWIDE"
-                      ? ([
-                          { z: "DHAKA", label: "When the customer is inside Dhaka" },
-                          { z: "BANGLADESH", label: "Outside Dhaka — courier" },
-                        ] as const)
-                      : ([{ z: "DHAKA", label: null }] as const);
-                  const visible = delivTypes.filter((t) =>
-                    groups.some((g) => g.z === t.zone),
-                  );
-                  if (visible.length === 0)
+                  const chip = (t: ApiDeliveryType) => {
+                    const on = delivTypeIds.includes(t.id);
                     return (
-                      <div className="rounded-[14px] border border-lavender-deep bg-lavender/50 px-4 py-4 text-[13.5px] text-body-soft">
-                        No delivery options set up for this zone yet.{" "}
-                        <Link
-                          href="/delivery/setup"
-                          className="text-orchid font-medium hover:underline"
-                        >
-                          Delivery → Zones · types · slots
-                        </Link>
-                        {" "}— add them there and they appear here.
-                      </div>
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() =>
+                          setDelivTypeIds(
+                            on
+                              ? delivTypeIds.filter((x) => x !== t.id)
+                              : [...delivTypeIds, t.id],
+                          )
+                        }
+                        className={
+                          "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
+                          (on
+                            ? "bg-purple border-purple text-white"
+                            : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+                        }
+                      >
+                        {t.name}
+                      </button>
                     );
+                  };
+                  const dhakaTypes = delivTypes.filter((t) => t.zone === "DHAKA");
+                  const courierTypes = delivTypes.filter((t) => t.zone === "BANGLADESH");
+                  const outsideOn = zone === "NATIONWIDE";
+                  const emptyNote = (
+                    <div className="text-[13px] text-body-soft">
+                      No delivery set up for this zone yet —{" "}
+                      <Link href="/delivery/setup" className="text-orchid font-medium hover:underline">
+                        add it in Delivery
+                      </Link>
+                      .
+                    </div>
+                  );
                   return (
-                    <div className="flex flex-col gap-4">
-                      {groups.map((g) => {
-                        const list = delivTypes.filter((t) => t.zone === g.z);
-                        if (list.length === 0) return null;
-                        return (
-                          <div key={g.z}>
-                            {g.label && (
-                              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
-                                {g.label}
-                              </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                              {list.map((t) => {
-                                const on = delivTypeIds.includes(t.id);
-                                return (
-                                  <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() =>
-                                      setDelivTypeIds(
-                                        on
-                                          ? delivTypeIds.filter((x) => x !== t.id)
-                                          : [...delivTypeIds, t.id],
-                                      )
-                                    }
-                                    className={
-                                      "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
-                                      (on
-                                        ? "bg-purple border-purple text-white"
-                                        : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
-                                    }
-                                  >
-                                    {t.name}
-                                  </button>
+                    <div className="flex flex-col gap-3">
+                      {/* ── ঘর ১ · Inside Dhaka — সবসময় বিক্রি হয় ── */}
+                      <div className="rounded-[14px] border border-lavender-deep bg-white p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span
+                            className="text-[13px] px-3.5 py-1.5 rounded-full font-semibold bg-purple text-white cursor-default select-none"
+                            title="Every product sells inside Dhaka — this is home."
+                          >
+                            ✓ Inside Dhaka
+                          </span>
+                          <span className="text-[12px] text-body-soft">always on</span>
+                        </div>
+                        {dhakaTypes.length ? (
+                          <div className="flex flex-wrap gap-2">{dhakaTypes.map(chip)}</div>
+                        ) : (
+                          emptyNote
+                        )}
+                      </div>
+
+                      {/* ── ঘর ২ · Outside Dhaka — ঐচ্ছিক ── */}
+                      <div
+                        className={
+                          "rounded-[14px] border p-4 transition-colors " +
+                          (outsideOn
+                            ? "border-lavender-deep bg-white"
+                            : "border-dashed border-lavender-deep bg-lavender/30")
+                        }
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = outsideOn ? "DHAKA" : "NATIONWIDE";
+                              setZone(next);
+                              /*  Outside-এর টিক তুললে শুধু courier-ঘরের বাছাই
+                                  ঝরে — ঢাকার speed-গুলো টিকে থাকে।  */
+                              if (next === "DHAKA")
+                                setDelivTypeIds((ids) =>
+                                  ids.filter((id) =>
+                                    delivTypes.some((t) => t.id === id && t.zone === "DHAKA"),
+                                  ),
                                 );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                            }}
+                            className={
+                              "text-[13px] px-3.5 py-1.5 rounded-full font-semibold transition-colors " +
+                              (outsideOn
+                                ? "bg-purple text-white"
+                                : "bg-white border border-lavender-deep text-body hover:border-orchid-mid")
+                            }
+                          >
+                            {outsideOn ? "✓ " : ""}Outside Dhaka — all Bangladesh
+                          </button>
+                          <span className="text-[12px] text-body-soft">
+                            {outsideOn ? "courier-safe" : "tick if a courier can carry it"}
+                          </span>
+                        </div>
+                        {outsideOn &&
+                          (courierTypes.length ? (
+                            <div className="flex flex-wrap gap-2">{courierTypes.map(chip)}</div>
+                          ) : (
+                            emptyNote
+                          ))}
+                      </div>
                     </div>
                   );
                 })()}
