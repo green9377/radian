@@ -33,9 +33,18 @@ export interface ApiTag {
   isActive?: boolean;
   sortOrder?: number;
 }
-/** storefront base — "View on site" opens the real product page there */
-export const WEB_BASE =
-  process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
+/*  storefront base — "View on site" opens the real product page there.
+
+    ৫ আগস্ট, মালিক ধরলেন: demo admin থেকে View চাপলে localhost:3000-এ নিয়ে
+    যাচ্ছিল — env fallback-টা ছিল লোকাল dev-এর, আর NEXT_PUBLIC_WEB_URL demo
+    admin-এ বসানো হয়নি। Render-এর env-form যেমন চুপচাপ save হারায় (CORS-এর
+    রাতের শিক্ষা), env-এর একার ভরসায় আর থাকা নয়: env থাকলে সেটাই; নইলে
+    ব্রাউজার যদি localhost-এ চলে তবে লোকাল দোকান, নয়তো demo-র দোকান।  */
+const WEB_FALLBACK =
+  typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://radian-web-tan.vercel.app"
+    : "http://localhost:3000";
+export const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || WEB_FALLBACK;
 export const storefrontUrl = (slug: string) => `${WEB_BASE}/products/${slug}`;
 
 /** DEC-PRD-012 — এক product-এর একটা variant */
@@ -107,6 +116,8 @@ export interface ApiProduct {
   /** ISO datetime, PRE_ORDER only. null = the owner promised no date. */
   preorderDate?: string | null;
   salesCount: number;
+  /** তালিকা "newest first" এটা দিয়েই সাজায় (৫ আগস্ট) */
+  createdAt?: string;
   productType: "READYMADE" | "CRAFTED";
   zone: "DHAKA" | "NATIONWIDE";
   natureType: "FRESH" | "ARTIFICIAL";

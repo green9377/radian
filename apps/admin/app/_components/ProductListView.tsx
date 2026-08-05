@@ -21,7 +21,7 @@ import { DEMO_PRODUCTS } from "../_data/demoProducts";
   units sold, zone, inline publish toggle, and "View on site".
 */
 
-type SortKey = "name" | "price" | "margin" | "stock" | "sold";
+type SortKey = "newest" | "name" | "price" | "margin" | "stock" | "sold";
 const marginOf = (p: ApiProduct) => p.offerPricePaisa - p.costPaisa;
 const marginPctOf = (p: ApiProduct) =>
   p.offerPricePaisa > 0 ? Math.round((marginOf(p) / p.offerPricePaisa) * 100) : 0;
@@ -55,7 +55,9 @@ export default function ProductListView() {
   const [cat, setCat] = useState("");
   const [stat, setStat] = useState("");
   const [zone, setZone] = useState("");
-  const [sort, setSort] = useState<{ k: SortKey; dir: 1 | -1 }>({ k: "sold", dir: -1 });
+  /*  ৫ আগস্ট, মালিক: "product jeta sorboses upload hobe setai prthome" —
+      default ছিল sold-এ সাজানো, নতুন পণ্য (0 বিক্রি) মাঝে হারিয়ে যেত।  */
+  const [sort, setSort] = useState<{ k: SortKey; dir: 1 | -1 }>({ k: "newest", dir: -1 });
   const [pageSize, setPageSize] = useState(20);
   const [page, setPage] = useState(1);
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -104,15 +106,17 @@ export default function ProductListView() {
       return okQ && okC && okS && okZ;
     });
     const val = (p: ApiProduct) =>
-      sort.k === "name"
-        ? p.name.toLowerCase()
-        : sort.k === "price"
-          ? p.offerPricePaisa
-          : sort.k === "margin"
-            ? marginPctOf(p)
-            : sort.k === "stock"
-              ? p.stockQty
-              : p.salesCount;
+      sort.k === "newest"
+        ? Date.parse(p.createdAt ?? "") || 0
+        : sort.k === "name"
+          ? p.name.toLowerCase()
+          : sort.k === "price"
+            ? p.offerPricePaisa
+            : sort.k === "margin"
+              ? marginPctOf(p)
+              : sort.k === "stock"
+                ? p.stockQty
+                : p.salesCount;
     return [...rows].sort((a, b) => {
       const x = val(a), y = val(b);
       if (x === y) return 0;
@@ -333,6 +337,8 @@ export default function ProductListView() {
                   {!!pageRows.length && pageRows.every((p) => sel.has(p.id)) && <Icon name="check" size={12} />}
                 </span>
               </th>
+              {/* serial — মালিক: "20 ta product hole maje giye koto number bujbo kivabe" */}
+              <Th k="newest">#</Th>
               <Th k="name">Product · SKU</Th>
               <Th k="price">Price</Th>
               <Th k="margin">Margin</Th>
@@ -344,12 +350,13 @@ export default function ProductListView() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((p) => {
+            {pageRows.map((p, rowIdx) => {
               const st = statusOf(p);
               const m = marginOf(p);
               const pct = marginPctOf(p);
               const noCost = p.costPaisa <= 0;
               const on = sel.has(p.id);
+              const serial = (page - 1) * pageSize + rowIdx + 1;
               return (
                 <tr key={p.id} className={`border-t border-lavender-deep transition-colors ${on ? "bg-orchid-soft/40" : "hover:bg-lavender/70"} ${st === "Draft" ? "opacity-75" : ""}`}>
                   <td className="px-3 py-3">
@@ -360,6 +367,7 @@ export default function ProductListView() {
                       {on && <Icon name="check" size={12} />}
                     </span>
                   </td>
+                  <td className="px-3 py-3 text-[12.5px] text-body-soft tabular-nums">{serial}</td>
 
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-3">
@@ -503,7 +511,7 @@ export default function ProductListView() {
             })}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-center text-body-soft py-12 border-t border-lavender-deep">
+                <td colSpan={10} className="text-center text-body-soft py-12 border-t border-lavender-deep">
                   {loading ? "loading…" : "No products match your filters."}
                 </td>
               </tr>
