@@ -88,6 +88,7 @@ interface SettingsDto {
   aiDefaultForNew?: boolean;
   aiProvider?: 'ANTHROPIC' | 'OPENAI';
   aiModel?: string;
+  staffGraceMin?: number;
   escalationAssigneeIds?: string[];
   supportOpenMin?: number;
   supportCloseMin?: number;
@@ -122,6 +123,7 @@ export class InboxService {
         aiDefaultForNew: dto.aiDefaultForNew,
         aiProvider: dto.aiProvider,
         aiModel: dto.aiModel,
+        staffGraceMin: dto.staffGraceMin,
         escalationAssigneeIds: dto.escalationAssigneeIds as Prisma.InputJsonValue | undefined,
         supportOpenMin: dto.supportOpenMin,
         supportCloseMin: dto.supportCloseMin,
@@ -383,7 +385,11 @@ export class InboxService {
     return convo;
   }
 
-  /** INB-RULE-003 (DEC-INB-004) — staff-এর reply, আর সেই মুহূর্তে AI off */
+  /*  Staff-এর reply। DEC-INB-008 (৫ আগস্ট, DEC-INB-004-কে বদলে): এটা আর
+      AI-কে স্থায়ীভাবে থামায় না — staff-এর STAFF message থাকা মানেই পরের
+      গ্রাহক-message-এ AI grace-জানালা মেনে অপেক্ষা করবে (sweeper দেখুন,
+      ai-agent.ts)। per-thread `aiEnabled` toggle এখন শুধুই মালিকের হাতের
+      hard-off।  */
   async reply(id: string, dto: ReplyDto, actor: { id: string; name: string }) {
     const body = dto.body?.trim();
     if (!body) throw new BadRequestException('Empty reply');
@@ -401,22 +407,13 @@ export class InboxService {
       },
     });
 
-    const aiWasOn = convo.aiEnabled;
     await this.prisma.db.conversation.update({
       where: { id },
       data: {
-        aiEnabled: false, // INB-RULE-003 — per-thread, স্থায়ীভাবে; ফেরানো হাতে
         status: ConversationStatus.WAITING_CUSTOMER,
         lastMessageAt: new Date(),
       },
     });
-    if (aiWasOn) {
-      await this.audit.record({
-        entityType: ENTITY, entityId: id, action: 'UPDATE',
-        actorName: actor.name, actorId: actor.id,
-        changes: { aiEnabled: { from: true, to: false, why: 'staff replied (INB-RULE-003)' } },
-      });
-    }
     return this.detail(id);
   }
 

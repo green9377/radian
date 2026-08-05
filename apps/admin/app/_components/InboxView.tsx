@@ -323,10 +323,10 @@ export default function InboxView() {
                   </p>
                 </div>
 
-                {/* AI state — DEC-INB-004-এর switch */}
+                {/* AI hard-off — DEC-INB-008: reply আর AI থামায় না, এই switch-ই একমাত্র off */}
                 <button
                   onClick={() => void act(() => setInboxAi(detail.id, !detail.aiEnabled))}
-                  title="Phase 2-তে AI এখান থেকেই চলবে; reply দিলে নিজে বন্ধ হয়"
+                  title="Off করলে এই thread-এ AI সম্পূর্ণ চুপ। Reply দিলে AI বন্ধ হয় না — শুধু কয়েক মিনিট আপনাকে আগে সুযোগ দেয়।"
                   className={`text-[11.5px] font-bold px-2.5 py-1.5 rounded-full transition ${
                     detail.aiEnabled
                       ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
@@ -431,7 +431,7 @@ export default function InboxView() {
                       }
                     }}
                     rows={2}
-                    placeholder="Reply to the customer… (sending switches AI off for this thread)"
+                    placeholder="Reply to the customer… (AI waits a few minutes for you before answering)"
                     className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-[13.5px] outline-none focus:border-purple-400"
                   />
                   <button

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   ConversationStatus,
   EscalationReason,
@@ -11,27 +11,50 @@ import { InboxAiTools, ToolProduct } from './ai-tools';
 import { AiMessage, AiToolDef, providerFor } from './ai-provider';
 
 /*
-  AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md-র "AI reply" workflow।
+  AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md।
 
-  ক্রমটা নকশার হুবহু:
-    1. টাকার-প্রসঙ্গ keyword gate (INB-RULE-001) — model-কে ডাকার আগেই।
-       Model-এর ভেতরেও escalate tool আছে — বেল্ট আর সাসপেন্ডার দুটোই।
-    2. Model + tool loop (সর্বোচ্চ ৫ পাক) — সব tool শুধুই পড়ে (DEC-INB-005)।
-    3. উত্তর Message(OUT, AI) — পণ্য থাকলে aiMeta.products-এ, card আঁকে widget।
-    4. যেকোনো ব্যর্থতা = চুপ — thread unread থেকে মানুষের কাছে যায়। AI মরলে
-       দোকান ভাঙে না; এটা নকশার exception-পথ, দুর্ঘটনা না।
+  মালিকের ৫ আগস্টের তিন রায় এই ফাইলের মেরুদণ্ড:
 
-  ভাষা (DEC-INB-002): system prompt-এ, hardcode-detect নয় — model-ই ভালো পারে।
+  DEC-INB-008 — staff reply AI-কে মারে না, শুধু অগ্রাধিকার নেয়। Staff-ছোঁয়া
+  thread-এ নতুন গ্রাহক-message এলে AI `staffGraceMin` মিনিট অপেক্ষা করে;
+  staff না এলে sweeper তাকে দিয়ে উত্তর দেওয়ায়। কেউ উত্তরহীন থাকে না।
+
+  DEC-INB-009 — escalation-এ AI আগে চুপ: staff-কে খবর, জানালাটা তাদের।
+  জানালা পেরোলে তখনই "একটু অপেক্ষা করুন — আমাদের একজন expert…" লাইনটা।
+
+  DEC-INB-010 — সে Radian টিমের একজন, কখনোই "আমি AI/bot" নয়; জিজ্ঞেস করলে
+  স্বাভাবিকভাবে "Radian support" বলে কাজের কথায় ফেরে — মিথ্যা জীবনীও বানায়
+  না। আর ভাষা মানে হরফসহ: Banglish পেলে Banglish-এই, বাংলা হরফে নয়।
+
+  ব্যর্থতার নীতি আগের মতোই: যেকোনো exception = নীরবতা; thread unread হয়ে
+  মানুষের কাছে। AI মরলে দোকান ভাঙে না।
 */
 
 const MONEY_WORDS = [
-  // English
   'discount', 'refund', 'money back', 'cheaper', 'price kom', 'com dam', 'komano',
-  // Bangla script
   'ছাড়', 'ডিসকাউন্ট', 'রিফান্ড', 'টাকা ফেরত', 'কম দাম', 'দাম কম', 'কমানো',
-  // Banglish
   'chhar', 'char den', 'discount den', 'taka ferot', 'taka fert', 'kom dam', 'dam kom',
 ];
+
+/** কোন হরফ/ভাষায় লিখছে — ধরা-বাঁধা লাইনগুলোর জন্য (DEC-INB-010) */
+type Lang = 'bn' | 'banglish' | 'en';
+function detectLang(text: string): Lang {
+  if (/[ঀ-৿]/.test(text)) return 'bn';
+  const banglishHints = [
+    'ami', 'amar', 'apn', 'vai', 'bhai', 'koi', 'kmn', 'kemon', 'krbo', 'krlm',
+    'kore', 'kre', 'dibo', 'diben', 'niben', 'nibo', 'taka', 'tk', 'ache', 'nai',
+    'hobe', 'hbe', 'jabe', 'chai', 'dekhan', 'dekhaw', 'koto', 'kto',
+  ];
+  const words = text.toLowerCase().split(/[^a-z]+/);
+  const hits = words.filter((w) => banglishHints.includes(w)).length;
+  return hits >= 2 ? 'banglish' : 'en';
+}
+
+const WAIT_LINE: Record<Lang, string> = {
+  bn: 'একটু অপেক্ষা করুন — আমাদের একজন expert আপনার সাথে কথা বলবেন। 🌸',
+  banglish: 'Ektu wait koren — amader ekjon expert apnar sathe kotha bolben. 🌸',
+  en: 'Please hold on a moment — one of our experts will be with you shortly. 🌸',
+};
 
 const TOOLS: AiToolDef[] = [
   {
@@ -80,7 +103,7 @@ const TOOLS: AiToolDef[] = [
   {
     name: 'escalate',
     description:
-      'Hand this conversation to a human. MUST be used for: discounts, refunds, payment disputes, delivery-time change requests, an angry customer, or anything you are not confident about. After calling it, tell the customer politely that a team member will reply shortly.',
+      'Hand this conversation to a senior colleague. MUST be used for: discounts, refunds, payment disputes, delivery-time change requests, an angry customer, or anything you are not confident about. After calling it, do NOT answer the substance — just warmly say a colleague will be with them shortly.',
     parameters: {
       type: 'object',
       properties: {
@@ -96,49 +119,99 @@ const TOOLS: AiToolDef[] = [
 
 function systemPrompt(customerName: string | null): string {
   return [
-    'You are the support assistant of Radian — a premium flower & gift shop in Dhanmondi, Dhaka, Bangladesh.',
+    'You are a support person on the team of Radian — a premium flower & gift shop in Dhanmondi, Dhaka, Bangladesh.',
     'Radian delivers flowers, cakes, balloons, chocolates, gift boxes, plants and personalised gifts across Dhaka (express/same-day/midnight) and nationwide by courier.',
     '',
-    'LANGUAGE (strict): reply in the language of the customer\'s LAST message — Bangla script gets Bangla, English gets English, romanised Banglish gets Banglish. Mirror them naturally.',
+    'IDENTITY (DEC-INB-010, strict): You speak as a warm human member of the Radian support team. NEVER say or imply you are an AI, bot, assistant, model, or automated. If a customer asks whether you are a bot/AI, do not confirm or deny — answer naturally like "আমি Radian support থেকে বলছি 🌸" and return to helping them. Never invent a personal name, biography, or human details for yourself.',
+    '',
+    'LANGUAGE (strict, script matters): mirror the customer\'s LAST message exactly —',
+    '- Bangla script (আমার) → reply in Bangla script.',
+    '- Romanised Banglish (amar, apnader, koto) → reply in Banglish written in LATIN letters. Do NOT switch to Bangla script.',
+    '- English → reply in English.',
     '',
     'HARD RULES (no exceptions, DEC-INB-001):',
-    '- NEVER promise, offer or hint at a discount, refund, compensation, or delivery-time change. Those are human-only: call escalate(MONEY_TOPIC) and say a team member will help.',
+    '- NEVER promise, offer or hint at a discount, refund, compensation, or delivery-time change. Call escalate(MONEY_TOPIC) and warmly say a colleague will help shortly.',
     '- NEVER invent a product, price, stock number or delivery promise. Only repeat what tools return. Prices from tools are in paisa — show as ৳ taka (129000 → ৳1,290).',
-    '- If the customer asks for a human, call escalate(CUSTOMER_ASKED_HUMAN).',
-    '- If the customer is angry or upset, call escalate(ANGRY_CUSTOMER) and stay kind.',
-    '- If you are not sure, escalate(LOW_CONFIDENCE) — never guess.',
+    '- Customer asks for a human → escalate(CUSTOMER_ASKED_HUMAN). Angry/upset → escalate(ANGRY_CUSTOMER), stay kind. Not sure → escalate(LOW_CONFIDENCE), never guess.',
     '',
-    'STYLE: warm, brief (2-4 sentences), like a friendly shop assistant. One clarifying question at a time.',
+    'STYLE: warm, brief (2-4 sentences), like a friendly shop colleague. One clarifying question at a time.',
     'When you show products via search_products, mention them briefly — the shop UI renders full product cards under your message automatically. Do not paste raw links.',
     customerName ? `The customer's name is ${customerName}.` : 'The customer has not shared a name.',
   ].join('\n');
 }
 
 @Injectable()
-export class InboxAiAgent {
+export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(InboxAiAgent.name);
+  private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly tools: InboxAiTools,
   ) {}
 
-  /**
-   * fire-and-forget — postCustomerMessage এটা await করে না।
-   * এখানকার কোনো ব্যর্থতা গ্রাহকের request-এ পৌঁছায় না।
-   */
+  /*  DEC-INB-008/009-এর ঘড়ি: প্রতি মিনিটে একবার দেখা — কোন thread-এ গ্রাহক
+      অপেক্ষায় আছে আর staff-এর জানালা পেরিয়ে গেছে।  */
+  onModuleInit() {
+    this.sweepTimer = setInterval(() => {
+      void this.sweep().catch((e) =>
+        this.logger.warn(`sweep failed: ${e instanceof Error ? e.message : String(e)}`),
+      );
+    }, 60_000);
+  }
+  onModuleDestroy() {
+    if (this.sweepTimer) clearInterval(this.sweepTimer);
+  }
+
+  /** fire-and-forget — গ্রাহকের request এতে কখনো ভাঙে না */
   async respond(conversationId: string): Promise<void> {
     try {
-      await this.respondInner(conversationId);
+      await this.respondInner(conversationId, { fromSweeper: false });
     } catch (e) {
-      // চুপ করে থাকা = thread unread থেকে মানুষের কাছে (নকশার exception-পথ)
       this.logger.warn(
         `AI reply failed for ${conversationId}: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }
 
-  private async respondInner(conversationId: string): Promise<void> {
+  /* ═══════════════ sweeper — কেউ উত্তরহীন থাকবে না ═══════════════ */
+
+  private async sweep(): Promise<void> {
+    const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
+    if (!settings?.aiGloballyEnabled) return;
+
+    const graceMs = Math.max(1, settings.staffGraceMin) * 60_000;
+    const cutoff = new Date(Date.now() - graceMs);
+    const floor = new Date(Date.now() - 24 * 60 * 60 * 1000); // পুরনো কবর খোঁড়া নয়
+
+    const candidates = await this.prisma.db.conversation.findMany({
+      where: {
+        deletedAt: null,
+        aiEnabled: true, // মালিকের hard-off সম্মানিত
+        status: ConversationStatus.OPEN,
+        lastMessageAt: { lt: cutoff, gt: floor },
+      },
+      select: { id: true },
+      take: 20,
+    });
+
+    for (const c of candidates) {
+      try {
+        await this.respondInner(c.id, { fromSweeper: true });
+      } catch (e) {
+        this.logger.warn(
+          `sweep respond failed ${c.id}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    }
+  }
+
+  /* ═══════════════ মূল উত্তর-যন্ত্র ═══════════════ */
+
+  private async respondInner(
+    conversationId: string,
+    opts: { fromSweeper: boolean },
+  ): Promise<void> {
     const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
     if (!settings?.aiGloballyEnabled) return;
 
@@ -150,34 +223,49 @@ export class InboxAiAgent {
           where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
           take: 16,
-          select: { direction: true, authorType: true, body: true },
+          select: { direction: true, authorType: true, body: true, createdAt: true },
         },
       },
     });
-    if (!convo || !convo.aiEnabled) return; // DEC-INB-004 — staff-এর thread-এ AI ঢোকে না
-
-    const provider = providerFor(settings.aiProvider);
-    if (!provider.configured()) return; // key নেই = AI নীরব, মানুষ আছে
+    if (!convo || !convo.aiEnabled) return;
 
     const ordered = [...convo.messages].reverse();
     const last = ordered[ordered.length - 1];
-    if (!last || last.direction !== 'IN') return; // উত্তর দেওয়ার কিছু নেই
+    if (!last || last.direction !== 'IN') return; // উত্তর হয়ে গেছে / দেওয়ার কিছু নেই
 
-    /* ── ধাপ ১: টাকার keyword gate — model-এর আগে (INB-RULE-001) ─────── */
-    const lastLower = last.body.toLowerCase();
-    if (MONEY_WORDS.some((w) => lastLower.includes(w))) {
-      await this.escalate(conversationId, EscalationReason.MONEY_TOPIC, settings);
-      await this.say(
-        conversationId,
-        /[ঀ-৿]/.test(last.body)
-          ? 'এটা আমাদের টিমের একজন দেখবেন — একটু পরেই আপনাকে উত্তর দেবেন। 🌸'
-          : 'One of our team members will help you with this — they will reply shortly. 🌸',
-        { escalated: 'MONEY_TOPIC', provider: provider.name, gate: 'keyword' },
-      );
+    const lang = detectLang(last.body);
+    const staffTouched = ordered.some((m) => m.authorType === 'STAFF');
+    const lastStaffAt = [...ordered].reverse().find((m) => m.authorType === 'STAFF')?.createdAt;
+    const escalatedUnanswered =
+      convo.escalatedAt !== null &&
+      (lastStaffAt === undefined || lastStaffAt < convo.escalatedAt);
+
+    /*  DEC-INB-008 — staff-ছোঁয়া thread-এ তাৎক্ষণিক পথ থেমে যায়;
+        জানালা পেরোলে sweeper-ই এখানে ফিরবে fromSweeper=true নিয়ে।  */
+    if (!opts.fromSweeper && (staffTouched || escalatedUnanswered)) return;
+
+    /*  DEC-INB-009 — escalation ঝুলে আছে, জানালাও পেরিয়েছে (sweeper-পথ):
+        উত্তরের বদলে অপেক্ষার লাইনটা, গ্রাহকের হরফে।  */
+    if (escalatedUnanswered) {
+      await this.say(conversationId, WAIT_LINE[lang], {
+        kind: 'wait_line', lang, escalatedAt: convo.escalatedAt,
+      });
       return;
     }
 
-    /* ── ধাপ ২: model + tool loop ────────────────────────────────────── */
+    /* ── টাকার keyword gate — model-এর আগে (INB-RULE-001) ────────────── */
+    const lastLower = last.body.toLowerCase();
+    if (MONEY_WORDS.some((w) => lastLower.includes(w))) {
+      /*  DEC-INB-009: এখন চুপ — staff-কে খবর; জানালা পেরোলে sweeper
+          অপেক্ষার লাইনটা বলবে।  */
+      await this.escalate(conversationId, EscalationReason.MONEY_TOPIC, settings);
+      return;
+    }
+
+    /* ── model + tool loop ───────────────────────────────────────────── */
+    const provider = providerFor(settings.aiProvider);
+    if (!provider.configured()) return;
+
     const history: AiMessage[] = ordered.map((m) => ({
       role: m.direction === 'IN' ? ('user' as const) : ('assistant' as const),
       content: m.body,
@@ -211,7 +299,7 @@ export class InboxAiAgent {
         try {
           if (call.name === 'search_products') {
             const found = await this.tools.searchProducts(call.args);
-            products = found; // শেষ খোঁজার ফলই card হয়
+            products = found;
             result = { products: found };
           } else if (call.name === 'order_status') {
             result = await this.tools.orderStatus(call.args as { orderNo?: string; phone?: string });
@@ -224,7 +312,10 @@ export class InboxAiAgent {
               (call.args.reason as EscalationReason) ?? EscalationReason.LOW_CONFIDENCE;
             escalated = reason;
             await this.escalate(conversationId, reason, settings);
-            result = { ok: true, note: 'A human has been notified. Tell the customer politely.' };
+            result = {
+              ok: true,
+              note: 'A colleague has been notified. Warmly tell the customer someone will be with them shortly — do not answer the substance.',
+            };
           } else {
             result = { error: `unknown tool ${call.name}` };
           }
@@ -235,18 +326,18 @@ export class InboxAiAgent {
       }
     }
 
-    if (!finalText.trim()) return; // model কিছুই বলল না — মানুষের কাছে থাক
+    if (!finalText.trim()) return;
 
     await this.say(conversationId, finalText.trim(), {
       provider: provider.name,
       model,
       toolsUsed,
+      lang,
       ...(escalated ? { escalated } : {}),
       ...(products.length ? { products } : {}),
     });
   }
 
-  /** AI-র উত্তর জমা — গ্রাহকের widget পরের poll-এই পেয়ে যায় */
   private async say(
     conversationId: string,
     body: string,
@@ -267,7 +358,8 @@ export class InboxAiAgent {
     });
   }
 
-  /** INB-RULE-005 — কার কাছে খবর যায়: assignee-তালিকা, খালি হলে সব OWNER */
+  /** INB-RULE-005 — assignee-তালিকা, খালি হলে সব OWNER; thread OPEN-ই থাকে
+      (sweeper-এর নজরে), unread বাড়ে যাতে badge জ্বলে */
   private async escalate(
     conversationId: string,
     reason: EscalationReason,
