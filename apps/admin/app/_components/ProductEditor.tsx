@@ -3884,28 +3884,49 @@ No bundle products yet — add them on{" "}
           {/* DELIVERY */}
           {sec === "delivery" && (
             <>
-              <Card icon="truck" title="Zone" hint="Where this product can reach.">
-                <Seg
-                  value={zone}
-                  onChange={(z) => {
-                    setZone(z);
-                    /*  DEC-DLV-011 — zone বদলালে বাছাই *ছাঁকা* হয়, মোছা নয়।
-                        NATIONWIDE product দুই zone-এই বিক্রি হয় (ঢাকাতেও
-                        দেখায়), তাই তার দুই দলের delivery-ই বৈধ। DHAKA-তে
-                        নামালে শুধু courier-দলের টিকগুলো ঝরে যায় — ঢাকার
-                        speed-গুলো টিকে থাকে।  */
-                    if (z === "DHAKA")
-                      setDelivTypeIds((ids) =>
-                        ids.filter((id) =>
-                          delivTypes.some((t) => t.id === id && t.zone === "DHAKA"),
-                        ),
-                      );
-                  }}
-                  options={[
-                    { v: "DHAKA", label: "Inside Dhaka" },
-                    { v: "NATIONWIDE", label: "Nationwide (courier-safe)" },
-                  ]}
-                />
+              <Card icon="truck" title="Zone" hint="Where this product can reach. Tick each zone it sells in.">
+                {/*
+                  DEC-DLV-011 (rev, মালিকের সংশোধন ৫ আগস্ট) — "inside dhaka ja
+                  thake thakbe. national ja thakar thakbe. kon product jodi
+                  just inside hoy tahole ta select krbe, kon product jodi 2
+                  tai kaj kre tahole 2 tai select krbe."
+
+                  তাই zone এখন টিক-তালিকা, toggle নয়। Inside Dhaka সবসময়
+                  টিক-করা ও তালাবদ্ধ — বাংলাদেশ মানে ঢাকাসহ, "শুধু বাইরে"
+                  বলে কোনো অবস্থা নেই। Outside টিক দিলেই product-টা দেশব্যাপী
+                  (DB-তে NATIONWIDE), আর নিচে courier-এর নিজের দল খোলে।
+                */}
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className="text-[13px] px-3.5 py-2 rounded-full border font-medium bg-purple border-purple text-white opacity-90 cursor-default select-none"
+                    title="Every product sells inside Dhaka — this is home."
+                  >
+                    ✓ Inside Dhaka
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = zone === "NATIONWIDE" ? "DHAKA" : "NATIONWIDE";
+                      setZone(next);
+                      /*  Outside-এর টিক তুললে শুধু courier-দলের বাছাই ঝরে —
+                          ঢাকার speed-গুলো টিকে থাকে।  */
+                      if (next === "DHAKA")
+                        setDelivTypeIds((ids) =>
+                          ids.filter((id) =>
+                            delivTypes.some((t) => t.id === id && t.zone === "DHAKA"),
+                          ),
+                        );
+                    }}
+                    className={
+                      "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
+                      (zone === "NATIONWIDE"
+                        ? "bg-purple border-purple text-white"
+                        : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+                    }
+                  >
+                    {zone === "NATIONWIDE" ? "✓ " : ""}Outside Dhaka — all Bangladesh (courier-safe)
+                  </button>
+                </div>
               </Card>
               <Card
                 icon="truck"
