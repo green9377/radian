@@ -4,15 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ApiInboxDetail,
   type ApiInboxListItem,
+  type ApiInboxSetting,
   type ApiAppUser,
   assignInboxConversation,
   getInboxConversation,
+  getInboxSettings,
   listAppUsers,
   listInboxConversations,
   replyInboxConversation,
   reopenInboxConversation,
   resolveInboxConversation,
   setInboxAi,
+  updateInboxSettings,
 } from "../_data/api";
 
 /*
@@ -63,10 +66,19 @@ export default function InboxView() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ApiInboxDetail | null>(null);
   const [users, setUsers] = useState<ApiAppUser[] | null>(null);
+  const [settings, setSettings] = useState<ApiInboxSetting | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const patchSettings = async (dto: Partial<ApiInboxSetting>) => {
+    try {
+      setSettings(await updateInboxSettings(dto));
+    } catch {
+      setError("Settings did not save — try again.");
+    }
+  };
 
   const loadList = useCallback(async () => {
     try {
@@ -111,6 +123,9 @@ export default function InboxView() {
     listAppUsers()
       .then(setUsers)
       .catch(() => setUsers(null));
+    getInboxSettings()
+      .then(setSettings)
+      .catch(() => setSettings(null));
   }, []);
 
   const send = async () => {
@@ -153,9 +168,41 @@ export default function InboxView() {
         <h1 className="text-[26px] font-extrabold text-gray-900">Inbox</h1>
         <p className="text-[13px] text-gray-500 mt-1 max-w-2xl">
           Every customer conversation, one screen. Live chat today — Messenger,
-          Instagram, WhatsApp land here when connected. Reply, and the AI (Phase
-          2) steps aside for that thread automatically.
+          Instagram, WhatsApp land here when connected. Reply, and the AI
+          steps aside for that thread automatically.
         </p>
+
+        {/* AI নিয়ন্ত্রণ — DEC-INB-003/005 + provider seam (মালিকের রায় ৫ আগস্ট) */}
+        {settings && (
+          <div className="mt-3 flex items-center gap-3 flex-wrap bg-white border border-gray-200 rounded-xl px-4 py-2.5">
+            <button
+              onClick={() => void patchSettings({ aiGloballyEnabled: !settings.aiGloballyEnabled })}
+              className={`text-[12px] font-bold px-3 py-1.5 rounded-full transition ${
+                settings.aiGloballyEnabled
+                  ? "bg-green-100 text-green-700 hover:bg-green-200"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              AI auto-reply: {settings.aiGloballyEnabled ? "ON" : "OFF"}
+            </button>
+            <label className="text-[12px] text-gray-500 flex items-center gap-1.5">
+              Provider
+              <select
+                value={settings.aiProvider}
+                onChange={(e) =>
+                  void patchSettings({ aiProvider: e.target.value as "ANTHROPIC" | "OPENAI" })
+                }
+                className="border border-gray-200 rounded-lg px-2 py-1 text-[12px] outline-none"
+              >
+                <option value="ANTHROPIC">Claude (Anthropic)</option>
+                <option value="OPENAI">OpenAI</option>
+              </select>
+            </label>
+            <span className="text-[11.5px] text-gray-400">
+              model: {settings.aiModel} · key server-এর env-এ — এখানে কখনো নয়
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-5 items-start">

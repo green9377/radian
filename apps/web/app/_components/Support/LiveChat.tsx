@@ -216,20 +216,57 @@ export default function LiveChat({ open, onClose }: { open: boolean; onClose: ()
               const mine = m.authorType === "CUSTOMER";
               const system = m.authorType === "SYSTEM";
               return (
-                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={
-                      system
-                        ? "mx-auto text-center text-[11.5px] text-gray-400 bg-white border border-purple/10 rounded-full px-4 py-1.5"
-                        : `max-w-[80%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-snug ${
-                            mine
-                              ? "bg-[#470066] text-white rounded-br-md"
-                              : "bg-white text-gray-800 border border-purple/10 rounded-bl-md"
-                          }`
-                    }
-                  >
-                    {m.body}
+                <div key={m.id}>
+                  <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={
+                        system
+                          ? "mx-auto text-center text-[11.5px] text-gray-400 bg-white border border-purple/10 rounded-full px-4 py-1.5"
+                          : `max-w-[80%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-snug ${
+                              mine
+                                ? "bg-[#470066] text-white rounded-br-md"
+                                : "bg-white text-gray-800 border border-purple/10 rounded-bl-md"
+                            }`
+                      }
+                    >
+                      {m.body}
+                    </div>
                   </div>
+
+                  {/* DEC-INB-007 — AI-র সাজানো পণ্যের card; দাম server-এর */}
+                  {m.products && m.products.length > 0 && (
+                    <div className="mt-2 flex gap-2 overflow-x-auto pb-1 pr-1">
+                      {m.products.map((p) => (
+                        <a
+                          key={p.slug}
+                          href={`/products/${p.slug}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="shrink-0 w-[150px] bg-white border border-purple/10 rounded-2xl overflow-hidden hover:shadow-md transition"
+                        >
+                          <div
+                            className="h-[100px] w-full"
+                            style={{
+                              background: p.imageUrl
+                                ? `url(${p.imageUrl}) center/cover no-repeat`
+                                : "linear-gradient(150deg,#F7E4F1,#EBC7E4)",
+                            }}
+                          />
+                          <div className="p-2.5">
+                            <p className="text-[12px] font-semibold text-gray-800 leading-tight line-clamp-2">
+                              {p.name}
+                            </p>
+                            <p className="text-[12.5px] font-bold text-[#470066] mt-1">
+                              ৳ {(p.pricePaisa / 100).toLocaleString("en-IN")}
+                            </p>
+                            <span className="mt-1.5 inline-block text-[11px] font-bold text-white bg-[#470066] rounded-full px-3 py-1">
+                              View
+                            </span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}

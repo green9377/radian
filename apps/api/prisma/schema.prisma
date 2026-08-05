@@ -6546,6 +6546,12 @@ model InboxSetting {
   /// DEC-INB-004 — নতুন thread-এ AI-র প্রাথমিক অবস্থা।
   aiDefaultForNew   Boolean @default(true)
 
+  /// মালিকের রায় (৫ আগস্ট): দুই provider-এর জন্য বানানো, আপাতত Anthropic।
+  /// "ANTHROPIC" | "OPENAI" — key env-এ (ANTHROPIC_API_KEY / OPENAI_API_KEY),
+  /// DB-তে কখনো নয়।
+  aiProvider String @default("ANTHROPIC")
+  aiModel    String @default("claude-haiku-4-5-20251001")
+
   /// DEC-INB-003 — escalation কার কাছে যায়; খালি = সব OWNER (INB-RULE-005)।
   escalationAssigneeIds Json @default("[]")
 

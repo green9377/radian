@@ -60,6 +60,7 @@ that conversation.
 | DEC-INB-004 | When a staff member replies in a conversation, the AI switches off **for that conversation only**. Re-enabling is manual, per conversation. |
 | DEC-INB-005 | The AI is read-only. It answers from business data through controlled read endpoints; it never mutates orders, stock, prices, or customer records. |
 | DEC-INB-006 | Live chat identity: a signed-in customer is never asked anything — the system identifies them automatically. A guest is asked name + phone with a visible skip option; skipping still allows chat, and the AI asks for a phone/order number only when the question actually needs one. |
+| DEC-INB-007 | The AI is a shopping assistant, not just a status desk. "Budget ৳2000, show me bouquets" → the AI searches the PUBLISHED catalog and shows product cards (photo, name, price, View, Add-to-cart) inside the chat. Still read-only: it quotes the shop's published prices, never invents one; Add-to-cart runs in the customer's own browser, the AI writes nothing. Two providers (Claude + OpenAI) will be tested head-to-head on the same script before one is chosen; the provider stays a swappable setting. |
 
 ---
 
@@ -127,10 +128,22 @@ that conversation.
 ### INB-RULE-004: AI reads, never writes (DEC-INB-005)
 - **Condition:** Always.
 - **Action:** The AI's tool belt contains ONLY read endpoints: order status by
-  phone/order-no, product price/stock/availability, delivery areas & fees,
+  phone/order-no, product price/stock/availability, **catalog search with
+  budget/category/occasion filters (DEC-INB-007)**, delivery areas & fees,
   published policies/FAQ, shop hours. No mutation endpoint is ever exposed
   to it.
 - **Exception:** none. New AI tools require owner approval and a DEC entry.
+
+### INB-RULE-010: Product suggestions are cards, from the shop's own truth (DEC-INB-007)
+- **Condition:** The AI recommends products (budget ask, occasion ask, "show
+  me…").
+- **Action:** It calls the catalog-search tool (published products only, the
+  same filter the storefront uses), and the reply carries structured product
+  refs — the widget renders photo + name + price + View + Add-to-cart. The
+  AI's text may describe; the numbers on the card come from the API, never
+  from the AI's own mouth.
+- **Exception:** none. If the search returns nothing in budget, the AI says so
+  and offers the nearest options — it never invents a product or a price.
 
 ### INB-RULE-005: Escalation notifies the assigned humans (DEC-INB-003)
 - **Trigger:** `EscalationEvent` created.

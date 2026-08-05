@@ -24,6 +24,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
 import { Public } from '../auth/auth.guard';
+import { InboxAiTools } from './ai-tools';
+import { InboxAiAgent } from './ai-agent';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -84,6 +86,8 @@ interface ReplyDto {
 interface SettingsDto {
   aiGloballyEnabled?: boolean;
   aiDefaultForNew?: boolean;
+  aiProvider?: 'ANTHROPIC' | 'OPENAI';
+  aiModel?: string;
   escalationAssigneeIds?: string[];
   supportOpenMin?: number;
   supportCloseMin?: number;
@@ -97,6 +101,7 @@ export class InboxService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly ai: InboxAiAgent,
   ) {}
 
   /* ── settings (singleton, ঘরের ensureSingleton ধাঁচ) ─────────────────── */
@@ -115,6 +120,8 @@ export class InboxService {
       data: {
         aiGloballyEnabled: dto.aiGloballyEnabled,
         aiDefaultForNew: dto.aiDefaultForNew,
+        aiProvider: dto.aiProvider,
+        aiModel: dto.aiModel,
         escalationAssigneeIds: dto.escalationAssigneeIds as Prisma.InputJsonValue | undefined,
         supportOpenMin: dto.supportOpenMin,
         supportCloseMin: dto.supportCloseMin,
@@ -197,6 +204,12 @@ export class InboxService {
     });
 
     await this.maybeOffHoursLine(convo.id, s);
+
+    /*  Phase 2 — AI জাগে এখানে, কিন্তু await নয়: গ্রাহকের request সাথে সাথে
+        ফেরে, উত্তরটা সে পরের poll-এ (৪ সে) পায়। Agent-এর ভেতরের সব ব্যর্থতা
+        সেখানেই গেলা হয় — এই request কখনো তাতে ভাঙে না।  */
+    void this.ai.respond(convo.id);
+
     return this.publicView(convo.id, convo.clientKey);
   }
 
@@ -225,7 +238,10 @@ export class InboxService {
       where: { conversationId: convo.id, deletedAt: null },
       orderBy: { createdAt: 'asc' },
       take: 200,
-      select: { id: true, direction: true, authorType: true, body: true, createdAt: true },
+      select: {
+        id: true, direction: true, authorType: true, body: true, createdAt: true,
+        aiMeta: true,
+      },
     });
     return {
       conversationId: convo.id,
@@ -233,7 +249,19 @@ export class InboxService {
       status: convo.status,
       guestName: convo.guestName,
       identified: Boolean(convo.guestPhone || convo.customerId),
-      messages,
+      messages: messages.map((m) => {
+        /*  aiMeta-র ভেতর থেকে শুধু products বাইরে যায় (DEC-INB-007-এর card)।
+            provider/model/tool-তালিকা ভেতরের কথা — গ্রাহকের ব্রাউজারে নয়।  */
+        const meta = m.aiMeta as { products?: unknown[] } | null;
+        return {
+          id: m.id,
+          direction: m.direction,
+          authorType: m.authorType,
+          body: m.body,
+          createdAt: m.createdAt,
+          products: Array.isArray(meta?.products) ? meta.products : undefined,
+        };
+      }),
     };
   }
 
@@ -526,7 +554,7 @@ export class InboxController {
 }
 
 @Module({
-  providers: [InboxService],
+  providers: [InboxService, InboxAiTools, InboxAiAgent],
   controllers: [ShopChatController, InboxController],
 })
 export class InboxModule {}

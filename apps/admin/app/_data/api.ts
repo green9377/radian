@@ -6658,6 +6658,8 @@ export interface ApiInboxDetail {
 export interface ApiInboxSetting {
   aiGloballyEnabled: boolean;
   aiDefaultForNew: boolean;
+  aiProvider: "ANTHROPIC" | "OPENAI";
+  aiModel: string;
   escalationAssigneeIds: string[];
   supportOpenMin: number;
   supportCloseMin: number;

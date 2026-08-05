@@ -9,12 +9,23 @@ import { API_BASE } from "./shop";
   সব call ব্রাউজার থেকে (client component) — SSR নয়, তাই API_BASE-ই ঠিক।
 */
 
+/** DEC-INB-007 — AI-র সাজানো পণ্য; দাম server-এর, AI-র মুখের নয় */
+export interface ChatProduct {
+  slug: string;
+  name: string;
+  pricePaisa: number;
+  imageUrl: string | null;
+  zone: string;
+  isBestSeller: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   direction: "IN" | "OUT";
   authorType: "CUSTOMER" | "AI" | "STAFF" | "SYSTEM";
   body: string;
   createdAt: string;
+  products?: ChatProduct[];
 }
 
 export interface ChatView {
