@@ -264,10 +264,19 @@ export interface DeliveryOption {
   slots: DeliveryOptionSlot[];
 }
 
-export const getDeliveryOptions = (zone: string | null, areaId?: string | null) =>
+export const getDeliveryOptions = (
+  zone: string | null,
+  areaId?: string | null,
+  /** DEC-DLV-011 — cart-এর slug দিলে menu-তে শুধু সেই delivery আসে যেটা
+      cart-এর *সব* product-এ চলে; order কখনো ভাগ হয় না */
+  itemSlugs?: string[],
+) =>
   get<DeliveryOption[]>(
     `/shop/delivery-options?zone=${zone === "bangladesh" ? "BANGLADESH" : "DHAKA"}` +
-      (areaId ? `&areaId=${areaId}` : ""),
+      (areaId ? `&areaId=${areaId}` : "") +
+      (itemSlugs?.length
+        ? `&items=${encodeURIComponent([...new Set(itemSlugs)].join(","))}`
+        : ""),
   );
 
 /** null until the owner enters it — every place that quotes it drops the claim */

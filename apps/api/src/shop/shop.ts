@@ -6,6 +6,7 @@ import { LayoutModule, LayoutService } from '../storefront/layout';
 /*  DEC-DLV-009 — "বেশি নির্দিষ্টতা জেতে"। একটাই function, Sales আর POS-ও
     এটাই পড়বে; দামের হিসাব দুবার লেখা হয় না। */
 import { ratesForArea } from '../delivery/resolve';
+import { cartTypeSets, methodOkForCart } from '../common/delivery-rule';
 
 /** ঢাকা UTC+6। container ছয় ঘণ্টা পিছিয়ে চলে, তাই cut-off সবসময় এই offset ধরে। */
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000;
@@ -645,10 +646,21 @@ export class ShopService {
      ⚠️ `areaId` না দিলে zone-এর সাধারণ দাম। দিলে "বেশি নির্দিষ্টতা জেতে"
      (DEC-DLV-009) — Dhanmondi-র ৳৮০, পুরো ঢাকার ৳১০০ নয়।
      ═════════════════════════════════════════════════════════════════════════ */
-  async deliveryOptions(zone?: string, areaId?: string | null) {
+  async deliveryOptions(zone?: string, areaId?: string | null, itemsCsv?: string) {
     const zoneCode = NATIONWIDE_ALIASES.has(String(zone ?? '').toUpperCase())
       ? 'BANGLADESH'
       : 'DHAKA';
+
+    /*  DEC-DLV-011 — cart-এর slug এলে সেই product-গুলোর টিক-দেওয়া
+        DeliveryType-এর set আগে তুলে রাখা হয়; নিচে zone-এর তালিকা এই set
+        দিয়ে ছাঁকা হবে। slug না এলে আগের zone-only আচরণ (PDP-র চিপ ইত্যাদি)। */
+    const cartSlugs = (itemsCsv ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const typeSets = cartSlugs.length
+      ? await cartTypeSets(this.prisma.db, cartSlugs)
+      : [];
 
     const rows = await this.prisma.db.deliveryMethod.findMany({
       where: { isActive: true, zone: zoneCode },
@@ -685,6 +697,14 @@ export class ShopService {
     const minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes();
 
     return [...chosen.values()]
+      /*  DEC-DLV-011 — যে delivery পুরো cart বইতে পারে না, সে menu-তেই নেই।
+          "multi product hole win hobe se method je method-এ sobgula product
+          delivery possible" — মালিক, ৫ আগস্ট।  */
+      .filter(
+        (m) =>
+          !typeSets.length ||
+          methodOkForCart(m.type?.timing ?? null, m.typeId ?? m.type?.id ?? null, typeSets),
+      )
       .sort((a, b) => (a.type?.sortOrder ?? 0) - (b.type?.sortOrder ?? 0))
       .map((m) => {
         const cut = parseHHMM(m.cutoffTime);
@@ -853,8 +873,14 @@ export class ShopController {
 
   @Public()
   @Get('delivery-options')
-  deliveryOptions(@Query('zone') zone?: string, @Query('areaId') areaId?: string) {
-    return this.svc.deliveryOptions(zone, areaId || null);
+  deliveryOptions(
+    @Query('zone') zone?: string,
+    @Query('areaId') areaId?: string,
+    /*  DEC-DLV-011 — cart-এর slug, comma-separated। দিলে menu-তে শুধু সেই
+        delivery আসে যেটা cart-এর সব product-এ চলে।  */
+    @Query('items') items?: string,
+  ) {
+    return this.svc.deliveryOptions(zone, areaId || null, items);
   }
 
   @Public()

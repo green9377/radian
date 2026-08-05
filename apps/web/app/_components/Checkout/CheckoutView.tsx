@@ -118,15 +118,25 @@ export default function CheckoutView() {
     উত্তর দেরিতে এলে সে যেন নতুন zone-এর দামের উপর পুরনো দাম না বসায়।
   */
   const [liveMethods, setLiveMethods] = useState<LiveMethod[] | null>(null);
+  /*  DEC-DLV-011 — cart-এর slug-ও পাঠানো হয়: menu-তে শুধু সেই delivery আসে
+      যেটা cart-এর *প্রতিটা* product-এ টিক-দেওয়া। "multi product hole win
+      hobe se method je method-এ sobgula product delivery possible" — মালিক।
+      slug-এর join-করা string dependency, array নয় — array প্রতি render-এ
+      নতুন reference হয়ে অনবরত re-fetch করাত।  */
+  const cartSlugKey = useMemo(
+    () => [...new Set(items.map((i) => i.slug))].sort().join(","),
+    [items],
+  );
   useEffect(() => {
     let stale = false;
-    getDeliveryOptions(zone).then((opts) => {
+    const slugs = cartSlugKey ? cartSlugKey.split(",") : [];
+    getDeliveryOptions(zone, null, slugs).then((opts) => {
       if (!stale) setLiveMethods(opts ? toLiveMethods(opts) : []);
     });
     return () => {
       stale = true;
     };
-  }, [zone]);
+  }, [zone, cartSlugKey]);
 
   /**
    * `method` কি সত্যিকারের `DeliveryMethod` সারি, নাকি API-র উত্তর আসা পর্যন্ত

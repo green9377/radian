@@ -3889,11 +3889,17 @@ No bundle products yet — add them on{" "}
                   value={zone}
                   onChange={(z) => {
                     setZone(z);
-                    /*  zone বদলালে বাছাই মুছে যায় — ঢাকার "Midnight" টিক
-                        করা একটা product nationwide হয়ে বসে থাকলে কেউ জানত
-                        না, আর checkout একটা এমন delivery খুঁজত যেটা ওই
-                        zone-এ নেই।  */
-                    setDelivTypeIds([]);
+                    /*  DEC-DLV-011 — zone বদলালে বাছাই *ছাঁকা* হয়, মোছা নয়।
+                        NATIONWIDE product দুই zone-এই বিক্রি হয় (ঢাকাতেও
+                        দেখায়), তাই তার দুই দলের delivery-ই বৈধ। DHAKA-তে
+                        নামালে শুধু courier-দলের টিকগুলো ঝরে যায় — ঢাকার
+                        speed-গুলো টিকে থাকে।  */
+                    if (z === "DHAKA")
+                      setDelivTypeIds((ids) =>
+                        ids.filter((id) =>
+                          delivTypes.some((t) => t.id === id && t.zone === "DHAKA"),
+                        ),
+                      );
                   }}
                   options={[
                     { v: "DHAKA", label: "Inside Dhaka" },
@@ -3923,47 +3929,81 @@ No bundle products yet — add them on{" "}
                   বাছাইও মুছে যায় — নাহলে "Midnight" টিক করা একটা product
                   nationwide হয়ে বসে থাকত, আর কেউ জানত না।
                 */}
-                {delivTypes.filter((t) => t.zone === deliveryZoneOf(zone)).length === 0 ? (
-                  <div className="rounded-[14px] border border-lavender-deep bg-lavender/50 px-4 py-4 text-[13.5px] text-body-soft">
-                    No delivery options set up for this zone yet.{" "}
-                    <Link
-                      href="/delivery/setup"
-                      className="text-orchid font-medium hover:underline"
-                    >
-                      Delivery → Zones · types · slots
-                    </Link>
-                    {" "}— add them there and they appear here.
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {delivTypes
-                      .filter((t) => t.zone === deliveryZoneOf(zone))
-                      .map((t) => {
-                        const on = delivTypeIds.includes(t.id);
+                {/*
+                  DEC-DLV-011 — NATIONWIDE product দুই zone-এই বিক্রি হয়, তাই
+                  দুই দলের delivery-ই বাছা যায়: ঢাকার গ্রাহক পাবে টিক-দেওয়া
+                  ঢাকার speed, বাইরের গ্রাহক পাবে টিক-দেওয়া courier। আগে শুধু
+                  এক zone-এর তালিকা দেখাত — nationwide product-কে ঢাকার ২-ঘণ্টা
+                  দেওয়ার কোনো পথই ছিল না।
+                */}
+                {(() => {
+                  const groups =
+                    zone === "NATIONWIDE"
+                      ? ([
+                          { z: "DHAKA", label: "When the customer is inside Dhaka" },
+                          { z: "BANGLADESH", label: "Outside Dhaka — courier" },
+                        ] as const)
+                      : ([{ z: "DHAKA", label: null }] as const);
+                  const visible = delivTypes.filter((t) =>
+                    groups.some((g) => g.z === t.zone),
+                  );
+                  if (visible.length === 0)
+                    return (
+                      <div className="rounded-[14px] border border-lavender-deep bg-lavender/50 px-4 py-4 text-[13.5px] text-body-soft">
+                        No delivery options set up for this zone yet.{" "}
+                        <Link
+                          href="/delivery/setup"
+                          className="text-orchid font-medium hover:underline"
+                        >
+                          Delivery → Zones · types · slots
+                        </Link>
+                        {" "}— add them there and they appear here.
+                      </div>
+                    );
+                  return (
+                    <div className="flex flex-col gap-4">
+                      {groups.map((g) => {
+                        const list = delivTypes.filter((t) => t.zone === g.z);
+                        if (list.length === 0) return null;
                         return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() =>
-                              setDelivTypeIds(
-                                on
-                                  ? delivTypeIds.filter((x) => x !== t.id)
-                                  : [...delivTypeIds, t.id],
-                              )
-                            }
-                            className={
-                              "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
-                              (on
-                                ? "bg-purple border-purple text-white"
-                                : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
-                            }
-                          >
-                            {t.name}
-                          </button>
+                          <div key={g.z}>
+                            {g.label && (
+                              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
+                                {g.label}
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {list.map((t) => {
+                                const on = delivTypeIds.includes(t.id);
+                                return (
+                                  <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={() =>
+                                      setDelivTypeIds(
+                                        on
+                                          ? delivTypeIds.filter((x) => x !== t.id)
+                                          : [...delivTypeIds, t.id],
+                                      )
+                                    }
+                                    className={
+                                      "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
+                                      (on
+                                        ? "bg-purple border-purple text-white"
+                                        : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+                                    }
+                                  >
+                                    {t.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
 
                 {/*
                   ⚠️ কিছু টিক না দিলে product-টা schedule করা দিনেই যাবে —

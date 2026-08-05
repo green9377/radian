@@ -15,6 +15,7 @@ import { DeliveryZone, PaymentMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { Public } from '../auth/auth.guard';
+import { cartTypeSets, methodOkForCart } from '../common/delivery-rule';
 import { OffersModule } from '../offers/offers.module';
 import { OffersService } from '../offers/offers.service';
 import { OrdersModule } from '../orders/orders.module';
@@ -416,18 +417,33 @@ export class CheckoutService {
     slotId?: string,
     /** "2026-08-05" — ভরা-slot গোনা এই দিনের জন্য */
     date?: string,
+    /** DEC-DLV-011 — cart-এর slug-গুলো; দিলে method-টা সব product-এ চলে কিনা যাচাই হয় */
+    cartSlugs?: string[],
   ) {
     if (!methodId) {
       return { method: null, slot: null, feePaisa: 0, label: null as string | null, eta: null as string | null };
     }
     const method = await this.prisma.db.deliveryMethod.findFirst({
       where: { id: methodId, isActive: true },
+      include: { type: { select: { id: true, timing: true } } },
     });
     if (!method) throw new BadRequestException('that delivery option is no longer available');
     if (method.zone !== zone)
       throw new BadRequestException(
         `"${method.label}" is not offered for ${zone === DeliveryZone.DHAKA ? 'Dhaka' : 'nationwide'} delivery`,
       );
+
+    /*  DEC-DLV-011 — মালিকের নিয়ম, ৫ আগস্ট: *"multi product thake cart …
+        win hobe se method, je method win hole sobgula product delivery
+        possible. order kon vag hobe na."* Menu যা-ই দেখাক, দরজায় আবার গোনা
+        হয় — নাহলে dev tools-এ id বসিয়ে যে-কোনো speed নেওয়া যেত।  */
+    if (cartSlugs?.length) {
+      const sets = await cartTypeSets(this.prisma.db, cartSlugs);
+      if (!methodOkForCart(method.type?.timing ?? null, method.type?.id ?? null, sets))
+        throw new BadRequestException(
+          `"${method.label}" cannot deliver everything in this cart — pick a delivery option all items support`,
+        );
+    }
 
     let slot: { id: string; label: string } | null = null;
     if (slotId) {
@@ -507,7 +523,13 @@ export class CheckoutService {
     const active = lines.filter((l) => !l.held);
     const held = lines.filter((l) => l.held);
 
-    const delivery = await this.deliveryFor(zone, dto.deliveryMethodId, dto.deliverySlotId);
+    const delivery = await this.deliveryFor(
+      zone,
+      dto.deliveryMethodId,
+      dto.deliverySlotId,
+      undefined,
+      active.map((l) => l.slug), // DEC-DLV-011
+    );
 
     const orderLines = this.toOrderLines(active);
     const subtotalPaisa = orderLines.reduce(
@@ -777,7 +799,13 @@ export class CheckoutService {
         'nothing in your cart can be delivered to the selected area',
       );
 
-    const delivery = await this.deliveryFor(zone, dto.deliveryMethodId, dto.deliverySlotId, dto.date);
+    const delivery = await this.deliveryFor(
+      zone,
+      dto.deliveryMethodId,
+      dto.deliverySlotId,
+      dto.date,
+      active.map((l) => l.slug), // DEC-DLV-011
+    );
 
     const channel = await this.prisma.db.channel.findFirst({
       where: { slug: 'website', isActive: true },
@@ -950,7 +978,7 @@ export class CheckoutService {
    * that the fee shown on the screen and the fee charged on the order are the
    * same row of the same table.
    */
-  async deliveryMenu(zoneIn?: string) {
+  async deliveryMenu(zoneIn?: string, itemsCsv?: string) {
     const zone = this.normZone(zoneIn as QuoteIn['zone']);
     const rows = await this.prisma.db.deliveryMethod.findMany({
       where: { zone, isActive: true },
@@ -972,7 +1000,23 @@ export class CheckoutService {
       },
     });
 
-    return rows.map((m) => ({
+    /*  DEC-DLV-011 — cart-এর slug এলে zone-এর menu-টা আরেকবার ছাঁকা হয়:
+        যে method পুরো cart delivery করতে পারে না, সে তালিকাতেই আসে না।
+        slug না এলে (পুরনো caller) আগের zone-only আচরণ।  */
+    let list = rows;
+    const slugs = (itemsCsv ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (slugs.length) {
+      const sets = await cartTypeSets(this.prisma.db, slugs);
+      if (sets.length)
+        list = rows.filter((m) =>
+          methodOkForCart(m.type?.timing ?? null, m.type?.id ?? null, sets),
+        );
+    }
+
+    return list.map((m) => ({
       id: m.id,
       label: m.label,
       kind: m.kind,
@@ -1097,8 +1141,10 @@ export class CheckoutController {
 
   @Public()
   @Get('delivery/menu')
-  menu(@Query('zone') zone?: string) {
-    return this.svc.deliveryMenu(zone);
+  menu(@Query('zone') zone?: string, @Query('items') items?: string) {
+    /*  DEC-DLV-011 — `items` = cart-এর slug, comma-separated। দিলে menu-তে
+        শুধু সেই delivery আসে যেটা cart-এর সব product-এ চলে।  */
+    return this.svc.deliveryMenu(zone, items);
   }
 
   /** কোন slot-এ ওই দিনে কয়টা order — checkout-এর "ভরা" চিহ্নের সত্যিকারের গোনা */
