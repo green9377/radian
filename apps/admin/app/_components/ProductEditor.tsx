@@ -50,6 +50,7 @@ import {
   type ApiProduct,
   type ApiVariantAttribute,
   type AddOnBundle,
+  WEB_HOST,
 } from "../_data/api";
 
 /*
@@ -2218,7 +2219,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   >
                     <div className="flex items-stretch rounded-[11px] border border-lavender-deep overflow-hidden bg-white">
                       <span className="px-3.5 grid place-items-center text-[13px] text-body-soft bg-lavender/60 border-r border-lavender-deep whitespace-nowrap">
-                        radianbd.com/products/
+                        {WEB_HOST}/products/
                       </span>
                       <input
                         className="flex-1 min-w-0 h-[44px] px-3 text-[13.5px] outline-none"
@@ -5498,7 +5499,7 @@ No bundle products yet — add them on{" "}
                   {/* the actual search result, as it will appear */}
                   <div className="rounded-[12px] border border-lavender-deep bg-white p-4">
                     <div className="text-[12px] text-[#4d5156] truncate">
-                      radianbd.com › {slugV || "product-address"}
+                      {WEB_HOST} › {slugV || "product-address"}
                     </div>
                     <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#1a0dab" }}>
                       {(metaTitle || name || "Product name").slice(0, 60)}

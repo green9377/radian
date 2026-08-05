@@ -8,6 +8,7 @@ import CategoryStoryEditor from "./CategoryStoryEditor";
 import {
   categorySlug,
   uploadImage,
+  WEB_BASE,
   type ApiCategoryNode,
   type CategoryWrite,
 } from "../_data/api";
@@ -38,7 +39,8 @@ import {
   be written back to the database.
 */
 
-const WEB = "https://radianbd.com/category/";
+/* live domain follows the deploy — demo shows demo, radianbd.com shows itself */
+const WEB = `${WEB_BASE}/category/`;
 const real = (v?: string | null) => (v && !v.startsWith("blob:") ? v : null);
 const sendUrl = (v: string | null) => (v && !v.startsWith("blob:") ? v : undefined);
 

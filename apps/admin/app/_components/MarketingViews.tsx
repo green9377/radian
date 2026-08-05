@@ -20,6 +20,7 @@ import {
   type ApiAffiliateDetail, type ApiOccasions, type ApiOutreach, type ApiMarketingSetting,
   type ApiFinanceAccount, type CampaignPlatform, type CampaignStatus,
   type AttributionSource,
+  WEB_BASE,
 } from "../_data/api";
 
 /*
@@ -1250,7 +1251,7 @@ export function AffiliateDetail({ id }: { id: string }) {
 
   if (!a) return <div className={WRAP}><Flash ok="" err={err} /><Empty title="Loading…" /></div>;
 
-  const link = `https://radianbd.com/?ref=${a.code}`;
+  const link = `${WEB_BASE}/?ref=${a.code}`;
   const canPay = (a.availablePaisa ?? 0) > 0;
 
   return (

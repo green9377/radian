@@ -10,6 +10,7 @@ import {
   seoCoverage, seoPages, saveSeoPage, seoSettings, saveSeoSettings,
   seoRedirects, addSeoRedirect, bulkSeoRedirects, updateSeoRedirect, deleteSeoRedirect,
   ago,
+  WEB_HOST,
   type ApiSeoCoverage, type ApiSeoPage, type ApiSeoSetting, type ApiSeoRedirect,
   type SeoPageKind,
 } from "../_data/api";
@@ -128,7 +129,7 @@ function PageEditor({ row, onSaved }: { row: ApiSeoPage; onSaved: () => void }) 
             How it will look in Google
           </div>
           <div className="rounded-xl border border-[#e7dff0] bg-white p-4">
-            <div className="text-[12px] text-[#4d5156] truncate">radianbd.com › {row.slug}</div>
+            <div className="text-[12px] text-[#4d5156] truncate">{WEB_HOST} › {row.slug}</div>
             <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#1a0dab" }}>
               {(f.metaTitle || row.name).slice(0, TITLE_MAX)}
               {(f.metaTitle || row.name).length > TITLE_MAX && "…"}

@@ -46,6 +46,9 @@ const WEB_FALLBACK =
     : "http://localhost:3000";
 export const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || WEB_FALLBACK;
 export const storefrontUrl = (slug: string) => `${WEB_BASE}/products/${slug}`;
+/** display-only host of the live shop — never hardcode the domain in UI copy;
+    whichever domain is live (demo today, radianbd.com later) shows itself */
+export const WEB_HOST = WEB_BASE.replace(/^https?:\/\//, "");
 
 /** DEC-PRD-012 — এক product-এর একটা variant */
 export interface ApiProductVariant {
