@@ -138,10 +138,17 @@ export default function ProductCard({
             {product.name}
           </h3>
         </Link>
-        <div className="flex items-center gap-[6px] text-[12px] text-rosegold mt-[5px] mb-[10px] whitespace-nowrap">
-          {product.stars}
-          <span className="text-body-soft">· {product.meta}</span>
-        </div>
+        {(product.stars || product.meta) && (
+          <div className="flex items-center gap-[6px] text-[12px] text-rosegold mt-[5px] mb-[10px] whitespace-nowrap">
+            {product.stars}
+            {product.meta && (
+              <span className="text-body-soft">
+                {product.stars ? "· " : ""}
+                {product.meta}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-[6px] sm:gap-[10px]">
           <div className="font-display text-[17px] sm:text-[20px] font-semibold text-purple whitespace-nowrap">
             {formatTaka(product.pricePaisa)}
