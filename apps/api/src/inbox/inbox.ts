@@ -26,6 +26,7 @@ import { ensureSingleton } from '../common/singleton';
 import { Public } from '../auth/auth.guard';
 import { InboxAiTools } from './ai-tools';
 import { InboxAiAgent } from './ai-agent';
+import { InboxPresence } from './presence';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -88,7 +89,7 @@ interface SettingsDto {
   aiDefaultForNew?: boolean;
   aiProvider?: 'ANTHROPIC' | 'OPENAI';
   aiModel?: string;
-  staffGraceMin?: number;
+  staffGraceSec?: number;
   escalationAssigneeIds?: string[];
   supportOpenMin?: number;
   supportCloseMin?: number;
@@ -123,7 +124,7 @@ export class InboxService {
         aiDefaultForNew: dto.aiDefaultForNew,
         aiProvider: dto.aiProvider,
         aiModel: dto.aiModel,
-        staffGraceMin: dto.staffGraceMin,
+        staffGraceSec: dto.staffGraceSec,
         escalationAssigneeIds: dto.escalationAssigneeIds as Prisma.InputJsonValue | undefined,
         supportOpenMin: dto.supportOpenMin,
         supportCloseMin: dto.supportCloseMin,
@@ -497,15 +498,26 @@ export class ShopChatController {
 
 @Controller('inbox')
 export class InboxController {
-  constructor(private readonly svc: InboxService) {}
+  constructor(
+    private readonly svc: InboxService,
+    private readonly presence: InboxPresence,
+  ) {}
 
+  /*  Inbox পর্দা প্রতি ১০ সেকেন্ডে তালিকা টানে — সেই ডাকই staff-উপস্থিতির
+      প্রমাণ (DEC-INB-008 rev)। আলাদা heartbeat নেই, দরকারও নেই।  */
   @Get()
-  list(@Query('status') status?: string, @Query('search') search?: string) {
+  list(
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Req() req?: ActorRequest,
+  ) {
+    this.presence.touch(req?.actor?.id);
     return this.svc.list({ status, search });
   }
 
   @Get('badge')
-  badge() {
+  badge(@Req() req?: ActorRequest) {
+    this.presence.touch(req?.actor?.id);
     return this.svc.badge();
   }
 
@@ -520,7 +532,8 @@ export class InboxController {
   }
 
   @Get(':id')
-  detail(@Param('id') id: string) {
+  detail(@Param('id') id: string, @Req() req?: ActorRequest) {
+    this.presence.touch(req?.actor?.id);
     return this.svc.detail(id);
   }
 
@@ -551,7 +564,7 @@ export class InboxController {
 }
 
 @Module({
-  providers: [InboxService, InboxAiTools, InboxAiAgent],
+  providers: [InboxService, InboxAiTools, InboxAiAgent, InboxPresence],
   controllers: [ShopChatController, InboxController],
 })
 export class InboxModule {}

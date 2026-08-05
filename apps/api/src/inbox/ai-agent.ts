@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InboxAiTools, ToolProduct } from './ai-tools';
+import { InboxPresence } from './presence';
 import { AiMessage, AiToolDef, providerFor } from './ai-provider';
 
 /*
@@ -15,9 +16,9 @@ import { AiMessage, AiToolDef, providerFor } from './ai-provider';
 
   মালিকের ৫ আগস্টের তিন রায় এই ফাইলের মেরুদণ্ড:
 
-  DEC-INB-008 — staff reply AI-কে মারে না, শুধু অগ্রাধিকার নেয়। Staff-ছোঁয়া
-  thread-এ নতুন গ্রাহক-message এলে AI `staffGraceMin` মিনিট অপেক্ষা করে;
-  staff না এলে sweeper তাকে দিয়ে উত্তর দেওয়ায়। কেউ উত্তরহীন থাকে না।
+  DEC-INB-008 rev — উপস্থিতি-ভিত্তিক: staff Inbox-এ active থাকলে AI তাকে
+  `staffGraceSec` (৩০ সে) আগে সুযোগ দেয়; কেউ active না থাকলে AI সাথে সাথে
+  উত্তর দেয়। মালিক: "customer 1st sms-এ কখনোই ৩ মিনিট wait করার মানে নাই।"
 
   DEC-INB-009 — escalation-এ AI আগে চুপ: staff-কে খবর, জানালাটা তাদের।
   জানালা পেরোলে তখনই "একটু অপেক্ষা করুন — আমাদের একজন expert…" লাইনটা।
@@ -155,6 +156,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tools: InboxAiTools,
+    private readonly presence: InboxPresence,
   ) {}
 
   /*  DEC-INB-008/009-এর ঘড়ি: প্রতি মিনিটে একবার দেখা — কোন thread-এ গ্রাহক
@@ -170,10 +172,30 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     if (this.sweepTimer) clearInterval(this.sweepTimer);
   }
 
-  /** fire-and-forget — গ্রাহকের request এতে কখনো ভাঙে না */
+  /*  fire-and-forget — গ্রাহকের request এতে কখনো ভাঙে না।
+
+      DEC-INB-008 rev (মালিক, ৫ আগস্ট): "customer 1st sms-এ কখনোই ৩ মিনিট
+      wait করার মানে নেই।"
+        • কেউ Inbox-এ active নেই → AI **সাথে সাথে** উত্তর দেয়।
+        • Staff active → তাকে `staffGraceSec` (default ৩০ সে) আগে সুযোগ;
+          সে না লিখলে AI লেখে।  */
   async respond(conversationId: string): Promise<void> {
     try {
-      await this.respondInner(conversationId, { fromSweeper: false });
+      if (!this.presence.anyStaffActive()) {
+        await this.respondInner(conversationId);
+        return;
+      }
+      const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
+      const graceMs = Math.max(5, settings?.staffGraceSec ?? 30) * 1000;
+      setTimeout(() => {
+        void this.respondInner(conversationId).catch((e) =>
+          this.logger.warn(
+            `deferred AI reply failed ${conversationId}: ${e instanceof Error ? e.message : String(e)}`,
+          ),
+        );
+      }, graceMs);
+      /*  respondInner নিজেই দেখে শেষ message এখনো গ্রাহকের কিনা — staff এর
+          মধ্যে লিখে ফেললে সে চুপচাপ ফিরে যায়। তাই দেরি-পথটা নিরাপদ।  */
     } catch (e) {
       this.logger.warn(
         `AI reply failed for ${conversationId}: ${e instanceof Error ? e.message : String(e)}`,
@@ -183,11 +205,13 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
 
   /* ═══════════════ sweeper — কেউ উত্তরহীন থাকবে না ═══════════════ */
 
+  /*  Safety net — deploy/restart-এ হারানো setTimeout, escalation-এর অপেক্ষার
+      লাইন, যেকোনো ফাঁক গলে পড়া thread: প্রতি মিনিটে একবার ঝাঁট।  */
   private async sweep(): Promise<void> {
     const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
     if (!settings?.aiGloballyEnabled) return;
 
-    const graceMs = Math.max(1, settings.staffGraceMin) * 60_000;
+    const graceMs = Math.max(5, settings.staffGraceSec) * 1000;
     const cutoff = new Date(Date.now() - graceMs);
     const floor = new Date(Date.now() - 24 * 60 * 60 * 1000); // পুরনো কবর খোঁড়া নয়
 
@@ -204,7 +228,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
 
     for (const c of candidates) {
       try {
-        await this.respondInner(c.id, { fromSweeper: true });
+        await this.respondInner(c.id);
       } catch (e) {
         this.logger.warn(
           `sweep respond failed ${c.id}: ${e instanceof Error ? e.message : String(e)}`,
@@ -215,10 +239,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
 
   /* ═══════════════ মূল উত্তর-যন্ত্র ═══════════════ */
 
-  private async respondInner(
-    conversationId: string,
-    opts: { fromSweeper: boolean },
-  ): Promise<void> {
+  private async respondInner(conversationId: string): Promise<void> {
     const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
     if (!settings?.aiGloballyEnabled) return;
 
@@ -241,18 +262,14 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     if (!last || last.direction !== 'IN') return; // উত্তর হয়ে গেছে / দেওয়ার কিছু নেই
 
     const lang = detectLang(last.body);
-    const staffTouched = ordered.some((m) => m.authorType === 'STAFF');
     const lastStaffAt = [...ordered].reverse().find((m) => m.authorType === 'STAFF')?.createdAt;
     const escalatedUnanswered =
       convo.escalatedAt !== null &&
       (lastStaffAt === undefined || lastStaffAt < convo.escalatedAt);
 
-    /*  DEC-INB-008 — staff-ছোঁয়া thread-এ তাৎক্ষণিক পথ থেমে যায়;
-        জানালা পেরোলে sweeper-ই এখানে ফিরবে fromSweeper=true নিয়ে।  */
-    if (!opts.fromSweeper && (staffTouched || escalatedUnanswered)) return;
-
-    /*  DEC-INB-009 — escalation ঝুলে আছে, জানালাও পেরিয়েছে (sweeper-পথ):
-        উত্তরের বদলে অপেক্ষার লাইনটা, গ্রাহকের হরফে।  */
+    /*  DEC-INB-009 — escalation ঝুলে আছে: টাকার আলাপে AI ঢোকে না, শুধু
+        অপেক্ষার লাইনটা বলে (গ্রাহকের হরফে), একবার। staff উত্তর দিলে
+        escalatedUnanswered মিথ্যা হয়ে যায়, থread স্বাভাবিক ধারায় ফেরে।  */
     if (escalatedUnanswered) {
       await this.say(conversationId, WAIT_LINE[lang], {
         kind: 'wait_line', lang, escalatedAt: convo.escalatedAt,
@@ -263,9 +280,14 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     /* ── টাকার keyword gate — model-এর আগে (INB-RULE-001) ────────────── */
     const lastLower = last.body.toLowerCase();
     if (MONEY_WORDS.some((w) => lastLower.includes(w))) {
-      /*  DEC-INB-009: এখন চুপ — staff-কে খবর; জানালা পেরোলে sweeper
-          অপেক্ষার লাইনটা বলবে।  */
       await this.escalate(conversationId, EscalationReason.MONEY_TOPIC, settings);
+      /*  DEC-INB-009 + মালিকের ৩০-সেকেন্ড নীতি: staff active থাকলে চুপ —
+          জানালাটা তার; না থাকলে গ্রাহককে এক্ষুনি ভরসার লাইনটা।  */
+      if (!this.presence.anyStaffActive()) {
+        await this.say(conversationId, WAIT_LINE[lang], {
+          kind: 'wait_line', lang, gate: 'keyword',
+        });
+      }
       return;
     }
 

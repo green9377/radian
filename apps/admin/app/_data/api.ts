@@ -6660,7 +6660,7 @@ export interface ApiInboxSetting {
   aiDefaultForNew: boolean;
   aiProvider: "ANTHROPIC" | "OPENAI";
   aiModel: string;
-  staffGraceMin: number;
+  staffGraceSec: number;
   escalationAssigneeIds: string[];
   supportOpenMin: number;
   supportCloseMin: number;

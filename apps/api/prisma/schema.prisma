@@ -6563,9 +6563,10 @@ model InboxSetting {
   /// INB-RULE-006 — এত দিনের পুরনো RESOLVED thread নতুন করে খোলে না।
   reopenWindowDays Int @default(30)
 
-  /// DEC-INB-008 — staff-অগ্রাধিকারের জানালা (মিনিট)। Staff-ছোঁয়া thread-এ
-  /// নতুন গ্রাহক-message-এর পর এই ক'মিনিট AI অপেক্ষা করে; staff না এলে সে-ই।
-  staffGraceMin Int @default(3)
+  /// DEC-INB-008 rev (৫ আগস্ট) — উপস্থিতি-ভিত্তিক জানালা, সেকেন্ডে।
+  /// Staff inbox-এ ACTIVE থাকলে AI এই ক'সেকেন্ড তাকে আগে সুযোগ দেয়;
+  /// কেউ active না থাকলে AI সাথে সাথে উত্তর দেয় — গ্রাহক অপেক্ষা করে না।
+  staffGraceSec Int @default(30)
 
   webChatEnabled Boolean @default(true)
 
