@@ -225,7 +225,13 @@ export class OrdersService {
       /*  DEC-PRD-014 — variant থাকলে মজুদ তাদের ঘরে থাকে, product-এর
           ঘরে নয়। এটা না আনলে রঙে-রঙে stock রাখা product-এর প্রতিটা order
           "out of stock" বলে ফিরিয়ে দেওয়া হতো।  */
-      include: { variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } } },
+      include: {
+        variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
+        /*  ৫ আগস্ট — line-এর ছবি-snapshot। `bg` কলামটা প্রথম দিন থেকে ছিল,
+            কিন্তু কেউ কখনো লিখত না — admin আর রসিদে প্রতিটা order-ই তাই
+            বেগুনি placeholder দেখাত, ছবি upload করা থাকলেও।  */
+        images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const }, take: 1, select: { url: true } },
+      },
     });
     const pMap = new Map(products.map((p) => [p.id, p]));
     /* DEC-PDP-09 — before a single paisa is worked out. Refusing after the
@@ -914,8 +920,11 @@ export class OrdersService {
     if (dto.addLines?.length) {
       const products = await this.prisma.db.product.findMany({
         where: { id: { in: dto.addLines.map((l) => l.productId) } },
-        /*  DEC-PRD-014 — উপরের create-এর মতোই, একই কারণে।  */
-        include: { variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } } },
+        /*  DEC-PRD-014 — উপরের create-এর মতোই, একই কারণে। ছবি-snapshot-ও তাই। */
+        include: {
+          variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
+          images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const }, take: 1, select: { url: true } },
+        },
       });
       const pMap = new Map(products.map((p) => [p.id, p]));
       /* DEC-PDP-09 — the second door into an order. Gating `create` alone
@@ -1136,6 +1145,8 @@ export class OrdersService {
         discountValue: number;
         discountStartsAt?: Date | null;
         discountEndsAt?: Date | null;
+        /** প্রথম ছবিটা — line-এর `bg` snapshot-এর জন্য (৫ আগস্ট) */
+        images?: { url: string }[];
       }
     >,
   ): Prisma.OrderLineCreateWithoutOrderInput {
@@ -1149,6 +1160,10 @@ export class OrdersService {
     return {
       product: { connect: { id: p.id } },
       name: p.name,
+      /*  ছবি-snapshot — রসিদের বাকি সবকিছুর মতোই জমে যায়। মালিক পরে ছবি
+          বদলালে পুরনো order-এর ছবি বদলায় না (DEC-DLV-002-এর স্পিরিট)।
+          admin `background:`-এ সরাসরি বসায়, তাই CSS-রূপে রাখা হয়।  */
+      bg: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover` : undefined,
       sizeLabel: l.sizeLabel,
       bundleLabel: l.bundleLabel,
       addonLabels: l.addonLabels ?? [],

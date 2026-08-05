@@ -252,7 +252,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     badge: a.supportsMidnight ? "midnight" : a.zone === "dhaka" ? "express" : "courier",
     stars: "",
     meta: "",
-    bg: PLACEHOLDER[0],
+    /*  ৫ আগস্ট — আসল ছবি। এটা placeholder-এ আটকে ছিল বলে cart আর checkout
+        কখনোই product-এর ছবি দেখাত না, ছবি upload করা থাকলেও।  */
+    bg: a.images[0] ? `url(${a.images[0]}) center/cover` : PLACEHOLDER[0],
     best: false,
     exp: a.supportsExpress,
     sd: a.supportsSameDay,
