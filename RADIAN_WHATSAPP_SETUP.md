@@ -169,6 +169,46 @@ Meta-র নিয়ম: ব্যবসা আগ বাড়িয়ে ব
 
 ---
 
+## ৩ক. Template — সবগুলো, হুবহু
+
+> WhatsApp Manager → (WABA বাছুন) → Message templates → Create template।
+> নাম **হুবহু** মিলতে হবে — কোডে এই নামগুলোই বসানো/বসবে।
+> Language সবসময় **English** (`en`), **English (US) নয়**।
+
+### এখন কাজ করে (কোড তৈরি, শুধু approve দরকার)
+
+| নাম | Category | Body |
+|---|---|---|
+| `order_confirmation` | Utility | `Hi {{1}}, your Radian order {{2}} is confirmed. Total {{3}}. We will message you when it is out for delivery.` |
+| `order_out_for_delivery` | Utility | `Your Radian order {{1}} is out for delivery now.` |
+| `order_delivered` | Utility | `Your Radian order {{1}} has been delivered. Thank you for choosing Radian.` |
+
+### মালিকের নতুন চাহিদা, ৬ আগস্ট (কোড এখনো নেই — §৬খ দেখুন)
+
+| নাম | Category | Body | Button |
+|---|---|---|---|
+| `payment_failed` | **Utility** | `Hi {{1}}, we have saved your Radian order {{2}}, but the payment did not go through. Total {{3}}. You can complete it below, or call {{4}} and we will finish it for you.` | URL (dynamic): `https://radian.com.bd/pay/{{1}}` |
+| `checkout_abandoned` | **Marketing** ⚠️ | `Hi {{1}}, your Radian cart is still saved. Complete your order below, or call {{2}} and we will help you finish it.` | URL (dynamic): `https://radian.com.bd/cart/{{1}}` |
+| `order_confirmation_cod` | Utility | `Hi {{1}}, your Radian order {{2}} is received. Total {{3}}, payable on delivery. One of our team will call you shortly to confirm your order.` | — |
+
+**দুটো সতর্কতা:**
+
+⚠️ `checkout_abandoned` **Marketing** category — Meta-র নিজের নিয়ম, ইচ্ছেমতো
+Utility দেওয়া যায় না। মানে: দাম বেশি, আর **opt-out নিয়ম মানতে হবে**।
+Marketing module-এর Outreach খাতা আর opt-out তালিকার ভেতর দিয়ে যেতে হবে
+(MKT-D07/D18) — নাহলে একদিন opt-out করা গ্রাহকের কাছে promo চলে যাবে।
+
+⚠️ `payment_failed` আর `order_confirmation_cod` **Utility** থাকতে পারে,
+কারণ দুটোই গ্রাহকের নিজের শুরু করা একটা নির্দিষ্ট order নিয়ে কথা।
+
+### ভাষা — এখনো সিদ্ধান্ত হয়নি
+
+সবগুলো ইংরেজিতে লেখা, কারণ কোডে `en` বসানো। গ্রাহক বাংলাদেশের, তাই বাংলা
+বার্তা বেশি কাজ করার কথা। বাংলা চাইলে `bn`-এ **আলাদা করে approve** করাতে
+হবে আর কোডে ভাষা বদলাতে হবে — মালিকের সিদ্ধান্তের অপেক্ষায়।
+
+---
+
 ## ৪ক. নম্বরের সিদ্ধান্ত — **DEC-WA-001** (৬ আগস্ট ২০২৬)
 
 > **দোকানের নম্বর `+880 1519-779378` কখনো API-তে "সরানো" হবে না।
@@ -246,6 +286,45 @@ Signup → দোকানের নম্বর Coexistence-এ যুক্ত
 `adReferralSourceId`, `adReferralHeadline` রাখতে হবে (schema বদল), আর
 order তৈরি হলে সেটা Order-এ বয়ে নিতে হবে — নাহলে conversion আর order
 জোড়া লাগবে না। বিদ্যমান `marketing/tracking.service.ts`-এর সাথে মিলিয়ে।
+
+---
+
+## ৬খ. তিনটে নতুন বার্তা — মালিকের সিদ্ধান্ত ৬ আগস্ট
+
+> ⚠️ **template approve হওয়া মানেই বার্তা যাওয়া নয়।** নিচের তিনটে মুহূর্তে
+> বার্তা পাঠানোর কোনো কোড আজ নেই — এগুলো নতুন feature, schema সহ।
+
+### সিদ্ধান্ত (মালিক, চ্যাটে)
+
+| id | নিয়ম |
+|---|---|
+| DEC-WA-002 | **Payment fail** হলে বার্তা যাবে — **সাথে সাথে একবার, ২৪ ঘণ্টা পর আরেকবার**। ইতিমধ্যে টাকা এসে গেলে দ্বিতীয়টা যাবে না। |
+| DEC-WA-003 | বার্তায় **টাকা দেওয়ার লিংক আর ফোন নম্বর দুটোই** থাকবে — যিনি নিজে পারবেন তিনি লিংকে, যিনি পারবেন না তিনি ফোনে। |
+| DEC-WA-004 | **Checkout পর্যন্ত এসে ছেড়ে গেলে**ও বার্তা যাবে (Marketing category, opt-out মেনে) — **নিষ্ক্রিয়তার ১৫ মিনিট পর**। এর মধ্যে order হয়ে গেলে যাবেই না। |
+| DEC-WA-005 | **COD order**-এর নিশ্চিতকরণ বার্তা আলাদা — "আমাদের একজন প্রতিনিধি যোগাযোগ করে verify করবেন"। prepaid-এর বার্তা এখানে চলবে না। |
+| DEC-WA-006 | সব বার্তা **ইংরেজিতে** (`en`)। বাংলা এখন নয়। |
+| DEC-WA-007 | সময়মতো কাজ চালানোর যন্ত্র **API-র ভেতরেই** (`@nestjs/schedule`)। **Real-এ চালু, Demo-তে বন্ধ** — env দিয়ে। Demo-তে হাতে চালানোর বোতাম থাকবে। |
+
+**কেন ৩০ সেকেন্ড নয় (মালিক প্রথমে তাই চেয়েছিলেন, আলোচনার পর ১৫ মিনিট):**
+"ছেড়ে গেছে" আমরা জানি না, অনুমান করি। টাকা দিতে গেলে গ্রাহক প্রায় সবসময়ই
+পাতা ছাড়েন — bKash অ্যাপে যান, কার্ডের OTP দেখেন। ৩০ সেকেন্ডে বার্তা গেলে
+গ্রাহক PIN টাইপ করার সময় "আপনার cart রাখা আছে" পেতেন — দোকানটা গোলমেলে
+মনে হতো, আর Marketing template বলে প্রতিবার টাকাও কাটত।
+
+**কেন Demo-তে scheduler বন্ধ (DEC-WA-007):** ফ্রি Postgres-এ মাসিক
+compute-hour সীমা। নিয়মিত জেগে ওঠা query কোটা কয়েক দিনে শেষ করে দেয় —
+`/health` কেন DB ছোঁয় না, ঠিক সেই একই কারণ (CLAUDE.md §৫)।
+
+### যা বানাতে হবে
+
+| # | কাজ | কেন |
+|---|---|---|
+| ১ | **schema** — কোন order-এ কোন বার্তা কবে গেল | নাহলে একই লোকের কাছে বারবার যাবে, আর "গেল কি গেল না" কেউ বলতে পারবে না |
+| ২ | payment fail hook (SSLCommerz-এর fail/cancel callback-এ) | এখন ওখানে কিছুই হয় না |
+| ৩ | **scheduler** — `@nestjs/schedule`, Real-এ চালু · Demo-তে বন্ধ (DEC-WA-007) | cron ছাড়া "২৪ ঘণ্টা পর পাঠাও" বলে কিছু নেই |
+| ৪ | `/pay/{orderNo}` — storefront-এ টাকা দেওয়া শেষ করার পাতা | লিংকটা কোথাও তো নামবে |
+| ৫ | abandoned checkout ধরা — **নিষ্ক্রিয়তার ১৫ মিনিট** (DEC-WA-004) | order হয়ে গেলে বাতিল হতে হবে |
+| ৬ | COD আর prepaid-এর confirmation আলাদা করা | এখন একটাই template সবার জন্য যায় |
 
 ---
 
