@@ -2165,7 +2165,7 @@ model OrderMessage {
   attempt Int              @default(1)
   /// ⚠️ `NotifyChannel` নয় — ওটায় `OFF` আছে, যেটা supplier-কে জানানোর
   /// সেটিং। পাঠানো বার্তার সারিতে "মাধ্যম = OFF" লেখার কোনো মানে হয় না।
-  channel MessageChannel   @default(WHATSAPP)
+  channel OrderMessageChannel @default(WHATSAPP)
 
   status OrderMessageStatus @default(QUEUED)
   /// Meta-র নিজের message id — support-এ "পাঠিয়েছিলাম" প্রমাণ করার একমাত্র সুতো
@@ -2290,7 +2290,13 @@ enum CheckoutLeadStatus {
 
 /// বার্তা কোন পথে গেল। Email এখনো ব্যবহার হয় না, কিন্তু রসিদ email-এ পাঠানো
 /// দিনের কাজ — তখন enum বদলাতে migration লাগবে না।
-enum MessageChannel {
+///
+/// ⚠️ নাম `MessageChannel` নয়, যদিও সেটাই স্বাভাবিক নাম হতো। ওই নামে
+/// Marketing-এর `MessageLog`-এর নিজস্ব enum আগে থেকেই আছে (EMAIL · SMS,
+/// WhatsApp নেই)। ওটায় WHATSAPP যোগ করে ভাগাভাগি করা যেত, কিন্তু তাতে
+/// দুই module একটা enum-এর উপর আটকে যেত — একদিন Marketing-এর দরকারে
+/// মান যোগ হলে সেটা এখানেও এসে পড়ত। এক তথ্যের এক মালিক।
+enum OrderMessageChannel {
   WHATSAPP
   SMS
   EMAIL

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Module, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Module, Param, Post, Query } from '@nestjs/common';
 import { CheckoutLeadStatus } from '@prisma/client';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +21,6 @@ import { MessagingSweeper } from './messaging.sweeper';
 export class MessagingController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly leads: CheckoutLeadsService,
     private readonly orderMessages: OrderMessagesService,
     private readonly sweeper: MessagingSweeper,
     private readonly settings: MessagingSettingsService,
@@ -36,7 +35,7 @@ export class MessagingController {
   /** এক order নিয়ে কী কী পাঠানো হয়েছে — order পাতায় দেখানোর জন্য */
   @Get('order/:orderId')
   @Roles('OWNER', 'MANAGER', 'STAFF')
-  async forOrder(@Query('orderId') orderId: string) {
+  async forOrder(@Param('orderId') orderId: string) {
     return this.prisma.db.orderMessage.findMany({
       where: { orderId, deletedAt: null },
       orderBy: { createdAt: 'asc' },

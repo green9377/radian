@@ -15,14 +15,18 @@ CREATE TYPE "OrderMessageStatus" AS ENUM ('QUEUED', 'SENT', 'FAILED', 'SKIPPED')
 
 -- NotifyChannel পুনর্ব্যবহার করা হয়নি — ওতে 'OFF' আছে, যেটা supplier-কে
 -- জানানোর সেটিং। পাঠানো বার্তার সারিতে "মাধ্যম = OFF" অর্থহীন হতো।
-CREATE TYPE "MessageChannel" AS ENUM ('WHATSAPP', 'SMS', 'EMAIL');
+--
+-- ⚠️ নাম "MessageChannel" নয়: ওই নামে Marketing-এর MessageLog-এর enum
+-- আগে থেকেই আছে (EMAIL · SMS)। প্রথম চেষ্টায় ঠিক এই সংঘর্ষেই deploy
+-- ফেল করেছিল — P1012, "enum with that name already exists"।
+CREATE TYPE "OrderMessageChannel" AS ENUM ('WHATSAPP', 'SMS', 'EMAIL');
 
 CREATE TABLE "OrderMessage" (
   "id"                TEXT NOT NULL,
   "orderId"           TEXT NOT NULL,
   "kind"              "OrderMessageKind" NOT NULL,
   "attempt"           INTEGER NOT NULL DEFAULT 1,
-  "channel"           "MessageChannel" NOT NULL DEFAULT 'WHATSAPP',
+  "channel"           "OrderMessageChannel" NOT NULL DEFAULT 'WHATSAPP',
   "status"            "OrderMessageStatus" NOT NULL DEFAULT 'QUEUED',
   "providerMessageId" TEXT,
   "error"             TEXT,
