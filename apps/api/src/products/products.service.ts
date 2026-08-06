@@ -427,6 +427,7 @@ export class ProductsService {
     this.validateMoneyAndRules(dto);
     await this.validateRefs(dto);
     await this.ensureSlugFree(dto.slug);
+    await this.assertPublishReady(dto, null, null);
 
     const actorName = dto.actorName ?? 'Admin';
 
@@ -474,6 +475,7 @@ export class ProductsService {
     this.validateMoneyAndRules({ ...existing, ...dto } as CreateProductDto);
     await this.validateRefs(dto);
     if (dto.slug && dto.slug !== existing.slug) await this.ensureSlugFree(dto.slug);
+    await this.assertPublishReady(dto, existing, id);
 
     const actorName = dto.actorName ?? 'Admin';
 
@@ -703,6 +705,68 @@ export class ProductsService {
         if (hasPct && (dto.advancePercent! < 1 || dto.advancePercent! > 100))
           throw new BadRequestException('advancePercent must be 1..100');
       }
+    }
+  }
+
+  /*
+    DEC-PRD-032 — Publish-এর গেট। মালিক, ৬ আগস্ট ২০২৬:
+    "ami jodi product image na dei taw amr published hoy... ata biroktikor."
+
+    আগে `isPublished` ছিল শুধু একটা flag — সত্যি বলতে কিছুই আটকাত না, তাই
+    ছবি ছাড়া, দাম ০ রেখেও, কোনো delivery speed না টিকিয়েও একটা product
+    লাইভ চলে যেত (placeholder রঙিন বাক্স নিয়ে)। মালিক নিজে ঠিক করে দিলেন
+    publish আটকানোর ৪টা শর্ত — এখানে সেটাই lock করা হলো। Draft হিসেবে
+    save করতে এই মেথড কখনো বাধা দেয় না, শুধু `isPublished: true` হওয়ার
+    মুহূর্তেই যাচাই করে।
+  */
+  private async assertPublishReady(
+    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[] },
+    existing: {
+      isPublished?: boolean;
+      sellingPricePaisa?: number;
+      categoryId?: string;
+      supportsExpress?: boolean;
+      supportsSameDay?: boolean;
+      supportsMidnight?: boolean;
+    } | null,
+    productId: string | null,
+  ) {
+    const willPublish = dto.isPublished ?? existing?.isPublished ?? false;
+    if (!willPublish) return;
+
+    const price = dto.sellingPricePaisa ?? existing?.sellingPricePaisa ?? 0;
+    if (!(price > 0)) {
+      throw new BadRequestException('Publish করার আগে দাম (sellingPricePaisa) শূন্যের বেশি হতে হবে।');
+    }
+
+    const categoryId = dto.categoryId ?? existing?.categoryId;
+    if (!categoryId) {
+      throw new BadRequestException('Publish করার আগে category বাছতে হবে।');
+    }
+
+    const exp = dto.supportsExpress ?? existing?.supportsExpress ?? false;
+    const sd = dto.supportsSameDay ?? existing?.supportsSameDay ?? false;
+    const mn = dto.supportsMidnight ?? existing?.supportsMidnight ?? false;
+    if (!exp && !sd && !mn) {
+      throw new BadRequestException(
+        'Publish করার আগে অন্তত একটা delivery speed (Express / Same Day / Midnight) টিক করতে হবে।',
+      );
+    }
+
+    // `images` REPLACE-not-merge (see `replaceChildren`) — dto-তে থাকলে সেটাই
+    // চূড়ান্ত তালিকা, না থাকলে DB-তে যা আছে তা-ই টিকে থাকবে।
+    let imageCount: number;
+    if (dto.images !== undefined) {
+      imageCount = dto.images.length;
+    } else if (productId) {
+      imageCount = await this.prisma.db.productImage.count({
+        where: { productId, deletedAt: null },
+      });
+    } else {
+      imageCount = 0;
+    }
+    if (imageCount === 0) {
+      throw new BadRequestException('Publish করার আগে অন্তত একটা ছবি আপলোড করতে হবে।');
     }
   }
 

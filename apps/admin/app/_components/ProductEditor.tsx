@@ -689,11 +689,35 @@ function Where({
   );
 }
 
+/**
+ * DEC-PRD-032, ৬ আগস্ট — মালিক: "পুরা product upload page কোনটা mandatory
+ * আর কোনটা না তার কোনো sign নাই।" এই লাল তারা-টাই সেই sign — যে ৪টা
+ * শর্ত ছাড়া `assertPublishReady` (backend) publish আটকায়, ঠিক সেই
+ * field-গুলোর পাশেই বসে, যাতে save করার আগেই বোঝা যায়।
+ */
+function Req() {
+  return (
+    <span className="text-[#c0392b] font-bold ml-0.5" title="Publish করতে এই ঘরটা লাগবে">
+      *
+    </span>
+  );
+}
+
 /** a label with its "where does this show" chip beside it */
-function L({ children, chip }: { children: React.ReactNode; chip?: React.ReactNode }) {
+function L({
+  children,
+  chip,
+  required,
+}: {
+  children: React.ReactNode;
+  chip?: React.ReactNode;
+  /** DEC-PRD-032 — লাল তারা: এটা ফাঁকা থাকলে product publish হবে না */
+  required?: boolean;
+}) {
   return (
     <span className="inline-flex items-center gap-2 flex-wrap">
       {children}
+      {required && <Req />}
       {chip}
     </span>
   );
@@ -2059,6 +2083,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           </h1>
           <p className="text-body-soft text-[12.5px] m-0">
             {slug ? "Editing product" : "New product — fill in and publish"}
+            {"  "}
+            <span className="text-[#c0392b] font-bold">*</span>
+            <span className="text-body-soft"> = Publish করতে লাগবে</span>
           </p>
         </div>
         <button
@@ -2152,6 +2179,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   <Field
                     label={
                       <L
+                        required
                         chip={
                           <Where
                             kind="live"
@@ -2243,6 +2271,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   <Field
                     label={
                       <L
+                        required
                         chip={
                           <Where
                             kind="live"
@@ -2519,6 +2548,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   <Field
                     label={
                       <L
+                        required
                         chip={
                           <Where
                             kind="live"
@@ -3721,8 +3751,8 @@ No bundle products yet — add them on{" "}
             <>
               <Card
                 icon="photo"
-                title="Photos"
-                hint="Square photos, 1:1. Drag to reorder — the first is the main image."
+                title={<>Photos<Req /></>}
+                hint="Square photos, 1:1. Drag to reorder — the first is the main image. Publish করার আগে অন্তত একটা ছবি লাগবে।"
               >
                 {/*
                   ── THREE FAULTS FIXED HERE, 1 Aug 2026 ─────────────────────
@@ -3886,8 +3916,8 @@ No bundle products yet — add them on{" "}
             <>
               <Card
                 icon="truck"
-                title="Zone & delivery"
-                hint="Tick where it sells. Each zone keeps its own deliveries — set up in Delivery → Zones · types · slots."
+                title={<>Zone & delivery<Req /></>}
+                hint="Tick where it sells. Each zone keeps its own deliveries — set up in Delivery → Zones · types · slots. Publish করার আগে অন্তত একটা delivery speed (Express/Same Day/Midnight) টিক করা লাগবে।"
               >
                 {/*
                   DEC-DLV-011 (rev 2, মালিকের কথা হুবহু) — "inside dhaka ja
