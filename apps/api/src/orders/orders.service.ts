@@ -28,6 +28,8 @@ import { OffersService } from '../offers/offers.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
 import { CapacityService } from '../catalog/capacity';
 import { WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { OrderMessagesService } from '../messaging/order-messages.service';
+import { OrderMessageKind } from '@prisma/client';
 import {
   CreateOrderDto,
   EditOrderDto,
@@ -66,6 +68,11 @@ export class OrdersService {
     /*  রসিদের WhatsApp বার্তা (confirmation storefront পাঠায়; status এখানে)।
         সব call fail-soft — বার্তা সৌজন্য, order চুক্তি।  */
     private readonly whatsappCloud: WhatsAppCloudService,
+    /*  ⚠️ ৬ আগস্ট — বার্তা এখন সরাসরি পাঠানো হয় না, `OrderMessage` সারিতে
+        তোলা হয়। কারণ পাঠিয়ে ভুলে যাওয়ার বদলে লিখে রাখলে তবেই "গ্রাহক
+        জানতেন কি না" প্রশ্নের উত্তর থাকে, আর একই বার্তা দুবার যাওয়া
+        ডেটাবেজ নিজেই ঠেকাতে পারে (DEC-WA-002…005)।  */
+    private readonly orderMessages: OrderMessagesService,
   ) {}
 
   /**
@@ -543,7 +550,12 @@ export class OrdersService {
       include: FULL_INCLUDE,
     });
     await this.event(id, 'delivery', `Out for delivery`, actorName);
-    void this.whatsappCloud.orderOut({ senderPhone: updated.senderPhone, orderNo: updated.orderNo });
+    /*  ৬ আগস্ট: সরাসরি পাঠানো থেকে সারিতে তোলা। সারিটাই ইতিহাস — এখন
+        "গ্রাহক জানতেন কি না" প্রশ্নের উত্তর order পাতাতেই দেখা যায়।  */
+    void this.orderMessages
+      .queue(id, OrderMessageKind.ORDER_OUT_FOR_DELIVERY)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch(() => undefined);
     return this.shape(updated);
   }
 
@@ -638,7 +650,10 @@ export class OrdersService {
     await this.event(id, 'delivery', `Delivered`, actorName);
     if (outstanding > 0) await this.event(id, 'payment', `COD collected — ${outstanding} paisa`, actorName);
     await this.event(id, 'system', `Sales completed — salesCount +qty, Customer LTV +${o.totalPaisa} paisa`, actorName);
-    void this.whatsappCloud.orderDelivered({ senderPhone: o.senderPhone, orderNo: o.orderNo });
+    void this.orderMessages
+      .queue(id, OrderMessageKind.ORDER_DELIVERED)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch(() => undefined);
     return this.shape(updated);
   }
 

@@ -23,6 +23,9 @@ import { OrdersService } from '../orders/orders.service';
 import { ProductDetailModule, ProductDetailService } from './product-detail';
 import type { OrderLineInput } from '../orders/order.dto';
 import { WhatsAppCloudModule, WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { MessagingModule } from '../messaging/messaging.controller';
+import { OrderMessagesService } from '../messaging/order-messages.service';
+import { CheckoutLeadsService } from '../messaging/checkout-leads.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -108,6 +111,11 @@ export interface PlaceOrderIn extends QuoteIn {
 
   /** where the browser should be sent back to after the gateway */
   returnBaseUrl?: string;
+
+  /*  ⚠️ DEC-WA-004 — এই ব্রাউজারের অসমাপ্ত checkout-এর সারিটা কোনটা।
+      order হয়ে গেলে ওই সারিটা CONVERTED হয়, নাহলে ১৫ মিনিট পর সদ্য
+      order করা গ্রাহকের কাছেই "আপনার cart রাখা আছে" চলে যেত।  */
+  clientKey?: string;
 
   /** MKT-D02 — বিজ্ঞাপন-চিহ্ন, storefront-এর প্রথম দর্শনে ধরা */
   utmSource?: string;
@@ -255,6 +263,8 @@ export class CheckoutService {
     private readonly offers: OffersService,
     private readonly orders: OrdersService,
     private readonly whatsapp: WhatsAppCloudService,
+    private readonly orderMessages: OrderMessagesService,
+    private readonly leads: CheckoutLeadsService,
   ) {}
 
   /* ══════════════════ 1. price the cart ══════════════════ */
@@ -952,13 +962,24 @@ export class CheckoutService {
 
     /*  সাইটের প্রতিশ্রুতি — "confirmation on WhatsApp"। fail-soft: বার্তা
         সৌজন্য, order চুক্তি; WhatsApp-এর কোনো ব্যর্থতা checkout আটকায় না।
-        `void` — উত্তরের অপেক্ষাও নয়, গ্রাহক ততক্ষণে success page-এ।  */
-    void this.whatsapp.orderConfirmation({
-      senderPhone: order.senderPhone,
-      senderName: order.senderName,
-      orderNo: order.orderNo,
-      totalPaisa: order.totalPaisa,
-    });
+        `void` — উত্তরের অপেক্ষাও নয়, গ্রাহক ততক্ষণে success page-এ।
+
+        ⚠️ ৬ আগস্ট: সরাসরি পাঠানো থেকে সারিতে তোলা (DEC-WA-005)। কারণ দুটো —
+        (১) COD আর prepaid-এর বার্তা এক নয়; COD-তে "আমাদের একজন প্রতিনিধি
+            যোগাযোগ করে verify করবেন" বলতে হয়, কারণ টাকা এখনো আসেনি।
+        (২) পাঠিয়ে ভুলে যাওয়ার বদলে এখন `OrderMessage`-এ লেখা থাকে, তাই
+            "গ্রাহক confirmation পেয়েছিলেন কি না" প্রশ্নের উত্তর থাকে।  */
+    void this.orderMessages
+      .queueConfirmation(order.id, method === PaymentMethod.cod)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch((e) => this.log?.warn?.(`confirmation queue failed for ${order.orderNo}: ${e}`));
+
+    /*  এই ব্রাউজারের অসমাপ্ত checkout আর "ছেড়ে যাওয়া" নয় (DEC-WA-004)।
+        নাহলে ১৫ মিনিট পর সদ্য order করা গ্রাহকের কাছে "আপনার cart রাখা
+        আছে" চলে যেত।  */
+    void this.leads
+      .markConverted(dto.clientKey, order.id, order.senderPhone)
+      .catch(() => undefined);
 
     return {
       orderId: order.id,
@@ -1181,7 +1202,7 @@ export class CheckoutController {
 }
 
 @Module({
-  imports: [PrismaModule, ProductDetailModule, OffersModule, OrdersModule, WhatsAppCloudModule],
+  imports: [PrismaModule, ProductDetailModule, OffersModule, OrdersModule, WhatsAppCloudModule, MessagingModule],
   providers: [CheckoutService],
   controllers: [CheckoutController],
   exports: [CheckoutService],

@@ -24,6 +24,7 @@ import { ItemAttributesModule } from './catalog/item-attributes';
 import { ItemTypesModule } from './catalog/item-types';
 import { CustomersModule } from './customers/customers.module';
 import { OrdersModule } from './orders/orders.module';
+import { MessagingModule } from './messaging/messaging.controller';
 import { PurchasesModule } from './purchases/purchases.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -85,6 +86,7 @@ import { InboxModule } from './inbox/inbox';
     ItemTypesModule,
     CustomersModule,
     OrdersModule,
+    MessagingModule, // হারানো order ফেরানো + বার্তার হিসাব (DEC-WA-002…008)
     PurchasesModule,
     SuppliersModule,
     InventoryModule,

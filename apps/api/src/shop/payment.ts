@@ -21,6 +21,8 @@ import { OrdersModule } from '../orders/orders.module';
 import { OrdersService } from '../orders/orders.service';
 import { AdministrationModule } from '../administration/administration.module';
 import { IntegrationsService } from '../administration/integrations.service';
+import { MessagingModule } from '../messaging/messaging.controller';
+import { OrderMessagesService } from '../messaging/order-messages.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -85,6 +87,7 @@ export class SslCommerzService {
     private readonly prisma: PrismaService,
     private readonly orders: OrdersService,
     private readonly integrations: IntegrationsService,
+    private readonly orderMessages: OrderMessagesService,
   ) {}
 
   /*
@@ -326,6 +329,18 @@ export class SslCommerzService {
       where: { id: s.id },
       data: { status, raw: (raw ?? {}) as object },
     });
+
+    /*  DEC-WA-002 — টাকা আসেনি, কিন্তু order-টা তৈরি হয়ে গেছে এবং গ্রাহকের
+        মাথায় এখনো আছে। এটাই সবচেয়ে সহজে ফেরানো যায় এমন হারানো order।
+        সাথে সাথে একবার, আর কয়েক ঘণ্টা পর আরেকবার (সেটিং অনুযায়ী)।
+
+        ⚠️ fail-soft এবং `void` — payment callback SSLCommerz-এর দিকে দ্রুত
+        উত্তর দিতে বাধ্য। বার্তা পাঠাতে গিয়ে দেরি হলে gateway retry করবে,
+        আর তখন একই callback দুবার চলবে।  */
+    void this.orderMessages
+      .queuePaymentFailed(s.orderId)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch(() => undefined);
   }
 
   async orderNoFor(tranId?: string): Promise<string | null> {
@@ -435,7 +450,7 @@ export class PaymentController {
 }
 
 @Module({
-  imports: [PrismaModule, OrdersModule, AdministrationModule],
+  imports: [PrismaModule, OrdersModule, AdministrationModule, MessagingModule],
   providers: [SslCommerzService],
   controllers: [PaymentController],
   exports: [SslCommerzService],

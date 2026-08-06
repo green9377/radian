@@ -6,6 +6,7 @@ import { OffersModule } from '../offers/offers.module';
 import { FinanceModule } from '../finance/finance.module';
 import { CapacityModule } from '../catalog/capacity';
 import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
+import { MessagingModule } from '../messaging/messaging.controller';
 
 /**
  * DEC-INV-015 stage 1 (22 Jul night): preparing/cancel post SALE movements to
@@ -14,7 +15,7 @@ import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
  * flips (stage 3) and Product.stockQty becomes derived read-only.
  */
 @Module({
-  imports: [InventoryModule, OffersModule, FinanceModule, CapacityModule, WhatsAppCloudModule],
+  imports: [InventoryModule, OffersModule, FinanceModule, CapacityModule, WhatsAppCloudModule, MessagingModule],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService], // DeliveryModule drives transitions through this (DEC-DLV-006)

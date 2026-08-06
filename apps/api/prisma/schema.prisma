@@ -6387,6 +6387,38 @@ model MessagingSetting {
   testEmail String?
   testPhone String?
 
+  /* ---- হারানো order ফেরানো (DEC-WA-002…008, ৬ আগস্ট ২০২৬) ----
+     ⚠️ প্রতিটা সংখ্যা এখানে, কোডে নয়। "১৫ মিনিট" বা "২৪ ঘণ্টা" ব্যবসার
+     সিদ্ধান্ত — বদলাতে deploy লাগবে না (ঘরের নিয়ম ৭)। */
+
+  /// মাস্টার সুইচ। বন্ধ থাকলে নিচের কিছুই ঘটে না।
+  recoveryEnabled Boolean @default(false)
+
+  /// পেমেন্ট ফেল/বাতিল হলে বার্তা (DEC-WA-002)
+  paymentFailedEnabled Boolean @default(true)
+  /// প্রথমটার কত ঘণ্টা পর দ্বিতীয়বার। 0 = দ্বিতীয়বার নেই।
+  paymentFailedRetryHours Int @default(24)
+
+  /// checkout ছেড়ে যাওয়া (DEC-WA-004) — ⚠️ Meta-র চোখে MARKETING template,
+  /// তাই পাঠানোর আগে opt-out তালিকা মানা বাধ্যতামূলক
+  abandonedEnabled Boolean @default(true)
+  /// কত মিনিট চুপ থাকলে "ছেড়ে গেছে" ধরা হবে
+  abandonedAfterMinutes Int @default(15)
+
+  /// অসমাপ্ত checkout-এর তথ্য কতদিন রাখা হবে, তারপর নিজে থেকে মুছবে
+  /// (DEC-WA-008)। যাঁরা কিছু কেনেননি তাঁদের নম্বর — চিরকাল রাখার জিনিস নয়।
+  leadRetentionDays Int @default(90)
+
+  /// ⚠️ Demo-তে **বন্ধ**, Real-এ চালু (DEC-WA-007)। ফ্রি Postgres-এ নিয়মিত
+  /// জেগে ওঠা query মাসিক compute কোটা কয়েক দিনে শেষ করে দেয় — `/health`
+  /// কেন DB ছোঁয় না, ঠিক একই কারণ। Demo-তে হাতে চালানোর বোতাম আছে।
+  sweeperEnabled     Boolean @default(false)
+  sweeperEveryMinutes Int    @default(5)
+
+  /// বার্তায় গ্রাহক যে নম্বরে ফোন করবেন (DEC-WA-003)। খালি থাকলে
+  /// CompanySetting-এর নম্বর।
+  supportPhone String?
+
   updatedAt DateTime @updatedAt
 }
 

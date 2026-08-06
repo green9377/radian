@@ -33,14 +33,29 @@ import { IntegrationsService } from '../administration/integrations.service';
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-const GRAPH = 'https://graph.facebook.com/v20.0';
+/*  ⚠️ ৬ আগস্ট: v20 → v25। Meta প্রতিটা version মোটামুটি দুই বছর রাখে, আর
+    v20 (মে ২০২৪) মেয়াদের শেষ প্রান্তে — Meta-র নিজের console আজ v25
+    দেখাচ্ছে। একদিন হঠাৎ সব বার্তা বন্ধ হওয়ার চেয়ে এখন বদলানো সস্তা।  */
+const GRAPH = 'https://graph.facebook.com/v25.0';
 
 /** Meta console-এ এই নামে template approve করাতে হবে (ভাষা: en) */
-const TPL = {
+export const TPL = {
   confirm: process.env.WA_TPL_ORDER_CONFIRM || 'order_confirmation',
+  confirmCod: process.env.WA_TPL_ORDER_CONFIRM_COD || 'order_confirmation_cod',
   out: process.env.WA_TPL_ORDER_OUT || 'order_out_for_delivery',
   delivered: process.env.WA_TPL_ORDER_DELIVERED || 'order_delivered',
+  paymentFailed: process.env.WA_TPL_PAYMENT_FAILED || 'payment_failed',
+  abandoned: process.env.WA_TPL_CHECKOUT_ABANDONED || 'checkout_abandoned',
 };
+
+/** পাঠানোর ফল — ok/না ছাড়াও কেন, আর Meta-র নিজের message id */
+export interface SendResult {
+  ok: boolean;
+  /** চাবিই বসানো নেই — ব্যর্থতা নয়, feature বন্ধ */
+  configured: boolean;
+  messageId?: string;
+  error?: string;
+}
 
 @Injectable()
 export class WhatsAppCloudService {
@@ -71,11 +86,19 @@ export class WhatsAppCloudService {
     return null;
   }
 
-  private async send(to: string, payload: Record<string, unknown>): Promise<boolean> {
+  /*  ⚠️ ৬ আগস্ট — আগে শুধু true/false ফিরত। ফলে বার্তা পাঠিয়ে ভুলে যাওয়া
+      হতো: "গ্রাহক confirmation পেয়েছিলেন কি না" প্রশ্নের উত্তর কোথাও ছিল
+      না, আর ব্যর্থ হলে **কেন** ব্যর্থ সেটাও শুধু log-এ মিলিয়ে যেত।
+      এখন সবটা ফেরে, আর `OrderMessage` সারিতে জমা হয় — support-এ "আমরা
+      পাঠিয়েছিলাম" বলার একমাত্র প্রমাণ Meta-র নিজের message id। */
+  async sendRaw(
+    to: string,
+    payload: Record<string, unknown>,
+  ): Promise<SendResult> {
     const c = await this.creds();
-    if (!c) return false; // চাবি নেই = feature বন্ধ, error নয়
+    if (!c) return { ok: false, configured: false, error: 'WhatsApp keys not set' };
     const msisdn = this.msisdn(to);
-    if (!msisdn) return false;
+    if (!msisdn) return { ok: false, configured: true, error: `unusable phone: ${to}` };
 
     try {
       const res = await fetch(`${GRAPH}/${c.phoneId}/messages`, {
@@ -86,34 +109,58 @@ export class WhatsAppCloudService {
         },
         body: JSON.stringify({ messaging_product: 'whatsapp', to: msisdn, ...payload }),
       });
+      const body = await res.text();
       if (!res.ok) {
-        const body = await res.text();
         this.log.warn(`send failed (${res.status}) to ${msisdn.slice(0, 6)}…: ${body.slice(0, 300)}`);
-        return false;
+        return { ok: false, configured: true, error: `${res.status}: ${body.slice(0, 300)}` };
       }
-      return true;
+      let messageId: string | undefined;
+      try {
+        messageId = (JSON.parse(body) as { messages?: { id?: string }[] })?.messages?.[0]?.id;
+      } catch {
+        /* Meta 200 দিয়েছে কিন্তু JSON পড়া গেল না — বার্তা গেছে, id নেই */
+      }
+      return { ok: true, configured: true, messageId };
     } catch (e) {
-      this.log.warn(`send error: ${e instanceof Error ? e.message : e}`);
-      return false;
+      const error = e instanceof Error ? e.message : String(e);
+      this.log.warn(`send error: ${error}`);
+      return { ok: false, configured: true, error };
     }
   }
 
-  private template(name: string, params: string[], lang = 'en') {
+  /** পুরনো call site-গুলোর জন্য — true/false-ই যথেষ্ট যেখানে */
+  private async send(to: string, payload: Record<string, unknown>): Promise<boolean> {
+    return (await this.sendRaw(to, payload)).ok;
+  }
+
+  /**
+   * @param urlSuffix থাকলে template-এর প্রথম URL বোতামে বসে। Meta-র নিয়মে
+   *   বোতামের ঠিকানার শুধু **শেষ টুকরোটা** পাঠানো যায় (template-এ লেখা
+   *   `https://radian.com.bd/pay/{{1}}`-এর `{{1}}`) — গোটা ঠিকানা নয়।
+   *   তাই এখানে order নম্বরটুকুই যায়।
+   */
+  template(name: string, params: string[], lang = 'en', urlSuffix?: string) {
+    const components: Record<string, unknown>[] = [];
+    if (params.length) {
+      components.push({
+        type: 'body',
+        parameters: params.map((text) => ({ type: 'text', text })),
+      });
+    }
+    if (urlSuffix) {
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: '0',
+        parameters: [{ type: 'text', text: urlSuffix }],
+      });
+    }
     return {
       type: 'template',
       template: {
         name,
         language: { code: lang },
-        ...(params.length
-          ? {
-              components: [
-                {
-                  type: 'body',
-                  parameters: params.map((text) => ({ type: 'text', text })),
-                },
-              ],
-            }
-          : {}),
+        ...(components.length ? { components } : {}),
       },
     };
   }
