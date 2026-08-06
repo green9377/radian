@@ -413,6 +413,13 @@ const GROUPS: Group[] = [
             match: (p) => p.startsWith("/marketing/messaging"),
           },
           {
+            // DEC-WA-002…008 — পেমেন্ট ফেল আর অসমাপ্ত checkout। Marketing-এ
+            // রাখা হলো কারণ এটা ফেরানোর কাজ, বিক্রির হিসাব নয় — আর
+            // checkout_abandoned template Meta-র চোখে Marketing।
+            label: "Recover lost orders", href: "/marketing/recovery",
+            match: (p) => p.startsWith("/marketing/recovery"),
+          },
+          {
             // MKT-D16 — a customer brings a friend. Points one way, a discount
             // the other, and the one points ledger Loyalty now shares.
             label: "Referral", href: "/marketing/referral",

@@ -6734,3 +6734,68 @@ export const getInboxSettings = () => j<ApiInboxSetting>("/inbox/settings");
 
 export const updateInboxSettings = (dto: Partial<ApiInboxSetting>) =>
   j<ApiInboxSetting>("/inbox/settings", { method: "PATCH", body: JSON.stringify(dto) });
+
+/* ─────────── হারানো order ফেরানো · DEC-WA-002…008 ───────────
+   বার্তার হিসাব, অসমাপ্ত checkout, আর নিয়মগুলো। বিস্তারিত
+   RADIAN_WHATSAPP_SETUP.md-এ। */
+
+export interface ApiRecoverySettings {
+  recoveryEnabled: boolean;
+  paymentFailedEnabled: boolean;
+  paymentFailedRetryHours: number;
+  abandonedEnabled: boolean;
+  abandonedAfterMinutes: number;
+  leadRetentionDays: number;
+  sweeperEnabled: boolean;
+  sweeperEveryMinutes: number;
+  supportPhone: string | null;
+}
+
+export interface ApiCheckoutLead {
+  id: string;
+  clientKey: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  draft: Record<string, unknown> | null;
+  stage: "CART" | "DETAILS" | "DELIVERY" | "PAYMENT";
+  cart: { name?: string; slug?: string; qty?: number; size?: string; variant?: string }[] | null;
+  itemCount: number;
+  totalPaisa: number;
+  lastSeenAt: string;
+  orderId: string | null;
+  status: "OPEN" | "CONVERTED" | "MESSAGED" | "SKIPPED";
+  messageSentAt: string | null;
+  messageError: string | null;
+  skipReason: string | null;
+  createdAt: string;
+}
+
+export interface ApiOrderMessage {
+  id: string;
+  orderId: string;
+  kind: string;
+  attempt: number;
+  status: "QUEUED" | "SENT" | "FAILED" | "SKIPPED";
+  providerMessageId: string | null;
+  error: string | null;
+  templateName: string | null;
+  dueAt: string;
+  sentAt: string | null;
+}
+
+export const getRecoverySettings = () =>
+  j<ApiRecoverySettings>("/messaging/settings");
+
+export const saveRecoverySettings = (b: Partial<ApiRecoverySettings>) =>
+  j<ApiRecoverySettings>("/messaging/settings", { method: "POST", body: JSON.stringify(b) });
+
+export const listCheckoutLeads = (status?: string) =>
+  j<ApiCheckoutLead[]>(`/messaging/leads${status ? `?status=${status}` : ""}`);
+
+export const orderMessagesFor = (orderId: string) =>
+  j<ApiOrderMessage[]>(`/messaging/order/${orderId}`);
+
+/** Demo-তে sweeper বন্ধ (DEC-WA-007), তাই যাচাই করার একমাত্র উপায় এটাই */
+export const runRecoverySweep = () =>
+  j<Record<string, unknown>>("/messaging/sweep", { method: "POST" });

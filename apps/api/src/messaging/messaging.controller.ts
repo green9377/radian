@@ -32,6 +32,44 @@ export class MessagingController {
     return this.settings.get();
   }
 
+  /**
+   * ⚠️ শুধু OWNER। এই পর্দার একটা সংখ্যা বদলালে আসল গ্রাহকের কাছে বার্তা
+   * যাওয়া শুরু বা বন্ধ হয়ে যায় — আর প্রতিটা বার্তায় টাকা কাটে।
+   */
+  @Post('settings')
+  @Roles('OWNER')
+  async saveSettings(@Body() dto: Record<string, unknown>) {
+    const num = (v: unknown, min: number, max: number, fallback: number) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+    };
+    const cur = await this.settings.get();
+    const data = {
+      recoveryEnabled: Boolean(dto.recoveryEnabled),
+      paymentFailedEnabled: Boolean(dto.paymentFailedEnabled),
+      /*  ০ = দ্বিতীয়বার নেই। উপরের সীমা ৭২ ঘণ্টা — তিন দিন পর "আপনার
+          পেমেন্ট হয়নি" পাওয়া গ্রাহকের কাছে দোকানটাকে অগোছালো দেখায়।  */
+      paymentFailedRetryHours: num(dto.paymentFailedRetryHours, 0, 72, cur.paymentFailedRetryHours),
+      abandonedEnabled: Boolean(dto.abandonedEnabled),
+      /*  সর্বনিম্ন ৫ মিনিট। এর কম দিলে টাকা দেওয়ার মাঝপথে থাকা গ্রাহকের
+          কাছেই "আপনার cart রাখা আছে" চলে যেত — bKash/কার্ডের OTP-তেই তার
+          বেশি সময় লাগে (DEC-WA-004-এর আলোচনা)।  */
+      abandonedAfterMinutes: num(dto.abandonedAfterMinutes, 5, 1440, cur.abandonedAfterMinutes),
+      /*  সর্বনিম্ন ১ দিন, সর্বোচ্চ ৩৬৫। যাঁরা কিছু কেনেননি তাঁদের নম্বর
+          অনির্দিষ্টকাল রাখা সম্পদ নয়, দায় (DEC-WA-008)।  */
+      leadRetentionDays: num(dto.leadRetentionDays, 1, 365, cur.leadRetentionDays),
+      sweeperEnabled: Boolean(dto.sweeperEnabled),
+      sweeperEveryMinutes: num(dto.sweeperEveryMinutes, 1, 120, cur.sweeperEveryMinutes),
+      supportPhone: String(dto.supportPhone ?? '').trim() || null,
+    };
+    await this.prisma.db.messagingSetting.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton', ...data },
+      update: data,
+    });
+    return this.settings.get();
+  }
+
   /** এক order নিয়ে কী কী পাঠানো হয়েছে — order পাতায় দেখানোর জন্য */
   @Get('order/:orderId')
   @Roles('OWNER', 'MANAGER', 'STAFF')
