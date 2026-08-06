@@ -136,7 +136,7 @@ export class WhatsAppCloudService {
   /**
    * @param urlSuffix থাকলে template-এর প্রথম URL বোতামে বসে। Meta-র নিয়মে
    *   বোতামের ঠিকানার শুধু **শেষ টুকরোটা** পাঠানো যায় (template-এ লেখা
-   *   `https://radian.com.bd/pay/{{1}}`-এর `{{1}}`) — গোটা ঠিকানা নয়।
+   *   `https://radianbd.com/pay/{{1}}`-এর `{{1}}`) — গোটা ঠিকানা নয়।
    *   তাই এখানে order নম্বরটুকুই যায়।
    */
   template(name: string, params: string[], lang = 'en', urlSuffix?: string) {
@@ -181,14 +181,14 @@ export class WhatsAppCloudService {
     );
   }
 
-  /** out for delivery — {{1}} order নম্বর */
-  orderOut(o: { senderPhone: string; orderNo: string }) {
-    return this.send(o.senderPhone, this.template(TPL.out, [o.orderNo]));
+  /** out for delivery — {{1}} নাম · {{2}} order নম্বর */
+  orderOut(o: { senderPhone: string; senderName: string; orderNo: string }) {
+    return this.send(o.senderPhone, this.template(TPL.out, [o.senderName, o.orderNo]));
   }
 
-  /** delivered — {{1}} order নম্বর */
-  orderDelivered(o: { senderPhone: string; orderNo: string }) {
-    return this.send(o.senderPhone, this.template(TPL.delivered, [o.orderNo]));
+  /** delivered — {{1}} নাম · {{2}} order নম্বর */
+  orderDelivered(o: { senderPhone: string; senderName: string; orderNo: string }) {
+    return this.send(o.senderPhone, this.template(TPL.delivered, [o.senderName, o.orderNo]));
   }
 }
 

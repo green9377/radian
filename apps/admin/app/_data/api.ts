@@ -6759,7 +6759,12 @@ export interface ApiCheckoutLead {
   email: string | null;
   draft: Record<string, unknown> | null;
   stage: "CART" | "DETAILS" | "DELIVERY" | "PAYMENT";
-  cart: { name?: string; slug?: string; qty?: number; size?: string; variant?: string }[] | null;
+  /*  দুই রকম ছবি: `summary` মানুষের পড়ার জন্য (staff ফোন করবে),
+      `items` cart ফিরিয়ে দেওয়ার জন্য (`/cart/{id}` পাতা)।  */
+  cart: {
+    items?: unknown[];
+    summary?: { name?: string; slug?: string; qty?: number; size?: string; variant?: string }[];
+  } | null;
   itemCount: number;
   totalPaisa: number;
   lastSeenAt: string;

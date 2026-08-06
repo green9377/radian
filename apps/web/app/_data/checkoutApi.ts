@@ -367,6 +367,34 @@ export async function fetchAmountDue(orderNo: string): Promise<AmountDue | null>
 export const createPaymentSessionByNo = (orderNo: string) =>
   post<PaymentSession>("/shop/payment/session-by-no", { orderNo });
 
+/* ── `/cart/{leadId}` — abandoned বার্তার "Return to cart" বোতাম (DEC-WA-004) ──
+   ⚠️ server ব্যক্তিগত কিছু ফেরত পাঠায় না — নাম, ফোন, ঠিকানা কিছুই নয়।
+   শুধু কী রেখে গিয়েছিলেন। */
+
+export interface SavedCart {
+  found: boolean;
+  cart?: {
+    items?: unknown[];
+    summary?: { name?: string; slug?: string; qty?: number; size?: string; variant?: string }[];
+  } | null;
+  itemCount?: number;
+  totalPaisa: number;
+  alreadyOrdered?: boolean;
+}
+
+export async function fetchSavedCart(leadId: string): Promise<SavedCart | null> {
+  try {
+    const res = await fetch(
+      `${baseFor()}/shop/checkout-lead/${encodeURIComponent(leadId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as SavedCart;
+  } catch {
+    return null;
+  }
+}
+
 /** ওই দিনে কোন slot-এ কয়টা order — "Available/Full" এর সত্যিকারের গোনা */
 export async function fetchSlotLoad(date: string): Promise<Record<string, number> | null> {
   try {

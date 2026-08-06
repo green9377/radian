@@ -148,6 +148,10 @@ interface CartStore {
   restore: () => void;
   clearRemoved: () => void;
   clear: () => void;
+  /*  DEC-WA-004 — `/cart/{leadId}` পাতা রেখে যাওয়া basket ফিরিয়ে দেয়।
+      ⚠️ এটা `add` নয়, প্রতিস্থাপন — নাহলে পুরনো লিংকে দুবার ঢুকলে সব
+      জিনিস দুবার হয়ে যেত। পাতাটা আগে জিজ্ঞেস করে, তারপর ডাকে।  */
+  replaceAll: (items: CartItem[]) => void;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -221,6 +225,8 @@ export const useCartStore = create<CartStore>()(
         set({ couponCode: code ? code.trim().toUpperCase() : null }),
 
       clear: () => set({ items: [], lastRemoved: null, couponCode: null }),
+
+      replaceAll: (items) => set({ items, lastRemoved: null }),
     }),
     {
       name: "radian-cart",

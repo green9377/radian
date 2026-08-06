@@ -82,14 +82,8 @@ Meta-র নিয়ম: ব্যবসা আগ বাড়িয়ে ব
 হতেই হয়। সাধারণ লেখা কেবল গ্রাহকের বার্তার ২৪ ঘণ্টার ভেতরে চলে।
 
 **WhatsApp Manager → Message templates → Create template।**
-নিচের **তিনটে হুবহু** বানাতে হবে — কোডে এই নামগুলোই বসানো আছে
-(`apps/api/src/common/whatsapp-cloud.ts`):
-
-| নাম (হুবহু) | Category | Language | Body |
-|---|---|---|---|
-| `order_confirmation` | **Utility** | **English (en)** | `Hi {{1}}, your Radian order {{2}} is confirmed. Total {{3}}. We will message you when it is out for delivery.` |
-| `order_out_for_delivery` | **Utility** | **English (en)** | `Your Radian order {{1}} is out for delivery now.` |
-| `order_delivered` | **Utility** | **English (en)** | `Your Radian order {{1}} has been delivered. Thank you for choosing Radian.` |
+ছয়টাই **§৩ক**-তে হুবহু লেখা আছে — নাম, category, body, button। কোডে ওই
+নামগুলোই বসানো (`apps/api/src/common/whatsapp-cloud.ts`)।
 
 > ⚠️ **Language অবশ্যই `English` — `English (US)` নয়।** কোড `en` পাঠায়;
 > `en_US`-এ approve করালে Meta "template not found" দেবে, আর কারণটা
@@ -175,21 +169,30 @@ Meta-র নিয়ম: ব্যবসা আগ বাড়িয়ে ব
 > নাম **হুবহু** মিলতে হবে — কোডে এই নামগুলোই বসানো/বসবে।
 > Language সবসময় **English** (`en`), **English (US) নয়**।
 
-### এখন কাজ করে (কোড তৈরি, শুধু approve দরকার)
+### ছয়টা template — হুবহু (মালিকের অনুমোদিত লেখা, ৬ আগস্ট)
 
-| নাম | Category | Body |
-|---|---|---|
-| `order_confirmation` | Utility | `Hi {{1}}, your Radian order {{2}} is confirmed. Total {{3}}. We will message you when it is out for delivery.` |
-| `order_out_for_delivery` | Utility | `Your Radian order {{1}} is out for delivery now.` |
-| `order_delivered` | Utility | `Your Radian order {{1}} has been delivered. Thank you for choosing Radian.` |
+⚠️ **প্রতিটায় `{{1}}` = গ্রাহকের নাম, `{{2}}` = order নম্বর** — এক ক্রম।
+Meta-র নিয়মে লেখায় `{{1}}` অবশ্যই `{{2}}`-এর আগে আসতে হবে, আর template-ভেদে
+ক্রম বদলালে একদিন কারও কাছে নামের জায়গায় order নম্বর চলে যেত।
 
-### মালিকের নতুন চাহিদা, ৬ আগস্ট (কোড এখনো নেই — §৬খ দেখুন)
+⚠️ **"Radian" শব্দটা লেখায় নেই** — WhatsApp-এ বার্তার উপরে ব্যবসার নাম
+এমনিতেই দেখায়। প্রতি লাইনে নাম বসানো বিজ্ঞাপনের মতো শোনায়, দোকানের মতো নয়
+(মালিকের নির্দেশ)।
+
+⚠️ **উষ্ণ, কিন্তু বেশি নয়।** খুব আবেগী লেখা Meta-কে Utility থেকে Marketing-এ
+ফেলে দেয় — তখন দাম বাড়ে আর opt-out নিয়মে আটকায়।
 
 | নাম | Category | Body | Button |
 |---|---|---|---|
-| `payment_failed` | **Utility** | `Hi {{1}}, we have saved your Radian order {{2}}, but the payment did not go through. Total {{3}}. You can complete it below, or call {{4}} and we will finish it for you.` | URL (dynamic): `https://radian.com.bd/pay/{{1}}` |
-| `checkout_abandoned` | **Marketing** ⚠️ | `Hi {{1}}, your Radian cart is still saved. Complete your order below, or call {{2}} and we will help you finish it.` | URL (dynamic): `https://radian.com.bd/cart/{{1}}` |
-| `order_confirmation_cod` | Utility | `Hi {{1}}, your Radian order {{2}} is received. Total {{3}}, payable on delivery. One of our team will call you shortly to confirm your order.` | — |
+| `order_confirmation` | Utility | `Thank you, {{1}}. Your order {{2}} is confirmed and we have started putting it together by hand. Total {{3}}. We will message you the moment it leaves our shop.` | — |
+| `order_confirmation_cod` | Utility | `Thank you, {{1}}. We have received your order {{2}} — {{3}}, payable when it arrives. One of our team will call you shortly to confirm the details.` | — |
+| `order_out_for_delivery` | Utility | `Good news, {{1}} — order {{2}} has just left our shop and is on its way.` | — |
+| `order_delivered` | Utility | `{{1}}, your order {{2}} has been delivered. We hope it brought a smile. Thank you for trusting us with it.` | — |
+| `payment_failed` | Utility | `{{1}}, we are holding your order {{2}} — the payment did not come through. {{3}} is still due. You can finish it below, or call {{4}} and we will take care of it for you.` | URL (dynamic): `https://radianbd.com/pay/{{1}}` |
+| `checkout_abandoned` | **Marketing** ⚠️ | `{{1}}, what you chose is still waiting in your basket. Pick up where you left off below, or call {{2}} and we will help you finish it.` | URL (dynamic): `https://radianbd.com/cart/{{1}}` |
+
+Language: **English** (`en`) — `English (US)` নয় (DEC-WA-006)।
+Domain: **radianbd.com** (মালিক, ৬ আগস্ট — আগে ভুল করে `radian.com.bd` লেখা ছিল)।
 
 **দুটো সতর্কতা:**
 

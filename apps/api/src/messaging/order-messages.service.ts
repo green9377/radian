@@ -204,13 +204,17 @@ export class OrderMessagesService {
         return this.wa.template(TPL.confirm, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
       case OrderMessageKind.ORDER_CONFIRMATION_COD:
         return this.wa.template(TPL.confirmCod, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
+      /*  ⚠️ চারটেতেই {{1}} = নাম, {{2}} = order নম্বর — এক ক্রম।
+          Meta-র নিয়মে লেখায় {{1}} অবশ্যই {{2}}-এর আগে আসতে হবে, আর
+          template-ভেদে ক্রম বদলালে একদিন কারও কাছে নামের জায়গায় order
+          নম্বর চলে যেত।  */
       case OrderMessageKind.ORDER_OUT_FOR_DELIVERY:
-        return this.wa.template(TPL.out, [o.orderNo]);
+        return this.wa.template(TPL.out, [o.senderName, o.orderNo]);
       case OrderMessageKind.ORDER_DELIVERED:
-        return this.wa.template(TPL.delivered, [o.orderNo]);
+        return this.wa.template(TPL.delivered, [o.senderName, o.orderNo]);
       case OrderMessageKind.PAYMENT_FAILED:
         /*  বোতামে গোটা ঠিকানা নয়, শুধু শেষ টুকরো — Meta-র নিয়ম। template-এ
-            লেখা থাকে `https://radian.com.bd/pay/{{1}}`, আমরা দিই order নম্বর।  */
+            লেখা থাকে `https://radianbd.com/pay/{{1}}`, আমরা দিই order নম্বর।  */
         return this.wa.template(
           TPL.paymentFailed,
           [o.senderName, o.orderNo, taka(o.totalPaisa), supportPhone],

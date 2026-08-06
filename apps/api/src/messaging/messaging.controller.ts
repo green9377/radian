@@ -137,6 +137,24 @@ export class CheckoutLeadController {
   ping(@Body() b: LeadPing) {
     return this.leads.ping(b ?? ({} as LeadPing));
   }
+
+  /**
+   * `/cart/{id}` — abandoned বার্তার "Return to cart" বোতামটা এখানে নামে
+   * (DEC-WA-004)। যা রেখে গিয়েছিলেন তা ফিরিয়ে দেয়।
+   *
+   * ⚠️ ফোন নম্বর চাওয়া হয় না, ঠিক `/pay/{orderNo}`-এর মতো কারণেই: এটা
+   * ফিরিয়ে আনার পথ, প্রতিটা বাড়তি ঘরে কিছু মানুষ ঝরে যায়।
+   *
+   * ⚠️ তাই ব্যক্তিগত কিছু ফেরে না — নাম, ঠিকানা, ফোন কিছুই নয়। শুধু
+   * কী রেখে গিয়েছিলেন। লিংকটা WhatsApp-এ যায়, আর WhatsApp-এর বার্তা
+   * ভুল হাতেও পড়তে পারে।
+   */
+  @Public()
+  @Get('checkout-lead/:id')
+  async savedCart(@Param('id') id: string) {
+    const l = await this.leads.savedCart(id);
+    return l ?? { found: false };
+  }
 }
 
 @Module({

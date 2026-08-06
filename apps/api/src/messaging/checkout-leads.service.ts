@@ -119,6 +119,33 @@ export class CheckoutLeadsService {
     }
   }
 
+  /**
+   * `/cart/{id}` পাতার জন্য — যা রেখে গিয়েছিলেন।
+   *
+   * ⚠️ শুধু cart আর মোট। নাম, ফোন, ঠিকানা কিছুই ফেরে না — লিংকটা
+   * WhatsApp-এ যায়, আর WhatsApp-এর বার্তা ভুল হাতেও পড়তে পারে।
+   */
+  async savedCart(id: string) {
+    try {
+      const l = await this.prisma.db.checkoutLead.findFirst({
+        where: { id, deletedAt: null },
+        select: { id: true, cart: true, itemCount: true, totalPaisa: true, status: true },
+      });
+      if (!l) return null;
+      return {
+        found: true,
+        cart: l.cart,
+        itemCount: l.itemCount,
+        totalPaisa: l.totalPaisa,
+        /*  ইতিমধ্যে order হয়ে গেছে — তখন "আপনার cart ফিরিয়ে দিলাম" বলা
+            বিভ্রান্তিকর, তাই পাতাটা অন্য কথা বলবে।  */
+        alreadyOrdered: l.status === CheckoutLeadStatus.CONVERTED,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   /* ═══════════════ sweep ═══════════════ */
 
   /** চুপ হয়ে যাওয়া lead-দের বার্তা পাঠায় (DEC-WA-004) */

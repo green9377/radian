@@ -288,16 +288,16 @@ export default function RecoveryView() {
                           )}
                         </Td>
                         <Td>
-                          {l.cart?.length ? (
+                          {l.cart?.summary?.length ? (
                             <ul className="text-[12px] text-body space-y-0.5 max-w-[240px]">
-                              {l.cart.slice(0, 3).map((c, i) => (
+                              {l.cart.summary.slice(0, 3).map((c, i) => (
                                 <li key={i}>
                                   {c.qty ? `${c.qty} × ` : ""}{c.name ?? "—"}
                                   {c.size ? ` (${c.size})` : ""}
                                 </li>
                               ))}
-                              {l.cart.length > 3 && (
-                                <li className="text-body-soft">আরও {l.cart.length - 3}টা</li>
+                              {l.cart.summary.length > 3 && (
+                                <li className="text-body-soft">আরও {l.cart.summary.length - 3}টা</li>
                               )}
                             </ul>
                           ) : (

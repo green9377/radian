@@ -287,15 +287,24 @@ export default function CheckoutView() {
             methodLabel: method?.label,
             step: c.step,
           },
-          /*  cart-এর ছবি সেই মুহূর্তের — staff ফোন করার সময় "উনি কী রেখে
-              গিয়েছিলেন" জানার জন্য এটুকুই যথেষ্ট।  */
-          cart: cart.lines.map((l) => ({
-            name: l.product.name,
-            slug: l.item.slug,
-            qty: l.item.qty,
-            size: l.size?.label,
-            variant: l.variant?.label,
-          })),
+          /*  ⚠️ দুই রকম ছবি, দুই কাজে — একটা দিয়ে অন্যটা হয় না।
+
+              `summary` মানুষের পড়ার জন্য: staff ফোন করার সময় "উনি কী রেখে
+              গিয়েছিলেন" দেখবে। নাম-মাপ-রঙ, id নয়।
+
+              `items` যন্ত্রের জন্য: `/cart/{id}` পাতায় cart-টা হুবহু ফিরিয়ে
+              দিতে sizeId, variantId, addon — সব লাগে। শুধু `summary` রাখলে
+              বার্তার "Return to cart" বোতাম গ্রাহককে খালি cart-এ ফেলত।  */
+          cart: {
+            items: cart.lines.map((l) => l.item),
+            summary: cart.lines.map((l) => ({
+              name: l.product.name,
+              slug: l.item.slug,
+              qty: l.item.qty,
+              size: l.size?.label,
+              variant: l.variant?.label,
+            })),
+          },
           itemCount: cart.lines.length,
           totalPaisa: totals?.totalPaisa ?? 0,
         }
