@@ -45,43 +45,54 @@ import {
 } from "./FinanceUI";
 
 /*
-  PAYMENT GATEWAY CARDS — redesign, 6 Aug 2026.
+  CARD DESIGN, 6 Aug 2026.
 
-  মালিকের অনুরোধ: পুরনো সাইটের Payment Gateways পাতা দেখিয়ে বললেন এটা অনেক
-  সুন্দর সাজানো, আর এই পাতাটা "baje" (খারাপ)। তুলনা করে দেখা গেল আসল পার্থক্যটা
-  ফাংশনের না — SSLCommerz/bKash/Nagad এখানে আগে থেকেই পুরোপুরি কাজ করে
-  (save, sandbox/live, validation সব আছে)। পার্থক্যটা শুধু চেহারায়: পুরনো
-  পাতায় প্রতিটা gateway-র নিজস্ব রং/লোগো আছে, field সবসময় খোলা দেখা যায়,
-  বড় toggle switch — আর এখানে সব ধূসর card, click করে "Edit" চাপলে তবেই
-  field দেখা যায়।
+  The owner compared this page with the old site's Payment Gateways screen and
+  called this one worse. The difference was never function — save, sandbox/live
+  and validation all already worked — it was that the old page gave each
+  gateway its own colour, kept the fields open, and used a switch you could see
+  from across the room. That is what this card copies.
 
-  ⚠️ যা ইচ্ছাকৃতভাবে কপি করা হয়নি: পুরনো পাতায় Store Password/API Key
-  সবসময় plaintext-এ খোলা দেখাচ্ছিল (মালিক নিজেই মার্কার দিয়ে ঢেকেছেন
-  screenshot-এ)। এখানে backend কখনো পুরো secret ফেরত পাঠায় না
-  (integrations.service.ts-এর mask() — শেষ ৪ অক্ষর ছাড়া সব ঢাকা), তাই
-  "reveal" বাটন আসল secret কখনো দেখাতে পারবে না — এটা এই আর্কিটেকচারের
-  ইচ্ছাকৃত নিরাপত্তা, বাগ না। চোখ-আইকন শুধু আপনি এইমাত্র যা টাইপ করলেন সেটা
-  দেখাবে (নতুন key ঠিক টাইপ হয়েছে কিনা যাচাইয়ের জন্য), আগের সেভ করা key না।
+  What it deliberately does not copy: the old page showed store passwords in
+  plain text. Here the overview only ever carries a masked value; the eye asks
+  the server for the real one, and every reveal is written to the audit trail.
 */
 
-/*  ৬ আগস্ট (বিকেল) — মালিক Messaging পাতাটা দেখে বললেন এটাও Payment-এর মতো
-    সাজানো চাই। তাই brand map আর hero card দুটোই Payment-এর একার জিনিস থেকে
-    সরিয়ে যেকোনো group-এর জন্য খোলা হলো। WhatsApp-এর চাবি ঠিকমতো বসেছে কিনা
-    সেটা দেখতে পারাটা bKash-এর চাবির মতোই জরুরি — কম জরুরি দেখানোর কারণ নেই। */
+/*
+  One card for every service, whatever it connects to. Two layouts meant a key
+  looked more or less important depending on which page it sat on, and there is
+  no such thing as a half-important key: a wrong Page token breaks Messenger as
+  completely as a wrong Store ID breaks checkout.
+*/
 const HERO_BRAND: Record<string, { grad: string; badge: string; ring: string; glow: string; solid: string }> = {
   SSLCOMMERZ: { grad: "linear-gradient(135deg,#062c47,#0a3d62 45%,#3c8dbc)", badge: "SC", ring: "#3c8dbc", glow: "rgba(10,61,98,0.35)", solid: "#0a3d62" },
   BKASH:      { grad: "linear-gradient(135deg,#8f0c47,#d6136c 45%,#ff5da2)", badge: "bK", ring: "#d6136c", glow: "rgba(214,19,108,0.35)", solid: "#d6136c" },
-  NAGAD:      { grad: "linear-gradient(135deg,#9a3c0a,#e2691a 45%,#f7a339)", badge: "ন", ring: "#e2691a", glow: "rgba(226,105,26,0.35)", solid: "#e2691a" },
+  NAGAD:      { grad: "linear-gradient(135deg,#9a3c0a,#e2691a 45%,#f7a339)", badge: "N", ring: "#e2691a", glow: "rgba(226,105,26,0.35)", solid: "#e2691a" },
   WHATSAPP:   { grad: "linear-gradient(135deg,#04463f,#0b7a68 45%,#25d366)", badge: "✆", ring: "#0b7a68", glow: "rgba(11,122,104,0.35)", solid: "#0b7a68" },
   EMAIL:      { grad: "linear-gradient(135deg,#1e2a5a,#2f4bab 45%,#6f8ff0)", badge: "✉", ring: "#2f4bab", glow: "rgba(47,75,171,0.32)", solid: "#2f4bab" },
   SMS:        { grad: "linear-gradient(135deg,#3f3a52,#5b5468 45%,#9f97b3)", badge: "▤", ring: "#5b5468", glow: "rgba(91,84,104,0.30)", solid: "#5b5468" },
+
+  PATHAO:     { grad: "linear-gradient(135deg,#7a1020,#c81e3c 45%,#ff6b83)", badge: "P", ring: "#c81e3c", glow: "rgba(200,30,60,0.32)", solid: "#c81e3c" },
+  STEADFAST:  { grad: "linear-gradient(135deg,#0d3b2e,#137a5c 45%,#4fd1a5)", badge: "S", ring: "#137a5c", glow: "rgba(19,122,92,0.32)", solid: "#137a5c" },
+  REDX:       { grad: "linear-gradient(135deg,#5c0f14,#a51c22 45%,#f0666c)", badge: "R", ring: "#a51c22", glow: "rgba(165,28,34,0.32)", solid: "#a51c22" },
+
+  META_ADS:       { grad: "linear-gradient(135deg,#0b2a63,#1877f2 45%,#63a4ff)", badge: "f", ring: "#1877f2", glow: "rgba(24,119,242,0.32)", solid: "#1877f2" },
+  FACEBOOK_PAGE:  { grad: "linear-gradient(135deg,#062a5a,#0084ff 45%,#5fb6ff)", badge: "M", ring: "#0084ff", glow: "rgba(0,132,255,0.32)", solid: "#0084ff" },
+  INSTAGRAM:      { grad: "linear-gradient(135deg,#7b2bbf,#dc2743 45%,#f9a825)", badge: "IG", ring: "#dc2743", glow: "rgba(220,39,67,0.32)", solid: "#c1275c" },
+  GOOGLE_ADS_API: { grad: "linear-gradient(135deg,#1a4d2e,#2f9e44 45%,#8ce99a)", badge: "G", ring: "#2f9e44", glow: "rgba(47,158,68,0.30)", solid: "#2f9e44" },
+
+  META_PIXEL:     { grad: "linear-gradient(135deg,#0b2a63,#1877f2 45%,#63a4ff)", badge: "◉", ring: "#1877f2", glow: "rgba(24,119,242,0.30)", solid: "#1877f2" },
+  GA4:            { grad: "linear-gradient(135deg,#7a4a06,#e8912a 45%,#ffc879)", badge: "GA", ring: "#e8912a", glow: "rgba(232,145,42,0.30)", solid: "#e8912a" },
+  GOOGLE_ADS_TAG: { grad: "linear-gradient(135deg,#1a4d2e,#2f9e44 45%,#8ce99a)", badge: "Ad", ring: "#2f9e44", glow: "rgba(47,158,68,0.30)", solid: "#2f9e44" },
+  GTM:            { grad: "linear-gradient(135deg,#123a63,#2f7fd1 45%,#8ec6ff)", badge: "▣", ring: "#2f7fd1", glow: "rgba(47,127,209,0.30)", solid: "#2f7fd1" },
+  TIKTOK_PIXEL:   { grad: "linear-gradient(135deg,#101013,#2b2b32 45%,#69c9d0)", badge: "♪", ring: "#69c9d0", glow: "rgba(40,40,50,0.32)", solid: "#1f1f26" },
+  CLARITY:        { grad: "linear-gradient(135deg,#0f3d5c,#1e7fa8 45%,#7fd3ef)", badge: "◔", ring: "#1e7fa8", glow: "rgba(30,127,168,0.30)", solid: "#1e7fa8" },
+  SNAP_PIXEL:     { grad: "linear-gradient(135deg,#7a6a05,#e0cf12 45%,#fff59d)", badge: "◠", ring: "#c9ba10", glow: "rgba(201,186,16,0.30)", solid: "#a89a0d" },
+  PINTEREST_TAG:  { grad: "linear-gradient(135deg,#6b0a17,#bd081c 45%,#ff6b7d)", badge: "P", ring: "#bd081c", glow: "rgba(189,8,28,0.30)", solid: "#bd081c" },
 };
 const brandFor = (provider: string) =>
   HERO_BRAND[provider] ??
   { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.bg, glow: "rgba(160,33,184,0.3)", solid: TONE.brand.bg };
-
-/** যেসব group বড় branded card পায় — বাকিরা কমপ্যাক্ট ServiceCard-এই থাকে */
-const HERO_KINDS: ApiIntKind[] = ["PAYMENT", "MESSAGING"];
 
 /** oversized on/off pill for the payment hero cards — the small Delivery
     Switch reads as an afterthought at this scale, so this one is its own size. */
@@ -180,16 +191,14 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
         </div>
       )}
 
+      {/*
+        On a single-group page the header above already names the group, so
+        wrapping the cards in a titled Panel would say the same thing twice.
+      */}
       <div className="space-y-5">
-        {groups.map((g) => (
-          <Panel
-            key={g.kind}
-            emoji={EMOJI_FOR[g.kind]}
-            tone={TONE_FOR[g.kind]}
-            title={g.label}
-            sub={g.blurb}
-          >
-            <div className="p-4 space-y-3">
+        {groups.map((g) => {
+          const body = (
+            <div className={only ? "space-y-4" : "p-4 space-y-4"}>
               {g.kind === "COURIER" && (
                 <p className="text-[12px] text-body-soft leading-relaxed max-w-[720px]">
                   The couriers themselves — names and tracking links — live in{" "}
@@ -202,22 +211,28 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
                 </p>
               )}
               {g.services.map((s) => (
-                HERO_KINDS.includes(g.kind) ? (
-                  <HeroServiceCard
-                    key={s.provider} s={s}
-                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
-                  />
-                ) : (
-                  <ServiceCard
-                    key={s.provider} s={s}
-                    couriers={g.kind === "COURIER" ? data?.couriers : undefined}
-                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
-                  />
-                )
+                <ServiceCard
+                  key={s.provider} s={s}
+                  couriers={g.kind === "COURIER" ? data?.couriers : undefined}
+                  onSaved={(m) => { flash(m); load(); }} onError={setErr}
+                />
               ))}
             </div>
-          </Panel>
-        ))}
+          );
+          return only ? (
+            <div key={g.kind}>{body}</div>
+          ) : (
+            <Panel
+              key={g.kind}
+              emoji={EMOJI_FOR[g.kind]}
+              tone={TONE_FOR[g.kind]}
+              title={g.label}
+              sub={g.blurb}
+            >
+              {body}
+            </Panel>
+          );
+        })}
       </div>
 
       {/*  What is deliberately NOT here. Saying so out loud is the difference
@@ -259,6 +274,22 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
 }
 
 /* ---------------------------------------------------------------- */
+/*
+  THE SERVICE CARD.
+
+  Fields are always visible. An "Edit" click before you can even see whether a
+  key is set turns a five-second check into a hunt, and the question people
+  actually arrive with is "is it set", not "let me change it".
+
+  Two rules about the boxes, both from things that went wrong:
+
+  - Clicking a box selects its contents, it never empties them. Emptying looked
+    like the key had been lost, and worse, saving from that state would really
+    have lost it.
+  - Only boxes that were typed in are sent. Untouched means unchanged; typed
+    then emptied means delete. That is the whole of it — there is no Clear
+    button, by the owner's instruction.
+*/
 
 function ServiceCard({
   s, couriers, onSaved, onError,
@@ -268,217 +299,14 @@ function ServiceCard({
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [edits, setEdits] = useState<Record<string, string>>({});
-  /*  HeroServiceCard-এর সাথে এক নিয়ম (৬ আগস্ট, মালিক): Clear বোতাম নেই,
-      হাতে মুছে Save চাপলেই মুছবে। দুই card-এ দুই আচরণ থাকলে একদিন কেউ
-      ভুল জায়গায় ভুল প্রত্যাশা নিয়ে বসবে।  */
-  const [typed, setTyped] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
-  const [courierId, setCourierId] = useState(s.courierId ?? "");
-
-  const complete = s.fieldsFilled === s.fieldsTotal;
-
-  async function save(extra: Record<string, unknown> = {}) {
-    setBusy(true);
-    try {
-      const body: Record<string, unknown> = { ...extra };
-      // যেখানে হাত পড়েছে শুধু সেটাই যায় — ফাঁকা হলে ফাঁকাই যায় (হাতে clear)
-      for (const k of typed) body[k] = (edits[k] ?? "").trim();
-      if (couriers) body.courierId = courierId || null;
-
-      await saveIntegration(s.kind, s.provider, body);
-      setEdits({}); setTyped(new Set());
-      onSaved(`${s.label} saved`);
-    } catch (e) {
-      onError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Card
-      className="p-4"
-      style={{
-        borderColor: s.isEnabled
-          ? (s.kind === "PAYMENT" && !s.isLive ? TONE.rose.ring : TONE.emerald.ring)
-          : undefined,
-      }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13.5px] font-bold text-purple">{s.label}</span>
-            {s.isEnabled ? (
-              s.hasSandbox && !s.isLive
-                ? <Chip tone="rose">sandbox</Chip>
-                : <Chip tone="emerald">on</Chip>
-            ) : (
-              <Chip tone="slate">off</Chip>
-            )}
-            <Chip tone={complete ? "sky" : "amber"}>
-              {s.fieldsFilled}/{s.fieldsTotal} keys
-            </Chip>
-          </div>
-          <p className="text-[12px] text-body leading-relaxed mt-1.5">{s.matters}</p>
-
-          {/*  Where the wording/content lives, for the services that have some.
-               Without this the split looks like a missing feature.  */}
-          {s.contentAt && (
-            <p className="text-[11.5px] mt-1.5">
-              <Link href={s.contentAt.href} className="text-purple font-semibold">
-                {s.contentAt.label} →
-              </Link>
-              <span className="text-body-soft"> (owned by that module, not here)</span>
-            </p>
-          )}
-
-          {/*  "A key is saved" and "the key works" are different facts, reported
-               separately. A green tick that only means "a string is present" is
-               how a broken checkout looks healthy.  */}
-          <p className="text-[11px] text-body-soft mt-1.5">
-            {s.lastCheckedAt
-              ? `Last checked ${new Date(s.lastCheckedAt).toLocaleString()} — ${s.lastCheckOk ? "worked" : "failed"}${s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}`
-              : "Never checked against the provider — a saved key is not a working key"}
-          </p>
-          {s.movedFrom && (
-            <p className="text-[10.5px] text-body-soft mt-1">
-              Carried across from <code>{s.movedFrom}</code>
-            </p>
-          )}
-        </div>
-        <button className={btnGhost} onClick={() => setOpen((o) => !o)}>
-          {open ? "Close" : complete ? "Edit" : "Add keys"}
-        </button>
-      </div>
-
-      {open && (
-        <div className="mt-4 pt-4 border-t border-[#f0edf5] space-y-3">
-          {s.fields.map((f) => {
-            const touched = edits[f.key] !== undefined;
-            const shown = touched ? edits[f.key] : (f.value ?? "");
-            return (
-              <div key={f.key}>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Lbl>{f.label}</Lbl>
-                  {f.value && !typed.has(f.key) && (
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
-                          style={{ background: TONE.emerald.soft, color: TONE.emerald.text }}>
-                      SAVED
-                    </span>
-                  )}
-                </div>
-                <input
-                  className={input}
-                  type={f.secret ? "password" : "text"}
-                  placeholder="not set"
-                  value={shown}
-                  /*  ⚠️ Chrome ignores "off". Only "new-password" is obeyed, and
-                      on 29 July it filled the saved shop password into three of
-                      these boxes.  */
-                  autoComplete="new-password"
-                  /*  লেখা সরে না, শুধু select হয়ে থাকে — HeroServiceCard-এর
-                      মতোই। কারণ ওখানেই লেখা আছে।  */
-                  onFocus={(e) => e.currentTarget.select()}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setEdits((x) => ({ ...x, [f.key]: v }));
-                    setTyped((t) => (t.has(f.key) ? t : new Set(t).add(f.key)));
-                  }}
-                />
-                {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
-              </div>
-            );
-          })}
-
-          {couriers && (
-            <div>
-              <Lbl>Which courier is this?</Lbl>
-              <select className={input} value={courierId}
-                      onChange={(e) => setCourierId(e.target.value)}>
-                <option value="">— not linked —</option>
-                {couriers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <p className="text-[11px] text-body-soft mt-1">
-                Links these keys to the courier Delivery already knows about.
-              </p>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <button className={btnPrimary} style={btnPrimaryStyle} disabled={busy}
-                    onClick={() => void save()}>
-              {busy ? "Saving…" : "Save keys"}
-            </button>
-
-            {s.hasSandbox && (
-              <button className={btnGhost} disabled={busy}
-                      onClick={() => void save({ isLive: !s.isLive })}>
-                {s.isLive ? "Switch to sandbox" : "Switch to LIVE"}
-              </button>
-            )}
-
-            {/*  Switching ON is refused by the server while fields are empty — a
-                 gateway that looks connected and fails when a customer pays is
-                 worse than one that is plainly off.  */}
-            <button className={btnGhost} disabled={busy}
-                    onClick={() => void save({ isEnabled: !s.isEnabled })}>
-              {s.isEnabled ? "Switch off" : "Switch on"}
-            </button>
-          </div>
-
-          {s.hasSandbox && !s.isLive && (
-            <p className="text-[11px] leading-relaxed" style={{ color: TONE.amber.text }}>
-              Sandbox keys and live keys are different keys. Switching to live
-              without pasting the live ones in will simply stop working.
-            </p>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-/* ---------------------------------------------------------------- */
-/*  HERO CARD — always-open, branded. Same data + same save() calls as
-    ServiceCard; only the shell is different. Payment got it first (6 Aug,
-    সকাল); Messaging joined the same day বিকেলে।
-
-    ⚠️ ৬ আগস্ট (বিকেল) — মালিকের দুটো অভিযোগ, দুটোই এই ফাংশনে:
-
-    ১. "number token দেওয়ার পরেও তা আবার চলে যায়"।
-       আগের আচরণ: box-এ ক্লিক করলেই লেখা মুছে ফাঁকা হয়ে যেত (onFocus)।
-       না লিখে সরে গেলে ফাঁকাই থেকে যেত — চোখে দেখাত "চাবি হারিয়ে গেছে",
-       আর তার চেয়ে খারাপ, ওই ফাঁকা box দেখে আবার Save চাপলে সত্যিই মুছে
-       যাওয়ার ঝুঁকি ছিল। এখন: ক্লিকে ফাঁকা হয় (যাতে নতুন key টাইপ করতে
-       গিয়ে পুরনো অক্ষরের সাথে লড়তে না হয়), কিন্তু **একটা অক্ষরও না
-       লিখে সরে গেলে সংরক্ষিত মানটা নিজে থেকেই ফিরে আসে** (`typed` flag)।
-
-    ২. "clear option দরকার নাই, হাত দিয়ে ধরে clear করব"।
-       Clear বোতাম বাদ। এখন নিয়মটা সহজ:
-         box ছুঁইনি          → কিছু পাঠাই না, কিছু বদলায় না
-         লিখেছি              → নতুন মান যায়
-         লিখে সব মুছে দিয়েছি → খালি মান যায় = মুছে গেল (হাতে করা clear)  */
-
-function HeroServiceCard({
-  s, onSaved, onError,
-}: {
-  s: ApiIntegration;
-  onSaved: (msg: string) => void;
-  onError: (msg: string) => void;
-}) {
   const brand = brandFor(s.provider);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  /** কোন box-এ সত্যিই টাইপ হয়েছে — শুধু ক্লিক করা "টাইপ করা" নয় */
+  /** Boxes actually typed into — clicking one is not typing in it. */
   const [typed, setTyped] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
-  /*  চোখে চেপে আনা আসল মান। server overview()-তে কখনো পাঠায় না, তাই
-      আগে চোখ চাপলে শুধু ঢাকা ফুটকিই দেখা যেত — মালিকের অভিযোগ ৬ আগস্ট:
-      "unhide করলেও দেখা যায় না, just last 4 digit show করে"।  */
+  /** Real values fetched by the eye. The overview never carries them. */
   const [full, setFull] = useState<Record<string, string>>({});
+  const [courierId, setCourierId] = useState(s.courierId ?? "");
   const [busy, setBusy] = useState(false);
   const complete = s.fieldsFilled === s.fieldsTotal;
 
@@ -488,7 +316,6 @@ function HeroServiceCard({
       return;
     }
     setRevealed((r) => new Set(r).add(key));
-    // যা টাইপ করা হচ্ছে সেটা দেখাতে server-এ যাওয়ার দরকার নেই
     if (full[key] === undefined && !typed.has(key)) {
       try {
         const r = await revealIntegrationField(s.kind, s.provider, key);
@@ -503,7 +330,7 @@ function HeroServiceCard({
     setBusy(true);
     try {
       const body: Record<string, unknown> = { ...extra };
-      // যেখানে হাত পড়েছে শুধু সেটাই যায় — ফাঁকা হলে ফাঁকাই যায় (হাতে clear)
+      if (couriers) body.courierId = courierId || null;
       for (const k of typed) body[k] = (edits[k] ?? "").trim();
       await saveIntegration(s.kind, s.provider, body);
       setEdits({}); setTyped(new Set());
@@ -520,9 +347,8 @@ function HeroServiceCard({
       className="rounded-[26px] overflow-hidden bg-white transition-transform hover:-translate-y-[2px]"
       style={{ boxShadow: s.isEnabled ? `0 16px 40px ${brand.glow}` : "0 4px 16px rgba(40,20,50,0.08)" }}
     >
-      {/*  HERO — full-bleed brand colour, not a thin strip. This is the part
-          that has to read as "this is bKash" from across the room, the way
-          the reference the owner sent does.  */}
+      {/*  Full-bleed brand colour, not a thin strip: the card has to read as
+          "this is bKash" from across the room.  */}
       <div className="relative px-5 pt-6 pb-9 overflow-hidden" style={{ background: brand.grad }}>
         <div className="absolute -right-8 -top-16 w-52 h-52 rounded-full bg-white opacity-[0.10]" />
         <div className="absolute -left-10 -bottom-20 w-44 h-44 rounded-full bg-white opacity-[0.08]" />
@@ -543,8 +369,8 @@ function HeroServiceCard({
         </div>
       </div>
 
-      {/*  Body overlaps the hero slightly, like a bottom sheet — the seam is
-          where "brand" hands off to "form", and it should look intentional. */}
+      {/*  The body overlaps the head slightly, like a bottom sheet, so the
+          seam between brand and form looks intentional. */}
       <div className="relative -mt-4 rounded-t-[22px] bg-white px-5 pt-5 pb-5">
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
@@ -565,16 +391,12 @@ function HeroServiceCard({
 
         <p className="text-[12.5px] text-body leading-relaxed mb-4">{s.matters}</p>
 
-        {/*  Fields are always visible — no "Add keys" click needed, matching
-            the reference layout the owner pointed to.  */}
         <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
           {s.fields.map((f) => {
             const isRevealed = revealed.has(f.key);
             const touched = edits[f.key] !== undefined;
             const didType = typed.has(f.key);
             const saved = Boolean(f.value);
-            /*  চোখ খোলা + server থেকে আসল মান এসে গেছে → আসলটাই দেখাও।
-                নাহলে আগের মতো ঢাকা মান। নিজে টাইপ করলে সেটাই সর্বোচ্চ।  */
             const shown = touched
               ? edits[f.key]
               : (revealed.has(f.key) && full[f.key] !== undefined ? full[f.key] : (f.value ?? ""));
@@ -608,15 +430,7 @@ function HeroServiceCard({
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = brand.solid;
                       e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`;
-                      /*  ⚠️ ৬ আগস্ট, দ্বিতীয় দফা। প্রথম চেষ্টায় ক্লিক করলে ঘর
-                          ফাঁকা হয়ে যেত (না লিখে সরে গেলে ফিরে আসত)। মালিক
-                          আবার একই কথা বললেন — "ঘরে ক্লিক দিলে information
-                          চলে যায়"। ঠিকই বলেছেন: চোখে যেটা ঘটে সেটাই সত্যি,
-                          পরে ফিরে আসবে কিনা তাতে কিছু যায় আসে না।
-
-                          এখন লেখা সরেই না — শুধু পুরোটা SELECT হয়ে থাকে।
-                          তাই নতুন key টাইপ করলে এক টানে পুরনোটার জায়গায়
-                          বসে যায়, আর কিছু না করে সরে গেলে যেমন ছিল তেমনই।  */
+                      // Select, never clear: the text must not appear to vanish.
                       e.currentTarget.select();
                     }}
                     onBlur={(e) => {
@@ -649,10 +463,28 @@ function HeroServiceCard({
               </div>
             );
           })}
+
+          {couriers && (
+            <div className="min-w-0">
+              <Lbl>Which courier is this?</Lbl>
+              <select
+                className="w-full min-w-0 border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
+                style={{ borderColor: "#ece5f2" }}
+                value={courierId}
+                onChange={(e) => setCourierId(e.target.value)}
+              >
+                <option value="">— not linked —</option>
+                {couriers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-body-soft mt-1">
+                Links these keys to the courier Delivery already knows about.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/*  মালিকের নির্দেশ ৬ আগস্ট: Clear বোতাম নেই। নিয়মটা লিখে রাখা হলো,
-             নাহলে "মুছব কীভাবে" প্রশ্নটা প্রতিবার ফিরে আসবে।  */}
         <p className="text-[11px] text-body-soft mt-2.5">
           To remove a key, click into the box, clear it and press Update. Fields
           you do not touch are never changed.
@@ -697,15 +529,17 @@ function HeroServiceCard({
 }
 
 /* ---------------------------------------------------------------- */
-/*  WHATSAPP — "চাবি বসল" আর "চাবি কাজ করে" এক কথা নয়। এই সারিটা দ্বিতীয়টার
-    একমাত্র প্রমাণ: নিজের নম্বরে Meta-র pre-approved `hello_world` যায়।
+/*
+  "The key is saved" and "the key works" are different claims. This row is the
+  only proof of the second: it sends Meta's pre-approved `hello_world` to a
+  number you choose.
 
-    ⚠️ ইচ্ছাকৃতভাবে নিজেদের template নয়। template approve হতে ঘণ্টা লাগে;
-    চাবি ঠিক কিনা সেটা ৩০ সেকেন্ডে জানা দরকার। তাই Meta যেটা সব account-এ
-    আগে থেকেই approve করে রাখে, সেটাই।
+  Our own templates are not used here on purpose — approval takes hours, and
+  whether the key works needs answering in thirty seconds.
 
-    ⚠️ test number-এর বেলায় শুধু আগে থেকে অনুমোদিত (সর্বোচ্চ ৫টা) নম্বরেই
-    যাবে — অন্য নম্বর দিলে Meta ফিরিয়ে দেবে, চাবি ভুল বলে নয়।  */
+  On a test number Meta only delivers to the five numbers registered with it.
+  Anything else is refused, and that refusal says nothing about the key.
+*/
 
 function WhatsAppTestRow({
   brand, onError,
@@ -780,18 +614,18 @@ function WhatsAppTestRow({
 }
 
 /* ---------------------------------------------------------------- */
-/*  WHATSAPP TEMPLATE — Meta-তে জমা দেওয়া, এক ক্লিকে।
+/*
+  Submits every template to Meta in one click. The wording already lives in
+  code, so filling the same form six times in WhatsApp Manager would only be a
+  chance to mistype one — and it has to be done at least twice, once on the
+  test account and again on the real one.
 
-    মালিকের কথা ৬ আগস্ট: "template তুমি বানাও, সব তো তোমার কাছে"। লেখাগুলো
-    কোডেই আছে, তাই WhatsApp Manager-এ ছয়বার ফর্ম ভরার মানে নেই। আর এটা
-    অন্তত দুবার লাগবে — এখন test WABA-তে, পরে আসল WABA-তে।
+  Meta approves, not this button. Submitted and working are shown separately
+  because PENDING can sit for hours and then come back REJECTED.
 
-    ⚠️ APPROVE করে META। এই বোতাম শুধু জমা দেয়; তারপর PENDING → APPROVED
-    বা REJECTED হয়, Meta-র নিজের সময়ে। তাই "জমা হয়েছে" আর "কাজ করবে"
-    দুটো আলাদা করে দেখানো হয়।
-
-    ⚠️ "already exists" ব্যর্থতা নয়। বোতামটা দুবার চাপা খুব স্বাভাবিক,
-    আর তখন লাল দেখানো মিথ্যে সংকেত।  */
+  "Already exists" is not a failure. Pressing the button twice is the normal
+  thing to do, and colouring that red would be a false alarm.
+*/
 
 const TPL_TONE: Record<string, "emerald" | "amber" | "rose" | "slate"> = {
   APPROVED: "emerald",
