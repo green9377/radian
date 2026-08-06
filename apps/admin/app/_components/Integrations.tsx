@@ -36,7 +36,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
-  getIntegrations, revealIntegrationField, saveIntegration, waTestSend,
+  getIntegrations, getWaTemplateStatus, revealIntegrationField, saveIntegration,
+  submitWaTemplates, waTestSend, type ApiTemplateResult,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -657,7 +658,12 @@ function HeroServiceCard({
           না ছুঁলে কিছুই বদলাবে না।
         </p>
 
-        {s.provider === "WHATSAPP" && <WhatsAppTestRow brand={brand} onError={onError} />}
+        {s.provider === "WHATSAPP" && (
+          <>
+            <WhatsAppTestRow brand={brand} onError={onError} />
+            <WhatsAppTemplateRow brand={brand} onError={onError} />
+          </>
+        )}
 
         <p className="text-[11px] text-body-soft mt-4">
           {s.lastCheckedAt
@@ -769,6 +775,109 @@ function WhatsAppTestRow({
           approve হওয়ার আগেই চাবি ঠিক কিনা প্রমাণ পাওয়ার একমাত্র উপায়।
         </p>
       )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  WHATSAPP TEMPLATE — Meta-তে জমা দেওয়া, এক ক্লিকে।
+
+    মালিকের কথা ৬ আগস্ট: "template তুমি বানাও, সব তো তোমার কাছে"। লেখাগুলো
+    কোডেই আছে, তাই WhatsApp Manager-এ ছয়বার ফর্ম ভরার মানে নেই। আর এটা
+    অন্তত দুবার লাগবে — এখন test WABA-তে, পরে আসল WABA-তে।
+
+    ⚠️ APPROVE করে META। এই বোতাম শুধু জমা দেয়; তারপর PENDING → APPROVED
+    বা REJECTED হয়, Meta-র নিজের সময়ে। তাই "জমা হয়েছে" আর "কাজ করবে"
+    দুটো আলাদা করে দেখানো হয়।
+
+    ⚠️ "already exists" ব্যর্থতা নয়। বোতামটা দুবার চাপা খুব স্বাভাবিক,
+    আর তখন লাল দেখানো মিথ্যে সংকেত।  */
+
+const TPL_TONE: Record<string, "emerald" | "amber" | "rose" | "slate"> = {
+  APPROVED: "emerald",
+  PENDING: "amber",
+  "ALREADY EXISTS": "emerald",
+  REJECTED: "rose",
+  "NOT SUBMITTED": "slate",
+};
+
+function WhatsAppTemplateRow({
+  brand, onError,
+}: {
+  brand: { grad: string; glow: string; solid: string };
+  onError: (msg: string) => void;
+}) {
+  const [rows, setRows] = useState<ApiTemplateResult[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+
+  const refresh = useCallback(() => {
+    getWaTemplateStatus()
+      .then((r) => setRows(r.configured ? r.templates : null))
+      .catch(() => setRows(null));
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  async function submit() {
+    setBusy(true); setNote("");
+    try {
+      const r = await submitWaTemplates();
+      if (!r.configured) {
+        setNote("WABA ID আর token দুটোই বসাতে হবে — উপরের ঘর দুটো।");
+      } else {
+        const good = r.results.filter((x) => x.ok).length;
+        setNote(`${good}/${r.results.length} জমা হয়েছে। Meta এখন দেখবে — কয়েক মিনিট থেকে কয়েক ঘণ্টা।`);
+      }
+      refresh();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+      <Lbl>Radian-এর ছয়টা template</Lbl>
+      <p className="text-[11px] text-body-soft mb-2.5">
+        লেখাগুলো কোডে বসানো আছে। এক ক্লিকে Meta-তে জমা পড়বে —
+        approve করবে Meta, কয়েক মিনিট থেকে কয়েক ঘণ্টায়।
+      </p>
+
+      {rows && (
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
+          {rows.map((t) => (
+            <span
+              key={t.name}
+              className="text-[11px] font-semibold px-2 py-1 rounded-full"
+              style={{
+                background: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].soft,
+                color: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].text,
+              }}
+              title={t.error ?? t.status ?? ""}
+            >
+              {t.name} · {t.status ?? (t.ok ? "OK" : "?")}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          className="px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
+          disabled={busy}
+          onClick={() => void submit()}
+        >
+          {busy ? "জমা দিচ্ছি…" : "Create templates in Meta"}
+        </button>
+        <button className={btnGhost} disabled={busy} onClick={refresh}>
+          অবস্থা দেখুন
+        </button>
+      </div>
+
+      {note && <p className="text-[11.5px] text-body-soft mt-2">{note}</p>}
     </div>
   );
 }

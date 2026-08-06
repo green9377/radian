@@ -8,6 +8,8 @@ import { MessagingSettingsService } from './messaging-settings.service';
 import { OrderMessagesService } from './order-messages.service';
 import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
 import { MessagingSweeper } from './messaging.sweeper';
+import { WhatsAppTemplatesService } from './whatsapp-templates';
+import { AdministrationModule } from '../administration/administration.module';
 
 /*
   MESSAGING — হারানো order ফেরানোর পর্দার পেছনের কাজ। DEC-WA-002…008।
@@ -24,6 +26,7 @@ export class MessagingController {
     private readonly orderMessages: OrderMessagesService,
     private readonly sweeper: MessagingSweeper,
     private readonly settings: MessagingSettingsService,
+    private readonly templates: WhatsAppTemplatesService,
   ) {}
 
   @Get('settings')
@@ -109,6 +112,21 @@ export class MessagingController {
     return this.sweeper.runOnce();
   }
 
+  /*  ── Meta-র template ──────────────────────────────────────────────────
+      ⚠️ approve করে Meta, আমরা নয়। এই দুটো শুধু জমা দেয় আর অবস্থা দেখায়। */
+
+  @Get('templates')
+  @Roles('OWNER', 'MANAGER')
+  templateStatus() {
+    return this.templates.status();
+  }
+
+  @Post('templates')
+  @Roles('OWNER')
+  submitTemplates() {
+    return this.templates.submitAll();
+  }
+
   /** একটা আটকে থাকা বার্তা আবার পাঠানোর চেষ্টা */
   @Post('retry')
   @Roles('OWNER')
@@ -158,8 +176,11 @@ export class CheckoutLeadController {
 }
 
 @Module({
-  imports: [PrismaModule, WhatsAppCloudModule],
-  providers: [MessagingSettingsService, OrderMessagesService, CheckoutLeadsService, MessagingSweeper],
+  imports: [PrismaModule, WhatsAppCloudModule, AdministrationModule],
+  providers: [
+    MessagingSettingsService, OrderMessagesService, CheckoutLeadsService,
+    MessagingSweeper, WhatsAppTemplatesService,
+  ],
   controllers: [MessagingController, CheckoutLeadController],
   exports: [OrderMessagesService, CheckoutLeadsService],
 })

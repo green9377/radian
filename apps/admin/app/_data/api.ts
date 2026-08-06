@@ -6804,3 +6804,16 @@ export const orderMessagesFor = (orderId: string) =>
 /** Demo-তে sweeper বন্ধ (DEC-WA-007), তাই যাচাই করার একমাত্র উপায় এটাই */
 export const runRecoverySweep = () =>
   j<Record<string, unknown>>("/messaging/sweep", { method: "POST" });
+
+/* Meta-র template — জমা দেওয়া আর অবস্থা দেখা।
+   ⚠️ approve করে Meta, আমরা নয়। এই দুটো শুধু জমা দেয় আর খবর আনে। */
+export interface ApiTemplateResult {
+  name: string;
+  ok: boolean;
+  status?: string;
+  error?: string;
+}
+export const getWaTemplateStatus = () =>
+  j<{ configured: boolean; templates: ApiTemplateResult[] }>("/messaging/templates");
+export const submitWaTemplates = () =>
+  j<{ configured: boolean; results: ApiTemplateResult[] }>("/messaging/templates", { method: "POST" });

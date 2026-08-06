@@ -105,6 +105,11 @@ export const PROVIDERS: Manifest[] = [
     contentAt: { label: 'The message text', href: '/marketing/settings' },
     fields: [
       { key: 'clientId', label: 'Phone number ID', secret: false },
+      /*  ⚠️ `username` ঘরটা WABA ID-র জন্য ধার করা। template জমা দেওয়া
+          WABA-র নিচে হয়, নম্বরের নিচে নয় — তাই দুটোই লাগে। নামটা বেমানান,
+          কিন্তু `CredField` তালিকাটা স্থির (schema-র কলাম), আর একটা
+          ID-র জন্য নতুন migration চালানোর মতো লাভ এখানে নেই।  */
+      { key: 'username', label: 'WhatsApp Business Account ID', hint: 'WABA ID — template জমা দিতে লাগে', secret: false },
       { key: 'apiKey', label: 'Permanent access token', secret: true },
       { key: 'clientSecret', label: 'App secret', hint: 'Only needed to verify incoming webhooks — not needed to send', secret: true, optional: true },
       { key: 'webhookSecret', label: 'Webhook verify token', hint: 'Only needed to receive messages — not needed to send', secret: true, optional: true },

@@ -184,7 +184,7 @@ Meta-র নিয়মে লেখায় `{{1}}` অবশ্যই `{{2}}
 
 | নাম | Category | Body | Button |
 |---|---|---|---|
-| `order_confirmation` | Utility | `Thank you, {{1}}. Your order {{2}} is confirmed and we have started putting it together by hand. Total {{3}}. We will message you the moment it leaves our shop.` | — |
+| `order_confirmation` | Utility | `Thank you, {{1}}. Your order {{2}} is confirmed and we are getting it ready. Total {{3}}. We will message you the moment it leaves our shop.` | — |
 | `order_confirmation_cod` | Utility | `Thank you, {{1}}. We have received your order {{2}} — {{3}}, payable when it arrives. One of our team will call you shortly to confirm the details.` | — |
 | `order_out_for_delivery` | Utility | `Good news, {{1}} — order {{2}} has just left our shop and is on its way.` | — |
 | `order_delivered` | Utility | `{{1}}, your order {{2}} has been delivered. We hope it brought a smile. Thank you for trusting us with it.` | — |
