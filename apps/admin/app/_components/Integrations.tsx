@@ -518,6 +518,22 @@ function PaymentServiceCard({
         <div className="grid sm:grid-cols-2 gap-3.5">
           {s.fields.map((f) => {
             const isRevealed = revealed.has(f.key);
+            /*  ⚠️ 6 Aug fix — Store ID/password "disappearing" after Update.
+                Before: a saved value only ever showed as placeholder text
+                ("value — leave blank to keep") and the box itself stayed
+                empty. A placeholder LOOKS like an empty field, so a saved
+                key read as "gone" the moment Update finished, even though
+                it was sitting in the database the whole time.
+
+                Now: a saved value is the box's actual value — typed
+                straight in, not hinted at. Clicking into the box clears it
+                to blank on first keystroke (onFocus), so typing a
+                replacement never fights the old characters. Leaving it
+                untouched keeps `edits[f.key]` undefined, which save()
+                already treats as "say nothing, change nothing" — same
+                safety as before, just no longer disguised as empty.  */
+            const editing = edits[f.key] !== undefined;
+            const shown = cleared.has(f.key) ? "" : editing ? edits[f.key] : (f.value ?? "");
             return (
               <div key={f.key}>
                 <Lbl>{f.label}</Lbl>
@@ -525,14 +541,16 @@ function PaymentServiceCard({
                   <input
                     className="w-full border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
                     style={{ borderColor: "#ece5f2" }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = brand.solid;
+                      e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`;
+                      // first click into a field showing a saved value starts a fresh, blank edit
+                      if (!editing && !cleared.has(f.key)) setEdits((x) => ({ ...x, [f.key]: "" }));
+                    }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
                     type={f.secret && !isRevealed ? "password" : "text"}
-                    placeholder={
-                      cleared.has(f.key) ? "will be cleared"
-                        : f.value ? `${f.value} — leave blank to keep` : "not set"
-                    }
-                    value={edits[f.key] ?? ""}
+                    placeholder={cleared.has(f.key) ? "will be cleared" : "not set"}
+                    value={shown}
                     autoComplete="new-password"
                     onChange={(e) => setEdits((x) => ({ ...x, [f.key]: e.target.value }))}
                   />
