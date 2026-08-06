@@ -12,11 +12,8 @@ import { WhatsAppTemplatesService } from './whatsapp-templates';
 import { AdministrationModule } from '../administration/administration.module';
 
 /*
-  MESSAGING — হারানো order ফেরানোর পর্দার পেছনের কাজ। DEC-WA-002…008।
-
-  ⚠️ দুই রকম endpoint, দুই রকম দরজা:
-    · `/shop/checkout-lead` — গ্রাহকের ব্রাউজার ডাকে, তাই Public
-    · বাকি সব — মালিক/ম্যানেজারের, তাই Roles
+  Two doors: the storefront's lead endpoints are public, everything else is
+  owner or manager only.
 */
 
 @Controller('messaging')
@@ -35,10 +32,7 @@ export class MessagingController {
     return this.settings.get();
   }
 
-  /**
-   * ⚠️ শুধু OWNER। এই পর্দার একটা সংখ্যা বদলালে আসল গ্রাহকের কাছে বার্তা
-   * যাওয়া শুরু বা বন্ধ হয়ে যায় — আর প্রতিটা বার্তায় টাকা কাটে।
-   */
+  /** Owner only: one number here starts or stops real messages, and each costs. */
   @Post('settings')
   @Roles('OWNER')
   async saveSettings(@Body() dto: Record<string, unknown>) {
@@ -50,16 +44,12 @@ export class MessagingController {
     const data = {
       recoveryEnabled: Boolean(dto.recoveryEnabled),
       paymentFailedEnabled: Boolean(dto.paymentFailedEnabled),
-      /*  ০ = দ্বিতীয়বার নেই। উপরের সীমা ৭২ ঘণ্টা — তিন দিন পর "আপনার
-          পেমেন্ট হয়নি" পাওয়া গ্রাহকের কাছে দোকানটাকে অগোছালো দেখায়।  */
+      // 0 disables the retry; three days later would just look disorganised.
       paymentFailedRetryHours: num(dto.paymentFailedRetryHours, 0, 72, cur.paymentFailedRetryHours),
       abandonedEnabled: Boolean(dto.abandonedEnabled),
-      /*  সর্বনিম্ন ৫ মিনিট। এর কম দিলে টাকা দেওয়ার মাঝপথে থাকা গ্রাহকের
-          কাছেই "আপনার cart রাখা আছে" চলে যেত — bKash/কার্ডের OTP-তেই তার
-          বেশি সময় লাগে (DEC-WA-004-এর আলোচনা)।  */
+      // Five minutes is the floor: a bKash or card OTP takes longer than that.
       abandonedAfterMinutes: num(dto.abandonedAfterMinutes, 5, 1440, cur.abandonedAfterMinutes),
-      /*  সর্বনিম্ন ১ দিন, সর্বোচ্চ ৩৬৫। যাঁরা কিছু কেনেননি তাঁদের নম্বর
-          অনির্দিষ্টকাল রাখা সম্পদ নয়, দায় (DEC-WA-008)।  */
+      // Numbers of people who bought nothing are a liability to keep.
       leadRetentionDays: num(dto.leadRetentionDays, 1, 365, cur.leadRetentionDays),
       sweeperEnabled: Boolean(dto.sweeperEnabled),
       sweeperEveryMinutes: num(dto.sweeperEveryMinutes, 1, 120, cur.sweeperEveryMinutes),
@@ -73,7 +63,7 @@ export class MessagingController {
     return this.settings.get();
   }
 
-  /** এক order নিয়ে কী কী পাঠানো হয়েছে — order পাতায় দেখানোর জন্য */
+  /** Everything sent about one order. */
   @Get('order/:orderId')
   @Roles('OWNER', 'MANAGER', 'STAFF')
   async forOrder(@Param('orderId') orderId: string) {
@@ -83,11 +73,7 @@ export class MessagingController {
     });
   }
 
-  /**
-   * অসমাপ্ত checkout-এর তালিকা — staff এখান থেকে ফোন করবে।
-   * মালিকের কথা ৬ আগস্ট: "৯০ দিন এদের customer-এ convert করার চেষ্টা করব"।
-   * বার্তা একটা পথ; ফোন প্রায়ই ভালো পথ, বিশেষত বড় অঙ্কের cart-এ।
-   */
+  /** The list staff call from. */
   @Get('leads')
   @Roles('OWNER', 'MANAGER', 'STAFF')
   async leadList(
@@ -101,19 +87,14 @@ export class MessagingController {
     });
   }
 
-  /**
-   * "এখনই চালান" — Demo-তে sweeper বন্ধ (DEC-WA-007), তাই যাচাই করার
-   * একমাত্র উপায় এটাই। Real-এও কাজে লাগে: কিছু আটকে গেলে অপেক্ষা না করে
-   * চালিয়ে দেখা যায়।
-   */
+  /** Runs a cycle by hand — the only way to test while the sweeper is off. */
   @Post('sweep')
   @Roles('OWNER')
   sweepNow() {
     return this.sweeper.runOnce();
   }
 
-  /*  ── Meta-র template ──────────────────────────────────────────────────
-      ⚠️ approve করে Meta, আমরা নয়। এই দুটো শুধু জমা দেয় আর অবস্থা দেখায়। */
+  /* Templates. Meta approves them; these only submit and report. */
 
   @Get('templates')
   @Roles('OWNER', 'MANAGER')
@@ -127,7 +108,7 @@ export class MessagingController {
     return this.templates.submitAll();
   }
 
-  /** একটা আটকে থাকা বার্তা আবার পাঠানোর চেষ্টা */
+  /** Retries one stuck message. */
   @Post('retry')
   @Roles('OWNER')
   async retry(@Body() b: { id: string }) {
@@ -139,17 +120,12 @@ export class MessagingController {
   }
 }
 
-/*  গ্রাহকের ব্রাউজার এটাই ডাকে। আলাদা controller, কারণ পথটা `/shop/...`-এর
-    নিচে থাকলে storefront-এর বাকি সবকিছুর মতো একই জায়গায় পড়ে।  */
+/* Called by the customer's browser, so it lives under /shop like the rest. */
 @Controller('shop')
 export class CheckoutLeadController {
   constructor(private readonly leads: CheckoutLeadsService) {}
 
-  /**
-   * ⚠️ Public — গ্রাহক তো লগইন করা নন। তাই যা আসে তার কিছুই বিশ্বাস করা
-   * হয় না: `scrub()` কার্ড-জাতীয় ঘর ছেঁকে ফেলে, লম্বা লেখা বাদ যায়, আর
-   * সব ব্যর্থতা চুপচাপ গিলে ফেলা হয় — checkout কখনো এর জন্য আটকাবে না।
-   */
+  /** Public, so nothing sent is trusted: scrub() drops card-shaped keys. */
   @Public()
   @Post('checkout-lead')
   ping(@Body() b: LeadPing) {
@@ -157,15 +133,8 @@ export class CheckoutLeadController {
   }
 
   /**
-   * `/cart/{id}` — abandoned বার্তার "Return to cart" বোতামটা এখানে নামে
-   * (DEC-WA-004)। যা রেখে গিয়েছিলেন তা ফিরিয়ে দেয়।
-   *
-   * ⚠️ ফোন নম্বর চাওয়া হয় না, ঠিক `/pay/{orderNo}`-এর মতো কারণেই: এটা
-   * ফিরিয়ে আনার পথ, প্রতিটা বাড়তি ঘরে কিছু মানুষ ঝরে যায়।
-   *
-   * ⚠️ তাই ব্যক্তিগত কিছু ফেরে না — নাম, ঠিকানা, ফোন কিছুই নয়। শুধু
-   * কী রেখে গিয়েছিলেন। লিংকটা WhatsApp-এ যায়, আর WhatsApp-এর বার্তা
-   * ভুল হাতেও পড়তে পারে।
+   * Where the abandoned-cart button lands. No phone is asked for — this is a
+   * way back in — and nothing personal is returned.
    */
   @Public()
   @Get('checkout-lead/:id')

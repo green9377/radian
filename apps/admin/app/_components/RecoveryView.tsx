@@ -1,17 +1,8 @@
 "use client";
 
 /*
-  ═══════════════════════════════════════════════════════════════════════════
-  হারানো order ফেরানো — DEC-WA-002…008 (মালিকের সিদ্ধান্ত, ৬ আগস্ট ২০২৬)।
-
-  দুটো জিনিস এক পর্দায়, কারণ দুটো একই কাজের দুই দিক:
-    · নিয়ম — কখন, কতবার, কতদিন
-    · তালিকা — কারা ছেড়ে গেছেন, যাতে staff ফোন করতে পারে
-
-  ⚠️ ফোনের তালিকাটা বার্তার চেয়ে কম জরুরি নয়। মালিকের কথা: "৯০ দিন এদের
-  customer-এ convert করার চেষ্টা করব"। বড় অঙ্কের cart-এ একটা ফোন প্রায়
-  সবসময়ই একটা template-এর চেয়ে ভালো কাজ করে।
-  ═══════════════════════════════════════════════════════════════════════════
+  The rules and the call list on one screen: a phone call beats a template on
+  a large basket, and the owner's plan for these ninety days is conversion.
 */
 
 import { useCallback, useEffect, useState } from "react";
@@ -117,7 +108,7 @@ export default function RecoveryView() {
         </Banner>
       )}
 
-      {/* ───────────── rules ───────────── */}
+      {/* rules */}
       <div className="mt-5">
         <Panel emoji="⚙" tone="brand" title="Rules" sub="Every number lives here — none of it is hardcoded">
           {!s ? (
@@ -227,7 +218,7 @@ export default function RecoveryView() {
         </Panel>
       </div>
 
-      {/* ───────────── the list ───────────── */}
+      {/* the list */}
       <div className="mt-5">
         <Panel
           emoji="☎" tone="sky"

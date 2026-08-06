@@ -810,6 +810,7 @@ function WhatsAppTemplateRow({
   const [rows, setRows] = useState<ApiTemplateResult[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [failed, setFailed] = useState<ApiTemplateResult[]>([]);
 
   const refresh = useCallback(() => {
     getWaTemplateStatus()
@@ -824,9 +825,16 @@ function WhatsAppTemplateRow({
       const r = await submitWaTemplates();
       if (!r.configured) {
         setNote("Both the WABA ID and the access token are needed — the two boxes above.");
+        setFailed([]);
       } else {
-        const good = r.results.filter((x) => x.ok).length;
-        setNote(`${good} of ${r.results.length} submitted. Meta reviews them next — minutes to a few hours.`);
+        const bad = r.results.filter((x) => !x.ok);
+        const good = r.results.length - bad.length;
+        setNote(
+          bad.length
+            ? `${good} of ${r.results.length} submitted. Meta refused ${bad.length} — reasons below.`
+            : `${good} of ${r.results.length} submitted. Meta reviews them next — minutes to a few hours.`,
+        );
+        setFailed(bad);
       }
       refresh();
     } catch (e) {
@@ -878,6 +886,16 @@ function WhatsAppTemplateRow({
       </div>
 
       {note && <p className="text-[11.5px] text-body-soft mt-2">{note}</p>}
+
+      {failed.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {failed.map((f) => (
+            <li key={f.name} className="text-[11.5px] leading-relaxed" style={{ color: TONE.rose.text }}>
+              <strong>{f.name}</strong> — {f.error}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

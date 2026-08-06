@@ -5,25 +5,16 @@ import { TPL, WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { MessagingSettingsService } from './messaging-settings.service';
 
 /*
-  ═══════════════════════════════════════════════════════════════════════════
-  CHECKOUT LEADS — যিনি checkout-এ কিছু টাইপ করেছেন কিন্তু order করেননি।
-  DEC-WA-004, DEC-WA-008।
+  Someone who typed into checkout and never submitted.
 
-  ⚠️ এখানে এমন মানুষের ফোন নম্বর জমা হয় যিনি কখনো কিছু কেনেননি। তাই তিনটে
-  জিনিস আলোচনার বাইরে:
-    ১. পাঠানোর আগে opt-out যাচাই — Meta-র চোখে এটা MARKETING template
-    ২. ৯০ দিন পর সারি নিজে থেকে মুছে যাবে (মেয়াদ admin-এ বদলানো যায়)
-    ৩. কার্ড/CVV/OTP কখনো এখানে আসবে না — ওগুলো আমাদের পাতাতেই আসে না
-
-  ⚠️ order হয়ে গেলে সারিটা CONVERTED — বার্তা যাবেই না। "১৫ মিনিটের মধ্যে
-  অর্ডার করে ফেললে বিরক্ত করব না" নিয়মটার বাস্তব রূপ এটাই।
-
-  ⚠️ FAIL-SOFT: এই ফাইলের কোনো ব্যর্থতা যেন checkout আটকাতে না পারে। lead
-  লেখা যায়নি মানে একটা সুযোগ হারানো; checkout ভেঙে যাওয়া মানে order হারানো।
-  ═══════════════════════════════════════════════════════════════════════════
+  This table holds phone numbers of people who bought nothing, so three things
+  are not optional: the opt-out list is checked before any message, rows are
+  deleted once past retention, and card-shaped fields never get stored. A lead
+  that cannot be written is a lost opportunity; a checkout that breaks is a
+  lost order, so everything here fails soft.
 */
 
-/** storefront যা পাঠায় */
+/** What the storefront sends. */
 export interface LeadPing {
   clientKey: string;
   name?: string;
@@ -36,9 +27,10 @@ export interface LeadPing {
   totalPaisa?: number;
 }
 
-/*  ⚠️ কখনো জমা হবে না এমন ঘর। storefront ভুল করে পাঠালেও এখানে ছেঁকে ফেলা
-    হয় — "ফর্ম যা পাঠায় সব রেখে দাও" নিয়মটার একমাত্র ব্যতিক্রম, এবং
-    ব্যতিক্রমটা সার্ভারে থাকতে হবে, ব্রাউজারের সদিচ্ছার উপর নয়।  */
+/*
+  Never stored, whatever the browser sends. The storefront's good intentions
+  are not a security boundary.
+*/
 const NEVER_STORE = [
   'card', 'cardnumber', 'cardno', 'cvv', 'cvc', 'pin', 'otp',
   'password', 'expiry', 'exp', 'securitycode',
@@ -60,13 +52,13 @@ export class CheckoutLeadsService {
     for (const [k, v] of Object.entries(draft)) {
       const key = k.toLowerCase().replace(/[^a-z]/g, '');
       if (NEVER_STORE.some((bad) => key.includes(bad))) continue;
-      if (typeof v === 'string' && v.length > 2000) continue; // কেউ কিছু ঢেলে দিচ্ছে
+      if (typeof v === 'string' && v.length > 2000) continue;
       out[k] = v;
     }
     return out;
   }
 
-  /** গ্রাহক checkout-এ কিছু টাইপ করলেই storefront এটা ডাকে (throttled) */
+  /** Called by the storefront as the customer types, throttled. */
   async ping(p: LeadPing) {
     const s = await this.settings.get();
     if (!s.recoveryEnabled || !s.abandonedEnabled) return { ok: true, stored: false };
@@ -88,25 +80,22 @@ export class CheckoutLeadsService {
       await this.prisma.db.checkoutLead.upsert({
         where: { clientKey: p.clientKey.trim() },
         create: { clientKey: p.clientKey.trim(), ...data },
-        /*  ⚠️ CONVERTED সারিতে হাত দেওয়া হয় না। order হয়ে যাওয়ার পর
-            গ্রাহক আবার checkout খুললে সারিটা OPEN হয়ে গেলে তাঁর কাছে
-            "আপনার cart রাখা আছে" চলে যেত — সদ্য কেনা জিনিসের জন্য।  */
+        // Reopening checkout after an order must not make this open again.
         update: { ...data },
       });
       return { ok: true, stored: true };
     } catch (e) {
       this.log.warn(`lead ping failed: ${e instanceof Error ? e.message : e}`);
-      return { ok: true, stored: false }; // fail-soft — checkout কখনো আটকাবে না
+      return { ok: true, stored: false };
     }
   }
 
-  /** order হয়ে গেছে — এই ব্রাউজারের lead আর "ছেড়ে যাওয়া" নয় */
+  /** The order went through, so this browser's lead is no longer abandoned. */
   async markConverted(clientKey: string | undefined, orderId: string, phone?: string) {
     try {
       const where: Prisma.CheckoutLeadWhereInput = clientKey?.trim()
         ? { clientKey: clientKey.trim() }
-        : /*  clientKey না এলে নম্বর ধরে — একই মানুষ ফোন থেকে শুরু করে
-              কম্পিউটারে শেষ করলেও যেন তাঁকে তাগাদা না দেওয়া হয়  */
+        : // Fall back to the phone: started on a phone, finished on a laptop.
           { phone: phone?.replace(/\s/g, ''), status: CheckoutLeadStatus.OPEN };
       if (!clientKey?.trim() && !phone) return;
 
@@ -120,10 +109,8 @@ export class CheckoutLeadsService {
   }
 
   /**
-   * `/cart/{id}` পাতার জন্য — যা রেখে গিয়েছিলেন।
-   *
-   * ⚠️ শুধু cart আর মোট। নাম, ফোন, ঠিকানা কিছুই ফেরে না — লিংকটা
-   * WhatsApp-এ যায়, আর WhatsApp-এর বার্তা ভুল হাতেও পড়তে পারে।
+   * For the /cart/{id} page. Returns only what was left behind — no name,
+   * phone or address, because the link travels by WhatsApp.
    */
   async savedCart(id: string) {
     try {
@@ -137,8 +124,7 @@ export class CheckoutLeadsService {
         cart: l.cart,
         itemCount: l.itemCount,
         totalPaisa: l.totalPaisa,
-        /*  ইতিমধ্যে order হয়ে গেছে — তখন "আপনার cart ফিরিয়ে দিলাম" বলা
-            বিভ্রান্তিকর, তাই পাতাটা অন্য কথা বলবে।  */
+        // Already ordered — the page says so instead of offering a restore.
         alreadyOrdered: l.status === CheckoutLeadStatus.CONVERTED,
       };
     } catch {
@@ -146,9 +132,9 @@ export class CheckoutLeadsService {
     }
   }
 
-  /* ═══════════════ sweep ═══════════════ */
+  /* ---- sweep ---- */
 
-  /** চুপ হয়ে যাওয়া lead-দের বার্তা পাঠায় (DEC-WA-004) */
+  /** Messages leads that have gone quiet. */
   async sweepAbandoned(limit = 25) {
     const s = await this.settings.get();
     if (!s.recoveryEnabled || !s.abandonedEnabled) return { picked: 0, sent: 0, skipped: 0, failed: 0 };
@@ -199,18 +185,16 @@ export class CheckoutLeadsService {
   }
 
   /**
-   * ⚠️ opt-out যাচাই এখানেই। Marketing module-এর নিজস্ব খাতা
-   * (`MarketingOptOut`) সত্য — এই টেবিল নয়। কেউ একবার "আর পাঠাবেন না"
-   * বললে সেটা সব রকম promo-র জন্যই প্রযোজ্য, শুধু broadcast-এর জন্য নয়।
+   * Marketing owns the opt-out list; this only reads it. If the check itself
+   * fails we do not send — losing an opportunity beats messaging someone who
+   * asked not to be messaged.
    */
   private async skipReason(phone: string | null, itemCount: number): Promise<string | null> {
     if (!phone?.trim()) return 'no phone was typed';
     if (itemCount < 1) return 'cart was empty';
 
     try {
-      /*  MKT-RULE-009 — সম্মতি ফিরিয়ে নিলে সারিটা soft-delete হয়, তাই
-          `deletedAt: null` ছাড়া যাচাই করলে যিনি আবার সম্মতি দিয়েছেন
-          তাঁকেও চিরতরে বাদ দিয়ে রাখা হতো।  */
+      // Consent restored is a soft delete, so deletedAt must be checked.
       const optedOut = await this.prisma.db.marketingOptOut.findFirst({
         where: {
           deletedAt: null,
@@ -220,21 +204,20 @@ export class CheckoutLeadsService {
       });
       if (optedOut) return 'customer has opted out of marketing';
     } catch {
-      /*  ⚠️ যাচাই করা গেল না — তখন পাঠাবও না। opt-out করা কারও কাছে
-          ভুল করে promo যাওয়ার চেয়ে একটা সুযোগ হারানো ভালো।  */
       return 'could not check the opt-out list';
     }
     return null;
   }
 
-  /** মেয়াদ পেরোনো lead মুছে ফেলা (DEC-WA-008) */
+  /** Deletes leads past their retention window. */
   async purgeOld() {
     const s = await this.settings.get();
     const cutoff = new Date(Date.now() - s.leadRetentionDays * 86_400_000);
-    /*  ⚠️ এখানে সত্যিকারের DELETE, `deletedAt` নয় — ঘরের "soft delete only"
-        নিয়মের ব্যতিক্রম, এবং ব্যতিক্রমটাই উদ্দেশ্য। এটা ব্যবসার সারি নয়,
-        অচেনা মানুষের ফোন নম্বর; "মুছে ফেলেছি" মানে সত্যিই মুছে ফেলা।
-        CONVERTED সারি রাখা হয় — ওগুলোর সাথে order জড়িত।  */
+    /*
+      A real delete, not deletedAt — a deliberate exception to soft-delete.
+      These are strangers' phone numbers, and "deleted" should mean deleted.
+      Converted rows stay: an order depends on them.
+    */
     const r = await this.prisma.db.checkoutLead.deleteMany({
       where: { createdAt: { lt: cutoff }, status: { not: CheckoutLeadStatus.CONVERTED } },
     });

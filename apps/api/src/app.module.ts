@@ -86,7 +86,7 @@ import { InboxModule } from './inbox/inbox';
     ItemTypesModule,
     CustomersModule,
     OrdersModule,
-    MessagingModule, // হারানো order ফেরানো + বার্তার হিসাব (DEC-WA-002…008)
+    MessagingModule, // order messages + recovering lost orders
     PurchasesModule,
     SuppliersModule,
     InventoryModule,

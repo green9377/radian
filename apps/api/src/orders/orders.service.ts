@@ -68,10 +68,10 @@ export class OrdersService {
     /*  রসিদের WhatsApp বার্তা (confirmation storefront পাঠায়; status এখানে)।
         সব call fail-soft — বার্তা সৌজন্য, order চুক্তি।  */
     private readonly whatsappCloud: WhatsAppCloudService,
-    /*  ⚠️ ৬ আগস্ট — বার্তা এখন সরাসরি পাঠানো হয় না, `OrderMessage` সারিতে
-        তোলা হয়। কারণ পাঠিয়ে ভুলে যাওয়ার বদলে লিখে রাখলে তবেই "গ্রাহক
-        জানতেন কি না" প্রশ্নের উত্তর থাকে, আর একই বার্তা দুবার যাওয়া
-        ডেটাবেজ নিজেই ঠেকাতে পারে (DEC-WA-002…005)।  */
+    /*
+      Messages are queued rather than sent directly: a row is the only record
+      that one was sent, and the database can refuse a duplicate.
+    */
     private readonly orderMessages: OrderMessagesService,
   ) {}
 
@@ -550,8 +550,7 @@ export class OrdersService {
       include: FULL_INCLUDE,
     });
     await this.event(id, 'delivery', `Out for delivery`, actorName);
-    /*  ৬ আগস্ট: সরাসরি পাঠানো থেকে সারিতে তোলা। সারিটাই ইতিহাস — এখন
-        "গ্রাহক জানতেন কি না" প্রশ্নের উত্তর order পাতাতেই দেখা যায়।  */
+    // Queued, so the order page can show whether the customer was told.
     void this.orderMessages
       .queue(id, OrderMessageKind.ORDER_OUT_FOR_DELIVERY)
       .then(() => this.orderMessages.sendDue(5))

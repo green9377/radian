@@ -14,13 +14,11 @@ interface Manifest {
   provider: string;
   label: string;
   kind: IntKind;
-  /*  in the order they should appear.
-
-      ⚠️ `optional` — ৬ আগস্ট। আগে সব field বাধ্যতামূলক ধরা হতো, তাই WhatsApp
-      চালু করতে গিয়ে App secret আর Webhook verify token চাইত — অথচ ওই দুটো
-      কেবল আসা বার্তা যাচাইয়ের জন্য, পাঠানোর জন্য নয়। ফল: চাবি ঠিক থাকা
-      সত্ত্বেও কিছুতেই switch on করা যেত না। field-এর নিজের hint-ই বলছিল
-      "Only needed to verify incoming webhooks" — কোড সেটা জানত না।  */
+  /*
+    In the order they should appear. `optional` fields may stay blank and the
+    service can still be switched on — WhatsApp's webhook keys are only needed
+    to RECEIVE messages, not to send them.
+  */
   fields: { key: CredField | 'variant'; label: string; hint?: string; secret: boolean; optional?: boolean }[];
   /** what breaks while this is off */
   matters: string;
@@ -105,11 +103,8 @@ export const PROVIDERS: Manifest[] = [
     contentAt: { label: 'The message text', href: '/marketing/settings' },
     fields: [
       { key: 'clientId', label: 'Phone number ID', secret: false },
-      /*  ⚠️ `username` ঘরটা WABA ID-র জন্য ধার করা। template জমা দেওয়া
-          WABA-র নিচে হয়, নম্বরের নিচে নয় — তাই দুটোই লাগে। নামটা বেমানান,
-          কিন্তু `CredField` তালিকাটা স্থির (schema-র কলাম), আর একটা
-          ID-র জন্য নতুন migration চালানোর মতো লাভ এখানে নেই।  */
-      { key: 'username', label: 'WhatsApp Business Account ID', hint: 'WABA ID — template জমা দিতে লাগে', secret: false },
+      // username borrowed for the WABA id — templates live under the account.
+      { key: 'username', label: 'WhatsApp Business Account ID', hint: 'Needed to submit message templates', secret: false },
       { key: 'apiKey', label: 'Permanent access token', secret: true },
       { key: 'clientSecret', label: 'App secret', hint: 'Only needed to verify incoming webhooks — not needed to send', secret: true, optional: true },
       { key: 'webhookSecret', label: 'Webhook verify token', hint: 'Only needed to receive messages — not needed to send', secret: true, optional: true },
@@ -301,8 +296,7 @@ export class IntegrationsService {
     const group = (kind: IntKind) =>
       PROVIDERS.filter((m) => m.kind === kind).map((m) => {
         const row = byProvider.get(`${kind}:${m.provider}`);
-        /*  গোনা হয় শুধু বাধ্যতামূলক field — নাহলে "2/4 keys" দেখে মনে হতো
-            অর্ধেক কাজ বাকি, অথচ পাঠানোর জন্য যা লাগে সবই বসানো।  */
+        // Only required fields are counted, so 2/2 does not read as half done.
         const required = m.fields.filter((f) => !f.optional);
         const filled = required.filter(
           (f) => !!(row as Record<string, unknown> | undefined)?.[f.key],
@@ -502,7 +496,7 @@ export class IntegrationsService {
         where: { kind, provider },
       });
       const missing = manifest.fields.filter((f) => {
-        if (f.optional) return false; // webhook-এর চাবি না থাকলেও পাঠানো যায়
+        if (f.optional) return false;
         const incoming = dto[f.key];
         const current = (existing as Record<string, string | null> | null)?.[f.key];
         const value = incoming === undefined ? current : incoming;
@@ -567,19 +561,15 @@ export class IntegrationsService {
    */
   /**
    * One saved credential, in full. Owner's ruling, 6 Aug: a key you cannot read
-   * back is a key you must fetch from the provider again every time you need it
-   * somewhere else — and that friction was the real thing stopping the panel
-   * from being used.
+   * back has to be fetched from the provider every time it is needed elsewhere.
    *
-   * ⚠️ Deliberately NOT part of `overview()`. One field, on request, by the
-   * OWNER, written to the audit trail every time. A key that rides along in the
-   * page payload is a key in the browser cache, in a screenshot and in the logs
-   * — which is exactly what `mask()` exists to prevent, and that stays true.
+   * Deliberately not part of overview(): one field, on request, owner only,
+   * written to the audit trail. mask() still governs the page payload.
    */
   async reveal(kind: IntKind, provider: string, field: string, actorName: string) {
     const manifest = PROVIDERS.find((m) => m.kind === kind && m.provider === provider);
     if (!manifest) throw new NotFoundException('No such service');
-    // manifest-এ নেই এমন নাম চাইলে না — নইলে যেকোনো column পড়ে ফেলা যেত
+    // Only fields in the manifest, so no arbitrary column can be read.
     const f = manifest.fields.find((x) => x.key === field);
     if (!f) throw new BadRequestException('No such field on that service');
 

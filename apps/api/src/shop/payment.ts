@@ -129,19 +129,12 @@ export class SslCommerzService {
     return (process.env.PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '');
   }
 
-  /* ══════════════════ 0. টাকা বাকি আছে কি না — order নম্বর দিয়ে ══════════════════ */
+  /* ---- what is still owed, by order number ---- */
 
   /**
-   * WhatsApp-এর "পেমেন্ট হয়নি" বার্তার বোতামটা `/pay/{orderNo}`-এ নামে
-   * (DEC-WA-003)। সেই পাতার দুটোই দরকার: কত টাকা বাকি, আর আদৌ বাকি আছে কি না।
-   *
-   * ⚠️ ফোন নম্বর চাওয়া হয় না ইচ্ছাকৃতভাবে। এটা হারানো order ফেরানোর পথ —
-   * প্রতিটা বাড়তি ঘর মানে আরও কিছু মানুষ ঝরে যাওয়া, আর টাকা দেওয়ার
-   * পাতায় "প্রমাণ করুন আপনি কে" বলাটা উল্টো ভয় ধরায়।
-   *
-   * ⚠️ তাই ব্যক্তিগত কিছু ফেরানো হয় না — নাম নয়, ঠিকানা নয়, কী কিনেছেন
-   * তা-ও নয়। শুধু order নম্বর আর বাকি টাকা। কেউ নম্বর আন্দাজ করে ফেললেও
-   * সবচেয়ে খারাপ যা করতে পারে তা হলো অন্যের order-এর টাকা দিয়ে দেওয়া।
+   * For /pay/{orderNo}. No phone is asked for — this is a way back in, and
+   * every extra field loses people. Nothing personal is returned either: only
+   * the order number and what is due.
    */
   async amountDue(orderNoIn: string) {
     const orderNo = (orderNoIn ?? '').trim().toUpperCase();
@@ -163,13 +156,12 @@ export class SslCommerzService {
       duePaisa,
       paid: duePaisa <= 0,
       cancelled: order.salesStatus === 'cancelled',
-      /*  COD order-এ অনলাইনে টাকা নেওয়ার পাতা খোলার মানে নেই — টাকা
-          রাইডারের হাতে যাবে।  */
+      // COD is paid to the rider, so there is nothing to take online.
       isCod: order.paymentMethod === PaymentMethod.cod,
     };
   }
 
-  /** order নম্বর থেকে সরাসরি gateway — `/pay/{orderNo}` পাতার বোতাম */
+  /** Straight to the gateway from an order number. */
   async createSessionByNo(orderNoIn: string) {
     const orderNo = (orderNoIn ?? '').trim().toUpperCase();
     const order = await this.prisma.db.order.findFirst({
@@ -383,13 +375,11 @@ export class SslCommerzService {
       data: { status, raw: (raw ?? {}) as object },
     });
 
-    /*  DEC-WA-002 — টাকা আসেনি, কিন্তু order-টা তৈরি হয়ে গেছে এবং গ্রাহকের
-        মাথায় এখনো আছে। এটাই সবচেয়ে সহজে ফেরানো যায় এমন হারানো order।
-        সাথে সাথে একবার, আর কয়েক ঘণ্টা পর আরেকবার (সেটিং অনুযায়ী)।
-
-        ⚠️ fail-soft এবং `void` — payment callback SSLCommerz-এর দিকে দ্রুত
-        উত্তর দিতে বাধ্য। বার্তা পাঠাতে গিয়ে দেরি হলে gateway retry করবে,
-        আর তখন একই callback দুবার চলবে।  */
+    /*
+      The order exists and only the money is missing — the easiest kind to win
+      back. Fire and forget: the gateway callback must answer quickly, and a
+      slow reply makes SSLCommerz retry the whole thing.
+    */
     void this.orderMessages
       .queuePaymentFailed(s.orderId)
       .then(() => this.orderMessages.sendDue(5))
@@ -493,8 +483,7 @@ export class PaymentController {
     return this.svc.redirect(kind, await this.svc.orderNoFor(p?.tran_id));
   }
 
-  /*  `/pay/{orderNo}` পাতার দুটো ডাক — WhatsApp-এর "পেমেন্ট হয়নি" বার্তার
-      বোতাম এখানেই নামে (DEC-WA-003)।  */
+  /* The two calls the /pay page makes. */
   @Public()
   @Get('due/:orderNo')
   due(@Param('orderNo') orderNo: string) {

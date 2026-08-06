@@ -33,12 +33,10 @@ import { IntegrationsService } from '../administration/integrations.service';
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-/*  ⚠️ ৬ আগস্ট: v20 → v25। Meta প্রতিটা version মোটামুটি দুই বছর রাখে, আর
-    v20 (মে ২০২৪) মেয়াদের শেষ প্রান্তে — Meta-র নিজের console আজ v25
-    দেখাচ্ছে। একদিন হঠাৎ সব বার্তা বন্ধ হওয়ার চেয়ে এখন বদলানো সস্তা।  */
+/* v25: Meta keeps each version about two years and v20 is near its end. */
 const GRAPH = 'https://graph.facebook.com/v25.0';
 
-/** Meta console-এ এই নামে template approve করাতে হবে (ভাষা: en) */
+/** Template names as approved in Meta (language: en). */
 export const TPL = {
   confirm: process.env.WA_TPL_ORDER_CONFIRM || 'order_confirmation',
   confirmCod: process.env.WA_TPL_ORDER_CONFIRM_COD || 'order_confirmation_cod',
@@ -48,10 +46,10 @@ export const TPL = {
   abandoned: process.env.WA_TPL_CHECKOUT_ABANDONED || 'checkout_abandoned',
 };
 
-/** পাঠানোর ফল — ok/না ছাড়াও কেন, আর Meta-র নিজের message id */
+/** Send result: whether it went, why not, and Meta's message id. */
 export interface SendResult {
   ok: boolean;
-  /** চাবিই বসানো নেই — ব্যর্থতা নয়, feature বন্ধ */
+  /** No keys saved — the feature is off, not broken. */
   configured: boolean;
   messageId?: string;
   error?: string;
@@ -63,7 +61,7 @@ export class WhatsAppCloudService {
 
   constructor(private readonly integrations: IntegrationsService) {}
 
-  /** admin-এর Integrations সারি; না পেলে env; দুটোই না থাকলে null = নীরব */
+  /** Admin first, env as fallback; null means the feature is simply off. */
   private async creds(): Promise<{ phoneId: string; token: string } | null> {
     try {
       const row = await this.integrations.credentials('MESSAGING', 'WHATSAPP');
@@ -71,14 +69,14 @@ export class WhatsAppCloudService {
         return { phoneId: row.clientId, token: row.apiKey };
       }
     } catch {
-      /* integrations table unreachable — env fallback below */
+      /* integrations unreachable — env fallback below */
     }
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
     return phoneId && token ? { phoneId, token } : null;
   }
 
-  /** "+8801712…" / "01712…" → "8801712…" — Graph API চায় দেশকোড, চিহ্নহীন */
+  /** Graph wants a country code and no punctuation. */
   private msisdn(phone: string): string | null {
     const d = phone.replace(/\D/g, '');
     if (d.length === 11 && d.startsWith('01')) return '88' + d;
@@ -86,11 +84,10 @@ export class WhatsAppCloudService {
     return null;
   }
 
-  /*  ⚠️ ৬ আগস্ট — আগে শুধু true/false ফিরত। ফলে বার্তা পাঠিয়ে ভুলে যাওয়া
-      হতো: "গ্রাহক confirmation পেয়েছিলেন কি না" প্রশ্নের উত্তর কোথাও ছিল
-      না, আর ব্যর্থ হলে **কেন** ব্যর্থ সেটাও শুধু log-এ মিলিয়ে যেত।
-      এখন সবটা ফেরে, আর `OrderMessage` সারিতে জমা হয় — support-এ "আমরা
-      পাঠিয়েছিলাম" বলার একমাত্র প্রমাণ Meta-র নিজের message id। */
+  /*
+    Returns the Meta message id and the failure reason, not just a boolean —
+    "did the customer get their confirmation" needs an answer somewhere.
+  */
   async sendRaw(
     to: string,
     payload: Record<string, unknown>,
@@ -118,7 +115,7 @@ export class WhatsAppCloudService {
       try {
         messageId = (JSON.parse(body) as { messages?: { id?: string }[] })?.messages?.[0]?.id;
       } catch {
-        /* Meta 200 দিয়েছে কিন্তু JSON পড়া গেল না — বার্তা গেছে, id নেই */
+        /* sent, but the id could not be read */
       }
       return { ok: true, configured: true, messageId };
     } catch (e) {
@@ -128,16 +125,14 @@ export class WhatsAppCloudService {
     }
   }
 
-  /** পুরনো call site-গুলোর জন্য — true/false-ই যথেষ্ট যেখানে */
+  /** For call sites where a boolean is enough. */
   private async send(to: string, payload: Record<string, unknown>): Promise<boolean> {
     return (await this.sendRaw(to, payload)).ok;
   }
 
   /**
-   * @param urlSuffix থাকলে template-এর প্রথম URL বোতামে বসে। Meta-র নিয়মে
-   *   বোতামের ঠিকানার শুধু **শেষ টুকরোটা** পাঠানো যায় (template-এ লেখা
-   *   `https://radianbd.com/pay/{{1}}`-এর `{{1}}`) — গোটা ঠিকানা নয়।
-   *   তাই এখানে order নম্বরটুকুই যায়।
+   * @param urlSuffix goes into the template's first URL button. Meta accepts
+   *   only the last segment of the address, not the whole URL.
    */
   template(name: string, params: string[], lang = 'en', urlSuffix?: string) {
     const components: Record<string, unknown>[] = [];
@@ -165,7 +160,7 @@ export class WhatsAppCloudService {
     };
   }
 
-  /** মালিকের test বোতাম — Meta-র pre-approved hello_world, ভাষা en_US */
+  /** The admin test button. hello_world is pre-approved on every account. */
   async sendTest(to: string): Promise<{ sent: boolean; configured: boolean }> {
     const configured = (await this.creds()) !== null;
     if (!configured) return { sent: false, configured };
@@ -173,7 +168,7 @@ export class WhatsAppCloudService {
     return { sent, configured };
   }
 
-  /** order placed — {{1}} নাম · {{2}} order নম্বর · {{3}} মোট (৳) */
+  /** {{1}} name, {{2}} order number, {{3}} total */
   orderConfirmation(o: { senderPhone: string; senderName: string; orderNo: string; totalPaisa: number }) {
     return this.send(
       o.senderPhone,
@@ -181,12 +176,12 @@ export class WhatsAppCloudService {
     );
   }
 
-  /** out for delivery — {{1}} নাম · {{2}} order নম্বর */
+  /** {{1}} name, {{2}} order number */
   orderOut(o: { senderPhone: string; senderName: string; orderNo: string }) {
     return this.send(o.senderPhone, this.template(TPL.out, [o.senderName, o.orderNo]));
   }
 
-  /** delivered — {{1}} নাম · {{2}} order নম্বর */
+  /** {{1}} name, {{2}} order number */
   orderDelivered(o: { senderPhone: string; senderName: string; orderNo: string }) {
     return this.send(o.senderPhone, this.template(TPL.delivered, [o.senderName, o.orderNo]));
   }

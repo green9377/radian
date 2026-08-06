@@ -5,29 +5,16 @@ import { TPL, WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { MessagingSettingsService } from './messaging-settings.service';
 
 /*
-  ═══════════════════════════════════════════════════════════════════════════
-  ORDER MESSAGES — এক order নিয়ে গ্রাহককে পাঠানো প্রতিটা বার্তার একমাত্র পথ।
-  DEC-WA-002…005।
+  The only path for any message about an order.
 
-  ⚠️ কেন এই স্তরটা দরকার হলো। আগে বার্তা পাঠানো হতো সরাসরি
-  `whatsappCloud.orderOut(...)` ডেকে — void, fire-and-forget। ফলে:
-    · "গ্রাহক confirmation পেয়েছিলেন কি না" — কারও কাছে উত্তর নেই
-    · "২৪ ঘণ্টা পর আবার পাঠাও" — প্রথমটা গেছে কিনা না জেনে বলা যায় না
-    · একই বার্তা দুবার যাওয়া ঠেকানোর কিছু নেই
-  এখন প্রতিটা বার্তা আগে **সারি হিসেবে লেখা হয়**, তারপর পাঠানো হয়। সারিটাই
-  ইতিহাস, আর সারিটাই দ্বিতীয়বার পাঠানো ঠেকায়।
-
-  ⚠️ QUEUE আগে, পাঠানো পরে — উল্টো নয়। পাঠিয়ে তারপর লিখতে গেলে, লেখার
-  আগে process মরলে বার্তা গেছে অথচ কোথাও লেখা নেই — পরের sweep আবার
-  পাঠাবে। এখন উল্টোটা ঘটে: লেখা আছে অথচ পাঠানো হয়নি, আর পরের sweep
-  সেটা তুলে নেবে। দুটো ভুলের মধ্যে এটাই কম ক্ষতিকর।
-
-  ⚠️ FAIL-SOFT সর্বত্র। বার্তা একটা সৌজন্য; order-টা চুক্তি। WhatsApp-এর
-  কোনো ব্যর্থতা কখনো order আটকাবে না।
-  ═══════════════════════════════════════════════════════════════════════════
+  Every message is written as a row first and sent second. Sending first and
+  recording after means a crash between the two sends it again on the next
+  sweep; this way the worst case is a row not yet sent, which the sweep fixes.
+  Nothing here can block an order — a message is a courtesy, the order is the
+  contract.
 */
 
-/** কোন kind কোন template-এ যায় — এক জায়গায়, যাতে নাম বদলালে এক জায়গায় বদলায় */
+/** One place for the kind → template mapping. */
 const TEMPLATE_FOR: Record<OrderMessageKind, string> = {
   ORDER_CONFIRMATION: TPL.confirm,
   ORDER_CONFIRMATION_COD: TPL.confirmCod,
@@ -48,12 +35,11 @@ export class OrderMessagesService {
     private readonly settings: MessagingSettingsService,
   ) {}
 
-  /* ═══════════════ queue ═══════════════ */
+  /* ---- queue ---- */
 
   /**
-   * একটা বার্তা সারিতে তোলা। ইতিমধ্যে থাকলে চুপচাপ কিছু করে না —
-   * `@@unique([orderId, kind, attempt])` ডেটাবেজেই না বলে দেয়, তাই এখানে
-   * "আগে দেখে নিই আছে কিনা" জাতীয় দৌড় (race) হয় না।
+   * Queues one message. Already queued is silently fine — the unique index on
+   * (orderId, kind, attempt) refuses it, so there is no check-then-insert race.
    */
   async queue(
     orderId: string,
@@ -73,18 +59,14 @@ export class OrderMessagesService {
         },
       });
     } catch (e) {
-      // unique লঙ্ঘন = আগেই সারিতে আছে। এটাই কাঙ্ক্ষিত, ভুল নয়।
+      // Unique violation means it is already queued. That is the point.
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return null;
       this.log.warn(`queue failed ${kind} for ${orderId}: ${e instanceof Error ? e.message : e}`);
       return null;
     }
   }
 
-  /**
-   * order তৈরি হওয়ার সাথে সাথে। COD আর prepaid-এর বার্তা আলাদা
-   * (DEC-WA-005) — COD-তে "আমাদের একজন প্রতিনিধি যোগাযোগ করে verify
-   * করবেন" বলা হয়, কারণ ওখানে টাকা এখনো আসেনি এবং ভুয়া order-ও থাকে।
-   */
+  /** COD and prepaid say different things: COD has no money yet. */
   async queueConfirmation(orderId: string, isCod: boolean) {
     return this.queue(
       orderId,
@@ -93,9 +75,8 @@ export class OrderMessagesService {
   }
 
   /**
-   * পেমেন্ট ফেল/বাতিল (DEC-WA-002) — এখন একবার, আর কয়েক ঘণ্টা পর আরেকবার।
-   * দ্বিতীয়টা এখনই সারিতে তোলা হয় ভবিষ্যতের `dueAt` দিয়ে; টাকা এসে গেলে
-   * পাঠানোর আগে সেটা `SKIPPED` হয়ে যাবে (`sendOne`-এর যাচাই)।
+   * Queues the immediate message and, if configured, one for later. The later
+   * one is skipped at send time if the money has arrived by then.
    */
   async queuePaymentFailed(orderId: string) {
     const s = await this.settings.get();
@@ -109,9 +90,9 @@ export class OrderMessagesService {
     }
   }
 
-  /* ═══════════════ send ═══════════════ */
+  /* ---- send ---- */
 
-  /** সময় হয়ে যাওয়া সব সারি পাঠায়। sweeper আর "হাতে চালান" বোতাম দুটোই এটাই ডাকে। */
+  /** Sends everything that is due. Both the sweeper and "Run now" call this. */
   async sendDue(limit = 50) {
     const due = await this.prisma.db.orderMessage.findMany({
       where: { status: OrderMessageStatus.QUEUED, dueAt: { lte: new Date() }, deletedAt: null },
@@ -130,7 +111,7 @@ export class OrderMessagesService {
     return { picked: due.length, sent, failed, skipped };
   }
 
-  /** একটা সারি পাঠায় — বা কারণসহ বাদ দেয় */
+  /** Sends one row, or skips it with a reason. */
   async sendOne(id: string): Promise<'SENT' | 'FAILED' | 'SKIPPED'> {
     const m = await this.prisma.db.orderMessage.findFirst({
       where: { id, deletedAt: null },
@@ -140,8 +121,7 @@ export class OrderMessagesService {
 
     const o = m.order;
 
-    /*  বাদ দেওয়ার কারণগুলো — প্রতিটাই "পাঠানোর দরকার ফুরিয়ে গেছে", ব্যর্থতা
-        নয়। তাই SKIPPED, আর কারণটা `error` ঘরে মানুষের ভাষায় লেখা থাকে।  */
+    // Skipping is not failure — the reason to send simply expired.
     const skip = await this.skipReason(m.kind, o);
     if (skip) {
       await this.prisma.db.orderMessage.update({
@@ -175,7 +155,7 @@ export class OrderMessagesService {
     return r.ok ? 'SENT' : r.configured ? 'FAILED' : 'SKIPPED';
   }
 
-  /** পাঠানোর মুহূর্তে যাচাই — সারি তোলার সময়ের অবস্থা ততক্ষণে বদলে যেতে পারে */
+  /** Re-checked at send time: the world moves between queueing and sending. */
   private async skipReason(
     kind: OrderMessageKind,
     o: { id: string; senderPhone: string; salesStatus: string; paymentStatus: string; deletedAt: Date | null },
@@ -184,16 +164,14 @@ export class OrderMessagesService {
     if (!o.senderPhone?.trim()) return 'no phone on the order';
     if (o.salesStatus === 'cancelled') return 'order cancelled';
 
-    /*  ⚠️ এটাই "টাকা এসে গেলে ২৪ ঘণ্টার তাগাদা যাবে না" নিয়মের বাস্তব রূপ
-        (DEC-WA-002)। টাকা দিয়ে ফেলার পর "আপনার পেমেন্ট হয়নি" পাওয়া
-        গ্রাহকের কাছে দোকানটাকে অবিশ্বাস্য করে তোলে।  */
+    // Telling someone who has paid that they have not is worse than silence.
     if (kind === OrderMessageKind.PAYMENT_FAILED && o.paymentStatus !== 'unpaid') {
       return 'already paid';
     }
     return null;
   }
 
-  /** kind অনুযায়ী template + মান */
+  /** Template and values for one kind. */
   private payloadFor(
     kind: OrderMessageKind,
     o: { orderNo: string; senderName: string; totalPaisa: number },
@@ -204,17 +182,13 @@ export class OrderMessagesService {
         return this.wa.template(TPL.confirm, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
       case OrderMessageKind.ORDER_CONFIRMATION_COD:
         return this.wa.template(TPL.confirmCod, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
-      /*  ⚠️ চারটেতেই {{1}} = নাম, {{2}} = order নম্বর — এক ক্রম।
-          Meta-র নিয়মে লেখায় {{1}} অবশ্যই {{2}}-এর আগে আসতে হবে, আর
-          template-ভেদে ক্রম বদলালে একদিন কারও কাছে নামের জায়গায় order
-          নম্বর চলে যেত।  */
+      // {{1}} is always the name, {{2}} the order number, in every template.
       case OrderMessageKind.ORDER_OUT_FOR_DELIVERY:
         return this.wa.template(TPL.out, [o.senderName, o.orderNo]);
       case OrderMessageKind.ORDER_DELIVERED:
         return this.wa.template(TPL.delivered, [o.senderName, o.orderNo]);
       case OrderMessageKind.PAYMENT_FAILED:
-        /*  বোতামে গোটা ঠিকানা নয়, শুধু শেষ টুকরো — Meta-র নিয়ম। template-এ
-            লেখা থাকে `https://radianbd.com/pay/{{1}}`, আমরা দিই order নম্বর।  */
+        // The button takes only the URL's last segment, not the whole address.
         return this.wa.template(
           TPL.paymentFailed,
           [o.senderName, o.orderNo, taka(o.totalPaisa), supportPhone],
@@ -222,9 +196,7 @@ export class OrderMessagesService {
           o.orderNo,
         );
       default:
-        /*  enum-এ নতুন kind যোগ হলে এখানে এসে পড়বে। চুপচাপ `undefined`
-            ফেরত দিয়ে পরে "বার্তা যাচ্ছে না কেন" খোঁজার চেয়ে এখানেই থেমে
-            যাওয়া ভালো — sendOne এটাকে FAILED হিসেবে লিখে রাখবে।  */
+        // A new kind with no template lands here. Failing loudly beats silence.
         throw new Error(`no template mapped for ${String(kind)}`);
     }
   }

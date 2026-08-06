@@ -244,14 +244,11 @@ export class AdministrationController {
     return this.integrations_.save(kind, provider, dto, req.actor?.name ?? 'unknown');
   }
 
-  /*  একটা সংরক্ষিত secret পুরোটা দেখা। মালিকের সিদ্ধান্ত ৬ আগস্ট: "unhide
-      করলে যেন দেখা যায়" — বারবার Meta/SSLCommerz-এ ফিরে গিয়ে চাবি কপি করে
-      আনা কষ্টকর, আর সেটাই বাস্তব ব্যবহারের সবচেয়ে বড় বাধা ছিল।
-
-      ⚠️ তবু চাবি overview-তে ফেরে না, ফেরে এখানে — চোখে চাপলে তবেই, একটা
-      করে। কারণ পাতা খুললেই সব চাবি JSON-এ চলে গেলে সেটা ব্রাউজারের cache-এ,
-      screenshot-এ আর log-এ চলে যেত। এখানে OWNER ছাড়া কেউ পারে না, আর
-      প্রতিবার audit-এ ওঠে — কে, কখন, কোন চাবি।  */
+  /**
+   * Reveals one saved secret. Owner only, and every reveal is audited. The
+   * overview still returns masked values — a key in the page payload is a key
+   * in the browser cache, in screenshots and in logs.
+   */
   @Get('integrations/:kind/:provider/reveal/:field')
   @Roles('OWNER')
   revealIntegrationField(
