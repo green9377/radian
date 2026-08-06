@@ -18,21 +18,25 @@ _৭ আগস্ট ২০২৬。 এটা শুধু ভিডিও ত�
 | | |
 |---|---|
 | **কম্পিউটার** | Radian Admin → **Inbox** পাতা খোলা。 আর কোনো tab দরকার নেই |
-| **ফোন** | Messenger আর Instagram app, **এমন account দিয়ে যেটা তোমার নয়** — স্ত্রী/ভাই/কর্মচারীর ফোন。 ওই account-কে আগে app-এ **Tester** বানিয়ে নিতে হবে (নিচে দেখো) |
+| **ফোন** | Messenger আর Instagram app, **এমন account দিয়ে যেটা তোমার নয়** — স্ত্রী/ভাই/কর্মচারীর ফোন。 বিশেষ কিছু করার দরকার নেই, যেকোনো সাধারণ account চলবে |
 | **রেকর্ডিং** | কম্পিউটারে screen recorder。 Windows-এ **Win + G** চেপে Game Bar, বা যেকোনো recorder |
 | **ফোনের রেকর্ডিং** | ফোনের নিজের screen recording চালু |
 
 ⚠️ **নিজের account থেকে নিজের Page-এ message দেওয়া যায় না** (Page-এর admin
-হিসেবে)。 তাই অন্য একটা account লাগবেই。
+হিসেবে)。 তাই অন্য একটা account লাগবেই — কিন্তু সেটাকে Tester বানানোর
+দরকার নেই。
 
-### ওই account-কে Tester বানাও
+### কেন Tester লাগে না (৭ আগস্ট, যাচাই করা)
 
-Meta → App → **App roles → Roles → Add People → Testers** → ওই account
-বেছে নাও。 ওই ফোনে গিয়ে **অনুরোধটা Accept** করতে হবে
-(developers.facebook.com → notification)。
+প্রথমে লিখেছিলাম ওই account-কে app-এ Tester বানাতে হবে。 **ভুল ছিল。**
+Inbox খুলে দেখা গেল app-এ কোনো ভূমিকা নেই এমন লোকের বার্তাও আসছে এবং
+উত্তরও যাচ্ছে。
 
-এটা না করলে ওই account-এর বার্তা আমাদের কাছে আসবে না, আর ভিডিওতে দেখা
-যাবে "কিছু হলো না"。
+"শুধু app role-এর লোকের সাথে চলে" নিয়মটা **Facebook Login দিয়ে ব্যবহারকারীর
+কাছে permission চাওয়ার** ক্ষেত্রে খাটে — নিজের Page-এ আসা কথোপকথনে নয়。
+
+এর একটা বাড়তি সুফল: **Meta-র reviewer সম্ভবত নিজেই পরীক্ষা করতে পারবে**,
+তাই submission-এর ঝুঁকি অনেক কম。
 
 ---
 
@@ -101,6 +105,6 @@ Meta → App → **App roles → Roles → Add People → Testers** → ওই a
 
 | সমস্যা | কারণ | করণীয় |
 |---|---|---|
-| বার্তা Inbox-এ আসছে না | ওই account Tester নয়, বা অনুরোধ Accept করা হয়নি | App roles → Roles দেখে নাও |
+| বার্তা Inbox-এ আসছে না | Render-এর server ঘুমিয়ে থাকতে পারে, বা webhook subscription বন্ধ | `RADIAN_MESSENGER_INSTAGRAM.md` §৫ |
 | উত্তর ফোনে যাচ্ছে না | Render-এর server ঘুমিয়ে ছিল | Inbox একবার refresh করে আবার চেষ্টা |
 | Instagram-এ DM-ই যাচ্ছে না | account professional নয় বা Page-এর সাথে link নেই | `RADIAN_MESSENGER_INSTAGRAM.md` §৫ |
