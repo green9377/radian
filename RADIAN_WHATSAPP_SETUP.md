@@ -350,3 +350,44 @@ compute-hour সীমা। নিয়মিত জেগে ওঠা query 
 ---
 
 _সূত্র: Meta WhatsApp Cloud API — Get started · Pricing (২০২৬)।_
+
+---
+
+## ৭ক. Webhook — গ্রাহকের বার্তা Inbox-এ (৬ আগস্ট ২০২৬)
+
+কোড তৈরি: `apps/api/src/messaging/whatsapp-webhook.ts`。 যা করে —
+
+- গ্রাহক WhatsApp-এ লিখলে সেটা **Admin → Inbox**-এ Conversation/Message হয়ে আসে
+- staff Inbox-এ উত্তর লিখলে সেটা **WhatsApp-এ চলে যায়**
+- আমাদের পাঠানো বার্তার delivery receipt এসে `OrderMessage`-এ বসে (ব্যর্থ হলে কারণসহ)
+- **click-to-WhatsApp বিজ্ঞাপনের `ctwa_clid`** ধরা পড়ে Conversation-এ — "কোন বিজ্ঞাপন থেকে এই order" এই প্রশ্নের একমাত্র সুতো
+
+### মালিকের ধাপ
+
+**১. দুটো ঘর ভরুন** — Admin → Administration → Integrations → Messaging → WhatsApp:
+
+| ঘর | কোথায় পাবেন |
+|---|---|
+| **App secret** | developers.facebook.com → Radian app → Settings → Basic → App secret |
+| **Webhook verify token** | নিজে একটা গোপন শব্দ বানান (যেমন `radian-wh-2026-xY7q`)। কোথাও থেকে আনতে হয় না, শুধু দুই জায়গায় **একই** বসাতে হবে |
+
+**২. Meta-তে callback বসান** — Radian app → WhatsApp → Configuration → Webhook → Edit:
+
+- Callback URL: `https://radian-api-qnt6.onrender.com/webhooks/whatsapp`
+  *(আসল সার্ভারে গেলে ওই ঠিকানা)*
+- Verify token: উপরের ওই শব্দটাই, হুবহু
+- **Verify and save**
+
+**৩. field subscribe করুন** — একই পর্দায় **Manage** → টিক দিন:
+`messages` (গ্রাহকের বার্তা + delivery receipt দুটোই এতে আসে)
+
+> Coexistence-এ যাওয়ার সময় আরও তিনটে লাগবে: `history`,
+> `smb_app_state_sync`, `smb_message_echoes` (§৪ক দেখুন)。
+
+### ফাঁদ
+
+| ফাঁদ | ফল |
+|---|---|
+| App secret না বসানো | webhook **সব বার্তা ফিরিয়ে দেবে** — signature ছাড়া কোনো request বিশ্বাস করা হয় না, নইলে যে কেউ ভুয়া গ্রাহক-বার্তা ঢোকাতে পারত |
+| দুই জায়গায় verify token আলাদা | Meta-র "Verify and save" ফেল করবে |
+| ২৪ ঘণ্টার জানালা | গ্রাহকের শেষ বার্তার ২৪ ঘণ্টা পার হলে সাধারণ লেখা Meta নেবে না — তখন template লাগে。 staff-এর উত্তর ব্যর্থ হলে API log-এ কারণ লেখা থাকে |

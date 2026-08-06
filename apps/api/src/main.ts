@@ -58,7 +58,12 @@ function corsOrigins(): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  /*
+    rawBody: WhatsApp signs the exact bytes it sent. Re-serialising the parsed
+    JSON changes whitespace and key order, and the signature then never
+    matches — which would leave the webhook open or permanently closed.
+  */
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const allowed = corsOrigins();
   const isProd = process.env.NODE_ENV === 'production';

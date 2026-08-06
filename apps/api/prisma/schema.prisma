@@ -6674,6 +6674,12 @@ model Conversation {
   /// অন্য channel-এর নিজের পরিচয় (Messenger PSID, WhatsApp নম্বর) — Phase 3.
   externalIdentity String?
 
+  /// Set when the customer arrived from a click-to-WhatsApp ad. Without it,
+  /// "which ad produced this order" has no answer (owner's tracking rule).
+  ctwaClid           String?
+  adReferralSourceId String?
+  adReferralHeadline String?
+
   /// DEC-INB-004 — staff লিখলেই false; আবার চালু per-thread, হাতে।
   aiEnabled Boolean @default(true)
 

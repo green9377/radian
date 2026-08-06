@@ -9,6 +9,7 @@ import { OrderMessagesService } from './order-messages.service';
 import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
 import { MessagingSweeper } from './messaging.sweeper';
 import { WhatsAppTemplatesService } from './whatsapp-templates';
+import { WhatsAppWebhookController, WhatsAppWebhookService } from './whatsapp-webhook';
 import { AdministrationModule } from '../administration/administration.module';
 
 /*
@@ -148,9 +149,9 @@ export class CheckoutLeadController {
   imports: [PrismaModule, WhatsAppCloudModule, AdministrationModule],
   providers: [
     MessagingSettingsService, OrderMessagesService, CheckoutLeadsService,
-    MessagingSweeper, WhatsAppTemplatesService,
+    MessagingSweeper, WhatsAppTemplatesService, WhatsAppWebhookService,
   ],
-  controllers: [MessagingController, CheckoutLeadController],
+  controllers: [MessagingController, CheckoutLeadController, WhatsAppWebhookController],
   exports: [OrderMessagesService, CheckoutLeadsService],
 })
 export class MessagingModule {}

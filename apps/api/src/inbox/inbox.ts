@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Get,
   Injectable,
+  Logger,
   Module,
   NotFoundException,
   Param,
@@ -27,6 +28,7 @@ import { Public } from '../auth/auth.guard';
 import { InboxAiTools } from './ai-tools';
 import { InboxAiAgent } from './ai-agent';
 import { InboxPresence } from './presence';
+import { WhatsAppCloudModule, WhatsAppCloudService } from '../common/whatsapp-cloud';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -100,10 +102,13 @@ interface SettingsDto {
 
 @Injectable()
 export class InboxService {
+  private readonly log = new Logger('Inbox');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly ai: InboxAiAgent,
+    private readonly wa: WhatsAppCloudService,
   ) {}
 
   /* ── settings (singleton, ঘরের ensureSingleton ধাঁচ) ─────────────────── */
@@ -415,6 +420,27 @@ export class InboxService {
         lastMessageAt: new Date(),
       },
     });
+
+    /*
+      A reply typed here has to leave the building. Web chat is polled by the
+      customer's own browser, but on WhatsApp nothing happens unless we send
+      it. Fire and forget: the staff member should not wait on Meta, and a
+      failure must not lose the reply that is already recorded.
+
+      Free text only works inside the 24-hour window Meta allows after the
+      customer's last message. Outside it Meta refuses, and the refusal is
+      logged rather than hidden — a reply that silently never arrived is worse
+      than one that visibly failed.
+    */
+    if (convo.channel === InboxChannel.WHATSAPP && convo.externalIdentity) {
+      void this.wa
+        .sendRaw(convo.externalIdentity, { type: 'text', text: { body } })
+        .then((r) => {
+          if (!r.ok) this.log.warn(`WhatsApp reply failed for ${id}: ${r.error}`);
+        })
+        .catch(() => undefined);
+    }
+
     return this.detail(id);
   }
 
@@ -564,6 +590,7 @@ export class InboxController {
 }
 
 @Module({
+  imports: [WhatsAppCloudModule],
   providers: [InboxService, InboxAiTools, InboxAiAgent, InboxPresence],
   controllers: [ShopChatController, InboxController],
 })
