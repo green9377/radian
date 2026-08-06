@@ -140,9 +140,13 @@ export class WhatsAppTemplatesService {
           results.push({ name: t.name, ok: true, status: body.status ?? 'PENDING' });
           continue;
         }
-        // Already existing is not a failure — pressing the button twice is normal.
+        /*
+          Already there is not a failure — pressing the button twice is normal.
+          Meta phrases this several ways, so match on the idea, not one string.
+        */
         const msg = body.error?.error_user_msg || body.error?.message || `HTTP ${res.status}`;
-        const exists = /already exists/i.test(msg);
+        const exists =
+          /already exists|already English content|already have.*template|duplicate/i.test(msg);
         results.push({
           name: t.name,
           ok: exists,
