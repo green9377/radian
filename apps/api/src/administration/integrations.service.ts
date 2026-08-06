@@ -560,6 +560,35 @@ export class IntegrationsService {
    * this does give is a place for the answer, and an honest "never checked"
    * until there is one — which beats a green tick that means "a string is saved".
    */
+  /**
+   * One saved credential, in full. Owner's ruling, 6 Aug: a key you cannot read
+   * back is a key you must fetch from the provider again every time you need it
+   * somewhere else — and that friction was the real thing stopping the panel
+   * from being used.
+   *
+   * ⚠️ Deliberately NOT part of `overview()`. One field, on request, by the
+   * OWNER, written to the audit trail every time. A key that rides along in the
+   * page payload is a key in the browser cache, in a screenshot and in the logs
+   * — which is exactly what `mask()` exists to prevent, and that stays true.
+   */
+  async reveal(kind: IntKind, provider: string, field: string, actorName: string) {
+    const manifest = PROVIDERS.find((m) => m.kind === kind && m.provider === provider);
+    if (!manifest) throw new NotFoundException('No such service');
+    // manifest-এ নেই এমন নাম চাইলে না — নইলে যেকোনো column পড়ে ফেলা যেত
+    const f = manifest.fields.find((x) => x.key === field);
+    if (!f) throw new BadRequestException('No such field on that service');
+
+    const row = await this.prisma.db.integration.findFirst({ where: { kind, provider } });
+    const value = (row as Record<string, string | null> | null)?.[field] ?? null;
+
+    await this.audit.record({
+      entityType: 'Integration', entityId: row?.id ?? `${kind}:${provider}`, action: 'READ',
+      actorName, changes: { revealed: `${provider}.${field}`, hadValue: Boolean(value) },
+    });
+
+    return { field, value };
+  }
+
   async recordCheck(
     kind: IntKind, provider: string,
     ok: boolean, note: string, actorName: string,

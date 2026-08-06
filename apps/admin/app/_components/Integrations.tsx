@@ -36,7 +36,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
-  getIntegrations, saveIntegration, waTestSend,
+  getIntegrations, revealIntegrationField, saveIntegration, waTestSend,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -474,8 +474,29 @@ function HeroServiceCard({
   /** কোন box-এ সত্যিই টাইপ হয়েছে — শুধু ক্লিক করা "টাইপ করা" নয় */
   const [typed, setTyped] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  /*  চোখে চেপে আনা আসল মান। server overview()-তে কখনো পাঠায় না, তাই
+      আগে চোখ চাপলে শুধু ঢাকা ফুটকিই দেখা যেত — মালিকের অভিযোগ ৬ আগস্ট:
+      "unhide করলেও দেখা যায় না, just last 4 digit show করে"।  */
+  const [full, setFull] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const complete = s.fieldsFilled === s.fieldsTotal;
+
+  async function toggleReveal(key: string) {
+    if (revealed.has(key)) {
+      setRevealed((r) => { const n = new Set(r); n.delete(key); return n; });
+      return;
+    }
+    setRevealed((r) => new Set(r).add(key));
+    // যা টাইপ করা হচ্ছে সেটা দেখাতে server-এ যাওয়ার দরকার নেই
+    if (full[key] === undefined && !typed.has(key)) {
+      try {
+        const r = await revealIntegrationField(s.kind, s.provider, key);
+        if (r.value) setFull((x) => ({ ...x, [key]: r.value as string }));
+      } catch (e) {
+        onError((e as Error).message);
+      }
+    }
+  }
 
   async function save(extra: Record<string, unknown> = {}) {
     setBusy(true);
@@ -550,8 +571,12 @@ function HeroServiceCard({
             const isRevealed = revealed.has(f.key);
             const touched = edits[f.key] !== undefined;
             const didType = typed.has(f.key);
-            const shown = touched ? edits[f.key] : (f.value ?? "");
             const saved = Boolean(f.value);
+            /*  চোখ খোলা + server থেকে আসল মান এসে গেছে → আসলটাই দেখাও।
+                নাহলে আগের মতো ঢাকা মান। নিজে টাইপ করলে সেটাই সর্বোচ্চ।  */
+            const shown = touched
+              ? edits[f.key]
+              : (revealed.has(f.key) && full[f.key] !== undefined ? full[f.key] : (f.value ?? ""));
             return (
               <div key={f.key} className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -612,12 +637,8 @@ function HeroServiceCard({
                       type="button"
                       className="shrink-0 w-11 h-11 rounded-2xl grid place-items-center text-[16px] border-2 transition-colors"
                       style={{ borderColor: "#ece5f2" }}
-                      title="Show what you just typed — a saved key can never be shown again, by design"
-                      onClick={() => setRevealed((r) => {
-                        const n = new Set(r);
-                        n.has(f.key) ? n.delete(f.key) : n.add(f.key);
-                        return n;
-                      })}
+                      title={isRevealed ? "আবার ঢাকুন" : "পুরো চাবিটা দেখুন (audit-এ লেখা থাকবে)"}
+                      onClick={() => void toggleReveal(f.key)}
                     >
                       {isRevealed ? "🙈" : "👁"}
                     </button>

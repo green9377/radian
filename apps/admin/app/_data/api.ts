@@ -5937,6 +5937,13 @@ export const saveWaTemplate = (b: Record<string, unknown>) =>
 export const deleteWaTemplate = (id: string) =>
   j<{ id: string; deleted: boolean }>(`/marketing/whatsapp/templates/${id}`, { method: "DELETE" });
 
+/*  একটা সংরক্ষিত চাবি পুরোটা দেখা (মালিকের সিদ্ধান্ত ৬ আগস্ট)।
+    ⚠️ পাতা খোলার সময় নয় — চোখে চাপলে তখনই, একটা করে। OWNER-only, প্রতিবার
+    audit-এ ওঠে। overview() এখনো mask করা মানই পাঠায়, সেটা বদলায়নি।  */
+export const revealIntegrationField = (kind: string, provider: string, field: string) =>
+  j<{ field: string; value: string | null }>(
+    `/administration/integrations/${kind}/${provider}/reveal/${field}`);
+
 /*  মালিকের এক-click যাচাই। endpoint ২ আগস্ট থেকে API-তে ছিল, admin-এ বোতাম
     ছিল না — তাই "চাবি বসালাম, কাজ করছে কি না জানি না" অবস্থা।
     Meta-র pre-approved `hello_world` যায়, তাই নিজেদের template approve
