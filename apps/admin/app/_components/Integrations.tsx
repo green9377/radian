@@ -42,6 +42,35 @@ import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
   btnGhost, btnPrimary, btnPrimaryStyle, input, Lbl,
 } from "./FinanceUI";
+import { Switch } from "./DeliveryUI";
+
+/*
+  PAYMENT GATEWAY CARDS — redesign, 6 Aug 2026.
+
+  মালিকের অনুরোধ: পুরনো সাইটের Payment Gateways পাতা দেখিয়ে বললেন এটা অনেক
+  সুন্দর সাজানো, আর এই পাতাটা "baje" (খারাপ)। তুলনা করে দেখা গেল আসল পার্থক্যটা
+  ফাংশনের না — SSLCommerz/bKash/Nagad এখানে আগে থেকেই পুরোপুরি কাজ করে
+  (save, sandbox/live, validation সব আছে)। পার্থক্যটা শুধু চেহারায়: পুরনো
+  পাতায় প্রতিটা gateway-র নিজস্ব রং/লোগো আছে, field সবসময় খোলা দেখা যায়,
+  বড় toggle switch — আর এখানে সব ধূসর card, click করে "Edit" চাপলে তবেই
+  field দেখা যায়।
+
+  ⚠️ যা ইচ্ছাকৃতভাবে কপি করা হয়নি: পুরনো পাতায় Store Password/API Key
+  সবসময় plaintext-এ খোলা দেখাচ্ছিল (মালিক নিজেই মার্কার দিয়ে ঢেকেছেন
+  screenshot-এ)। এখানে backend কখনো পুরো secret ফেরত পাঠায় না
+  (integrations.service.ts-এর mask() — শেষ ৪ অক্ষর ছাড়া সব ঢাকা), তাই
+  "reveal" বাটন আসল secret কখনো দেখাতে পারবে না — এটা এই আর্কিটেকচারের
+  ইচ্ছাকৃত নিরাপত্তা, বাগ না। চোখ-আইকন শুধু আপনি এইমাত্র যা টাইপ করলেন সেটা
+  দেখাবে (নতুন key ঠিক টাইপ হয়েছে কিনা যাচাইয়ের জন্য), আগের সেভ করা key না।
+*/
+
+const PAYMENT_BRAND: Record<string, { grad: string; badge: string; ring: string }> = {
+  SSLCOMMERZ: { grad: "linear-gradient(135deg,#0a3d62,#3c8dbc)", badge: "SC", ring: "#cfe3ee" },
+  BKASH:      { grad: "linear-gradient(135deg,#d6136c,#ff5da2)", badge: "bK", ring: "#f8cfe2" },
+  NAGAD:      { grad: "linear-gradient(135deg,#e2691a,#f7a339)", badge: "ন", ring: "#f7ddc0" },
+};
+const brandFor = (provider: string) =>
+  PAYMENT_BRAND[provider] ?? { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.ring };
 
 const TONE_FOR: Record<ApiIntKind, keyof typeof TONE> = {
   PAYMENT: "brand",
@@ -141,11 +170,18 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
                 </p>
               )}
               {g.services.map((s) => (
-                <ServiceCard
-                  key={s.provider} s={s}
-                  couriers={g.kind === "COURIER" ? data?.couriers : undefined}
-                  onSaved={(m) => { flash(m); load(); }} onError={setErr}
-                />
+                g.kind === "PAYMENT" ? (
+                  <PaymentServiceCard
+                    key={s.provider} s={s}
+                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
+                  />
+                ) : (
+                  <ServiceCard
+                    key={s.provider} s={s}
+                    couriers={g.kind === "COURIER" ? data?.couriers : undefined}
+                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
+                  />
+                )
               ))}
             </div>
           </Panel>
@@ -368,5 +404,169 @@ function ServiceCard({
         </div>
       )}
     </Card>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  PAYMENT — always-open, branded card. Same data + same save() calls as
+    ServiceCard; only the shell is different, because this is the one group
+    the owner asked to look like a real payment-gateway dashboard.  */
+
+function PaymentServiceCard({
+  s, onSaved, onError,
+}: {
+  s: ApiIntegration;
+  onSaved: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const brand = brandFor(s.provider);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [cleared, setCleared] = useState<Set<string>>(new Set());
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const complete = s.fieldsFilled === s.fieldsTotal;
+
+  async function save(extra: Record<string, unknown> = {}) {
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = { ...extra };
+      for (const [k, v] of Object.entries(edits)) if (v.trim()) body[k] = v.trim();
+      for (const k of cleared) body[k] = "";
+      await saveIntegration(s.kind, s.provider, body);
+      setEdits({}); setCleared(new Set());
+      onSaved(`${s.label} saved`);
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="rounded-2xl border overflow-hidden bg-white shadow-[0_1px_3px_rgba(80,40,100,0.05)]"
+      style={{ borderColor: s.isEnabled ? brand.ring : "#efe9f3" }}
+    >
+      {/*  Brand header — colour is the provider's own, not the app's, on
+          purpose: this is the one place "which gateway is this" should be
+          readable from three metres away.  */}
+      <div className="relative px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: brand.grad }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/40 grid place-items-center text-white font-display text-[15px] shrink-0">
+            {brand.badge}
+          </div>
+          <div className="min-w-0">
+            <div className="text-white font-display text-[15px] leading-tight truncate">{s.label}</div>
+            <div className="text-white/80 text-[10.5px] font-semibold tracking-wide uppercase mt-0.5">
+              {s.isEnabled ? (s.hasSandbox && !s.isLive ? "Sandbox" : "Live") : "Off"}
+            </div>
+          </div>
+        </div>
+        <Switch
+          on={s.isEnabled}
+          onClick={() => void save({ isEnabled: !s.isEnabled })}
+        />
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+          <Chip tone={complete ? "sky" : "amber"}>{s.fieldsFilled}/{s.fieldsTotal} keys</Chip>
+          {s.hasSandbox && (
+            <button
+              type="button" disabled={busy}
+              onClick={() => void save({ isLive: !s.isLive })}
+              className="text-[10.5px] font-bold px-2 py-0.5 rounded-full transition-colors"
+              style={s.isLive
+                ? { background: TONE.emerald.soft, color: TONE.emerald.text }
+                : { background: TONE.rose.soft, color: TONE.rose.text }}
+            >
+              {s.isLive ? "● LIVE — tap for sandbox" : "● SANDBOX — tap for live"}
+            </button>
+          )}
+        </div>
+
+        <p className="text-[12px] text-body leading-relaxed mb-3">{s.matters}</p>
+
+        {/*  Fields are always visible — no "Add keys" click needed, matching
+            the reference layout the owner pointed to.  */}
+        <div className="grid sm:grid-cols-2 gap-3">
+          {s.fields.map((f) => {
+            const isRevealed = revealed.has(f.key);
+            return (
+              <div key={f.key}>
+                <Lbl>{f.label}</Lbl>
+                <div className="flex gap-1.5">
+                  <input
+                    className={input}
+                    type={f.secret && !isRevealed ? "password" : "text"}
+                    placeholder={
+                      cleared.has(f.key) ? "will be cleared"
+                        : f.value ? `${f.value} — leave blank to keep` : "not set"
+                    }
+                    value={edits[f.key] ?? ""}
+                    autoComplete="new-password"
+                    onChange={(e) => setEdits((x) => ({ ...x, [f.key]: e.target.value }))}
+                  />
+                  {f.secret && (
+                    <button
+                      type="button" className={btnGhost}
+                      title="Show what you just typed — a saved key can never be shown again, by design"
+                      onClick={() => setRevealed((r) => {
+                        const n = new Set(r);
+                        n.has(f.key) ? n.delete(f.key) : n.add(f.key);
+                        return n;
+                      })}
+                    >
+                      {isRevealed ? "🙈" : "👁"}
+                    </button>
+                  )}
+                  {f.value && (
+                    <button
+                      className={btnGhost}
+                      onClick={() => setCleared((c) => {
+                        const n = new Set(c);
+                        n.has(f.key) ? n.delete(f.key) : n.add(f.key);
+                        return n;
+                      })}
+                    >
+                      {cleared.has(f.key) ? "Keep" : "Clear"}
+                    </button>
+                  )}
+                </div>
+                {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[11px] text-body-soft mt-3">
+          {s.lastCheckedAt
+            ? `Last checked ${new Date(s.lastCheckedAt).toLocaleString()} — ${s.lastCheckOk ? "worked" : "failed"}${s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}`
+            : "Never checked against the provider — a saved key is not a working key"}
+        </p>
+        {s.movedFrom && (
+          <p className="text-[10.5px] text-body-soft mt-1">
+            Carried across from <code>{s.movedFrom}</code>
+          </p>
+        )}
+
+        <div className="mt-3.5 pt-3.5 border-t border-[#f0edf5] flex flex-wrap gap-1.5">
+          <button
+            className={btnPrimary} disabled={busy}
+            style={{ background: brand.grad }}
+            onClick={() => void save()}
+          >
+            {busy ? "Saving…" : "Update info"}
+          </button>
+        </div>
+
+        {s.hasSandbox && !s.isLive && s.isEnabled && (
+          <p className="text-[11px] leading-relaxed mt-2.5" style={{ color: TONE.rose.text }}>
+            Sandbox accepts payments that never arrive — a customer sees
+            success, no money moves. Switch to LIVE only with real keys pasted in.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
