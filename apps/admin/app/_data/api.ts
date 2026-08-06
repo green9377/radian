@@ -5937,6 +5937,17 @@ export const saveWaTemplate = (b: Record<string, unknown>) =>
 export const deleteWaTemplate = (id: string) =>
   j<{ id: string; deleted: boolean }>(`/marketing/whatsapp/templates/${id}`, { method: "DELETE" });
 
+/*  মালিকের এক-click যাচাই। endpoint ২ আগস্ট থেকে API-তে ছিল, admin-এ বোতাম
+    ছিল না — তাই "চাবি বসালাম, কাজ করছে কি না জানি না" অবস্থা।
+    Meta-র pre-approved `hello_world` যায়, তাই নিজেদের template approve
+    হওয়ার আগেই চাবি ঠিক কিনা প্রমাণ পাওয়া যায়।
+      sent:true                → চাবি ঠিক, বার্তা গেছে
+      sent:false configured:true → চাবি আছে, Meta ফিরিয়েছে (কারণ API log-এ)
+      configured:false          → চাবিই বসানো হয়নি                        */
+export const waTestSend = (to: string) =>
+  j<{ sent: boolean; configured: boolean }>(
+    "/marketing/whatsapp/test-send", { method: "POST", body: JSON.stringify({ to }) });
+
 export const waPreview = (b: ApiAudienceFilter) =>
   j<{ count: number; sample: { id: string; name: string; phone: string }[] }>(
     "/marketing/whatsapp/preview", { method: "POST", body: JSON.stringify(b) });

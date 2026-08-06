@@ -1,0 +1,269 @@
+# Radian — WhatsApp Business API সংযোগ (ধাপে ধাপে)
+
+> ৬ আগস্ট ২০২৬। মালিকের সিদ্ধান্ত: **সরাসরি Meta Cloud API** (কোনো BSP নয়),
+> **আগে Demo-তে**, তারপর Real।
+>
+> এই ফাইলটা মালিকের হাতের কাজের তালিকা — Meta-র পর্দায় যা যা করতে হবে।
+> কোডের অংশ আলাদা করে চিহ্নিত ("আমার কাজ")।
+
+---
+
+## ০. আগে একটা ভুল ধরিয়ে দেই — নাহলে ৩ দিন নষ্ট হবে
+
+| জিনিস | কী করে | Radian-এ চলবে? |
+|---|---|---|
+| WhatsApp **Messenger** (সাধারণ অ্যাপ) | ব্যক্তিগত | ❌ |
+| WhatsApp **Business App** (সবুজ অ্যাপ, ফোনে) | হাতে টাইপ করে উত্তর | ❌ **API নেই** |
+| WhatsApp **Business Platform / Cloud API** | সার্ভার নিজে বার্তা পাঠায় | ✅ **এটাই লাগবে** |
+
+দোকানের লোকেরা প্রায়ই Business App নামিয়ে ভাবে API হয়ে গেছে। হয় না।
+আমাদের লাগবে তৃতীয়টা — `developers.facebook.com` থেকে।
+
+---
+
+## ১. শুরুর আগে যা হাতে থাকতে হবে
+
+| # | লাগবে | সতর্কতা |
+|---|---|---|
+| ১ | **Facebook Business account** (business.facebook.com) | Radian-এর Page-টা যে account-এ, সেটাই |
+| ২ | **একটা আলাদা ফোন নম্বর** | ⚠️ **এই নম্বরে WhatsApp চলতে পারবে না।** আগে থেকে WhatsApp/Business App-এ থাকলে সেখান থেকে account **delete** করতে হবে (Settings → Account → Delete my account), তারপর ২৪-৪৮ ঘণ্টা অপেক্ষা। **দোকানের যে নম্বরে এখন গ্রাহক ফোন করে, সেটা দেবেন না** — নতুন একটা SIM নিন |
+| ৩ | নম্বরটায় **SMS বা কল আসবে** | OTP আসবে |
+| ৪ | **Trade licence + মালিকের NID** | Business verification-এ Meta চাইবে |
+| ৫ | **কার্ড (USD চার্জ হবে)** | Meta ডলারে বিল করে। BD কার্ডে international transaction খোলা থাকতে হবে |
+| ৬ | Radian-এর **ওয়েবসাইট live** | verification-এ ঠিকানা/ওয়েবসাইট মিলতে হয় |
+
+**সময়:** চাবি পেতে ১–২ ঘণ্টা। Business verification ১–৫ কর্মদিবস।
+Template approval সাধারণত কয়েক মিনিট–কয়েক ঘণ্টা।
+
+---
+
+## ২. Meta-র পর্দায় ধাপে ধাপে
+
+### ধাপ ১ — App বানানো
+১. `developers.facebook.com` → **My Apps** → **Create App**
+২. Use case: **Other** → App type: **Business**
+৩. নাম: `Radian` · Business portfolio: Radian-এরটা বেছে নিন
+৪. App তৈরি হলে → **Add product** → **WhatsApp** → **Set up**
+
+### ধাপ ২ — WABA (WhatsApp Business Account)
+Setup-এ ঢুকলে Meta নিজেই একটা **WABA** আর একটা **test number** বানিয়ে দেবে।
+এখানেই পাবেন:
+
+- **Phone number ID** ← এটা লাগবে
+- **WhatsApp Business Account ID**
+- **Temporary access token** (২৪ ঘণ্টা — টেস্টের জন্য, স্থায়ীটা ধাপ ৪-এ)
+
+> 💡 **Demo-র জন্য এই test number-ই যথেষ্ট।** ফ্রি, আর সঙ্গে সঙ্গে কাজ করে।
+> সীমা: শুধু **৫টা নম্বরে** পাঠানো যায় (আগে থেকে যোগ করা লাগে) — মালিক,
+> ম্যানেজার আর টেস্টারদের নম্বর দিয়ে দিন। আসল নম্বর Real-এর সময়।
+
+### ধাপ ৩ — আসল নম্বর যোগ (এটা Real-এর জন্য, Demo-তে বাদ দিন)
+API Setup → **Add phone number** →
+Display name (`Radian`) · Category (`Shopping & retail`) · Time zone (Dhaka) →
+নম্বর দিন → SMS/কল-এ OTP → **6-digit two-step PIN** বসান।
+
+> ⚠️ **PIN-টা লিখে রাখুন।** ভুলে গেলে নম্বর অন্য কোথাও সরানো যায় না,
+> আর Meta support থেকে ফেরত পেতে ভোগান্তি।
+
+### ধাপ ৪ — স্থায়ী token (System user) — **সবচেয়ে গুরুত্বপূর্ণ ধাপ**
+Temporary token ২৪ ঘণ্টায় মরে যায়। সকালে টেস্ট পাশ, রাতে সব বার্তা বন্ধ —
+এই ফাঁদে বহু লোক পড়ে।
+
+১. `business.facebook.com/latest/settings` → **System users** → **Add**
+   নাম: `radian-api` · role: **Admin**
+২. ওই user বেছে → **Assign assets** → **Apps** → Radian app → *Manage app* ✅
+৩. আবার → **Assign assets** → **WhatsApp accounts** → Radian WABA → পুরো access ✅
+৪. **Generate new token** → App: Radian → Expiration: **Never** →
+   permission টিক দিন: `whatsapp_business_messaging` + `whatsapp_business_management`
+৫. token-টা কপি করুন — **একবারই দেখাবে**
+
+### ধাপ ৫ — Template approval
+Meta-র নিয়ম: ব্যবসা আগ বাড়িয়ে বার্তা পাঠালে সেটা **অনুমোদিত template**
+হতেই হয়। সাধারণ লেখা কেবল গ্রাহকের বার্তার ২৪ ঘণ্টার ভেতরে চলে।
+
+**WhatsApp Manager → Message templates → Create template।**
+নিচের **তিনটে হুবহু** বানাতে হবে — কোডে এই নামগুলোই বসানো আছে
+(`apps/api/src/common/whatsapp-cloud.ts`):
+
+| নাম (হুবহু) | Category | Language | Body |
+|---|---|---|---|
+| `order_confirmation` | **Utility** | **English (en)** | `Hi {{1}}, your Radian order {{2}} is confirmed. Total {{3}}. We will message you when it is out for delivery.` |
+| `order_out_for_delivery` | **Utility** | **English (en)** | `Your Radian order {{1}} is out for delivery now.` |
+| `order_delivered` | **Utility** | **English (en)** | `Your Radian order {{1}} has been delivered. Thank you for choosing Radian.` |
+
+> ⚠️ **Language অবশ্যই `English` — `English (US)` নয়।** কোড `en` পাঠায়;
+> `en_US`-এ approve করালে Meta "template not found" দেবে, আর কারণটা
+> খুঁজে বের করতে আধ দিন যাবে।
+>
+> ⚠️ **Category `Utility` রাখুন, `Marketing` নয়।** Utility অনেক সস্তা,
+> আর order-এর খবর সত্যিই utility। Marketing দিলে বেশি টাকা কাটবে
+> এবং opt-out নিয়মে আটকাতে পারে।
+>
+> 💡 এখনই approve করাতে দিন — চাবি বসানোর আগেই। অনুমোদনে সময় লাগে।
+
+### ধাপ ৬ — Radian admin-এ চাবি বসানো ✅ *(এই পর্দা বানানো আছে)*
+**Admin → Administration → Integrations → Messaging → WhatsApp Business API**
+
+| ঘর | কী বসাবেন |
+|---|---|
+| Phone number ID | ধাপ ২/৩-এর Phone number ID |
+| Permanent access token | ধাপ ৪-এর token |
+| App secret | App → Settings → Basic → App secret *(webhook-এর জন্য, পরে)* |
+| Webhook verify token | নিজের বানানো একটা গোপন শব্দ *(পরে)* |
+
+**Enabled** টিক দিয়ে save → পাশের **Test** বোতাম চাপুন → নিজের নম্বর দিন।
+ফোনে `hello_world` এলে সংযোগ ঠিক আছে।
+
+> এই test Meta-র নিজের pre-approved template পাঠায়, তাই ধাপ ৫-এর
+> approval না হলেও কাজ করে — অর্থাৎ **চাবি ঠিক কিনা এখনই জানা যায়**।
+
+---
+
+## ৩. Radian-এর দিকে কী আছে, কী নেই
+
+| কাজ | অবস্থা | কী বাকি |
+|---|---|---|
+| Order confirm · out-for-delivery · delivered বার্তা | ✅ **কোড আছে** (`whatsapp-cloud.ts`) | শুধু ধাপ ১–৬ |
+| Admin-এ চাবি বসানো + Test বোতাম | ✅ **আছে** | — |
+| Marketing broadcast | ⚠️ এখন **click-to-chat** (একজন করে হাতে পাঠানো, খরচ শূন্য) | API broadcast করতে হলে নতুন কোড + Marketing module-এর opt-out নিয়মে বাঁধা |
+| গ্রাহকের বার্তা → admin Inbox (webhook) | ❌ **কোড নেই** | Inbox Phase 3। webhook controller + AI উত্তর |
+| WhatsApp OTP / login | ❌ কোড নেই | আলাদা `authentication` template |
+
+**আমার প্রস্তাবিত ক্রম** (ঘরের নিয়ম — একবারে একটা):
+
+1. **এখন:** ধাপ ১–৬ → order-এর বার্তা Demo-তে চালু, নিজের ফোনে যাচাই
+2. **তারপর:** webhook — গ্রাহকের বার্তা Inbox-এ আসা *(আমার কাজ, আপনার অনুমোদনের পর)*
+3. **তারপর:** OTP
+4. **সবশেষে:** marketing broadcast — খরচ সবচেয়ে বেশি, তাই আগে বাকিগুলোতে
+   বিল কেমন আসে দেখে নেওয়া ভালো
+
+---
+
+## ৪. খরচ (২০২৬)
+
+- ১ জুলাই ২০২৫ থেকে Meta **প্রতি বার্তায়** টাকা নেয় (আগের ২৪-ঘণ্টা
+  conversation হিসাব উঠে গেছে)।
+- দাম নির্ভর করে **category**-তে: Marketing সবচেয়ে দামি;
+  Utility আর Authentication অনেক সস্তা।
+- ⚠️ **১ অক্টোবর ২০২৬ থেকে বাংলাদেশের আলাদা rate card** — utility ও
+  authentication-এর দাম কমছে। কিন্তু একই দিনে **২৪-ঘণ্টার জানালার ভেতরের
+  utility ও service বার্তাও টাকা কাটা শুরু হবে** (এতদিন ফ্রি ছিল)।
+  Inbox/AI চালু করার আগে এটা হিসাবে ধরতে হবে।
+- সরাসরি Meta-য় যাচ্ছি বলে কোনো BSP-র markup নেই।
+
+আসল হার: [Meta pricing page](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing)।
+
+---
+
+## ৫. ফাঁদ (আগেই বলে রাখি)
+
+| ফাঁদ | ফল | করণীয় |
+|---|---|---|
+| দোকানের চালু নম্বর API-তে দেওয়া | ওই নম্বরের WhatsApp Business App বন্ধ হয়ে যাবে, পুরনো চ্যাট হারাবে | নতুন SIM |
+| Temporary token বসিয়ে ফেলা | ২৪ ঘণ্টা পর সব বার্তা নীরবে বন্ধ | System user token, expiry **Never** |
+| Template `English (US)`-এ approve | "template not found" | `English` (`en`) |
+| Template category `Marketing` | বেশি বিল | `Utility` |
+| Business verification না করা | দিনে সীমিত নম্বরে পাঠানো যাবে (250) | trade licence দিয়ে verification |
+| চাবি `.env`-এ রাখা | deploy-এ বদলাতে ভুল হয় | **Admin → Integrations**-এ রাখুন (`.env` শুধু fallback) |
+| ২-step PIN হারানো | নম্বর সরানো যায় না | লিখে রাখুন |
+
+---
+
+## ৪ক. নম্বরের সিদ্ধান্ত — **DEC-WA-001** (৬ আগস্ট ২০২৬)
+
+> **দোকানের নম্বর `+880 1519-779378` কখনো API-তে "সরানো" হবে না।
+> Coexistence দিয়ে যুক্ত হবে।**
+
+> 🛑 **লাল রেখা (মালিক, ৬ আগস্ট):** `+880 1519-779378` চালু ব্যবসা।
+> ওই নম্বরের WhatsApp Business App বন্ধ হলে দোকান বন্ধ হওয়ার সমান।
+>
+> **যা কখনো করা যাবে না:**
+> - ওই নম্বর কোনো WABA-তে `Add phone number` দিয়ে register করা
+> - ফোনের অ্যাপ থেকে ওই account delete করা
+> - Coexistence ছাড়া অন্য কোনো পথে ওই নম্বর Cloud API-তে নেওয়া
+>
+> কোনো ধাপে `1519-779378` লেখা পর্দায় এলে **থামতে হবে** এবং মালিককে
+> জিজ্ঞেস করতে হবে। Coexistence-এও নম্বরটা অ্যাপে থেকে যায়, এবং
+> মালিককে ফোনে নিজের হাতে **Connect** চাপতে হয় — সম্মতি ছাড়া ঘটে না।
+
+### portfolio-তে যা আছে (যাচাই করা, ৬ আগস্ট)
+
+| WABA | ID | নম্বর | কী |
+|---|---|---|---|
+| Test WhatsApp Business Account | `875194658945705` | `+1 555-653-1804` (Connected) | Meta-র ফ্রি test — **Demo** |
+| Radian Flower and Gift shop | `369366439583226` | `+880 1519-779378` (Offline) | দোকানের চালু নম্বর, **WhatsApp Business App**-এ। মেনুতে Message templates নেই = API account নয় |
+| Radian Flower & Gift Shop | `1368924051525531` | *ফাঁকা* | পুরোদস্তুর API WABA |
+
+### কেন Coexistence
+
+সাধারণ পথে নম্বর API-তে নিলে ওই নম্বরের Business App **স্থায়ীভাবে বন্ধ**
+হয়, পুরনো চ্যাট যায়, আর Cloud API নম্বরের জন্য Meta কোনো inbox দেয় না —
+অর্থাৎ **Radian Inbox তৈরি না হওয়া পর্যন্ত কেউ কোনো বার্তার উত্তর দিতে
+পারত না।** ফুলের দোকানে এক দিনের নীরবতাও হারানো order।
+
+Coexistence-এ (Meta, মে ২০২৫; doc updated ৪ ফেব্রু ২০২৬):
+অ্যাপ ও Cloud API একই নম্বরে চলে · সাম্প্রতিক **১৮০ দিনের** চ্যাট আর
+contact sync হয় · অ্যাপে পাঠানো বার্তা `smb_message_echoes` webhook-এ
+আসে, দুদিক মিলে থাকে · অ্যাপ থেকে পাঠানো বার্তা **ফ্রি থাকে**, শুধু API
+থেকে পাঠানোয় খরচ।
+
+**যা হারাবে:** group chat sync হয় না · broadcast list read-only ·
+disappearing message / view once / live location বন্ধ · throughput 20 mps-এ
+বাঁধা (আমাদের জন্য যথেষ্ট)। catalog · away message · quick reply · কল —
+অ্যাপে অক্ষত।
+
+### শর্ত (এগুলোই কাজের ক্রম ঠিক করে দেয়)
+
+1. Radian-কে **Tech Provider** হতে হবে (App Dashboard → Become a Tech Provider)
+2. চাবি হাতে বসানো নয় — **Embedded Signup** flow কোডে লিখতে হবে
+   (`featureType: whatsapp_business_app_onboarding`, `sessionInfoVersion: 3`)
+3. webhook আগে তৈরি থাকতে হবে, এবং subscribe করতে হবে:
+   `messages` + `history` + `smb_app_state_sync` + `smb_message_echoes`
+4. onboard-এর পর **২৪ ঘণ্টার মধ্যে** sync শুরু করতে হবে
+   (`POST /<PHONE_ID>/smb_app_data`, দুবার: `smb_app_state_sync` তারপর
+   `history`) — নাহলে offboard করে আবার শুরু
+5. প্রতিটা sync **একবারই** চলে — ভুল করলে গ্রাহককে offboard করে ফের flow
+
+**তাই ক্রম:** Demo (test number) → webhook → Tech Provider → Embedded
+Signup → দোকানের নম্বর Coexistence-এ যুক্ত।
+
+---
+
+## ৫ক. Tracking — মালিকের নির্দেশ (৬ আগস্ট ২০২৬)
+
+> "সব setup এমনভাবে করবে যাতে pixel, GTM আর offline tracking — সব ধরনের
+> tracking পরে কাজ করে।"
+
+এটা পরে জোড়া লাগানোর জিনিস নয়, এখনকার সিদ্ধান্তেই ঠিক হয়ে যায়:
+
+| # | নিয়ম | কেন |
+|---|---|---|
+| ১ | **WABA · Pixel/Dataset · Ad account · Page — সব এক portfolio-তে** (`Sobuj business`) | আলাদা হলে click-to-WhatsApp বিজ্ঞাপনের conversion Ads Manager-এ কখনো মিলবে না। পরে সরানো যায়, কিন্তু পুরনো data ফেরত আসে না |
+| ২ | **একই system user (`radian-api`)-কে পরে Pixel/Dataset + Ad account asset দেওয়া** | তখন একটাই token দিয়ে Conversions API আর offline conversion পাঠানো যাবে। permission লাগবে: `ads_management`, `business_management` (WhatsApp-এর দুটোর সাথে) |
+| ৩ | **`ctwa_clid` (click-to-WhatsApp click id) ধরে রাখা** | বিজ্ঞাপনে ক্লিক করে WhatsApp-এ আসা গ্রাহকের webhook payload-এ `referral` object আসে। না ধরলে "এই order কোন বিজ্ঞাপন থেকে" কোনোদিন বলা যাবে না |
+
+**কোডের দায়:** webhook বানানোর সময় `Conversation`-এ `ctwaClid`,
+`adReferralSourceId`, `adReferralHeadline` রাখতে হবে (schema বদল), আর
+order তৈরি হলে সেটা Order-এ বয়ে নিতে হবে — নাহলে conversion আর order
+জোড়া লাগবে না। বিদ্যমান `marketing/tracking.service.ts`-এর সাথে মিলিয়ে।
+
+---
+
+## ৬. আমি যা করে দেব (আপনার অনুমোদনের পর)
+
+1. **Graph API version — `v20.0` → `v23.0`।** কোডে এখন v20 বসানো;
+   Meta প্রতিটা version ~২ বছর রাখে, v20 (মে ২০২৪) মেয়াদ শেষের কাছে।
+   একদিন হঠাৎ বন্ধ হওয়ার চেয়ে এখন বদলানো ভালো। *ছোট কাজ।*
+2. **Webhook controller** — `GET /webhooks/whatsapp` (verify) +
+   `POST` (বার্তা গ্রহণ, App secret দিয়ে signature যাচাই) → Inbox
+   Conversation/Message। *Inbox Phase 3।*
+3. **Delivery status** — বার্তা পৌঁছাল/পড়া হলো কিনা order timeline-এ তোলা।
+4. **Bangla template** — এখনকার তিনটে ইংরেজি। বাংলা চাইলে `bn`-এ
+   আলাদা approve করাতে হবে, কোডে ভাষা বদলাবে।
+
+**১ নম্বরটা এখনই করব কিনা বলুন** — বাকিগুলো আপনার Meta-র ধাপগুলো
+শেষ হওয়ার পর, একটা একটা করে।
+
+---
+
+_সূত্র: Meta WhatsApp Cloud API — Get started · Pricing (২০২৬)।_

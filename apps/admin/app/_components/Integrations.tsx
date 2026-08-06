@@ -36,7 +36,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
-  getIntegrations, saveIntegration,
+  getIntegrations, saveIntegration, waTestSend,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -63,14 +63,24 @@ import {
   দেখাবে (নতুন key ঠিক টাইপ হয়েছে কিনা যাচাইয়ের জন্য), আগের সেভ করা key না।
 */
 
-const PAYMENT_BRAND: Record<string, { grad: string; badge: string; ring: string; glow: string; solid: string }> = {
+/*  ৬ আগস্ট (বিকেল) — মালিক Messaging পাতাটা দেখে বললেন এটাও Payment-এর মতো
+    সাজানো চাই। তাই brand map আর hero card দুটোই Payment-এর একার জিনিস থেকে
+    সরিয়ে যেকোনো group-এর জন্য খোলা হলো। WhatsApp-এর চাবি ঠিকমতো বসেছে কিনা
+    সেটা দেখতে পারাটা bKash-এর চাবির মতোই জরুরি — কম জরুরি দেখানোর কারণ নেই। */
+const HERO_BRAND: Record<string, { grad: string; badge: string; ring: string; glow: string; solid: string }> = {
   SSLCOMMERZ: { grad: "linear-gradient(135deg,#062c47,#0a3d62 45%,#3c8dbc)", badge: "SC", ring: "#3c8dbc", glow: "rgba(10,61,98,0.35)", solid: "#0a3d62" },
   BKASH:      { grad: "linear-gradient(135deg,#8f0c47,#d6136c 45%,#ff5da2)", badge: "bK", ring: "#d6136c", glow: "rgba(214,19,108,0.35)", solid: "#d6136c" },
   NAGAD:      { grad: "linear-gradient(135deg,#9a3c0a,#e2691a 45%,#f7a339)", badge: "ন", ring: "#e2691a", glow: "rgba(226,105,26,0.35)", solid: "#e2691a" },
+  WHATSAPP:   { grad: "linear-gradient(135deg,#04463f,#0b7a68 45%,#25d366)", badge: "✆", ring: "#0b7a68", glow: "rgba(11,122,104,0.35)", solid: "#0b7a68" },
+  EMAIL:      { grad: "linear-gradient(135deg,#1e2a5a,#2f4bab 45%,#6f8ff0)", badge: "✉", ring: "#2f4bab", glow: "rgba(47,75,171,0.32)", solid: "#2f4bab" },
+  SMS:        { grad: "linear-gradient(135deg,#3f3a52,#5b5468 45%,#9f97b3)", badge: "▤", ring: "#5b5468", glow: "rgba(91,84,104,0.30)", solid: "#5b5468" },
 };
 const brandFor = (provider: string) =>
-  PAYMENT_BRAND[provider] ??
+  HERO_BRAND[provider] ??
   { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.bg, glow: "rgba(160,33,184,0.3)", solid: TONE.brand.bg };
+
+/** যেসব group বড় branded card পায় — বাকিরা কমপ্যাক্ট ServiceCard-এই থাকে */
+const HERO_KINDS: ApiIntKind[] = ["PAYMENT", "MESSAGING"];
 
 /** oversized on/off pill for the payment hero cards — the small Delivery
     Switch reads as an afterthought at this scale, so this one is its own size. */
@@ -191,8 +201,8 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
                 </p>
               )}
               {g.services.map((s) => (
-                g.kind === "PAYMENT" ? (
-                  <PaymentServiceCard
+                HERO_KINDS.includes(g.kind) ? (
+                  <HeroServiceCard
                     key={s.provider} s={s}
                     onSaved={(m) => { flash(m); load(); }} onError={setErr}
                   />
@@ -259,7 +269,10 @@ function ServiceCard({
 }) {
   const [open, setOpen] = useState(false);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [cleared, setCleared] = useState<Set<string>>(new Set());
+  /*  HeroServiceCard-এর সাথে এক নিয়ম (৬ আগস্ট, মালিক): Clear বোতাম নেই,
+      হাতে মুছে Save চাপলেই মুছবে। দুই card-এ দুই আচরণ থাকলে একদিন কেউ
+      ভুল জায়গায় ভুল প্রত্যাশা নিয়ে বসবে।  */
+  const [typed, setTyped] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [courierId, setCourierId] = useState(s.courierId ?? "");
 
@@ -269,14 +282,12 @@ function ServiceCard({
     setBusy(true);
     try {
       const body: Record<string, unknown> = { ...extra };
-      // only fields actually typed into are sent — a blank box means "untouched"
-      for (const [k, v] of Object.entries(edits)) if (v.trim()) body[k] = v.trim();
-      // ...unless Clear was pressed, which sends an explicit empty
-      for (const k of cleared) body[k] = "";
+      // যেখানে হাত পড়েছে শুধু সেটাই যায় — ফাঁকা হলে ফাঁকাই যায় (হাতে clear)
+      for (const k of typed) body[k] = (edits[k] ?? "").trim();
       if (couriers) body.courierId = courierId || null;
 
       await saveIntegration(s.kind, s.provider, body);
-      setEdits({}); setCleared(new Set());
+      setEdits({}); setTyped(new Set());
       onSaved(`${s.label} saved`);
     } catch (e) {
       onError((e as Error).message);
@@ -343,40 +354,46 @@ function ServiceCard({
 
       {open && (
         <div className="mt-4 pt-4 border-t border-[#f0edf5] space-y-3">
-          {s.fields.map((f) => (
-            <div key={f.key}>
-              <Lbl>{f.label}</Lbl>
-              <div className="flex gap-1.5">
+          {s.fields.map((f) => {
+            const touched = edits[f.key] !== undefined;
+            const shown = touched ? edits[f.key] : (f.value ?? "");
+            return (
+              <div key={f.key}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Lbl>{f.label}</Lbl>
+                  {f.value && !typed.has(f.key) && (
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
+                          style={{ background: TONE.emerald.soft, color: TONE.emerald.text }}>
+                      SAVED
+                    </span>
+                  )}
+                </div>
                 <input
                   className={input}
                   type={f.secret ? "password" : "text"}
-                  placeholder={
-                    cleared.has(f.key) ? "will be cleared"
-                      : f.value ? `${f.value} — leave blank to keep` : "not set"
-                  }
-                  value={edits[f.key] ?? ""}
+                  placeholder="not set"
+                  value={shown}
                   /*  ⚠️ Chrome ignores "off". Only "new-password" is obeyed, and
                       on 29 July it filled the saved shop password into three of
                       these boxes.  */
                   autoComplete="new-password"
-                  onChange={(e) => setEdits((x) => ({ ...x, [f.key]: e.target.value }))}
+                  onFocus={() => { if (!touched) setEdits((x) => ({ ...x, [f.key]: "" })); }}
+                  onBlur={() => {
+                    // না লিখে সরে গেলে সংরক্ষিত মান ফিরে আসে — "চাবি চলে যায়" নয়
+                    if (!typed.has(f.key)) {
+                      setEdits((x) => { const n = { ...x }; delete n[f.key]; return n; });
+                    }
+                  }}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEdits((x) => ({ ...x, [f.key]: v }));
+                    setTyped((t) => (t.has(f.key) ? t : new Set(t).add(f.key)));
+                  }}
                 />
-                {f.value && (
-                  <button
-                    className={btnGhost}
-                    onClick={() => setCleared((c) => {
-                      const n = new Set(c);
-                      n.has(f.key) ? n.delete(f.key) : n.add(f.key);
-                      return n;
-                    })}
-                  >
-                    {cleared.has(f.key) ? "Keep" : "Clear"}
-                  </button>
-                )}
+                {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
               </div>
-              {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
-            </div>
-          ))}
+            );
+          })}
 
           {couriers && (
             <div>
@@ -429,11 +446,27 @@ function ServiceCard({
 }
 
 /* ---------------------------------------------------------------- */
-/*  PAYMENT — always-open, branded card. Same data + same save() calls as
-    ServiceCard; only the shell is different, because this is the one group
-    the owner asked to look like a real payment-gateway dashboard.  */
+/*  HERO CARD — always-open, branded. Same data + same save() calls as
+    ServiceCard; only the shell is different. Payment got it first (6 Aug,
+    সকাল); Messaging joined the same day বিকেলে।
 
-function PaymentServiceCard({
+    ⚠️ ৬ আগস্ট (বিকেল) — মালিকের দুটো অভিযোগ, দুটোই এই ফাংশনে:
+
+    ১. "number token দেওয়ার পরেও তা আবার চলে যায়"।
+       আগের আচরণ: box-এ ক্লিক করলেই লেখা মুছে ফাঁকা হয়ে যেত (onFocus)।
+       না লিখে সরে গেলে ফাঁকাই থেকে যেত — চোখে দেখাত "চাবি হারিয়ে গেছে",
+       আর তার চেয়ে খারাপ, ওই ফাঁকা box দেখে আবার Save চাপলে সত্যিই মুছে
+       যাওয়ার ঝুঁকি ছিল। এখন: ক্লিকে ফাঁকা হয় (যাতে নতুন key টাইপ করতে
+       গিয়ে পুরনো অক্ষরের সাথে লড়তে না হয়), কিন্তু **একটা অক্ষরও না
+       লিখে সরে গেলে সংরক্ষিত মানটা নিজে থেকেই ফিরে আসে** (`typed` flag)।
+
+    ২. "clear option দরকার নাই, হাত দিয়ে ধরে clear করব"।
+       Clear বোতাম বাদ। এখন নিয়মটা সহজ:
+         box ছুঁইনি          → কিছু পাঠাই না, কিছু বদলায় না
+         লিখেছি              → নতুন মান যায়
+         লিখে সব মুছে দিয়েছি → খালি মান যায় = মুছে গেল (হাতে করা clear)  */
+
+function HeroServiceCard({
   s, onSaved, onError,
 }: {
   s: ApiIntegration;
@@ -442,7 +475,8 @@ function PaymentServiceCard({
 }) {
   const brand = brandFor(s.provider);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [cleared, setCleared] = useState<Set<string>>(new Set());
+  /** কোন box-এ সত্যিই টাইপ হয়েছে — শুধু ক্লিক করা "টাইপ করা" নয় */
+  const [typed, setTyped] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const complete = s.fieldsFilled === s.fieldsTotal;
@@ -451,10 +485,10 @@ function PaymentServiceCard({
     setBusy(true);
     try {
       const body: Record<string, unknown> = { ...extra };
-      for (const [k, v] of Object.entries(edits)) if (v.trim()) body[k] = v.trim();
-      for (const k of cleared) body[k] = "";
+      // যেখানে হাত পড়েছে শুধু সেটাই যায় — ফাঁকা হলে ফাঁকাই যায় (হাতে clear)
+      for (const k of typed) body[k] = (edits[k] ?? "").trim();
       await saveIntegration(s.kind, s.provider, body);
-      setEdits({}); setCleared(new Set());
+      setEdits({}); setTyped(new Set());
       onSaved(`${s.label} saved`);
     } catch (e) {
       onError((e as Error).message);
@@ -515,44 +549,58 @@ function PaymentServiceCard({
 
         {/*  Fields are always visible — no "Add keys" click needed, matching
             the reference layout the owner pointed to.  */}
-        <div className="grid sm:grid-cols-2 gap-3.5">
+        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
           {s.fields.map((f) => {
             const isRevealed = revealed.has(f.key);
-            /*  ⚠️ 6 Aug fix — Store ID/password "disappearing" after Update.
-                Before: a saved value only ever showed as placeholder text
-                ("value — leave blank to keep") and the box itself stayed
-                empty. A placeholder LOOKS like an empty field, so a saved
-                key read as "gone" the moment Update finished, even though
-                it was sitting in the database the whole time.
-
-                Now: a saved value is the box's actual value — typed
-                straight in, not hinted at. Clicking into the box clears it
-                to blank on first keystroke (onFocus), so typing a
-                replacement never fights the old characters. Leaving it
-                untouched keeps `edits[f.key]` undefined, which save()
-                already treats as "say nothing, change nothing" — same
-                safety as before, just no longer disguised as empty.  */
-            const editing = edits[f.key] !== undefined;
-            const shown = cleared.has(f.key) ? "" : editing ? edits[f.key] : (f.value ?? "");
+            const touched = edits[f.key] !== undefined;
+            const didType = typed.has(f.key);
+            const shown = touched ? edits[f.key] : (f.value ?? "");
+            const saved = Boolean(f.value);
             return (
-              <div key={f.key}>
-                <Lbl>{f.label}</Lbl>
-                <div className="flex gap-1.5">
+              <div key={f.key} className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Lbl>{f.label}</Lbl>
+                  {saved && !didType && (
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
+                          style={{ background: TONE.emerald.soft, color: TONE.emerald.text }}>
+                      SAVED
+                    </span>
+                  )}
+                  {didType && shown.trim() === "" && saved && (
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
+                          style={{ background: TONE.rose.soft, color: TONE.rose.text }}>
+                      WILL BE CLEARED
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1.5 min-w-0">
                   <input
-                    className="w-full border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
+                    className="w-full min-w-0 border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
                     style={{ borderColor: "#ece5f2" }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = brand.solid;
                       e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`;
-                      // first click into a field showing a saved value starts a fresh, blank edit
-                      if (!editing && !cleared.has(f.key)) setEdits((x) => ({ ...x, [f.key]: "" }));
+                      // নতুন key টাইপ করতে গিয়ে যেন পুরনো অক্ষরের সাথে লড়তে না হয়
+                      if (!touched) setEdits((x) => ({ ...x, [f.key]: "" }));
                     }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "#ece5f2";
+                      e.currentTarget.style.boxShadow = "none";
+                      /*  একটাও অক্ষর না লিখে সরে গেলে সংরক্ষিত মান ফিরিয়ে দাও।
+                          এটাই "চাবি চলে যায়" অভিযোগের আসল ওষুধ।  */
+                      if (!typed.has(f.key)) {
+                        setEdits((x) => { const n = { ...x }; delete n[f.key]; return n; });
+                      }
+                    }}
                     type={f.secret && !isRevealed ? "password" : "text"}
-                    placeholder={cleared.has(f.key) ? "will be cleared" : "not set"}
+                    placeholder="not set"
                     value={shown}
                     autoComplete="new-password"
-                    onChange={(e) => setEdits((x) => ({ ...x, [f.key]: e.target.value }))}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEdits((x) => ({ ...x, [f.key]: v }));
+                      setTyped((t) => (t.has(f.key) ? t : new Set(t).add(f.key)));
+                    }}
                   />
                   {f.secret && (
                     <button
@@ -569,24 +617,21 @@ function PaymentServiceCard({
                       {isRevealed ? "🙈" : "👁"}
                     </button>
                   )}
-                  {f.value && (
-                    <button
-                      className={btnGhost}
-                      onClick={() => setCleared((c) => {
-                        const n = new Set(c);
-                        n.has(f.key) ? n.delete(f.key) : n.add(f.key);
-                        return n;
-                      })}
-                    >
-                      {cleared.has(f.key) ? "Keep" : "Clear"}
-                    </button>
-                  )}
                 </div>
                 {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
               </div>
             );
           })}
         </div>
+
+        {/*  মালিকের নির্দেশ ৬ আগস্ট: Clear বোতাম নেই। নিয়মটা লিখে রাখা হলো,
+             নাহলে "মুছব কীভাবে" প্রশ্নটা প্রতিবার ফিরে আসবে।  */}
+        <p className="text-[11px] text-body-soft mt-2.5">
+          একটা key মুছতে হলে ঘরে ক্লিক করে সব লেখা মুছে দিয়ে Update চাপুন।
+          না ছুঁলে কিছুই বদলাবে না।
+        </p>
+
+        {s.provider === "WHATSAPP" && <WhatsAppTestRow brand={brand} onError={onError} />}
 
         <p className="text-[11px] text-body-soft mt-4">
           {s.lastCheckedAt
@@ -615,6 +660,89 @@ function PaymentServiceCard({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  WHATSAPP — "চাবি বসল" আর "চাবি কাজ করে" এক কথা নয়। এই সারিটা দ্বিতীয়টার
+    একমাত্র প্রমাণ: নিজের নম্বরে Meta-র pre-approved `hello_world` যায়।
+
+    ⚠️ ইচ্ছাকৃতভাবে নিজেদের template নয়। template approve হতে ঘণ্টা লাগে;
+    চাবি ঠিক কিনা সেটা ৩০ সেকেন্ডে জানা দরকার। তাই Meta যেটা সব account-এ
+    আগে থেকেই approve করে রাখে, সেটাই।
+
+    ⚠️ test number-এর বেলায় শুধু আগে থেকে অনুমোদিত (সর্বোচ্চ ৫টা) নম্বরেই
+    যাবে — অন্য নম্বর দিলে Meta ফিরিয়ে দেবে, চাবি ভুল বলে নয়।  */
+
+function WhatsAppTestRow({
+  brand, onError,
+}: {
+  brand: { grad: string; glow: string; solid: string };
+  onError: (msg: string) => void;
+}) {
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function send() {
+    if (!to.trim()) return;
+    setBusy(true); setResult(null);
+    try {
+      const r = await waTestSend(to.trim());
+      setResult(
+        r.sent
+          ? { ok: true, msg: `পাঠানো হয়েছে — ${to.trim()} নম্বরের WhatsApp দেখুন।` }
+          : !r.configured
+            ? { ok: false, msg: "চাবিই বসানো নেই। Phone number ID আর access token দিয়ে Update চাপুন।" }
+            : { ok: false, msg: "চাবি আছে, কিন্তু Meta বার্তাটা ফিরিয়ে দিয়েছে। কারণ API log-এ (radian_api_logs.bat)। সাধারণ কারণ: token-এর মেয়াদ শেষ, ভুল Phone number ID, বা test number-এ নম্বরটা অনুমোদিত নয়।" },
+      );
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+      <Lbl>চাবি সত্যিই কাজ করে কিনা দেখুন</Lbl>
+      <div className="flex flex-wrap gap-1.5 items-center">
+        <input
+          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
+          style={{ borderColor: "#ece5f2" }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
+          placeholder="01712345678"
+          value={to}
+          inputMode="tel"
+          autoComplete="off"
+          onChange={(e) => setTo(e.target.value)}
+        />
+        <button
+          type="button"
+          className="shrink-0 px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
+          disabled={busy || !to.trim()}
+          onClick={() => void send()}
+        >
+          {busy ? "পাঠাচ্ছি…" : "Send test"}
+        </button>
+      </div>
+      {result && (
+        <p
+          className="text-[11.5px] leading-relaxed mt-2"
+          style={{ color: result.ok ? TONE.emerald.text : TONE.rose.text }}
+        >
+          {result.ok ? "✓ " : "✗ "}{result.msg}
+        </p>
+      )}
+      {!result && (
+        <p className="text-[11px] text-body-soft mt-1.5">
+          Meta-র নিজের <code>hello_world</code> বার্তা যাবে — নিজেদের template
+          approve হওয়ার আগেই চাবি ঠিক কিনা প্রমাণ পাওয়ার একমাত্র উপায়।
+        </p>
+      )}
     </div>
   );
 }

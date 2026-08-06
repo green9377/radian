@@ -16,7 +16,10 @@ import { formatTaka } from "../_data/api";
     gutter on every screen that uses this shared wrap (31 files: Finance,
     Marketing, Administration, HR, Access, Audit, System, Integrations…).
     One constant, so this never has to be fixed screen-by-screen again. */
-export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1600px]";
+/*  ⚠️ `mx-auto` — ৬ আগস্ট। max-width ছিল, কিন্তু কেন্দ্রে বসানো ছিল না, তাই
+    চওড়া মনিটরে সব পাতা বাঁ দিকে চেপে থাকত আর ডানে একটা বড় ফাঁকা মাঠ পড়ে
+    থাকত। মালিকের অভিযোগ: "মনিটরের সাথে fit হয় নাই"।  */
+export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1600px] mx-auto w-full";
 
 export type Tone = "brand" | "emerald" | "amber" | "rose" | "sky" | "slate";
 
