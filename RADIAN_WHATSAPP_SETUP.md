@@ -426,3 +426,36 @@ webhook-এ আসবে না** — নিজের ফোন থেকে প
 
 App settings → Basic-এ Privacy Policy URL, Terms URL, App icon, Category
 ভরে Save → বাঁ মেনুর **Publish**。
+
+---
+
+## ১০. DEC-WA-009 — Tech Provider হয়ে Coexistence (৬ আগস্ট ২০২৬)
+
+Coexistence কোনো সাধারণ সেটিং নয়。 Meta-র শর্ত (doc ৪ ফেব্রু ২০২৬):
+**"you must already be a Solution Partner or Tech Provider"** — এটা অন্যের
+ব্যবসাকে যারা সেবা দেয় তাদের জন্য বানানো。 নিজের নম্বরে করতে চাইলে
+নিজেকেই Tech Provider হতে হয়。
+
+### তিনটে পথ ছিল, মালিক প্রথমটা বেছেছেন
+
+| পথ | সময় | দাম |
+|---|---|---|
+| **নিজেরাই Tech Provider** ✅ | Meta-র verification + Embedded Signup কোড | কোনো markup নেই, নম্বর নিজের হাতে |
+| BSP দিয়ে | কয়েক দিন | প্রতি বার্তায় markup, নম্বর মধ্যস্থের হাতে (DEC-WA-001-এ আগেই বাদ) |
+| নতুন নম্বর + স্বয়ংক্রিয় জবাব | আজই | কথোপকথন দুই টুকরো |
+
+### যা বানাতে হবে (Embedded Signup)
+
+1. **Tech Provider approval** — মালিকের আবেদন, Meta-র সময়
+2. Facebook JS SDK দিয়ে Embedded Signup flow, admin-এর ভেতরে
+   (`featureType: whatsapp_business_app_onboarding`, `sessionInfoVersion: 3`)
+3. exchangeable code → token বদল, WABA + phone id ধরে রাখা
+4. webhook-এ আরও তিনটে field: `history` · `smb_app_state_sync` ·
+   `smb_message_echoes`
+5. onboard-এর **২৪ ঘণ্টার মধ্যে** sync শুরু
+   (`POST /<PHONE_ID>/smb_app_data`, দুবার — `smb_app_state_sync` তারপর
+   `history`)। প্রতিটা **একবারই** চলে, ভুল হলে offboard করে আবার
+6. `smb_message_echoes` — অ্যাপ থেকে পাঠানো বার্তা Inbox-এ mirror করা
+
+⚠️ পুরো সময়টায় দোকানের নম্বরে কেউ হাত দেবে না。 শেষ ধাপে মালিক নিজের
+ফোনে **Connect** চাপবেন — সম্মতি ছাড়া কিছুই ঘটে না (DEC-WA-001-এর লাল রেখা)。
