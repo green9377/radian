@@ -88,6 +88,7 @@ export default function InboxView() {
       "unanswered WhatsApp" is a real question and mixing the two into one row
       of buttons makes it unaskable.  */
   const [channel, setChannel] = useState<"ALL" | ChannelKey>("ALL");
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ApiInboxDetail | null>(null);
@@ -100,11 +101,23 @@ export default function InboxView() {
 
   /*  Counts come from the list already on screen, not a second request: the
       badge has to agree with what the filter will actually show.  */
-  const counts = (items ?? []).reduce<Record<string, number>>((a, c) => {
-    a[c.channel] = (a[c.channel] ?? 0) + 1;
-    return a;
-  }, {});
-  const shown = items?.filter((c) => channel === "ALL" || c.channel === channel);
+  const stats = (items ?? []).reduce<Record<string, { total: number; unread: number; open: number }>>(
+    (a, c) => {
+      const k = c.channel;
+      a[k] ??= { total: 0, unread: 0, open: 0 };
+      a[k].total += 1;
+      a[k].unread += c.unreadForStaff > 0 ? 1 : 0;
+      a[k].open += c.status === "OPEN" ? 1 : 0;
+      return a;
+    },
+    {},
+  );
+  const totalAll = items?.length ?? 0;
+  const unreadAll = (items ?? []).filter((c) => c.unreadForStaff > 0).length;
+
+  const shown = items
+    ?.filter((c) => channel === "ALL" || c.channel === channel)
+    .filter((c) => !unreadOnly || c.unreadForStaff > 0);
 
   const patchSettings = async (dto: Partial<ApiInboxSetting>) => {
     try {
@@ -239,9 +252,76 @@ export default function InboxView() {
         )}
       </div>
 
+      {/*
+        One card per channel. Four channels will land here and the first
+        question every morning is "where is the work" — that has to be legible
+        before anything is clicked. The cards are the channel filter too: a
+        number you can see but not act on is half a feature.
+      */}
+      <div className="grid gap-3 mb-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <button
+          onClick={() => setChannel("ALL")}
+          className={`text-left rounded-2xl px-4 py-3 border transition ${
+            channel === "ALL"
+              ? "border-transparent bg-[#470066] text-white shadow-lg"
+              : "border-gray-200 bg-white hover:border-gray-300"
+          }`}
+        >
+          <p className={`text-[11.5px] font-bold ${channel === "ALL" ? "text-white/70" : "text-gray-500"}`}>
+            Everything
+          </p>
+          <p className="text-[24px] font-extrabold leading-tight">{totalAll}</p>
+          <p className={`text-[11px] ${channel === "ALL" ? "text-white/70" : "text-gray-400"}`}>
+            {unreadAll > 0 ? `${unreadAll} unread` : "all read"}
+          </p>
+        </button>
+
+        {(Object.keys(CHANNELS) as ChannelKey[]).map((k) => {
+          const c = CHANNELS[k];
+          const st = stats[k] ?? { total: 0, unread: 0, open: 0 };
+          const on = channel === k;
+          const idle = st.total === 0;
+          return (
+            <button
+              key={k}
+              onClick={() => setChannel(k)}
+              className={`text-left rounded-2xl px-4 py-3 border transition ${
+                on ? "border-transparent shadow-lg" : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+              style={on ? { background: c.fg, color: "#fff" } : undefined}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: on ? "#fff" : c.dot }}
+                />
+                <p
+                  className="text-[11.5px] font-bold truncate"
+                  style={{ color: on ? "rgba(255,255,255,.75)" : idle ? "#cbd5e1" : "#6b7280" }}
+                >
+                  {c.label}
+                </p>
+              </div>
+              <p
+                className="text-[24px] font-extrabold leading-tight"
+                style={{ color: on ? "#fff" : idle ? "#cbd5e1" : "#111827" }}
+              >
+                {st.total}
+              </p>
+              <p
+                className="text-[11px]"
+                style={{ color: on ? "rgba(255,255,255,.75)" : idle ? "#e2e8f0" : c.fg }}
+              >
+                {idle ? "not connected yet" : st.unread > 0 ? `${st.unread} unread` : "all read"}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex gap-5 items-start">
         {/* left: the thread list */}
-        <div className="w-[340px] shrink-0 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="w-[340px] shrink-0 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-[0_2px_10px_rgba(70,0,102,0.04)]">
           <div className="p-3 border-b border-gray-100">
             <input
               value={search}
@@ -250,7 +330,12 @@ export default function InboxView() {
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-purple-400"
             />
             <div className="flex gap-1 mt-2 flex-wrap">
-              {STATUS_TABS.map((t) => (
+              {STATUS_TABS.map((t) => {
+                const n =
+                  t.key === "ALL"
+                    ? (items?.length ?? 0)
+                    : (items ?? []).filter((c) => c.status === t.key).length;
+                return (
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
@@ -261,49 +346,36 @@ export default function InboxView() {
                   }`}
                 >
                   {t.label}
+                  {n > 0 && <span className="ml-1 opacity-60">{n}</span>}
                 </button>
-              ))}
-            </div>
-
-            <div className="flex gap-1 mt-1.5 flex-wrap">
-              <button
-                onClick={() => setChannel("ALL")}
-                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition ${
-                  channel === "ALL"
-                    ? "bg-gray-800 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Every channel
-              </button>
-              {(Object.keys(CHANNELS) as ChannelKey[]).map((k) => {
-                const n = counts[k] ?? 0;
-                const c = CHANNELS[k];
-                const on = channel === k;
-                return (
-                  <button
-                    key={k}
-                    onClick={() => setChannel(k)}
-                    title={c.label}
-                    className="px-2 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1"
-                    style={
-                      on
-                        ? { background: c.fg, color: "#fff" }
-                        : n === 0
-                          ? { background: "#f8fafc", color: "#cbd5e1" }
-                          : { background: c.bg, color: c.fg }
-                    }
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: on ? "#fff" : c.dot }}
-                    />
-                    {c.short}
-                    {n > 0 && <span className="opacity-70">{n}</span>}
-                  </button>
                 );
               })}
             </div>
+
+            <button
+              onClick={() => setUnreadOnly((v) => !v)}
+              className={`mt-2 w-full px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition ${
+                unreadOnly
+                  ? "bg-[#cf43ea] text-white"
+                  : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              {unreadOnly ? "Showing unread only" : `Unread only${unreadAll ? ` (${unreadAll})` : ""}`}
+            </button>
+
+            {(channel !== "ALL" || tab !== "ALL" || unreadOnly || search) && (
+              <button
+                onClick={() => {
+                  setChannel("ALL");
+                  setTab("ALL");
+                  setUnreadOnly(false);
+                  setSearch("");
+                }}
+                className="mt-1.5 w-full text-[11px] text-gray-400 hover:text-gray-600"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
           <div className="max-h-[65vh] overflow-y-auto divide-y divide-gray-50">
@@ -317,7 +389,7 @@ export default function InboxView() {
             )}
             {shown?.length === 0 && items && items.length > 0 && (
               <p className="p-4 text-[13px] text-gray-400">
-                Nothing on this channel right now.
+                Nothing matches these filters.
               </p>
             )}
             {shown?.map((c) => (
