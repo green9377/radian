@@ -17,19 +17,26 @@ _৭ আগস্ট ২০২৬。 App: **Radian** (`1720041072657899`)_
 
 ## ১. আগে যা থাকতে হবে (checklist)
 
-App Settings → Basic নিজে দেখে এসেছি (৭ আগস্ট):
+**৭ আগস্ট রাতে সব করা হয়ে গেছে।** নিজে খুলে দেখে, বসিয়ে, সেভ করে যাচাই করা:
 
 | | অবস্থা |
 |---|---|
-| Privacy Policy — messaging ও AI-উত্তরের কথা লেখা | ✅ (`radianbd.com/page/privacy-policy`) |
-| **Privacy Policy URL** | ✅ বসানো আছে |
-| **Terms of Service URL** | ✅ বসানো আছে |
+| Privacy Policy — messaging ও AI-উত্তরের কথা | ✅ live |
+| Privacy Policy URL · Terms of Service URL | ✅ |
 | App icon · Category (Shopping) | ✅ |
-| **Data deletion instructions URL** | ❌ **ফাঁকা — এটাই সবচেয়ে সম্ভাব্য reject-এর কারণ** |
-| **Contact email** | ⚠️ `borhangazi1997@gmail.com` — ব্যক্তিগত gmail。 `radianbd360@gmail.com` হলে বাকি সবের সাথে মিলত |
-| App domains | ⚠️ ফাঁকা。 `radianbd.com` বসানো ভালো |
-| **Business Verification** | ⬜ ট্রেড লাইসেন্স/কাগজ লাগবে |
-| Screencast | ⬜ §৩ দেখো |
+| **Data deletion instructions URL** | ✅ ঠিক করা — **আগে `https://www.facebook.com/` বসানো ছিল**, অর্থাৎ reviewer ডেটা মোছার নিয়ম দেখতে গিয়ে Facebook-এর হোমপেজে পৌঁছাত。 প্রায় নিশ্চিত reject ছিল |
+| Contact email | ✅ `radianbd360@gmail.com` |
+| App domains | ✅ `radianbd.com` |
+| **Website platform** | ✅ যোগ করা (Site URL `https://radianbd.com/`) — **এটা না থাকলে reviewer instructions-এর ঘরগুলোই খোলে না**, তাই submit করাই যেত না |
+| **Business Verification** | ✅ **আগে থেকেই ছিল** — ১৭ অক্টোবর ২০২৫ |
+| Submission form (৫ অংশ) | ✅ পাঁচটাই পূরণ |
+| Screencast | ⬜ **ঐচ্ছিক, কিন্তু দেওয়া উচিত** — §৩ |
+
+### লাইসেন্সের ঠিকানা বনাম দোকানের ঠিকানা
+
+Meta-য় **বনানী** (লাইসেন্স অনুযায়ী), ওয়েবসাইটে **গুলশান** (আসল দোকান)。
+দুটোই থাক — Meta-রটা কাগজের সাথে মেলে, ওয়েবসাইটেরটা গ্রাহকের জন্য সত্যি。
+App Review এই দুটো মেলায় না。 **লাইসেন্স নবায়নের দিন দুটোই একসাথে বদলাবে।**
 
 ### ❌ Data deletion — কী বসাবে
 
