@@ -391,3 +391,38 @@ _সূত্র: Meta WhatsApp Cloud API — Get started · Pricing (২০২�
 | App secret না বসানো | webhook **সব বার্তা ফিরিয়ে দেবে** — signature ছাড়া কোনো request বিশ্বাস করা হয় না, নইলে যে কেউ ভুয়া গ্রাহক-বার্তা ঢোকাতে পারত |
 | দুই জায়গায় verify token আলাদা | Meta-র "Verify and save" ফেল করবে |
 | ২৪ ঘণ্টার জানালা | গ্রাহকের শেষ বার্তার ২৪ ঘণ্টা পার হলে সাধারণ লেখা Meta নেবে না — তখন template লাগে。 staff-এর উত্তর ব্যর্থ হলে API log-এ কারণ লেখা থাকে |
+
+---
+
+## ৮. ⛔ cutover-এর আগে যা চালু করা যাবে না (৬ আগস্ট ২০২৬)
+
+`radianbd.com` এখনো **পুরনো সাইট**। নতুন storefront পাশ করার পর ওখানে
+বসানো হবে (মালিক, ৬ আগস্ট)。
+
+template-এর বোতামের ঠিকানা **approve হওয়ার পর বদলানো যায় না** — তাই
+ইচ্ছাকৃতভাবে আসল domain-ই বসানো আছে。 cutover-এর পর ঠিক কাজ করবে;
+তার আগে ওই দুটো পাতা `radianbd.com`-এ নেই。
+
+| বার্তা | বোতাম | cutover-এর আগে |
+|---|---|---|
+| `order_confirmation` · `order_confirmation_cod` · `order_out_for_delivery` · `order_delivered` | নেই | ✅ চালু করা নিরাপদ |
+| `payment_failed` | `/pay/{orderNo}` | ⛔ **বন্ধ রাখতে হবে** |
+| `checkout_abandoned` | `/cart/{leadId}` | ⛔ **বন্ধ রাখতে হবে** |
+
+**করণীয়:** Admin → Marketing → Recover lost orders-এ `Recovery on` চালু
+করলেও **"Message when a payment fails"** আর **"Message when a checkout is
+abandoned"** দুটো টগল বন্ধ রাখুন。 cutover-এর দিন চালু করবেন。
+
+**Meta-তে যে ঠিকানা দুটো দিতে হবে** (App settings → Basic):
+
+- Privacy Policy: `https://radianbd.com/page/privacy-policy`
+- Terms of Service: `https://radianbd.com/page/terms-conditions`
+
+## ৯. App publish — webhook কাজ করার পূর্বশর্ত
+
+Meta-র নিজের সতর্কবাণী: **app unpublished থাকলে কোনো production data
+webhook-এ আসবে না** — নিজের ফোন থেকে পাঠালেও না。 তাই webhook বসানো
+থাকলেও publish না করা পর্যন্ত গ্রাহকের বার্তা Inbox-এ আসবে না。
+
+App settings → Basic-এ Privacy Policy URL, Terms URL, App icon, Category
+ভরে Save → বাঁ মেনুর **Publish**。
