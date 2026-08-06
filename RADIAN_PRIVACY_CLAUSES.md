@@ -21,10 +21,22 @@ _৭ আগস্ট ২০২৬。_
 
 ---
 
-## কোথায় বসবে
+## কোথায় বসবে — এবং কখন
 
-Radian Admin → **Content → Pages → Privacy Policy** → "Information We Collect"
-অংশের পরে。
+**`radianbd.com`-এর privacy policy-তে**, demo সাইটে নয়。 Meta-র reviewer
+app-এর Privacy Policy URL খুলে দেখে, আর সেটা আসল ব্যবসার ঠিকানা。 demo-র
+ঠিকানা দিলে cutover-এর পরে Meta-র কাছে একটা মরা লিংক পড়ে থাকবে。
+
+তবে দুটো অনুচ্ছেদ একসাথে যাবে না — কারণ দুটোর সত্যতা এক নয়:
+
+| অনুচ্ছেদ | `radianbd.com`-এ আজ সত্যি? | কখন বসবে |
+|---|---|---|
+| **Messages you send us** | **হ্যাঁ** — চালু দোকানের আসল চ্যানেল | **এখনই** (App Review-এর জন্য এটুকুই লাগে) |
+| **Information you enter before completing an order** | **না** — অসমাপ্ত checkout ধরার কাজ নতুন সাইটে | **cutover-এর দিন** |
+
+নতুন সাইটে (`apps/web`) দুটোই একসাথে যাবে —
+Radian Admin → **Content → Pages → Privacy Policy** → "Information We
+Collect" অংশের পরে。
 
 ---
 
