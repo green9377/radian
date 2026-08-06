@@ -35,6 +35,7 @@ import {
 import { useOrderStore } from "../../_store/useOrderStore";
 import { useRecipientBook } from "../../_store/useRecipientBook";
 import { useAttribution } from "../../_store/useAttribution";
+import { clientKey, useCheckoutLead } from "../../_store/useCheckoutLead";
 import { useZoneStore } from "../../_store/useZoneStore";
 import Icon from "../Pdp/PdpIcons";
 import CheckoutReview from "./CheckoutReview";
@@ -256,6 +257,52 @@ export default function CheckoutView() {
   );
 
   /*
+    ── অসমাপ্ত checkout ধরে রাখা · DEC-WA-004, DEC-WA-008 ────────────────────
+    মালিকের নির্দেশ ৬ আগস্ট: "customer যা-ই type করুক সেটা আমরা নিয়ে নেব",
+    আর ৯০ দিন ধরে তাঁদের গ্রাহকে পরিণত করার চেষ্টা চলবে।
+
+    ⚠️ কার্ড/CVV/OTP-র কোনো ঘর এখানে নেই এবং কখনো থাকবেও না — টাকার পাতাটা
+    SSLCommerz-এর নিজের। server-এও একই ছাঁকনি বসানো, কারণ ব্রাউজার ঠিক
+    আচরণ করবে সেই ভরসায় নিরাপত্তা রাখা যায় না।
+
+    ⚠️ পাঠানো হয় থামার ১.৫ সেকেন্ড পর, আর একই লেখা দুবার নয় (hook-এর ভেতরে)।
+  */
+  useCheckoutLead(
+    cart && (c.senderPhone.trim() || c.senderName.trim())
+      ? {
+          name: c.senderName.trim() || undefined,
+          phone: normalizeBdPhone(c.senderPhone) ?? (c.senderPhone.trim() || undefined),
+          email: c.senderEmail.trim() || undefined,
+          stage: c.step >= 5 ? "PAYMENT" : c.step >= 3 ? "DELIVERY" : "DETAILS",
+          /*  যা টাইপ করা হয়েছে — staff ফোন করার সময় এগুলোই কাজে লাগে:
+              কার জন্য, কোথায়, কবে।  */
+          draft: {
+            isGift: c.isGift,
+            recipientName: c.recipientName?.trim() || undefined,
+            recipientPhone: c.recipientPhone?.trim() || undefined,
+            address: c.address?.trim() || undefined,
+            deliveryNotes: c.deliveryNotes?.trim() || undefined,
+            date: c.date ?? undefined,
+            zone: zoneCodeFor(zone),
+            methodLabel: method?.label,
+            step: c.step,
+          },
+          /*  cart-এর ছবি সেই মুহূর্তের — staff ফোন করার সময় "উনি কী রেখে
+              গিয়েছিলেন" জানার জন্য এটুকুই যথেষ্ট।  */
+          cart: cart.lines.map((l) => ({
+            name: l.product.name,
+            slug: l.item.slug,
+            qty: l.item.qty,
+            size: l.size?.label,
+            variant: l.variant?.label,
+          })),
+          itemCount: cart.lines.length,
+          totalPaisa: totals?.totalPaisa ?? 0,
+        }
+      : null,
+  );
+
+  /*
     ── HOW LONG THIS BASKET NEEDS ────────────────────────────────────────────
     The largest "days to make" in the cart — NOT the sum. Three items that each
     take two days are made in parallel by different hands; adding them would
@@ -414,6 +461,11 @@ export default function CheckoutView() {
       /*  MKT-D02 — এই order-টা কোন বিজ্ঞাপন/affiliate পাঠাল। first-touch,
           ৩০ দিনের স্মৃতি; না থাকলে ঘরগুলো খালি যায়, আর সেটাই সত্যি।  */
       ...(useAttribution.getState().read() ?? {}),
+
+      /*  DEC-WA-004 — order হয়ে গেল, তাই এই ব্রাউজারের অসমাপ্ত সারিটা আর
+          "ছেড়ে যাওয়া" নয়। এটা না পাঠালে ১৫ মিনিট পর সদ্য order করা
+          গ্রাহকের কাছেই "আপনার cart রাখা আছে" চলে যেত।  */
+      clientKey: clientKey() || undefined,
 
       /*  ⚠️ The number on the button, sent back to be checked against. If the
           shop now works out MORE than this, the order is refused (409) rather

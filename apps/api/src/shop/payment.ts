@@ -129,6 +129,59 @@ export class SslCommerzService {
     return (process.env.PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '');
   }
 
+  /* ══════════════════ 0. টাকা বাকি আছে কি না — order নম্বর দিয়ে ══════════════════ */
+
+  /**
+   * WhatsApp-এর "পেমেন্ট হয়নি" বার্তার বোতামটা `/pay/{orderNo}`-এ নামে
+   * (DEC-WA-003)। সেই পাতার দুটোই দরকার: কত টাকা বাকি, আর আদৌ বাকি আছে কি না।
+   *
+   * ⚠️ ফোন নম্বর চাওয়া হয় না ইচ্ছাকৃতভাবে। এটা হারানো order ফেরানোর পথ —
+   * প্রতিটা বাড়তি ঘর মানে আরও কিছু মানুষ ঝরে যাওয়া, আর টাকা দেওয়ার
+   * পাতায় "প্রমাণ করুন আপনি কে" বলাটা উল্টো ভয় ধরায়।
+   *
+   * ⚠️ তাই ব্যক্তিগত কিছু ফেরানো হয় না — নাম নয়, ঠিকানা নয়, কী কিনেছেন
+   * তা-ও নয়। শুধু order নম্বর আর বাকি টাকা। কেউ নম্বর আন্দাজ করে ফেললেও
+   * সবচেয়ে খারাপ যা করতে পারে তা হলো অন্যের order-এর টাকা দিয়ে দেওয়া।
+   */
+  async amountDue(orderNoIn: string) {
+    const orderNo = (orderNoIn ?? '').trim().toUpperCase();
+    if (!orderNo) throw new BadRequestException('order number required');
+
+    const order = await this.prisma.db.order.findFirst({
+      where: { orderNo, deletedAt: null },
+      select: {
+        id: true, orderNo: true, totalPaisa: true, paidPaisa: true,
+        refundPaisa: true, salesStatus: true, paymentMethod: true,
+      },
+    });
+    if (!order) return { found: false as const };
+
+    const duePaisa = Math.max(0, order.totalPaisa - (order.paidPaisa - order.refundPaisa));
+    return {
+      found: true as const,
+      orderNo: order.orderNo,
+      duePaisa,
+      paid: duePaisa <= 0,
+      cancelled: order.salesStatus === 'cancelled',
+      /*  COD order-এ অনলাইনে টাকা নেওয়ার পাতা খোলার মানে নেই — টাকা
+          রাইডারের হাতে যাবে।  */
+      isCod: order.paymentMethod === PaymentMethod.cod,
+    };
+  }
+
+  /** order নম্বর থেকে সরাসরি gateway — `/pay/{orderNo}` পাতার বোতাম */
+  async createSessionByNo(orderNoIn: string) {
+    const orderNo = (orderNoIn ?? '').trim().toUpperCase();
+    const order = await this.prisma.db.order.findFirst({
+      where: { orderNo, deletedAt: null },
+      select: { id: true, salesStatus: true },
+    });
+    if (!order) throw new BadRequestException('order not found');
+    if (order.salesStatus === 'cancelled')
+      throw new BadRequestException('this order was cancelled');
+    return this.createSession(order.id);
+  }
+
   /* ══════════════════ 1. open a session ══════════════════ */
 
   async createSession(orderId: string) {
@@ -438,6 +491,20 @@ export class PaymentController {
       );
     }
     return this.svc.redirect(kind, await this.svc.orderNoFor(p?.tran_id));
+  }
+
+  /*  `/pay/{orderNo}` পাতার দুটো ডাক — WhatsApp-এর "পেমেন্ট হয়নি" বার্তার
+      বোতাম এখানেই নামে (DEC-WA-003)।  */
+  @Public()
+  @Get('due/:orderNo')
+  due(@Param('orderNo') orderNo: string) {
+    return this.svc.amountDue(orderNo);
+  }
+
+  @Public()
+  @Post('session-by-no')
+  sessionByNo(@Body() body: { orderNo: string }) {
+    return this.svc.createSessionByNo(body?.orderNo ?? '');
   }
 
   /** the storefront polls this on /order-success while the IPN lands */

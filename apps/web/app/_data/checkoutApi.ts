@@ -163,6 +163,48 @@ export interface PlaceOrderIn extends QuoteIn {
   utmMedium?: string;
   utmCampaign?: string;
   refCode?: string;
+  /*  DEC-WA-004 — এই ব্রাউজারের অসমাপ্ত checkout-এর পরিচয়। order হয়ে গেলে
+      ওই সারিটা CONVERTED হয়, নাহলে ১৫ মিনিট পর সদ্য order করা গ্রাহকের
+      কাছেই "আপনার cart রাখা আছে" বার্তা চলে যেত।  */
+  clientKey?: string;
+}
+
+/* ─────────────────── অসমাপ্ত checkout (DEC-WA-004, DEC-WA-008) ───────────────────
+   গ্রাহক checkout-এ যা টাইপ করছেন তা server-এ রেখে দেওয়া, যাতে অর্ধেক পথে
+   চলে গেলে তাঁকে ফিরিয়ে আনার চেষ্টা করা যায়।
+
+   ⚠️ কার্ড/CVV/OTP কখনো এখানে আসে না — টাকার পাতাটা SSLCommerz-এর নিজের,
+   আমাদের ফর্মে ওসব ঘরই নেই। server-এও একই ছাঁকনি বসানো আছে, কারণ
+   ব্রাউজারের সদিচ্ছা নিরাপত্তার সীমানা নয়।
+
+   ⚠️ ব্যর্থ হলে চুপচাপ — এটা সৌজন্যের কাজ; checkout কখনো এর জন্য আটকাবে না। */
+
+export interface CheckoutLeadIn {
+  clientKey: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  stage?: "CART" | "DETAILS" | "DELIVERY" | "PAYMENT";
+  draft?: Record<string, unknown>;
+  cart?: unknown;
+  itemCount?: number;
+  totalPaisa?: number;
+}
+
+export async function sendCheckoutLead(input: CheckoutLeadIn): Promise<void> {
+  try {
+    await fetch(`${baseFor()}/shop/checkout-lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      cache: "no-store",
+      /*  পাতা বন্ধ করে দিলেও যেন শেষ ping-টা পৌঁছায় — ঠিক যে মুহূর্তে
+          "ছেড়ে যাওয়া" ঘটছে, সেই মুহূর্তের তথ্যটাই সবচেয়ে দরকারি।  */
+      keepalive: true,
+    });
+  } catch {
+    /* নীরব — সৌজন্যের কাজ কখনো checkout ভাঙবে না */
+  }
 }
 
 /* ─────────────────── review submission ─────────────────── */
@@ -294,6 +336,36 @@ export const placeOrder = (input: PlaceOrderIn) =>
 
 export const createPaymentSession = (orderId: string) =>
   post<PaymentSession>("/shop/payment/session", { orderId });
+
+/* ── `/pay/{orderNo}` — WhatsApp-এর "পেমেন্ট হয়নি" বার্তার বোতাম (DEC-WA-003) ──
+   ⚠️ ফোন নম্বর চাওয়া হয় না। এটা হারানো order ফেরানোর পথ; টাকা দেওয়ার
+   পাতায় বাড়তি প্রতিটা ঘর মানে আরও কিছু মানুষ ঝরে যাওয়া। তাই server-ও
+   ব্যক্তিগত কিছু ফেরত পাঠায় না — শুধু order নম্বর আর বাকি টাকা। */
+
+export interface AmountDue {
+  found: boolean;
+  orderNo?: string;
+  duePaisa?: number;
+  paid?: boolean;
+  cancelled?: boolean;
+  isCod?: boolean;
+}
+
+export async function fetchAmountDue(orderNo: string): Promise<AmountDue | null> {
+  try {
+    const res = await fetch(
+      `${baseFor()}/shop/payment/due/${encodeURIComponent(orderNo)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as AmountDue;
+  } catch {
+    return null;
+  }
+}
+
+export const createPaymentSessionByNo = (orderNo: string) =>
+  post<PaymentSession>("/shop/payment/session-by-no", { orderNo });
 
 /** ওই দিনে কোন slot-এ কয়টা order — "Available/Full" এর সত্যিকারের গোনা */
 export async function fetchSlotLoad(date: string): Promise<Record<string, number> | null> {
