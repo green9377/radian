@@ -14,8 +14,14 @@ interface Manifest {
   provider: string;
   label: string;
   kind: IntKind;
-  /** in the order they should appear */
-  fields: { key: CredField | 'variant'; label: string; hint?: string; secret: boolean }[];
+  /*  in the order they should appear.
+
+      ⚠️ `optional` — ৬ আগস্ট। আগে সব field বাধ্যতামূলক ধরা হতো, তাই WhatsApp
+      চালু করতে গিয়ে App secret আর Webhook verify token চাইত — অথচ ওই দুটো
+      কেবল আসা বার্তা যাচাইয়ের জন্য, পাঠানোর জন্য নয়। ফল: চাবি ঠিক থাকা
+      সত্ত্বেও কিছুতেই switch on করা যেত না। field-এর নিজের hint-ই বলছিল
+      "Only needed to verify incoming webhooks" — কোড সেটা জানত না।  */
+  fields: { key: CredField | 'variant'; label: string; hint?: string; secret: boolean; optional?: boolean }[];
   /** what breaks while this is off */
   matters: string;
   hasSandbox: boolean;
@@ -100,8 +106,8 @@ export const PROVIDERS: Manifest[] = [
     fields: [
       { key: 'clientId', label: 'Phone number ID', secret: false },
       { key: 'apiKey', label: 'Permanent access token', secret: true },
-      { key: 'clientSecret', label: 'App secret', hint: 'Only needed to verify incoming webhooks', secret: true },
-      { key: 'webhookSecret', label: 'Webhook verify token', secret: true },
+      { key: 'clientSecret', label: 'App secret', hint: 'Only needed to verify incoming webhooks — not needed to send', secret: true, optional: true },
+      { key: 'webhookSecret', label: 'Webhook verify token', hint: 'Only needed to receive messages — not needed to send', secret: true, optional: true },
     ],
   },
   {
@@ -114,7 +120,7 @@ export const PROVIDERS: Manifest[] = [
       { key: 'apiKey', label: 'API key', secret: true },
       { key: 'username', label: 'From address', hint: 'Must be verified with the provider', secret: false },
       { key: 'clientId', label: 'From name', secret: false },
-      { key: 'baseUrl', label: 'Sending domain', hint: 'Mailgun needs this; the others ignore it', secret: false },
+      { key: 'baseUrl', label: 'Sending domain', hint: 'Mailgun needs this; the others ignore it', secret: false, optional: true },
     ],
   },
   {
@@ -126,7 +132,7 @@ export const PROVIDERS: Manifest[] = [
       { key: 'variant', label: 'Provider', hint: 'BULKSMSBD and similar', secret: false },
       { key: 'apiKey', label: 'API key', secret: true },
       { key: 'username', label: 'Sender ID', secret: false },
-      { key: 'baseUrl', label: 'Custom endpoint', hint: 'Only if the provider needs one', secret: false },
+      { key: 'baseUrl', label: 'Custom endpoint', hint: 'Only if the provider needs one', secret: false, optional: true },
     ],
   },
 
@@ -290,7 +296,10 @@ export class IntegrationsService {
     const group = (kind: IntKind) =>
       PROVIDERS.filter((m) => m.kind === kind).map((m) => {
         const row = byProvider.get(`${kind}:${m.provider}`);
-        const filled = m.fields.filter(
+        /*  গোনা হয় শুধু বাধ্যতামূলক field — নাহলে "2/4 keys" দেখে মনে হতো
+            অর্ধেক কাজ বাকি, অথচ পাঠানোর জন্য যা লাগে সবই বসানো।  */
+        const required = m.fields.filter((f) => !f.optional);
+        const filled = required.filter(
           (f) => !!(row as Record<string, unknown> | undefined)?.[f.key],
         ).length;
         return {
@@ -302,7 +311,7 @@ export class IntegrationsService {
           /*  A key being present is not the same as it working. Both facts are
               reported separately so the screen never says "connected" on the
               strength of a saved string.  */
-          fieldsTotal: m.fields.length,
+          fieldsTotal: required.length,
           fieldsFilled: filled,
           isEnabled: row?.isEnabled ?? false,
           isLive: row?.isLive ?? false,
@@ -488,6 +497,7 @@ export class IntegrationsService {
         where: { kind, provider },
       });
       const missing = manifest.fields.filter((f) => {
+        if (f.optional) return false; // webhook-এর চাবি না থাকলেও পাঠানো যায়
         const incoming = dto[f.key];
         const current = (existing as Record<string, string | null> | null)?.[f.key];
         const value = incoming === undefined ? current : incoming;

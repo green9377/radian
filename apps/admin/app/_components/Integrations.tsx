@@ -556,6 +556,12 @@ function HeroServiceCard({
               <div key={f.key} className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Lbl>{f.label}</Lbl>
+                  {f.optional && (
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
+                          style={{ background: TONE.slate.soft, color: TONE.slate.text }}>
+                      OPTIONAL
+                    </span>
+                  )}
                   {saved && !didType && (
                     <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
                           style={{ background: TONE.emerald.soft, color: TONE.emerald.text }}>

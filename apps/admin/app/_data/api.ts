@@ -6587,6 +6587,8 @@ export function getSettingsMap(): Promise<ApiSettingsEntry[]> {
 
 export interface ApiIntegrationField {
   key: string; label: string; hint?: string; secret: boolean;
+  /** ফাঁকা থাকলেও service চালু করা যায় — যেমন WhatsApp-এর webhook চাবি দুটো */
+  optional?: boolean;
   /** secrets come back MASKED ("••••3f8a") — never the real value */
   value: string | null;
 }
