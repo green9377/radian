@@ -42,7 +42,6 @@ import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
   btnGhost, btnPrimary, btnPrimaryStyle, input, Lbl,
 } from "./FinanceUI";
-import { Switch } from "./DeliveryUI";
 
 /*
   PAYMENT GATEWAY CARDS — redesign, 6 Aug 2026.
@@ -64,13 +63,35 @@ import { Switch } from "./DeliveryUI";
   দেখাবে (নতুন key ঠিক টাইপ হয়েছে কিনা যাচাইয়ের জন্য), আগের সেভ করা key না।
 */
 
-const PAYMENT_BRAND: Record<string, { grad: string; badge: string; ring: string }> = {
-  SSLCOMMERZ: { grad: "linear-gradient(135deg,#0a3d62,#3c8dbc)", badge: "SC", ring: "#cfe3ee" },
-  BKASH:      { grad: "linear-gradient(135deg,#d6136c,#ff5da2)", badge: "bK", ring: "#f8cfe2" },
-  NAGAD:      { grad: "linear-gradient(135deg,#e2691a,#f7a339)", badge: "ন", ring: "#f7ddc0" },
+const PAYMENT_BRAND: Record<string, { grad: string; badge: string; ring: string; glow: string; solid: string }> = {
+  SSLCOMMERZ: { grad: "linear-gradient(135deg,#062c47,#0a3d62 45%,#3c8dbc)", badge: "SC", ring: "#3c8dbc", glow: "rgba(10,61,98,0.35)", solid: "#0a3d62" },
+  BKASH:      { grad: "linear-gradient(135deg,#8f0c47,#d6136c 45%,#ff5da2)", badge: "bK", ring: "#d6136c", glow: "rgba(214,19,108,0.35)", solid: "#d6136c" },
+  NAGAD:      { grad: "linear-gradient(135deg,#9a3c0a,#e2691a 45%,#f7a339)", badge: "ন", ring: "#e2691a", glow: "rgba(226,105,26,0.35)", solid: "#e2691a" },
 };
 const brandFor = (provider: string) =>
-  PAYMENT_BRAND[provider] ?? { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.ring };
+  PAYMENT_BRAND[provider] ??
+  { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.bg, glow: "rgba(160,33,184,0.3)", solid: TONE.brand.bg };
+
+/** oversized on/off pill for the payment hero cards — the small Delivery
+    Switch reads as an afterthought at this scale, so this one is its own size. */
+function BigSwitch({ on, glow, onClick }: { on: boolean; glow: string; onClick: () => void }) {
+  return (
+    <button
+      type="button" onClick={onClick}
+      className="relative rounded-full shrink-0 transition-all"
+      style={{
+        width: 56, height: 32,
+        background: on ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.22)",
+        boxShadow: on ? `0 0 0 3px ${glow}` : "none",
+      }}
+    >
+      <span
+        className="absolute top-1/2 -translate-y-1/2 rounded-full shadow-md transition-all"
+        style={{ width: 24, height: 24, left: on ? 56 - 24 - 4 : 4, background: on ? "#16a34a" : "#fff" }}
+      />
+    </button>
+  );
+}
 
 const TONE_FOR: Record<ApiIntKind, keyof typeof TONE> = {
   PAYMENT: "brand",
@@ -444,52 +465,57 @@ function PaymentServiceCard({
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden bg-white shadow-[0_1px_3px_rgba(80,40,100,0.05)]"
-      style={{ borderColor: s.isEnabled ? brand.ring : "#efe9f3" }}
+      className="rounded-[26px] overflow-hidden bg-white transition-transform hover:-translate-y-[2px]"
+      style={{ boxShadow: s.isEnabled ? `0 16px 40px ${brand.glow}` : "0 4px 16px rgba(40,20,50,0.08)" }}
     >
-      {/*  Brand header — colour is the provider's own, not the app's, on
-          purpose: this is the one place "which gateway is this" should be
-          readable from three metres away.  */}
-      <div className="relative px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: brand.grad }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/40 grid place-items-center text-white font-display text-[15px] shrink-0">
-            {brand.badge}
-          </div>
-          <div className="min-w-0">
-            <div className="text-white font-display text-[15px] leading-tight truncate">{s.label}</div>
-            <div className="text-white/80 text-[10.5px] font-semibold tracking-wide uppercase mt-0.5">
-              {s.isEnabled ? (s.hasSandbox && !s.isLive ? "Sandbox" : "Live") : "Off"}
+      {/*  HERO — full-bleed brand colour, not a thin strip. This is the part
+          that has to read as "this is bKash" from across the room, the way
+          the reference the owner sent does.  */}
+      <div className="relative px-5 pt-6 pb-9 overflow-hidden" style={{ background: brand.grad }}>
+        <div className="absolute -right-8 -top-16 w-52 h-52 rounded-full bg-white opacity-[0.10]" />
+        <div className="absolute -left-10 -bottom-20 w-44 h-44 rounded-full bg-white opacity-[0.08]" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-16 h-16 rounded-2xl bg-white grid place-items-center text-[26px] font-display font-bold shrink-0 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                 style={{ color: brand.solid }}>
+              {brand.badge}
+            </div>
+            <div className="min-w-0">
+              <div className="text-white font-display font-bold text-[22px] leading-tight truncate drop-shadow-sm">{s.label}</div>
+              <div className="text-white/85 text-[11px] font-bold tracking-[0.12em] uppercase mt-1">
+                {s.isEnabled ? (s.hasSandbox && !s.isLive ? "● Sandbox mode" : "● Live") : "○ Switched off"}
+              </div>
             </div>
           </div>
+          <BigSwitch on={s.isEnabled} glow="rgba(255,255,255,0.5)" onClick={() => void save({ isEnabled: !s.isEnabled })} />
         </div>
-        <Switch
-          on={s.isEnabled}
-          onClick={() => void save({ isEnabled: !s.isEnabled })}
-        />
       </div>
 
-      <div className="p-4">
-        <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
-          <Chip tone={complete ? "sky" : "amber"}>{s.fieldsFilled}/{s.fieldsTotal} keys</Chip>
+      {/*  Body overlaps the hero slightly, like a bottom sheet — the seam is
+          where "brand" hands off to "form", and it should look intentional. */}
+      <div className="relative -mt-4 rounded-t-[22px] bg-white px-5 pt-5 pb-5">
+        <div className="flex items-center gap-2 flex-wrap mb-3">
+          <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
+                style={{ background: complete ? TONE.sky.soft : TONE.amber.soft, color: complete ? TONE.sky.text : TONE.amber.text }}>
+            {s.fieldsFilled}/{s.fieldsTotal} KEYS
+          </span>
           {s.hasSandbox && (
             <button
               type="button" disabled={busy}
               onClick={() => void save({ isLive: !s.isLive })}
-              className="text-[10.5px] font-bold px-2 py-0.5 rounded-full transition-colors"
-              style={s.isLive
-                ? { background: TONE.emerald.soft, color: TONE.emerald.text }
-                : { background: TONE.rose.soft, color: TONE.rose.text }}
+              className="text-[11px] font-extrabold px-2.5 py-1 rounded-full text-white transition-transform active:scale-95"
+              style={{ background: s.isLive ? "#16a34a" : "#dc2626" }}
             >
               {s.isLive ? "● LIVE — tap for sandbox" : "● SANDBOX — tap for live"}
             </button>
           )}
         </div>
 
-        <p className="text-[12px] text-body leading-relaxed mb-3">{s.matters}</p>
+        <p className="text-[12.5px] text-body leading-relaxed mb-4">{s.matters}</p>
 
         {/*  Fields are always visible — no "Add keys" click needed, matching
             the reference layout the owner pointed to.  */}
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3.5">
           {s.fields.map((f) => {
             const isRevealed = revealed.has(f.key);
             return (
@@ -497,7 +523,10 @@ function PaymentServiceCard({
                 <Lbl>{f.label}</Lbl>
                 <div className="flex gap-1.5">
                   <input
-                    className={input}
+                    className="w-full border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
+                    style={{ borderColor: "#ece5f2" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
                     type={f.secret && !isRevealed ? "password" : "text"}
                     placeholder={
                       cleared.has(f.key) ? "will be cleared"
@@ -509,7 +538,9 @@ function PaymentServiceCard({
                   />
                   {f.secret && (
                     <button
-                      type="button" className={btnGhost}
+                      type="button"
+                      className="shrink-0 w-11 h-11 rounded-2xl grid place-items-center text-[16px] border-2 transition-colors"
+                      style={{ borderColor: "#ece5f2" }}
                       title="Show what you just typed — a saved key can never be shown again, by design"
                       onClick={() => setRevealed((r) => {
                         const n = new Set(r);
@@ -539,7 +570,7 @@ function PaymentServiceCard({
           })}
         </div>
 
-        <p className="text-[11px] text-body-soft mt-3">
+        <p className="text-[11px] text-body-soft mt-4">
           {s.lastCheckedAt
             ? `Last checked ${new Date(s.lastCheckedAt).toLocaleString()} — ${s.lastCheckOk ? "worked" : "failed"}${s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}`
             : "Never checked against the provider — a saved key is not a working key"}
@@ -550,18 +581,17 @@ function PaymentServiceCard({
           </p>
         )}
 
-        <div className="mt-3.5 pt-3.5 border-t border-[#f0edf5] flex flex-wrap gap-1.5">
-          <button
-            className={btnPrimary} disabled={busy}
-            style={{ background: brand.grad }}
-            onClick={() => void save()}
-          >
-            {busy ? "Saving…" : "Update info"}
-          </button>
-        </div>
+        <button
+          className="w-full mt-4 py-3.5 rounded-2xl text-white font-extrabold text-[14px] tracking-wide shadow-lg transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: brand.grad, boxShadow: `0 8px 22px ${brand.glow}` }}
+          disabled={busy}
+          onClick={() => void save()}
+        >
+          {busy ? "SAVING…" : "UPDATE INFO"}
+        </button>
 
         {s.hasSandbox && !s.isLive && s.isEnabled && (
-          <p className="text-[11px] leading-relaxed mt-2.5" style={{ color: TONE.rose.text }}>
+          <p className="text-[11px] leading-relaxed mt-3" style={{ color: TONE.rose.text }}>
             Sandbox accepts payments that never arrive — a customer sees
             success, no money moves. Switch to LIVE only with real keys pasted in.
           </p>
