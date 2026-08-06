@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import {
   ConversationStatus,
   EscalationReason,
+  InboxChannel,
   MessageAuthor,
   MessageDirection,
   Prisma,
@@ -10,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InboxAiTools, ToolProduct } from './ai-tools';
 import { InboxPresence } from './presence';
 import { AiMessage, AiToolDef, providerFor } from './ai-provider';
+import { WhatsAppCloudService } from '../common/whatsapp-cloud';
 
 /*
   AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md।
@@ -157,6 +159,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly tools: InboxAiTools,
     private readonly presence: InboxPresence,
+    private readonly wa: WhatsAppCloudService,
   ) {}
 
   /*  DEC-INB-008/009-এর ঘড়ি: প্রতি মিনিটে একবার দেখা — কোন thread-এ গ্রাহক
@@ -401,10 +404,23 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
         aiMeta: aiMeta as Prisma.InputJsonValue,
       },
     });
-    await this.prisma.db.conversation.update({
+    const convo = await this.prisma.db.conversation.update({
       where: { id: conversationId },
       data: { lastMessageAt: new Date(), status: ConversationStatus.WAITING_CUSTOMER },
     });
+
+    /*
+      Web chat is polled by the customer's own browser; WhatsApp is not. Without
+      this the AI answers into a screen only staff can see, and the customer is
+      left waiting on a reply that was written and never sent.
+    */
+    if (convo.channel === InboxChannel.WHATSAPP && convo.externalIdentity) {
+      const r = await this.wa.sendRaw(convo.externalIdentity, {
+        type: 'text',
+        text: { body },
+      });
+      if (!r.ok) this.logger.warn(`WhatsApp AI reply failed for ${conversationId}: ${r.error}`);
+    }
   }
 
   /** INB-RULE-005 — assignee-তালিকা, খালি হলে সব OWNER; thread OPEN-ই থাকে

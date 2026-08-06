@@ -95,6 +95,20 @@ export class WhatsAppWebhookService {
   }
 
   async handle(payload: { entry?: { changes?: { value?: WaValue }[] }[] }) {
+    /*
+      Logged on the way in, not only on failure. A silent success is
+      indistinguishable from never being called, which is exactly the question
+      you need answered when a message does not appear.
+    */
+    const counts = (payload?.entry ?? []).flatMap((e) => e.changes ?? []).reduce(
+      (a, c) => ({
+        messages: a.messages + (c.value?.messages?.length ?? 0),
+        statuses: a.statuses + (c.value?.statuses?.length ?? 0),
+      }),
+      { messages: 0, statuses: 0 },
+    );
+    this.log.log(`webhook in — ${counts.messages} message(s), ${counts.statuses} status(es)`);
+
     for (const entry of payload?.entry ?? []) {
       for (const change of entry.changes ?? []) {
         const v = change.value;
