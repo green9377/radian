@@ -159,10 +159,12 @@ export const PROVIDERS: Manifest[] = [
   },
   {
     provider: 'INSTAGRAM', label: 'Instagram Business', kind: 'SOCIAL', hasSandbox: false,
-    matters: 'Instagram DMs reach the Inbox through the Facebook Page above. This is only needed for reading Instagram insights.',
+    matters:
+      'Instagram direct messages, in and out of the Inbox. These come from Instagram itself, not from the Facebook Page — a separate account, a separate token.',
     fields: [
-      { key: 'clientId', label: 'Instagram account ID', secret: false },
-      { key: 'apiKey', label: 'Access token', secret: true },
+      { key: 'clientId', label: 'Instagram account ID', hint: 'The number shown next to the account in the Meta app dashboard', secret: false },
+      { key: 'apiKey', label: 'Instagram access token', secret: true },
+      { key: 'clientSecret', label: 'Instagram app secret', hint: 'Instagram signs its webhooks with its own secret, not the Facebook one', secret: true, optional: true },
     ],
   },
   {

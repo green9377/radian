@@ -28,7 +28,8 @@ message লেখে এমন প্রতিটা জায়গা খু�
 |---|---|
 | `WEB_CHAT` | কিছু পাঠাতে হয় না — browser নিজে এসে নেয় |
 | `WHATSAPP` | `WhatsAppCloudService.sendRaw()` |
-| `MESSENGER` · `INSTAGRAM` | `POST graph.facebook.com/v25.0/me/messages`, Page token |
+| `MESSENGER` | `POST graph.facebook.com/v25.0/me/messages`, Page token |
+| `INSTAGRAM` | `POST graph.instagram.com/v23.0/<ig-id>/messages`, **Instagram-এর নিজের token** |
 
 ---
 
@@ -63,14 +64,13 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
    - Callback URL `https://radian-api-qnt6.onrender.com/webhooks/meta`
    - Verify token — **WhatsApp-এরটাই**, কোড একটাই token পড়ে
 3. Page যুক্ত → subscribe: `messages`, `messaging_postbacks` → **Generate** token
-4. Instagram → **API setup with Facebook login** (Instagram login নয়, §৫ দেখো)
-   → `Add required messaging permissions`
-5. App Dashboard → **Webhooks** → product **Instagram** → একই URL ও token →
-   `messages` subscribe
-6. Instagram app → Settings → Messages and story replies → Connected tools →
-   **Allow access to messages**
-7. Radian Admin → Integrations → Social → **Facebook Page** → Page ID +
-   token → **Switch on**
+4. Instagram → **API setup with Instagram login** → **Add account** →
+   Instagram-এ login করে অনুমতি দেওয়া → token তৈরি
+5. ওই পাতাতেই Configure webhooks — একই URL ও verify token → `messages`
+6. Radian Admin → Integrations → Social →
+   **Facebook Page** (Page ID + Page token) এবং
+   **Instagram Business** (account ID + Instagram token + Instagram app secret)
+   — দুটোই **Switch on**
 
 ---
 
@@ -78,7 +78,9 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
 
 | ফাঁদ | কী হয় | করণীয় |
 |---|---|---|
-| **Instagram login বনাম Facebook login** | দুটো আলাদা পরিবার。 Instagram login-এ আলাদা token, `instagram_business_*` permission, `graph.instagram.com`-এ পাঠানো, **আর webhook পেতে app published থাকতে হয়** | **Facebook login** — এক token দুই চ্যানেল, Development-এই পরীক্ষা চলে |
+| **Instagram login বনাম Facebook login** | দুটো আলাদা পরিবার, বদলাবদলি হয় না。 **প্রথমে Facebook login বেছেছিলাম** — সব ঠিকমতো বসানোর পরেও Meta একটাও webhook পাঠায়নি, কারণ ওই পথে কোনো Instagram account app-কে অনুমতিই দেয়নি; অনুমতি দিতে Login-for-Business flow বানাতে হতো | **Instagram login** — "Add account" এক ক্লিক。 শর্ত ছিল app published থাকা, আর Radian-এর app আগে থেকেই Live |
+| **Instagram-এর signature আলাদা secret-এ** | Facebook app secret দিয়ে মেলে না, webhook চুপচাপ ফেরত যায় | `signatureOk()` দুটো secret-ই মিলিয়ে দেখে |
+| **Page token দিয়ে Instagram-এ পাঠানো** | recipient id Instagram account-এর নিজস্ব, Page token সেখানে অচল | আলাদা `sendInstagram()` |
 | **Callback URL বসানোর আগে subscribe** | "Webhook subscription failed" | আগে URL verify, তারপর field |
 | **Verify token-এর ঘরে access token** | verify ফেল | দুটো আলাদা জিনিস: verify token আমরা বানাই, access token Meta দেয় |
 | **Render ফ্রি server ঘুমায়** | প্রথম verify ফেল হতে পারে | সাথে সাথে আবার চাপো (~৫০ সেকেন্ডে জাগে) |

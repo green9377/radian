@@ -2,6 +2,7 @@ import {
   Body, Controller, Get, Headers, HttpCode, Injectable, Logger, Post, Query, Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import {
   ConversationStatus, InboxChannel, MessageAuthor, MessageDirection, Prisma,
 } from '@prisma/client';
@@ -15,7 +16,10 @@ import { WhatsAppWebhookService } from './whatsapp-webhook';
 
   One endpoint for both: Meta sends `object: "page"` for Messenger and
   `object: "instagram"` for Instagram, and the payload is otherwise the same.
-  Both arrive through the Facebook Page, which is also why they share a token.
+
+  They do NOT share a token. Messenger belongs to the Facebook Page; Instagram
+  is connected on its own and holds its own token, its own host and its own app
+  secret. Treating them as one account is the mistake that cost an evening.
 
   Comments are not handled on purpose (owner, 6 Aug). A comment is public and a
   DM is not, so the reply is a different act; mixing them into one list would
@@ -23,6 +27,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook';
 */
 
 const GRAPH = 'https://graph.facebook.com/v25.0';
+const IG_GRAPH = 'https://graph.instagram.com/v23.0';
 
 interface MetaMessaging {
   sender?: { id?: string };
@@ -52,8 +57,33 @@ export class MetaWebhookService {
     return this.wa.verify(mode, token, challenge);
   }
 
-  signatureOk(signature: string | undefined, raw: Buffer | undefined) {
-    return this.wa.signatureOk(signature, raw);
+  /*
+    Instagram signs with the Instagram app secret, Messenger with the Facebook
+    one, and both arrive at this endpoint. Rather than guess from the body
+    before it has been trusted, either secret is accepted — each is a secret
+    only Meta and Radian hold, so neither weakens the other.
+  */
+  async signatureOk(signature: string | undefined, raw: Buffer | undefined) {
+    if (await this.wa.signatureOk(signature, raw)) return true;
+    if (!signature?.startsWith('sha256=') || !raw) return false;
+
+    const secret = await this.instagramAppSecret();
+    if (!secret) return false;
+
+    const expected = 'sha256=' + createHmac('sha256', secret).update(raw).digest('hex');
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
+
+  private async instagramAppSecret(): Promise<string | null> {
+    try {
+      const row = await this.integrations.credentials('SOCIAL', 'INSTAGRAM');
+      if (row?.clientSecret?.trim()) return row.clientSecret.trim();
+    } catch {
+      /* fall through to env */
+    }
+    return process.env.INSTAGRAM_APP_SECRET || null;
   }
 
   async handle(payload: { object?: string; entry?: { messaging?: MetaMessaging[] }[] }) {
@@ -126,39 +156,42 @@ export class MetaWebhookService {
       data: {
         channel,
         externalIdentity: psid,
-        /*
-          Meta gives a page-scoped id, not a phone number, so a new contact
-          starts nameless. The profile name needs a separate call and an extra
-          permission — worth adding later, not worth blocking a message on.
-        */
-        guestName: await this.profileName(psid),
+        // Meta gives a scoped id, not a phone number, so the name is fetched
+        // separately — and a failure there must not lose the message.
+        guestName: await this.profileName(channel, psid),
       },
     });
   }
 
-  private async profileName(psid: string): Promise<string | null> {
-    const token = await this.pageToken();
+  private async profileName(channel: InboxChannel, id: string): Promise<string | null> {
+    const instagram = channel === InboxChannel.INSTAGRAM;
+    const token = await this.token(instagram ? 'INSTAGRAM' : 'FACEBOOK_PAGE',
+      instagram ? 'INSTAGRAM_TOKEN' : 'FACEBOOK_PAGE_TOKEN');
     if (!token) return null;
+
+    // Instagram has usernames, Messenger has real names.
+    const host = instagram ? IG_GRAPH : GRAPH;
+    const fields = instagram ? 'name,username' : 'name';
     try {
-      const res = await fetch(`${GRAPH}/${psid}?fields=name`, {
+      const res = await fetch(`${host}/${id}?fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return null;
-      const j = (await res.json()) as { name?: string };
-      return j.name?.slice(0, 120) ?? null;
+      const j = (await res.json()) as { name?: string; username?: string };
+      return (j.name || j.username)?.slice(0, 120) ?? null;
     } catch {
       return null;
     }
   }
 
-  private async pageToken(): Promise<string | null> {
+  private async token(provider: string, envKey: string): Promise<string | null> {
     try {
-      const row = await this.integrations.credentials('SOCIAL', 'FACEBOOK_PAGE');
+      const row = await this.integrations.credentials('SOCIAL', provider);
       if (row?.isEnabled && row.apiKey?.trim()) return row.apiKey.trim();
     } catch {
       /* fall through to env */
     }
-    return process.env.FACEBOOK_PAGE_TOKEN || null;
+    return process.env[envKey] || null;
   }
 }
 

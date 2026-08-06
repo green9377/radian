@@ -15,6 +15,7 @@ import { WhatsAppCloudService } from '../common/whatsapp-cloud';
 */
 
 const GRAPH = 'https://graph.facebook.com/v25.0';
+const IG_GRAPH = 'https://graph.instagram.com/v23.0';
 
 export interface SendOutcome {
   ok: boolean;
@@ -50,33 +51,55 @@ export class ChannelSender {
       }
 
       case InboxChannel.MESSENGER:
+        return this.sendMessenger(convo.externalIdentity, body);
+
       case InboxChannel.INSTAGRAM:
-        return this.sendMeta(convo.channel, convo.externalIdentity, body);
+        return this.sendInstagram(convo.externalIdentity, body);
 
       default:
         return { ok: false, skipped: true, error: `no sender for ${convo.channel}` };
     }
   }
 
+  /** Messenger goes out through the Facebook Page. */
+  private async sendMessenger(psid: string, body: string): Promise<SendOutcome> {
+    const creds = await this.creds('FACEBOOK_PAGE', 'FACEBOOK_PAGE_TOKEN');
+    if (!creds.token) return { ok: false, skipped: true, error: 'Facebook Page is not connected' };
+    return this.post(InboxChannel.MESSENGER, `${GRAPH}/me/messages`, creds.token, psid, body);
+  }
+
   /*
-    Messenger and Instagram DMs both go out through the Page, so they share a
-    token and an endpoint. Instagram only works while the account is linked to
-    the Facebook Page — which is also the only way its messages reach us.
+    Instagram does NOT go through the Page. Meta offers two setups and they are
+    not interchangeable: with Instagram login the account holds its own token
+    and its own host, which is the one Radian uses because connecting an
+    account there is a single click rather than a login flow we would have to
+    build.
+
+    The recipient id is scoped to the Instagram account, so a Page token here
+    would be refused even though both are "Meta".
   */
-  private async sendMeta(
+  private async sendInstagram(igsid: string, body: string): Promise<SendOutcome> {
+    const creds = await this.creds('INSTAGRAM', 'INSTAGRAM_TOKEN', 'INSTAGRAM_ACCOUNT_ID');
+    if (!creds.token) return { ok: false, skipped: true, error: 'Instagram is not connected' };
+    const account = creds.accountId || 'me';
+    return this.post(
+      InboxChannel.INSTAGRAM, `${IG_GRAPH}/${account}/messages`, creds.token, igsid, body,
+    );
+  }
+
+  private async post(
     channel: InboxChannel,
-    psid: string,
+    url: string,
+    token: string,
+    recipient: string,
     body: string,
   ): Promise<SendOutcome> {
-    const token = await this.pageToken();
-    if (!token) return { ok: false, skipped: true, error: 'Facebook Page is not connected' };
-
     try {
-      const res = await fetch(`${GRAPH}/me/messages`, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          recipient: { id: psid },
+          recipient: { id: recipient },
           message: { text: body.slice(0, 1000) },
           // RESPONSE keeps us inside the 24-hour window rules rather than
           // claiming a tag we do not have.
@@ -94,13 +117,19 @@ export class ChannelSender {
     }
   }
 
-  private async pageToken(): Promise<string | null> {
+  /** Admin first, environment second — so a key can be changed without a deploy. */
+  private async creds(provider: string, tokenEnv: string, idEnv?: string) {
     try {
-      const row = await this.integrations.credentials('SOCIAL', 'FACEBOOK_PAGE');
-      if (row?.isEnabled && row.apiKey?.trim()) return row.apiKey.trim();
+      const row = await this.integrations.credentials('SOCIAL', provider);
+      if (row?.isEnabled && row.apiKey?.trim()) {
+        return { token: row.apiKey.trim(), accountId: row.clientId?.trim() || null };
+      }
     } catch {
       /* fall through to env */
     }
-    return process.env.FACEBOOK_PAGE_TOKEN || null;
+    return {
+      token: process.env[tokenEnv] || null,
+      accountId: (idEnv && process.env[idEnv]) || null,
+    };
   }
 }
