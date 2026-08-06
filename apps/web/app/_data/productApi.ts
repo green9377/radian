@@ -94,6 +94,8 @@ function deliveryTrust(a: ApiProductDetail) {
 export interface ApiProductDetail {
   slug: string;
   name: string;
+  /** DEC-PRD-031, ৬ আগস্ট — API সবসময় এটা পাঠাত, কিন্তু নিচের `guard()`-এ
+   *  কখনো read হতো না, তাই মালিক PDP-তে লেখাটা দেখতেই পেতেন না। */
   shortDesc: string | null;
   typeText: string | null;
   pricePaisa: number;
@@ -281,6 +283,11 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
           wrong, only less specific.  */
       label: a.nature.label ?? t.nature(product).label,
     },
+    /*  DEC-PRD-031 — title-এর নিচের এক লাইন। "On cards only" ছিল কারণ এই
+        field আগে PDP-তে কোথাও পৌঁছাতই না, যদিও API সবসময় পাঠাত (মালিক,
+        ৬ আগস্ট: "ata dorkar bolei to rakhsi"). ফাঁকা string থাকলে line-টা
+        page-এই বসে না, বানানো কিছু দেখানো হয় না।  */
+    shortDesc: a.shortDesc?.trim() || null,
     /*  ⚠️ IT USED TO READ THE ZONE AND NOTHING ELSE:
 
             a.zone === "dhaka" ? "30–120 Min Delivery" : "Delivered Nationwide"

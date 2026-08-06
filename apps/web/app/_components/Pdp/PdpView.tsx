@@ -504,6 +504,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             {product.name}
           </h1>
 
+          {/*  DEC-PRD-031, ৬ আগস্ট — মালিকের লেখা এক লাইন, title আর
+              review-এর মাঝে। ফাঁকা রাখলে line-টাই থাকে না।  */}
+          {detail.shortDesc && (
+            <p className="mt-1.5 text-[14.5px] text-body-soft leading-[1.5]">
+              {detail.shortDesc}
+            </p>
+          )}
+
           {/*
             ⚠️ কোনো review না থাকলে পুরো সারিটা উঠে যায় (31 Jul 2026)।
             আগে ৭১টা product-এই hardcoded "4.9 · 412 Reviews" বসানো ছিল —

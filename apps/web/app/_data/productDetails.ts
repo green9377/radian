@@ -180,6 +180,8 @@ export interface ProductDetail {
   product: Product;
   crumb: { catLabel: string; catSlug: string; subLabel: string; short: string };
   nature: { type: "fresh" | "artificial"; label: string };
+  /** DEC-PRD-031 — title-এর নিচের এক লাইন। মালিক কিছু না লিখলে line-টাই বসে না। */
+  shortDesc: string | null;
   /**
    * The green line above the price — "30–120 Min Delivery".
    *
@@ -1094,6 +1096,7 @@ export function getProductDetail(slug: string): ProductDetail | null {
       short: product.name.split("—")[0].trim(),
     },
     nature: t.nature(product),
+    shortDesc: null,
     /*  ⚠️ mock-only path (the live one is productApi.ts) — but the mock must
         not lie either, or a dev screenshot ships the wrong promise.  */
     deliveryChip: product.zone === "dhaka" ? "Express Delivery" : "Delivered Nationwide",
