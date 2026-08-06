@@ -28,7 +28,7 @@ import {
   ⇄ SWAP HERE: :4000 /offers/analytics.
 */
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1320px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1500px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const INK = "#470066", GREEN = "#0f9d6b", AMBER = "#d98a0f", RED = "#c0392b";
 const MIX = ["#8b3fb0", "#e08a0f", "#3182c9", "#d64fa0", "#1aa06a", "#b5642f", "#00a1a7"];
 

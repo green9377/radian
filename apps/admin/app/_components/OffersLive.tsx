@@ -34,7 +34,7 @@ import {
 } from "../_data/api";
 import { OFFERS as DEMO_OFFERS, LEADERBOARD as DEMO_LEADERBOARD } from "../_data/offers";
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1320px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1500px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const taka = (p: number) => `৳${(p / 100).toLocaleString("en-IN")}`;
 
 const SHAPES_LIVE: { label: string; val: ApiOfferShape; hint: string }[] = [
@@ -569,7 +569,7 @@ export function OffersApprovalsLive() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1000px]">
+    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1150px]">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead eyebrow="Offers & Promotions · approvals" title="Approvals">
           Deep and below-cost offers wait here for a sign-off before they go live.
@@ -757,7 +757,7 @@ export function OffersCouponsLive() {
   }, []);
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1000px]">
+    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1150px]">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead eyebrow="Offers & Promotions · coupons" title="Coupon codes">
           All your coupon codes at a glance.

@@ -6,7 +6,7 @@ import { BONUS_LIBRARY, GUARANTEE_LIBRARY, FESTIVALS, taka } from "../_data/offe
 
 /* Offers & Promotions · Settings & Libraries (MOCK, §9) — interactive. */
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1100px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1250px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 
 function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (

@@ -12,7 +12,11 @@
 
 import { formatTaka } from "../_data/api";
 
-export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1400px]";
+/*  6 Aug 2026 — widened 1400 → 1600px. Owner's monitor showed a large empty
+    gutter on every screen that uses this shared wrap (31 files: Finance,
+    Marketing, Administration, HR, Access, Audit, System, Integrations…).
+    One constant, so this never has to be fixed screen-by-screen again. */
+export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1600px]";
 
 export type Tone = "brand" | "emerald" | "amber" | "rose" | "sky" | "slate";
 

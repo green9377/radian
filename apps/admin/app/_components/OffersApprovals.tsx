@@ -6,7 +6,7 @@ import { APPROVALS, type Approval } from "../_data/offers";
 
 /* Offers & Promotions · Approvals queue (MOCK, §9). Deep-discount / below-cost sign-off. */
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1000px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1150px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 
 export default function OffersApprovals() {
   const [queue, setQueue] = useState<Approval[]>(APPROVALS);

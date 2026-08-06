@@ -6,7 +6,7 @@ import { LEADERBOARD, OFFERS, REDEEMERS, REDEMPTION_TREND, SHAPE_LABEL, roi, tak
 
 /* Offers & Promotions · per-offer detail / analytics (MOCK, §9). Route: /offers/perf/[id]. */
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1100px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1250px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const INK = "#470066", ORCHID = "#cf43ea";
 
 function Area({ scale }: { scale: number }) {

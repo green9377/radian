@@ -311,7 +311,7 @@ export default function PosSellView() {
   }
 
   return (
-    <div className="px-5 md:px-7 pt-5 pb-10 max-w-[1600px]">
+    <div className="px-5 md:px-7 pt-5 pb-10 max-w-[1750px]">
       {/* top bar */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="flex-1 min-w-0">

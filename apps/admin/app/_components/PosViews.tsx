@@ -27,7 +27,7 @@ import {
   (DEC-POS-014) — the browser never sums pages.
 */
 
-const wrap = "px-5 md:px-7 pt-5 pb-10 max-w-[1400px]";
+const wrap = "px-5 md:px-7 pt-5 pb-10 max-w-[1600px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const card = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
 
 function Head({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {

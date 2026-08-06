@@ -366,7 +366,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
   const abroad = country.trim().toLowerCase() !== "bangladesh";
 
   return (
-    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1500px]">
+    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
       {/* top bar */}
       <div className="sticky top-0 z-20 -mx-6 md:-mx-8 px-6 md:px-8 py-3.5 bg-lavender/85 backdrop-blur border-b border-lavender-deep flex items-center gap-3 mb-6">
         <Link

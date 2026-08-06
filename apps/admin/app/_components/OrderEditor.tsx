@@ -295,7 +295,7 @@ export default function OrderEditor({ id }: { id: string }) {
             : null;
 
   return (
-    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1500px]">
+    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
       {/* header */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <Link href="/orders" className="border border-lavender-deep bg-white text-body-soft hover:text-purple w-[40px] h-[40px] rounded-[12px] grid place-items-center shrink-0" title="Back"><Icon name="chevronLeft" size={20} /></Link>

@@ -215,7 +215,7 @@ export default function OrderEditForm({ id }: { id: string }) {
   const itemsChanged = removed.length > 0 || added.length > 0 || liveLines.some((l) => (qtyById[l.id] ?? l.qty) !== l.qty);
 
   return (
-    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1240px]">
+    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1400px]">
       {/* header */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Link href={`/orders/${o.id}`} className="border border-lavender-deep bg-white text-body-soft hover:text-purple w-[40px] h-[40px] rounded-[12px] grid place-items-center shrink-0"><Icon name="chevronLeft" size={20} /></Link>

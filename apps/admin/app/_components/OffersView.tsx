@@ -11,7 +11,7 @@ import { OFFERS, SHAPE_LABEL, FESTIVALS, TEMPLATES, MOCK_PRODUCTS, PICK_PRODUCTS
   ⇄ SWAP HERE: wire to :4000 /offers in the unified schema pass.
 */
 
-const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1320px]";
+const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1500px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 
 const BLANK: Offer = {
   id: "new", name: "", internalNote: "", mechanism: "automatic", shape: "category", status: "draft",
