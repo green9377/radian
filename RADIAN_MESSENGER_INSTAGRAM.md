@@ -92,6 +92,27 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
 
 ---
 
+## ৫ক. "Guest" নামের রহস্য — খোলা প্রশ্ন (৭ আগস্ট)
+
+Inbox-এ দুটো Messenger thread: একটায় নাম এসেছে (**Md Borhan Uddin** — app-এর
+admin), আরেকটায় আসেনি (**Guest** — সাধারণ একজন)。 Instagram-এ username
+এসেছে。
+
+**সম্ভাব্য কারণ:** standard access-এ Meta বার্তা আটকায় না, কিন্তু সাধারণ
+ব্যবহারকারীর **প্রোফাইল তথ্য** দেয় না。 তাহলে App Review পাশ হলে নামও
+আসতে শুরু করবে。
+
+**তবে এটা এখনো অনুমান।** কোড ব্যর্থতা চুপচাপ গিলে ফেলত, তাই Meta-র নিজের
+কারণটা জানা যেত না。 **৭ আগস্ট রাতে log যোগ করা হয়েছে** — এখন ব্যর্থ হলে
+Meta-র status code ও বার্তা log-এ উঠবে。
+
+⚠️ পরের আসল Messenger বার্তার পরে Render-এর log-এ
+`no profile for MESSENGER ... (403): ...` জাতীয় লাইন খুঁজতে হবে。 তখনই
+সত্যিটা জানা যাবে。 (Meta-র "Send to server" test button দিয়ে হবে না —
+ওটা আমাদের server-এ পৌঁছায়ই না, দুবার পরীক্ষা করে দেখা গেছে。)
+
+---
+
 ## ৬. যা এখনো বাকি
 
 - **App Review** — `pages_messaging` ও `instagram_business_manage_messages`-এ
