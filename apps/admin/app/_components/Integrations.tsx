@@ -377,13 +377,9 @@ function ServiceCard({
                       on 29 July it filled the saved shop password into three of
                       these boxes.  */
                   autoComplete="new-password"
-                  onFocus={() => { if (!touched) setEdits((x) => ({ ...x, [f.key]: "" })); }}
-                  onBlur={() => {
-                    // না লিখে সরে গেলে সংরক্ষিত মান ফিরে আসে — "চাবি চলে যায়" নয়
-                    if (!typed.has(f.key)) {
-                      setEdits((x) => { const n = { ...x }; delete n[f.key]; return n; });
-                    }
-                  }}
+                  /*  লেখা সরে না, শুধু select হয়ে থাকে — HeroServiceCard-এর
+                      মতোই। কারণ ওখানেই লেখা আছে।  */
+                  onFocus={(e) => e.currentTarget.select()}
                   onChange={(e) => {
                     const v = e.target.value;
                     setEdits((x) => ({ ...x, [f.key]: v }));
@@ -580,17 +576,20 @@ function HeroServiceCard({
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = brand.solid;
                       e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`;
-                      // নতুন key টাইপ করতে গিয়ে যেন পুরনো অক্ষরের সাথে লড়তে না হয়
-                      if (!touched) setEdits((x) => ({ ...x, [f.key]: "" }));
+                      /*  ⚠️ ৬ আগস্ট, দ্বিতীয় দফা। প্রথম চেষ্টায় ক্লিক করলে ঘর
+                          ফাঁকা হয়ে যেত (না লিখে সরে গেলে ফিরে আসত)। মালিক
+                          আবার একই কথা বললেন — "ঘরে ক্লিক দিলে information
+                          চলে যায়"। ঠিকই বলেছেন: চোখে যেটা ঘটে সেটাই সত্যি,
+                          পরে ফিরে আসবে কিনা তাতে কিছু যায় আসে না।
+
+                          এখন লেখা সরেই না — শুধু পুরোটা SELECT হয়ে থাকে।
+                          তাই নতুন key টাইপ করলে এক টানে পুরনোটার জায়গায়
+                          বসে যায়, আর কিছু না করে সরে গেলে যেমন ছিল তেমনই।  */
+                      e.currentTarget.select();
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = "#ece5f2";
                       e.currentTarget.style.boxShadow = "none";
-                      /*  একটাও অক্ষর না লিখে সরে গেলে সংরক্ষিত মান ফিরিয়ে দাও।
-                          এটাই "চাবি চলে যায়" অভিযোগের আসল ওষুধ।  */
-                      if (!typed.has(f.key)) {
-                        setEdits((x) => { const n = { ...x }; delete n[f.key]; return n; });
-                      }
                     }}
                     type={f.secret && !isRevealed ? "password" : "text"}
                     placeholder="not set"
