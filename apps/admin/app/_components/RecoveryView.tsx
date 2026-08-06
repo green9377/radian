@@ -25,10 +25,10 @@ import {
 } from "./FinanceUI";
 
 const STAGE_LABEL: Record<string, string> = {
-  CART: "cart পর্যন্ত",
-  DETAILS: "নাম-নম্বর দিয়েছেন",
-  DELIVERY: "ঠিকানা দিয়েছেন",
-  PAYMENT: "টাকা দিতে গিয়েছিলেন",
+  CART: "reached the cart",
+  DETAILS: "gave name and phone",
+  DELIVERY: "gave an address",
+  PAYMENT: "went to pay",
 };
 
 const STATUS_TONE: Record<string, "emerald" | "amber" | "sky" | "slate"> = {
@@ -40,9 +40,9 @@ const STATUS_TONE: Record<string, "emerald" | "amber" | "sky" | "slate"> = {
 
 const ago = (iso: string) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 60) return `${m} মিনিট আগে`;
-  if (m < 1440) return `${Math.round(m / 60)} ঘণ্টা আগে`;
-  return `${Math.round(m / 1440)} দিন আগে`;
+  if (m < 60) return `${m} min ago`;
+  if (m < 1440) return `${Math.round(m / 60)} h ago`;
+  return `${Math.round(m / 1440)} d ago`;
 };
 
 export default function RecoveryView() {
@@ -81,7 +81,7 @@ export default function RecoveryView() {
     setBusy(true);
     try {
       const r = await runRecoverySweep();
-      flash(`চালানো হয়েছে — ${JSON.stringify(r)}`);
+      flash(`Ran — ${JSON.stringify(r)}`);
       load();
     } catch (e) {
       setErr((e as Error).message);
@@ -94,58 +94,60 @@ export default function RecoveryView() {
     <div className={WRAP}>
       <FinHeader
         eyebrow="Marketing" emoji="↩"
-        title="হারানো order ফেরানো"
-        sub="পেমেন্ট ফেল, আর অসমাপ্ত checkout — কাকে কখন মনে করিয়ে দেওয়া হবে"
+        title="Recover lost orders"
+        sub="Failed payments and unfinished checkouts — who gets reminded, and when"
       />
       <Flash ok={ok} err={err} />
 
       {s && !s.recoveryEnabled && (
-        <Banner tone="amber" emoji="⚠" title="সব বন্ধ আছে">
-          মাস্টার সুইচ বন্ধ, তাই কোনো বার্তাই যাচ্ছে না — নিচের বাকি
-          সেটিংগুলো যা-ই থাকুক। চালু করার আগে template তিনটে Meta-তে approve
-          হয়েছে কিনা দেখে নিন, নইলে বার্তা পাঠাতে গিয়ে ফেরত আসবে।
+        <Banner tone="amber" emoji="⚠" title="Everything is switched off">
+          The master switch is off, so nothing is sent whatever the settings
+          below say. Before turning it on, check the templates are approved in
+          Meta — otherwise every message will be refused.
         </Banner>
       )}
 
       {s && s.recoveryEnabled && !s.sweeperEnabled && (
-        <Banner tone="sky" emoji="ⓘ" title="সময়মতো চালানো বন্ধ (Demo-র জন্য এটাই ঠিক)">
-          সাথে সাথের বার্তাগুলো যাবে, কিন্তু &ldquo;২৪ ঘণ্টা পর&rdquo; আর
-          &ldquo;১৫ মিনিট পর&rdquo; নিজে থেকে চলবে না। ফ্রি ডেটাবেজের মাসিক
-          কোটা বাঁচাতে এটা ইচ্ছাকৃত — নিচের <strong>এখনই চালান</strong> বোতাম
-          দিয়ে হাতে চালিয়ে দেখুন। আসল দোকানে এটা চালু রাখতে হবে।
+        <Banner tone="sky" emoji="ⓘ" title="Scheduled runs are off (correct for Demo)">
+          Immediate messages still go out, but &ldquo;again after 24 hours&rdquo;
+          and &ldquo;15 minutes later&rdquo; will not fire on their own. That is
+          deliberate here — a timer waking the free database burns its monthly
+          quota. Use <strong>Run now</strong> below to test. Turn this on for the
+          real shop.
         </Banner>
       )}
 
-      {/* ───────────── নিয়ম ───────────── */}
+      {/* ───────────── rules ───────────── */}
       <div className="mt-5">
-        <Panel emoji="⚙" tone="brand" title="নিয়ম" sub="প্রতিটা সংখ্যা এখানে — কোডে কিছু বসানো নেই">
+        <Panel emoji="⚙" tone="brand" title="Rules" sub="Every number lives here — none of it is hardcoded">
           {!s ? (
-            <div className="p-4 text-[13px] text-body-soft">লোড হচ্ছে…</div>
+            <div className="p-4 text-[13px] text-body-soft">Loading…</div>
           ) : (
             <div className="p-4 space-y-4">
               <Toggle
                 on={s.recoveryEnabled}
                 onChange={(v) => set("recoveryEnabled", v)}
-                title="সব চালু"
-                sub="এটা বন্ধ থাকলে নিচের কিছুই ঘটে না"
+                title="Recovery on"
+                sub="With this off, nothing below happens at all"
               />
 
               <div className="border-t border-[#f0edf5] pt-4 space-y-3">
                 <Toggle
                   on={s.paymentFailedEnabled}
                   onChange={(v) => set("paymentFailedEnabled", v)}
-                  title="পেমেন্ট ফেল হলে বার্তা"
-                  sub="order তৈরি আছে, টাকা আসেনি — সবচেয়ে সহজে ফেরানো যায় এমন order"
+                  title="Message when a payment fails"
+                  sub="The order exists, only the money is missing — the easiest kind to win back"
                 />
                 <div className="max-w-[280px]">
-                  <Lbl>কত ঘণ্টা পর আবার একবার</Lbl>
+                  <Lbl>Send again after (hours)</Lbl>
                   <input
                     className={input} type="number" min={0} max={72}
                     value={s.paymentFailedRetryHours}
                     onChange={(e) => set("paymentFailedRetryHours", Number(e.target.value))}
                   />
                   <p className="text-[11px] text-body-soft mt-1">
-                    ০ দিলে দ্বিতীয়বার যাবে না। এর মধ্যে টাকা এসে গেলে এমনিতেও যাবে না।
+                    0 means no second message. If the money arrives first, it is
+                    skipped anyway.
                   </p>
                 </div>
               </div>
@@ -154,41 +156,41 @@ export default function RecoveryView() {
                 <Toggle
                   on={s.abandonedEnabled}
                   onChange={(v) => set("abandonedEnabled", v)}
-                  title="checkout ছেড়ে গেলে বার্তা"
-                  sub="⚠️ Meta এটাকে Marketing ধরে — দাম বেশি, আর opt-out তালিকা মানা হয়"
+                  title="Message when a checkout is abandoned"
+                  sub="Meta counts this as Marketing — it costs more, and the opt-out list is honoured"
                 />
                 <div className="max-w-[280px]">
-                  <Lbl>কত মিনিট চুপ থাকলে</Lbl>
+                  <Lbl>Quiet for (minutes)</Lbl>
                   <input
                     className={input} type="number" min={5} max={1440}
                     value={s.abandonedAfterMinutes}
                     onChange={(e) => set("abandonedAfterMinutes", Number(e.target.value))}
                   />
                   <p className="text-[11px] text-body-soft mt-1">
-                    ৫ মিনিটের কম দেওয়া যায় না — bKash বা কার্ডের OTP-তেই তার
-                    বেশি সময় লাগে, আর তখন টাকা দেওয়ার মাঝপথে থাকা গ্রাহকের
-                    কাছে বার্তা চলে যেত।
+                    Five minutes is the floor. A bKash or card OTP takes longer
+                    than that, and anything shorter would message someone who is
+                    in the middle of paying.
                   </p>
                 </div>
               </div>
 
               <div className="border-t border-[#f0edf5] pt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Lbl>অসমাপ্ত checkout কতদিন রাখা হবে</Lbl>
+                  <Lbl>Keep unfinished checkouts for (days)</Lbl>
                   <input
                     className={input} type="number" min={1} max={365}
                     value={s.leadRetentionDays}
                     onChange={(e) => set("leadRetentionDays", Number(e.target.value))}
                   />
                   <p className="text-[11px] text-body-soft mt-1">
-                    এরপর নিজে থেকে মুছে যাবে। যাঁরা কিছু কেনেননি তাঁদের নম্বর
-                    অনির্দিষ্টকাল জমিয়ে রাখা সম্পদ নয়, দায়।
+                    Deleted automatically after that. Phone numbers of people who
+                    bought nothing are a liability to keep, not an asset.
                   </p>
                 </div>
                 <div>
-                  <Lbl>বার্তায় যে নম্বরে ফোন করতে বলা হবে</Lbl>
+                  <Lbl>Phone number shown in the messages</Lbl>
                   <input
-                    className={input} placeholder="Company settings-এর নম্বর"
+                    className={input} placeholder="Falls back to Company settings"
                     value={s.supportPhone ?? ""}
                     onChange={(e) => set("supportPhone", e.target.value)}
                   />
@@ -199,11 +201,11 @@ export default function RecoveryView() {
                 <Toggle
                   on={s.sweeperEnabled}
                   onChange={(v) => set("sweeperEnabled", v)}
-                  title="সময়মতো নিজে থেকে চালাও"
-                  sub="⚠️ Demo-তে বন্ধ রাখুন — ফ্রি ডেটাবেজের মাসিক কোটা শেষ হয়ে যায়। আসল দোকানে চালু।"
+                  title="Run on a schedule"
+                  sub="Leave off in Demo — a timer waking the free database burns its monthly quota. On for the real shop."
                 />
                 <div className="max-w-[280px]">
-                  <Lbl>কত মিনিট পরপর</Lbl>
+                  <Lbl>Every (minutes)</Lbl>
                   <input
                     className={input} type="number" min={1} max={120}
                     value={s.sweeperEveryMinutes}
@@ -217,7 +219,7 @@ export default function RecoveryView() {
                   {busy ? "Saving…" : "Save"}
                 </button>
                 <button className={btnGhost} disabled={busy} onClick={() => void sweep()}>
-                  এখনই চালান
+                  Run now
                 </button>
               </div>
             </div>
@@ -225,33 +227,33 @@ export default function RecoveryView() {
         </Panel>
       </div>
 
-      {/* ───────────── তালিকা ───────────── */}
+      {/* ───────────── the list ───────────── */}
       <div className="mt-5">
         <Panel
           emoji="☎" tone="sky"
-          title="অসমাপ্ত checkout"
-          sub="কারা কতদূর গিয়ে থেমেছেন — ফোন করার তালিকা"
+          title="Unfinished checkouts"
+          sub="Who stopped, and how far they got — the list to call from"
         >
           <div className="p-4">
             <Tabs
               value={tab}
               onChange={(v) => setTab(v as typeof tab)}
               items={[
-                { key: "OPEN", label: "এখনো খোলা", tone: "amber" },
-                { key: "MESSAGED", label: "বার্তা গেছে", tone: "sky" },
-                { key: "CONVERTED", label: "order হয়েছে", tone: "emerald" },
-                { key: "SKIPPED", label: "বাদ", tone: "slate" },
+                { key: "OPEN", label: "Still open", tone: "amber" },
+                { key: "MESSAGED", label: "Messaged", tone: "sky" },
+                { key: "CONVERTED", label: "Ordered", tone: "emerald" },
+                { key: "SKIPPED", label: "Skipped", tone: "slate" },
               ]}
             />
 
             {!leads ? (
-              <p className="text-[13px] text-body-soft mt-4">লোড হচ্ছে…</p>
+              <p className="text-[13px] text-body-soft mt-4">Loading…</p>
             ) : leads.length === 0 ? (
               <div className="mt-4">
                 <Empty
                   emoji="✦"
-                  title="এখানে কিছু নেই"
-                  sub="গ্রাহক checkout-এ নাম বা নম্বর লিখলে তবেই সারি তৈরি হয়।"
+                  title="Nothing here yet"
+                  sub="A row appears once a shopper types a name or phone number at checkout."
                 />
               </div>
             ) : (
@@ -259,19 +261,19 @@ export default function RecoveryView() {
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr>
-                      <Th>কে</Th>
-                      <Th>কতদূর</Th>
-                      <Th>কী রেখে গেছেন</Th>
-                      <Th right>কত টাকার</Th>
-                      <Th>কখন</Th>
-                      <Th>অবস্থা</Th>
+                      <Th>Who</Th>
+                      <Th>How far</Th>
+                      <Th>What they left</Th>
+                      <Th right>Value</Th>
+                      <Th>When</Th>
+                      <Th>Status</Th>
                     </tr>
                   </thead>
                   <tbody>
                     {leads.map((l) => (
                       <tr key={l.id} className="border-t border-[#f4f1f8] align-top">
                         <Td>
-                          <div className="font-semibold text-purple">{l.name || "নাম দেননি"}</div>
+                          <div className="font-semibold text-purple">{l.name || "No name given"}</div>
                           {l.phone && (
                             <a href={`tel:${l.phone}`} className="text-[12.5px] text-body">
                               {l.phone}
@@ -297,7 +299,7 @@ export default function RecoveryView() {
                                 </li>
                               ))}
                               {l.cart.summary.length > 3 && (
-                                <li className="text-body-soft">আরও {l.cart.summary.length - 3}টা</li>
+                                <li className="text-body-soft">+{l.cart.summary.length - 3} more</li>
                               )}
                             </ul>
                           ) : (

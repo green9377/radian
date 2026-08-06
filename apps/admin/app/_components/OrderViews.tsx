@@ -225,7 +225,7 @@ export function ErrorBox({ error, onRetry }: { error: string; onRetry: () => voi
   const t = TONE.rose;
   return (
     <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] border flex items-center gap-2" style={{ background: t.bg, borderColor: t.border, color: t.text }}>
-      <Icon name="shield" size={16} /> {error}. API (:4000) চলছে কিনা দেখো.
+      <Icon name="shield" size={16} /> {error}. Is the API (:4000) running?
       <button className="underline ml-1 font-medium" onClick={onRetry}>Retry</button>
     </div>
   );

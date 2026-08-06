@@ -238,11 +238,11 @@ export default function CustomerEditor({ id }: { id?: string }) {
   async function handleSave() {
     setSaveErr(null);
     if (!name.trim()) {
-      setSaveErr("Customer name দাও।");
+      setSaveErr("Enter a customer name.");
       return;
     }
     if (!phone.trim() || !phone.startsWith("+")) {
-      setSaveErr("Phone আন্তর্জাতিক ফরম্যাটে দাও (+country…)।");
+      setSaveErr("Enter the phone in international format (+country…).");
       return;
     }
     setSaving(true);

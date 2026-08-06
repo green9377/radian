@@ -638,7 +638,7 @@ function HeroServiceCard({
                       type="button"
                       className="shrink-0 w-11 h-11 rounded-2xl grid place-items-center text-[16px] border-2 transition-colors"
                       style={{ borderColor: "#ece5f2" }}
-                      title={isRevealed ? "আবার ঢাকুন" : "পুরো চাবিটা দেখুন (audit-এ লেখা থাকবে)"}
+                      title={isRevealed ? "Hide again" : "Show the full key — every reveal is written to the audit trail"}
                       onClick={() => void toggleReveal(f.key)}
                     >
                       {isRevealed ? "🙈" : "👁"}
@@ -654,8 +654,8 @@ function HeroServiceCard({
         {/*  মালিকের নির্দেশ ৬ আগস্ট: Clear বোতাম নেই। নিয়মটা লিখে রাখা হলো,
              নাহলে "মুছব কীভাবে" প্রশ্নটা প্রতিবার ফিরে আসবে।  */}
         <p className="text-[11px] text-body-soft mt-2.5">
-          একটা key মুছতে হলে ঘরে ক্লিক করে সব লেখা মুছে দিয়ে Update চাপুন।
-          না ছুঁলে কিছুই বদলাবে না।
+          To remove a key, click into the box, clear it and press Update. Fields
+          you do not touch are never changed.
         </p>
 
         {s.provider === "WHATSAPP" && (
@@ -724,10 +724,10 @@ function WhatsAppTestRow({
       const r = await waTestSend(to.trim());
       setResult(
         r.sent
-          ? { ok: true, msg: `পাঠানো হয়েছে — ${to.trim()} নম্বরের WhatsApp দেখুন।` }
+          ? { ok: true, msg: `Sent — check WhatsApp on ${to.trim()}.` }
           : !r.configured
-            ? { ok: false, msg: "চাবিই বসানো নেই। Phone number ID আর access token দিয়ে Update চাপুন।" }
-            : { ok: false, msg: "চাবি আছে, কিন্তু Meta বার্তাটা ফিরিয়ে দিয়েছে। কারণ API log-এ (radian_api_logs.bat)। সাধারণ কারণ: token-এর মেয়াদ শেষ, ভুল Phone number ID, বা test number-এ নম্বরটা অনুমোদিত নয়।" },
+            ? { ok: false, msg: "No keys saved yet. Add the Phone number ID and access token, then press Update." }
+            : { ok: false, msg: "Keys are saved, but Meta refused the message. The reason is in the API log (radian_api_logs.bat). Usually: an expired token, the wrong Phone number ID, or a number not on the test number's allowed list." },
       );
     } catch (e) {
       onError((e as Error).message);
@@ -738,7 +738,7 @@ function WhatsAppTestRow({
 
   return (
     <div className="mt-4 pt-4 border-t border-[#f0edf5]">
-      <Lbl>চাবি সত্যিই কাজ করে কিনা দেখুন</Lbl>
+      <Lbl>Check the keys actually work</Lbl>
       <div className="flex flex-wrap gap-1.5 items-center">
         <input
           className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
@@ -758,7 +758,7 @@ function WhatsAppTestRow({
           disabled={busy || !to.trim()}
           onClick={() => void send()}
         >
-          {busy ? "পাঠাচ্ছি…" : "Send test"}
+          {busy ? "Sending…" : "Send test"}
         </button>
       </div>
       {result && (
@@ -771,8 +771,8 @@ function WhatsAppTestRow({
       )}
       {!result && (
         <p className="text-[11px] text-body-soft mt-1.5">
-          Meta-র নিজের <code>hello_world</code> বার্তা যাবে — নিজেদের template
-          approve হওয়ার আগেই চাবি ঠিক কিনা প্রমাণ পাওয়ার একমাত্র উপায়।
+          Sends Meta&rsquo;s own <code>hello_world</code> — the only way to prove the
+          keys work before our templates are approved.
         </p>
       )}
     </div>
@@ -823,10 +823,10 @@ function WhatsAppTemplateRow({
     try {
       const r = await submitWaTemplates();
       if (!r.configured) {
-        setNote("WABA ID আর token দুটোই বসাতে হবে — উপরের ঘর দুটো।");
+        setNote("Both the WABA ID and the access token are needed — the two boxes above.");
       } else {
         const good = r.results.filter((x) => x.ok).length;
-        setNote(`${good}/${r.results.length} জমা হয়েছে। Meta এখন দেখবে — কয়েক মিনিট থেকে কয়েক ঘণ্টা।`);
+        setNote(`${good} of ${r.results.length} submitted. Meta reviews them next — minutes to a few hours.`);
       }
       refresh();
     } catch (e) {
@@ -838,10 +838,10 @@ function WhatsAppTemplateRow({
 
   return (
     <div className="mt-4 pt-4 border-t border-[#f0edf5]">
-      <Lbl>Radian-এর ছয়টা template</Lbl>
+      <Lbl>Radian&rsquo;s six templates</Lbl>
       <p className="text-[11px] text-body-soft mb-2.5">
-        লেখাগুলো কোডে বসানো আছে। এক ক্লিকে Meta-তে জমা পড়বে —
-        approve করবে Meta, কয়েক মিনিট থেকে কয়েক ঘণ্টায়।
+        The wording lives in the code. One click submits all six to Meta —
+        Meta approves them, which takes minutes to a few hours.
       </p>
 
       {rows && (
@@ -870,10 +870,10 @@ function WhatsAppTemplateRow({
           disabled={busy}
           onClick={() => void submit()}
         >
-          {busy ? "জমা দিচ্ছি…" : "Create templates in Meta"}
+          {busy ? "Submitting…" : "Create templates in Meta"}
         </button>
         <button className={btnGhost} disabled={busy} onClick={refresh}>
-          অবস্থা দেখুন
+          Check status
         </button>
       </div>
 

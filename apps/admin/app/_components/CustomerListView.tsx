@@ -173,7 +173,7 @@ export default function CustomerListView() {
 
       {error && (
         <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
-          {error}. API (:4000) চলছে কিনা দেখো।{" "}
+          {error}. Is the API (:4000) running?{" "}
           <button className="underline" onClick={load}>
             Retry
           </button>
