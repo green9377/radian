@@ -28,7 +28,8 @@ import { Public } from '../auth/auth.guard';
 import { InboxAiTools } from './ai-tools';
 import { InboxAiAgent } from './ai-agent';
 import { InboxPresence } from './presence';
-import { WhatsAppCloudModule, WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { MessagingModule } from '../messaging/messaging.controller';
+import { ChannelSender } from '../messaging/channel-sender.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -108,7 +109,7 @@ export class InboxService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly ai: InboxAiAgent,
-    private readonly wa: WhatsAppCloudService,
+    private readonly sender: ChannelSender,
   ) {}
 
   /* ── settings (singleton, ঘরের ensureSingleton ধাঁচ) ─────────────────── */
@@ -422,24 +423,21 @@ export class InboxService {
     });
 
     /*
-      A reply typed here has to leave the building. Web chat is polled by the
-      customer's own browser, but on WhatsApp nothing happens unless we send
-      it. Fire and forget: the staff member should not wait on Meta, and a
-      failure must not lose the reply that is already recorded.
+      A reply typed here has to leave the building. Fire and forget: staff
+      should not wait on Meta, and a failure must not lose the reply that is
+      already recorded.
 
       Free text only works inside the 24-hour window Meta allows after the
-      customer's last message. Outside it Meta refuses, and the refusal is
-      logged rather than hidden — a reply that silently never arrived is worse
-      than one that visibly failed.
+      customer's last message. Outside it the send is refused, and the refusal
+      is logged rather than hidden — a reply that silently never arrived is
+      worse than one that visibly failed.
     */
-    if (convo.channel === InboxChannel.WHATSAPP && convo.externalIdentity) {
-      void this.wa
-        .sendRaw(convo.externalIdentity, { type: 'text', text: { body } })
-        .then((r) => {
-          if (!r.ok) this.log.warn(`WhatsApp reply failed for ${id}: ${r.error}`);
-        })
-        .catch(() => undefined);
-    }
+    void this.sender
+      .send(convo, body)
+      .then((r) => {
+        if (!r.ok && !r.skipped) this.log.warn(`reply not delivered for ${id}: ${r.error}`);
+      })
+      .catch(() => undefined);
 
     return this.detail(id);
   }
@@ -590,7 +588,7 @@ export class InboxController {
 }
 
 @Module({
-  imports: [WhatsAppCloudModule],
+  imports: [MessagingModule],
   providers: [InboxService, InboxAiTools, InboxAiAgent, InboxPresence],
   controllers: [ShopChatController, InboxController],
 })

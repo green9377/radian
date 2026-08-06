@@ -10,6 +10,8 @@ import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
 import { MessagingSweeper } from './messaging.sweeper';
 import { WhatsAppTemplatesService } from './whatsapp-templates';
 import { WhatsAppWebhookController, WhatsAppWebhookService } from './whatsapp-webhook';
+import { MetaWebhookController, MetaWebhookService } from './meta-webhook';
+import { ChannelSender } from './channel-sender.service';
 import { AdministrationModule } from '../administration/administration.module';
 
 /*
@@ -150,8 +152,12 @@ export class CheckoutLeadController {
   providers: [
     MessagingSettingsService, OrderMessagesService, CheckoutLeadsService,
     MessagingSweeper, WhatsAppTemplatesService, WhatsAppWebhookService,
+    MetaWebhookService, ChannelSender,
   ],
-  controllers: [MessagingController, CheckoutLeadController, WhatsAppWebhookController],
-  exports: [OrderMessagesService, CheckoutLeadsService],
+  controllers: [
+    MessagingController, CheckoutLeadController,
+    WhatsAppWebhookController, MetaWebhookController,
+  ],
+  exports: [OrderMessagesService, CheckoutLeadsService, ChannelSender],
 })
 export class MessagingModule {}

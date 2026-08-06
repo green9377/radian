@@ -151,7 +151,7 @@ export const PROVIDERS: Manifest[] = [
   {
     provider: 'FACEBOOK_PAGE', label: 'Facebook Page', kind: 'SOCIAL', hasSandbox: false,
     matters:
-      'Reading messages and comments from the page. ⚠️ Nothing in Radian uses this yet — the field exists so the token has a home when it does.',
+      'Messenger and Instagram direct messages, in and out of the Inbox. Instagram rides on this same token, so one key covers both.',
     fields: [
       { key: 'clientId', label: 'Page ID', secret: false },
       { key: 'apiKey', label: 'Page access token', secret: true },
@@ -159,7 +159,7 @@ export const PROVIDERS: Manifest[] = [
   },
   {
     provider: 'INSTAGRAM', label: 'Instagram Business', kind: 'SOCIAL', hasSandbox: false,
-    matters: 'Same as the Facebook page — a home for the token, not a feature yet.',
+    matters: 'Instagram DMs reach the Inbox through the Facebook Page above. This is only needed for reading Instagram insights.',
     fields: [
       { key: 'clientId', label: 'Instagram account ID', secret: false },
       { key: 'apiKey', label: 'Access token', secret: true },

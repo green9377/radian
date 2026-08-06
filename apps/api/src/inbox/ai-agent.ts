@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import {
   ConversationStatus,
   EscalationReason,
-  InboxChannel,
   MessageAuthor,
   MessageDirection,
   Prisma,
@@ -11,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InboxAiTools, ToolProduct } from './ai-tools';
 import { InboxPresence } from './presence';
 import { AiMessage, AiToolDef, providerFor } from './ai-provider';
-import { WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { ChannelSender } from '../messaging/channel-sender.service';
 
 /*
   AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md।
@@ -159,7 +158,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly tools: InboxAiTools,
     private readonly presence: InboxPresence,
-    private readonly wa: WhatsAppCloudService,
+    private readonly sender: ChannelSender,
   ) {}
 
   /*  DEC-INB-008/009-এর ঘড়ি: প্রতি মিনিটে একবার দেখা — কোন thread-এ গ্রাহক
@@ -410,16 +409,13 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     });
 
     /*
-      Web chat is polled by the customer's own browser; WhatsApp is not. Without
-      this the AI answers into a screen only staff can see, and the customer is
-      left waiting on a reply that was written and never sent.
+      Web chat is polled by the customer's own browser; nothing else is.
+      Without this the AI answers into a screen only staff can see, and the
+      customer waits on a reply that was written and never sent.
     */
-    if (convo.channel === InboxChannel.WHATSAPP && convo.externalIdentity) {
-      const r = await this.wa.sendRaw(convo.externalIdentity, {
-        type: 'text',
-        text: { body },
-      });
-      if (!r.ok) this.logger.warn(`WhatsApp AI reply failed for ${conversationId}: ${r.error}`);
+    const r = await this.sender.send(convo, body);
+    if (!r.ok && !r.skipped) {
+      this.logger.warn(`AI reply not delivered for ${conversationId}: ${r.error}`);
     }
   }
 
