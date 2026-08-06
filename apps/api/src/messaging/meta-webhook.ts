@@ -176,10 +176,22 @@ export class MetaWebhookService {
       const res = await fetch(`${host}/${id}?fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        /*
+          Logged, not swallowed. A thread showing "Guest" could mean the token
+          is wrong, the permission is missing, or Meta simply withholds the
+          profile — and without Meta's own words there is no way to tell which.
+        */
+        const body = await res.text();
+        this.log.warn(`no profile for ${channel} ${id} (${res.status}): ${body.slice(0, 300)}`);
+        return null;
+      }
       const j = (await res.json()) as { name?: string; username?: string };
-      return (j.name || j.username)?.slice(0, 120) ?? null;
-    } catch {
+      const name = (j.name || j.username)?.slice(0, 120) ?? null;
+      if (!name) this.log.warn(`profile for ${channel} ${id} came back without a name`);
+      return name;
+    } catch (e) {
+      this.log.warn(`profile lookup failed for ${channel} ${id}: ${e instanceof Error ? e.message : e}`);
       return null;
     }
   }
