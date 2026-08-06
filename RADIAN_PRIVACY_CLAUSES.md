@@ -59,7 +59,7 @@ record and is kept under the order retention terms above instead.
 
 We may contact you once about an unfinished order, on the phone number you
 entered. If you would rather we did not, tell us — reply to the message, or
-write to [support email] — and we will delete what we have and not contact you
+write to radianbd360@gmail.com — and we will delete what we have and not contact you
 about it again.
 
 ### Messages you send us
@@ -80,7 +80,7 @@ is also governed by Meta's own privacy policy.
 
 ## যা আগে ঠিক করতে হবে
 
-- `[support email]` — আসল ঠিকানা বসাতে হবে
+- `radianbd360@gmail.com` — আসল ঠিকানা বসাতে হবে
 - "order retention terms above" — উপরের অনুচ্ছেদে order কতদিন রাখা হয় তা
   স্পষ্ট করে লেখা আছে কিনা দেখতে হবে; না থাকলে ওটাও লিখতে হবে
 - ~~"reply STOP"~~ — **বাদ দেওয়া হয়েছে, ইচ্ছাকৃতভাবে** (৭ আগস্ট)。

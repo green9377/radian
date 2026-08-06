@@ -13,7 +13,8 @@ _৭ আগস্ট ২০২৬。 চালু পাতাটা পড়�
 | ৩ | **Retention-এ আসল সময় বসানো** | পুরনো section 6-এ শুধু "Complete the order / Provide support..." — কতদিন রাখা হয় তা বলাই ছিল না。 এটা App Review-তে ধরা পড়ত |
 | ৪ | ভাঙা bullet ঠিক করা | section 2, 3, 4, 5, 6-এ list-এর আগের বাক্যটা হারিয়ে গিয়েছিল ("- Complete the order" দিয়ে অনুচ্ছেদ শুরু হচ্ছিল) |
 | ৫ | Children's Privacy — ১৩ → **১৮** | Meta-র platform terms ১৮-র নিচে messaging নিষেধ করে。 ১৩ লেখা থাকলে review-তে প্রশ্ন উঠবে |
-| ৬ | তারিখ ও যোগাযোগ | "Last updated" যোগ, ঠিকানা ও নম্বর ঠিক আছে |
+| ৬ | তারিখ ও যোগাযোগ | "Last updated" যোগ |
+| ৭ | **support@radianbd.com → radianbd360@gmail.com** | পুরনো ঠিকানায় মালিকের access নেই (৭ আগস্ট)。 policy-তে যে ঠিকানা লেখা থাকে সেখানে কেউ পৌঁছাতে না পারলে "আমাদের লিখুন" কথাটাই মিথ্যে হয়ে যায় |
 
 ⚠️ **checkout-এর অসমাপ্ত তথ্য ধরে রাখার অনুচ্ছেদটা এখানে নেই** — ওটা নতুন
 সাইটের কাজ, radianbd.com-এ আজ হয় না。 cutover-এর দিন যোগ হবে
@@ -107,7 +108,7 @@ services is also governed by Meta's own privacy policy, which we do not
 control.
 
 If you would rather we did not keep your conversation, tell us — reply to the
-message or write to support@radianbd.com — and we will delete it.
+message or write to radianbd360@gmail.com — and we will delete it.
 
 **7. Retention and Deletion of Data**
 
@@ -122,7 +123,7 @@ We keep your information only as long as there is a reason to:
   mistake.
 
 You may request deletion of your personal data at any time by writing to
-support@radianbd.com. We will confirm once it is done, keeping only what the
+radianbd360@gmail.com. We will confirm once it is done, keeping only what the
 law requires us to keep.
 
 **8. Children's Privacy**
@@ -147,7 +148,7 @@ message us means you accept the updated policy.
 If you have any question or request about your personal data or this policy,
 please contact us:
 
-- Email: support@radianbd.com
+- Email: radianbd360@gmail.com
 - Phone: 01519779378
 - WhatsApp: 01519779378
 - Address: House 1, Road 2, Lake Pare, Gudaraghat, Gulshan 1, Dhaka, Bangladesh
