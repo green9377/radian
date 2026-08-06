@@ -2125,6 +2125,8 @@ model Order {
   returns      SalesReturn[] // DEC-RTN-001 — Returns module owns these, Order only references
   redemptions  OfferRedemption[] // DEC-OFR — Offers module owns these, Order only references
   paySessions  PaymentSession[] // storefront online payment attempts (gateway ↔ order)
+  messages     OrderMessage[] // এই order নিয়ে গ্রাহককে কী কী পাঠানো হলো
+  checkoutLeads CheckoutLead[] // যে অসমাপ্ত checkout থেকে এই order এসেছে
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2134,6 +2136,174 @@ model Order {
   @@index([channelId])
   @@index([salesStatus])
   @@index([deliveryStatus])
+}
+
+/// এক order নিয়ে গ্রাহককে পাঠানো এক বার্তার হিসাব। DEC-WA-002…005।
+///
+/// ⚠️ কেন আলাদা টেবিল লাগল: আজ পর্যন্ত বার্তা পাঠানো হয় আর ভুলে যাওয়া হয় —
+/// `whatsapp-cloud.ts` শুধু true/false ফেরত দেয়, কোথাও লেখা থাকে না। ফলে
+/// "গ্রাহক confirmation পেয়েছিলেন কি না" প্রশ্নের উত্তর কারও কাছে নেই, আর
+/// "২৪ ঘণ্টা পর আবার পাঠাও" বলার আগে "প্রথমটা গিয়েছিল কি" জানার উপায়ও নেই।
+///
+/// ⚠️ কেন Marketing-এর `Outreach` নয় (MKT-D07/D18): ওটা broadcast-এর খাতা —
+/// opt-out, এক occasion-এ একবার, campaign report। এগুলো রসিদের বার্তা,
+/// গ্রাহক নিজে এইমাত্র order দিয়েছেন। দুটো মিলিয়ে ফেললে একদিন opt-out করা
+/// গ্রাহকের order confirmation আটকে যেত — অথবা উল্টোটা, তাঁর কাছে promo যেত।
+/// একমাত্র ব্যতিক্রম `CHECKOUT_ABANDONED`: Meta ওটাকে Marketing ধরে, তাই
+/// পাঠানোর আগে Marketing-এর opt-out তালিকা মানতেই হবে (DEC-WA-004)।
+///
+/// ⚠️ `@@unique([orderId, kind, attempt])` — এটাই একই বার্তা দুবার যাওয়া
+/// ঠেকানোর একমাত্র ভরসা। scheduler একই সারি দুবার তুলতে পারে (deploy-এর
+/// সময় দুটো instance, বা retry) — তখন ডেটাবেজ নিজেই না বলবে, কোড নয়।
+model OrderMessage {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  kind    OrderMessageKind
+  /// ১ = প্রথমবার, ২ = ২৪ ঘণ্টা পরের পুনরাবৃত্তি (DEC-WA-002)
+  attempt Int              @default(1)
+  /// ⚠️ `NotifyChannel` নয় — ওটায় `OFF` আছে, যেটা supplier-কে জানানোর
+  /// সেটিং। পাঠানো বার্তার সারিতে "মাধ্যম = OFF" লেখার কোনো মানে হয় না।
+  channel MessageChannel   @default(WHATSAPP)
+
+  status OrderMessageStatus @default(QUEUED)
+  /// Meta-র নিজের message id — support-এ "পাঠিয়েছিলাম" প্রমাণ করার একমাত্র সুতো
+  providerMessageId String?
+  /// ব্যর্থ হলে কেন — গ্রাহককে নয়, আমাদের দেখার জন্য
+  error             String?
+  /// কোন approved template-এ গেল — নাম বদলালে পুরনো সারির মানে যেন না বদলায়
+  templateName      String?
+
+  /// কখন পাঠানোর কথা (ভবিষ্যৎ হতে পারে — ২৪ ঘণ্টা পরেরটা)
+  dueAt  DateTime  @default(now())
+  sentAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([orderId, kind, attempt])
+  @@index([status, dueAt])
+  @@index([orderId])
+}
+
+enum OrderMessageKind {
+  ORDER_CONFIRMATION
+  ORDER_CONFIRMATION_COD
+  ORDER_OUT_FOR_DELIVERY
+  ORDER_DELIVERED
+  /// gateway ফেল/বাতিল বলেছে, অথবা গ্রাহক gateway-তে গিয়ে আর ফেরেননি।
+  /// দুটোতেই order আছে, শুধু টাকা আসেনি।
+  PAYMENT_FAILED
+}
+
+/// checkout-এ নাম-নম্বর দিয়েছেন, কিন্তু order **তৈরিই হয়নি**। DEC-WA-004।
+///
+/// ⚠️ কেন `OrderMessage`-এ নয়: ওখানে `orderId` বাধ্যতামূলক, আর এখানে order
+/// বলে কিছু নেই — সেটাই তো ঘটনা। orderId-কে nullable করে দুই রকম সারি এক
+/// টেবিলে রাখলে প্রতিটা query-তে "এটা কোন ধরনের সারি" ভাবতে হতো।
+///
+/// ⚠️ এই টেবিলে এমন মানুষের নম্বর জমা হয় যিনি কখনো কিছু কেনেননি। তাই:
+/// (১) পাঠানোর আগে Marketing-এর opt-out তালিকা মানতেই হবে — Meta এটাকে
+///     MARKETING template ধরে (DEC-WA-004);
+/// (২) সারিগুলো চিরকাল রাখা হবে না — **৯০ দিন** পর নিজে থেকে মুছবে
+///     (মালিকের সিদ্ধান্ত ৬ আগস্ট, DEC-WA-008; admin থেকে বদলানো যাবে)।
+///     ওই ৯০ দিন এগুলো গ্রাহকে পরিণত করার চেষ্টা চলবে — বার্তা, আর
+///     admin-এর তালিকা থেকে staff-এর ফোন।
+/// (৩) storefront-এর privacy policy-তে এই সংগ্রহ ও মেয়াদের কথা লেখা থাকতে
+///     হবে। কেউ প্রশ্ন করলে উত্তর থাকা দরকার।
+///
+/// ⚠️ order হয়ে গেলে `orderId` বসে যায় এবং বার্তা আর যায় না। এটাই
+/// "১৫ মিনিটের মধ্যে order করে ফেললে বিরক্ত করব না" নিয়মের বাস্তব রূপ।
+model CheckoutLead {
+  id String @id @default(cuid())
+
+  /// ব্রাউজারের নিজের পরিচয় — একই মানুষ বারবার এলে নতুন সারি যেন না হয়
+  clientKey String @unique
+
+  /// খোঁজার মতো ঘরগুলো আলাদা কলামে — staff ফোন নম্বর ধরে খুঁজবে
+  name  String?
+  phone String?
+  email String?
+
+  /*  ⚠️ বাকি সব `draft`-এ, আলাদা ১৫টা কলামে নয়। মালিকের চাওয়া: "customer
+      যা-ই type করুক সেটা আমরা নিয়ে নেব"। checkout ফর্ম বদলায় — নতুন ঘর
+      যোগ হয়, পুরনোটা যায়। প্রতিটার জন্য কলাম বানালে ফর্ম বদলানো মানেই
+      migration, আর একদিন কেউ migration-এর ভয়ে ফর্মটাই ঠিক করবে না।
+
+      ⚠️ যা এখানে কখনো ঢুকবে না: কার্ড নম্বর, CVV, OTP — পেমেন্টের কোনো
+      তথ্যই আমাদের পাতায় আসে না, SSLCommerz-এর নিজের পাতায় যায়। এটা
+      দুর্ঘটনাক্রমে ঠিক নয়, এভাবেই রাখতে হবে।  */
+  draft Json?
+
+  /// কতদূর গিয়েছিলেন — staff-এর কাছে ফোন করার সময় এটাই সবচেয়ে কাজের তথ্য
+  stage CheckoutStage @default(CART)
+
+  /// cart-এর ছবি সেই মুহূর্তের — পরে দাম বদলালেও "কী রেখে গিয়েছিলেন" বদলায় না
+  cart Json?
+  itemCount Int @default(0)
+  totalPaisa Int @default(0)
+
+  /// শেষ কবে কিছু করেছেন। ১৫ মিনিট (DEC-WA-004) এখান থেকেই গোনা হয়।
+  lastSeenAt DateTime @default(now())
+
+  /// order হয়ে গেছে — তাহলে এটা আর "ছেড়ে যাওয়া" নয়
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  status CheckoutLeadStatus @default(OPEN)
+  /// বার্তা পাঠানোর হিসাব। একটাই বার্তা যায়, তাই আলাদা টেবিল লাগে না।
+  messageSentAt DateTime?
+  messageError  String?
+  /// কেন পাঠানো হলো না — opt-out, নম্বর নেই, দোকান বন্ধ। মানুষের পড়ার মতো।
+  skipReason    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status, lastSeenAt])
+  @@index([phone])
+  @@index([orderId])
+}
+
+/// checkout-এ কতদূর পৌঁছেছিলেন। staff যখন ফোন করবে, "উনি ঠিকানা পর্যন্ত
+/// দিয়ে থেমে গেছেন" আর "শুধু cart-এ রেখেছেন" — দুটো সম্পূর্ণ আলাদা কথা।
+enum CheckoutStage {
+  CART
+  DETAILS
+  DELIVERY
+  PAYMENT
+}
+
+enum CheckoutLeadStatus {
+  /// এখনো checkout-এ আছেন বা সদ্য গেছেন — ১৫ মিনিট পার হয়নি
+  OPEN
+  /// order হয়ে গেছে — কিছু পাঠানোর দরকার নেই
+  CONVERTED
+  /// ১৫ মিনিট পেরিয়েছে, বার্তা পাঠানো হয়েছে
+  MESSAGED
+  /// পাঠানো হয়নি এবং হবেও না — opt-out, নম্বর নেই, ইত্যাদি
+  SKIPPED
+}
+
+/// বার্তা কোন পথে গেল। Email এখনো ব্যবহার হয় না, কিন্তু রসিদ email-এ পাঠানো
+/// দিনের কাজ — তখন enum বদলাতে migration লাগবে না।
+enum MessageChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum OrderMessageStatus {
+  /// পাঠানোর কথা, এখনো পাঠানো হয়নি
+  QUEUED
+  SENT
+  FAILED
+  /// পাঠানোর দরকার ফুরিয়ে গেছে — যেমন ২৪ ঘণ্টা পার হওয়ার আগেই টাকা এসে গেছে,
+  /// বা গ্রাহক opt-out করা। ব্যর্থতা নয়, তাই আলাদা।
+  SKIPPED
 }
 
 enum SalesStatus {
