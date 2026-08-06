@@ -51,17 +51,43 @@ function displayName(c: ApiInboxListItem): string {
   return c.customer?.name || c.guestName || "Guest";
 }
 
-const CHANNEL_BADGE: Record<string, string> = {
-  WEB_CHAT: "💬",
-  MESSENGER: "Ⓜ️",
-  INSTAGRAM: "📷",
-  WHATSAPP: "🟢",
-  SMS: "✉️",
-};
+/*
+  One colour and one short word per channel. Four channels will land in this
+  list, and "who is this and where did they come from" has to be answerable
+  without opening the thread — the reply, the tone and the deadline all differ
+  by channel.
+*/
+const CHANNELS = {
+  WEB_CHAT:  { label: "Web chat",  short: "Web", bg: "#ede9fe", fg: "#5b21b6", dot: "#7c3aed" },
+  WHATSAPP:  { label: "WhatsApp",  short: "WA",  bg: "#dcfce7", fg: "#166534", dot: "#25d366" },
+  MESSENGER: { label: "Messenger", short: "FB",  bg: "#dbeafe", fg: "#1e40af", dot: "#0084ff" },
+  INSTAGRAM: { label: "Instagram", short: "IG",  bg: "#fce7f3", fg: "#9d174d", dot: "#e1306c" },
+  SMS:       { label: "SMS",       short: "SMS", bg: "#f1f5f9", fg: "#334155", dot: "#64748b" },
+} as const;
+
+type ChannelKey = keyof typeof CHANNELS;
+
+const channelOf = (k: string) => CHANNELS[k as ChannelKey] ?? CHANNELS.WEB_CHAT;
+
+function ChannelTag({ channel }: { channel: string }) {
+  const c = channelOf(channel);
+  return (
+    <span
+      className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: c.bg, color: c.fg }}
+    >
+      {c.short}
+    </span>
+  );
+}
 
 export default function InboxView() {
   const [items, setItems] = useState<ApiInboxListItem[] | null>(null);
   const [tab, setTab] = useState<(typeof STATUS_TABS)[number]["key"]>("ALL");
+  /*  Channel is a second, independent filter rather than more status tabs:
+      "unanswered WhatsApp" is a real question and mixing the two into one row
+      of buttons makes it unaskable.  */
+  const [channel, setChannel] = useState<"ALL" | ChannelKey>("ALL");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ApiInboxDetail | null>(null);
@@ -71,6 +97,14 @@ export default function InboxView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  /*  Counts come from the list already on screen, not a second request: the
+      badge has to agree with what the filter will actually show.  */
+  const counts = (items ?? []).reduce<Record<string, number>>((a, c) => {
+    a[c.channel] = (a[c.channel] ?? 0) + 1;
+    return a;
+  }, {});
+  const shown = items?.filter((c) => channel === "ALL" || c.channel === channel);
 
   const patchSettings = async (dto: Partial<ApiInboxSetting>) => {
     try {
@@ -172,7 +206,7 @@ export default function InboxView() {
           steps aside for that thread automatically.
         </p>
 
-        {/* AI নিয়ন্ত্রণ — DEC-INB-003/005 + provider seam (মালিকের রায় ৫ আগস্ট) */}
+        {/* AI controls — DEC-INB-003/005, plus the provider seam. */}
         {settings && (
           <div className="mt-3 flex items-center gap-3 flex-wrap bg-white border border-gray-200 rounded-xl px-4 py-2.5">
             <button
@@ -199,14 +233,14 @@ export default function InboxView() {
               </select>
             </label>
             <span className="text-[11.5px] text-gray-400">
-              model: {settings.aiModel} · key server-এর env-এ — এখানে কখনো নয়
+              model: {settings.aiModel} · the key lives in the server env, never here
             </span>
           </div>
         )}
       </div>
 
       <div className="flex gap-5 items-start">
-        {/* ── বাঁ পাশ: thread list ── */}
+        {/* left: the thread list */}
         <div className="w-[340px] shrink-0 bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="p-3 border-b border-gray-100">
             <input
@@ -230,6 +264,46 @@ export default function InboxView() {
                 </button>
               ))}
             </div>
+
+            <div className="flex gap-1 mt-1.5 flex-wrap">
+              <button
+                onClick={() => setChannel("ALL")}
+                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition ${
+                  channel === "ALL"
+                    ? "bg-gray-800 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Every channel
+              </button>
+              {(Object.keys(CHANNELS) as ChannelKey[]).map((k) => {
+                const n = counts[k] ?? 0;
+                const c = CHANNELS[k];
+                const on = channel === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setChannel(k)}
+                    title={c.label}
+                    className="px-2 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1"
+                    style={
+                      on
+                        ? { background: c.fg, color: "#fff" }
+                        : n === 0
+                          ? { background: "#f8fafc", color: "#cbd5e1" }
+                          : { background: c.bg, color: c.fg }
+                    }
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ background: on ? "#fff" : c.dot }}
+                    />
+                    {c.short}
+                    {n > 0 && <span className="opacity-70">{n}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="max-h-[65vh] overflow-y-auto divide-y divide-gray-50">
@@ -241,7 +315,12 @@ export default function InboxView() {
                 No conversations yet — the shop&apos;s Live Chat lands here.
               </p>
             )}
-            {items?.map((c) => (
+            {shown?.length === 0 && items && items.length > 0 && (
+              <p className="p-4 text-[13px] text-gray-400">
+                Nothing on this channel right now.
+              </p>
+            )}
+            {shown?.map((c) => (
               <button
                 key={c.id}
                 onClick={() => {
@@ -253,7 +332,11 @@ export default function InboxView() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px]">{CHANNEL_BADGE[c.channel] ?? "💬"}</span>
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: channelOf(c.channel).dot }}
+                    title={channelOf(c.channel).label}
+                  />
                   <span className="text-[13.5px] font-bold text-gray-900 flex-1 truncate">
                     {displayName(c)}
                   </span>
@@ -269,7 +352,8 @@ export default function InboxView() {
                     ? `${c.lastMessage.authorType === "STAFF" ? "You: " : ""}${c.lastMessage.body}`
                     : "—"}
                 </p>
-                <div className="flex gap-1.5 mt-1">
+                <div className="flex gap-1.5 mt-1 flex-wrap">
+                  <ChannelTag channel={c.channel} />
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       c.status === "OPEN"
@@ -297,7 +381,7 @@ export default function InboxView() {
           </div>
         </div>
 
-        {/* ── ডান পাশ: খোলা কথোপকথন ── */}
+        {/* right: the open conversation */}
         <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden min-h-[65vh] flex flex-col">
           {!openId ? (
             <div className="flex-1 grid place-items-center">
@@ -314,19 +398,30 @@ export default function InboxView() {
               {/* header */}
               <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
-                  <p className="text-[15px] font-bold text-gray-900">
-                    {detail.customer?.name || detail.guestName || "Guest"}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: channelOf(detail.channel).bg,
+                        color: channelOf(detail.channel).fg,
+                      }}
+                    >
+                      {channelOf(detail.channel).label}
+                    </span>
+                    <p className="text-[15px] font-bold text-gray-900">
+                      {detail.customer?.name || detail.guestName || "Guest"}
+                    </p>
+                  </div>
                   <p className="text-[12px] text-gray-500">
                     {detail.customer?.phone || detail.guestPhone || "No phone shared"}
                     {detail.customer && ` · ${detail.customer.ordersCount} orders`}
                   </p>
                 </div>
 
-                {/* AI hard-off — DEC-INB-008: reply আর AI থামায় না, এই switch-ই একমাত্র off */}
+                {/* DEC-INB-008 — replying no longer silences the AI; this is the only hard off. */}
                 <button
                   onClick={() => void act(() => setInboxAi(detail.id, !detail.aiEnabled))}
-                  title="Off করলে এই thread-এ AI সম্পূর্ণ চুপ। Reply দিলে AI বন্ধ হয় না — শুধু কয়েক মিনিট আপনাকে আগে সুযোগ দেয়।"
+                  title="Off silences the AI completely in this thread. Replying does not switch it off — it only gives you a few minutes to answer first."
                   className={`text-[11.5px] font-bold px-2.5 py-1.5 rounded-full transition ${
                     detail.aiEnabled
                       ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
