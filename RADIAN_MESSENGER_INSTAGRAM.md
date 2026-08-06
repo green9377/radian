@@ -1,6 +1,7 @@
 # Messenger ও Instagram DM — Radian Inbox
 
-_৬ আগস্ট ২০২৬。 WhatsApp-এর সেটআপ আলাদা ফাইলে: `RADIAN_WHATSAPP_SETUP.md`。_
+_৭ আগস্ট ২০২৬。 WhatsApp-এর সেটআপ আলাদা ফাইলে: `RADIAN_WHATSAPP_SETUP.md`。_
+_অবস্থা: **Messenger ও Instagram দুটোই দুই দিকে কাজ করছে** — পরীক্ষা হয়েছে ৭ আগস্ট。_
 
 ---
 
@@ -48,9 +49,9 @@ Instagram-এর জন্য `object: "instagram"` পাঠায়, ভে�
 **Echo বাদ** — `message.is_echo` মানে আমাদের নিজের পাঠানো বার্তা ফেরত
 আসছে。 রাখলে প্রতিটা reply দুবার দেখাত, আর AI নিজের সাথে কথা বলা শুরু করত。
 
-**নাম** — Meta ফোন নম্বর দেয় না, দেয় page-scoped id (PSID)。 তাই Page
-token দিয়ে আলাদা করে profile name আনা হয়। না এলে thread নামহীন থাকে —
-বার্তা আটকে রাখার মতো জিনিস নয়。
+**নাম** — Meta ফোন নম্বর দেয় না, দেয় scoped id。 তাই আলাদা করে নাম আনা
+হয় — Messenger-এ Page token দিয়ে `name`, Instagram-এ Instagram token দিয়ে
+`name,username`。 না এলে thread নামহীন থাকে; নামের জন্য বার্তা আটকে রাখা হয় না。
 
 ---
 
@@ -85,16 +86,17 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
 | **Verify token-এর ঘরে access token** | verify ফেল | দুটো আলাদা জিনিস: verify token আমরা বানাই, access token Meta দেয় |
 | **Render ফ্রি server ঘুমায়** | প্রথম verify ফেল হতে পারে | সাথে সাথে আবার চাপো (~৫০ সেকেন্ডে জাগে) |
 | **নিজের Page ছাড়া অন্য Page subscribe** | অন্যের Page-এর message আমাদের Inbox-এ | শুধু Radian-এর Page |
-| **Instagram "Allow access to messages" বন্ধ** | Page-এ সব ঠিক, তবু DM আসে না | Instagram app-এর ভেতরের সুইচ |
-| **App Live মানেই সবার সাথে চলবে নয়** | সীমাটা mode-এর নয়, permission-এর — `pages_messaging` standard access-এ থাকলে শুধু app-এ ভূমিকা আছে এমন লোকের সাথে চলে | সাধারণ গ্রাহকের জন্য **App Review** — cutover-এর কাজ |
+| **App Live মানেই সবার সাথে চলবে নয়** | সীমাটা mode-এর নয়, permission-এর — standard access-এ থাকলে শুধু app-এ ভূমিকা আছে এমন লোকের সাথে চলে | সাধারণ গ্রাহকের জন্য **App Review** — cutover-এর কাজ |
+| **app ID আর account ID গুলিয়ে ফেলা** | Instagram app ID (`1553139576608598`) আর account ID (`17841467082693222`) দুটো আলাদা; ভুলটা পাঠানোর সময় ধরা পড়ে | পাঠানোর জন্য **account ID** |
 | **২৪ ঘণ্টার জানালা** | গ্রাহকের শেষ বার্তার ২৪ ঘণ্টা পরে free text Meta ফিরিয়ে দেয় | ব্যর্থতা log-এ ওঠে, চুপ করে হারায় না |
 
 ---
 
 ## ৬. যা এখনো বাকি
 
-- **App Review** — `pages_messaging`, `instagram_manage_messages`-এ advanced
-  access。 এটা ছাড়া সাধারণ গ্রাহকের বার্তা আসবে না
+- **App Review** — `pages_messaging` ও `instagram_business_manage_messages`-এ
+  advanced access。 এটা ছাড়া সাধারণ গ্রাহকের বার্তা আসবে না — এখন শুধু app-এ
+  ভূমিকা আছে এমন account-এর সাথে চলে
 - **`messaging_referral`** — Click-to-Messenger বিজ্ঞাপন থেকে আসা গ্রাহক চেনা
   (WhatsApp-এর `ctwa_clid`-এর সমতুল্য)。 বিজ্ঞাপন শুরু হলে দরকার হবে
 - ছবি/স্টিকার এখন `[image]` হিসেবে জমা হয় — দেখানোর ব্যবস্থা পরে
