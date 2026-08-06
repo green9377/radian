@@ -15,6 +15,10 @@ _৭ আগস্ট ২০২৬。_
 ⚠️ আমি আইনজীবী নই。 নিচের লেখাটা খসড়া — মালিক পড়ে, দরকারে আইনি পরামর্শ
 নিয়ে, তারপর প্রকাশ করবেন。
 
+⚠️ প্রতিটা বাক্য এমনভাবে লেখা যেন **আজকের কোড দিয়েই রাখা যায়**。 যেখানে
+কোড পিছিয়ে ছিল সেখানে প্রতিশ্রুতি নামানো হয়েছে, কোড এগিয়ে আছে ধরে নেওয়া
+হয়নি。
+
 ---
 
 ## কোথায় বসবে
@@ -42,8 +46,9 @@ deleted. If you complete the order, the information becomes part of your order
 record and is kept under the order retention terms above instead.
 
 We may contact you once about an unfinished order, on the phone number you
-entered. To stop this, reply STOP to any message from us, or write to
-[support email] and we will remove your details immediately.
+entered. If you would rather we did not, tell us — reply to the message, or
+write to [support email] — and we will delete what we have and not contact you
+about it again.
 
 ### Messages you send us
 
@@ -66,13 +71,13 @@ is also governed by Meta's own privacy policy.
 - `[support email]` — আসল ঠিকানা বসাতে হবে
 - "order retention terms above" — উপরের অনুচ্ছেদে order কতদিন রাখা হয় তা
   স্পষ্ট করে লেখা আছে কিনা দেখতে হবে; না থাকলে ওটাও লিখতে হবে
-- **"reply STOP" এখনো সত্যি নয়** — যাচাই করে দেখলাম: `MarketingOptOut`
-  আছে এবং পাঠানোর আগে দেখাও হয় (`checkout-leads.service.ts` →
-  `skipReason()`), কিন্তু কেউ WhatsApp/Messenger/Instagram-এ "STOP" লিখলে
-  সেটা কোথাও বসে না。 লেখা প্রকাশের আগে হয় কোডটা বানাতে হবে, নয়তো
-  বাক্যটা বদলাতে হবে。 **যা করি না তা policy-তে লেখা যাবে না।**
+- ~~"reply STOP"~~ — **বাদ দেওয়া হয়েছে, ইচ্ছাকৃতভাবে** (৭ আগস্ট)。
+  কোড দেখে নিশ্চিত হয়েছি: `MarketingOptOut` আছে এবং পাঠানোর আগে দেখাও হয়
+  (`checkout-leads.service.ts` → `skipReason()`), কিন্তু কেউ চ্যানেলে
+  "STOP" লিখলে সেটা কোথাও বসে না — কেউ পড়ছেই না。
 
-  আরেকটা বাধা: `MarketingOptOut.customerId` বাধ্যতামূলক。 কিন্তু
-  Messenger/Instagram-এ ফোন নম্বর আসে না — scoped id আসে。 তাই ওই
-  চ্যানেলে "STOP" লেখা লোককে চেনার উপায় এখনো নেই。 এটা একটা নকশার
-  সিদ্ধান্ত, মালিকের。
+  তাই লেখাটা এখন যা সত্যি তা-ই বলে: বললে আমরা মুছে দেব。 বার্তা Inbox-এ
+  আসে, staff পড়ে, Admin থেকে opt-out বসানো যায় — অর্থাৎ প্রতিশ্রুতিটা
+  আজই রাখা যায়。
+
+  **যা করি না তা policy-তে লেখা যাবে না** — এটাই ছিল সিদ্ধান্তের কারণ。
