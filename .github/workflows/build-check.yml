@@ -1,0 +1,100 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  BUILD CHECK — যা ভাঙার, তা Render/Vercel-এ পৌঁছানোর আগেই ভাঙুক।
+#
+#  কেন এটা আছে (৬ আগস্ট ২০২৬): schema-য় একই নামে দুটো enum লেখা হয়েছিল।
+#  `npx prisma validate` চললে ৩ সেকেন্ডে ধরা পড়ত — কিন্তু কেউ চালায়নি, তাই
+#  ভুলটা দুটো deploy ফেল করার পর ধরা পড়ল। এই ফাইলটা সেই ৩ সেকেন্ডকে
+#  প্রতিবারের নিয়ম বানায়।
+#
+#  ⚠️ CLAUDE.md §৫-এর ফাঁদ: `start:dev` ইচ্ছাকৃতভাবে TypeScript error গিলে
+#  ফেলে (এক ভুলের জন্য দোকান বন্ধ না হোক)। তাই লোকালে সব ঠিক দেখায় অথচ
+#  `npm run build` ফেল করে। এখানে সেটা আর লুকোতে পারবে না।
+#
+#  ⚠️ ডেটাবেজ ছোঁয়া হয় না। `prisma validate/generate` schema পড়ে, DB নয় —
+#  তাই ফ্রি Postgres-এর compute কোটায় এর কোনো খরচ নেই।
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Build check
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+  workflow_dispatch: # হাতে চালাতে চাইলে
+
+# একই branch-এ নতুন push এলে পুরনো run বাতিল — মিনিট বাঁচে
+concurrency:
+  group: build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API — schema, prisma client, TypeScript
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - run: npm ci
+
+      # ⚠️ সবচেয়ে দামি লাইন। schema-র নাম-সংঘর্ষ, ভুল relation, ভুল default —
+      # সব এখানে ধরা পড়ে, এবং সেকেন্ডের মধ্যে।
+      - name: Prisma schema is valid
+        run: npx prisma validate
+
+      # generate ছাড়া tsc-র কাছে নতুন model/enum অস্তিত্বহীন
+      - name: Prisma client generates
+        run: npx prisma generate
+
+      - name: TypeScript compiles
+        run: npm run build
+
+  admin:
+    name: Admin panel builds
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+      - run: npm ci
+      # build-time-এ পড়া হয়, তাই না থাকলে build নিজেই থেমে যেতে পারে।
+      # আসল ঠিকানা নয় — এখানে শুধু build পাশ করানোর জন্য।
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://example.invalid
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  web:
+    name: Storefront builds
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://example.invalid
+          NEXT_PUBLIC_SITE_URL: https://example.invalid
+          API_INTERNAL_URL: https://example.invalid
+          NEXT_TELEMETRY_DISABLED: '1'
