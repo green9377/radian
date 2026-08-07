@@ -220,16 +220,27 @@ export class WhatsAppWebhookService {
       .findFirst({ where: { phone: local, deletedAt: null }, select: { id: true } })
       .catch(() => null);
 
-    return this.prisma.db.conversation.create({
-      data: {
-        channel: InboxChannel.WHATSAPP,
-        externalIdentity: waId,
-        guestPhone: local,
-        guestName: profileName?.slice(0, 120) ?? null,
-        customerId: customer?.id ?? null,
-        ...ad,
-      },
-    });
+    try {
+      return await this.prisma.db.conversation.create({
+        data: {
+          channel: InboxChannel.WHATSAPP,
+          externalIdentity: waId,
+          guestPhone: local,
+          guestName: profileName?.slice(0, 120) ?? null,
+          customerId: customer?.id ?? null,
+          ...ad,
+        },
+      });
+    } catch (e) {
+      // The unique index caught a concurrent create: the other one won, use it.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const winner = await this.prisma.db.conversation.findFirst({
+          where: { channel: InboxChannel.WHATSAPP, externalIdentity: waId, deletedAt: null },
+        });
+        if (winner) return winner;
+      }
+      throw e;
+    }
   }
 
   /** Meta sends 8801…; customers are stored as 01…. */

@@ -6672,6 +6672,10 @@ model Conversation {
   clientKey String @unique @default(cuid())
 
   /// অন্য channel-এর নিজের পরিচয় (Messenger PSID, WhatsApp নম্বর) — Phase 3.
+  /// A partial unique index (migration 20260807090000) allows only ONE live
+  /// thread per (channel, externalIdentity). Prisma cannot express partial
+  /// indexes, so it lives in SQL — do not add @@unique here, it would also
+  /// bind soft-deleted rows.
   externalIdentity String?
 
   /// Set when the customer arrived from a click-to-WhatsApp ad. Without it,

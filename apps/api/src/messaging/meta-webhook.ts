@@ -118,6 +118,20 @@ export class MetaWebhookService {
     if (!psid || !body) return;
 
     try {
+      /*
+        The duplicate check comes BEFORE the thread lookup. When Meta retries a
+        delivery, creating the thread first and then discovering the message
+        already existed left an empty thread behind — the "—" rows the owner
+        saw on 7 Aug.
+      */
+      if (ev.message?.mid) {
+        const seen = await this.prisma.db.message.findFirst({
+          where: { externalMessageId: ev.message.mid },
+          select: { id: true },
+        });
+        if (seen) return;
+      }
+
       const convo = await this.conversationFor(channel, psid);
 
       await this.prisma.db.message.create({
@@ -144,23 +158,52 @@ export class MetaWebhookService {
     }
   }
 
-  /** One thread per person per channel, so their history stays in one place. */
+  /**
+   * One thread per person per channel. The database enforces it with a partial
+   * unique index on (channel, externalIdentity) — find-then-create alone let
+   * two concurrent webhook deliveries each create a thread, which is how one
+   * Instagram customer ended up with a new thread per message.
+   */
   private async conversationFor(channel: InboxChannel, psid: string) {
     const existing = await this.prisma.db.conversation.findFirst({
       where: { channel, externalIdentity: psid, deletedAt: null },
       orderBy: { lastMessageAt: 'desc' },
     });
-    if (existing) return existing;
+    if (existing) {
+      // A thread created while the profile was unreadable stays "Guest"
+      // forever unless somebody tries again.
+      if (!existing.guestName) {
+        const name = await this.profileName(channel, psid);
+        if (name) {
+          await this.prisma.db.conversation.update({
+            where: { id: existing.id }, data: { guestName: name },
+          });
+          existing.guestName = name;
+        }
+      }
+      return existing;
+    }
 
-    return this.prisma.db.conversation.create({
-      data: {
-        channel,
-        externalIdentity: psid,
-        // Meta gives a scoped id, not a phone number, so the name is fetched
-        // separately — and a failure there must not lose the message.
-        guestName: await this.profileName(channel, psid),
-      },
-    });
+    try {
+      return await this.prisma.db.conversation.create({
+        data: {
+          channel,
+          externalIdentity: psid,
+          // Meta gives a scoped id, not a phone number, so the name is fetched
+          // separately — and a failure there must not lose the message.
+          guestName: await this.profileName(channel, psid),
+        },
+      });
+    } catch (e) {
+      // The unique index caught a concurrent create: the other one won, use it.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const winner = await this.prisma.db.conversation.findFirst({
+          where: { channel, externalIdentity: psid, deletedAt: null },
+        });
+        if (winner) return winner;
+      }
+      throw e;
+    }
   }
 
   private async profileName(channel: InboxChannel, id: string): Promise<string | null> {
@@ -169,9 +212,14 @@ export class MetaWebhookService {
       instagram ? 'INSTAGRAM_TOKEN' : 'FACEBOOK_PAGE_TOKEN');
     if (!token) return null;
 
-    // Instagram has usernames, Messenger has real names.
+    /*
+      Instagram has usernames. On Messenger many Page tokens return only
+      first_name/last_name and refuse the combined `name` — asking for `name`
+      alone is why Messenger threads showed "Guest" while Instagram showed the
+      username (7 Aug).
+    */
     const host = instagram ? IG_GRAPH : GRAPH;
-    const fields = instagram ? 'name,username' : 'name';
+    const fields = instagram ? 'name,username' : 'name,first_name,last_name';
     try {
       const res = await fetch(`${host}/${id}?fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -186,8 +234,11 @@ export class MetaWebhookService {
         this.log.warn(`no profile for ${channel} ${id} (${res.status}): ${body.slice(0, 300)}`);
         return null;
       }
-      const j = (await res.json()) as { name?: string; username?: string };
-      const name = (j.name || j.username)?.slice(0, 120) ?? null;
+      const j = (await res.json()) as {
+        name?: string; username?: string; first_name?: string; last_name?: string;
+      };
+      const joined = [j.first_name, j.last_name].filter(Boolean).join(' ');
+      const name = (j.name || joined || j.username)?.slice(0, 120) || null;
       if (!name) this.log.warn(`profile for ${channel} ${id} came back without a name`);
       return name;
     } catch (e) {

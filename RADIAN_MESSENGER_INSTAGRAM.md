@@ -92,7 +92,23 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
 
 ---
 
-## ৫ক. "Guest" নামের রহস্য — খোলা প্রশ্ন (৭ আগস্ট)
+## ৫ক. "Guest" নাম ও duplicate thread — সমাধান (৭ আগস্ট সকাল)
+
+সকালে মালিক দুটো সমস্যা দেখালেন: Messenger-এ নাম আসে না (Instagram-এ আসে),
+আর Instagram-এর একজনের প্রতিটা বার্তায় নতুন thread。 তিনটে সংশোধন:
+
+| সমস্যা | কারণ | সমাধান |
+|---|---|---|
+| **Messenger-এ "Guest"** | `name` field চাওয়া হতো; অনেক Page token শুধু `first_name`/`last_name` দেয় | এখন তিনটেই চাওয়া হয়, যেটা আসে সেটাই |
+| **প্রতি বার্তায় নতুন thread** | find-then-create — Meta একসাথে কয়েকবার পাঠালে সবাই "নেই" দেখে বানিয়ে ফেলত | **ডেটাবেজে partial unique index** — এক (channel, identity)-তে একটাই জ্যান্ত thread সম্ভব。 race হারলে কোড বিজয়ীটা ব্যবহার করে |
+| **ফাঁকা "—" thread** | thread বানানোর *পরে* duplicate বার্তা ধরা পড়ত — ফাঁকা thread পড়ে থাকত | duplicate check এখন thread lookup-এর *আগে* |
+
+Migration `20260807090000_one_thread_per_identity` পুরনো duplicate গুলোও
+জোড়া লাগায়: সব বার্তা সবচেয়ে পুরনো thread-এ, বাকিগুলো soft delete,
+কোনো বার্তা হারায় না。 আর পুরনো "Guest" thread-এ পরের বার্তা এলে নাম
+আবার চেষ্টা করা হয়。
+
+### খোলা প্রশ্ন যেটা রয়ে গেল
 
 Inbox-এ দুটো Messenger thread: একটায় নাম এসেছে (**Md Borhan Uddin** — app-এর
 admin), আরেকটায় আসেনি (**Guest** — সাধারণ একজন)。 Instagram-এ username
