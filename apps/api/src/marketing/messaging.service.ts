@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
+import { IntegrationsService } from '../administration/integrations.service';
 
 /*
   EMAIL & SMS — MKT-D19.
@@ -42,7 +43,38 @@ export class MessagingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly integrations: IntegrationsService,
   ) {}
+
+  /*
+    Keys live in the Integration row (Admin → Integrations); credentials()
+    falls back to the old MessagingSetting columns by itself. Reading those
+    columns directly here was a second home for the same key — a key pasted
+    into the card did nothing, and nothing said why (found 7 Aug).
+  */
+  private async smsConf() {
+    const c = await this.integrations.credentials('MESSAGING', 'SMS');
+    return {
+      enabled: !!(c.found && c.isEnabled),
+      provider: (c.found && c.variant) || 'BULKSMSBD',
+      apiKey: (c.found && c.apiKey) || null,
+      secretKey: (c.found && c.clientSecret) || null,
+      senderId: (c.found && c.username) || null,
+      customUrl: (c.found && c.baseUrl) || null,
+    };
+  }
+
+  private async emailConf() {
+    const c = await this.integrations.credentials('MESSAGING', 'EMAIL');
+    return {
+      enabled: !!(c.found && c.isEnabled),
+      provider: (c.found && c.variant) || 'BREVO',
+      apiKey: (c.found && c.apiKey) || null,
+      fromAddress: (c.found && c.username) || null,
+      fromName: (c.found && c.clientId) || null,
+      domain: (c.found && c.baseUrl) || null,
+    };
+  }
 
   /* ---------------- settings ---------------- */
 
@@ -103,21 +135,21 @@ export class MessagingService {
   }
 
   async status() {
-    const s = await this.get();
+    const [s, email, sms] = await Promise.all([this.get(), this.emailConf(), this.smsConf()]);
     return {
       email: {
-        enabled: s.emailEnabled,
-        provider: s.emailProvider,
-        keySet: !!s.emailApiKey,
-        fromSet: !!s.emailFromAddress,
-        ready: s.emailEnabled && !!s.emailApiKey && !!s.emailFromAddress,
+        enabled: email.enabled,
+        provider: email.provider,
+        keySet: !!email.apiKey,
+        fromSet: !!email.fromAddress,
+        ready: email.enabled && !!email.apiKey && !!email.fromAddress,
       },
       sms: {
-        enabled: s.smsEnabled,
-        provider: s.smsProvider,
-        keySet: !!s.smsApiKey,
-        senderSet: !!s.smsSenderId,
-        ready: s.smsEnabled && !!s.smsApiKey,
+        enabled: sms.enabled,
+        provider: sms.provider,
+        keySet: !!sms.apiKey,
+        senderSet: !!sms.senderId,
+        ready: sms.enabled && !!sms.apiKey,
       },
       testEmail: s.testEmail,
       testPhone: s.testPhone,
@@ -172,20 +204,21 @@ export class MessagingService {
         is the worst possible time to discover the order was wrong. */
     await this.refuseIfOptedOut(input.customerId);
 
-    const s = await this.get();
-    if (!s.emailEnabled) throw new BadRequestException('Email is switched off');
-    if (!s.emailApiKey) throw new BadRequestException('No email key has been saved yet');
-    if (!s.emailFromAddress) throw new BadRequestException('Set the address emails are sent from');
+    const conf = await this.emailConf();
+    const s = await this.get(); // still owns reply-to and the test addresses
+    if (!conf.enabled) throw new BadRequestException('Email is switched off');
+    if (!conf.apiKey) throw new BadRequestException('No email key has been saved yet');
+    if (!conf.fromAddress) throw new BadRequestException('Set the address emails are sent from');
 
-    const from = { name: s.emailFromName ?? 'Radian', email: s.emailFromAddress };
+    const from = { name: conf.fromName ?? 'Radian', email: conf.fromAddress };
     let result: SendResult;
 
     try {
-      switch (s.emailProvider) {
+      switch (conf.provider) {
         case 'RESEND':
           result = await this.http('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${s.emailApiKey}`, 'content-type': 'application/json' },
+            headers: { Authorization: `Bearer ${conf.apiKey}`, 'content-type': 'application/json' },
             body: JSON.stringify({
               from: `${from.name} <${from.email}>`,
               to: [input.to],
@@ -199,7 +232,7 @@ export class MessagingService {
         case 'SENDGRID':
           result = await this.http('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${s.emailApiKey}`, 'content-type': 'application/json' },
+            headers: { Authorization: `Bearer ${conf.apiKey}`, 'content-type': 'application/json' },
             body: JSON.stringify({
               personalizations: [{ to: [{ email: input.to }] }],
               from: { email: from.email, name: from.name },
@@ -211,17 +244,17 @@ export class MessagingService {
           break;
 
         case 'MAILGUN': {
-          if (!s.emailDomain) throw new Error('Mailgun needs its sending domain');
+          if (!conf.domain) throw new Error('Mailgun needs its sending domain');
           const form = new URLSearchParams({
             from: `${from.name} <${from.email}>`,
             to: input.to,
             subject: input.subject,
             html: input.html,
           });
-          result = await this.http(`https://api.mailgun.net/v3/${s.emailDomain}/messages`, {
+          result = await this.http(`https://api.mailgun.net/v3/${conf.domain}/messages`, {
             method: 'POST',
             headers: {
-              Authorization: `Basic ${Buffer.from(`api:${s.emailApiKey}`).toString('base64')}`,
+              Authorization: `Basic ${Buffer.from(`api:${conf.apiKey}`).toString('base64')}`,
               'content-type': 'application/x-www-form-urlencoded',
             },
             body: form.toString(),
@@ -233,7 +266,7 @@ export class MessagingService {
         default:
           result = await this.http('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
-            headers: { 'api-key': s.emailApiKey, 'content-type': 'application/json', accept: 'application/json' },
+            headers: { 'api-key': conf.apiKey, 'content-type': 'application/json', accept: 'application/json' },
             body: JSON.stringify({
               sender: from,
               to: [{ email: input.to }],
@@ -257,7 +290,7 @@ export class MessagingService {
       to: input.to,
       subject: input.subject,
       body: input.html,
-      provider: s.emailProvider,
+      provider: conf.provider,
       result,
       customerId: input.customerId,
       outreachId: input.outreachId,
@@ -280,9 +313,10 @@ export class MessagingService {
     // first, for the same reason as sendEmail above
     await this.refuseIfOptedOut(input.customerId);
 
-    const s = await this.get();
-    if (!s.smsEnabled) throw new BadRequestException('SMS is switched off');
-    if (!s.smsApiKey) throw new BadRequestException('No SMS key has been saved yet');
+    const conf = await this.smsConf();
+    if (!conf.enabled) throw new BadRequestException('SMS is switched off');
+    if (!conf.apiKey) throw new BadRequestException('No SMS key has been saved yet');
+    const apiKey = conf.apiKey;
 
     /*  Bangladeshi numbers reach the gateways as 8801XXXXXXXXX — no plus, no
         leading zero. Every gateway wants it that way and every one of them
@@ -292,12 +326,12 @@ export class MessagingService {
 
     let result: SendResult;
     try {
-      switch (s.smsProvider) {
+      switch (conf.provider) {
         case 'CUSTOM': {
-          if (!s.smsCustomUrl) throw new Error('No custom URL has been set');
-          const url = s.smsCustomUrl
-            .replace('{api_key}', encodeURIComponent(s.smsApiKey))
-            .replace('{sender}', encodeURIComponent(s.smsSenderId ?? ''))
+          if (!conf.customUrl) throw new Error('No custom URL has been set');
+          const url = conf.customUrl
+            .replace('{api_key}', encodeURIComponent(apiKey))
+            .replace('{sender}', encodeURIComponent(conf.senderId ?? ''))
             .replace('{to}', encodeURIComponent(to))
             .replace('{text}', encodeURIComponent(input.text));
           result = await this.http(url, { method: 'GET' });
@@ -309,20 +343,37 @@ export class MessagingService {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
-              UserName: s.smsSenderId, Apikey: s.smsApiKey,
+              UserName: conf.senderId, Apikey: apiKey,
               MobileNumber: to, CampaignId: 'null',
-              SenderName: s.smsSenderId, TransactionType: 'T', Message: input.text,
+              SenderName: conf.senderId, TransactionType: 'T', Message: input.text,
             }),
           });
           break;
+
+        /*
+          KhudeBarta (SoftifyBD) and REVE are the same server family — a
+          sendtext endpoint taking apikey + secretkey + callerID. KhudeBarta
+          documents no domain for the API, only an IP, so the endpoint sits in
+          the card's Custom endpoint box where a changed IP is an admin edit,
+          not a deploy.
+        */
+        case 'KHUDEBARTA': {
+          const base = conf.customUrl || 'http://118.67.213.114:3775/sendtext';
+          const q = new URLSearchParams({
+            apikey: apiKey, secretkey: conf.secretKey ?? '',
+            callerID: conf.senderId ?? '', toUser: to, messageContent: input.text,
+          });
+          result = await this.http(`${base}?${q.toString()}`, { method: 'GET' }, 'Message_ID');
+          break;
+        }
 
         case 'REVE':
           result = await this.http('https://smpp.revesms.com:7790/sendtext', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
-              apikey: s.smsApiKey, secretkey: s.smsApiKey,
-              callerID: s.smsSenderId, toUser: to, messageContent: input.text,
+              apikey: apiKey, secretkey: conf.secretKey ?? apiKey,
+              callerID: conf.senderId, toUser: to, messageContent: input.text,
             }),
           });
           break;
@@ -330,10 +381,10 @@ export class MessagingService {
         case 'BULKSMSBD':
         default: {
           const q = new URLSearchParams({
-            api_key: s.smsApiKey,
+            api_key: apiKey,
             type: 'text',
             number: to,
-            senderid: s.smsSenderId ?? '',
+            senderid: conf.senderId ?? '',
             message: input.text,
           });
           result = await this.http(`http://bulksmsbd.net/api/smsapi?${q.toString()}`, { method: 'GET' });
@@ -348,7 +399,7 @@ export class MessagingService {
       channel: 'SMS',
       to,
       body: input.text,
-      provider: s.smsProvider,
+      provider: conf.provider,
       result,
       customerId: input.customerId,
       outreachId: input.outreachId,
@@ -383,7 +434,7 @@ export class MessagingService {
       /*  Several Bangladeshi gateways answer 200 with an error IN the body.
           Trusting the status code alone would mark a failure as sent. */
       const low = text.toLowerCase();
-      if (/error|invalid|fail|unauthor|insufficient|balance/.test(low) && !/success/.test(low))
+      if (/error|invalid|fail|unauthor|insufficient|balance|reject/.test(low) && !/success|acceptd/.test(low))
         return { ok: false, error: text.slice(0, 500), raw: text.slice(0, 1000) };
 
       return { ok: true, providerRef: ref, raw: text.slice(0, 1000) };

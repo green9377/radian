@@ -129,9 +129,10 @@ export const PROVIDERS: Manifest[] = [
       'Text messages. Costs per message and carries no picture — for a flower shop the picture is the product, so WhatsApp usually wins.',
     movedFrom: 'MessagingSetting.smsApiKey',
     fields: [
-      { key: 'variant', label: 'Provider', hint: 'BULKSMSBD and similar', secret: false },
+      { key: 'variant', label: 'Provider', hint: 'KHUDEBARTA · BULKSMSBD · MIMSMS · REVE · CUSTOM', secret: false },
       { key: 'apiKey', label: 'API key', secret: true },
-      { key: 'username', label: 'Sender ID', secret: false },
+      { key: 'clientSecret', label: 'Secret key', hint: 'KhudeBarta and REVE-style gateways require this beside the API key', secret: true, optional: true },
+      { key: 'username', label: 'Sender ID', hint: 'The name or number customers see as the sender', secret: false },
       { key: 'baseUrl', label: 'Custom endpoint', hint: 'Only if the provider needs one', secret: false, optional: true },
     ],
   },

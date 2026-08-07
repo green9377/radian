@@ -16,6 +16,7 @@ import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CommonModule } from '../common/common.module';
 import { FinanceModule } from '../finance/finance.module';
+import { AdministrationModule } from '../administration/administration.module';
 
 /*  MARKETING & GROWTH — RADIAN_MARKETING_MODULE_ARCHITECTURE.md (28 Jul 2026).
 
@@ -32,7 +33,7 @@ import { FinanceModule } from '../finance/finance.module';
     call them when an order is delivered, returned or cancelled — the module
     receives completed business events, it does not poll. */
 @Module({
-  imports: [PrismaModule, CommonModule, FinanceModule, WhatsAppCloudModule],
+  imports: [PrismaModule, CommonModule, FinanceModule, WhatsAppCloudModule, AdministrationModule],
   controllers: [MarketingController],
   providers: [
     CampaignsService,
