@@ -5955,6 +5955,11 @@ export const waTestSend = (to: string) =>
   j<{ sent: boolean; configured: boolean }>(
     "/marketing/whatsapp/test-send", { method: "POST", body: JSON.stringify({ to }) });
 
+/** One real email/SMS to a target of your choosing — proof the saved key works. */
+export const messagingTestSend = (channel: "EMAIL" | "SMS", to: string) =>
+  j<{ ok: boolean; error?: string; raw?: string }>(
+    "/marketing/messaging/test", { method: "POST", body: JSON.stringify({ channel, to }) });
+
 export const waPreview = (b: ApiAudienceFilter) =>
   j<{ count: number; sample: { id: string; name: string; phone: string }[] }>(
     "/marketing/whatsapp/preview", { method: "POST", body: JSON.stringify(b) });

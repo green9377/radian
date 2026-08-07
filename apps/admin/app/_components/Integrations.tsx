@@ -37,7 +37,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
   getIntegrations, getWaTemplateStatus, revealIntegrationField, saveIntegration,
-  submitWaTemplates, waTestSend, type ApiTemplateResult,
+  submitWaTemplates, waTestSend, messagingTestSend, type ApiTemplateResult,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -519,6 +519,10 @@ function ServiceCard({
           </>
         )}
 
+        {(s.provider === "SMS" || s.provider === "EMAIL") && (
+          <MessagingTestRow channel={s.provider} brand={brand} onError={onError} />
+        )}
+
         <p className="text-[11px] text-body-soft mt-4">
           {s.lastCheckedAt
             ? `Last checked ${new Date(s.lastCheckedAt).toLocaleString()} — ${s.lastCheckOk ? "worked" : "failed"}${s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}`
@@ -562,6 +566,84 @@ function ServiceCard({
   On a test number Meta only delivers to the five numbers registered with it.
   Anything else is refused, and that refusal says nothing about the key.
 */
+
+/*
+  Same claim as the WhatsApp row — "saved" and "works" are different — for the
+  channels that have no sandbox at all. The test costs one real SMS (or one
+  email), which is the cheapest possible proof.
+*/
+function MessagingTestRow({
+  channel, brand, onError,
+}: {
+  channel: "SMS" | "EMAIL";
+  brand: { grad: string; glow: string; solid: string };
+  onError: (msg: string) => void;
+}) {
+  const sms = channel === "SMS";
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function send() {
+    if (!to.trim()) return;
+    setBusy(true); setResult(null);
+    try {
+      const r = await messagingTestSend(channel, to.trim());
+      setResult(
+        r.ok
+          ? { ok: true, msg: sms ? `Sent — check the phone ${to.trim()}.` : `Sent — check the inbox of ${to.trim()}.` }
+          : { ok: false, msg: r.error || "The provider refused it. The full answer is in Marketing → Messaging history." },
+      );
+    } catch (e) {
+      setResult({ ok: false, msg: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+      <Lbl>Check the keys actually work</Lbl>
+      <div className="flex flex-wrap gap-1.5 items-center">
+        <input
+          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
+          style={{ borderColor: "#ece5f2" }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
+          placeholder={sms ? "01712345678" : "you@example.com"}
+          value={to}
+          inputMode={sms ? "tel" : "email"}
+          autoComplete="off"
+          onChange={(e) => setTo(e.target.value)}
+        />
+        <button
+          type="button"
+          className="shrink-0 px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
+          disabled={busy || !to.trim()}
+          onClick={() => void send()}
+        >
+          {busy ? "Sending…" : "Send test"}
+        </button>
+      </div>
+      {result && (
+        <p
+          className="text-[11.5px] leading-relaxed mt-2"
+          style={{ color: result.ok ? TONE.emerald.text : TONE.rose.text }}
+        >
+          {result.ok ? "✓ " : "✗ "}{result.msg}
+        </p>
+      )}
+      {!result && (
+        <p className="text-[11px] text-body-soft mt-1.5">
+          {sms
+            ? "Sends one real SMS to this number — costs one message, proves the key."
+            : "Sends one real email to this address — the only proof the key works."}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function WhatsAppTestRow({
   brand, onError,
