@@ -1,6 +1,52 @@
-# Radian — Pending work (master backlog)
+# Radian — চলমান কাজের একমাত্র বোর্ড
 
-_শেষ আপডেট: 23 July 2026 (F-অংশ যোগ)। **যা যা এখনো করা হয়নি, সব এখানে।** পরে একসাথে ধরার জন্য।_
+> **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ৭ আগস্ট ২০২৬。_
+> নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+## নীতি (মালিকের নির্দেশ, ৭ আগস্ট)
+
+**Demo-তে সব থাকবে — সব।** প্রতিটা জিনিস demo-তে sandbox/test মোডে সম্পূর্ণ
+পরীক্ষা হবে; real-এ যাওয়া মানে শুধু key/switch বদলানো。 ঝুঁকি সরাসরি real-এ নয়。
+
+## ✅ সদ্য শেষ (৭ আগস্ট)
+
+| কাজ | প্রমাণ |
+|---|---|
+| Messenger + Instagram DM দুই দিকে | Inbox-এ পরীক্ষিত, নাম-ছবি সহ |
+| Duplicate thread / Guest নাম / ছবি inline | migration + কোড, UI-তে যাচাই |
+| Privacy policy radianbd.com-এ | live |
+| **Meta App Review জমা** | Status: **Review in progress** (৩ permission) |
+| WhatsApp ৬ template approve | ⚠️ test WABA-তে — আসল নম্বরে আবার জমা (এক click) |
+| SSLCommerz sandbox/live switch স্পষ্ট | SANDBOX \| LIVE দুই ঘর + LIVE-এ confirm |
+
+## ⏳ অপেক্ষা — অন্যের হাতে
+
+| কী | কার হাতে | কতদিন |
+|---|---|---|
+| App Review-এর ফল | Meta | সাধারণত ≤২০ দিন; email `radianbd360@gmail.com` |
+
+## 🔜 পরের কাজ (ক্রমে)
+
+1. **SSLCommerz demo-তে SANDBOX-এ নামানো** — এখন LIVE-এ আছে, demo-তে বিপজ্জনক
+2. **Steadfast** — মালিক panel থেকে API Key + Secret Key বসাবে; আমি যাচাই করব
+3. **Email sending** — ঠিকানা মালিকের সিদ্ধান্তের অপেক্ষায় (gmail নাকি `order@radianbd.com`)
+4. **SMS sending** — provider account আছে কিনা জানা বাকি
+5. **WhatsApp আসল নম্বর (Coexistence)** — মোবাইল লাগবে (QR scan);
+   তারপর template resubmit + advanced access-এর আলাদা submission
+
+## 🗓️ Cutover-দিনের switch-তালিকা
+
+- SSLCommerz → LIVE · WhatsApp আসল নম্বর · privacy-তে checkout clause
+  (`RADIAN_PRIVACY_CLAUSES.md`) · Pixel/GA4/Ads ট্যাগ · `NEXT_PUBLIC_*` যাচাই + Redeploy
+
+## 🧹 Security (ছোট কিন্তু জরুরি)
+
+- `recovery-codes.txt` repo থেকে সরানো (মালিক) · GitHub PAT rotate
+
+---
+
+# পুরনো backlog (২৩ জুলাই) — আংশিক শেষ
 
 কীভাবে পড়বে: 🔴 = টাকা/ডেটা ভুল হতে পারে, আগে ধরো · 🟠 = গুরুত্বপূর্ণ ফাঁক ·
 🟡 = উন্নতি · 🟢 = পরিচ্ছন্নতা।

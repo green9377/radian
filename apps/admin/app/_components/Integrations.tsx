@@ -378,14 +378,36 @@ function ServiceCard({
             {s.fieldsFilled}/{s.fieldsTotal} KEYS
           </span>
           {s.hasSandbox && (
-            <button
-              type="button" disabled={busy}
-              onClick={() => void save({ isLive: !s.isLive })}
-              className="text-[11px] font-extrabold px-2.5 py-1 rounded-full text-white transition-transform active:scale-95"
-              style={{ background: s.isLive ? "#16a34a" : "#dc2626" }}
-            >
-              {s.isLive ? "● LIVE — tap for sandbox" : "● SANDBOX — tap for live"}
-            </button>
+            /* An explicit two-option control: the previous single pill read as
+               a status label, and the owner could not find the mode switch. */
+            <div className="flex items-center rounded-full overflow-hidden border border-slate-200">
+              <button
+                type="button" disabled={busy}
+                onClick={() => s.isLive && void save({ isLive: false })}
+                className="text-[11px] font-extrabold px-3 py-1 transition-colors"
+                style={!s.isLive
+                  ? { background: "#dc2626", color: "#fff" }
+                  : { background: "#fff", color: "#94a3b8" }}
+              >
+                SANDBOX
+              </button>
+              <button
+                type="button" disabled={busy}
+                onClick={() => {
+                  if (s.isLive) return;
+                  // Real keys in live mode move real money the moment a customer pays.
+                  if (window.confirm(`Switch ${s.label} to LIVE? Real transactions will start immediately.`)) {
+                    void save({ isLive: true });
+                  }
+                }}
+                className="text-[11px] font-extrabold px-3 py-1 transition-colors"
+                style={s.isLive
+                  ? { background: "#16a34a", color: "#fff" }
+                  : { background: "#fff", color: "#94a3b8" }}
+              >
+                LIVE
+              </button>
+            </div>
           )}
         </div>
 

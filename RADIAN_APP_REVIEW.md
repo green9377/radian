@@ -2,6 +2,26 @@
 
 _৭ আগস্ট ২০২৬。 App: **Radian** (`1720041072657899`)_
 
+> ✅ **জমা হয়ে গেছে — ৭ আগস্ট ২০২৬।** Status: **Review in progress**。
+> চাওয়া হয়েছে ঠিক তিনটা: `instagram_business_manage_messages` ·
+> `instagram_business_basic` · `pages_messaging`。 Meta বলছে বেশিরভাগ
+> submission ২০ দিনের মধ্যে দেখা হয়。
+>
+> **ইচ্ছা করে বাদ:** `pages_manage_metadata` (ওটার form Meta-র দিকেই
+> আটকে ছিল — pages_show_list dependency + API-test-calls ধূসর),
+> `pages_show_list`, `business_management`, আর WhatsApp-এর সব permission —
+> WhatsApp advanced access **আলাদা submission**, cutover-এর সময়。
+>
+> **Data handling-এ যা লেখা হয়েছে (সত্য অনুযায়ী):** processor আছে = Yes —
+> Render (hosting), Neon (database), Anthropic (AI reply drafting), তিনটাই
+> "IT solutions", data location United States; data controller = **Radian**,
+> Bangladesh; কর্তৃপক্ষকে ডেটা দেওয়া হয়নি = No; authority-request policy =
+> None of the above。 তিনটা প্রমাণ-ভিডিও reviewer instructions **এবং**
+> তিনটা permission-এর dialog-এ লাগানো。
+>
+> **ফল এলে:** approve হলে Messenger-এ সাধারণ গ্রাহকের নামও আসা শুরু করার
+> কথা (§৫ক-র খোলা প্রশ্ন); reject হলে Meta কারণ লেখে — ঠিক করে আবার জমা。
+
 ---
 
 ## ০. কেন লাগছে
