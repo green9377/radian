@@ -94,22 +94,17 @@ const brandFor = (provider: string) =>
   HERO_BRAND[provider] ??
   { grad: TONE.brand.grad, badge: provider.slice(0, 2).toUpperCase(), ring: TONE.brand.bg, glow: "rgba(160,33,184,0.3)", solid: TONE.brand.bg };
 
-/** oversized on/off pill for the payment hero cards — the small Delivery
-    Switch reads as an afterthought at this scale, so this one is its own size. */
-function BigSwitch({ on, glow, onClick }: { on: boolean; glow: string; onClick: () => void }) {
+/** On/off switch for a white card: green track when on, grey when off. */
+function BigSwitch({ on, onClick }: { on: boolean; glow?: string; onClick: () => void }) {
   return (
     <button
       type="button" onClick={onClick}
       className="relative rounded-full shrink-0 transition-all"
-      style={{
-        width: 56, height: 32,
-        background: on ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.22)",
-        boxShadow: on ? `0 0 0 3px ${glow}` : "none",
-      }}
+      style={{ width: 48, height: 27, background: on ? "#16a34a" : "#d8d2e2" }}
     >
       <span
-        className="absolute top-1/2 -translate-y-1/2 rounded-full shadow-md transition-all"
-        style={{ width: 24, height: 24, left: on ? 56 - 24 - 4 : 4, background: on ? "#16a34a" : "#fff" }}
+        className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-all"
+        style={{ width: 21, height: 21, left: on ? 48 - 21 - 3 : 3 }}
       />
     </button>
   );
@@ -198,25 +193,27 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
       <div className="space-y-5">
         {groups.map((g) => {
           const body = (
-            <div className={only ? "space-y-4" : "p-4 space-y-4"}>
+            <div className={only ? "" : "p-4"}>
               {g.kind === "COURIER" && (
-                <p className="text-[12px] text-body-soft leading-relaxed max-w-[720px]">
-                  The couriers themselves — names and tracking links — live in{" "}
+                <p className="text-[12px] text-body-soft leading-relaxed max-w-[720px] mb-4">
+                  Courier names and tracking links live in{" "}
                   <Link href="/delivery/setup" className="text-purple font-semibold">
                     Delivery → Setup
                   </Link>
-                  . Those are couriers you <em>use</em>. These are the keys to
-                  their APIs, which is a different thing: Steadfast works today
-                  with no key at all, by typing the consignment number in yourself.
+                  ; these are only the API keys.
                 </p>
               )}
-              {g.services.map((s) => (
-                <ServiceCard
-                  key={s.provider} s={s}
-                  couriers={g.kind === "COURIER" ? data?.couriers : undefined}
-                  onSaved={(m) => { flash(m); load(); }} onError={setErr}
-                />
-              ))}
+              {/*  A grid of compact cards, like a wall of labelled switches —
+                  the owner's reference design, 7 Aug. */}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
+                {g.services.map((s) => (
+                  <ServiceCard
+                    key={s.provider} s={s}
+                    couriers={g.kind === "COURIER" ? data?.couriers : undefined}
+                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
+                  />
+                ))}
+              </div>
             </div>
           );
           return only ? (
@@ -343,40 +340,40 @@ function ServiceCard({
   }
 
   return (
+    /*
+      One clean white card per service — the owner's reference design (7 Aug):
+      thin border, small brand mark, open fields, one button. The switched-on
+      card earns its brand colour as a border; everything else stays quiet.
+    */
     <div
-      className="rounded-[26px] overflow-hidden bg-white transition-transform hover:-translate-y-[2px]"
-      style={{ boxShadow: s.isEnabled ? `0 16px 40px ${brand.glow}` : "0 4px 16px rgba(40,20,50,0.08)" }}
+      className="rounded-2xl bg-white p-5 transition-shadow"
+      style={{
+        border: s.isEnabled ? `2px solid ${brand.ring}` : "1px solid #eae4f0",
+        boxShadow: s.isEnabled ? `0 6px 22px ${brand.glow}` : "0 2px 10px rgba(40,20,50,0.05)",
+      }}
     >
-      {/*  Full-bleed brand colour, not a thin strip: the card has to read as
-          "this is bKash" from across the room.  */}
-      <div className="relative px-5 pt-6 pb-9 overflow-hidden" style={{ background: brand.grad }}>
-        <div className="absolute -right-8 -top-16 w-52 h-52 rounded-full bg-white opacity-[0.10]" />
-        <div className="absolute -left-10 -bottom-20 w-44 h-44 rounded-full bg-white opacity-[0.08]" />
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-16 h-16 rounded-2xl bg-white grid place-items-center text-[26px] font-display font-bold shrink-0 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
-                 style={{ color: brand.solid }}>
-              {brand.badge}
-            </div>
-            <div className="min-w-0">
-              <div className="text-white font-display font-bold text-[22px] leading-tight truncate drop-shadow-sm">{s.label}</div>
-              <div className="text-white/85 text-[11px] font-bold tracking-[0.12em] uppercase mt-1">
-                {s.isEnabled ? (s.hasSandbox && !s.isLive ? "● Sandbox mode" : "● Live") : "○ Switched off"}
-              </div>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl grid place-items-center text-[15px] font-display font-bold text-white shrink-0"
+               style={{ background: brand.grad }}>
+            {brand.badge}
+          </div>
+          <div className="min-w-0">
+            <div className="font-display font-bold text-[15.5px] leading-tight truncate">{s.label}</div>
+            <div className="text-[10.5px] font-bold tracking-[0.1em] uppercase mt-0.5"
+                 style={{ color: s.isEnabled ? (s.hasSandbox && !s.isLive ? TONE.rose.text : "#16a34a") : "#a79fb5" }}>
+              {s.isEnabled ? (s.hasSandbox && !s.isLive ? "Sandbox" : "Live") : "Off"}
+              <span className="ml-2 font-extrabold" style={{ color: complete ? "#a79fb5" : TONE.amber.text }}>
+                {s.fieldsFilled}/{s.fieldsTotal}
+              </span>
             </div>
           </div>
-          <BigSwitch on={s.isEnabled} glow="rgba(255,255,255,0.5)" onClick={() => void save({ isEnabled: !s.isEnabled })} />
         </div>
+        <BigSwitch on={s.isEnabled} onClick={() => void save({ isEnabled: !s.isEnabled })} />
       </div>
 
-      {/*  The body overlaps the head slightly, like a bottom sheet, so the
-          seam between brand and form looks intentional. */}
-      <div className="relative -mt-4 rounded-t-[22px] bg-white px-5 pt-5 pb-5">
-        <div className="flex items-center gap-2 flex-wrap mb-3">
-          <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
-                style={{ background: complete ? TONE.sky.soft : TONE.amber.soft, color: complete ? TONE.sky.text : TONE.amber.text }}>
-            {s.fieldsFilled}/{s.fieldsTotal} KEYS
-          </span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 flex-wrap empty:hidden">
           {s.hasSandbox && (
             /* An explicit two-option control: the previous single pill read as
                a status label, and the owner could not find the mode switch. */
@@ -411,9 +408,9 @@ function ServiceCard({
           )}
         </div>
 
-        <p className="text-[12.5px] text-body leading-relaxed mb-4">{s.matters}</p>
-
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+        {/*  The long "why this matters" paragraph is gone on purpose — the
+            owner asked for the quiet version. Hints live in tooltips now. */}
+        <div className="space-y-3">
           {s.fields.map((f) => {
             const isRevealed = revealed.has(f.key);
             const touched = edits[f.key] !== undefined;
@@ -423,19 +420,13 @@ function ServiceCard({
               ? edits[f.key]
               : (revealed.has(f.key) && full[f.key] !== undefined ? full[f.key] : (f.value ?? ""));
             return (
-              <div key={f.key} className="min-w-0">
+              <div key={f.key} className="min-w-0" title={f.hint}>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Lbl>{f.label}</Lbl>
-                  {f.optional && (
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
-                          style={{ background: TONE.slate.soft, color: TONE.slate.text }}>
-                      OPTIONAL
-                    </span>
-                  )}
                   {saved && !didType && (
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
+                    <span className="text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-full mb-1"
                           style={{ background: TONE.emerald.soft, color: TONE.emerald.text }}>
-                      SAVED
+                      ✓
                     </span>
                   )}
                   {didType && shown.trim() === "" && saved && (
@@ -447,20 +438,20 @@ function ServiceCard({
                 </div>
                 <div className="flex gap-1.5 min-w-0">
                   <input
-                    className="w-full min-w-0 border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
-                    style={{ borderColor: "#ece5f2" }}
+                    className="w-full min-w-0 rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white transition-all"
+                    style={{ border: "1.5px solid #e6dfee" }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = brand.solid;
-                      e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`;
+                      e.currentTarget.style.boxShadow = `0 0 0 3px ${brand.glow}`;
                       // Select, never clear: the text must not appear to vanish.
                       e.currentTarget.select();
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#ece5f2";
+                      e.currentTarget.style.borderColor = "#e6dfee";
                       e.currentTarget.style.boxShadow = "none";
                     }}
                     type={f.secret && !isRevealed ? "password" : "text"}
-                    placeholder="not set"
+                    placeholder={f.hint ?? (f.optional ? "optional" : "not set")}
                     value={shown}
                     autoComplete="new-password"
                     onChange={(e) => {
@@ -472,8 +463,8 @@ function ServiceCard({
                   {f.secret && (
                     <button
                       type="button"
-                      className="shrink-0 w-11 h-11 rounded-2xl grid place-items-center text-[16px] border-2 transition-colors"
-                      style={{ borderColor: "#ece5f2" }}
+                      className="shrink-0 w-10 rounded-xl grid place-items-center text-[14px] transition-colors"
+                      style={{ border: "1.5px solid #e6dfee" }}
                       title={isRevealed ? "Hide again" : "Show the full key — every reveal is written to the audit trail"}
                       onClick={() => void toggleReveal(f.key)}
                     >
@@ -481,17 +472,16 @@ function ServiceCard({
                     </button>
                   )}
                 </div>
-                {f.hint && <p className="text-[11px] text-body-soft mt-1">{f.hint}</p>}
               </div>
             );
           })}
 
           {couriers && (
             <div className="min-w-0">
-              <Lbl>Which courier is this?</Lbl>
+              <Lbl>Linked courier</Lbl>
               <select
-                className="w-full min-w-0 border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
-                style={{ borderColor: "#ece5f2" }}
+                className="w-full min-w-0 rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white"
+                style={{ border: "1.5px solid #e6dfee" }}
                 value={courierId}
                 onChange={(e) => setCourierId(e.target.value)}
               >
@@ -500,17 +490,9 @@ function ServiceCard({
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-body-soft mt-1">
-                Links these keys to the courier Delivery already knows about.
-              </p>
             </div>
           )}
         </div>
-
-        <p className="text-[11px] text-body-soft mt-2.5">
-          To remove a key, click into the box, clear it and press Update. Fields
-          you do not touch are never changed.
-        </p>
 
         {s.provider === "WHATSAPP" && (
           <>
@@ -523,30 +505,25 @@ function ServiceCard({
           <MessagingTestRow channel={s.provider} brand={brand} onError={onError} />
         )}
 
-        <p className="text-[11px] text-body-soft mt-4">
-          {s.lastCheckedAt
-            ? `Last checked ${new Date(s.lastCheckedAt).toLocaleString()} — ${s.lastCheckOk ? "worked" : "failed"}${s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}`
-            : "Never checked against the provider — a saved key is not a working key"}
-        </p>
-        {s.movedFrom && (
-          <p className="text-[10.5px] text-body-soft mt-1">
-            Carried across from <code>{s.movedFrom}</code>
+        {s.lastCheckedAt && (
+          <p className="text-[10.5px] text-body-soft">
+            Last checked {new Date(s.lastCheckedAt).toLocaleString()} —{" "}
+            {s.lastCheckOk ? "worked" : "failed"}{s.lastCheckNote ? `: ${s.lastCheckNote}` : ""}
           </p>
         )}
 
         <button
-          className="w-full mt-4 py-3.5 rounded-2xl text-white font-extrabold text-[14px] tracking-wide shadow-lg transition-transform active:scale-[0.98] disabled:opacity-40"
-          style={{ background: brand.grad, boxShadow: `0 8px 22px ${brand.glow}` }}
+          className="w-full py-3 rounded-xl text-white font-extrabold text-[13px] tracking-wide transition-transform active:scale-[0.98] disabled:opacity-40"
+          style={{ background: brand.grad, boxShadow: `0 4px 14px ${brand.glow}` }}
           disabled={busy}
           onClick={() => void save()}
         >
-          {busy ? "SAVING…" : "UPDATE INFO"}
+          {busy ? "Saving…" : "Update Info"}
         </button>
 
         {s.hasSandbox && !s.isLive && s.isEnabled && (
-          <p className="text-[11px] leading-relaxed mt-3" style={{ color: TONE.rose.text }}>
-            Sandbox accepts payments that never arrive — a customer sees
-            success, no money moves. Switch to LIVE only with real keys pasted in.
+          <p className="text-[11px] leading-relaxed" style={{ color: TONE.rose.text }}>
+            Sandbox: payments look successful, no money moves.
           </p>
         )}
       </div>
