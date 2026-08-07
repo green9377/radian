@@ -31,8 +31,15 @@
 1. ~~SSLCommerz demo-তে SANDBOX-এ নামানো~~ ✅ করা হয়েছে (৭ আগস্ট রাতে,
    deployed admin-এ যাচাই সহ; আসল key মোছা হয়নি — শুধু মোড)
 2. **Steadfast** — মালিক panel থেকে API Key + Secret Key বসাবে; আমি যাচাই করব
-3. **Email sending** — ঠিকানা মালিকের সিদ্ধান্তের অপেক্ষায় (gmail নাকি `order@radianbd.com`)
-4. **SMS sending** — provider account আছে কিনা জানা বাকি
+3. **Email sending** — ⏸ **cutover পর্যন্ত আটকে** (৭ আগস্ট রাত)। Brevo account
+   খোলা, radianbd.com domain Brevo-তে যোগ করা, ৭টা DNS record তৈরি — কিন্তু
+   DNS আছে পুরনো hosting-এর (ns1/ns2.hostget.xyz) হাতে, মালিকের সেখানে
+   access নেই। **Cutover-দিনে:** registrar থেকে nameserver → Cloudflare (মালিকের
+   নিজের, ফ্রি) → Brevo-র record বসানো → sender `order@radianbd.com` →
+   API key card-এ → Send test। Provider সিদ্ধান্ত: **BREVO** (৩০০/দিন ফ্রি,
+   transactional + marketing এক জায়গায়)
+4. ~~SMS sending~~ ✅ **চালু ও পরীক্ষিত** (৭ আগস্ট রাত) — KhudeBarta, মালিকের
+   ফোনে test SMS পৌঁছেছে
 5. **WhatsApp আসল নম্বর (Coexistence)** — মোবাইল লাগবে (QR scan);
    তারপর template resubmit + advanced access-এর আলাদা submission
 
@@ -40,6 +47,8 @@
 
 - SSLCommerz → LIVE · WhatsApp আসল নম্বর · privacy-তে checkout clause
   (`RADIAN_PRIVACY_CLAUSES.md`) · Pixel/GA4/Ads ট্যাগ · `NEXT_PUBLIC_*` যাচাই + Redeploy
+- **DNS → Cloudflare** (nameserver বদল registrar-এ, মালিকের access আছে) →
+  নতুন site-এর record + **Brevo-র ৭টা record** → email চালু
 
 ## 🧹 Security (ছোট কিন্তু জরুরি)
 
