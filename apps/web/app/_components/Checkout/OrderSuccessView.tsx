@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { formatTaka } from "../../_data/products";
+import { track } from "../../_data/tracking";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import Icon from "../Pdp/PdpIcons";
 import DeliveryTimeline from "./DeliveryTimeline";
@@ -32,6 +33,22 @@ export default function OrderSuccessView() {
   useEffect(() => {
     if (missing) router.replace("/");
   }, [missing, router]);
+
+  /*
+    Purchase — the one event ad platforms actually learn from. Guarded per
+    order number: refreshing this page must not count the sale twice.
+  */
+  useEffect(() => {
+    if (!order) return;
+    const key = `trk-purchase-${order.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    track("Purchase", {
+      transaction_id: order.id,
+      value: order.totalPaisa / 100,
+      currency: "BDT",
+    });
+  }, [order]);
 
   if (!hydrated || !order) {
     return (

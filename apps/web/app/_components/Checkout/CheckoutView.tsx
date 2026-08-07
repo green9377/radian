@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { resolveCart, type ResolvedCart } from "../../_data/cart";
+import { track } from "../../_data/tracking";
 import {
   METHODS,
   cartLeadDays,
@@ -105,6 +106,10 @@ export default function CheckoutView() {
       stale = true;
     };
   }, [items, zone]);
+
+  useEffect(() => {
+    track("InitiateCheckout", { num_items: items.length });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
     ── delivery module-এর আসল মেনু · DEC-DLV-009 / DEC-DLV-010 ───────────────

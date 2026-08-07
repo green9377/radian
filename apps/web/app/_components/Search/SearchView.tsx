@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { useZoneStore } from "../../_store/useZoneStore";
 import { searchProductsLive, popularProductsLive } from "../../_data/search";
+import { track } from "../../_data/tracking";
 import type { Product } from "../../_data/products";
 import ProductCard from "../Product/ProductCard";
 
@@ -80,6 +81,10 @@ export default function SearchView() {
   const [results, setResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (q) track("Search", { search_string: q });
+  }, [q]);
   useEffect(() => {
     let stale = false;
     if (!q) {

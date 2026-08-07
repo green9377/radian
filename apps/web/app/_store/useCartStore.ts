@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { track } from "../_data/tracking";
 
 /*
   ═══════════════════════════════════════════════════════════════════
@@ -161,7 +162,8 @@ export const useCartStore = create<CartStore>()(
       couponCode: null,
       lastRemoved: null,
 
-      add: (item) =>
+      add: (item) => {
+        track("AddToCart", { content_id: item.slug, quantity: item.qty });
         set((s) => {
           const addonKeys = [...item.addonKeys].sort();
           const lineId = makeLineId({ ...item, addonKeys });
@@ -179,7 +181,8 @@ export const useCartStore = create<CartStore>()(
               { ...item, addonKeys, lineId, qty: clampQty(item.qty), addedAt: Date.now() },
             ],
           };
-        }),
+        });
+      },
 
       setQty: (lineId, qty) =>
         set((s) => ({

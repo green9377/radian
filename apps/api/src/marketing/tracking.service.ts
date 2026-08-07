@@ -3,32 +3,17 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
+import { IntegrationsService } from '../administration/integrations.service';
 
 /*
   TRACKING — MKT-D15. Every pixel and tag id in one place.
 
-  Pasted once here, read by the storefront at run time. Adding a new pixel
-  becomes a paste instead of a code change, and nobody has to go into a
-  separate Tag Manager account to do it.
+  Pasted once, read by the storefront at run time (7 Aug: the storefront now
+  actually reads it — apps/web injects the tags and fires the events,
+  including Purchase from the live checkout).
 
-  TWO THINGS SAID PLAINLY, because a tracking screen that hides them is worse
-  than no tracking screen:
-
-  1. A pixel is only worth what the events it sees are worth. The event that
-     matters — Purchase — cannot fire until the storefront actually creates an
-     order, and today it does not: apps/web has a cart and a checkout page and
-     not one call to the API. PageView, ViewContent, Search and AddToCart will
-     work the moment these ids are filled in. Purchase will not.
-
-     That is not a small caveat. Facebook learns from outcomes: feed it only
-     PageView and it learns to find people who look and leave, then spends the
-     budget doing exactly that. Teaching it the wrong lesson is worse than
-     teaching it nothing.
-
-  2. The customers are still on radianbd.com, which already carries a GTM
-     container. Anything pasted here affects the NEW storefront, which nobody
-     shops on yet. For today, the pixels that pay are the ones inside that
-     existing container.
+  Note for the cutover: customers are still on the old radianbd.com with its
+  own GTM container. Ids pasted here affect only the NEW storefront.
 
   What Radian can do that no pixel can: send the server-side event, from the
   real order, including the phone, walk-in and foodpanda sales Meta cannot see
@@ -43,6 +28,7 @@ export class TrackingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly integrations: IntegrationsService,
   ) {}
 
   /*  This screen asks two questions at once (the settings and the status), so
@@ -123,22 +109,39 @@ export class TrackingService {
   }
 
   /** what the storefront loads. Public — every id here ends up in the page
-      source anyway; the CAPI token, which does not, is left out. */
+      source anyway; the CAPI token, which does not, is left out.
+
+      Ids come through IntegrationsService.credentials(), the one read path:
+      an Integration row when the card has been saved, the old TrackingSetting
+      columns otherwise. Reading the old columns directly here was the same
+      two-homes bug that bit SMS — a pixel id pasted into the card would never
+      have reached the storefront. The master on/off and test switches stay on
+      TrackingSetting (Marketing → Tracking). */
   async publicConfig() {
     const s = await this.get();
     if (!s.enabled) return { enabled: false as const };
+
+    const read = async (provider: string) => {
+      const c = await this.integrations.credentials('ANALYTICS', provider);
+      return c.found && c.isEnabled ? c : null;
+    };
+    const [pixel, ga4, gads, gtm, tiktok, clarity, snap, pin] = await Promise.all([
+      read('META_PIXEL'), read('GA4'), read('GOOGLE_ADS_TAG'), read('GTM'),
+      read('TIKTOK_PIXEL'), read('CLARITY'), read('SNAP_PIXEL'), read('PINTEREST_TAG'),
+    ]);
+
     return {
       enabled: true as const,
       testMode: s.testMode,
-      gtmId: s.gtmId,
-      metaPixelId: s.metaPixelId,
-      ga4MeasurementId: s.ga4MeasurementId,
-      googleAdsId: s.googleAdsId,
-      googleAdsConversionLabel: s.googleAdsConversionLabel,
-      tiktokPixelId: s.tiktokPixelId,
-      snapPixelId: s.snapPixelId,
-      pinterestTagId: s.pinterestTagId,
-      clarityId: s.clarityId,
+      gtmId: gtm?.clientId ?? null,
+      metaPixelId: pixel?.clientId ?? null,
+      ga4MeasurementId: ga4?.clientId ?? null,
+      googleAdsId: gads?.clientId ?? null,
+      googleAdsConversionLabel: gads?.username ?? null,
+      tiktokPixelId: tiktok?.clientId ?? null,
+      snapPixelId: snap?.clientId ?? null,
+      pinterestTagId: pin?.clientId ?? null,
+      clarityId: clarity?.clientId ?? null,
     };
   }
 
@@ -158,20 +161,15 @@ export class TrackingService {
       { key: 'clarityId', name: 'Microsoft Clarity', hint: 'free session recording', on: set(s.clarityId) },
     ];
 
-    /*  Which events the storefront can honestly fire today. This list is a
-        promise, so it must not lie: the storefront has a cart and a checkout
-        page and no API call behind either. */
+    /*  Which events the storefront fires. Purchase became honest on 7 Aug —
+        checkout is live and /order-success reports the real order. */
     const events = [
       { name: 'PageView', ready: true, why: 'every page' },
       { name: 'ViewContent', ready: true, why: 'a product page opened' },
       { name: 'Search', ready: true, why: 'somebody searched' },
       { name: 'AddToCart', ready: true, why: 'the basket is local, but the moment is real' },
       { name: 'InitiateCheckout', ready: true, why: 'checkout page opened' },
-      {
-        name: 'Purchase',
-        ready: false,
-        why: 'waiting on checkout — the storefront cannot create an order yet, so there is no sale to report',
-      },
+      { name: 'Purchase', ready: true, why: 'fired on /order-success with the real order number and total' },
     ];
 
     return {

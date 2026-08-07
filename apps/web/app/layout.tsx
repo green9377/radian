@@ -7,6 +7,7 @@ import Footer from "./_components/GBE/Footer";
 import SupportPanel from "./_components/Support/SupportPanel";
 import { SectionTextProvider } from "./_components/ui/SectionHead";
 import ZoneSync from "./_components/ZoneSync";
+import Tracking from "./_components/Tracking";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -80,6 +81,7 @@ export default function RootLayout({
           {/* mirrors the zone into a cookie so server-rendered pages can read
               it before they render — see the file for why (D-CAT-05) */}
           <ZoneSync />
+          <Tracking />
           <Header />
           {children}
           <Footer />

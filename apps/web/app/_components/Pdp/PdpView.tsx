@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useZoneStore } from "../../_store/useZoneStore";
 import { useCartStore } from "../../_store/useCartStore";
 import { formatTaka } from "../../_data/products";
+import { track } from "../../_data/tracking";
 import {
   ADDON_TABS,
   OFFERS,
@@ -135,6 +136,15 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
   const size = detail.sizes.find((s) => s.id === sizeId) ?? detail.sizes[0];
   const blocked = zone === "bangladesh" && product.zone === "dhaka";
+
+  useEffect(() => {
+    track("ViewContent", {
+      content_id: product.slug,
+      content_name: product.name,
+      value: product.pricePaisa / 100,
+      currency: "BDT",
+    });
+  }, [product.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
     Add-on tab গুলো এক আকারে আনা হয়।
