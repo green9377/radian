@@ -28,7 +28,8 @@
 
 ## 🔜 পরের কাজ (ক্রমে)
 
-1. **SSLCommerz demo-তে SANDBOX-এ নামানো** — এখন LIVE-এ আছে, demo-তে বিপজ্জনক
+1. ~~SSLCommerz demo-তে SANDBOX-এ নামানো~~ ✅ করা হয়েছে (৭ আগস্ট রাতে,
+   deployed admin-এ যাচাই সহ; আসল key মোছা হয়নি — শুধু মোড)
 2. **Steadfast** — মালিক panel থেকে API Key + Secret Key বসাবে; আমি যাচাই করব
 3. **Email sending** — ঠিকানা মালিকের সিদ্ধান্তের অপেক্ষায় (gmail নাকি `order@radianbd.com`)
 4. **SMS sending** — provider account আছে কিনা জানা বাকি

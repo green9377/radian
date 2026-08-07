@@ -162,7 +162,7 @@ Applying migration `2025...`
 |---|---|
 | `NEXT_PUBLIC_API_URL` | ধাপ ৩-এর Render ঠিকানা (**শেষে `/` নয়**) |
 
-5. **Deploy** → ২-৩ মিনিট → `radian-admin-demo.vercel.app` পাবেন
+5. **Deploy** → ২-৩ মিনিট → `radian-admin.vercel.app` পাবেন
 
 ### ৪খ. গ্রাহকের দোকান
 
@@ -175,7 +175,7 @@ Applying migration `2025...`
 |---|---|
 | `NEXT_PUBLIC_API_URL` | Render ঠিকানা |
 | `API_INTERNAL_URL` | একই Render ঠিকানা |
-| `NEXT_PUBLIC_SITE_URL` | `https://radian-web-demo.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | `https://radian-web-tan.vercel.app` |
 | `NEXT_PUBLIC_IMAGE_BASE` | `.env` থেকে |
 | `NEXT_PUBLIC_DEMO_MODE` | `true` ← **ভুলবেন না** |
 
@@ -193,8 +193,8 @@ Render → radian-api-demo → **Environment**:
 
 | ঘর | মান |
 |---|---|
-| `PUBLIC_ADMIN_URL` | `https://radian-admin-demo.vercel.app` |
-| `PUBLIC_WEB_URL` | `https://radian-web-demo.vercel.app` |
+| `PUBLIC_ADMIN_URL` | `https://radian-admin.vercel.app` |
+| `PUBLIC_WEB_URL` | `https://radian-web-tan.vercel.app` |
 
 Save → Render নিজে restart করবে。 Logs-এ `[CORS] allowed:` লাইনে এখন
 দুটো vercel ঠিকানাই দেখা যাবে。
