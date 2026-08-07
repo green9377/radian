@@ -19,6 +19,8 @@
 | **Meta App Review জমা** | Status: **Review in progress** (৩ permission) |
 | WhatsApp ৬ template approve | ⚠️ test WABA-তে — আসল নম্বরে আবার জমা (এক click) |
 | SSLCommerz sandbox/live switch স্পষ্ট | SANDBOX \| LIVE দুই ঘর + LIVE-এ confirm |
+| Integrations পাতার নতুন নকশা | সমান মাপের পরিষ্কার card, grid — মালিক অনুমোদিত |
+| **Tracking: storefront এখন pixel চালায়** | আগে ID বসালেও কিছুই হতো না (কোনো read path ছিল না)। এখন GTM/GA4/Meta Pixel/Clarity/TikTok/Snap/Pinterest inject হয় + PageView·ViewContent·Search·AddToCart·InitiateCheckout·**Purchase** (আসল order নম্বর ও টাকায়, dedupe সহ)। Demo-তে test ID দিয়ে প্রমাণিত। আসল ID বসবে cutover-এ (আগে বসালে ভুয়া ডেটা জমবে) |
 
 ## ⏳ অপেক্ষা — অন্যের হাতে
 
