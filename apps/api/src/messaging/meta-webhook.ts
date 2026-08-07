@@ -37,7 +37,7 @@ interface MetaMessaging {
     mid?: string;
     text?: string;
     is_echo?: boolean;
-    attachments?: { type?: string }[];
+    attachments?: { type?: string; payload?: { url?: string } }[];
   };
   postback?: { title?: string; payload?: string };
 }
@@ -106,8 +106,17 @@ export class MetaWebhookService {
   private text(ev: MetaMessaging): string | null {
     if (ev.message?.text?.trim()) return ev.message.text.trim();
     if (ev.postback?.title?.trim()) return ev.postback.title.trim();
-    const a = ev.message?.attachments?.[0]?.type;
-    if (a) return `[${a}]`;
+    /*
+      An attachment carries Meta's CDN URL, stored as `[type](url)` so the
+      admin can show the picture itself instead of the word "[image]". The CDN
+      link expires after a while — acceptable for a support inbox, where the
+      conversation is live when it matters.
+    */
+    const a = ev.message?.attachments?.[0];
+    if (a?.type) {
+      const url = a.payload?.url?.trim();
+      return url ? `[${a.type}](${url})` : `[${a.type}]`;
+    }
     // Delivery and read receipts arrive here too, and are not messages.
     return null;
   }

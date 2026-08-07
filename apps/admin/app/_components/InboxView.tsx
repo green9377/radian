@@ -69,6 +69,42 @@ type ChannelKey = keyof typeof CHANNELS;
 
 const channelOf = (k: string) => CHANNELS[k as ChannelKey] ?? CHANNELS.WEB_CHAT;
 
+/*
+  Attachments arrive as `[image](https://...)` — the webhook keeps Meta's CDN
+  URL so the picture itself can be shown. The URL expires eventually, so a
+  broken image quietly falls back to the plain label.
+*/
+const ATTACHMENT = /^\[(image|video|audio|file|sticker|share)\]\((https?:\/\/\S+)\)$/;
+
+function MessageBody({ body }: { body: string }) {
+  const m = body.match(ATTACHMENT);
+  if (!m) return <>{body}</>;
+  const [, kind, url] = m;
+  if (kind === "image" || kind === "sticker") {
+    return (
+      <a href={url} target="_blank" rel="noreferrer">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url} alt="attachment"
+          className="max-w-[240px] max-h-[240px] rounded-xl"
+          onError={(e) => { e.currentTarget.outerHTML = `[${kind}]`; }}
+        />
+      </a>
+    );
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="underline font-semibold">
+      [{kind}] open attachment
+    </a>
+  );
+}
+
+/** The one-line preview in the thread list should not show a raw CDN URL. */
+const previewOf = (body: string) => {
+  const m = body.match(ATTACHMENT);
+  return m ? `[${m[1]}]` : body;
+};
+
 function ChannelTag({ channel }: { channel: string }) {
   const c = channelOf(channel);
   return (
@@ -421,7 +457,7 @@ export default function InboxView() {
                 </div>
                 <p className="text-[12px] text-gray-500 truncate mt-0.5">
                   {c.lastMessage
-                    ? `${c.lastMessage.authorType === "STAFF" ? "You: " : ""}${c.lastMessage.body}`
+                    ? `${c.lastMessage.authorType === "STAFF" ? "You: " : ""}${previewOf(c.lastMessage.body)}`
                     : "—"}
                 </p>
                 <div className="flex gap-1.5 mt-1 flex-wrap">
@@ -567,7 +603,7 @@ export default function InboxView() {
                             {m.authorType === "AI" ? "AI" : m.authorUser?.name ?? "Staff"}
                           </p>
                         )}
-                        {m.body}
+                        <MessageBody body={m.body} />
                         <p
                           className={`text-[10px] mt-1 ${
                             fromCustomer || system ? "text-gray-400" : "opacity-60"
