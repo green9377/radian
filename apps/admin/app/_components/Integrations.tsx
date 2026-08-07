@@ -728,6 +728,7 @@ function WhatsAppTemplateRow({
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState<ApiTemplateResult[]>([]);
+  const [open, setOpen] = useState(false);
 
   const refresh = useCallback(() => {
     getWaTemplateStatus()
@@ -761,57 +762,90 @@ function WhatsAppTemplateRow({
     }
   }
 
+  /*
+    Collapsed by default: six chips and two buttons made the WhatsApp card
+    twice as tall as its neighbours (owner, 7 Aug). The closed row still
+    answers the only daily question — how many are approved.
+  */
+  const approved = (rows ?? []).filter(
+    (t) => t.status === "APPROVED" || t.status === "ALREADY EXISTS",
+  ).length;
+  const attention = failed.length > 0 || (rows ?? []).some((t) => t.status === "REJECTED");
+
   return (
-    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
-      <Lbl>Radian&rsquo;s six templates</Lbl>
-      <p className="text-[11px] text-body-soft mb-2.5">
-        The wording lives in the code. One click submits all six to Meta —
-        Meta approves them, which takes minutes to a few hours.
-      </p>
-
-      {rows && (
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          {rows.map((t) => (
+    <div className="mt-4 pt-3 border-t border-[#f0edf5]">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-2 py-1"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="text-[12px] font-bold text-body">Message templates</span>
+        <span className="flex items-center gap-2">
+          {rows && (
             <span
-              key={t.name}
-              className="text-[11px] font-semibold px-2 py-1 rounded-full"
+              className="text-[10.5px] font-extrabold px-2 py-0.5 rounded-full"
               style={{
-                background: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].soft,
-                color: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].text,
+                background: attention ? TONE.rose.soft : approved === rows.length ? TONE.emerald.soft : TONE.amber.soft,
+                color: attention ? TONE.rose.text : approved === rows.length ? TONE.emerald.text : TONE.amber.text,
               }}
-              title={t.error ?? t.status ?? ""}
             >
-              {t.name} · {t.status ?? (t.ok ? "OK" : "?")}
+              {approved}/{rows.length} approved
             </span>
-          ))}
+          )}
+          <span className="text-[11px] text-body-soft transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>▾</span>
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-2.5">
+          <p className="text-[11px] text-body-soft mb-2">
+            The wording lives in the code — one click submits all six to Meta.
+          </p>
+          {rows && (
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {rows.map((t) => (
+                <span
+                  key={t.name}
+                  className="text-[10.5px] font-semibold px-2 py-1 rounded-full"
+                  style={{
+                    background: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].soft,
+                    color: TONE[TPL_TONE[t.status ?? ""] ?? "slate"].text,
+                  }}
+                  title={t.error ?? t.status ?? ""}
+                >
+                  {t.name} · {t.status ?? (t.ok ? "OK" : "?")}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              className="px-4 py-2.5 rounded-xl text-white font-extrabold text-[12px] transition-transform active:scale-[0.98] disabled:opacity-40"
+              style={{ background: brand.grad, boxShadow: `0 4px 12px ${brand.glow}` }}
+              disabled={busy}
+              onClick={() => void submit()}
+            >
+              {busy ? "Submitting…" : "Create templates in Meta"}
+            </button>
+            <button className={btnGhost} disabled={busy} onClick={refresh}>
+              Check status
+            </button>
+          </div>
+
+          {note && <p className="text-[11.5px] text-body-soft mt-2">{note}</p>}
+
+          {failed.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {failed.map((f) => (
+                <li key={f.name} className="text-[11.5px] leading-relaxed" style={{ color: TONE.rose.text }}>
+                  <strong>{f.name}</strong> — {f.error}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
-
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          className="px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
-          style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
-          disabled={busy}
-          onClick={() => void submit()}
-        >
-          {busy ? "Submitting…" : "Create templates in Meta"}
-        </button>
-        <button className={btnGhost} disabled={busy} onClick={refresh}>
-          Check status
-        </button>
-      </div>
-
-      {note && <p className="text-[11.5px] text-body-soft mt-2">{note}</p>}
-
-      {failed.length > 0 && (
-        <ul className="mt-2 space-y-1">
-          {failed.map((f) => (
-            <li key={f.name} className="text-[11.5px] leading-relaxed" style={{ color: TONE.rose.text }}>
-              <strong>{f.name}</strong> — {f.error}
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );
