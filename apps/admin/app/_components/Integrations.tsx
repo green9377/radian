@@ -205,7 +205,9 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
               )}
               {/*  A grid of compact cards, like a wall of labelled switches —
                   the owner's reference design, 7 Aug. */}
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
+              {/*  No items-start: cards in a row stretch to the tallest one, so
+                  a section reads as one tidy block (owner, 7 Aug). */}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {g.services.map((s) => (
                   <ServiceCard
                     key={s.provider} s={s}
@@ -346,7 +348,7 @@ function ServiceCard({
       card earns its brand colour as a border; everything else stays quiet.
     */
     <div
-      className="rounded-2xl bg-white p-5 transition-shadow"
+      className="rounded-2xl bg-white p-5 transition-shadow h-full flex flex-col"
       style={{
         border: s.isEnabled ? `2px solid ${brand.ring}` : "1px solid #eae4f0",
         boxShadow: s.isEnabled ? `0 6px 22px ${brand.glow}` : "0 2px 10px rgba(40,20,50,0.05)",
@@ -372,7 +374,7 @@ function ServiceCard({
         <BigSwitch on={s.isEnabled} onClick={() => void save({ isEnabled: !s.isEnabled })} />
       </div>
 
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3 flex-1">
         <div className="flex items-center gap-2 flex-wrap empty:hidden">
           {s.hasSandbox && (
             /* An explicit two-option control: the previous single pill read as
@@ -513,7 +515,7 @@ function ServiceCard({
         )}
 
         <button
-          className="w-full py-3 rounded-xl text-white font-extrabold text-[13px] tracking-wide transition-transform active:scale-[0.98] disabled:opacity-40"
+          className="w-full py-3 rounded-xl text-white font-extrabold text-[13px] tracking-wide transition-transform active:scale-[0.98] disabled:opacity-40 mt-auto"
           style={{ background: brand.grad, boxShadow: `0 4px 14px ${brand.glow}` }}
           disabled={busy}
           onClick={() => void save()}
