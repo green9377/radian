@@ -1175,6 +1175,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [unitId, setUnitId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   /*  SEO-D01 — the six columns. Blank is fine: the storefront falls back to
       the product name and short description, so nothing is broken by leaving
@@ -1755,6 +1756,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   async function handleSave(publish: boolean) {
     setSaveErr(null);
+    setSavedMsg(null);
     if (!name.trim()) {
       setSaveErr("Give the product a name.");
       return;
@@ -1768,6 +1770,15 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     try {
       if (apiProductId) {
         await updateProduct(apiProductId, dto);
+        /*  6 Aug 2026 — owner's request: staying on this page after Save/
+            Publish instead of being bounced to the Overview list every
+            time. An edit is often several small saves in a row (add a
+            photo, save, add a price, save); a full-page redirect after
+            each one meant re-finding the same product from a 500+ row
+            list each time. `status` kept in sync here so the read-only
+            indicator above never lies about what was just saved.  */
+        setStatus(publish ? "ACTIVE" : "DRAFT");
+        setSavedMsg(publish ? "Published." : "Saved as draft.");
       } else {
         dto.specRows = spec.filter((s) => s.item).map((s) => ({ item: s.item, qty: s.qty }));
         dto.faqs = faqs.filter((f) => f.q).map((f) => ({ question: f.q, answer: f.a }));
@@ -1800,8 +1811,15 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         for (const u of pendingUp) {
           await updateProduct(u.id, { upgradeOfProductId: created.id }).catch(() => {});
         }
+        /*  A brand-new product has no edit URL yet — this is the one case
+            that still has to navigate, since apiProductId/slug only exist
+            after the first save. It goes to the new product's OWN edit
+            page, not the Overview list, so the owner lands back on the
+            same product to keep adding photos/variants/etc. — never on
+            somebody else's row in a 500-product list.  */
+        router.push(`/products/${created.slug}`);
+        return;
       }
-      router.push("/products");
     } catch (e) {
       setSaveErr(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -2111,6 +2129,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           {saveErr}
         </div>
       )}
+      {savedMsg && (
+        <div className="bg-[#eaf7ef] border border-[#a8d9bc] text-[#0f7d55] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-2">
+          <Icon name="check" size={15} /> {savedMsg} You're still on this product — keep editing, or go back to All products when you're done.
+        </div>
+      )}
 
       <div className="flex gap-6 items-start">
         {/* section nav */}
@@ -2415,14 +2438,29 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       </L>
                     }
                   >
-                    <Seg
-                      value={status}
-                      onChange={setStatus}
-                      options={[
-                        { v: "ACTIVE", label: "Active — on the website" },
-                        { v: "DRAFT", label: "Draft — hidden" },
-                      ]}
-                    />
+                    {/*  6 Aug 2026 — this used to be a Seg the owner could
+                        click, but it wrote to local state only; the actual
+                        publish/draft field is set exclusively by the "Save
+                        draft" / "Publish" buttons above, via `handleSave`.
+                        Two controls for one fact, only one of them wired,
+                        is how a shop owner clicks "Draft" here, hits the
+                        Publish button anyway, and the product goes live —
+                        silently wrong. Now this is read-only, kept in sync
+                        with the real value in handleSave(), and points at
+                        the buttons that actually decide it.  */}
+                    <div
+                      className="flex items-center gap-2 border border-lavender-deep rounded-[11px] px-3.5 py-2.5 text-[13.5px]"
+                      style={{ background: status === "ACTIVE" ? "#eaf7ef" : "#f4f2f7" }}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: status === "ACTIVE" ? "#0f7d55" : "#8b8398" }}
+                      />
+                      <span className="font-medium text-purple">
+                        {status === "ACTIVE" ? "Active — on the website" : "Draft — hidden"}
+                      </span>
+                      <span className="text-body-soft"> — set by the buttons above, not here</span>
+                    </div>
                   </Field>
                   <Field
                     label={
