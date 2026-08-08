@@ -48,14 +48,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     DEC-PRD-012 — রঙ / ফ্লেভার / মাপ, সব এই page-এ। Click করলে কোথাও
     যাওয়া হয় না, শুধু ছবি-দাম-মজুদ বদলায়।
 
-    ⚠️ শুরুতে যেটায় মজুদ আছে সেটাই বাছা থাকে। প্রথমটাই ধরে নিলে খোলামাত্র
-    "Sold out" লেখা উঠত, অথচ পাশের রঙটা পাওয়া যাচ্ছে — গ্রাহক তখন page
-    ছেড়ে চলে যায়।
+    ⚠️ শুরুতে **কিছুই বাছা থাকে না** — DEC-PRD-031, মালিক ৮ আগস্ট ২০২৬।
+    আগে প্রথম মজুদ-থাকা variant আপনিই বাছা হয়ে যেত, আর তার ছবি মূল
+    ছবিটাকে সরিয়ে দিত — product-এর নিজের ছবি গ্রাহক কোনোদিন দেখতই না,
+    মালিক ঠিক সেটাই ধরলেন। এখন page খোলে product-এর নিজের ছবি আর দাম
+    নিয়ে; রঙ/stem বাছলে তবেই দুটো বদলায়।
   */
   const vList = detail.variants ?? [];
-  const [variantId, setVariantId] = useState(
-    (vList.find((v) => v.stockQty > 0) ?? vList[0])?.id ?? "",
-  );
+  const [variantId, setVariantId] = useState("");
 
   /*
     DEC-PRD-020 — বড় সংস্করণ। মালিক, ২ আগস্ট ২০২৬: *"upgrade product-এ
@@ -220,7 +220,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     detail.mrpPaisa && detail.mrpPaisa > product.pricePaisa
       ? 1 - product.pricePaisa / detail.mrpPaisa
       : 0;
-  const wasPaisa = offRatio > 0 ? Math.round(unitPaisa / (1 - offRatio)) : null;
+  /*  DEC-PRD-031 — variant-এর নিজের দাম চূড়ান্ত, তার উপর ছাড়ও নেই কাটা
+      দামও নেই। আগে এখানে অনুপাতের উল্টো হিসাবে একটা বানানো "was" দাম
+      উঠত (৳1,300 ÷ 0.9166 = ৳1,418) — server বলছে flat ৳200, page বলছে
+      ratio ৳118, দুই অঙ্ক মিলে অর্থহীন সংখ্যা। মালিক ধরেছেন ৮ আগস্ট।  */
+  const wasPaisa =
+    variantPaisa === null && offRatio > 0 ? Math.round(unitPaisa / (1 - offRatio)) : null;
   const total = (unitPaisa + addonTotal) * qty;
   const off = wasPaisa ? Math.round(offRatio * 100) : 0;
 

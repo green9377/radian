@@ -1048,6 +1048,22 @@ export class ProductsService {
     if (rows === undefined) return;
     const now = new Date();
 
+    /*  DEC-PRD-031 (owner, 8 Aug 2026) — one product, ONE list. "12 stems"
+        and "Pink" on the same product render as alternatives of each other
+        on the PDP, which no customer can make sense of. The admin blocks
+        this too; the rule lives here because rules live on the server.  */
+    if (rows.length > 1) {
+      const vals = await this.prisma.db.variantValue.findMany({
+        where: { id: { in: rows.map((r) => r.variantValueId) } },
+        select: { attributeId: true },
+      });
+      if (new Set(vals.map((v) => v.attributeId)).size > 1) {
+        throw new BadRequestException(
+          'A product can use only ONE variant list (e.g. Stem count OR Colour, not both).',
+        );
+      }
+    }
+
     const keep = rows.map((r) => r.variantValueId);
     await this.prisma.db.productVariant.updateMany({
       where: { productId, deletedAt: null, variantValueId: { notIn: keep.length ? keep : ['—'] } },

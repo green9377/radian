@@ -1076,6 +1076,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /** which variant is currently being edited */
   const [vOpen, setVOpen] = useState<string | null>(null);
   const [vBusy, setVBusy] = useState<string | null>(null);
+  //  DEC-PRD-031 — shown when a value from a SECOND list is clicked
+  const [vMixWarn, setVMixWarn] = useState<string | null>(null);
 
   /**
    * Which variant template is open. `null` = opens whichever one already
@@ -4293,6 +4295,11 @@ No bundle products yet — add them on{" "}
                       if (!a) return null;
                       return (
                         <div className="mt-4 pt-4 border-t border-lavender-deep flex flex-wrap gap-1.5">
+                          {/*  DEC-PRD-031 — one product, ONE list. Values from a
+                              second list are blocked with a message: "12 stems"
+                              and "Pink" in one flat row read as alternatives of
+                              each other, which is meaningless to a customer.
+                              A colour range = its own list or its own product.  */}
                           {a.values
                             .filter((val) => val.isActive)
                             .map((val) => {
@@ -4301,7 +4308,14 @@ No bundle products yet — add them on{" "}
                                 <button
                                   key={val.id}
                                   type="button"
-                                  onClick={() =>
+                                  onClick={() => {
+                                    if (!on && variants.length > 0 && variants[0].attribute !== a.name) {
+                                      setVMixWarn(
+                                        `This product already uses the "${variants[0].attribute}" list — one list per product. Remove those picks first to switch to "${a.name}".`,
+                                      );
+                                      return;
+                                    }
+                                    setVMixWarn(null);
                                     setVariants((cur) =>
                                       on
                                         ? cur.filter((v) => v.variantValueId !== val.id)
@@ -4321,8 +4335,8 @@ No bundle products yet — add them on{" "}
                                               isActive: true,
                                             },
                                           ],
-                                    )
-                                  }
+                                    );
+                                  }}
                                   className={`inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-full border transition-colors ${
                                     on
                                       ? "bg-purple border-purple text-white"
@@ -4339,6 +4353,12 @@ No bundle products yet — add them on{" "}
                         </div>
                       );
                     })()}
+
+                    {vMixWarn && (
+                      <p className="mt-3 mb-0 text-[13px] text-[#9a3412] bg-[#fff3e8] border border-[#f6c9a8] rounded-[10px] px-3 py-2">
+                        {vMixWarn}
+                      </p>
+                    )}
 
                     {/* ── the picked ones, each with its own photo / stock / price ── */}
                     {variants.length > 0 && (

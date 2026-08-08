@@ -757,9 +757,13 @@ export class ProductDetailService {
       /*
         DEC-PRD-012 — এক page, সব variant।
 
-        ⚠️ দাম: variant-এর নিজের দাম থাকলে সেটা, নাহলে product-এর দাম —
-        আর দুটোতেই একই `paidPaisa()` চলে, তাই ছাড় দুই জায়গায় দুইভাবে বসে
-        না। মালিকের নিয়ম: রঙ বদলালে দাম এক, kg/flavour বদলালে আলাদা।
+        ⚠️ দাম — DEC-PRD-031, মালিক ৮ আগস্ট ২০২৬: variant-এর **নিজের দাম
+        থাকলে সেটাই চূড়ান্ত** — product-এর ছাড় তার উপর বসে না। আগে
+        `paidPaisa()` দুটোতেই চলত, ফলে ৳2,400-এর সাপেক্ষে ঠিক করা FLAT
+        ৳200 ছাড় ৳1,500-এর variant-এও বসে ৳1,300 দেখাত — মালিক ধরলেন,
+        "আমি তো variant-এ কোনো discount দিইনি।" নিজের দাম না থাকলে
+        product-এর (ছাড়সহ) দামই চলে। Checkout এই তালিকা থেকেই দাম নেয়,
+        তাই নিয়মটা এক জায়গাতেই থাকে।
 
         ⚠️ ছবি: variant-এর নিজের ছবি → না থাকলে master-এর ছবি → না থাকলে
         null, আর তখন page product-এর মূল ছবিই রাখে। "লাল" বাছার পর সাদা
@@ -772,10 +776,7 @@ export class ProductDetailService {
         displayMode: v.variantValue.attribute.displayMode,
         swatch: v.variantValue.swatch,
         imageUrl: v.imageUrl ?? v.variantValue.imageUrl ?? null,
-        pricePaisa:
-          v.pricePaisa !== null
-            ? paidPaisa({ ...p, sellingPricePaisa: v.pricePaisa })
-            : paidPaisa(p),
+        pricePaisa: v.pricePaisa ?? paidPaisa(p),
         stockQty: v.stockQty,
       })),
       sizes: p.sizes,
