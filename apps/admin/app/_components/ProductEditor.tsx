@@ -2217,23 +2217,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             {"  "}
             <span className="text-[#c0392b] font-bold">*</span>
             <span className="text-body-soft"> = required to publish</span>
-            {/*  6 Aug 2026 — owner asked for the product's live URL right
-                here after Save/Publish, clickable, to see the page at once.
-                Shown whenever the product exists on the API (slugV set and
-                saved at least once).  */}
-            {apiProductId && slugV && (
-              <>
-                {"  ·  "}
-                <a
-                  href={storefrontUrl(slugV)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-orchid font-semibold hover:underline"
-                >
-                  {WEB_HOST}/products/{slugV} ↗
-                </a>
-              </>
-            )}
+            {/*  8 Aug 2026 — the live URL used to sit here as a long raw
+                address; the owner moved it onto the Live Preview card
+                instead (the preview's product name is the link now).  */}
           </p>
         </div>
         <button
@@ -5965,9 +5951,24 @@ No bundle products yet — add them on{" "}
               </span>
             </div>
             <div className="p-4">
-              <div className="text-purple font-medium leading-snug">
-                {name || "Product name"}
-              </div>
+              {/*  8 Aug 2026 (owner) — the preview's name IS the link to the
+                  live page. One click from "what it looks like" to "what it
+                  actually is". Only once the product exists on the API.  */}
+              {apiProductId && slugV ? (
+                <a
+                  href={storefrontUrl(slugV)}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open this product on the website"
+                  className="block text-purple font-medium leading-snug hover:text-orchid hover:underline"
+                >
+                  {name || "Product name"} <span className="text-orchid">↗</span>
+                </a>
+              ) : (
+                <div className="text-purple font-medium leading-snug">
+                  {name || "Product name"}
+                </div>
+              )}
               {shortDesc && (
                 <div className="text-[13px] text-body-soft mt-1 leading-snug">
                   {shortDesc}
