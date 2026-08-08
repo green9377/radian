@@ -258,7 +258,7 @@ export default function CategoriesView() {
               dark left panel, light editor right). Rich plum panel, glass rows,
               purple/orchid accents, rose-gold header. Colours are inline
               because the admin's Tailwind tokens are all light-theme.  */}
-          <div className="rounded-2xl overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col shadow-[0_10px_30px_rgba(30,15,45,0.35)] ring-1 ring-white/5" style={{ background: "#211c33" }}>
+          <div className="rounded-2xl overflow-hidden xl:max-h-[calc(100vh-1.5rem)] flex flex-col shadow-[0_10px_30px_rgba(30,15,45,0.35)] ring-1 ring-white/5" style={{ background: "#211c33" }}>
             {/* rose-gold + purple header */}
             <div className="relative px-5 py-4 shrink-0 overflow-hidden border-b" style={{ background: "linear-gradient(120deg,rgba(183,110,121,0.30),rgba(138,43,176,0.16))", borderColor: "rgba(199,144,152,0.35)" }}>
               <div className="relative flex items-center justify-between gap-3">
@@ -368,8 +368,11 @@ export default function CategoriesView() {
         </div>
         </div>
 
-        {/* ---------------- RIGHT: editor zone (soft lavender) ---------------- */}
-        <div className="xl:rounded-[22px] xl:p-3.5" style={{ background: "#f5eefb" }}>
+        {/* ---------------- RIGHT: editor zone (soft lavender) ----------------
+             min-height keeps this column at least a full screen tall even when
+             nothing is selected, so the left sticky card ALWAYS has room to
+             travel and never scrolls away. (6 Aug 2026.)  */}
+        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-2rem)]" style={{ background: "#f5eefb" }}>
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}
