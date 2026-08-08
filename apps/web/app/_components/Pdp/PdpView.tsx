@@ -660,7 +660,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   /*  admin-এর "show stock" switch — সেটা বন্ধ থাকলে
                       `stockLeft` আসেই না, আর তখন রঙের পাশেও কিছু লেখা হয় না।  */
                   showStock={detail.stockLeft !== null && detail.stockLeft !== undefined}
-                  onPick={setVariantId}
+                  /*  ⚠️ বাছা রঙে আবার ছোঁয়া = বাছাই তুলে নেওয়া — মূল
+                      product-এর ছবি আর দামে ফেরা। আগে ফেরার পথই ছিল না,
+                      reload দিতে হতো (মালিক, ৮ আগস্ট)।  */
+                  onPick={(id) => setVariantId((cur) => (cur === id ? "" : id))}
                 />
               )}
               {detail.variant && <VariantRow group={detail.variant} />}

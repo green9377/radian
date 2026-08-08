@@ -662,6 +662,18 @@ export class ProductDetailService {
     */
     const parent = p.category.parent;
 
+    /*  DEC-PDP-09 / DEC-PRD-014 — computed BEFORE the payload because the
+        published stock number below must never contradict it. Owner caught
+        the page saying "20 in stock" and "Out of stock" in one breath
+        (8 Aug 2026): displayQty is a selling line, and a selling line may
+        not keep talking after the till has closed.  */
+    const availability = availabilityOf({
+      ...p,
+      /*  ⚠️ শুধু Manual-এ। TRACKED product এমনিতেই gate-এর বাইরে
+          (DEC-PDP-09), কারণ তাদের আসল গোনা Inventory-তে।  */
+      variantStock: p.stockMode === 'MANUAL' ? p.variants.map((v) => v.stockQty) : undefined,
+    });
+
     return {
       slug: p.slug,
       name: p.name,
@@ -695,28 +707,24 @@ export class ProductDetailService {
       /*  DEC-PRD-014 — variant থাকলে গোনাটা তাদের, তাই দেখানো সংখ্যাটাও
           তাদের যোগফল। মালিকের নিজের হাতে লেখা `displayQty` তার উপরেও
           চলে — ওটা বরাবরই একটা বিক্রির কথা, গোনা নয়।  */
-      stockQty: p.showStock
-        ? (p.displayQty ??
-          /*  ⚠️ TRACKED হলে variant-এর হাতে লেখা সংখ্যাটা পড়া হয় না —
-              DEC-PRD-015-এ তখন গোনাটা Inventory-র। যোগ করে দেখালে
-              website একটা সংখ্যা বলত যা কেউ রাখেই না।  */
-          (p.stockMode === 'MANUAL' && p.variants.length > 0
-            ? p.variants.reduce((n, v) => n + v.stockQty, 0)
-            : p.stockQty))
-        : null,
-      /*  DEC-PDP-09. Note this reads `stockQty`, the REAL count — never
-          `displayQty`. The shown number is a selling line; what may be sold is
-          a fact, and a made-up figure must not be able to open or close a
-          till. Owner told, 1 Aug. */
-      /*  DEC-PRD-014 — variant থাকলে তাদের মজুদই দরজা খোলে বা বন্ধ করে।
-          হিসাবটা `availabilityOf`-এর ভেতরে, কারণ Sales-ও একদিন এই একই
-          প্রশ্ন করবে আর দুই জায়গায় দুই উত্তর হওয়া চলবে না।  */
-      availability: availabilityOf({
-        ...p,
-        /*  ⚠️ শুধু Manual-এ। TRACKED product এমনিতেই gate-এর বাইরে
-            (DEC-PDP-09), কারণ তাদের আসল গোনা Inventory-তে।  */
-        variantStock: p.stockMode === 'MANUAL' ? p.variants.map((v) => v.stockQty) : undefined,
-      }),
+      /*  ⚠️ Silenced whenever the availability gate says OUT_OF_STOCK —
+          whatever showStock/displayQty say. See the comment above
+          `availability`.  */
+      stockQty:
+        p.showStock && availability.state !== 'OUT_OF_STOCK'
+          ? (p.displayQty ??
+            /*  ⚠️ TRACKED হলে variant-এর হাতে লেখা সংখ্যাটা পড়া হয় না —
+                DEC-PRD-015-এ তখন গোনাটা Inventory-র। যোগ করে দেখালে
+                website একটা সংখ্যা বলত যা কেউ রাখেই না।  */
+            (p.stockMode === 'MANUAL' && p.variants.length > 0
+              ? p.variants.reduce((n, v) => n + v.stockQty, 0)
+              : p.stockQty))
+          : null,
+      /*  DEC-PDP-09. The gate reads the REAL count — never `displayQty`. A
+          made-up figure must not be able to open or close a till (owner,
+          1 Aug). DEC-PRD-014 — variant থাকলে তাদের মজুদই দরজা খোলে বা
+          বন্ধ করে; হিসাবটা `availabilityOf`-এর ভেতরে।  */
+      availability,
       videoId: p.videoId,
       images: p.images.map((i) => i.url),
       crumb: {
