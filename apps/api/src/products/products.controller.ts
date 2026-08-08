@@ -74,4 +74,10 @@ export class ProductsController {
   restore(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
     return this.products.restore(id, actor ?? 'Admin');
   }
+
+  /** permanent — only from recovery, only when no order has ever sold it */
+  @Delete(':id/permanent')
+  purge(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.products.purge(id, actor ?? 'Admin');
+  }
 }

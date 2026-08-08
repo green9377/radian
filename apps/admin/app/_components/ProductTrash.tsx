@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
-import { listTrash, restoreProduct, formatTaka, genBg, type ApiProduct } from "../_data/api";
+import { listTrash, restoreProduct, purgeProduct, formatTaka, genBg, type ApiProduct } from "../_data/api";
 
 /*
   Deleted products.
@@ -52,6 +52,27 @@ export default function ProductTrash() {
     }
   }
 
+  /*  6 Aug 2026 — the owner asked for a way to actually empty this list; it
+      held 74 rows of test junk with no exit. The SERVER holds the rule, not
+      this button: anything an order ever sold is refused with a plain
+      sentence and stays recoverable. The typed-word confirm is deliberate —
+      this is the one click in the whole admin that cannot be undone.  */
+  async function purge(p: TrashItem) {
+    const word = prompt(
+      `Permanently delete "${p.name}"?\n\nThis cannot be undone. If any order ever sold it, the server will refuse.\n\nType DELETE to continue:`,
+    );
+    if (word !== "DELETE") return;
+    setBusy(p.id);
+    try {
+      await purgeProduct(p.id);
+      setRows((x) => x.filter((y) => y.id !== p.id));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not delete");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const shown = rows.filter(
     (p) => !q || p.name.toLowerCase().includes(q.toLowerCase()) || (p.sku ?? "").toLowerCase().includes(q.toLowerCase()),
   );
@@ -63,10 +84,11 @@ export default function ProductTrash() {
         <span className="w-[7px] h-[7px] rounded-full bg-orchid" /> Product Management · recovery
       </div>
       <h1 className="font-display text-[30px] text-purple m-0 mb-1">Deleted products</h1>
-      <p className="text-body-soft text-[14px] mt-0 mb-5 max-w-[640px]">
-        Nothing is ever really deleted at Radian — a removed product is only
-        hidden. Anything here can be put straight back, with its price, stock and
-        order history intact.
+      <p className="text-body-soft text-[14px] mt-0 mb-5 max-w-[720px]">
+        A removed product is only hidden — anything here can be put straight
+        back, with its price, stock and order history intact. Delete forever
+        works only on products no order has ever sold; anything with sales
+        history is protected and stays recoverable.
       </p>
 
       <div className="flex gap-2.5 flex-wrap items-center mb-4">
@@ -136,13 +158,21 @@ export default function ProductTrash() {
                       {daysSince(p.deletedAt) === 0 ? "today" : `${daysSince(p.deletedAt)} days ago`}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => restore(p)}
                       disabled={busy === p.id}
                       className="bg-purple hover:bg-purple-deep text-white text-[12.5px] font-semibold px-3.5 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
                     >
-                      <Icon name="check" size={15} /> {busy === p.id ? "Restoring…" : "Restore"}
+                      <Icon name="check" size={15} /> {busy === p.id ? "Working…" : "Restore"}
+                    </button>
+                    <button
+                      onClick={() => purge(p)}
+                      disabled={busy === p.id}
+                      title="Permanently delete — refused if any order ever sold it"
+                      className="ml-1.5 border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
+                    >
+                      <Icon name="trash" size={14} /> Delete forever
                     </button>
                   </td>
                 </tr>

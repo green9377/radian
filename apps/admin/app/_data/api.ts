@@ -867,6 +867,10 @@ export function getProductTimeline(id: string): Promise<ActivityEvent[]> {
 export function listTrash(): Promise<{ items: (ApiProduct & { deletedAt: string })[]; total: number }> {
   return j(`/products/trash`);
 }
+/** permanent — server refuses unless it is in recovery AND no order ever sold it */
+export function purgeProduct(id: string): Promise<{ id: string; purged: boolean }> {
+  return j(`/products/${id}/permanent`, { method: "DELETE" });
+}
 export function restoreProduct(id: string): Promise<{ id: string; restored: boolean }> {
   return j(`/products/${id}/restore`, { method: "POST" });
 }

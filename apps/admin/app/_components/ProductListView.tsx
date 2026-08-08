@@ -474,6 +474,18 @@ export default function ProductListView() {
                       >
                         <Icon name="edit" size={16} />
                       </Link>
+                      {/*  6 Aug 2026 — Delete was only inside the ⋯ menu and
+                          the owner reported "there is no delete option". A
+                          destructive action hidden behind an unlabeled menu
+                          is invisible; now it is its own button. Still soft —
+                          it goes to Trash, recoverable.  */}
+                      <button
+                        onClick={() => remove(p)}
+                        title="Delete — goes to Trash, recoverable"
+                        className="border border-lavender-deep hover:border-[#c0392b] hover:text-[#c0392b] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
+                      >
+                        <Icon name="trash" size={15} />
+                      </button>
                       <button
                         onClick={() => setMenu(menu === p.id ? null : p.id)}
                         title="More"

@@ -541,6 +541,67 @@ export class ProductsService {
     return { id, deleted: true };
   }
 
+  /**
+   * Permanent delete — the ONE sanctioned exception to Soft Delete Only.
+   *
+   * The owner's Trash held 74 rows of QA/test junk with no way to clear it
+   * (6 Aug 2026). The soft-delete rule exists to protect BUSINESS HISTORY —
+   * an order must always be able to show what was sold. So the gate is
+   * exactly that: a product that appears on ANY order line can never be
+   * purged, only kept hidden. A product no order has ever touched is catalog
+   * data, not history, and holding it forever protects nothing.
+   *
+   * Two-step by design: only an already-soft-deleted product can be purged,
+   * so nothing goes from live to gone in one click.
+   */
+  async purge(id: string, actorName = 'Admin') {
+    const existing = await this.prisma.product.findFirst({
+      where: { id, NOT: { deletedAt: null } },
+    });
+    if (!existing) throw new NotFoundException('Not in the recovery list');
+
+    const orderRefs = await this.prisma.orderLine.count({ where: { productId: id } });
+    if (orderRefs > 0) {
+      throw new BadRequestException(
+        `"${existing.name}" appears on ${orderRefs} order${orderRefs === 1 ? '' : 's'} — order history must keep it. It stays in recovery, hidden from everything else.`,
+      );
+    }
+
+    try {
+      await this.prisma.$transaction([
+        // catalog-owned children whose FKs are not ON DELETE CASCADE
+        this.prisma.productImage.deleteMany({ where: { productId: id } }),
+        this.prisma.productSize.deleteMany({ where: { productId: id } }),
+        this.prisma.productSpec.deleteMany({ where: { productId: id } }),
+        this.prisma.productFaq.deleteMany({ where: { productId: id } }),
+        this.prisma.productTrustBadge.deleteMany({ where: { productId: id } }),
+        this.prisma.review.deleteMany({ where: { productId: id } }),
+        this.prisma.bundle.updateMany({ where: { productId: id }, data: { productId: null } }),
+        this.prisma.product.delete({ where: { id } }),
+      ]);
+    } catch (e) {
+      /*  P2003 = some other table still points here. Naming the constraint
+          would mean nothing to the owner; what matters is the product is
+          part of records that must survive.  */
+      if ((e as { code?: string }).code === 'P2003') {
+        throw new BadRequestException(
+          `"${existing.name}" is still referenced by other records (sales, returns or POS) — it must stay in recovery.`,
+        );
+      }
+      throw e;
+    }
+
+    await this.audit.record({ entityType: ENTITY, entityId: id, action: 'DELETE', actorName });
+    await this.audit.event({
+      entityType: ENTITY,
+      entityId: id,
+      kind: 'general',
+      label: `Product "${existing.name}" permanently deleted (was in recovery, no order references)`,
+      actorName,
+    });
+    return { id, purged: true };
+  }
+
   /** deleted products — the only way an admin can reach `restore()`.
       Uses the base client so the soft-delete extension does not hide them. */
   async trash() {
