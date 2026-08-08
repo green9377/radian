@@ -242,10 +242,25 @@ export const REGISTRY: RegistryNode[] = [
     "legacyRoles": null,
     "sortOrder": 20
   },
+  /*  Catalog — the three classification masters grouped under one module
+      (owner, 6 Aug 2026). ⚠️ The child KEYS are unchanged on purpose:
+      PositionAccess ticks point at "categories"/"tags"/"brands", and a new
+      key here would orphan every existing tick. Only parentKey and kind
+      moved; registry sync updates the rows in place and the ticks survive.  */
   {
-    "key": "categories",
+    "key": "catalog",
     "parentKey": null,
     "kind": "MODULE",
+    "label": "Catalog",
+    "domain": "Master Data",
+    "href": null,
+    "legacyRoles": null,
+    "sortOrder": 21
+  },
+  {
+    "key": "categories",
+    "parentKey": "catalog",
+    "kind": "SCREEN",
     "label": "Categories",
     "domain": "Master Data",
     "href": "/categories",
@@ -254,8 +269,8 @@ export const REGISTRY: RegistryNode[] = [
   },
   {
     "key": "tags",
-    "parentKey": null,
-    "kind": "MODULE",
+    "parentKey": "catalog",
+    "kind": "SCREEN",
     "label": "Occasions & Tags",
     "domain": "Master Data",
     "href": "/tags",
@@ -264,8 +279,8 @@ export const REGISTRY: RegistryNode[] = [
   },
   {
     "key": "brands",
-    "parentKey": null,
-    "kind": "MODULE",
+    "parentKey": "catalog",
+    "kind": "SCREEN",
     "label": "Brands",
     "domain": "Master Data",
     "href": "/brands",

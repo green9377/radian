@@ -76,9 +76,26 @@ const GROUPS: Group[] = [
           { label: "Trash", href: "/items/trash" },
         ],
       },
-      { label: "Categories", href: "/categories", icon: "▦" },
-      { label: "Occasions & Tags", href: "/tags", icon: "☰" },
-      { label: "Brands", href: "/brands", icon: "✦" },
+      /*  Catalog = the three small classification masters under one roof
+          (owner, 6 Aug 2026: "choto choto 3 ta jinis main module e bose
+          ache — ek module kore sub-module bosao"). The URLS DO NOT MOVE —
+          /categories, /tags and /brands keep every deep link and every
+          existing access tick; only the menu groups them.
+
+          ⚠️ NO href on the parent, deliberately. Access keys derive from
+          hrefs (moduleKey/subKey below): give this row /categories and its
+          key collides with the Categories screen's own key, which is the
+          key every existing tick points at. href-less, the row derives
+          "catalog" from its label and simply opens the branch on click —
+          the three children keep their exact old keys and old ticks.  */
+      {
+        label: "Catalog", icon: "▦",
+        subs: [
+          { label: "Categories", href: "/categories" },
+          { label: "Occasions & Tags", href: "/tags" },
+          { label: "Brands", href: "/brands" },
+        ],
+      },
       // Units lives under Items' sub-menu (owner's call, 21 Jul) — units exist to serve
       // items, so that is where people look for them. No top-level entry, or it appears twice.
       {
@@ -680,9 +697,18 @@ export default function AdminSidebar() {
   // BOTH "Marketing & Growth" and "Affiliates & Partners" — otherwise the page
   // you are standing on is not visible anywhere in the nav.
   useEffect(() => {
+    /*  A module also counts as active when one of its SUBS matches, even if
+        the module's own href is no prefix of it — Catalog's href is
+        /categories but its subs live at /tags and /brands too (6 Aug 2026).
+        Without this, landing on /brands left every branch folded and the
+        page you were standing on appeared nowhere in the nav.  */
     const active = visibleGroups
       .flatMap((g) => g.items)
-      .find((it) => it.href && (pathname === it.href || pathname.startsWith(it.href + "/")));
+      .find(
+        (it) =>
+          (it.href && (pathname === it.href || pathname.startsWith(it.href + "/"))) ||
+          it.subs?.some((s) => pathname === s.href || pathname.startsWith(s.href + "/")),
+      );
     if (!active?.subs) return;
 
     const keys = [active.label];
@@ -762,7 +788,11 @@ export default function AdminSidebar() {
           <div key={g.title}>
             <div className="text-[11px] font-bold tracking-[0.13em] uppercase text-[#c9a6e4] px-3 pt-4 pb-1.5">{g.title}</div>
             {g.items.map((it) => {
-              const parentActive = !!it.href && (pathname === it.href || pathname.startsWith(it.href + "/"));
+              /* active when its own href matches OR any sub's does — Catalog's
+                 subs (/tags, /brands) do not share its /categories prefix */
+              const parentActive =
+                (!!it.href && (pathname === it.href || pathname.startsWith(it.href + "/"))) ||
+                !!it.subs?.some((s) => pathname === s.href || pathname.startsWith(s.href + "/"));
               const open = expanded.has(it.label);
               const rowCls =
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] mb-1 font-medium transition-colors text-left " +
