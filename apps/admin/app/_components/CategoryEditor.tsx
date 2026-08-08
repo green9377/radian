@@ -154,205 +154,131 @@ export default function CategoryEditor({
     }
   }
 
+  const subtitle = isNew
+    ? "Fill in the details and save"
+    : `${productCount} product${productCount === 1 ? "" : "s"} · ${node?.parentId ? "sub-category" : "top-level"}`;
+
   return (
-    <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft">
-      <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-lavender-deep bg-gradient-to-r from-lavender to-white rounded-t-[18px]">
-        <div className="min-w-0">
-          <div className="font-display text-[17px] text-purple leading-tight truncate">{isNew ? "New category" : name || node?.name}</div>
-          <div className="text-[13px] text-body-soft">{isNew ? "Fill in the details and save" : `${productCount} product${productCount === 1 ? "" : "s"} · ${node?.parentId ? "sub-category" : "top-level"}`}</div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={onCancel} className="text-[13px] text-body-soft hover:text-purple px-2">Cancel</button>
-          <button onClick={save} disabled={saving || !name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-5 py-2 rounded-[10px] shadow-soft inline-flex items-center gap-1.5">
-            <Icon name="check" size={15} /> {saving ? "Saving…" : "Save"}
-          </button>
+    <div className="max-w-[860px]">
+      {/*  Sticky hero header — bold, brand gradient, save always in reach.
+          Redesigned 6 Aug 2026 (owner: the page read as cluttered/"hibijibi").
+          Same fields, same saves — only the shell is clean now.  */}
+      <div className="sticky top-0 z-10 -mx-1 mb-5 rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.18)]"
+           style={{ background: "linear-gradient(135deg,#5b1670,#a021b8 55%,#c46aad)" }}>
+        <div className="absolute -right-8 -top-16 w-48 h-48 rounded-full bg-white opacity-[0.10]" />
+        <div className="relative flex items-center justify-between gap-3 px-6 py-5">
+          <div className="min-w-0">
+            <div className="text-white/75 text-[11px] font-bold tracking-[0.12em] uppercase">
+              {isNew ? "New category" : "Editing category"}
+            </div>
+            <h2 className="font-display font-bold text-[24px] text-white leading-tight truncate mt-0.5">
+              {isNew ? "New category" : name || node?.name}
+            </h2>
+            <div className="text-white/80 text-[12.5px] mt-0.5">{subtitle}</div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={onCancel} className="text-[13px] text-white/85 hover:text-white font-medium px-3 py-2 rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
+            <button onClick={save} disabled={saving || !name.trim()}
+                    className="bg-white text-purple hover:bg-white/90 disabled:opacity-50 text-[14px] font-bold px-5 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-transform active:scale-95">
+              <Icon name="check" size={16} /> {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="p-5 space-y-6">
-        <div className="flex items-start gap-2 bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#12693f]">
-          <span className="mt-0.5 shrink-0"><Icon name="check" size={14} /></span>
-          <span>Everything on this page saves, images included. <b>JPG, PNG or WebP · up to 10 MB.</b> Sizes are marked on each box — the shape matters more than the exact pixels, because a wrong shape gets cropped.</span>
-        </div>
-
+      <div className="space-y-4">
         {imgError && (
-          <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f]">
-            <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span>
+          <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-xl px-4 py-3 text-[13px] text-[#a3261f]">
+            <span className="mt-0.5 shrink-0"><Icon name="alert" size={15} /></span>
             <span>{imgError}</span>
           </div>
         )}
 
-        <Section title="Basics" icon="grid">
+        {/* ── BASICS ── */}
+        <Card title="Basics" sub="What the category is called and where it lives" icon="grid">
           <Field label="Name" required>
-            <input className="ipt" placeholder="Category name" value={name} onChange={(e) => onName(e.target.value)} />
+            <input className="ipt" placeholder="e.g. Fresh Flowers" value={name} onChange={(e) => onName(e.target.value)} />
           </Field>
-          <Field label="Permalink (slug)">
-            <input className="ipt" placeholder="your-slug" value={slug} onChange={(e) => { setSlug(categorySlug(e.target.value)); setSlugTouched(true); }} />
-            <div className="text-[13px] text-body-soft mt-1.5">
-              Preview: <span className="text-orchid">{WEB}{effectiveSlug || "your-slug"}</span>
-              <span className="ml-2 text-[#b5642f]">Changing the slug changes the public URL — do it carefully.</span>
-            </div>
+          <Field label="Web address (slug)">
+            <input className="ipt" placeholder="fresh-flowers" value={slug} onChange={(e) => { setSlug(categorySlug(e.target.value)); setSlugTouched(true); }} />
+            <Hint>
+              <span className="text-orchid font-medium">{WEB}{effectiveSlug || "your-slug"}</span>
+              <span className="text-[#b5642f]"> — changing it changes the public link.</span>
+            </Hint>
           </Field>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Parent category">
               <select className="ipt" value={parentId ?? ""} disabled={hasChildren} onChange={(e) => setParentId(e.target.value || null)}>
                 <option value="">— None (top-level) —</option>
                 {parentOptions.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
-              {hasChildren && <div className="text-[13px] text-body-soft mt-1.5">Has sub-categories, so it stays top-level (2 levels max).</div>}
+              {hasChildren && <Hint>Has sub-categories, so it stays top-level.</Hint>}
             </Field>
-            <Field label="Sorting">
+            <Field label="Sort order">
               <input type="number" className="ipt" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} />
+              <Hint>Lower shows first.</Hint>
             </Field>
           </div>
-          {/*
-            Lives here rather than on the page screen: it describes the KIND of
-            thing this category sells, not the layout of its page. Flowers come
-            in bouquet sizes and cakes come in weights, and that stays true
-            however the page is arranged.
-          */}
           <Field label="Size chooser heading">
-            <input
-              className="ipt"
-              placeholder={parentId ? "Leave empty to use the parent category's" : "Bouquet Size"}
-              value={sizeLabel}
-              onChange={(e) => setSizeLabel(e.target.value)}
-            />
-            <div className="text-[13px] text-body-soft mt-1.5">
-              The words above Standard / Large / Grand on a product page — “Cake Weight”,
-              “Box Size”. Empty falls back to {parentId ? "the parent category, then " : ""}a
-              plain “Size”.
-            </div>
+            <input className="ipt" placeholder={parentId ? "Leave empty to use the parent's" : "Bouquet Size"} value={sizeLabel} onChange={(e) => setSizeLabel(e.target.value)} />
+            <Hint>The word above Standard / Large / Grand on a product page — “Cake Weight”, “Box Size”. Empty = plain “Size”.</Hint>
           </Field>
-        </Section>
+        </Card>
 
-        {/*
-          ── What stayed, and what moved out — 31 Jul 2026 ──────────────────
-          The owner's instruction: Categories is where categories are MADE,
-          and nothing else. Everything that is really the category PAGE — the
-          banner heading, its paragraph, its picture, the Google snippet, the
-          questions — is edited on Storefront → Category pages, beside the
-          section it belongs to.
-
-          The line drawn, so the next person does not move things back:
-            HERE  — what the category IS and where it APPEARS (name, slug,
-                    parent, order, the card in the menu and on the homepage)
-            THERE — what the category PAGE SAYS
-
-          Nothing was duplicated. Both screens write the same Category row;
-          only the place you type it changed.
-        */}
-        <Section title="Card art" icon="photo">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[560px]">
-            {/* square, not 4/3 — the homepage card is 178×178 and always was.
-                The old box was drawn wide, so a chosen photo lost its sides. */}
-            <Drop label="Category image" hint="800 × 800 · square · the card on the homepage" value={image} busy={busy} onFile={(f) => pick(f, setImage, "categories")} onClear={() => setImage(null)} ratio="aspect-square" />
-            <Drop label="Category icon" hint="96 × 96 · a simple symbol, not a photo" value={icon} busy={busy} onFile={(f) => pick(f, setIcon, "icons")} onClear={() => setIcon(null)} ratio="aspect-square" />
+        {/* ── CARD ART ── */}
+        <Card title="Card art" sub="How this category looks in the menu and on the homepage" icon="photo">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[520px]">
+            <Drop label="Category image" hint="800 × 800 · square" value={image} busy={busy} onFile={(f) => pick(f, setImage, "categories")} onClear={() => setImage(null)} ratio="aspect-square" />
+            <Drop label="Category icon" hint="96 × 96 · a symbol, not a photo" value={icon} busy={busy} onFile={(f) => pick(f, setIcon, "icons")} onClear={() => setIcon(null)} ratio="aspect-square" />
           </div>
-          <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-            These two are how this category appears in the menu and on the
-            homepage. The banner picture at the top of its own page is set with
-            the rest of that page — <b>Storefront → Category pages</b>.
-          </p>
-        </Section>
+          <Hint>The banner picture at the top of the category's own page is set under <b>Storefront → Category pages</b>. JPG/PNG/WebP · up to 10 MB.</Hint>
+        </Card>
 
-
-        <Section title="Visibility" icon="eye">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <ToggleField label="Active (shoppable)" hint="Off = hidden from customers everywhere" on={isActive} onToggle={() => setIsActive((v) => !v)} />
-            <ToggleField label="Show on navbar" hint="Appears in the top menu" on={showOnNavbar} onToggle={() => setShowOnNavbar((v) => !v)} />
-            <ToggleField label="Featured" hint="Highlighted on the homepage" on={isFeatured} onToggle={() => setIsFeatured((v) => !v)} />
+        {/* ── VISIBILITY ── */}
+        <Card title="Visibility" sub="Where customers can see it" icon="eye">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <ToggleField label="Active" hint="Off = hidden everywhere" on={isActive} onToggle={() => setIsActive((v) => !v)} />
+            <ToggleField label="Show in menu" hint="Appears in the top nav" on={showOnNavbar} onToggle={() => setShowOnNavbar((v) => !v)} />
+            <ToggleField label="Featured" hint="On the homepage rail" on={isFeatured} onToggle={() => setIsFeatured((v) => !v)} />
           </div>
-        </Section>
+        </Card>
 
-        {/*
-          Both of these save on their own, immediately, and neither waits for
-          the Save button above — they are lists, not fields on this form, and
-          a question typed and then lost to a forgotten Save is the complaint
-          the Visit-the-shop screen already collected once.
-
-          Hidden while the category is new: a question needs a category to
-          belong to, and there is no id until the first save.
-        */}
+        {/*  Lists that save on their own — hidden until the category exists,
+            since each one needs a category id to attach to.  */}
         {!isNew && node && (
           <>
-            {/*
-              Bundles, written once for everything in this category — the
-              owner's rule of 31 Jul, the same one he chose for craft cards.
-              Fifty bouquets do not each need somebody to remember that people
-              like chocolates with flowers.
-
-              A product that needs a different list overrides it on its own
-              page, and that override REPLACES this one rather than adding to
-              it. Said on both screens, because "replaces" is the half people
-              discover by accident.
-            */}
-            <Section title="Bundles" icon="tag">
-              <p className="text-[13px] text-body-soft mt-0 mb-3">
-                Offered on every product in this category. Set the discount here — the
-                price always comes from the product you add, so raising it there raises
-                it on every page at once.
-              </p>
+            <Card title="Bundles" sub="Add-ons offered on every product in this category" icon="tag">
               <BundleEditor owner={{ categoryId: node.id }} />
-            </Section>
+            </Card>
 
-            {/*
-              Craft cards — written once here for everything in the category.
-              A sub-category with none of its own falls back to its parent's,
-              so the story for flowers is typed once and not forty-four times.
-            */}
-            {/*
-              DEC-PRD-023 — মালিক, ২ আগস্ট ২০২৬: *"আমি চাই প্রতিটা admin
-              panel-এ যেন create করে রাখা যায় আর [product upload-এ] যেন just
-              সে data আসে।"*
-
-              Bundles আর "Why buy from us"-এর পাশেই, কারণ তিনটেই একই জিনিস:
-              category-তে একবার লেখা, তার সব product-এ দেখা যায়।
-            */}
-            <Section title="Product page — badges & what's inside" icon="check">
-              <p className="text-[13px] text-body-soft mt-0 mb-3">
-                Written once here for every product in this category. A product that needs
-                something different overrides it on its own page.
-              </p>
+            <Card title="Badges & what's inside" sub="Shown on every product page here — a product can override its own" icon="check">
               <CategoryStoryEditor categoryId={node.id} />
-            </Section>
+            </Card>
 
-            <Section title="Why buy from us" icon="sparkle">
-              <p className="text-[13px] text-body-soft mt-0 mb-3">
-                The three cards below the fold on every product page in this category.
-                {node.parentId
-                  ? " Leave them empty to use the parent category's."
-                  : " A sub-category with none of its own will use these."}
-              </p>
+            <Card title="Why buy from us" sub={node.parentId ? "Three cards below the fold — empty uses the parent's" : "Three cards below the fold on every product page here"} icon="sparkle">
               <CraftEditor owner={{ categoryId: node.id }} />
-            </Section>
+            </Card>
 
-            <Section title="This category's page" icon="layers">
-              <div className="flex items-start gap-3 bg-lavender/40 border border-lavender-deep rounded-[12px] px-4 py-3.5">
-                <span className="mt-0.5 text-purple shrink-0"><Icon name="layers" size={16} /></span>
-                <div className="min-w-0">
-                  <p className="text-[13px] text-body m-0">
-                    The banner and its picture, the wording above each section, which
-                    sections show, and this category's questions are all set together
-                    on one screen — the same way the homepage is arranged.
-                  </p>
-                  <a href="/storefront/category-page" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-orchid hover:underline mt-1.5">
-                    Open Storefront → Category pages →
-                  </a>
-                </div>
-              </div>
-            </Section>
+            <Card title="This category's page" sub="Banner, wording, sections and questions live together on one screen" icon="layers">
+              <a href="/storefront/category-page" className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-orchid hover:underline">
+                Open Storefront → Category pages →
+              </a>
+            </Card>
           </>
         )}
 
-        <div className="flex items-center justify-between pt-1 border-t border-lavender-deep mt-2">
+        {/* footer actions */}
+        <div className="flex items-center justify-between gap-3 pt-2">
           {!isNew ? (
-            <button onClick={onDelete} disabled={!canDelete} title={canDelete ? "Delete category" : "Move its products & sub-categories first"} className={"text-[13px] font-medium inline-flex items-center gap-1.5 mt-4 " + (canDelete ? "text-[#c0392b] hover:underline" : "text-body-soft/50 cursor-not-allowed")}>
+            <button onClick={onDelete} disabled={!canDelete}
+                    title={canDelete ? "Delete category" : "Move its products & sub-categories first"}
+                    className={"text-[13px] font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-xl " + (canDelete ? "text-[#c0392b] hover:bg-[#fdecea]" : "text-body-soft/40 cursor-not-allowed")}>
               <Icon name="trash" size={15} /> Delete category
             </button>
           ) : (<span />)}
-          <button onClick={save} disabled={saving || !name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-6 py-2.5 rounded-[11px] shadow-soft mt-4 inline-flex items-center gap-1.5">
-            <Icon name="check" size={15} /> {saving ? "Saving…" : "Save category"}
+          <button onClick={save} disabled={saving || !name.trim()}
+                  className="bg-purple hover:bg-purple-deep disabled:opacity-50 text-white text-[14px] font-bold px-7 py-3 rounded-xl shadow-[0_6px_18px_rgba(120,40,140,0.28)] inline-flex items-center gap-2 transition-transform active:scale-95">
+            <Icon name="check" size={16} /> {saving ? "Saving…" : "Save category"}
           </button>
         </div>
       </div>
@@ -360,50 +286,58 @@ export default function CategoryEditor({
   );
 }
 
-function Section({ title, icon, preview, children }: { title: string; icon: string; preview?: boolean; children: React.ReactNode }) {
+/*  A clean white section card — bold header row (gradient icon chip + title +
+    one-line subtitle), generous padding. One shape for every section, so the
+    page reads as a stack of calm cards instead of a wall of text.  */
+function Card({ title, sub, icon, children }: { title: string; sub?: string; icon: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white bg-orchid"><Icon name={icon} size={13} /></span>
-        <span className="font-display text-[15px] text-purple">{title}</span>
-        {preview && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#fff4e6] text-[#b45309] border border-[#fce4c4]">saves with Media library</span>}
+    <div className="bg-white border border-[#efe7f5] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#f3eef8] bg-[#faf7fc]">
+        <span className="w-9 h-9 rounded-xl grid place-items-center text-white shrink-0 shadow-[0_2px_8px_rgba(160,33,184,0.25)]"
+              style={{ background: "linear-gradient(135deg,#a021b8,#d98cb3)" }}>
+          <Icon name={icon} size={16} />
+        </span>
+        <div className="min-w-0">
+          <div className="font-display font-bold text-[16px] text-purple leading-tight">{title}</div>
+          {sub && <div className="text-[12px] text-body-soft leading-snug mt-0.5">{sub}</div>}
+        </div>
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="p-5 space-y-4">{children}</div>
     </div>
   );
 }
 
-/*
-  A <div>, not a <label>.
-
-  `Field` wraps the OG image drop, and a <label> passes a click on its caption
-  to the first form control inside it — so clicking the words "OG image" opened
-  the file dialog. Found on the Collections screen, fixed everywhere it appears.
-*/
-function Field({ label, required, preview, children }: { label: string; required?: boolean; preview?: boolean; children: React.ReactNode }) {
+/* A <div>, not a <label> — a <label> forwards a caption click to the first
+   control inside, which opened the file dialog when it wrapped a Drop. */
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="block">
-      <span className="text-[12.5px] font-medium text-body flex items-center gap-1.5 mb-1.5">
+      <span className="text-[12px] font-bold text-body flex items-center gap-1 mb-1.5 uppercase tracking-[0.03em]">
         {label}
         {required && <span className="text-[#c0392b]">*</span>}
-        {preview && <span className="w-1.5 h-1.5 rounded-full bg-[#d98a0f]" title="Saves with Media library" />}
       </span>
       {children}
     </div>
   );
 }
 
+function Hint({ children }: { children: React.ReactNode }) {
+  return <div className="text-[12px] text-body-soft mt-1.5 leading-relaxed">{children}</div>;
+}
+
 function ToggleField({ label, hint, on, onToggle }: { label: string; hint: string; on: boolean; onToggle: () => void }) {
   return (
-    <div className="border border-lavender-deep rounded-[12px] px-3.5 py-3 flex items-start justify-between gap-3">
-      <div>
-        <div className="text-[13px] font-medium text-purple">{label}</div>
-        <div className="text-[13px] text-body-soft mt-0.5">{hint}</div>
+    <button onClick={onToggle}
+            className={"text-left rounded-xl px-4 py-3.5 border-2 transition-all " +
+              (on ? "border-orchid bg-[#fdf4fb]" : "border-[#ece5f2] bg-white hover:border-lavender-deep")}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[14px] font-bold text-purple">{label}</div>
+        <span className={"relative rounded-full transition-colors shrink-0 " + (on ? "bg-orchid" : "bg-lavender-deep")} style={{ width: 44, height: 26 }}>
+          <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: 20, height: 20, left: on ? 44 - 20 - 3 : 3 }} />
+        </span>
       </div>
-      <button onClick={onToggle} className={"relative rounded-full transition-colors shrink-0 mt-0.5 " + (on ? "bg-orchid" : "bg-lavender-deep")} style={{ width: 38, height: 22 }}>
-        <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: 16, height: 16, left: on ? 19 : 3 }} />
-      </button>
-    </div>
+      <div className="text-[12px] text-body-soft mt-1">{hint}</div>
+    </button>
   );
 }
 
