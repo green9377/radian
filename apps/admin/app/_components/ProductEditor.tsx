@@ -381,11 +381,18 @@ function Chips({
   value,
   onToggle,
   gold,
+  labels,
 }: {
   all: string[];
   value: string[];
   onToggle: (v: string) => void;
   gold?: boolean;
+  /*  8 Aug 2026 (owner: "new tag add krlm but product page-e update hoy nai")
+      — the chip used to print the SLUG prettified. Rename a tag in Occasions
+      & Tags and the picker here kept showing the old slug-derived words, so
+      renames looked like they never landed. The slug stays the stable value;
+      the NAME is what people read.  */
+  labels?: Record<string, string>;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -406,7 +413,7 @@ function Chips({
                 : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
             }
           >
-            {c.replace(/-/g, " ")}
+            {labels?.[c] ?? c.replace(/-/g, " ")}
           </button>
         );
       })}
@@ -5057,6 +5064,7 @@ No bundle products yet — add them on{" "}
                   >
                     <Chips
                       all={g.tags.map((t) => t.slug)}
+                      labels={Object.fromEntries(g.tags.map((t) => [t.slug, t.name]))}
                       value={tagSel}
                       onToggle={(v) => toggle(tagSel, v, setTagSel)}
                       /*  gold from the second group onward — one same-colour
