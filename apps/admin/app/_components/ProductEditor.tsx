@@ -51,6 +51,7 @@ import {
   type ApiVariantAttribute,
   type AddOnBundle,
   WEB_HOST,
+  storefrontUrl,
 } from "../_data/api";
 
 /*
@@ -708,17 +709,15 @@ function Where({
  * save is even attempted.
  */
 function Req() {
-  /*  6 Aug 2026 — was a lone red `*`, and the owner still couldn't tell
-      which fields were mandatory ("kon gula baddhotamulok ta bujhar upay
-      nei"). A star the size of a comma is a sign only to people who already
-      know the convention. Now it says the word.  */
+  /*  Owner's call, 6 Aug 2026: the `*` symbol, not a "Required" word badge —
+      cleaner. Slightly larger than body text so it can't be missed, with the
+      meaning spelled out in the page header and in this tooltip.  */
   return (
     <span
-      className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-[0.05em] px-1.5 py-[1px] rounded-md ml-1"
-      style={{ background: "#fdecea", color: "#c0392b", border: "1px solid #f0b9b3" }}
+      className="text-[#c0392b] font-bold ml-0.5 text-[15px] leading-none"
       title="Publishing is blocked until this is filled in"
     >
-      Required
+      *
     </span>
   );
 }
@@ -2177,14 +2176,26 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           </h1>
           <p className="text-body-soft text-[12.5px] m-0">
             {slug ? "Editing product" : "New product — fill in and publish"}
-            {" — fields marked "}
-            <span
-              className="inline-flex items-center text-[9.5px] font-extrabold uppercase tracking-[0.05em] px-1.5 py-[1px] rounded-md align-middle"
-              style={{ background: "#fdecea", color: "#c0392b", border: "1px solid #f0b9b3" }}
-            >
-              Required
-            </span>
-            <span className="text-body-soft"> block publishing until filled</span>
+            {"  "}
+            <span className="text-[#c0392b] font-bold">*</span>
+            <span className="text-body-soft"> = required to publish</span>
+            {/*  6 Aug 2026 — owner asked for the product's live URL right
+                here after Save/Publish, clickable, to see the page at once.
+                Shown whenever the product exists on the API (slugV set and
+                saved at least once).  */}
+            {apiProductId && slugV && (
+              <>
+                {"  ·  "}
+                <a
+                  href={storefrontUrl(slugV)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-orchid font-semibold hover:underline"
+                >
+                  {WEB_HOST}/products/{slugV} ↗
+                </a>
+              </>
+            )}
           </p>
         </div>
         <button
@@ -2213,6 +2224,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       {savedMsg && (
         <div className="bg-[#eaf7ef] border border-[#a8d9bc] text-[#0f7d55] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-2">
           <Icon name="check" size={15} /> {savedMsg} You're still on this product — keep editing, or go back to All products when you're done.
+          {slugV && (
+            <a
+              href={storefrontUrl(slugV)}
+              target="_blank"
+              rel="noreferrer"
+              className="font-bold underline ml-1"
+            >
+              View it on the website ↗
+            </a>
+          )}
         </div>
       )}
 

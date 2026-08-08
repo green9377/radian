@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { NO_SESSION_PATHS, useAuth } from "./AuthGate";
-import { getMyAccess } from "../_data/api";
+import { getMyAccess, WEB_BASE } from "../_data/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -736,13 +736,26 @@ export default function AdminSidebar() {
 
   return (
     <aside className="w-[246px] shrink-0 bg-purple-deep text-white px-3 py-5 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto">
-      <div className="flex items-center gap-2.5 px-2 pb-4">
+      <div className="flex items-center gap-2.5 px-2 pb-3">
         <div className="w-[34px] h-[34px] rounded-[50%_50%_50%_0] -rotate-45" style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)" }} />
         <div>
           <b className="font-display text-[19px] text-white font-semibold block leading-none">Radian</b>
           <small className="text-[#d9c2ec] text-[11px] font-semibold tracking-[0.1em] uppercase">Admin OS</small>
         </div>
       </div>
+
+      {/*  6 Aug 2026 — owner: one click from anywhere in the admin into the
+          live shop. WEB_BASE, never a hardcoded domain, so it opens whichever
+          storefront this environment actually serves (demo today, radianbd.com
+          after cutover).  */}
+      <a
+        href={WEB_BASE}
+        target="_blank"
+        rel="noreferrer"
+        className="mx-2 mb-3 flex items-center justify-center gap-2 rounded-[10px] bg-white/[0.12] hover:bg-white/[0.2] text-white text-[13px] font-semibold py-2 transition-colors"
+      >
+        ↗ View website
+      </a>
 
       <nav className="text-[15px]">
         {visibleGroups.map((g) => (
