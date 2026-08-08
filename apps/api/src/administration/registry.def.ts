@@ -104,13 +104,13 @@ export const REGISTRY: RegistryNode[] = [
   },
   {
     "key": "products.variants",
-    "parentKey": "products",
+    "parentKey": "catalog",
     "kind": "SCREEN",
     "label": "Variants & options",
     "domain": "Master Data",
     "href": "/products/variants",
     "legacyRoles": null,
-    "sortOrder": 7
+    "sortOrder": 24
   },
   {
     "key": "products.addons",

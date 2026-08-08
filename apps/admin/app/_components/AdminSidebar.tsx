@@ -28,24 +28,38 @@ type Group = { title: string; items: Item[] };
 
 const exact = (h: string) => (p: string) => p === h;
 
+/*  Does this sub own the current path? A sub with a `match` uses it (Overview
+    is /products but only owns /products exactly); everything else owns its
+    href and anything beneath it.  */
+const subOwns = (s: Sub, p: string) =>
+  s.match ? s.match(p) : p === s.href || p.startsWith(s.href + "/");
+
+/*  Which module is the page standing in? A SUB match wins over a bare href
+    prefix — "Variants & options" lives at /products/variants but belongs to
+    Catalog, so on that path Catalog (whose sub owns it) must beat Products
+    (whose /products href merely prefixes it). 6 Aug 2026.  */
+const pickActive = (items: Item[], p: string): Item | undefined =>
+  items.find((it) => it.subs?.some((s) => subOwns(s, p))) ??
+  items.find((it) => !!it.href && (p === it.href || p.startsWith(it.href + "/")));
+
 const GROUPS: Group[] = [
   {
     title: "Master Data",
     items: [
       {
         label: "Products", href: "/products", icon: "❀",
+        /*  6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
+            store-facing classification master, like Categories/Tags/Brands),
+            and "Daily capacity" moved to Operations → Assembly (it is a
+            back-of-house production limit). URLs unchanged, so access ticks
+            survive — only the menu grouping moved.  */
         subs: [
           { label: "Overview", href: "/products", match: exact("/products") },
           { label: "All products", href: "/products/list" },
           { label: "Stock", href: "/products/stock" },
-          /*  How much can be MADE in a day, as against how much is on the
-              shelf — a different question, so a different screen, next to the
-              one it is most often confused with.  */
-          { label: "Daily capacity", href: "/products/capacity" },
           { label: "Margin", href: "/products/margin" },
           { label: "Health", href: "/products/health" },
           { label: "Catalog funnel", href: "/products/funnel" },
-          { label: "Variants & options", href: "/products/variants" },
           { label: "Add-ons", href: "/products/addons" },
           { label: "Upgrades", href: "/products/upgrades" },
           { label: "Bulk actions", href: "/products/bulk" },
@@ -94,6 +108,7 @@ const GROUPS: Group[] = [
           { label: "Categories", href: "/categories" },
           { label: "Occasions & Tags", href: "/tags" },
           { label: "Brands", href: "/brands" },
+          { label: "Variants & options", href: "/products/variants" },
         ],
       },
       // Units lives under Items' sub-menu (owner's call, 21 Jul) — units exist to serve
@@ -331,6 +346,10 @@ const GROUPS: Group[] = [
           { label: "Production pipeline", href: "/assembly/pipeline" },
           { label: "Finished goods", href: "/assembly/finished" },
           { label: "Wastage", href: "/assembly/wastage" },
+          /*  Daily capacity — how much can be MADE per day. A back-of-house
+              production limit, so it lives here beside Assembly, not in
+              Products. URL unchanged (/products/capacity), 6 Aug 2026.  */
+          { label: "Daily capacity", href: "/products/capacity" },
           { label: "Settings", href: "/assembly/settings" },
         ],
       },
@@ -702,13 +721,7 @@ export default function AdminSidebar() {
         /categories but its subs live at /tags and /brands too (6 Aug 2026).
         Without this, landing on /brands left every branch folded and the
         page you were standing on appeared nowhere in the nav.  */
-    const active = visibleGroups
-      .flatMap((g) => g.items)
-      .find(
-        (it) =>
-          (it.href && (pathname === it.href || pathname.startsWith(it.href + "/"))) ||
-          it.subs?.some((s) => pathname === s.href || pathname.startsWith(s.href + "/")),
-      );
+    const active = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
     if (!active?.subs) return;
 
     const keys = [active.label];
@@ -760,6 +773,9 @@ export default function AdminSidebar() {
       menu to somebody who has not signed in yet.  */
   if (NO_SESSION_PATHS.some((p) => pathname.startsWith(p))) return null;
 
+  //  The single module the current path belongs to — used to highlight one row.
+  const activeItem = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
+
   return (
     <aside className="w-[246px] shrink-0 bg-purple-deep text-white px-3 py-5 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto">
       <div className="flex items-center gap-2.5 px-2 pb-3">
@@ -788,11 +804,10 @@ export default function AdminSidebar() {
           <div key={g.title}>
             <div className="text-[11px] font-bold tracking-[0.13em] uppercase text-[#c9a6e4] px-3 pt-4 pb-1.5">{g.title}</div>
             {g.items.map((it) => {
-              /* active when its own href matches OR any sub's does — Catalog's
-                 subs (/tags, /brands) do not share its /categories prefix */
-              const parentActive =
-                (!!it.href && (pathname === it.href || pathname.startsWith(it.href + "/"))) ||
-                !!it.subs?.some((s) => pathname === s.href || pathname.startsWith(s.href + "/"));
+              /*  Exactly ONE module highlights — the one the path really belongs
+                  to. A sub match wins over a bare href prefix, so /products/variants
+                  lights Catalog, not Products (see pickActive). 6 Aug 2026.  */
+              const parentActive = it === activeItem;
               const open = expanded.has(it.label);
               const rowCls =
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] mb-1 font-medium transition-colors text-left " +
