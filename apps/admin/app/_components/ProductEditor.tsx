@@ -31,8 +31,8 @@ import {
   TARGET_MB,
   listDeliveryTypes,
   type ApiDeliveryType,
-  /*  DEC-PRD-030 — category-র badge আর What's inside এই পর্দাতেও দেখাতে হয়,
-      নাহলে মালিক ভাবেন কিছুই সেট করা নেই।  */
+  /*  DEC-PRD-030 — the category's badges and "What's inside" must show on
+      this screen too, otherwise the owner thinks nothing is set.  */
   listCategoryBadges,
   listCategorySpecs,
   type ApiCategoryTrustBadge,
@@ -80,23 +80,25 @@ const CAT_LABEL: Record<string, string> = {
   combos: "Flower Combos",
 };
 /*
-  ⚠️ এখানে `TRUST_ICONS` নামে হাতে লেখা একটা তালিকা ছিল — "bolt · 2-hour",
-  "truck · nationwide" এরকম আটটা লেখা, একটা `<select>`-এ। DEC-PRD-031,
-  মালিক ৩ আগস্ট ২০২৬: *"icon-এ text আসে কেন, এটা তো image আসবে।"*
+  ⚠️ There used to be a hand-written list here called `TRUST_ICONS` — eight
+  entries like "bolt · 2-hour", "truck · nationwide", in a `<select>`.
+  DEC-PRD-031, owner, 3 Aug 2026: *"why does text show for the icon — it
+  should be an image"*.
 
-  ঠিক বলেছেন, আর সমস্যাটা শুধু দেখতে নয়। Category-র picker চলত অন্য একটা
-  তালিকায় (`ICON_NAMES`, ২০টা), আর দুটোর মধ্যে অনুবাদ হতো `startsWith()`
-  দিয়ে। যে নামটা এই ছোট তালিকায় নেই — "clock", "medal", "globe" — সেটা
-  কপি করার সময় নীরবে অন্য একটা icon-এ নেমে যেত।
+  He was right, and it wasn't only cosmetic. The category picker ran off a
+  different list (`ICON_NAMES`, 20 entries), and the two were translated
+  between via `startsWith()`. Any name missing from this shorter list —
+  "clock", "medal", "globe" — would silently fall through to the wrong icon
+  when copied over.
 
-  এখন দুই পর্দায় **একই তালিকা, একই picker, একই upload**। অনুবাদ নেই, তাই
-  ভুলও নেই।
+  Now both screens use **the same list, the same picker, the same upload**.
+  No translation, so no mistranslation.
 */
 /*
-  ⚠️ হাতে লেখা OCCASIONS আর RECIPIENTS তালিকা দুটো এখান থেকে উঠে গেছে —
-  DEC-PRD-022, ২ আগস্ট ২০২৬। ওগুলোই ছিল কারণ, কেন Occasions & Tags-এ বানানো
-  নতুন tag এই পর্দায় কোনোদিন দেখা যেত না। এখন চিপ আঁকা হয় `/tags` থেকে,
-  group ধরে — মালিক যা বানান তাই এখানে।
+  ⚠️ The hand-written OCCASIONS and RECIPIENTS lists were removed from
+  here — DEC-PRD-022, 2 Aug 2026. That was the reason a new tag created in
+  Occasions & Tags never showed up on this screen. Now the chips are drawn
+  from `/tags`, grouped — whatever the owner creates shows up here.
 */
 
 /*
@@ -104,11 +106,12 @@ const CAT_LABEL: Record<string, string> = {
   *"ami chai price tab sheshe thakuk and sekhanei price ar sob calculation
   hok. ata bujte and dekhte valo lagbe."*
 
-  কেন এটা সত্যিই ভালো। দাম আর একটা সংখ্যা নয় — রঙ/মাপে আলাদা দাম বসে
-  (DEC-PRD-012), আর bundle-এর ছাড় main product সহ মোট দামের উপর বসে
-  (DEC-PRD-018)। Pricing আগে থাকলে মালিক এমন একটা সংখ্যা লিখতেন যেটা পরের
-  দুটো tab আবার বদলে দেয়, আর তিনি দুবার একই সিদ্ধান্ত নিতেন। শেষে থাকলে
-  সব তথ্য হাতে নিয়ে একবারেই ঠিক করা যায়।
+  Why this is genuinely good: price is no longer a single number — colour/size
+  variants carry their own price (DEC-PRD-012), and a bundle's discount
+  applies to the total including the main product (DEC-PRD-018). If pricing
+  came first, the owner would type a number that the next two tabs then
+  override, making him decide the same thing twice. With it last, all the
+  facts are already in hand and it's set once, correctly.
 */
 const SECTIONS = [
   ["basics", "Basics", "tag"],
@@ -125,7 +128,7 @@ const SECTIONS = [
 ] as const;
 type SecId = (typeof SECTIONS)[number][0];
 
-/*  DEC-PRD-030 — `iconUrl` ভরা থাকলে সেটাই আঁকা হয়, `icon` নয়।  */
+/*  DEC-PRD-030 — if `iconUrl` is set, that's what renders, not `icon`.  */
 type TrustRow = { icon: string; iconUrl?: string | null; label: string; sub: string };
 type SpecRow = { item: string; qty: string };
 type FaqRow = { q: string; a: string };
@@ -152,14 +155,16 @@ function youtubeId(v: string): string | null {
 /**
  * The `?` beside a heading. Everything a card needs to EXPLAIN goes in here.
  *
- * ⚠️ মালিক দুবার একই কথা বলেছেন — ১ আগস্ট ("clean and bold, so looking at it
- * makes you want to work") আর ৩ আগস্ট ("অনেক অনেক text... কাজ করার সময় যেন
- * boring না লাগে, এলোমেলো না লাগে")। Basics tab-এ চিপের ভেতরে ব্যাখ্যা রাখার
- * পর সেটাই তাঁর পছন্দ হয়েছে, আর বাকি দুটো tab পিছিয়ে ছিল।
+ * ⚠️ The owner said the same thing twice — 1 Aug ("clean and bold, so looking
+ * at it makes you want to work") and 3 Aug ("too much text... it shouldn't
+ * feel boring or cluttered while working"). After the explanation was moved
+ * inside a chip on the Basics tab, that became his preference, and the other
+ * two tabs were lagging behind.
  *
- * কেন এটা সত্যিই ভালো: সবসময় দেখা যাওয়া ব্যাখ্যা একবার পড়া হয়, তারপর
- * আসবাব হয়ে যায় — প্রতিবার তাকানোর খরচ নেয়, ফেরত দেয় শুধু প্রথমবার।
- * `?`-এর ভেতরে সেটা কিছুই নেয় না, আর দরকারের মুহূর্তে হাতের কাছে থাকে।
+ * Why this is genuinely good: an always-visible explanation gets read once,
+ * then becomes furniture — it costs a glance every time and only pays back
+ * the first time. Inside the `?` it costs nothing until the moment it's
+ * needed, and is right there when it is.
  */
 function Tip({ why }: { why: string }) {
   return (
@@ -174,21 +179,24 @@ function Tip({ why }: { why: string }) {
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  DEC-PRD-030 — "category থেকে যা আসছে" বাক্স।
+  DEC-PRD-030 — the "coming from category" box.
 
-  মালিক, ৩ আগস্ট ২০২৬: *"ami catagory page a giye whats inside and trust
+  Owner, 3 Aug 2026: *"ami catagory page a giye whats inside and trust
   budge a add krlm... tahole product story tab a ata auto show krbe pore
   ami chaile nijer moto kre edit o krte parbo right?"*
 
-  ⚠️ দুটো অবস্থা, আর তফাতটা স্পষ্ট রাখাই এই component-এর পুরো কাজ:
+  ⚠️ Two states, and keeping the difference clear is this component's
+  whole job:
 
-    product-এ কিছু লেখা নেই  → category-রটা ধূসর করে দেখানো + একটা button
-    product-এ কিছু লেখা আছে   → category-রটা আর দেখানো হয় না, বদলে একটা
-                                 লাইন: "এটা category-রটাকে বদলে দিচ্ছে",
-                                 পাশে ফিরে যাওয়ার পথ
+    product has nothing of its own → show the category's rows greyed out,
+                                      plus a button
+    product has its own            → the category's rows no longer show;
+                                      instead, one line: "this is overriding
+                                      the category's", with a way back
 
-  ⚠️ ধূসর সারিগুলো **কোথাও save হয় না**। এগুলো শুধু আয়না — website-এ
-  এই মুহূর্তে যা দেখাচ্ছে তাই। কপি হয় একমাত্র button চাপলে।
+  ⚠️ The greyed-out rows are **never saved anywhere**. They're only a
+  mirror — whatever the website is showing right now. They get copied only
+  when the button is pressed.
   ═══════════════════════════════════════════════════════════════════════════
 */
 function FromCategory({
@@ -199,11 +207,11 @@ function FromCategory({
   onClear,
   children,
 }: {
-  /** category-র নাম, যেমন "Demo Gifts" */
+  /** the category's name, e.g. "Demo Gifts" */
   from: string;
-  /** category-তে কটা সারি আছে */
+  /** how many rows the category has */
   count: number;
-  /** product নিজে কিছু লিখেছে কি না */
+  /** whether the product has set its own */
   hasOwn: boolean;
   onCopy: () => void;
   onClear: () => void;
@@ -267,8 +275,9 @@ function Card({
 }) {
   return (
     <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-5">
-      {/*  ⚠️ hint না থাকলে সারিটা center-aligned আর ফাঁক কম — মালিকের
-          নির্দেশ: page টা bold লাগবে, "alemelo" নয়। ব্যাখ্যা `?`-এ।  */}
+      {/*  ⚠️ without a hint the row is center-aligned with less gap — owner's
+          instruction: the page should feel bold, not "alemelo" [cluttered].
+          The explanation lives in the `?`.  */}
       <div className={`flex gap-3 ${hint ? "items-start mb-4" : "items-center mb-3.5"}`}>
         {icon && (
           <span className="w-9 h-9 rounded-[11px] bg-orchid-soft text-purple grid place-items-center shrink-0">
@@ -431,9 +440,10 @@ function Field({
 /**
  * A number box that says what it is measuring, inside the box.
  *
- * ⚠️ WHY THIS EXISTS — owner, 1 Aug 2026: *"day and time-এর ঘর বোঝার উপায়
- * নাই, কোনটা day আর কোনটা time"*. He was looking at two identical empty
- * rectangles, one wanting minutes and one wanting days. The only thing telling
+ * ⚠️ WHY THIS EXISTS — owner, 1 Aug 2026: *"there's no way to tell the day
+ * field from the time field, which one is day and which is time"*. He was
+ * looking at two identical empty rectangles, one wanting minutes and one
+ * wanting days. The only thing telling
  * them apart was a label above, and a label above a box is read once and then
  * skipped — the box itself said nothing. Somebody types 3 meaning three days
  * into the minutes box and the workshop's whole schedule quietly goes wrong.
@@ -497,8 +507,8 @@ function NumBox({
  * saying what it does. That is the whole component.
  *
  * ⚠️ IT REPLACED A FRAMED-PANEL VERSION AFTER ONE LOOK — owner, 1 Aug 2026:
- * *"পুরা tab অনেক অনেক text, যা মোটেও ভালো লাগছে না… click করার পর ডানপাশে
- * এলোমেলো হয়ে যায়"*. Two separate faults, both mine:
+ * *"the whole tab is too much text, doesn't look good at all... after
+ * clicking, the right side turns messy"*. Two separate faults, both mine:
  *
  *   · TOO MUCH TEXT. Every panel carried a kicker, a title, an explanation
  *     line AND a coloured result box — four pieces of prose for one number.
@@ -585,30 +595,31 @@ const gridCls =
 const pairCls = "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-7";
 
 /**
- * DEC-PRD-012 — পর্দায় একটা variant।
+ * DEC-PRD-012 — one variant on screen.
  *
- * master-এর নাম/রঙ/ছবি সাথে রাখা হয় শুধু **আঁকার জন্য**; save-এ যায় কেবল
- * `variantValueId` আর এই product-এর নিজের তিনটে ঘর। master-এর কিছু এখানে
- * কপি করে রাখা হয় না — নাহলে "Red"-এর রঙ বদলালে product-এ পুরনোটা বসে থাকত।
+ * The master's name/colour/image are carried along **only for rendering**;
+ * saving sends only `variantValueId` and this product's own three fields.
+ * Nothing from the master is copied and kept here — otherwise changing
+ * "Red"'s colour would leave the old one sitting in the product.
  */
 interface VariantRow {
   variantValueId: string;
   label: string;
   swatch: string | null;
-  /** master-এর ছবি — এই product নিজের না দিলে এটাই দেখা যাবে */
+  /** the master's image — shown when this product hasn't set its own */
   masterImage: string | null;
   attribute: string;
-  /** এই product-এ এই রঙের নিজের ছবি */
+  /** this product's own image for this colour */
   imageUrl: string;
   stockQty: string;
   /**
-   * DEC-PRD-015 — এই রঙের নিজের stockroom Item। `null` = নিজের কিছু নেই,
-   * তখন product-এর Item-ই ধরা হয়।
+   * DEC-PRD-015 — this colour's own stockroom Item. `null` = has none of
+   * its own, in which case the product's Item is used.
    */
   itemId: string | null;
-  /** বাছা Item-এর নাম/code — শুধু দেখানোর জন্য, save-এ যায় না */
+  /** the chosen Item's name/code — display only, not sent on save */
   itemLabel: string | null;
-  /** খালি = product-এর মূল দাম */
+  /** empty = the product's base price */
   price: string;
   isActive: boolean;
 }
@@ -643,7 +654,7 @@ const MAX_PHOTOS = 8;
  *   off      — stored, and nothing on the site reads it yet
  *
  * ⚠️ THE LABEL IS ONE WORD. Owner, 1 Aug 2026, after the Stock tab had been
- * cleaned twice and still read as a wall: *"এখনো অনেক অনেক text"*.
+ * cleaned twice and still read as a wall: *"still way too much text"*.
  *
  * The chips were a large part of it and I had not counted them as text. Three
  * rows in a column each carrying "Seen by customers" is nine words saying one
@@ -690,14 +701,15 @@ function Where({
 }
 
 /**
- * DEC-PRD-032, ৬ আগস্ট — মালিক: "পুরা product upload page কোনটা mandatory
- * আর কোনটা না তার কোনো sign নাই।" এই লাল তারা-টাই সেই sign — যে ৪টা
- * শর্ত ছাড়া `assertPublishReady` (backend) publish আটকায়, ঠিক সেই
- * field-গুলোর পাশেই বসে, যাতে save করার আগেই বোঝা যায়।
+ * DEC-PRD-032, 6 Aug — owner: "the whole product upload page has no sign
+ * for which fields are mandatory and which aren't." This red star is that
+ * sign — it sits right next to the exact fields whose absence makes
+ * `assertPublishReady` (backend) block publishing, so it's understood before
+ * save is even attempted.
  */
 function Req() {
   return (
-    <span className="text-[#c0392b] font-bold ml-0.5" title="Publish করতে এই ঘরটা লাগবে">
+    <span className="text-[#c0392b] font-bold ml-0.5" title="Required to publish">
       *
     </span>
   );
@@ -711,7 +723,7 @@ function L({
 }: {
   children: React.ReactNode;
   chip?: React.ReactNode;
-  /** DEC-PRD-032 — লাল তারা: এটা ফাঁকা থাকলে product publish হবে না */
+  /** DEC-PRD-032 — the red star: if this is left empty, the product cannot publish */
   required?: boolean;
 }) {
   return (
@@ -724,15 +736,16 @@ function L({
 }
 
 // Zone-based delivery speeds (later these come from the Delivery module config)
-/*  ⚠️ `DHAKA_SPEEDS` আর `NATION_SPEEDS` এখানে লেখা ছিল — পাঁচটা নাম, কোডে।
-    মালিক delivery module-এ নতুন একটা ধরন বানালে সেটা এই পর্দায় কোনোদিনই
-    আসত না, কারণ কোড ওই পাঁচটা ছাড়া আর কিছু জানত না। আর "Standard courier
-    (1–3 days)" / "Express courier (next day)" — এই দুটো তো delivery
-    module-এ কখনো ছিলই না, শুধু এখানে লেখা ছিল।
+/*  ⚠️ `DHAKA_SPEEDS` and `NATION_SPEEDS` used to be written here — five
+    names, in code. If the owner created a new delivery type in the
+    delivery module, it would never show up on this screen, because the
+    code knew nothing beyond those five. And "Standard courier (1–3 days)" /
+    "Express courier (next day)" never existed in the delivery module at
+    all — they were only ever written here.
 
-    এখন নামগুলো `/delivery/types` থেকে আসে। মালিকের নির্দেশ, ১ আগস্ট ২০২৬:
-    *"delivery module-এ যা edit বা change করা হয়, তা যেন auto পুরা system-এ
-    কাজ করে।"*  */
+    Now the names come from `/delivery/types`. Owner's instruction,
+    1 Aug 2026: *"whatever gets edited or changed in the delivery module
+    should automatically work across the whole system."*  */
 
 // One representative product per category — used to load a section template
 const CAT_REP: Record<string, string> = {
@@ -788,20 +801,22 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [sell, setSell] = useState(src ? String(src.pricePaisa / 100) : "");
   const [discType, setDiscType] = useState<"NONE" | "FLAT" | "PCT">("NONE");
   /**
-   * DEC-PRD-028 — ছাড়ের শুরু আর শেষ। `yyyy-mm-dd`, খালি = সীমা নেই।
+   * DEC-PRD-028 — the discount's start and end. `yyyy-mm-dd`, empty = no
+   * limit.
    *
-   * ⚠️ `<input type="date">`-এর নিজের আকারই এটা, আর সেটাই রাখা হয়েছে —
-   * `Date`-এ রূপান্তর করলে browser-এর সময়অঞ্চল ঢুকে পড়ে আর তারিখ একদিন
-   * সরে যেতে পারে (preorderDate-এ ঠিক এটাই ধরা পড়েছিল)।
+   * ⚠️ This is `<input type="date">`'s own native shape, and it's kept that
+   * way deliberately — converting to `Date` lets the browser's timezone
+   * creep in and can shift the date by a day (this exact bug showed up in
+   * preorderDate).
    */
   const [discStart, setDiscStart] = useState("");
   const [discEnd, setDiscEnd] = useState("");
   const [discVal, setDiscVal] = useState("");
   const [advReq, setAdvReq] = useState(!!src?.prepaidOnly);
   const [advType, setAdvType] = useState<"FULL" | "PARTIAL">("FULL");
-  /*  ৩ আগস্টের নিরীক্ষা — কলাম দুটো আর storefront-এর "Bestseller" তাক
-      আগেই ছিল, admin-এ বসানোর switch-ই ছিল না। কেউ কোনোদিন on করতে
-      পারত না।  */
+  /*  3 Aug audit — the two columns and the storefront's "Bestseller" shelf
+      already existed; admin just never had a switch to set them. Nobody
+      could ever turn it on.  */
   const [isBest, setIsBest] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [advPartType, setAdvPartType] = useState<"PCT" | "FLAT">("PCT");
@@ -869,16 +884,18 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   }, [itemQ, linkedItem]);
 
   /**
-   * DEC-PRD-015 — কোন variant-টার জন্য এই মুহূর্তে Item খোঁজা হচ্ছে।
-   * `null` = কারও জন্য নয়। খোঁজার ঘরটা card-এর ভেতরে বসানো যেত না —
-   * card ১৩২px চওড়া, আর তাতে item-এর নাম পড়াই যেত না।
+   * DEC-PRD-015 — which variant an Item is currently being searched for.
+   * `null` = for none. The search field couldn't be placed inside the
+   * card — the card is 132px wide, and an item's name wouldn't even be
+   * readable there.
    */
   const [vItemFor, setVItemFor] = useState<string | null>(null);
   const [vItemQ, setVItemQ] = useState("");
   const [vItemHits, setVItemHits] = useState<{ id: string; sku: string; name: string }[]>([]);
 
-  /*  DEC-PRD-015 — variant-এর জন্য Item খোঁজা। product-এর নিজের খোঁজার
-      হুবহু একই ডাক (`listItems`), যাতে দুই জায়গায় দুই রকম ফল না আসে।  */
+  /*  DEC-PRD-015 — searching an Item for a variant. The exact same call
+      (`listItems`) as the product's own search, so the two places never
+      return different results.  */
   useEffect(() => {
     if (!vItemFor) return;
     let stale = false;
@@ -1028,54 +1045,60 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     src?.zone === "both" ? "NATIONWIDE" : "DHAKA",
   );
   /**
-   * DEC-PRD-012 — এই product-এর variant-গুলো, প্রতিটার নিজের ছবি-মজুদ-দাম।
-   * খালি = এই product-এর কোনো variant নেই, আর page-এ ওই অংশটাই দেখা যায় না।
+   * DEC-PRD-012 — this product's variants, each with its own image / stock /
+   * price. Empty = this product has no variants, and that whole section of
+   * the page doesn't show.
    */
   const [variants, setVariants] = useState<VariantRow[]>([]);
-  /** কোন variant-টা এই মুহূর্তে edit-এ আছে */
+  /** which variant is currently being edited */
   const [vOpen, setVOpen] = useState<string | null>(null);
   const [vBusy, setVBusy] = useState<string | null>(null);
 
   /**
-   * কোন variant template খোলা আছে। `null` = যেটায় ইতিমধ্যে একটা মান বাছা
-   * আছে সেটাই খোলে (`pickedAttrId`), নাহলে কিছুই না।
+   * Which variant template is open. `null` = opens whichever one already
+   * has a value picked (`pickedAttrId`), otherwise none.
    */
   const [vAttrOpen, setVAttrOpen] = useState<string | null>(null);
 
-  /** DEC-DLV-008 — যে delivery-গুলোতে এই product যেতে পারে, id দিয়ে */
+  /** DEC-DLV-008 — the deliveries this product can go by, as ids */
   const [delivTypeIds, setDelivTypeIds] = useState<string[]>([]);
-  /** delivery module থেকে আসা নামের তালিকা */
+  /** the list of names coming from the delivery module */
   const [delivTypes, setDelivTypes] = useState<ApiDeliveryType[]>([]);
 
   /*
-    ⚠️ দুই module একই জায়গাকে দুই নামে ডাকে, আর সেটা ধরা পড়েছিল খালি
-    পর্দা দেখে — Nationwide বাছলে "কোনো delivery নেই" লেখা উঠছিল, অথচ
-    "Nationwide Courier" টেবিলে বসে ছিল।
+    ⚠️ Two modules call the same place by two different names, and that was
+    only caught by looking at the live screen — picking Nationwide showed
+    "no delivery available", even though "Nationwide Courier" was sitting
+    right there in the table.
 
         Product.zone        →  DHAKA | NATIONWIDE
         DeliveryZone (enum) →  DHAKA | BANGLADESH | COUNTER
 
-    দুটোই ঠিক নিজের জায়গায়: Product বলে "এই জিনিস কতদূর যায়", Delivery
-    বলে "দেশের কোন ভাগ"। কিন্তু মেলানোর সময় অনুবাদ লাগে, আর সেই অনুবাদটা
-    একটাই জায়গায় থাকা দরকার — নাহলে পরের বার কেউ আবার `===` লিখে ফেলবে।
+    Both are correct in their own place: Product asks "how far does this
+    item travel", Delivery asks "which part of the country". But matching
+    the two needs a translation, and that translation needs to live in
+    exactly one place — otherwise someone will write another `===` next
+    time.
   */
   const deliveryZoneOf = (z: "DHAKA" | "NATIONWIDE") =>
     z === "NATIONWIDE" ? "BANGLADESH" : "DHAKA";
 
   // Tags
   /**
-   * DEC-PRD-022 — এই product-এ বসানো tag, slug দিয়ে। **একটাই তালিকা।**
+   * DEC-PRD-022 — the tags set on this product, by slug. **One list only.**
    *
-   * ⚠️ আগে দুটো ছিল — `occ` আর `rec` — আর চিপগুলো আঁকা হতো এই ফাইলে হাতে
-   * লেখা দুটো array থেকে। দুটো সমস্যা একসাথে:
+   * ⚠️ There used to be two — `occ` and `rec` — and the chips were drawn
+   * from two hand-written arrays in this file. Two problems at once:
    *
-   *   ১. মালিক Occasions & Tags-এ নতুন tag বা নতুন group বানালে সেটা এই
-   *      পর্দায় **কখনো দেখা যেত না** — হাতে লেখা তালিকায় সে নেই।
-   *   ২. product খোলার সময় দুটো তালিকাতেই সব slug বসত, তাই কোনো tag-এর
-   *      tick তুলে দিলেও সেটা অন্য তালিকায় থেকে যেত আর ফিরে আসত।
+   *   1. If the owner created a new tag or new group in Occasions & Tags,
+   *      it would **never show up** on this screen — it wasn't in the
+   *      hand-written list.
+   *   2. When a product was opened, every slug got set in both lists, so
+   *      un-ticking a tag would leave it sitting in the other list and it
+   *      would come back.
    *
-   * এখন চিপগুলো `apiTags` থেকে group ধরে আঁকা হয়, আর বাছাই একটাই তালিকায়
-   * থাকে — তাই দুটো সমস্যাই আর নেই।
+   * Now the chips are drawn from `apiTags`, grouped, and the selection lives
+   * in one single list — so neither problem exists anymore.
    */
   const [tagSel, setTagSel] = useState<string[]>([
     ...(src?.occ ?? []),
@@ -1089,10 +1112,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [natureLabel, setNatureLabel] = useState(detail?.nature.label ?? "");
   const [salesLabel, setSalesLabel] = useState(src?.meta ?? "");
   /**
-   * DEC-PRD-025 — প্রতি সময়ের নিজের শুরুর সংখ্যা। মালিকের প্রশ্নই এটার
-   * কারণ: *"today sale ১০ দিলাম, সেভাবে week আর month-এ দিলাম — তাহলে
-   * today/week/month শেষ হলে কী হবে?"* একটাই ঘর থাকলে "আজ ১০" আর "এ মাসে
-   * ২০০" একসাথে বলাই যেত না।
+   * DEC-PRD-025 — each window's own starting number. The owner's own
+   * question is the reason this exists: *"I set today's sale to 10, same
+   * for week and month — so what happens when today/week/month ends?"* With
+   * only one field, "10 today" and "200 this month" could never both be
+   * said at once.
    */
   const [salesWindow, setSalesWindow] = useState<"TODAY" | "WEEK" | "MONTH" | "ALL">("MONTH");
   const [seedToday, setSeedToday] = useState("");
@@ -1101,8 +1125,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [seedAll, setSeedAll] = useState("");
 
   /**
-   * DEC-PRD-026 — গ্রাহক এই product-এ নিজের লেখা বা ছবি দিতে পারবে কি না।
-   * দুটোই বন্ধ = product page-এ ওই অংশটাই নেই।
+   * DEC-PRD-026 — whether the customer can add their own text or photo to
+   * this product. Both off = that whole section is absent from the product
+   * page.
    */
   const [persoTitle, setPersoTitle] = useState("");
   const [persoText, setPersoText] = useState(false);
@@ -1113,12 +1138,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [persoImageLabel, setPersoImageLabel] = useState("");
   const [persoImageHint, setPersoImageHint] = useState("");
 
-  /** DEC-PRD-027 — "Want this customised?" সবুজ বাক্স */
+  /** DEC-PRD-027 — the "Want this customised?" green box */
   const [customiseOn, setCustomiseOn] = useState(false);
   const [customiseTitle, setCustomiseTitle] = useState("");
   const [customiseSub, setCustomiseSub] = useState("");
   const [trust, setTrust] = useState<TrustRow[]>(
-    /*  DEC-PRD-031 — mock detail-এর icon নামও ICON_NAMES-এরই একটা।  */
+    /*  DEC-PRD-031 — the mock detail's icon name is also one of ICON_NAMES.  */
     detail?.trust.map((t) => ({
       icon: t.icon,
       iconUrl: null,
@@ -1126,9 +1151,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       sub: t.sub,
     })) ?? [],
   );
-  /*  DEC-PRD-031 — কোন সারির icon বাছা হচ্ছে, আর কোনটায় upload চলছে।
-      সারির index দিয়ে, কারণ product-এর badge-এর নিজের id নেই — সেগুলো
-      save করার আগ পর্যন্ত শুধু এই পর্দার তালিকা।  */
+  /*  DEC-PRD-031 — which row's icon is being picked, and which one is
+      uploading. By row index, because a product's badges have no id of
+      their own — until save they're only a list on this screen.  */
   const [iconPick, setIconPick] = useState<number | null>(null);
   const [iconBusy, setIconBusy] = useState<number | null>(null);
   const [iconErr, setIconErr] = useState<string | null>(null);
@@ -1142,24 +1167,27 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   /*
     ═══════════════════════════════════════════════════════════════════════
-    DEC-PRD-030 — category থেকে যা আসছে, সেটা এই পর্দাতেই দেখা যাবে।
+    DEC-PRD-030 — whatever comes from the category should be visible on
+    this screen too.
 
-    মালিকের প্রশ্ন, ৩ আগস্ট ২০২৬: *"ami catagory page a giye whats inside
+    Owner's question, 3 Aug 2026: *"ami catagory page a giye whats inside
     and trust budge a add krlm... tahole product story tab a ata auto show
     krbe pore ami chaile nijer moto kre edit o krte parbo right?"*
 
-    ⚠️ উত্তরটা ছিল অর্ধেক হ্যাঁ। Website-এ আসত, কিন্তু এই পর্দায় ঘরদুটো
-    **খালিই** থাকত — দেখে বোঝার উপায় ছিল না যে কিছু সেট করা আছে।
+    ⚠️ The answer used to be half yes. It reached the website, but the two
+    fields on this screen stayed **empty** — there was no way to see, by
+    looking, that anything was set.
 
-    ⚠️ এগুলো product-এ **save হয় না**। শুধু দেখানোর জন্য। কপি হয় তখনই,
-    যখন মালিক নিজে "Use these and edit" চাপেন — আর তখন থেকে ওই product
-    নিজের কপি রাখে, category বদলালেও বদলায় না। এটাই DEC-PRD-023-এর
-    "replace" নিয়ম, শুধু এবার চোখে দেখা যায়।
+    ⚠️ These are **never saved** on the product. Display only. They get
+    copied only when the owner presses "Use these and edit" — and from that
+    point the product keeps its own copy, which doesn't change even if the
+    category changes later. This is DEC-PRD-023's "replace" rule, just now
+    visible on screen.
     ═══════════════════════════════════════════════════════════════════════
   */
   const [catTrust, setCatTrust] = useState<ApiCategoryTrustBadge[]>([]);
   const [catSpec, setCatSpec] = useState<ApiCategorySpec[]>([]);
-  /** কোন category থেকে এসেছে — sub না হলে top, তাই নামটা আলাদা করে রাখা */
+  /** which category it came from — top if not a sub-category, kept as its own name */
   const [storyFrom, setStoryFrom] = useState("");
   const [oz, setOz] = useState(detail?.ozReason ?? "");
 
@@ -1183,7 +1211,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
-  /** DEC-PRD-024 — share-এর ছবি upload হচ্ছে কি না */
+  /** DEC-PRD-024 — whether the share image is uploading */
   const [ogBusy, setOgBusy] = useState(false);
   const [noIndex, setNoIndex] = useState(false);
 
@@ -1204,15 +1232,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   // upgrades chosen before the product is saved (linked on create)
   const [pendingUp, setPendingUp] = useState<ApiProduct[]>([]);
   /**
-   * নতুন product-এ যে bundle-গুলো আগেই বাছা হয়েছে। মালিক, ২ আগস্ট ২০২৬:
-   * *"bundle-এ এখনো কিছু select করার option নেই, discount দেওয়ারও না"* —
-   * তিনি একটা **নতুন** product-এ ছিলেন।
+   * Bundles already chosen on a new product. Owner, 2 Aug 2026: *"there's
+   * still no option to select anything for bundles, or to give a
+   * discount"* — he was on a **new** product.
    *
-   * ⚠️ Bundle-এর সারি একটা product id-র দিকে দেখায়, আর না-সংরক্ষিত
-   * product-এর id নেই। তাই আগে এখানে শুধু "Save this product first" লেখা
-   * ছিল — সত্যি, কিন্তু একটা বন্ধ দরজা। Upgrade card-টা ঠিক এই সমস্যার
-   * সমাধান আগেই করে রেখেছিল: এখন বাছো, save-এর মুহূর্তে জোড়া লাগে।
-   * Bundle-ও এখন তাই করে।
+   * ⚠️ A bundle row points at a product id, and an unsaved product has no
+   * id. So this used to just say "Save this product first" — true, but a
+   * closed door. The upgrade card had already solved exactly this problem:
+   * pick now, link happens at the moment of save. Bundle now does the same.
    */
   const [pendingBundles, setPendingBundles] = useState<ApiProduct[]>([]);
   const [pendingLabel, setPendingLabel] = useState("");
@@ -1221,14 +1248,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [bunPq, setBunPq] = useState("");
 
   /**
-   * DEC-PRD-019 — সংরক্ষিত product-এর bundle তালিকা, Pricing tab-এ দেখানোর
-   * জন্য। মালিক, ২ আগস্ট ২০২৬: *"price tab akhono variant tab bundle ar
+   * DEC-PRD-019 — a saved product's bundle list, for showing on the
+   * Pricing tab. Owner, 2 Aug 2026: *"price tab akhono variant tab bundle ar
    * baki product tene anche na... discount dile bundle product soho dekhabe
    * koto discount koto amdr profit."*
    *
-   * ⚠️ Pricing tab খোলার সময় নতুন করে আনা হয় — কারণ মালিক আগের tab-এ
-   * এইমাত্র একটা জিনিস যোগ করে থাকতে পারেন, আর তখন পুরনো তালিকা নিয়ে
-   * বসে থাকলে হিসাবটা মিথ্যা হতো।
+   * ⚠️ Fetched fresh every time the Pricing tab is opened — because the
+   * owner might have just added something on a previous tab, and sitting
+   * on the old list at that point would make the math wrong.
    */
   const [bundleList, setBundleList] = useState<ApiBundleList | null>(null);
   // add-on groups manually pinned to this product (besides the auto rules)
@@ -1237,8 +1264,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   // masters loaded from the API so the editor reflects the new systems
   const [vAttrs, setVAttrs] = useState<ApiVariantAttribute[]>([]);
 
-  /*  যে template-এ ইতিমধ্যে একটা মান বাছা আছে — product খুললে সেটাই খুলে
-      থাকে, যাতে মালিককে খুঁজতে না হয় "Red" কোন set-এর ভেতরে ছিল।  */
+  /*  Whichever template already has a value picked — that's the one that
+      opens when the product is opened, so the owner doesn't have to hunt
+      for which set "Red" was in.  */
   const pickedAttrId =
     vAttrs.find((a) =>
       a.values.some((v) => (variantValueId ? v.id === variantValueId : v.label === variantLabel && !!variantLabel)),
@@ -1247,16 +1275,18 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
 
   /*
-    DEC-PRD-019 — Pricing tab খুললেই bundle তালিকাটা নতুন করে আনা হয়।
+    DEC-PRD-019 — the bundle list is fetched fresh every time the Pricing
+    tab is opened.
 
-    ⚠️ শুধু একবার mount-এ আনলে হতো না: মালিক Variants tab-এ একটা জিনিস
-    যোগ করে সোজা Pricing-এ যান, আর তখন পুরনো তালিকা নিয়ে বসা মানে হিসাবটা
-    মিথ্যা। ছোট একটা request, আর তাতে সংখ্যাটা সবসময় সত্যি থাকে।
+    ⚠️ Fetching once on mount alone wasn't enough: the owner adds something
+    on the Variants tab and goes straight to Pricing, and sitting on the old
+    list at that point means the numbers are wrong. A small extra request,
+    and in return the number is always true.
 
-    ⚠️ এই hook-টা `apiProductId` **ঘোষণার নিচে** থাকতেই হবে। উপরে বসিয়ে
-    আমি একই ভুল দুবার করেছি (২ আগস্ট, variant item picker-এও) — JavaScript
-    ঘোষণার আগে পড়তে গেলে "Cannot access before initialization" দিয়ে গোটা
-    পর্দা ফেলে দেয়।
+    ⚠️ This hook must sit **below** the `apiProductId` declaration. Placed
+    above, I made the exact same mistake twice (2 Aug, also in the variant
+    item picker) — reading before the declaration throws "Cannot access
+    before initialization" and takes the whole screen down with it.
   */
   useEffect(() => {
     if (sec !== "price" || !apiProductId) return;
@@ -1287,13 +1317,13 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         isn't what that supplier is set up for. Filtered to fulfillment-type
         suppliers only, same rule Suppliers → Vendors itself uses.  */
     listSuppliers().then((rows) => setVendors(rows.filter((v) => v.type?.isFulfillment))).catch(() => {});
-    /*  DEC-DLV-008 — নামগুলো delivery module থেকে, প্রতিবার নতুন করে।
-        cache করা হয় না ইচ্ছাকৃতভাবে: মালিক পাশের tab-এ একটা ধরন যোগ করে
-        এখানে এলে সেটা যেন সাথে সাথেই দেখা যায়। */
-    /*  ⚠️ `rateCount > 0` — যে নামের কোনো এলাকায় দাম বসানো নেই, সেটা এখানে
-        দেখানো হয় না। দেখালে মালিক টিক দিতেন, save হতো, আর checkout ওই
-        delivery কখনো দেখাত না — একটা টিক যা কিছুই করে না। দাম বসানোর
-        সাথে সাথেই নামটা এখানে ফিরে আসে।  */
+    /*  DEC-DLV-008 — names come from the delivery module, fetched fresh
+        every time. Deliberately not cached: if the owner adds a type on
+        another tab and comes here, it should show up right away. */
+    /*  ⚠️ `rateCount > 0` — a name with no price set in any zone is not
+        shown here. If it were, the owner could tick it, it would save, and
+        checkout would never show that delivery — a tick that does nothing.
+        The moment a price is set, the name comes back here.  */
     listDeliveryTypes()
       .then((r) => setDelivTypes(r.filter((t) => t.isActive && (t.rateCount ?? 1) > 0)))
       .catch(() => {});
@@ -1339,9 +1369,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               number × 100, so one conversion serves for the box.  */
           setDiscVal(p.discountValue ? String(p.discountValue / 100) : "");
           setAdvReq(!!p.advanceRequired);
-          /*  ৩ আগস্টের নিরীক্ষা — শুধু switch-টা ফিরত, ধরনটা ফিরত না।
-              "PARTIAL ৩০%" save করে আবার খুললে FULL দেখাত, আর পরের save
-              চুপচাপ FULL লিখে দিত। এখন চারটেই ফেরে।  */
+          /*  3 Aug audit — only the switch itself came back, not the type.
+              Save "PARTIAL 30%" and reopening showed FULL, and the next
+              save silently wrote FULL over it. All four fields now
+              restore.  */
           if (p.advanceType) setAdvType(p.advanceType);
           if (p.advancePercent != null) {
             setAdvPartType("PCT");
@@ -1367,16 +1398,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               than passed through `Date`, which would drag the browser's
               timezone in and can move the date by a day. */
           setPreorderDate(p.preorderDate ? p.preorderDate.slice(0, 10) : "");
-          /*  DEC-PRD-028 — `slice(0,10)`, `new Date()` নয়: browser-এর
-              সময়অঞ্চল ঢুকলে তারিখ একদিন সরে যেতে পারে।  */
+          /*  DEC-PRD-028 — `slice(0,10)`, not `new Date()`: if the browser's
+              timezone creeps in, the date can shift by a day.  */
           setDiscStart(p.discountStartsAt ? p.discountStartsAt.slice(0, 10) : "");
           setDiscEnd(p.discountEndsAt ? p.discountEndsAt.slice(0, 10) : "");
           setLead(String(p.leadTimeDays ?? 0));
 
           // delivery
           if (p.zone) setZone(p.zone);
-          /*  DEC-DLV-008 — id দিয়ে, নাম দিয়ে নয়। মালিক delivery module-এ
-              "Same Day" → "Same-day" করলেও এই সংযোগ ছেঁড়ে না।  */
+          /*  DEC-DLV-008 — by id, not by name. If the owner renames "Same
+              Day" → "Same-day" in the delivery module, this link doesn't
+              break.  */
           setDelivTypeIds((p.deliveryTypes ?? []).map((d) => d.typeId));
           setVariants(
             (p.variants ?? []).map((v) => ({
@@ -1402,28 +1434,30 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
           /*
             ── TAGS ─────────────────────────────────────────────────────────
-            ⚠️ এখানে একটা সত্যিকারের bug ছিল (২ আগস্ট ২০২৬-এ ধরা): দুটো
-            তালিকাতেই **সব** tag বসানো হতো —
+            ⚠️ There was a real bug here (caught 2 Aug 2026): **every** tag
+            was being set into both lists —
 
                 const slugs = p.tags.map((t) => t.slug);
                 setOcc(slugs); setRec(slugs);
 
-            ফল: `buildDto` পাঠাত `[...occ, ...rec]`, অর্থাৎ প্রতিটা tag
-            দুবার আর দুই তালিকাতেই। তাই "Birthday" tick তুলে দিলে সেটা
-            `occ` থেকে যেত ঠিকই, কিন্তু `rec`-এ বসে থাকত — আর তাই **কোনো
-            tag কখনো তোলা যেত না**। মালিক tick তুলতেন, Publish চাপতেন,
-            আর tag-টা ফিরে আসত।
+            Result: `buildDto` sent `[...occ, ...rec]`, meaning every tag
+            twice and in both lists. So un-ticking "Birthday" did remove it
+            from `occ`, but it stayed sitting in `rec` — meaning **no tag
+            could ever be removed**. The owner would untick, press Publish,
+            and the tag would come right back.
 
-            এখন প্রতিটা slug যে তালিকার, সেই তালিকাতেই যায়। যেটা কোনো
-            তালিকায় নেই (মালিক পরে অন্য group বানালে) সেটা চুপচাপ বাদ
-            যায় না — সেটা `extraTags`-এ রাখা হয় আর save-এ ফেরত যায়,
-            নাহলে এই পর্দায় একবার ঢুকলেই অন্য group-এর tag মুছে যেত।
+            Now each slug goes only into the list it actually belongs to.
+            One that isn't in any list (if the owner later creates another
+            group) isn't silently dropped — it's kept in `extraTags` and
+            sent back on save, otherwise opening this screen once would
+            wipe out another group's tag.
           */
           if (p.tags) setTagSel(p.tags.map((t) => t.slug));
 
-          /*  DEC-PRD-025/026/027 — নতুন ঘরগুলো ফেরত আনা। ⚠️ সংখ্যাটা
-              `salesSeed` থেকে, `salesCount` থেকে নয় — নাহলে বিক্রি হওয়া
-              product একবার edit করলেই মালিকের শুরুর সংখ্যা বদলে যেত।  */
+          /*  DEC-PRD-025/026/027 — restoring the new fields. ⚠️ The number
+              comes from `salesSeed`, not from `salesCount` — otherwise
+              editing a product that had already sold would overwrite the
+              owner's starting number.  */
           if (p.salesWindow) setSalesWindow(p.salesWindow);
           setSeedToday(p.salesSeedToday ? String(p.salesSeedToday) : "");
           setSeedWeek(p.salesSeedWeek ? String(p.salesSeedWeek) : "");
@@ -1442,10 +1476,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           setCustomiseSub(p.customiseSub ?? "");
 
           // story
-          /*  ৩ আগস্টের নিরীক্ষা — এখানে natureType (enum) থেকে পড়া হতো,
-              মালিকের নিজের লেখাটা (typeText) নয়। "Handmade" লিখে save
-              করলে আবার খুললে "fresh" দেখাত, আর পরের save সেটাই লিখে দিত।
-              মালিকের লেখা আগে; enum শুধু fallback।  */
+          /*  3 Aug audit — this used to read from natureType (the enum),
+              not the owner's own text (typeText). Type "Handmade" and save,
+              reopen and it showed "fresh", and the next save wrote that
+              back. The owner's text comes first; the enum is only a
+              fallback.  */
           if (p.typeText) setTypeText(p.typeText);
           else if (p.natureType) setTypeText(p.natureType.toLowerCase());
           setNatureLabel(p.natureLabel ?? "");
@@ -1460,8 +1495,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           if (p.trustBadges)
             setTrust(
               p.trustBadges.map((t) => ({
-                /*  DEC-PRD-031 — নাম যা, নাম তাই। আগে এখানে একটা অনুবাদ
-                    ছিল, আর সেটাই "bolt" কে "truck" বানিয়ে দিত।  */
+                /*  DEC-PRD-031 — the name is the name, as-is. There used to
+                    be a translation here, and that's exactly what turned
+                    "bolt" into "truck".  */
                 icon: t.icon,
                 iconUrl: t.iconUrl ?? null,
                 label: t.label,
@@ -1518,16 +1554,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   }
 
   /*
-    DEC-PRD-030 — চলতি category (আর না থাকলে তার parent) থেকে badge আর
-    What's inside টেনে আনা।
+    DEC-PRD-030 — pulling badges and What's inside from the current
+    category (or its parent, if it has none of its own).
 
-    ⚠️ shop-এর `pickList(product, category, parent)`-এর হুবহু একই ক্রম।
-    আলাদা ক্রম রাখলে admin এক জিনিস দেখাত আর website আরেকটা — সেটাই
-    এই কাজটার মূল সমস্যা ছিল, নতুন করে বানানোর মানে হয় না।
+    ⚠️ The exact same order as the shop's `pickList(product, category,
+    parent)`. A different order here would mean admin shows one thing and
+    the website another — that was the original problem with this whole
+    feature, no point reinventing it.
 
-    ⚠️ `resolveCategoryId()`-এর **পরে** থাকতেই হবে। উপরে নিলে
-    "Cannot access 'resolveCategoryId' before initialization" — ২ আগস্ট
-    এই ভুল দুইবার হয়েছে, দুইবারই আধঘণ্টা গেছে।
+    ⚠️ Must sit **after** `resolveCategoryId()`. Placed above, it throws
+    "Cannot access 'resolveCategoryId' before initialization" — this
+    mistake happened twice on 2 Aug, half an hour lost each time.
   */
   useEffect(() => {
     const own = subCatId || topCatId;
@@ -1549,8 +1586,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       let trustRows = live(t1);
       let specRows = live(s1);
       let from = own;
-      /*  sub-category-তে কিছু না থাকলে উপরেরটা — খালি তালিকা মানে
-          "কিছু বলিনি", "কিছু নেই" নয়।  */
+      /*  if the sub-category has nothing, fall back to its parent — an
+          empty list means "nothing was said," not "there is nothing."  */
       if (subCatId && topCatId && trustRows.length === 0 && specRows.length === 0) {
         const [t2, s2] = await Promise.all([
           listCategoryBadges(topCatId).catch(() => []),
@@ -1572,9 +1609,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   function buildDto(publish: boolean): Record<string, unknown> {
     const toPaisa = (v: string) => Math.round(parseFloat(v || "0") * 100);
-    /*  DEC-PRD-022 — একটাই তালিকা, তাই এখানে আর জোড়া লাগানোর কিছু নেই।
-        যে slug-এর সাথে কোনো tag মেলে না সেটা বাদ যায় — মালিক Tags
-        module-এ সেটা মুছে ফেলেছেন, তাই product-এও থাকা উচিত নয়।  */
+    /*  DEC-PRD-022 — one list only, so there's nothing left to merge here.
+        A slug that matches no tag is dropped — the owner deleted it in the
+        Tags module, so it shouldn't stay on the product either.  */
     const tagIds = [...new Set(tagSel)]
       .map((s) => apiTags.find((t) => t.slug === s)?.id)
       .filter((x): x is string => !!x);
@@ -1598,9 +1635,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       costPaisa: toPaisa(cost),
       sellingPricePaisa: toPaisa(sell),
       discountType: discType === "PCT" ? "PERCENT" : discType,
-      /*  DEC-PRD-028 — খালি হলে `null`, নাহলে দিনের শুরু/শেষ ধরে ISO।
-          ⚠️ শেষ তারিখে `23:59:59` — নাহলে "১০ আগস্ট পর্যন্ত" মানে দাঁড়াত
-          ১০ তারিখ রাত ১২টা ০১ মিনিটে ছাড় শেষ, আর গোটা দিনটাই হারাত।  */
+      /*  DEC-PRD-028 — `null` if empty, otherwise ISO taken at the start/end
+          of the day. ⚠️ `23:59:59` on the end date — otherwise "until 10
+          Aug" would mean the discount ends at 12:01 AM on the 10th, losing
+          the whole day.  */
       discountStartsAt: discStart ? new Date(discStart + "T00:00:00").toISOString() : null,
       discountEndsAt: discEnd ? new Date(discEnd + "T23:59:59").toISOString() : null,
       discountValue:
@@ -1644,21 +1682,23 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       variantLabel: variantLabel || undefined,
       variantSwatch: variantSwatch || undefined,
       manualAddOnGroupIds: manualGroupIds,
-      /*  ⚠️ `salesCount` আর পর্দা থেকে লেখা হয় না — DEC-PRD-025। ওটা এখন
-          পুরোপুরি Sales module-এর: order delivered হলে বাড়ে, sorting আর
-          card-এর "N sold" ওটাই পড়ে। মালিকের লেখা সংখ্যা চারটে seed ঘরে।
-          আগে দুটোই এই এক ঘর থেকে লেখা হতো, তাই একটা edit করলেই
-          সত্যিকারের গোনা মুছে যেত।  */
-      /*  DEC-PRD-025 — প্রতি সময়ের নিজের ঘর। ⚠️ `salesCount` বিক্রি হলে
-          বাড়ে, seed বাড়ে না — page-এর হিসাব seed-টাই পড়ে, নাহলে সপ্তাহের
-          হিসাবে পুরনো বিক্রি দুবার গোনা হতো।  */
+      /*  ⚠️ `salesCount` is no longer written from this screen — DEC-PRD-025.
+          That's now entirely the Sales module's: it increments when an
+          order is delivered, and sorting and the card's "N sold" read that.
+          The owner's typed number lives in the four seed fields. Both used
+          to be written from this one field, so a single edit would wipe
+          out the real count.  */
+      /*  DEC-PRD-025 — each window has its own field. ⚠️ `salesCount`
+          increases on a sale, the seed does not — the page's math reads the
+          seed, otherwise a week's figures would double-count old sales.  */
       salesSeedToday: parseInt(seedToday) || 0,
       salesSeedWeek: parseInt(seedWeek) || 0,
       salesSeedMonth: parseInt(seedMonth) || 0,
       salesSeedAll: parseInt(seedAll) || 0,
       salesWindow,
-      /*  DEC-PRD-026 — খালি লেখা `null` হয়ে যায়, যাতে API-তে ফাঁকা string
-          না বসে; তখন storefront নিজের সাধারণ শব্দ ব্যবহার করে।  */
+      /*  DEC-PRD-026 — empty text becomes `null`, so no empty string lands
+          in the API; the storefront then falls back to its own default
+          wording.  */
       persoTitle: persoTitle.trim() || null,
       persoText,
       persoTextLabel: persoTextLabel.trim() || null,
@@ -1671,29 +1711,31 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       customiseOn,
       customiseTitle: customiseTitle.trim() || null,
       customiseSub: customiseSub.trim() || null,
-      /*  DEC-DLV-008 — এটাই এখন আসল উত্তর।  */
+      /*  DEC-DLV-008 — this is now the real answer.  */
       deliveryTypeIds: delivTypeIds,
-      /*  DEC-PRD-012 — খালি array পাঠানোই ঠিক: মালিক সব তুলে দিলে
-          product-টার আর কোনো variant নেই।  */
+      /*  DEC-PRD-012 — sending an empty array is correct: if the owner
+          removed all of them, the product simply has no variants.  */
       variants: variants.map((v, i) => ({
         variantValueId: v.variantValueId,
         imageUrl: v.imageUrl.trim() || null,
         stockQty: parseInt(v.stockQty || "0") || 0,
-        /*  DEC-PRD-015 — Inventory-তে থাকলে এই id-ই মজুদের উৎস।  */
+        /*  DEC-PRD-015 — if it exists in Inventory, this id is the source
+            of stock.  */
         itemId: v.itemId,
-        /*  খালি ঘর = product-এর মূল দাম, শূন্য টাকা নয়।  */
+        /*  an empty field = the product's base price, not zero taka.  */
         pricePaisa: v.price.trim() === "" ? null : Math.round(parseFloat(v.price) * 100),
         sortOrder: i,
         isActive: v.isActive,
       })),
-      /*  ⚠️ পুরনো তিনটা column এখনো লেখা হচ্ছে, আর এটা সাময়িক সেতু।
-          storefront এখনো `supportsExpress` ইত্যাদি পড়ে (ধাপ ৪-এ বদলাবে),
-          তাই বাছাই থেকে ওগুলো বানিয়ে দেওয়া হয় — নাহলে product save করার
-          সাথে সাথেই website-এ দ্রুত delivery-র চিহ্ন উধাও হয়ে যেত।
+      /*  ⚠️ The three old columns are still being written, and this is a
+          temporary bridge. The storefront still reads `supportsExpress`
+          etc. (to change in step 4), so they're derived from the selection
+          here — otherwise the fast-delivery markers on the website would
+          vanish the moment a product is saved.
 
-          নামের সাথে মেলানো হচ্ছে, আর সেটা ভঙ্গুর — কিন্তু এটা এক দিকের,
-          সাময়িক, আর ধাপ ৪-এ পুরোটা মুছে যাবে। ততক্ষণ পর্যন্ত একই সত্যের
-          দুই ঘর, যেটা একটা ধার।  */
+          Matched by name, which is fragile — but it's one-directional,
+          temporary, and gets removed entirely at step 4. Until then it's
+          two fields holding the same truth, which is a debt.  */
       ...(() => {
         const names = delivTypes
           .filter((t) => delivTypeIds.includes(t.id))
@@ -1734,9 +1776,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           `linear-gradient(...)` as an image address and the storefront would
           draw a broken-image icon where the product should be.  */
       images: photos.filter((u) => /^https?:\/\//i.test(u)).map((url) => ({ url })),
-      /*  ⚠️ `sizes` ইচ্ছে করেই নেই — মালিক card-টা তুলে দিয়েছেন (২ আগস্ট
-          ২০২৬)। না পাঠানো মানে API পুরনো মাপগুলো যেমন আছে তেমনই রাখে;
-          খালি array পাঠালে সেগুলো প্রতিবার Publish-এ মুছে যেত।  */
+      /*  ⚠️ `sizes` is deliberately absent — the owner removed the card
+          (2 Aug 2026). Not sending it means the API leaves the old sizes
+          exactly as they are; sending an empty array would wipe them out
+          on every Publish.  */
       specRows: spec
         .filter((s) => s.item.trim())
         .map((s) => ({ item: s.item.trim(), qty: s.qty.trim() })),
@@ -1746,11 +1789,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       trustBadges: trust
         .filter((t) => t.label.trim())
         .map((t) => ({
-          /*  DEC-PRD-031 — picker আর storefront এখন একই নাম ব্যবহার করে,
-              তাই কেটে নেওয়ার কিছু নেই।  */
+          /*  DEC-PRD-031 — the picker and the storefront now use the same
+              name, so there's nothing left to strip out.  */
           icon: t.icon,
-          /*  DEC-PRD-030 — category থেকে কপি করা upload-করা icon যেন
-              হারিয়ে না যায়।  */
+          /*  DEC-PRD-030 — so an uploaded icon copied from the category
+              isn't lost.  */
           iconUrl: t.iconUrl || null,
           label: t.label.trim(),
           sub: t.sub.trim() || null,
@@ -1794,23 +1837,24 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           .map((t) => ({ icon: t.icon.split(" ")[0] || "star", label: t.label, sub: t.sub || undefined }));
         const created = await createProduct(dto);
         // now that we have an id, link any upgrades chosen before saving
-        /*  DEC-PRD-013 — save-এর সাথে সাথেই bundle-গুলো বসে যায়।
-            ⚠️ ব্যর্থ হলে চুপ করে যায় না — কিন্তু পুরো save-ও ভেঙে দেয় না;
-            product ততক্ষণে তৈরি, আর সেটা হারানোর চেয়ে একটা bundle না
-            বসা কম ক্ষতি।  */
-        /*  DEC-PRD-017 — একটাই bundle, তার ভেতরে সব কটা product, আর
-            একটাই ছাড়। মালিকের নিয়ম: ছাড় বসে main সহ মোট দামের উপর।
-            ⚠️ ব্যর্থ হলে পুরো save ভাঙে না — product ততক্ষণে তৈরি, আর
-            সেটা হারানোর চেয়ে একটা bundle না বসা কম ক্ষতি।  */
+        /*  DEC-PRD-013 — the bundles are linked the moment the product is
+            saved. ⚠️ A failure isn't hidden — but it also doesn't break the
+            whole save; the product is already created by then, and losing
+            that is worse than one bundle not being linked.  */
+        /*  DEC-PRD-017 — one bundle, holding every one of the products, and
+            one discount. Owner's rule: the discount applies to the total
+            including the main product. ⚠️ A failure doesn't break the whole
+            save — the product is already created, and losing that is worse
+            than one bundle not being linked.  */
         if (pendingBundles.length > 0) {
           await createBundle({
             productId: created.id,
             addsProductIds: pendingBundles.map((p) => p.id),
             label: pendingLabel.trim() || null,
             discountType: pendingDiscType,
-            /*  FLAT = paisa · PERCENT = basis points — BundleEditor-এর
-                হুবহু একই হিসাব, দুই জায়গায় দুই রকম হলে একদিন ১০% হয়ে
-                যেত ০.১%।  */
+            /*  FLAT = paisa · PERCENT = basis points — the exact same math
+                as BundleEditor; if the two places disagreed, 10% would
+                someday become 0.1%.  */
             discountValue:
               pendingDiscType === "NONE" ? 0 : Math.round((Number(pendingDiscValue) || 0) * 100),
           }).catch(() => {});
@@ -1857,8 +1901,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       if (field === "CATEGORY") return values.includes(catName);
       if (field === "ZONE") return values.includes(zone);
       if (field === "PRODUCT_TYPE") return values.includes(ptype);
-      /*  DEC-PRD-022 — এক তালিকা। occasion rule-গুলো slug ধরেই মেলে, আর
-          বাছাই এখন `tagSel`-এ, তাই সেটাই দেখা হয়।  */
+      /*  DEC-PRD-022 — one list. Occasion rules match by slug, and the
+          selection now lives in `tagSel`, so that's what's checked.  */
       if (field === "OCCASION") return tagSel.some((o) => values.includes(o));
       return false;
     };
@@ -1919,13 +1963,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const dv = parseFloat(discVal || "0");
 
   /*
-    DEC-PRD-028 — ছাড়টা এই মুহূর্তে চলছে কি না, আর সেটা এক লাইনে বলা।
+    DEC-PRD-028 — whether the discount is currently running, said in one
+    line.
 
-    ⚠️ দিন ধরে তুলনা, ঘণ্টা ধরে নয়: শেষ তারিখ "১০ আগস্ট" মানে ১০ তারিখ
-    দিনটাও ধরা — মালিক তাই বোঝেন, আর server-ও দিনের শেষ পর্যন্ত ধরে।
+    ⚠️ Compared by day, not by hour: an end date of "10 Aug" means the 10th
+    itself is included — that's how the owner reads it, and the server
+    honours the discount through the end of that day too.
 
-    ⚠️ `offer`-এর **আগে** থাকতেই হবে — নিচে নামালে "Cannot access
-    'discLive' before initialization"। ২ আগস্ট এই ভুল দুইবার হয়েছে।
+    ⚠️ Must sit **before** `offer`. Moved below, it throws "Cannot access
+    'discLive' before initialization" — this mistake happened twice on
+    2 Aug.
   */
   const discLive = (() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -1937,9 +1984,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   })();
 
   /*
-    ⚠️ তারিখ ফুরিয়ে গেলে এই পর্দাতেও ছাড় বসে না — server-এর `paidPaisa()`
-    ঠিক এই নিয়মই চালায়। আগে বসত, ফলে admin ৳2,160 দেখাত অথচ দোকান
-    ৳2,400 নিত। এক নিয়ম, দুই জায়গায় এক উত্তর।
+    ⚠️ Once the dates have run out, the discount no longer applies on this
+    screen either — the server's `paidPaisa()` runs the exact same rule. It
+    used to apply anyway, so admin would show ৳2,160 while the shop charged
+    ৳2,400. One rule, one answer in both places.
   */
   const offer =
     discType === "NONE" || !discLive.on
@@ -1956,16 +2004,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   /*
     ═══════════════════════════════════════════════════════════════════════
-    BUNDLE — Pricing tab-এর হিসাব। DEC-PRD-019, মালিক ২ আগস্ট ২০২৬।
+    BUNDLE — the Pricing tab's math. DEC-PRD-019, owner, 2 Aug 2026.
 
-    ⚠️ দুই অবস্থা, এক অঙ্ক। সংরক্ষিত product-এ তালিকা আর দাম server থেকে
-    আসে (`bundleList`); নতুন product-এ সেগুলো এখনো এই পর্দাতেই বসে আছে
-    (`pendingBundles`)। দুটোকে এক আকারে এনে একটাই হিসাব চালানো হয় —
-    নাহলে "নতুন" আর "পুরনো" product-এ দুটো আলাদা সংখ্যা দেখাত।
+    ⚠️ Two states, one calculation. On a saved product, the list and prices
+    come from the server (`bundleList`); on a new product, they're still
+    sitting on this screen (`pendingBundles`). Both get brought into one
+    shape and run through the same calculation — otherwise a "new" and an
+    "existing" product would show two different numbers.
 
-    ⚠️ সব টাকা টাকায় (paisa নয়), কারণ এই পর্দার বাকি সব অঙ্ক টাকায় —
-    `sellN`, `costN`, `offer`. একটা ঘরে paisa ঢুকলে সেটাই একদিন ১০০ গুণ
-    ভুল দেখাত।
+    ⚠️ Everything in taka (not paisa), because every other number on this
+    screen is in taka — `sellN`, `costN`, `offer`. Paisa slipping into one
+    field would someday show a number 100x wrong.
   */
   const bunItems = apiProductId
     ? (bundleList?.items ?? []).map((i) => ({
@@ -1978,10 +2027,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         id: p.id,
         name: p.name,
         price: p.offerPricePaisa / 100,
-        /*  নতুন product-এর পর্দায় খরচ জানা নেই — তালিকা থেকে যা আসে
-            তাতে শুধু বিক্রয়মূল্য থাকে। Save করার পর server আসল খরচ
-            পাঠায়। শূন্য ধরা মানে লাভ **বেশি** দেখাত, তাই লাভের লাইনটাই
-            তখন দেখানো হয় না (নিচে `bunCostKnown`)।  */
+        /*  cost isn't known on a new product's screen — what comes from
+            the list carries only the selling price. After save, the
+            server sends the real cost. Assuming zero would show profit as
+            **higher** than it is, so the profit line simply isn't shown
+            then (see `bunCostKnown` below).  */
         cost: 0,
       }));
   const bunCostKnown = !!apiProductId;
@@ -1992,8 +2042,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   const bunItemsTotal = bunItems.reduce((n, i) => n + i.price, 0);
   const bunItemsCost = bunItems.reduce((n, i) => n + i.cost, 0);
-  /*  ⚠️ base হিসেবে `offer` — product-এর নিজের ছাড় বসানোর পরের দাম।
-      দুটো ছাড় পরপর বসে, আর সেটাই সৎ: গ্রাহক প্রথমটা এমনিতেই পান।  */
+  /*  ⚠️ `offer` as the base — the price after the product's own discount is
+      applied. The two discounts stack, and that's honest: the customer
+      gets the first one regardless.  */
   const bunBefore = offer + bunItemsTotal;
   const bunAfter =
     bunDiscType === "NONE"
@@ -2005,7 +2056,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const bunProfit = bunAfter - (costN + bunItemsCost);
   const bunProfitPct = bunAfter > 0 ? Math.round((bunProfit / bunAfter) * 100) : 0;
 
-  /** Pricing tab-এর ছাড়টা বদলানো — তালিকা অক্ষত রেখে শুধু ছাড় লেখা হয় */
+  /** Changing the Pricing tab's discount — the list stays untouched, only the discount is written */
   function saveBundleDiscount(type: "NONE" | "FLAT" | "PERCENT", valueTaka: number) {
     if (!apiProductId) {
       setPendingDiscType(type);
@@ -2035,9 +2086,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     "linear-gradient(160deg,#F8E4E8,#EFC5CF)";
   const previewIsPhoto =
     previewBg.startsWith("data:") || previewBg.startsWith("http");
-  /*  Live preview-এর ছোট চিহ্ন। DEC-DLV-008-এর পর এটাও বাছা নামগুলো থেকেই
-      আসে — আগে `deliv` নামে একটা আলাদা তালিকা ছিল, আর সেটা তিনটা লেখা
-      শব্দের উপর দাঁড়িয়ে ছিল।  */
+  /*  The live preview's small badge. After DEC-DLV-008 this also comes
+      from the picked names — there used to be a separate list called
+      `deliv`, standing on three hardcoded words.  */
   const pickedNames = delivTypes
     .filter((t) => delivTypeIds.includes(t.id))
     .map((t) => t.name.toLowerCase());
@@ -2051,14 +2102,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   /*
     ---- template loaders ----
-    ⚠️ Trust badge আর "What's inside"-এর loader দুটো উঠে গেছে — DEC-PRD-023।
-    ওগুলো এই ফাইলে হাতে লেখা preset থেকে সারি বানাত, আর মালিকের সেগুলো
-    বদলানোর কোনো পর্দা ছিল না। এখন আসল উৎস Categories → "Product page —
-    badges & what's inside"।
+    ⚠️ The Trust badge and "What's inside" loaders have been removed —
+    DEC-PRD-023. They used to build rows from hand-written presets in this
+    file, and the owner had no screen to change them. The real source is
+    now Categories → "Product page — badges & what's inside".
 
-    FAQ-এর loader থাকছে: product-এর নিজের প্রশ্নগুলো লেখার সময় শুরু করার
-    একটা জায়গা লাগে, আর category-র FAQ এমনিতেই নিচে যোগ হয় — কিছু চাপা
-    পড়ে না।
+    The FAQ loader stays: writing a product's own questions needs a
+    starting point, and the category's FAQ gets appended below anyway —
+    nothing gets buried.
   */
   const loadFaqTpl = () => {
     const d = tplFor(tplCat);
@@ -2110,7 +2161,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             {slug ? "Editing product" : "New product — fill in and publish"}
             {"  "}
             <span className="text-[#c0392b] font-bold">*</span>
-            <span className="text-body-soft"> = Publish করতে লাগবে</span>
+            <span className="text-body-soft"> = required to publish</span>
           </p>
         </div>
         <button
@@ -2525,10 +2576,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                         ))}
                     </select>
                   </Field>
-                  {/*  DEC-PRD-032 — Bestseller আর New arrival। কলাম দুটো আর
-                      homepage-এর তাক আগে থেকেই ছিল; admin-এ switch-ই ছিল না,
-                      তাই কেউ কোনোদিন on করতে পারত না। ৩ আগস্টের নিরীক্ষায়
-                      ধরা।  */}
+                  {/*  DEC-PRD-032 — Bestseller and New arrival. The two
+                      columns and the homepage shelf already existed; admin
+                      just had no switch, so nobody could ever turn them on.
+                      Caught in the 3 Aug audit.  */}
                   <div className="flex flex-col gap-2 justify-center">
                     <Sw on={isBest} onToggle={() => setIsBest(!isBest)}>
                       Bestseller — shows on the Bestsellers shelf
@@ -2664,17 +2715,20 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
                     {/*
                       ═══════════════════════════════════════════════════════
-                      DEC-PRD-028 — মালিক, ৩ আগস্ট ২০২৬: *"আমরা যদি নির্দিষ্ট
-                      product-এ কোনো offer চালাই like discount, তার timing
-                      দেওয়ার জায়গা নেই — start date আর end date। যা frontend
-                      আর admin panel একই সাথে দেখাবে আর কাজ করবে।"*
+                      DEC-PRD-028 — owner, 3 Aug 2026: *"if we run an offer
+                      like a discount on a specific product, there's no place
+                      to give its timing — a start date and end date. Which
+                      the frontend and admin panel should both show and honour
+                      at the same time."*
 
-                      ⚠️ আগে ছাড় বসালে সেটা **চিরকাল** চলত। তিন দিনের একটা
-                      offer মানে ছিল: তারিখ মনে রেখে চতুর্থ দিনে নিজে গিয়ে
-                      মুছে দেওয়া। কেউ মনে রাখে না।
+                      ⚠️ Previously, once a discount was set it ran
+                      **forever**. A three-day offer meant remembering the
+                      date and manually removing it on the fourth day.
+                      Nobody remembers.
 
-                      ⚠️ ঘর দুটো ছাড়ের **ভেতরে**, আলাদা card-এ নয় — তারিখ
-                      ছাড়ের অংশ, আলাদা সিদ্ধান্ত নয়।
+                      ⚠️ The two date fields sit **inside** the discount, not
+                      in a separate card — the dates are part of the
+                      discount, not a separate decision.
                       ═══════════════════════════════════════════════════════
                     */}
                     {discType !== "NONE" && (
@@ -2697,10 +2751,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                             onChange={(e) => setDiscEnd(e.target.value)}
                           />
                         </Field>
-                        {/*  ⚠️ অবস্থাটা লেখা থাকে, কারণ তারিখ দুটো দেখে
-                            "এটা কি এখন চলছে?" মাথায় হিসাব করা যায় না —
-                            আর সেই ভুলেই ছাড় না চলা অবস্থায় দাম কমেছে ভেবে
-                            বসে থাকা যায়।  */}
+                        {/*  ⚠️ The status is spelled out, because looking at
+                            two dates and working out "is this running right
+                            now?" in your head is exactly the mistake that
+                            leaves someone thinking the price is discounted
+                            when it isn't.  */}
                         <span
                           className={`text-[12.5px] font-semibold pb-2.5 ${
                             discLive.on ? "text-[#0f7d55]" : "text-[#b45309]"
@@ -2883,16 +2938,18 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
               {/*
                 ═══════════════════════════════════════════════════════════════
-                WHAT THE CUSTOMER ACTUALLY PAYS — DEC-PRD-019, ২ আগস্ট ২০২৬
+                WHAT THE CUSTOMER ACTUALLY PAYS — DEC-PRD-019, 2 Aug 2026
 
-                মালিক: *"ami chai price tab sheshe thakuk and sekhanei price ar
+                Owner: *"ami chai price tab sheshe thakuk and sekhanei price ar
                 sob calculation hok."*
 
-                ⚠️ এই card-টা কিছু **সিদ্ধান্ত নেয় না** — উপরের ঘরগুলো আর
-                পরের tab-গুলোতে যা বসানো হয়েছে সেটাই এক জায়গায় দেখায়।
-                দাম এখন আর একটা সংখ্যা নয়: রঙ/মাপে আলাদা দাম বসে, আর
-                bundle-এর ছাড় main product সহ মোট দামের উপর বসে। তিন
-                জায়গায় ছড়ানো থাকলে মালিক কোনোদিনই মোট ছবিটা দেখতেন না।
+                ⚠️ This card **decides nothing** — it just shows, in one
+                place, what's already been set in the fields above and on the
+                later tabs. Price is no longer a single number: colour/size
+                variants carry their own price, and a bundle's discount
+                applies to the total including the main product. Spread
+                across three places, the owner would never see the full
+                picture.
                 ═══════════════════════════════════════════════════════════════
               */}
               <Card
@@ -2906,9 +2963,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     <b className="font-semibold text-purple">{taka(offer)}</b>
                   </div>
 
-                  {/*  রঙ/মাপে আলাদা দাম — খালি রাখা মানে product-এর দামই
-                      চলে, তাই যেগুলোয় সত্যিই আলাদা সংখ্যা লেখা আছে শুধু
-                      সেগুলোই দেখানো হয়।  */}
+                  {/*  colour/size prices — leaving one blank means the
+                      product's own price applies, so only the ones with a
+                      genuinely different number are shown here.  */}
                   {variants.filter((v) => v.price.trim()).length > 0 && (
                     <div className="py-1.5 border-b border-lavender-deep">
                       <div className="text-body-soft mb-1">
@@ -2941,15 +2998,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
                   {/*
                     ═══════════════════════════════════════════════════════════
-                    BUNDLE — DEC-PRD-019, মালিক ২ আগস্ট ২০২৬:
+                    BUNDLE — DEC-PRD-019, owner, 2 Aug 2026:
                     *"price tab akhono variant tab bundle ar baki product tene
                     anche na. se oikhaner info tene anbe... discount dile
                     bundle product soho dekhabe koto discount koto amdr
                     profit."*
 
-                    ⚠️ ছাড়ের ঘরটা এখন **এখানে**, Bundles card-এ নয়। যে
-                    সংখ্যাটা লেখা হচ্ছে তার ফল ঠিক তার নিচেই দেখা যায় —
-                    দুই পর্দায় ভাগ করলে মালিক কোনোদিন পুরো ছবিটা দেখতেন না।
+                    ⚠️ The discount field now lives **here**, not on the
+                    Bundles card. Its result shows right below where the
+                    number is typed — splitting it across two screens meant
+                    the owner would never see the whole picture at once.
                     ═══════════════════════════════════════════════════════════
                   */}
                   {bunItems.length === 0 ? (
@@ -2998,9 +3056,9 @@ No bundle products yet — add them on{" "}
                           <option value="PERCENT">% off</option>
                         </select>
                         <input
-                          /*  ⚠️ প্রস্থটা inline style-এ — `.ipt` নিজে
-                              `width:100%` বসায় আর সেটা Tailwind-এর পরে load
-                              হয়, তাই `w-[100px]` চুপচাপ হারিয়ে যেত।  */
+                          /*  ⚠️ width in inline style — `.ipt` itself sets
+                              `width:100%` and loads after Tailwind, so a
+                              `w-[100px]` utility would be silently dropped.  */
                           className="ipt h-[38px]"
                           style={{ width: 100 }}
                           type="number"
@@ -3028,10 +3086,12 @@ No bundle products yet — add them on{" "}
                             </div>
                           )}
                         </div>
-                        {/*  ⚠️ লাভ তখনই দেখানো হয় যখন খরচ সত্যিই জানা।
-                            নতুন product-এর পর্দায় bundle-এর জিনিসগুলোর খরচ
-                            আসে না, আর শূন্য ধরে দেখালে লাভ বেশি দেখাত —
-                            আর সেই সংখ্যা দেখে দাম ঠিক করা হতো।  */}
+                        {/*  ⚠️ Profit is shown only when the cost is
+                            genuinely known. On a new product's screen, the
+                            bundle items' costs aren't available, and
+                            assuming zero would show profit as higher than
+                            it is — and that number would end up deciding
+                            the price.  */}
                         {bunCostKnown && costN > 0 && (
                           <div className="text-right">
                             <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-body-soft">
@@ -3210,15 +3270,16 @@ No bundle products yet — add them on{" "}
 
                   {/*
                     ═══════════════════════════════════════════════════════════
-                    DEC-PRD-014 — মালিক, ২ আগস্ট ২০২৬: *"variant থাকলে
-                    variant-এর stock-ই চলবে, product-এর ঘরটা তখন যোগফল
-                    দেখাবে।"*
+                    DEC-PRD-014 — owner, 2 Aug 2026: *"if there are variants,
+                    the variants' own stock should run the show, and the
+                    product's field should just show the total."*
 
-                    ⚠️ ঘরটা লুকানো হয় না, **তালা দেওয়া হয়**। লুকিয়ে দিলে
-                    মালিক ভাবতেন এই product-এর মজুদ কোথাও গোনাই হচ্ছে না।
-                    সংখ্যাটা দেখিয়ে "কোথা থেকে এল" লিখে দিলে এক নজরেই
-                    বোঝা যায় — আর দুই জায়গায় দুটো সংখ্যা লেখার সুযোগই
-                    থাকে না।
+                    ⚠️ The field isn't hidden, it's **locked**. Hiding it
+                    would make the owner think this product's stock isn't
+                    being counted anywhere. Showing the number and labelling
+                    "where it comes from" makes it clear at a glance — and
+                    there's no chance of two different numbers being typed
+                    in two places.
                     ═══════════════════════════════════════════════════════════
                   */}
                   {stockMode === "MANUAL" && variants.length > 0 && (
@@ -3592,8 +3653,8 @@ No bundle products yet — add them on{" "}
                   )}
 
                   {/*
-                    DEC-PDP-09 — "stock 0 হলে order দেওয়া যাবে না। হয় stock out
-                    আসবে, বা pre-order আসবে।"
+                    DEC-PDP-09 — "if stock is 0, an order can't be placed.
+                    Either a stock-out message shows, or a pre-order does."
 
                     ⚠️ ONLY WHEN THE NUMBER ABOVE MEANS SOMETHING. A vendor
                     product holds none of our stock and a Tracked one is counted
@@ -3679,8 +3740,8 @@ No bundle products yet — add them on{" "}
 
               {/*
                 ── TWO CLOCKS, AND THEY ARE NOT THE SAME CLOCK ───────────────
-                Owner, 1 Aug 2026: *"day and time-এর ঘর বোঝার উপায় নাই, কোনটা
-                day আর কোনটা time"*.
+                Owner, 1 Aug 2026: *"there's no way to tell the day field
+                from the time field, which one is day and which is time"*.
 
                 He was right, and the fault was not the wording — both
                 questions were dressed identically. Two bare number boxes, two
@@ -3797,7 +3858,7 @@ No bundle products yet — add them on{" "}
               <Card
                 icon="photo"
                 title={<>Photos<Req /></>}
-                hint="Square photos, 1:1. Drag to reorder — the first is the main image. Publish করার আগে অন্তত একটা ছবি লাগবে।"
+                hint="Square photos, 1:1. Drag to reorder — the first is the main image. At least one photo is required to publish."
               >
                 {/*
                   ── THREE FAULTS FIXED HERE, 1 Aug 2026 ─────────────────────
@@ -3876,8 +3937,9 @@ No bundle products yet — add them on{" "}
 
                   {/*
                     ── THE EMPTY STATE IS THREE SLOTS, NOT ONE PLUS ──────────
-                    Owner, 1 Aug 2026: *"+ icon-এর জায়গায় যেন ৩টা image-এর
-                    মতো থাকে, তাহলে বুঝতে সুবিধা হবে"*.
+                    Owner, 1 Aug 2026: *"instead of a + icon there should be
+                    something like 3 image slots, that'll make it easier to
+                    understand"*.
 
                     A single small square asks for A photo. Three say, without
                     a sentence, two things at once: bring SEVERAL, and they
@@ -3962,20 +4024,20 @@ No bundle products yet — add them on{" "}
               <Card
                 icon="truck"
                 title={<>Zone & delivery<Req /></>}
-                hint="Tick where it sells. Each zone keeps its own deliveries — set up in Delivery → Zones · types · slots. Publish করার আগে অন্তত একটা delivery speed (Express/Same Day/Midnight) টিক করা লাগবে।"
+                hint="Tick where it sells. Each zone keeps its own deliveries — set up in Delivery → Zones · types · slots. At least one delivery speed (Express/Same Day/Midnight) must be ticked to publish."
               >
                 {/*
-                  DEC-DLV-011 (rev 2, মালিকের কথা হুবহু) — "inside dhaka ja
+                  DEC-DLV-011 (rev 2, owner's words verbatim) — "inside dhaka ja
                   thake thakbe. national ja thakar thakbe. kon product jodi
                   just inside hoy tahole ta select krbe, kon product jodi 2
                   tai kaj kre tahole 2 tai select krbe."
 
-                  তাই এক card, দুই ঘর — যার delivery তার নিজের ঘরে, কোনো
-                  মেশামেশি নেই। Inside Dhaka সবসময় টিক-করা (বাংলাদেশ মানে
-                  ঢাকাসহ — "শুধু বাইরে" বলে অবস্থা নেই)। Outside-এর টিক
-                  দিলে DB-তে zone=NATIONWIDE, আর সেই ঘরের courier-চিপ খোলে।
-                  নামগুলো delivery module থেকে আসে (DEC-DLV-008) — এখানে
-                  কিছুই hardcode নয়।
+                  So one card, two boxes — each delivery in its own box, no
+                  mixing. Inside Dhaka is always ticked (Bangladesh means
+                  including Dhaka — there's no such state as "outside only").
+                  Ticking Outside sets zone=NATIONWIDE in the DB, and opens
+                  that box's courier chips. The names come from the delivery
+                  module (DEC-DLV-008) — nothing here is hardcoded.
                 */}
                 {(() => {
                   const chip = (t: ApiDeliveryType) => {
@@ -4016,7 +4078,7 @@ No bundle products yet — add them on{" "}
                   );
                   return (
                     <div className="flex flex-col gap-3">
-                      {/* ── ঘর ১ · Inside Dhaka — সবসময় বিক্রি হয় ── */}
+                      {/* ── box 1 · Inside Dhaka — always sells ── */}
                       <div className="rounded-[14px] border border-lavender-deep bg-white p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <span
@@ -4034,7 +4096,7 @@ No bundle products yet — add them on{" "}
                         )}
                       </div>
 
-                      {/* ── ঘর ২ · Outside Dhaka — ঐচ্ছিক ── */}
+                      {/* ── box 2 · Outside Dhaka — optional ── */}
                       <div
                         className={
                           "rounded-[14px] border p-4 transition-colors " +
@@ -4049,8 +4111,8 @@ No bundle products yet — add them on{" "}
                             onClick={() => {
                               const next = outsideOn ? "DHAKA" : "NATIONWIDE";
                               setZone(next);
-                              /*  Outside-এর টিক তুললে শুধু courier-ঘরের বাছাই
-                                  ঝরে — ঢাকার speed-গুলো টিকে থাকে।  */
+                              /*  Un-ticking Outside only drops the courier box's
+                                  selection — the Dhaka speeds stay ticked.  */
                               if (next === "DHAKA")
                                 setDelivTypeIds((ids) =>
                                   ids.filter((id) =>
@@ -4083,15 +4145,17 @@ No bundle products yet — add them on{" "}
                 })()}
 
                 {/*
-                  ⚠️ কিছু টিক না দিলে product-টা schedule করা দিনেই যাবে —
-                  বন্ধ হয়ে যাবে না। এটা লেখা থাকা দরকার, কারণ খালি রেখে
-                  publish করা সবচেয়ে সহজ ভুল, আর তার ফল দেখা যায় checkout-এ,
-                  অনেক পরে।
+                  ⚠️ If nothing is ticked, the product still publishes on
+                  its scheduled day — it doesn't get blocked. This needs to
+                  be spelled out, because leaving it empty and publishing
+                  anyway is the easiest mistake to make, and its effect only
+                  shows up at checkout, much later.
                 */}
                 {/*
-                  ⚠️ চুপচাপ হারিয়ে যাওয়া নয়। আগে টিক দেওয়া কোনো নামের দাম
-                  মুছে ফেললে সেটা উপরের তালিকা থেকে চলে যায় — কিন্তু product-এ
-                  টিকটা রয়ে যায়। না বললে মালিক ভাবতেন সবকিছু ঠিক আছে।
+                  ⚠️ Not a silent disappearance. If a price is removed for a
+                  previously-ticked name, it drops off the list above — but
+                  the tick stays on the product. Without saying so, the
+                  owner would think everything is fine.
                 */}
                 {delivTypeIds.some((id) => !delivTypes.some((t) => t.id === id)) && (
                   <div className="rounded-[12px] px-4 py-3 text-[13px] mt-4 border border-[#f0d9a8] bg-[#fff6e5] text-[#8a5a00]">
@@ -4127,34 +4191,39 @@ No bundle products yet — add them on{" "}
           {sec === "variants" && (
             <>
               {/*
-                ⚠️ একটা বেগুনি বাক্স ছিল এখানে, চার লাইনে Variant / Size /
-                Upgrade / Add-ons চারটাই ব্যাখ্যা করত — মালিক দেখেই বললেন
-                *"এটা কোন design হলো"*। ঠিক বলেছেন: চারটা জিনিসের সংজ্ঞা
-                একসাথে পড়ানো হচ্ছিল, অথচ মানুষ এসেছে একটা কাজ করতে।
+                ⚠️ There used to be a purple box here that explained all
+                four of Variant / Size / Upgrade / Add-ons in four lines —
+                the owner took one look and said *"what kind of design is
+                this"*. He was right: four definitions were being taught at
+                once, when people came here to do one task.
 
-                প্রতিটা সংজ্ঞা এখন তার নিজের card-এর `?`-এ, যেখানে সেটা
-                দরকার হওয়ার মুহূর্তে পাওয়া যায় — আর তার আগে জায়গা নেয় না।
+                Each definition now lives in its own card's `?`, where it's
+                available the moment it's needed — and takes up no room
+                before that.
               */}
               {/*
                 ═══════════════════════════════════════════════════════════════
-                DEC-PRD-012 — এক product, অনেক variant। মালিক, ১ আগস্ট ২০২৬:
+                DEC-PRD-012 — one product, many variants. Owner, 1 Aug 2026:
 
-                *"একটা product যদি কোনো variant না থাকে তখন সেখানে আমি কিছুই
-                choose করব না। যখন তার multi variant থাকবে তখন তা show করাব —
-                আর তা একটা product page-এ হবে। প্রতিটার আলাদা image আর stock
-                থাকবে।"*
+                *"if a product has no variants, then I won't choose anything
+                there. when it does have multiple variants, I'll show that —
+                and that'll be on one product page. each one will have its
+                own image and stock."*
 
-                ⚠️ আগে এখানে **একটাই** মান বাছা যেত, কারণ পুরনো নকশায়
-                product-টা নিজেই একটা রঙ ছিল আর তিনটা রঙ মানে তিনটা আলাদা
-                product। সেই নকশার জোড়া লাগানোর পর্দা কখনো বানানো হয়নি, তাই
-                swatch বাস্তবে কোনোদিন দেখাই যায়নি — মালিক ঠিক সেটাই ধরেছেন।
+                ⚠️ Previously only **one** value could be picked here,
+                because in the old design the product itself WAS one colour,
+                and three colours meant three separate products. A screen to
+                merge that old design was never built, so the swatch never
+                actually showed up in practice — the owner caught exactly
+                that.
                 ═══════════════════════════════════════════════════════════════
               */}
               <Card
                 icon="sparkle"
-                /*  ⚠️ ছোট রাখা হয়েছে ইচ্ছে করে — মালিক, ২ আগস্ট:
+                /*  ⚠️ Kept deliberately short — owner, 2 Aug:
                     *"variant option tab ta onk beshi text, agula clean kro"*.
-                    বাকি ব্যাখ্যা `?` চিহ্নে, যেখানে দরকার হলে পাওয়া যায়।  */
+                    The rest of the explanation lives in the `?`, available
+                    when needed.  */
                 title="Colours, flavours, sizes"
                 tip="Only if this product comes in more than one. Each colour or size gets its own photo, its own stock and — if you want — its own price."
               >
@@ -4285,8 +4354,9 @@ No bundle products yet — add them on{" "}
                                     {v.label}
                                   </span>
                                   <span className="block text-[11.5px] text-body-soft truncate">
-                                    {/*  TRACKED হলে হাতে লেখা সংখ্যাটা পড়াই
-                                         হয় না, তাই সেটা দেখানোও হয় না।  */}
+                                    {/*  when TRACKED, the hand-typed number
+                                         is never even read, so it isn't
+                                         shown either.  */}
                                     {stockMode === "TRACKED"
                                       ? (v.itemLabel ?? (v.itemId ? "item linked" : "no item yet"))
                                       : `${v.stockQty} in stock`}
@@ -4308,11 +4378,13 @@ No bundle products yet — add them on{" "}
                                           if (!f) return;
                                           setVBusy(v.variantValueId);
                                           try {
-                                            /*  ⚠️ ১:১ জোর করা হয় না — সেটা
-                                                শুধু product photo-র নিয়ম
-                                                (মালিকের সংশোধন)। ১ MB-র সীমা
-                                                সব ছবিতেই, আর সেটা
-                                                `uploadItemImage` রাখে।  */
+                                            /*  ⚠️ 1:1 isn't forced here —
+                                                that's a rule only for
+                                                product photos (owner's
+                                                correction). The 1 MB limit
+                                                applies to every image, and
+                                                `uploadItemImage` enforces
+                                                it.  */
                                             const url = await uploadItemImage(f, "products", 1600);
                                             setVariants((cur) =>
                                               cur.map((x) =>
@@ -4320,7 +4392,7 @@ No bundle products yet — add them on{" "}
                                               ),
                                             );
                                           } catch {
-                                            /* ছবি না উঠলে বাকিটা অক্ষত থাকে */
+                                            /* if the image fails to upload, everything else stays intact */
                                           } finally {
                                             setVBusy(null);
                                           }
@@ -4335,16 +4407,18 @@ No bundle products yet — add them on{" "}
 
                                     {/*
                                       ═══════════════════════════════════════
-                                      DEC-PRD-015 — মজুদ কোথা থেকে আসবে।
-                                      মালিক, ২ আগস্ট ২০২৬: *"manual-টা
-                                      এখনকার মতোই হোক। inventory থেকে আনা
-                                      লাগলে Stock & lead time-এ যেভাবে
-                                      inventory থেকে ডেকেছি সেভাবে ডাকবে।"*
+                                      DEC-PRD-015 — where the stock comes
+                                      from. Owner, 2 Aug 2026: *"manual should
+                                      stay as it is now. if it needs to pull
+                                      from inventory, call it the same way we
+                                      called from inventory in Stock & lead
+                                      time."*
 
-                                      ⚠️ দুটো ঘর একসাথে দেখানো হয় না।
-                                      দেখালে একজন হাতে ২০ লিখতেন আর
-                                      Inventory বলত ৩ — আর কোনটা সত্যি
-                                      সেটা page-টাই বলতে পারত না।
+                                      ⚠️ The two fields are never shown
+                                      together. If they were, someone could
+                                      type 20 by hand while Inventory said
+                                      3 — and the page itself couldn't say
+                                      which one was true.
                                       ═══════════════════════════════════════
                                     */}
                                     {stockMode === "TRACKED" ? (
@@ -4385,11 +4459,14 @@ No bundle products yet — add them on{" "}
                                     )}
 
                                     {/*
-                                      ⚠️ খালি রাখাই স্বাভাবিক। মালিক: *"same
-                                      product just color change হলে দাম same
-                                      থাকবে, আবার kg change হলে আলাদা হবে।"*
-                                      প্রতিটা রঙে একই সংখ্যা লিখে রাখলে একদিন
-                                      একটা বদলাতে ভুলে যাওয়া হতো।
+                                      ⚠️ Leaving it blank is the normal case.
+                                      Owner: *"if it's the same product and
+                                      just the colour changes, the price
+                                      stays the same; but if the weight
+                                      changes, it'll be different."* Typing
+                                      the same number into every colour would
+                                      someday mean forgetting to update one
+                                      of them.
                                     */}
                                     <div className="flex items-center gap-1.5">
                                       <input
@@ -4444,8 +4521,9 @@ No bundle products yet — add them on{" "}
                           })}
                         </div>
 
-                        {/*  DEC-PRD-015 — Item খোঁজার পর্দা, পুরো চওড়ায়।
-                             card-এর ভেতরে বসালে item-এর নামটাই পড়া যেত না।  */}
+                        {/*  DEC-PRD-015 — the Item search panel, at full
+                             width. Placed inside the card, an item's name
+                             wouldn't even be readable.  */}
                         {vItemFor && (
                           <div className="mt-3 border border-lavender-deep rounded-[12px] p-3 bg-white">
                             <div className="flex items-center justify-between gap-3 mb-2">
@@ -4525,9 +4603,10 @@ No bundle products yet — add them on{" "}
                           </div>
                         )}
 
-                        {/*  ⚠️ এক লাইনে, আর শুধু যেটা এই মুহূর্তে সত্যি।
-                            আগে দুটো নিয়ম একসাথে লেখা থাকত — মালিক সেটাকেই
-                            "onk beshi text" বলেছেন।  */}
+                        {/*  ⚠️ One line, and only what's actually true right
+                            now. Two rules used to be written together here
+                            — the owner called that exact thing "onk beshi
+                            text" [too much text].  */}
                         <p className="text-[12.5px] text-body-soft mt-3 mb-0">
                           Empty price = the product&rsquo;s own.{" "}
                           {stockMode === "TRACKED"
@@ -4542,21 +4621,24 @@ No bundle products yet — add them on{" "}
 
               {/*
                 ═══════════════════════════════════════════════════════════════
-                "SIZES" CARD REMOVED — মালিকের সিদ্ধান্ত, ২ আগস্ট ২০২৬:
+                "SIZES" CARD REMOVED — owner's decision, 2 Aug 2026:
                 *"ha size ta tahole to dorkar nai eta soraia daw"*
 
-                কেন। উপরের "Colours, flavours, sizes" card একই কাজ করে, আর
-                ভালোভাবে করে: তালিকাটা সবার জন্য একটাই (master), প্রতিটা
-                মাপের নিজের ছবি আর নিজের মজুদ থাকে। পুরনো card-টা শুধু এই
-                product-এ থাকত, ছবি রাখতে পারত না, আর তার "Stock" ঘরটা
-                লেখা যেত কিন্তু কোথাও save হতো না — database-এ ওই কলামই নেই।
+                Why. The "Colours, flavours, sizes" card above does the same
+                job, and does it better: one shared list for everyone
+                (master), each size with its own image and its own stock.
+                The old card only lived on this one product, couldn't hold a
+                photo, and its "Stock" field could be typed into but was
+                never saved anywhere — that column doesn't even exist in the
+                database.
 
-                ⚠️ কিছু মুছে ফেলা হয়নি। `ProductSize` টেবিল, API আর
-                website-এর size row জায়গামতোই আছে, তাই আগে যেসব product-এ
-                মাপ বসানো ছিল সেগুলো আগের মতোই চলছে। `buildDto` এখন
-                `sizes` পাঠায়ই না — আর না পাঠানো মানে API ওগুলো ছোঁয় না।
-                পাঠালে খালি array যেত আর প্রতিবার Publish-এ পুরনো মাপগুলো
-                মুছে যেত।
+                ⚠️ Nothing was deleted. The `ProductSize` table, the API, and
+                the website's size row are all still exactly where they
+                were, so any product that already had sizes set keeps
+                working as before. `buildDto` now simply never sends
+                `sizes` — and not sending it means the API doesn't touch
+                them. Sending an empty array would have wiped out the old
+                sizes on every Publish.
                 ═══════════════════════════════════════════════════════════════
               */}
 
@@ -4586,9 +4668,10 @@ No bundle products yet — add them on{" "}
                 ) : (
                   <>
                     {/*
-                      DEC-PRD-017 — একটাই bundle, তার ভেতরে যতগুলো ইচ্ছা
-                      product, আর নিচে একটাই ছাড়ের ঘর। মালিকের নিয়ম:
-                      ছাড় বসে main product সহ মোট দামের উপর।
+                      DEC-PRD-017 — one bundle, holding as many products as
+                      needed, with one discount field below. Owner's rule:
+                      the discount applies to the total including the main
+                      product.
                     */}
                     {pendingBundles.length > 0 && (
                       <div className="bg-lavender/50 rounded-[12px] p-3 mb-3">
@@ -4622,10 +4705,10 @@ No bundle products yet — add them on{" "}
                             </div>
                           ))}
                         </div>
-                        {/*  ⚠️ ছাড়ের ঘর এখানে নেই — DEC-PRD-019, মালিকের
-                            নির্দেশ: *"variant page a akhono discount button
+                        {/*  ⚠️ No discount field here — DEC-PRD-019, owner's
+                            instruction: *"variant page a akhono discount button
                             ache ja amder dorkar nai. amra price tab a sob
-                            kaj korbo."* এই card-এর কাজ শুধু কোন কোন জিনিস।  */}
+                            kaj korbo."* This card's job is only which items.  */}
                         <p className="text-[12.5px] text-body-soft mt-2 mb-0">
                           Discount &amp; totals live on the{" "}
                           <b className="font-semibold text-purple">Pricing</b> tab.
@@ -4765,8 +4848,9 @@ No bundle products yet — add them on{" "}
                     </div>
                   </div>
                 )}
-                {/*  ⚠️ দুটো প্যারাগ্রাফ ছিল, এক লাইন হলো। আর কথাটা এখন
-                    সত্যিও — DEC-PRD-020-এর আগে storefront এটা পড়তই না।  */}
+                {/*  ⚠️ There used to be two paragraphs, now it's one line.
+                    And the line is actually true now too — before
+                    DEC-PRD-020 the storefront never even read this.  */}
 
               </Card>
 
@@ -4861,23 +4945,25 @@ No bundle products yet — add them on{" "}
 
           {/*
             ═══════════════════════════════════════════════════════════════════
-            TAGS — DEC-PRD-022, মালিকের প্রশ্ন ২ আগস্ট ২০২৬:
+            TAGS — DEC-PRD-022, owner's question, 2 Aug 2026:
             *"tag module a kaj korle ba update korle product upload page sathe
             sathe update hoy kina?"*
 
-            উত্তর ছিল **না** — চিপগুলো এই ফাইলে হাতে লেখা দুটো array থেকে
-            আঁকা হতো (৮টা occasion, ৫টা recipient)। Occasions & Tags-এ নতুন
-            tag বা নতুন group বানালে সেটা এখানে কোনোদিন আসত না।
+            The answer was **no** — the chips were drawn from two
+            hand-written arrays in this file (8 occasions, 5 recipients). A
+            new tag or new group created in Occasions & Tags would never
+            show up here.
 
-            এখন group ধরে ধরে API থেকেই আঁকা হয়। মালিক যা বানান তাই এখানে,
-            সাথে সাথে।
+            Now they're drawn straight from the API, grouped. Whatever the
+            owner creates shows up here, immediately.
             ═══════════════════════════════════════════════════════════════════
           */}
           {sec === "tags" && (
             <>
               {(() => {
-                /*  group ধরে সাজানো। group ছাড়া tag-ও থাকতে পারে (পুরনো
-                    তথ্য) — সেগুলো শেষে "Other" নামে, লুকিয়ে না রেখে।  */
+                /*  sorted by group. A tag without a group can still exist
+                    (older data) — those go last, under "Other", not
+                    hidden.  */
                 const live = apiTags.filter((t) => t.isActive !== false);
                 const byGroup = new Map<string, { name: string; tags: ApiTag[] }>();
                 for (const t of live) {
@@ -4920,8 +5006,8 @@ No bundle products yet — add them on{" "}
                       all={g.tags.map((t) => t.slug)}
                       value={tagSel}
                       onToggle={(v) => toggle(tagSel, v, setTagSel)}
-                      /*  দ্বিতীয় group থেকে সোনালি — একটার পর একটা একই রঙের
-                          চিপ সারি চোখে আলাদা হয় না।  */
+                      /*  gold from the second group onward — one same-colour
+                          chip row after another doesn't read as separate.  */
                       gold={i % 2 === 1}
                     />
                   </Card>
@@ -4969,17 +5055,18 @@ No bundle products yet — add them on{" "}
               </Card>
               {/*
                 ═══════════════════════════════════════════════════════════════
-                DEC-PRD-025 — মালিক, ২ আগস্ট ২০২৬:
-                *"আমরা এখানে প্রথমে একটা fake sale account বসাব like 50, 100,
-                1000। তারপর real sell হলে সেই সংখ্যার সাথে add হবে — 50
-                বসালাম, একটা sell হলো, auto 51। আমাদের stock-এর মতো, এটা তুমি
-                ভুলে গেছ। আর এখানে just last month আছে — today, week, month
-                and all time দরকার।"*
+                DEC-PRD-025 — owner, 2 Aug 2026:
+                *"we should first set a fake sale count here, like 50, 100,
+                1000. then when a real sale happens, it should add to that
+                number — I set 50, one sale happened, it auto becomes 51.
+                like our stock, you forgot this. and right now there's only
+                last month — we need today, week, month and all time."*
 
-                ⚠️ তিনি ঠিক বলেছেন, আর অর্ধেকটা আমি সত্যিই ভুলে গিয়েছিলাম।
-                গোনাটা চলত (order delivered হলে বাড়ত), কিন্তু সংখ্যাটা
-                product page-এ **দেখাতই না** — page-এ যেটা ছিল সেটা আলাদা
-                হিসাব, শুধু সত্যিকারের order, আর ১০-এর কম হলে চুপ।
+                ⚠️ He was right, and I really had forgotten half of it. The
+                counting was working (it went up when an order was
+                delivered), but the number **never showed** on the product
+                page — what was on the page was a separate calculation,
+                counting only genuine orders, and staying silent below 10.
                 ═══════════════════════════════════════════════════════════════
               */}
               <Card
@@ -4988,15 +5075,16 @@ No bundle products yet — add them on{" "}
                 tip="Your starting number plus every real sale, over whichever window you pick. Today, this week and this month stop counting on their own; all time only ever goes up."
               >
                 {/*
-                  ⚠️ এক ঘর, পাশে dropdown — মালিকের নির্দেশ, ২ আগস্ট ২০২৬:
-                  *"এভাবে দিছ কেন, এটা মোটেও ভালো লাগছে না। প্রথমে যেভাবে
-                  করেছিলা সেটাই সুন্দর — ঘর থাকবে একটা আর পাশের dropdown,
-                  ওইটাই সুন্দর।"*
+                  ⚠️ One field, a dropdown beside it — owner's instruction,
+                  2 Aug 2026: *"why did you do it this way, it doesn't look
+                  good at all. the way it was done at first was nice — one
+                  field and the dropdown beside it, that was the nice one."*
 
-                  চারটে সংখ্যা আলাদা করেই রাখা হয় (তাঁরই আগের সিদ্ধান্ত),
-                  কিন্তু পর্দায় একটাই ঘর — dropdown যেটা বলছে, সেটার সংখ্যা।
-                  চারটে ঘর একসাথে দেখানো মানে তিনটে সংখ্যা যা এই মুহূর্তে
-                  কোথাও যাচ্ছে না, অথচ চোখের সামনে।
+                  The four numbers are still kept separate (his own earlier
+                  decision), but the screen shows only one field — whichever
+                  the dropdown points to. Showing all four fields at once
+                  means three numbers sitting in front of you that aren't
+                  going anywhere at that moment.
                 */}
                 <div className={pairCls}>
                   <Field
@@ -5039,10 +5127,11 @@ No bundle products yet — add them on{" "}
                     </select>
                   </Field>
                 </div>
-                {/*  ⚠️ আগে এখানে দুটো অনুচ্ছেদ ছিল — কী দেখাবে, আর কবে
-                    ফুরাবে। মালিক ৩ আগস্ট বলেছেন page টা clean চান, তাই
-                    দুটো এক লাইনে। মেয়াদের কথাটা তুলে দেওয়া যায় না —
-                    না লিখলে তিনি ভাববেন সংখ্যাটা মুছে গেছে।  */}
+                {/*  ⚠️ There used to be two paragraphs here — what shows,
+                    and when it expires. The owner said on 3 Aug that he
+                    wants the page clean, so the two became one line. The
+                    expiry line can't be dropped — without it he'd think
+                    the number had disappeared.  */}
                 <p className="text-[12.5px] text-body-soft mt-2.5 mb-0">
                   Page shows{" "}
                   <b className="font-semibold text-purple">
@@ -5074,14 +5163,16 @@ No bundle products yet — add them on{" "}
               </Card>
               {/*
                 ═══════════════════════════════════════════════════════════════
-                DEC-PRD-026 — মালিক, ২ আগস্ট ২০২৬: *"আমাদের customize
-                product-এ কোথাও image upload আর কোথাও text লেখার জায়গা
-                product page-এ দিতে হয় — সেটার configure করার জায়গা পেলাম না।"*
+                DEC-PRD-026 — owner, 2 Aug 2026: *"for our customizable
+                products, some need an image upload and some need a text
+                field on the product page — I couldn't find a place to
+                configure that."*
 
-                ⚠️ পাননি কারণ ছিলই না। আর storefront-এর seam-এ সোজা
-                `perso: null` লেখা ছিল, তাই বাক্সটা কোনো product-এ **কখনো**
-                আসেনি — যদিও cart, checkout আর order আগে থেকেই লেখা আর ছবি
-                বয়ে নিয়ে যেত।
+                ⚠️ He couldn't find it because it didn't exist. The
+                storefront's seam had `perso: null` hardcoded straight in,
+                so the box **never** appeared on any product — even though
+                cart, checkout and order were already carrying the text and
+                image along.
                 ═══════════════════════════════════════════════════════════════
               */}
               <Card
@@ -5168,12 +5259,13 @@ No bundle products yet — add them on{" "}
               </Card>
 
               {/*
-                DEC-PRD-027 — মালিক: *"আমরা কোন কোন product-এ customize করতে
-                দিব, যা দিলে পাশে WhatsApp show করবে — তা customize করার
-                option... সেটাও কোথাও দেখতে পেলাম না।"*
+                DEC-PRD-027 — owner: *"which products we allow customizing
+                on, which shows a WhatsApp button beside it — the option to
+                configure that... I couldn't find that anywhere either."*
 
-                ⚠️ বাক্সটা এতদিন **সব** product-এ দেখাত, আর নম্বরটা ছিল
-                `wa.me/8801000000000` — আমার বসানো একটা বানানো নম্বর।
+                ⚠️ Until now the box showed on **every** product, and the
+                number was `wa.me/8801000000000` — a made-up number I had
+                put in.
               */}
               <Card
                 icon="phone"
@@ -5202,9 +5294,9 @@ No bundle products yet — add them on{" "}
                           placeholder="Different colours, sizes or a theme — chat with our florists."
                         />
                       </Field>
-                      {/*  ⚠️ নম্বর এখানে লেখা যায় না, আর সেটাই ঠিক — দুই
-                          জায়গায় দুটো নম্বর রাখলে একদিন একটা পুরনো হয়ে
-                          বসে থাকত।  */}
+                      {/*  ⚠️ The number can't be typed here, and that's
+                          correct — keeping two numbers in two places would
+                          someday leave one sitting stale.  */}
                       <p className="text-[12.5px] text-body-soft m-0">
                         Number from{" "}
                         <Link
@@ -5226,15 +5318,16 @@ No bundle products yet — add them on{" "}
                 tip="The three promises under the photo. What the category gives is shown below — leave it alone and every product stays in step. Press “Use these and edit” only when this one product needs something different."
               >
                 {/*
-                  DEC-PRD-023 — মালিক, ২ আগস্ট ২০২৬: *"trust badge-এ তো আমি
-                  কোন icon কিছুই custom করে বানাতে পারছি না, তুমি নিজের মতো
-                  করে দিয়ে দিছ।"*
+                  DEC-PRD-023 — owner, 2 Aug 2026: *"for trust badges, I
+                  can't custom-make any icon myself, you've just put in
+                  whatever you thought was right."*
 
-                  ⚠️ এখানে **template নেই আর**। template মানে ছিল আমার হাতে
-                  লেখা তিনটে badge, যেগুলো মালিকের কোথাও বদলানোর পথ ছিল না।
-                  এখন আসল জায়গা Categories → ওই category → "Product page —
-                  badges & what's inside", যেখানে নিজের icon-ও দেওয়া যায়।
-                  এই card শুধু ব্যতিক্রমের জন্য।
+                  ⚠️ There is **no template here anymore**. The template used
+                  to mean three badges I'd hand-written, which the owner had
+                  no way to change. The real place now is Categories → that
+                  category → "Product page — badges & what's inside", where
+                  a custom icon can be set too. This card exists only for
+                  the exception.
                 */}
                 <FromCategory
                   from={storyFrom}
@@ -5243,7 +5336,7 @@ No bundle products yet — add them on{" "}
                   onCopy={() =>
                     setTrust(
                       catTrust.map((b) => ({
-                        /*  DEC-PRD-031 — এক তালিকা, তাই সরাসরি।  */
+                        /*  DEC-PRD-031 — one list, so it's a direct pass-through.  */
                         icon: b.icon ?? "shield",
                         iconUrl: b.iconUrl ?? null,
                         label: b.label,
@@ -5281,10 +5374,11 @@ No bundle products yet — add them on{" "}
                         className="border border-lavender-deep rounded-[12px] bg-white"
                       >
                         <div className="flex items-start gap-3 p-3">
-                          {/*  ⚠️ icon-টা এখন সত্যিই icon। আগে এখানে একটা
-                              `<select>` ছিল যেখানে "truck · nationwide"
-                              লেখা থাকত — মালিক: *"icon-এ text আসে কেন,
-                              এটা তো image আসবে।"*  */}
+                          {/*  ⚠️ The icon is now genuinely an icon. There
+                              used to be a `<select>` here showing text like
+                              "truck · nationwide" — owner: *"why does text
+                              show for the icon — it should be an
+                              image."*  */}
                           <button
                             type="button"
                             onClick={() => setIconPick(iconPick === i ? null : i)}
@@ -5328,8 +5422,9 @@ No bundle products yet — add them on{" "}
                         {iconPick === i && (
                           <div className="px-3 pb-3">
                             <div className="rounded-[12px] bg-lavender/40 border border-lavender-deep p-3">
-                              {/*  ⚠️ মাপটা আগে, বাছার আগেই — file বেছে ফেলার
-                                  পরে লিখলে সেটা আর কাজে লাগে না।  */}
+                              {/*  ⚠️ The dimensions come first, before the
+                                  picker — stated after a file is already
+                                  chosen, it's too late to be useful.  */}
                               <div className="flex items-center gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
                                 <span className="text-orchid shrink-0">
                                   <Icon name="upload" size={14} />
@@ -5354,9 +5449,11 @@ No bundle products yet — add them on{" "}
                                     key={n}
                                     type="button"
                                     onClick={() => {
-                                      /*  নিজের ছবি বসলে built-in নাম মুছে যায়,
-                                          আর উল্টোটাও — দুটো একসাথে থাকলে সারি
-                                          দেখে বলা যেত না কোনটা দেখাবে।  */
+                                      /*  Setting a custom image clears the
+                                          built-in name, and vice versa —
+                                          with both set at once, there'd be
+                                          no way to tell from the row which
+                                          one would actually show.  */
                                       setRow({ icon: n, iconUrl: null });
                                       setIconPick(null);
                                     }}
@@ -5431,9 +5528,10 @@ No bundle products yet — add them on{" "}
                 >
                   <Icon name="plus" size={16} /> Add badge
                 </button>
-                {/*  ⚠️ "Later you can upload your own icon sets" লেখা ছিল
-                    এখানে — DEC-PRD-023-এ সেই "later" এসে গেছে, আর জায়গাটা
-                    Categories। প্রতিশ্রুতির লাইনটা তাই তুলে দেওয়া হলো।  */}
+                {/*  ⚠️ "Later you can upload your own icon sets" used to be
+                    written here — that "later" has now arrived, in
+                    DEC-PRD-023, and it lives in Categories. So the promise
+                    line was removed.  */}
               </Card>
               <Card
                 icon="book"
@@ -5512,10 +5610,11 @@ No bundle products yet — add them on{" "}
                 title="FAQ — shows as “Before You Order”"
                 tip="This product’s own questions. The category’s are shown too, underneath these — they add up, they do not replace."
               >
-                {/*  ⚠️ FAQ-ই একমাত্র যেটা **যোগ হয়** — product-এরগুলো আগে,
-                    তারপর category-রগুলো। Badge আর "What's inside" বদলে বসে।
-                    পার্থক্যটা লিখে রাখা হলো, কারণ তিনটে card পাশাপাশি
-                    থাকলে একই নিয়ম ধরে নেওয়াই স্বাভাবিক।  */}
+                {/*  ⚠️ FAQ is the only one that **adds up** — the product's
+                    own first, then the category's. Badges and "What's
+                    inside" replace instead. Writing the distinction down
+                    here, since with three cards side by side it's natural
+                    to assume they all follow the same rule.  */}
                 {templateBar(loadFaqTpl)}
                 <div className="flex flex-col gap-2.5">
                   {faqs.map((r, i) => (
@@ -5634,14 +5733,15 @@ No bundle products yet — add them on{" "}
                 hint="The picture that shows on WhatsApp, Facebook and Messenger.">
                 <div className="grid gap-4">
                   {/*
-                    DEC-PRD-024 — মালিক, ২ আগস্ট ২০২৬: *"image-এর কীসের link
-                    দেব বুঝলাম না।"*
+                    DEC-PRD-024 — owner, 2 Aug 2026: *"I didn't understand
+                    what link I'm supposed to give for the image."*
 
-                    ⚠️ ন্যায্য প্রশ্ন — এখানে শুধু "https://…" লেখা একটা ঘর
-                    ছিল, অথচ দোকানের কাছে ছবির URL আসবে কোথা থেকে? এখন
-                    সরাসরি upload করা যায়, ঠিক যেভাবে product-এর ছবি হয়।
-                    ঘরটা রয়ে গেছে, কারণ কখনো অন্য জায়গার ছবির ঠিকানা
-                    বসাতেই হতে পারে।
+                    ⚠️ A fair question — there used to be just a field
+                    saying "https://…", but where would the shop even get an
+                    image URL from? Now it can be uploaded directly, the
+                    same way a product's photo is. The field still remains,
+                    because sometimes an image address from elsewhere does
+                    need to be pasted in.
                   */}
                   <Field
                     label="Share picture"
@@ -5668,12 +5768,13 @@ No bundle products yet — add them on{" "}
                             if (!f) return;
                             setOgBusy(true);
                             try {
-                              /*  ১ MB-র সীমা সব ছবিতেই — মালিকের নিয়ম।
-                                  ১:১ জোর করা হয় না; share card চওড়া।  */
+                              /*  1 MB limit applies to every image — the
+                                  owner's rule. 1:1 isn't forced here; the
+                                  share card is wide.  */
                               const url = await uploadItemImage(f, "products", 1200);
                               setOgImageUrl(url);
                             } catch {
-                              /* না উঠলে ঘরটা আগের মতোই থাকে */
+                              /* if the upload fails, the field stays as it was */
                             } finally {
                               setOgBusy(false);
                             }
@@ -5851,8 +5952,9 @@ No bundle products yet — add them on{" "}
             <div className="flex justify-between py-1.5 border-b border-lavender-deep">
               <span className="text-body-soft">Stock</span>
               <span>
-                {/*  DEC-PRD-014 — variant থাকলে এখানেও যোগফল, নাহলে
-                     preview একটা সংখ্যা আর Stock tab আরেকটা দেখাত।  */}
+                {/*  DEC-PRD-014 — if there are variants, this shows the
+                     total too, otherwise the preview showed one number
+                     and the Stock tab showed another.  */}
                 {stockMode !== "MANUAL"
                   ? "Tracked"
                   : variants.length > 0
