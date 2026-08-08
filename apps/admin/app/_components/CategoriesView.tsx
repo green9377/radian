@@ -252,8 +252,8 @@ export default function CategoriesView() {
              pane had a bold pinned header, so the two sides looked unbalanced.
              Now the left is its own card with a rose-gold header — a second
              colour that reads clearly against the editor's purple.  */}
-        <div className="xl:sticky xl:top-4 self-start space-y-3">
-          <div className="bg-white border border-[#eadddf] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col">
+        <div className="xl:sticky xl:top-4 self-start">
+          <div className="border border-[#eadddf] rounded-2xl shadow-[0_2px_10px_rgba(150,90,110,0.10)] overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col" style={{ background: "#fdf7f8" }}>
             {/* rose-gold header — distinct from the editor's purple */}
             <div className="relative px-5 py-4 shrink-0 overflow-hidden" style={{ background: "linear-gradient(135deg,#9c5560,#b76e79 55%,#d9a6ad)" }}>
               <div className="absolute -right-6 -top-12 w-40 h-40 rounded-full bg-white opacity-[0.10]" />
@@ -271,7 +271,7 @@ export default function CategoriesView() {
               </div>
             </div>
 
-            {/* scrollable body */}
+            {/* scrollable body — everything lives inside so the card stays pinned */}
             <div className="p-3 space-y-2 overflow-y-auto scrollbar-none">
           {isEmpty && !isDemo && (
             <div className="rounded-[14px] border border-dashed border-lavender-deep p-6 text-center">
@@ -288,8 +288,10 @@ export default function CategoriesView() {
             const total = parentTotal(p);
             const on = selected === p.id;
             return (
-              <div key={p.id} className={"border rounded-[12px] overflow-hidden transition-colors " + (on ? "border-orchid ring-1 ring-orchid-soft bg-[#fdf4fb]" : p.isActive ? "border-[#ece5f2] bg-white" : "border-[#f0dcc4] bg-[#fdf8f2]")}>
-                <div className={"grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2.5 cursor-pointer " + (on ? "bg-orchid-soft" : "hover:bg-lavender/40")} onClick={() => setSelected(p.id)}>
+              <div key={p.id} className={"relative rounded-[14px] overflow-hidden transition-all " + (on ? "bg-white shadow-[0_3px_12px_rgba(160,33,184,0.14)] ring-1 ring-orchid" : "bg-white shadow-[0_1px_3px_rgba(80,40,100,0.06)] hover:shadow-[0_2px_8px_rgba(80,40,100,0.10)]")}>
+                {/* selected accent bar */}
+                {on && <span className="absolute left-0 top-0 bottom-0 w-1 bg-orchid" />}
+                <div className={"grid grid-cols-[auto_1fr_auto] items-center gap-2.5 px-3.5 py-3 cursor-pointer " + (on ? "bg-[#fdf4fb]" : "hover:bg-[#faf6fc]")} onClick={() => setSelected(p.id)}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -300,51 +302,51 @@ export default function CategoriesView() {
                         return n;
                       });
                     }}
-                    className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-purple bg-lavender hover:bg-lavender-deep shrink-0"
+                    className={"w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0 transition-colors " + (open ? "bg-orchid text-white" : "bg-lavender text-purple hover:bg-lavender-deep")}
                     title={open ? "Collapse" : "Expand"}
                   >
                     <span className={"transition-transform " + (open ? "rotate-0" : "-rotate-90")}><Icon name="chevronDown" size={15} /></span>
                   </button>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-[14.5px] text-purple truncate">{p.name}</span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-lavender text-purple">{total}</span>
-                      {!p.isActive && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+                      <span className={"text-[15px] truncate " + (p.isActive ? "font-bold text-purple" : "font-semibold text-body-soft")}>{p.name}</span>
+                      {total > 0 && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-lavender text-purple">{total}</span>}
+                      {!p.isActive && <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
                     </div>
-                    <div className="text-[13px] text-body-soft">{p.kids.length} sub{p.kids.length === 1 ? "" : "s"}</div>
+                    <div className="text-[12px] text-body-soft mt-0.5">{p.kids.length} sub{p.kids.length === 1 ? "" : "s"}</div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex flex-col">
-                      <button onClick={() => move(p, tree, "up")} disabled={pi === 0} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
-                      <button onClick={() => move(p, tree, "down")} disabled={pi === tree.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col text-body-soft/60">
+                      <button onClick={() => move(p, tree, "up")} disabled={pi === 0} className="hover:text-purple disabled:opacity-20 leading-none py-0.5" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
+                      <button onClick={() => move(p, tree, "down")} disabled={pi === tree.length - 1} className="hover:text-purple disabled:opacity-20 leading-none py-0.5" title="Move down"><Icon name="chevronDown" size={13} /></button>
                     </div>
                     <Switch on={p.isActive} onClick={() => toggleActive(p)} />
                   </div>
                 </div>
 
                 {open && (
-                  <div className="bg-lavender/30 border-t border-lavender-deep px-2.5 py-2 space-y-1">
+                  <div className="border-t border-[#f0e9f5] px-3 pt-2 pb-2.5 space-y-1.5" style={{ background: "#faf7fc" }}>
                     {p.kids.map((c, ci) => {
                       const onC = selected === c.id;
                       return (
-                        <div key={c.id} className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[10px] px-2.5 py-1.5 cursor-pointer border " + (onC ? "bg-orchid-soft border-orchid" : "bg-white border-lavender-deep hover:border-orchid")} onClick={() => setSelected(c.id)}>
+                        <div key={c.id} className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[11px] pl-3 pr-2 py-2 cursor-pointer transition-all " + (onC ? "bg-white ring-1 ring-orchid shadow-[0_2px_8px_rgba(160,33,184,0.12)]" : "bg-white/70 hover:bg-white")} onClick={() => setSelected(c.id)}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-orchid shrink-0" />
-                            <span className="text-[13.5px] font-medium text-purple truncate">{c.name}</span>
-                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-lavender text-purple">{pc(c)}</span>
-                            {!c.isActive && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+                            <span className={"w-1.5 h-1.5 rounded-full shrink-0 " + (c.isActive ? "bg-orchid" : "bg-lavender-deep")} />
+                            <span className={"text-[13.5px] truncate " + (c.isActive ? "font-semibold text-purple" : "font-medium text-body-soft")}>{c.name}</span>
+                            {pc(c) > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-lavender text-purple">{pc(c)}</span>}
+                            {!c.isActive && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
                           </div>
-                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex flex-col">
-                              <button onClick={() => move(c, p.kids, "up")} disabled={ci === 0} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={12} /></span></button>
-                              <button onClick={() => move(c, p.kids, "down")} disabled={ci === p.kids.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={12} /></button>
+                          <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col text-body-soft/60">
+                              <button onClick={() => move(c, p.kids, "up")} disabled={ci === 0} className="hover:text-purple disabled:opacity-20 leading-none py-0.5" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={12} /></span></button>
+                              <button onClick={() => move(c, p.kids, "down")} disabled={ci === p.kids.length - 1} className="hover:text-purple disabled:opacity-20 leading-none py-0.5" title="Move down"><Icon name="chevronDown" size={12} /></button>
                             </div>
                             <Switch on={c.isActive} onClick={() => toggleActive(c)} small />
                           </div>
                         </div>
                       );
                     })}
-                    <button onClick={() => startNew(p.id)} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-orchid hover:text-purple px-1 py-1">
+                    <button onClick={() => startNew(p.id)} className="inline-flex items-center gap-1.5 text-[12px] font-bold text-orchid hover:text-purple px-2 py-1.5">
                       <Icon name="plus" size={13} /> Add sub-category
                     </button>
                   </div>
@@ -352,15 +354,15 @@ export default function CategoriesView() {
               </div>
             );
           })}
+            {/* storefront preview lives INSIDE the scroll, so the whole card
+                stays pinned no matter how long the tree is */}
+            {!isEmpty && <StorePreview tree={tree} />}
             </div>
           </div>
-
-          {/* storefront preview — its own card under the tree */}
-          {!isEmpty && <StorePreview tree={tree} />}
         </div>
 
-        {/* ---------------- RIGHT: editor / preview ---------------- */}
-        <div>
+        {/* ---------------- RIGHT: editor zone (purple-tinted) ---------------- */}
+        <div className="xl:bg-[#f6edfb] xl:rounded-[22px] xl:p-3.5">
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}
