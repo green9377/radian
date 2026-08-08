@@ -2492,10 +2492,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   <Field
                     label={
                       <L
+                        required
                         chip={
                           <Where
                             kind="staff"
-                            why="Never printed on a page a customer reads. It DOES travel in machine data — the Google Merchant feed, the page's structured data, the analytics layer — because that is the identifier those expect for one product."
+                            why="Never printed on a page a customer reads. It DOES travel in machine data — the Google Merchant feed, the page's structured data, the analytics layer — because that is the identifier those expect for one product. Required to publish (owner, 6 Aug 2026)."
                           >
                             Not on the page
                           </Where>
@@ -2523,47 +2524,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                 {/*  The two toggles sit side by side because they are the same
                     kind of question — one of two things — and reading them as
                     a pair is faster than reading them as a stack.  */}
+                {/*  Status line removed 6 Aug 2026 (owner): it only mirrored
+                    the publish/draft state that the top Save/Publish buttons
+                    already set — no function here, just clutter.  */}
                 <div className={pairCls}>
-                  <Field
-                    label={
-                      <L
-                        chip={
-                          <Where
-                            kind="live"
-                            why="Draft means the product is not on the website at all — no page, no card, nothing."
-                          >
-                            The live switch
-                          </Where>
-                        }
-                      >
-                        Status
-                      </L>
-                    }
-                  >
-                    {/*  6 Aug 2026 — this used to be a Seg the owner could
-                        click, but it wrote to local state only; the actual
-                        publish/draft field is set exclusively by the "Save
-                        draft" / "Publish" buttons above, via `handleSave`.
-                        Two controls for one fact, only one of them wired,
-                        is how a shop owner clicks "Draft" here, hits the
-                        Publish button anyway, and the product goes live —
-                        silently wrong. Now this is read-only, kept in sync
-                        with the real value in handleSave(), and points at
-                        the buttons that actually decide it.  */}
-                    <div
-                      className="flex items-center gap-2 border border-lavender-deep rounded-[11px] px-3.5 py-2.5 text-[13.5px]"
-                      style={{ background: status === "ACTIVE" ? "#eaf7ef" : "#f4f2f7" }}
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ background: status === "ACTIVE" ? "#0f7d55" : "#8b8398" }}
-                      />
-                      <span className="font-medium text-purple">
-                        {status === "ACTIVE" ? "Active — on the website" : "Draft — hidden"}
-                      </span>
-                      <span className="text-body-soft"> — set by the buttons above, not here</span>
-                    </div>
-                  </Field>
                   <Field
                     label={
                       <L

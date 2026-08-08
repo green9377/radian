@@ -781,11 +781,12 @@ export class ProductsService {
     মুহূর্তেই যাচাই করে।
   */
   private async assertPublishReady(
-    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[] },
+    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[] },
     existing: {
       isPublished?: boolean;
       sellingPricePaisa?: number;
       categoryId?: string;
+      sku?: string | null;
       supportsExpress?: boolean;
       supportsSameDay?: boolean;
       supportsMidnight?: boolean;
@@ -803,6 +804,13 @@ export class ProductsService {
     const categoryId = dto.categoryId ?? existing?.categoryId;
     if (!categoryId) {
       throw new BadRequestException('Publish করার আগে category বাছতে হবে।');
+    }
+
+    // SKU/product code required to publish (owner, 6 Aug 2026). Draft is never
+    // blocked — this only fires when isPublished flips true.
+    const sku = (dto.sku ?? existing?.sku ?? '').trim();
+    if (!sku) {
+      throw new BadRequestException('A product cannot be published without a SKU / product code.');
     }
 
     const exp = dto.supportsExpress ?? existing?.supportsExpress ?? false;
