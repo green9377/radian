@@ -22,6 +22,9 @@ export interface SendOutcome {
   /** Nothing to send over — web chat, or the channel is not connected. */
   skipped?: boolean;
   error?: string;
+  /** Meta's id for the message just sent — lets the webhook's echo of THIS
+      exact send recognise itself and not save a second copy. */
+  providerMessageId?: string;
 }
 
 @Injectable()
@@ -106,7 +109,10 @@ export class ChannelSender {
           messaging_type: 'RESPONSE',
         }),
       });
-      if (res.ok) return { ok: true };
+      if (res.ok) {
+        const j = (await res.json().catch(() => null)) as { message_id?: string } | null;
+        return { ok: true, providerMessageId: j?.message_id };
+      }
       const text = await res.text();
       this.log.warn(`${channel} send failed (${res.status}): ${text.slice(0, 300)}`);
       return { ok: false, error: `${res.status}: ${text.slice(0, 300)}` };

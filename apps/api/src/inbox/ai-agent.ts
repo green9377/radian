@@ -394,7 +394,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     body: string,
     aiMeta: Record<string, unknown>,
   ): Promise<void> {
-    await this.prisma.db.message.create({
+    const saved = await this.prisma.db.message.create({
       data: {
         conversationId,
         direction: MessageDirection.OUT,
@@ -416,6 +416,13 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     const r = await this.sender.send(convo, body);
     if (!r.ok && !r.skipped) {
       this.logger.warn(`AI reply not delivered for ${conversationId}: ${r.error}`);
+      return;
+    }
+    // same self-recognition tag as inbox.ts reply() — see the comment there
+    if (r.providerMessageId) {
+      await this.prisma.db.message
+        .update({ where: { id: saved.id }, data: { externalMessageId: r.providerMessageId } })
+        .catch(() => undefined);
     }
   }
 

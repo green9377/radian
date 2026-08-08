@@ -95,11 +95,17 @@ export class MetaWebhookService {
 
     for (const ev of events) {
       /*
-        Echoes are our own messages coming back. Storing them would duplicate
-        every reply, and answering them would have the AI talking to itself.
+        Echoes are our own messages coming back — EITHER a reply Radian just
+        sent (dedupe catches it below, by mid) OR a reply typed straight into
+        the Messenger/Instagram app on someone's phone, which Radian never
+        saw. Throwing every echo away — the old behaviour — silently dropped
+        the second kind: a staff member could answer a customer from their
+        phone and the admin thread would never show it, still looking
+        unanswered (found 8 Aug, owner: "mobile theke reply dile admin a ase
+        na").
       */
-      if (ev.message?.is_echo) continue;
-      await this.onMessage(channel, ev);
+      if (ev.message?.is_echo) await this.onEcho(channel, ev);
+      else await this.onMessage(channel, ev);
     }
   }
 
@@ -164,6 +170,56 @@ export class MetaWebhookService {
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
       this.log.warn(`inbound ${channel} failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  /**
+   * A reply sent OUTSIDE Radian — typed straight into the Page's Messenger
+   * app or the Instagram app on someone's phone. Meta echoes every outgoing
+   * message back to the webhook whichever way it was sent, tagged is_echo.
+   *
+   * Sender/recipient are reversed from onMessage(): on an echo, `sender` is
+   * our own Page/IG account and `recipient` is the customer.
+   *
+   * Replies sent THROUGH Radian arrive here too — inbox.ts/ai-agent.ts tag
+   * their own Message row with Meta's message id the moment the send
+   * succeeds, so the dedupe check below finds it and this is a no-op for
+   * them. Only a mid Radian never saw reaches the create() below.
+   */
+  private async onEcho(channel: InboxChannel, ev: MetaMessaging) {
+    const mid = ev.message?.mid;
+    const psid = ev.recipient?.id?.trim();
+    const body = this.text(ev);
+    if (!mid || !psid || !body) return;
+
+    try {
+      const seen = await this.prisma.db.message.findFirst({
+        where: { externalMessageId: mid },
+        select: { id: true },
+      });
+      if (seen) return; // sent through Radian — already recorded
+
+      const convo = await this.conversationFor(channel, psid);
+
+      await this.prisma.db.message.create({
+        data: {
+          conversationId: convo.id,
+          direction: MessageDirection.OUT,
+          // The real author is unknown from here — whoever is holding the
+          // phone. STAFF with no authorUserId renders as plain "Staff".
+          authorType: MessageAuthor.STAFF,
+          body: body.slice(0, 2000),
+          externalMessageId: mid,
+        },
+      });
+
+      await this.prisma.db.conversation.update({
+        where: { id: convo.id },
+        data: { status: ConversationStatus.WAITING_CUSTOMER, lastMessageAt: new Date() },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      this.log.warn(`echo ${channel} failed: ${e instanceof Error ? e.message : e}`);
     }
   }
 

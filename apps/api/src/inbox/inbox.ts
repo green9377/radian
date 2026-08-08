@@ -404,7 +404,7 @@ export class InboxService {
     const convo = await this.prisma.db.conversation.findFirst({ where: { id, deletedAt: null } });
     if (!convo) throw new NotFoundException('Conversation not found');
 
-    await this.prisma.db.message.create({
+    const saved = await this.prisma.db.message.create({
       data: {
         conversationId: id,
         direction: MessageDirection.OUT,
@@ -435,7 +435,22 @@ export class InboxService {
     void this.sender
       .send(convo, body)
       .then((r) => {
-        if (!r.ok && !r.skipped) this.log.warn(`reply not delivered for ${id}: ${r.error}`);
+        if (!r.ok && !r.skipped) {
+          this.log.warn(`reply not delivered for ${id}: ${r.error}`);
+          return;
+        }
+        /*  Tags this row with Meta's own id for the send, so the echo of this
+            exact message (meta-webhook.ts) recognises it as already saved and
+            does not create a second copy. Without this, every Messenger and
+            Instagram reply sent from the admin would double up the moment the
+            echo arrived — found 8 Aug, alongside the mirror bug: a reply typed
+            directly in the phone's Messenger/Instagram app never reached the
+            admin at all, because every echo was being thrown away unread. */
+        if (r.providerMessageId) {
+          void this.prisma.db.message
+            .update({ where: { id: saved.id }, data: { externalMessageId: r.providerMessageId } })
+            .catch(() => undefined);
+        }
       })
       .catch(() => undefined);
 

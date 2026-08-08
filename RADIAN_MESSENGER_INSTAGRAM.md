@@ -129,6 +129,35 @@ Meta-র status code ও বার্তা log-এ উঠবে。
 
 ---
 
+## ৫খ. মোবাইল থেকে সরাসরি reply — সমাধান (৮ আগস্ট)
+
+মালিক ধরলেন: ফোনের Messenger/Instagram app থেকে সরাসরি reply দিলে সেটা
+Radian Admin-এ **আসত না**, থ্রেড উত্তরহীন দেখাত।
+
+**কারণ:** Meta যা-ই পাঠাই — Radian দিয়ে বা ফোন থেকে সরাসরি — সবকিছুর একটা
+**echo** ফেরত পাঠায় webhook-এ (`is_echo: true`)। আগের কোড সব echo-ই ফেলে
+দিত, কারণ Radian দিয়ে পাঠানো reply তো নিজেই আগে থেকে save করা থাকে —
+echo-টা রাখলে duplicate হতো। কিন্তু এতে ফোন থেকে সরাসরি পাঠানো reply-ও
+হারিয়ে যেত — Radian সেটা কখনোই জানত না।
+
+**সমাধান — echo-কে দুই ভাগে চেনা:**
+
+1. Radian দিয়ে পাঠানো reply-র সাথে Meta-র নিজের message id সাথে সাথে
+   জুড়ে দেওয়া হয় (`channel-sender.service.ts` এখন `message_id` ফেরত দেয়,
+   `inbox.ts`/`ai-agent.ts` সেটা নিজের সেভ করা row-তে বসিয়ে দেয়)
+2. Echo এলে সেই id দিয়ে খোঁজা হয় — পাওয়া গেলে (মানে Radian-ই পাঠিয়েছিল)
+   কিছু করা হয় না, বাদ। **না পাওয়া গেলে** (মানে ফোন থেকে সরাসরি গেছে) —
+   সেটা এখন **নতুন OUT message হিসেবে thread-এ বসে**, "Staff" নামে
+
+⚠️ Echo-তে sender/recipient উল্টো — `sender` মানে আমাদের নিজের Page/IG
+account, `recipient` মানে গ্রাহক। `onMessage()`-এর উল্টো, তাই আলাদা
+`onEcho()` মেথড।
+
+WhatsApp-এর জন্য এখনো এই সমস্যা প্রযোজ্য না — আসল নম্বর এখনো Coexistence-এ
+যায়নি (§৬-এর বাকি কাজ)। যাওয়ার পরে একই প্রশ্ন উঠবে, তখন আবার দেখা লাগবে।
+
+---
+
 ## ৬. যা এখনো বাকি
 
 - **App Review** — `pages_messaging` ও `instagram_business_manage_messages`-এ
