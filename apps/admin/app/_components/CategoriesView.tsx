@@ -246,13 +246,37 @@ export default function CategoriesView() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(340px,1fr)_1.6fr] gap-6 items-start">
-        {/* ---------------- LEFT: tree list (sticky on scroll) ---------------- */}
-        <div className="space-y-3 xl:sticky xl:top-4 self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto scrollbar-none pr-1">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,1fr)_1.6fr] gap-6 items-start">
+        {/* ---------------- LEFT: tree list, wrapped in a card ----------------
+             6 Aug 2026 — the tree used to float as loose cards while the right
+             pane had a bold pinned header, so the two sides looked unbalanced.
+             Now the left is its own card with a rose-gold header — a second
+             colour that reads clearly against the editor's purple.  */}
+        <div className="xl:sticky xl:top-4 self-start space-y-3">
+          <div className="bg-white border border-[#eadddf] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col">
+            {/* rose-gold header — distinct from the editor's purple */}
+            <div className="relative px-5 py-4 shrink-0 overflow-hidden" style={{ background: "linear-gradient(135deg,#9c5560,#b76e79 55%,#d9a6ad)" }}>
+              <div className="absolute -right-6 -top-12 w-40 h-40 rounded-full bg-white opacity-[0.10]" />
+              <div className="relative flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-10 h-10 rounded-xl bg-white/20 ring-1 ring-white/40 grid place-items-center text-white shrink-0"><Icon name="layers" size={18} /></span>
+                  <div className="min-w-0">
+                    <div className="font-display font-bold text-[18px] text-white leading-tight">Category tree</div>
+                    <div className="text-white/80 text-[12px]">{stats.tops} top-level · {stats.subs} sub</div>
+                  </div>
+                </div>
+                <button onClick={() => startNew(null)} className="bg-white/20 hover:bg-white/30 ring-1 ring-white/40 text-white text-[12.5px] font-bold px-3 py-2 rounded-xl inline-flex items-center gap-1.5 shrink-0 transition-colors">
+                  <Icon name="plus" size={15} /> Add
+                </button>
+              </div>
+            </div>
+
+            {/* scrollable body */}
+            <div className="p-3 space-y-2 overflow-y-auto scrollbar-none">
           {isEmpty && !isDemo && (
-            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 text-center">
-              <div className="font-display text-[18px] text-purple mb-1">No categories yet</div>
-              <p className="text-body-soft text-[13px] mb-4">Load a ready-made Bangladesh flower &amp; gift taxonomy, or add your first with the button above.</p>
+            <div className="rounded-[14px] border border-dashed border-lavender-deep p-6 text-center">
+              <div className="font-display text-[17px] text-purple mb-1">No categories yet</div>
+              <p className="text-body-soft text-[13px] mb-4">Add your first with the button above.</p>
               <button onClick={loadSamples} disabled={busy} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2">
                 <Icon name="download" size={16} /> {busy ? "Loading samples…" : "Load samples"}
               </button>
@@ -264,7 +288,7 @@ export default function CategoriesView() {
             const total = parentTotal(p);
             const on = selected === p.id;
             return (
-              <div key={p.id} className={"bg-white border rounded-[14px] shadow-soft overflow-hidden " + (on ? "border-orchid ring-2 ring-orchid-soft" : p.isActive ? "border-lavender-deep" : "border-[#f0dcc4]")}>
+              <div key={p.id} className={"border rounded-[12px] overflow-hidden transition-colors " + (on ? "border-orchid ring-1 ring-orchid-soft bg-[#fdf4fb]" : p.isActive ? "border-[#ece5f2] bg-white" : "border-[#f0dcc4] bg-[#fdf8f2]")}>
                 <div className={"grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2.5 cursor-pointer " + (on ? "bg-orchid-soft" : "hover:bg-lavender/40")} onClick={() => setSelected(p.id)}>
                   <button
                     onClick={(e) => {
@@ -328,8 +352,10 @@ export default function CategoriesView() {
               </div>
             );
           })}
+            </div>
+          </div>
 
-          {/* storefront preview under the tree */}
+          {/* storefront preview — its own card under the tree */}
           {!isEmpty && <StorePreview tree={tree} />}
         </div>
 
