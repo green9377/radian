@@ -130,6 +130,8 @@ export interface ApiProductDetail {
     swatch: string | null;
     imageUrl: string | null;
     pricePaisa: number;
+    /** DEC-PRD-032 — offer চললে কাটা দাম */
+    wasPaisa?: number | null;
     stockQty: number;
   }[];
   sizes: ApiSize[];

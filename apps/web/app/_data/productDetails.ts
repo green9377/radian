@@ -111,8 +111,10 @@ export interface PickedVariant {
   displayMode: string;
   swatch: string | null;
   imageUrl: string | null;
-  /** গ্রাহক যা দেবে — ছাড় বসানোর পর */
+  /** গ্রাহক যা দেবে — offer থাকলে সেটাই */
   pricePaisa: number;
+  /** DEC-PRD-032 — offer চললে কাটা দামটা, নাহলে null */
+  wasPaisa?: number | null;
   /** ০ = এই রঙটা শেষ, বাকিগুলো চলছে */
   stockQty: number;
 }

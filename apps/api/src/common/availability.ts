@@ -55,6 +55,9 @@ export function availabilityOf(p: {
    * এখনো variant পড়ে না, তারা যেন হঠাৎ অন্য উত্তর না পায়।
    */
   variantStock?: number[];
+  /** DEC-PRD-032 — any variant linked to a stockroom Item (its true count
+   *  lives in Inventory, not in a hand-typed box) */
+  hasTrackedVariant?: boolean;
 }): Availability {
   const counted = p.stockMode === 'MANUAL' && p.supplierId === null;
 
@@ -72,6 +75,12 @@ export function availabilityOf(p: {
   */
   const fromVariants = (p.variantStock ?? []).reduce((n, q) => n + q, 0);
   if (fromVariants > 0) return { state: 'IN_STOCK' };
+
+  /*  DEC-PRD-032 — a variant whose count lives in Inventory (itemId set) is
+      not hand-counted here. If at least one such variant exists while the
+      hand-counted ones read zero, the product stays buyable — the same
+      reasoning that keeps TRACKED products outside this gate.  */
+  if (p.hasTrackedVariant) return { state: 'IN_STOCK' };
 
   if (!counted || p.stockQty > 0) return { state: 'IN_STOCK' };
 

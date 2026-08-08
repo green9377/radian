@@ -1071,6 +1071,17 @@ export class ProductsService {
     });
 
     for (const [i, r] of rows.entries()) {
+      /*  DEC-PRD-032 — an offer that is not below the regular price is a
+          typo, and saving it would show a strike-through price that RAISES
+          the price. Refused loudly instead.  */
+      if (
+        r.offerPricePaisa != null &&
+        (r.pricePaisa == null || r.offerPricePaisa >= r.pricePaisa)
+      ) {
+        throw new BadRequestException(
+          'A variant offer price needs its own regular price above it (offer must be lower).',
+        );
+      }
       const data = {
         imageUrl: r.imageUrl?.trim() ? r.imageUrl : null,
         stockQty: r.stockQty ?? 0,
@@ -1080,6 +1091,7 @@ export class ProductsService {
         /*  খালি = product-এর মূল দাম। মালিকের নিয়ম: রঙ বদলালে দাম এক,
             kg/flavour বদলালে আলাদা।  */
         pricePaisa: r.pricePaisa ?? null,
+        offerPricePaisa: r.offerPricePaisa ?? null,
         sortOrder: r.sortOrder ?? i,
         isActive: r.isActive ?? true,
         deletedAt: null,

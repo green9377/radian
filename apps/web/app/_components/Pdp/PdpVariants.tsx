@@ -171,8 +171,22 @@ export function VariantPicker({
                 {/*  দাম তখনই লেখা হয় যখন সেটা সত্যিই আলাদা। এক দামের চারটে
                     রঙের নিচে চারবার একই সংখ্যা লিখলে চোখ সেটা পড়াই ছেড়ে
                     দেয়, আর তখন আসল আলাদা দামটাও কেউ দেখে না।  */}
+                {/*  DEC-PRD-032 — this one's own offer, struck price beside it.
+                    Only where the shop actually set one; a derived "was" price
+                    is how the ৳1,418 nonsense happened (8 Aug 2026).  */}
                 <span className="block text-[11.5px] text-body-soft">
-                  {out ? "Sold out" : dearer ? formatTaka(v.pricePaisa) : ""}
+                  {out ? (
+                    "Sold out"
+                  ) : dearer ? (
+                    <>
+                      {formatTaka(v.pricePaisa)}
+                      {v.wasPaisa ? (
+                        <span className="line-through opacity-60 ml-1">{formatTaka(v.wasPaisa)}</span>
+                      ) : null}
+                    </>
+                  ) : (
+                    ""
+                  )}
                 </span>
               </span>
             </button>

@@ -60,6 +60,8 @@ export interface ProductVariantInput {
   itemId?: string | null;
   /** ঐচ্ছিক। `null` = product-এর মূল দাম — মালিকের নিয়ম, রঙে এক দাম। */
   pricePaisa?: number | null;
+  /** DEC-PRD-032 — ঐচ্ছিক offer দাম; থাকলে regular কাটা দেখায়। offer < regular। */
+  offerPricePaisa?: number | null;
   sortOrder?: number;
   isActive?: boolean;
 }

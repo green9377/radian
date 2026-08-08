@@ -1830,6 +1830,12 @@ model ProductVariant {
   /// পাশাপাশি বসে থাকত।
   pricePaisa Int?
 
+  /// DEC-PRD-032 (owner, 8 Aug 2026) — variant-এর নিজের offer দাম, ঐচ্ছিক।
+  /// থাকলে গ্রাহক এটাই দেয় আর `pricePaisa` কাটা দাম হিসেবে দেখায়।
+  /// Product-এর discount-এর সাথে এর কোনো সম্পর্ক নেই (DEC-PRD-031)।
+  /// নিয়ম: offer < regular, নাহলে save-ই আটকে যায়।
+  offerPricePaisa Int?
+
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 

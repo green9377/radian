@@ -258,9 +258,12 @@ export interface ShopProductDetail {
     swatch: string | null;
     /** এই variant-এর নিজের ছবি, নাহলে master-এর ছবি, নাহলে null */
     imageUrl: string | null;
-    /** যা গ্রাহক দেবে — নিজের দাম, নাহলে product-এর দাম */
+    /** যা গ্রাহক দেবে — offer, নাহলে নিজের দাম, নাহলে product-এর দাম */
     pricePaisa: number;
-    /** নিজের মজুদ। ০ = এই রঙটা শেষ, কিন্তু বাকিগুলো চলছে। */
+    /** DEC-PRD-032 — offer চললে কাটা দামটা (variant-এর regular), নাহলে null */
+    wasPaisa: number | null;
+    /** নিজের মজুদ। ০ = এই রঙটা শেষ, কিন্তু বাকিগুলো চলছে।
+     *  Item-এ বাঁধা variant-এ এটা Inventory-র লাইভ গোনা। */
     stockQty: number;
   }[];
   sizes: { id: string; label: string; sub: string | null; pricePaisa: number }[];
@@ -531,6 +534,8 @@ export class ProductDetailService {
             imageUrl: true,
             stockQty: true,
             pricePaisa: true,
+            offerPricePaisa: true,
+            itemId: true,
             variantValue: {
               select: {
                 label: true,
@@ -662,6 +667,23 @@ export class ProductDetailService {
     */
     const parent = p.category.parent;
 
+    /*  DEC-PRD-032 — a variant linked to a stockroom Item counts from
+        Inventory LIVE, not from its hand-typed box. One query for all
+        linked items; milli-units floor to whole pieces.  */
+    const linkedIds = [...new Set(p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])))];
+    const invSums = linkedIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linkedIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const invQty = new Map(
+      invSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    const variantCount = (v: { itemId: string | null; stockQty: number }) =>
+      v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty;
+
     /*  DEC-PDP-09 / DEC-PRD-014 — computed BEFORE the payload because the
         published stock number below must never contradict it. Owner caught
         the page saying "20 in stock" and "Out of stock" in one breath
@@ -671,7 +693,7 @@ export class ProductDetailService {
       ...p,
       /*  ⚠️ শুধু Manual-এ। TRACKED product এমনিতেই gate-এর বাইরে
           (DEC-PDP-09), কারণ তাদের আসল গোনা Inventory-তে।  */
-      variantStock: p.stockMode === 'MANUAL' ? p.variants.map((v) => v.stockQty) : undefined,
+      variantStock: p.stockMode === 'MANUAL' ? p.variants.map(variantCount) : undefined,
     });
 
     return {
@@ -717,7 +739,7 @@ export class ProductDetailService {
                 DEC-PRD-015-এ তখন গোনাটা Inventory-র। যোগ করে দেখালে
                 website একটা সংখ্যা বলত যা কেউ রাখেই না।  */
             (p.stockMode === 'MANUAL' && p.variants.length > 0
-              ? p.variants.reduce((n, v) => n + v.stockQty, 0)
+              ? p.variants.reduce((n, v) => n + variantCount(v), 0)
               : p.stockQty))
           : null,
       /*  DEC-PDP-09. The gate reads the REAL count — never `displayQty`. A
@@ -784,8 +806,15 @@ export class ProductDetailService {
         displayMode: v.variantValue.attribute.displayMode,
         swatch: v.variantValue.swatch,
         imageUrl: v.imageUrl ?? v.variantValue.imageUrl ?? null,
-        pricePaisa: v.pricePaisa ?? paidPaisa(p),
-        stockQty: v.stockQty,
+        /*  DEC-PRD-032 — offer wins, then the variant's own price, then the
+            product's. `wasPaisa` is the struck-through figure the offer is
+            measured against — only when both exist and the offer is lower.  */
+        pricePaisa: v.offerPricePaisa ?? v.pricePaisa ?? paidPaisa(p),
+        wasPaisa:
+          v.offerPricePaisa !== null && v.pricePaisa !== null && v.pricePaisa > v.offerPricePaisa
+            ? v.pricePaisa
+            : null,
+        stockQty: variantCount(v),
       })),
       sizes: p.sizes,
       /*  own heading → parent's → a plain word. Never blank: the size row

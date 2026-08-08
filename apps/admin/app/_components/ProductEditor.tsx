@@ -629,6 +629,8 @@ interface VariantRow {
   itemLabel: string | null;
   /** empty = the product's base price */
   price: string;
+  /** DEC-PRD-032 — this variant's own offer price. Empty = no offer. */
+  offerPrice: string;
   isActive: boolean;
 }
 
@@ -1479,6 +1481,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               itemId: v.itemId ?? null,
               itemLabel: v.item ? `${v.item.name} · ${v.item.sku}` : null,
               price: v.pricePaisa != null ? String(v.pricePaisa / 100) : "",
+              offerPrice: v.offerPricePaisa != null ? String(v.offerPricePaisa / 100) : "",
               isActive: v.isActive,
             })),
           );
@@ -1781,6 +1784,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         itemId: v.itemId,
         /*  an empty field = the product's base price, not zero taka.  */
         pricePaisa: v.price.trim() === "" ? null : Math.round(parseFloat(v.price) * 100),
+        /*  DEC-PRD-032 — only meaningful beside a regular price of its own,
+            which is why the field is hidden without one.  */
+        offerPricePaisa:
+          v.price.trim() === "" || v.offerPrice.trim() === ""
+            ? null
+            : Math.round(parseFloat(v.offerPrice) * 100),
         sortOrder: i,
         isActive: v.isActive,
       })),
@@ -4332,6 +4341,7 @@ No bundle products yet — add them on{" "}
                                               itemId: null,
                                               itemLabel: null,
                                               price: "",
+                                              offerPrice: "",
                                               isActive: true,
                                             },
                                           ],
@@ -4484,7 +4494,13 @@ No bundle products yet — add them on{" "}
                                       which one was true.
                                       ═══════════════════════════════════════
                                     */}
-                                    {stockMode === "TRACKED" ? (
+                                    {/*  DEC-PRD-032 (owner, 8 Aug 2026) — the choice is
+                                        PER VARIANT now, not per product. "Red rose comes
+                                        from the stockroom, this new colour I'm counting by
+                                        hand" is a real situation, and the product-wide
+                                        switch made it unsayable. Linked wins: the typed
+                                        box disappears so two numbers can never disagree.  */}
+                                    {v.itemId ? (
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -4493,32 +4509,43 @@ No bundle products yet — add them on{" "}
                                           );
                                           setVItemQ("");
                                         }}
-                                        className={`text-[12px] text-left px-2 py-1.5 rounded-[8px] border transition-colors ${
-                                          v.itemId
-                                            ? "bg-white border-lavender-deep text-purple hover:border-orchid"
-                                            : "bg-white border-dashed border-orchid-mid text-orchid"
-                                        }`}
+                                        title="Counted in Inventory — click to change or unlink"
+                                        className="text-[12px] text-left px-2 py-1.5 rounded-[8px] border bg-white border-lavender-deep text-purple hover:border-orchid truncate"
                                       >
-                                        {v.itemLabel ?? (v.itemId ? "Item linked" : "Pick item")}
+                                        📦 {v.itemLabel ?? "Item linked"}
                                       </button>
                                     ) : (
-                                      <div className="flex items-center gap-1.5">
-                                        <input
-                                          className="ipt text-[13px] w-full"
-                                          style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
-                                          type="number"
-                                          min={0}
-                                          value={v.stockQty}
-                                          onChange={(e) =>
-                                            setVariants((cur) =>
-                                              cur.map((x) =>
-                                                x.variantValueId === v.variantValueId ? { ...x, stockQty: e.target.value } : x,
-                                              ),
-                                            )
-                                          }
-                                        />
-                                        <span className="text-[11px] text-body-soft shrink-0">stock</span>
-                                      </div>
+                                      <>
+                                        <div className="flex items-center gap-1.5">
+                                          <input
+                                            className="ipt text-[13px] w-full"
+                                            style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
+                                            type="number"
+                                            min={0}
+                                            value={v.stockQty}
+                                            onChange={(e) =>
+                                              setVariants((cur) =>
+                                                cur.map((x) =>
+                                                  x.variantValueId === v.variantValueId ? { ...x, stockQty: e.target.value } : x,
+                                                ),
+                                              )
+                                            }
+                                          />
+                                          <span className="text-[11px] text-body-soft shrink-0">stock</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setVItemFor(
+                                              vItemFor === v.variantValueId ? null : v.variantValueId,
+                                            );
+                                            setVItemQ("");
+                                          }}
+                                          className="text-[11.5px] text-left px-2 py-1 rounded-[8px] border border-dashed border-orchid-mid text-orchid bg-white hover:bg-orchid-soft/40"
+                                        >
+                                          Count from Inventory…
+                                        </button>
+                                      </>
                                     )}
 
                                     {/*
@@ -4549,6 +4576,32 @@ No bundle products yet — add them on{" "}
                                       />
                                       <span className="text-[11px] text-body-soft shrink-0">৳</span>
                                     </div>
+
+                                    {/*  DEC-PRD-032 — this variant's own offer. Only
+                                        offered once it has a regular price of its own,
+                                        because an offer needs something to be measured
+                                        against. The product-level discount never touches
+                                        a variant that prices itself (DEC-PRD-031).  */}
+                                    {v.price.trim() && (
+                                      <div className="flex items-center gap-1.5">
+                                        <input
+                                          className="ipt text-[13px] w-full"
+                                          style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
+                                          placeholder="offer price"
+                                          value={v.offerPrice}
+                                          onChange={(e) =>
+                                            setVariants((cur) =>
+                                              cur.map((x) =>
+                                                x.variantValueId === v.variantValueId
+                                                  ? { ...x, offerPrice: e.target.value.replace(/[^0-9.]/g, "") }
+                                                  : x,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                        <span className="text-[11px] text-body-soft shrink-0">৳</span>
+                                      </div>
+                                    )}
 
                                     <div className="flex gap-1.5">
                                       <button
