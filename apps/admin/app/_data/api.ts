@@ -596,6 +596,8 @@ export interface ApiHomeItem {
   /** false = switched off entirely elsewhere, so ticking it here changes nothing */
   live: boolean;
   sortOrder: number;
+  /** which zone shows it — null = both. Only category rows carry this. */
+  zone?: string | null;
   children?: ApiHomeItem[];
 }
 
@@ -618,6 +620,12 @@ export const reorderHomeItems = (kind: HomeContentKind, ids: string[]) =>
   j<{ ok: true }>("/storefront/home-content/reorder", {
     method: "PATCH",
     body: JSON.stringify({ kind, ids }),
+  });
+/** categories only — which zone's homepage shows the rail card (null = both) */
+export const setHomeItemZone = (kind: HomeContentKind, id: string, zone: string | null) =>
+  j<{ ok: true }>("/storefront/home-content/zone", {
+    method: "PATCH",
+    body: JSON.stringify({ kind, id, zone }),
   });
 
 /* ---- category page sections (31 Jul 2026) -----------------------------------

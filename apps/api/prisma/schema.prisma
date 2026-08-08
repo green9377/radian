@@ -121,6 +121,11 @@ model Category {
   noIndex         Boolean  @default(false) // SEO-D01 — same escape hatch as Product
   showOnNavbar    Boolean  @default(true)
   isFeatured      Boolean  @default(false)
+  /// Which zone's homepage shows this category's rail card. null = both.
+  /// 'DHAKA' | 'NATIONWIDE' — the same values Banner/TrustBadge/Collection.zone
+  /// use, so the admin can offer one consistent "Show in" control everywhere.
+  /// (Owner, 6 Aug 2026 — the rail toggles were a single flag for both zones.)
+  zone            String?
   /// the heading above the size chooser on a product page — "Bouquet Size",
   /// "Weight", "Box Size". Category-level because it is a property of the KIND
   /// of thing being sold, not of one bouquet: every product under Cakes wants

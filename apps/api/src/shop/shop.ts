@@ -89,6 +89,8 @@ export interface ShopCategory {
   iconUrl: string | null;
   isFeatured: boolean;
   showOnNavbar: boolean;
+  /** which zone's homepage rail carries this card — null = both */
+  zone: string | null;
   sortOrder: number;
   /** live, published products only — a count that includes drafts is a lie */
   productCount: number;
@@ -129,6 +131,7 @@ export class ShopService {
         iconUrl: true,
         isFeatured: true,
         showOnNavbar: true,
+        zone: true,
         sortOrder: true,
         children: {
           where: LIVE_CHILD,
@@ -180,6 +183,7 @@ export class ShopService {
       iconUrl: c.iconUrl,
       isFeatured: c.isFeatured,
       showOnNavbar: c.showOnNavbar,
+      zone: c.zone,
       sortOrder: c.sortOrder,
       productCount: total.get(c.id) ?? 0,
       nationwideCount: nationwide.get(c.id) ?? 0,

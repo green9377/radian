@@ -3,7 +3,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
-import { getShopCategories, categoryCountLabel } from "../../_data/shop";
+import type { Zone } from "../Header/Header";
+import { getShopCategories, categoryCountLabel, zoneCode } from "../../_data/shop";
 
 /*
   Shop by Category — horizontal carousel of category cards.
@@ -117,7 +118,7 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-export default function CategorySection() {
+export default function CategorySection({ zone }: { zone?: Zone | null }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
@@ -125,6 +126,7 @@ export default function CategorySection() {
 
   useEffect(() => {
     let alive = true;
+    const zc = zoneCode(zone ?? null);
     getShopCategories().then((rows) => {
       // null = API unreachable → keep FALLBACK. An empty array is a real answer
       // (every category switched off) and must NOT be overridden, or the owner
@@ -136,6 +138,12 @@ export default function CategorySection() {
           // not the whole catalogue. Twenty categories can exist without twenty
           // cards appearing here. Tick "Featured" to put one on the homepage.
           .filter((c) => c.isFeatured)
+          // 6 Aug 2026 — per-zone rail. A category marked "Dhaka only" in the
+          // admin's Shop by Category list stays off the nationwide homepage
+          // and vice versa; null means both, so nothing changes until the
+          // owner picks a zone. The header MENU stays unfiltered on purpose —
+          // hiding a category from the menu would hide its page too.
+          .filter((c) => !zc || !c.zone || c.zone === zc)
           .map((c, i) => ({
             name: c.name,
             sub: categoryCountLabel(c, "products"),
@@ -148,7 +156,7 @@ export default function CategorySection() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [zone]);
 
   const updateButtons = useCallback(() => {
     const el = trackRef.current;

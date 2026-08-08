@@ -62,6 +62,8 @@ export interface HomeItem {
   /** ⚠️ false = it is switched off entirely, so `shown` cannot help it */
   live: boolean;
   sortOrder: number;
+  /** which zone shows it — null = both. Only categories carry this today. */
+  zone?: string | null;
   /** tabs carry their own cards; nothing else nests */
   children?: HomeItem[];
 }
@@ -91,6 +93,13 @@ interface ReorderBody {
   ids: string[];
 }
 
+interface ZoneBody {
+  kind: Kind;
+  id: string;
+  /** null = every zone · 'DHAKA' · 'NATIONWIDE' */
+  zone: string | null;
+}
+
 @Injectable()
 export class HomeContentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -102,7 +111,7 @@ export class HomeContentService {
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: {
           id: true, name: true, imageUrl: true, isFeatured: true,
-          isActive: true, sortOrder: true,
+          isActive: true, sortOrder: true, zone: true,
           /* children are selected for their COUNTS, not to be listed — a
              product filed under "Roses" must count towards "Fresh Flowers",
              or the owner reads "0 products" beside a category that is full and
@@ -151,6 +160,7 @@ export class HomeContentService {
           shown: c.isFeatured,
           live: c.isActive,
           sortOrder: c.sortOrder,
+          zone: c.zone,
           };
         }),
       },
@@ -236,6 +246,25 @@ export class HomeContentService {
   }
 
   /**
+   * Which zone shows a category's rail card. Categories only, deliberately:
+   * tag groups and delivery methods already have their own zone semantics
+   * (delivery methods ARE per-zone rows), and widening this switch before a
+   * real need exists would be a second home for that logic.
+   */
+  async setZone(body: ZoneBody) {
+    const { kind, id, zone } = body;
+    if (!id) throw new BadRequestException('id is required');
+    if (kind !== 'category') {
+      throw new BadRequestException('Only categories carry a homepage zone');
+    }
+    if (zone !== null && zone !== 'DHAKA' && zone !== 'NATIONWIDE') {
+      throw new BadRequestException('zone must be null, DHAKA or NATIONWIDE');
+    }
+    await this.prisma.db.category.update({ where: { id }, data: { zone } });
+    return { ok: true };
+  }
+
+  /**
    * Write the order of a whole list.
    *
    * ⚠️ THE WHOLE LIST, RENUMBERED 0..n — never "swap these two".
@@ -292,6 +321,11 @@ export class HomeContentController {
   @Patch('reorder')
   reorder(@Body() body: ReorderBody) {
     return this.svc.reorder(body);
+  }
+
+  @Patch('zone')
+  zone(@Body() body: ZoneBody) {
+    return this.svc.setZone(body);
   }
 }
 

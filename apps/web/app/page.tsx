@@ -53,7 +53,7 @@ export default function Home() {
   const SECTIONS: Record<string, React.ReactNode> = {
     hero: <HeroSection zone={zone} />,
     trust: <TrustStrip zone={zone} />,
-    categories: <CategorySection />,
+    categories: <CategorySection zone={zone} />,
     occasions: <OccasionSection />,
     bestsellers: <BestSellers zone={zone} />,
     promo: <PromoBanner zone={zone} />,

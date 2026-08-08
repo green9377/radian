@@ -6,6 +6,7 @@ import {
   loadHomeContent,
   toggleHomeItem,
   reorderHomeItems,
+  setHomeItemZone,
   type ApiHomeGroup,
   type ApiHomeItem,
   type HomeContentKind,
@@ -92,6 +93,22 @@ export default function HomeContentView() {
     }
   }
 
+  /*  6 Aug 2026 — owner: "if I turn these all on they show in BOTH zones,
+      right? can we set them zone-wise?" He was right that the tick was one
+      flag for both zones. Same optimistic-update-then-revert shape as tick(),
+      for the same reason (note 3 above).  */
+  async function setZone(kind: HomeContentKind, item: ApiHomeItem, zone: string | null) {
+    const prev = item.zone ?? null;
+    patchLocal(item.id, { zone });
+    setErr("");
+    try {
+      await setHomeItemZone(kind, item.id, zone);
+    } catch (e) {
+      patchLocal(item.id, { zone: prev });
+      setErr(e instanceof Error ? e.message : "Could not save that change.");
+    }
+  }
+
   /**
    * Move one row up or down.
    *
@@ -172,6 +189,7 @@ export default function HomeContentView() {
                     busy={busy === kind + i}
                     onTick={() => tick(kind, item)}
                     onMove={(d) => move(kind, g.items, i, d)}
+                    onZone={kind === "category" ? (z) => setZone(kind, item, z) : undefined}
                     expandable={!!item.children}
                     expanded={!!open[item.id]}
                     onExpand={() => setOpen((o) => ({ ...o, [item.id]: !o[item.id] }))}
@@ -213,7 +231,7 @@ export default function HomeContentView() {
 /* ------------------------------------------------------------------ one row */
 
 function Row({
-  item, index, total, small, busy, onTick, onMove, expandable, expanded, onExpand,
+  item, index, total, small, busy, onTick, onMove, onZone, expandable, expanded, onExpand,
 }: {
   item: ApiHomeItem;
   index: number;
@@ -222,6 +240,8 @@ function Row({
   busy?: boolean;
   onTick: () => void;
   onMove: (dir: -1 | 1) => void;
+  /** present only on rows that carry a homepage zone (categories) */
+  onZone?: (zone: string | null) => void;
   expandable?: boolean;
   expanded?: boolean;
   onExpand?: () => void;
@@ -279,6 +299,20 @@ function Row({
           {dead ? "Switched off — it will not appear anywhere" : item.note || "—"}
         </div>
       </div>
+
+      {onZone && (
+        <select
+          value={item.zone ?? ""}
+          disabled={dead}
+          onChange={(e) => onZone(e.target.value || null)}
+          title="Which zone's homepage shows this card"
+          className="shrink-0 text-[12.5px] border border-lavender-deep rounded-[9px] px-2 py-1.5 bg-white text-purple outline-none focus:border-orchid disabled:opacity-50"
+        >
+          <option value="">Every zone</option>
+          <option value="DHAKA">Dhaka only</option>
+          <option value="NATIONWIDE">All Bangladesh only</option>
+        </select>
+      )}
 
       {expandable && (
         <button

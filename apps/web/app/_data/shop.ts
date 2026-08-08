@@ -29,6 +29,8 @@ export interface ShopCategory {
   iconUrl: string | null;
   isFeatured: boolean;
   showOnNavbar: boolean;
+  /** which zone's homepage rail carries this card — null = both */
+  zone: string | null;
   sortOrder: number;
   /** published products only — drafts are not advertised */
   productCount: number;
