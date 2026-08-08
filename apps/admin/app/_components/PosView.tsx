@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./Icon";
 import { listProducts, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiProduct, type ApiCustomer, type ApiPosShift } from "../_data/api";
-import { DEMO_PRODUCTS } from "../_data/demoProducts";
-import { DEMO_CUSTOMERS } from "../_data/customerDemoData";
-
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
-  UI-first working mock in local state; falls back to DEMO_PRODUCTS when the API
-  (:4000) is down so the screen is alive for review.
+  Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
 
   Decisions shown here (locked, POS kickoff 23 Jul):
   - DEC-POS-001  a completed sale = an Order (channel=POS); no separate ledger.
@@ -78,10 +74,13 @@ interface HeldCart {
 
 export default function PosSellView() {
   const [products, setProducts] = useState<ApiProduct[]>([]);
+  /*  6 Aug 2026 — demo fallback removed (owner's order, and here it was
+      worse than cosmetic: a counter screen offering SELLABLE fake products
+      is a mis-sale waiting to happen). Empty catalog = empty grid.  */
   useEffect(() => {
     listProducts()
-      .then((r) => setProducts(r.items.length ? r.items : DEMO_PRODUCTS))
-      .catch(() => setProducts(DEMO_PRODUCTS));
+      .then((r) => setProducts(r.items))
+      .catch(() => setProducts([]));
   }, []);
 
   // ---- shift (live from :4000/pos) ----
@@ -129,8 +128,8 @@ export default function PosSellView() {
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
   useEffect(() => {
     listCustomers()
-      .then((r) => setCustomers(r.items.length ? r.items : DEMO_CUSTOMERS))
-      .catch(() => setCustomers(DEMO_CUSTOMERS));
+      .then((r) => setCustomers(r.items))
+      .catch(() => setCustomers([]));
   }, []);
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
