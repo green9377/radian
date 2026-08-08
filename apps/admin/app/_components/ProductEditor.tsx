@@ -2553,37 +2553,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       ]}
                     />
                   </Field>
-                  <Field
-                    label={
-                      <L
-                        chip={
-                          <Where
-                            kind="live"
-                            why="Printed small after the price — “৳2,400 / stick”. Leave it empty unless the measure is the point; “per piece” on a bouquet says nothing."
-                          >
-                            After the price
-                          </Where>
-                        }
-                      >
-                        Selling unit
-                      </L>
-                    }
-                  >
-                    <select
-                      className="ipt h-[44px]"
-                      value={unitId}
-                      onChange={(e) => setUnitId(e.target.value)}
-                    >
-                      <option value="">— No unit —</option>
-                      {apiUnits
-                        .filter((u) => u.isActive || u.id === unitId)
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name} ({u.shortCode})
-                          </option>
-                        ))}
-                    </select>
-                  </Field>
+                  {/*  Selling unit dropdown removed 6 Aug 2026 (owner): a flower/
+                      gift shop sells per-piece/per-bouquet, so the "/ kg", "/
+                      piece" suffix was never useful. It touches nothing but the
+                      storefront price suffix — no finance/order/POS effect. The
+                      `unitId` field stays in the schema (harmless, always empty
+                      now) so nothing downstream breaks.  */}
                   {/*  DEC-PRD-032 — Bestseller and New arrival. The two
                       columns and the homepage shelf already existed; admin
                       just had no switch, so nobody could ever turn them on.
