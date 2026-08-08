@@ -12,11 +12,10 @@ import {
   formatTaka,
   type ApiProduct,
 } from "../_data/api";
-import { DEMO_PRODUCTS } from "../_data/demoProducts";
-
 /*
   All products — the working catalog table.
-  Tries :4000 first; falls back to the demo catalog so the screen is never dead.
+  Live from :4000 only — the demo-catalog fallback was removed on the owner's
+  order (6 Aug 2026): fake rows on an empty catalog read as "delete is broken".
   Columns earn their place: SKU (staff code), margin (the number that matters),
   units sold, zone, inline publish toggle, and "View on site".
 */
@@ -50,7 +49,13 @@ function Kpi({ n, l, hue, icon }: { n: string; l: string; hue: string; icon: str
 export default function ProductListView() {
   const [all, setAll] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
+  /*  6 Aug 2026 — demo fallback REMOVED, owner's order. He emptied the
+      catalog, and this screen answered by inventing sixteen fake products
+      with a small badge nobody reads — which looks exactly like "delete
+      does not work". An empty catalog is a real answer and shows as empty;
+      an unreachable API is an error and says so. Fake data is never an
+      acceptable third state on a screen that runs a real business.  */
+  const [apiDown, setApiDown] = useState(false);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
   const [stat, setStat] = useState("");
@@ -67,16 +72,11 @@ export default function ProductListView() {
     setLoading(true);
     try {
       const res = await listProducts();
-      if (res.items.length === 0) {
-        setAll(DEMO_PRODUCTS);
-        setDemo(true);
-      } else {
-        setAll(res.items);
-        setDemo(false);
-      }
+      setAll(res.items);
+      setApiDown(false);
     } catch {
-      setAll(DEMO_PRODUCTS);
-      setDemo(true);
+      setAll([]);
+      setApiDown(true);
     } finally {
       setLoading(false);
     }
@@ -142,62 +142,45 @@ export default function ProductListView() {
   }, [all]);
 
   async function patch(p: ApiProduct, body: Record<string, unknown>) {
-    if (!demo) {
-      try {
-        await updateProduct(p.id, body);
-      } catch (e) {
-        alert("Could not save: " + (e instanceof Error ? e.message : e));
-        return;
-      }
+    try {
+      await updateProduct(p.id, body);
+    } catch (e) {
+      alert("Could not save: " + (e instanceof Error ? e.message : e));
+      return;
     }
     setAll((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...(body as Partial<ApiProduct>) } : x)));
   }
 
   async function duplicate(p: ApiProduct) {
-    const copy: ApiProduct = {
-      ...p,
-      id: "copy" + Date.now(),
-      name: `${p.name} (copy)`,
-      slug: `${p.slug}-copy-${Math.floor(Math.random() * 900 + 100)}`,
-      sku: p.sku ? `${p.sku}-C` : null,
-      isPublished: false,
-      salesCount: 0,
-    };
-    if (!demo) {
-      try {
-        await createProduct({
-          slug: copy.slug,
-          sku: copy.sku,
-          name: copy.name,
-          categoryId: p.category?.id,
-          productType: p.productType,
-          zone: p.zone,
-          natureType: p.natureType,
-          costPaisa: p.costPaisa,
-          sellingPricePaisa: p.sellingPricePaisa,
-          stockQty: p.stockQty,
-          isPublished: false,
-        });
-        await load();
-        return;
-      } catch (e) {
-        alert("Could not duplicate: " + (e instanceof Error ? e.message : e));
-        return;
-      }
+    const slug = `${p.slug}-copy-${Math.floor(Math.random() * 900 + 100)}`;
+    try {
+      await createProduct({
+        slug,
+        sku: p.sku ? `${p.sku}-C` : null,
+        name: `${p.name} (copy)`,
+        categoryId: p.category?.id,
+        productType: p.productType,
+        zone: p.zone,
+        natureType: p.natureType,
+        costPaisa: p.costPaisa,
+        sellingPricePaisa: p.sellingPricePaisa,
+        stockQty: p.stockQty,
+        isPublished: false,
+      });
+      await load();
+    } catch (e) {
+      alert("Could not duplicate: " + (e instanceof Error ? e.message : e));
     }
-    setAll((prev) => [copy, ...prev]);
     setMenu(null);
   }
 
   async function remove(p: ApiProduct) {
     if (!confirm(`Delete "${p.name}"? It is hidden, not erased (recoverable).`)) return;
-    if (!demo) {
-      try {
-        await deleteProduct(p.id);
-      } catch (e) {
-        alert("Delete failed: " + (e instanceof Error ? e.message : e));
-        return;
-      }
+    try {
+      await deleteProduct(p.id);
+    } catch (e) {
+      alert("Delete failed: " + (e instanceof Error ? e.message : e));
+      return;
     }
     setAll((prev) => prev.filter((x) => x.id !== p.id));
     setMenu(null);
@@ -220,13 +203,11 @@ export default function ProductListView() {
     if (!chosen.length) return;
     if (!confirm(`Delete ${chosen.length} product(s)? They go to Trash and can be restored.`)) return;
     let failed = 0;
-    if (!demo) {
-      for (const p of chosen) {
-        try {
-          await deleteProduct(p.id);
-        } catch {
-          failed++;
-        }
+    for (const p of chosen) {
+      try {
+        await deleteProduct(p.id);
+      } catch {
+        failed++;
       }
     }
     const okIds = new Set(chosen.map((p) => p.id));
@@ -283,9 +264,9 @@ export default function ProductListView() {
               <span className="w-[9px] h-[9px] -rotate-45 bg-gradient-to-br from-orchid to-rosegold" style={{ borderRadius: "50% 50% 50% 0" }} />
               Product Management · catalog
             </div>
-            {demo && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full">
-                <Icon name="bolt" size={12} /> Demo data
+            {apiDown && (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#fdecea] text-[#c0392b] border border-[#e0a1a1] px-2.5 py-1 rounded-full">
+                <Icon name="bolt" size={12} /> API unreachable — showing nothing rather than fake data
               </span>
             )}
           </div>

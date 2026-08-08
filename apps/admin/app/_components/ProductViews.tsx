@@ -286,21 +286,20 @@ function useCatalog() {
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /*  6 Aug 2026 — demo fallback removed on the owner's order: an emptied
+      catalog was answered with fake products, which reads as "delete is
+      broken". Empty is empty; unreachable says so.  */
   async function load() {
     setLoading(true);
     setError(null);
     try {
       const res = await listProducts();
-      if (res.items.length === 0) {
-        setItems(DEMO_PRODUCTS);
-        setDemo(true);
-      } else {
-        setItems(res.items);
-        setDemo(false);
-      }
+      setItems(res.items);
+      setDemo(false);
     } catch {
-      setItems(DEMO_PRODUCTS);
-      setDemo(true);
+      setItems([]);
+      setDemo(false);
+      setError("Could not reach the API — nothing is shown rather than demo data.");
     } finally {
       setLoading(false);
     }
