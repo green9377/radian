@@ -41,7 +41,9 @@ export class TagsService {
   ) {}
 
   list(q: { groupId?: string; search?: string }) {
-    const where: Prisma.TagWhereInput = {};
+    // Soft-delete rule — a tag deleted in Occasions & Tags must stop showing
+    // everywhere, including the product editor's picker (8 Aug 2026).
+    const where: Prisma.TagWhereInput = { deletedAt: null };
     if (q.groupId) where.groupId = q.groupId;
     if (q.search) where.name = { contains: q.search, mode: 'insensitive' };
     return this.prisma.db.tag.findMany({

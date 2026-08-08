@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PRODUCTS } from "../_data/products";
@@ -1315,7 +1315,20 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     };
   }, [sec, apiProductId]);
 
-  useEffect(() => {
+  /*  ── The reference lists — Tags, Categories, Brands, Variants, Delivery… ──
+      These are MASTERS the owner edits on other screens. Pulled apart from the
+      product load below so they can be refreshed on their own, whenever this
+      tab comes back into focus.
+
+      DEC-PRD-022 fix, extended 8 Aug 2026 (owner: "new tag add krlm but product
+      upload page-e tag update hoy nai"). Drawing the chips from the API was only
+      half the cure: the fetch ran once on mount, so a tag created while this
+      page sat open — or restored from Next's back-nav router cache without a
+      remount — never showed. Now `refetchMasters` also fires on window focus /
+      tab-visible, so returning here after making a tag picks it up with no
+      manual reload. The product's own fields are NOT re-pulled here — that would
+      clobber unsaved edits.  */
+  const refetchMasters = useCallback(() => {
     listCategories()
       .then((cs) => setApiCats(cs as ApiCategory[]))
       .catch(() => {});
@@ -1333,16 +1346,34 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         isn't what that supplier is set up for. Filtered to fulfillment-type
         suppliers only, same rule Suppliers → Vendors itself uses.  */
     listSuppliers().then((rows) => setVendors(rows.filter((v) => v.type?.isFulfillment))).catch(() => {});
-    /*  DEC-DLV-008 — names come from the delivery module, fetched fresh
-        every time. Deliberately not cached: if the owner adds a type on
-        another tab and comes here, it should show up right away. */
-    /*  ⚠️ `rateCount > 0` — a name with no price set in any zone is not
+    /*  DEC-DLV-008 — names come from the delivery module, fetched fresh.
+        ⚠️ `rateCount > 0` — a name with no price set in any zone is not
         shown here. If it were, the owner could tick it, it would save, and
         checkout would never show that delivery — a tick that does nothing.
         The moment a price is set, the name comes back here.  */
     listDeliveryTypes()
       .then((r) => setDelivTypes(r.filter((t) => t.isActive && (t.rateCount ?? 1) > 0)))
       .catch(() => {});
+  }, []);
+
+  //  Refresh the reference lists when this tab regains focus or becomes visible
+  //  again — that is when the owner has most likely just added a tag/category
+  //  on another screen and expects to see it here.
+  useEffect(() => {
+    refetchMasters();
+    const onFocus = () => refetchMasters();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refetchMasters();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refetchMasters]);
+
+  useEffect(() => {
     if (slug) {
       /*
         ⚠️ THIS USED TO RESTORE TWELVE FIELDS AND LEAVE THE REST BLANK
@@ -4230,18 +4261,33 @@ No bundle products yet — add them on{" "}
                         .filter((a) => a.values.some((v) => v.isActive))
                         .map((a) => {
                           const on = (vAttrOpen ?? pickedAttrId) === a.id;
+                          /*  How many of THIS list are already on the product —
+                              shown as a badge so the owner sees at a glance which
+                              lists have picks, without opening each one (8 Aug 2026).  */
+                          const picked = a.values.filter((val) =>
+                            variants.some((v) => v.variantValueId === val.id),
+                          ).length;
                           return (
                             <button
                               key={a.id}
                               type="button"
                               onClick={() => setVAttrOpen(on ? null : a.id)}
-                              className={`text-[13px] font-medium px-3.5 py-2 rounded-full border transition-colors ${
+                              className={`inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-2 rounded-full border transition-colors ${
                                 on
                                   ? "bg-purple border-purple text-white"
                                   : "bg-white border-lavender-deep text-body hover:border-orchid"
                               }`}
                             >
                               {a.name}
+                              {picked > 0 && (
+                                <span
+                                  className={`inline-grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold ${
+                                    on ? "bg-white/25 text-white" : "bg-orchid-soft text-purple"
+                                  }`}
+                                >
+                                  {picked}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -4307,11 +4353,31 @@ No bundle products yet — add them on{" "}
                         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-2.5">
                           {variants.length} on this product
                         </div>
-                        <div className="flex flex-wrap gap-2.5">
-                          {variants.map((v) => {
-                            const editing = vOpen === v.variantValueId;
-                            const shown = v.imageUrl || v.masterImage;
-                            return (
+                        {/*  Grouped by list (Colour, Stem count…) with a small
+                            heading each, so a mixed pile of picks reads clearly —
+                            you can tell which card belongs to which list without
+                            guessing (8 Aug 2026, owner's confusion).  */}
+                        {(() => {
+                          const groups: { name: string; items: typeof variants }[] = [];
+                          for (const v of variants) {
+                            const gname = v.attribute || "Other";
+                            let g = groups.find((x) => x.name === gname);
+                            if (!g) {
+                              g = { name: gname, items: [] };
+                              groups.push(g);
+                            }
+                            g.items.push(v);
+                          }
+                          return groups.map((grp) => (
+                            <div key={grp.name} className="mb-4 last:mb-0">
+                              <div className="text-[11.5px] font-semibold text-body-soft mb-1.5">
+                                {grp.name}
+                              </div>
+                              <div className="flex flex-wrap gap-2.5">
+                                {grp.items.map((v) => {
+                                  const editing = vOpen === v.variantValueId;
+                                  const shown = v.imageUrl || v.masterImage;
+                                  return (
                               <div
                                 key={v.variantValueId}
                                 className={`rounded-[14px] border transition-colors ${
@@ -4501,9 +4567,12 @@ No bundle products yet — add them on{" "}
                                   </div>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ));
+                        })()}
 
                         {/*  DEC-PRD-015 — the Item search panel, at full
                              width. Placed inside the card, an item's name
