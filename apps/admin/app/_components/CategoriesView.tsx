@@ -246,13 +246,14 @@ export default function CategoriesView() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,1fr)_1.6fr] gap-6 items-start">
-        {/* ---------------- LEFT: tree list, wrapped in a card ----------------
-             6 Aug 2026 — the tree used to float as loose cards while the right
-             pane had a bold pinned header, so the two sides looked unbalanced.
-             Now the left is its own card with a rose-gold header — a second
-             colour that reads clearly against the editor's purple.  */}
-        <div className="xl:sticky xl:top-4 self-start">
+      {/*  NO items-start — the columns must STRETCH to the same (tall) height,
+          or the left grid cell is only as tall as its card and `sticky` has
+          no room to travel, so it scrolls away. The outer cell stretches; the
+          card inside is the sticky element. (6 Aug 2026 fix.)  */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,1fr)_1.6fr] gap-6">
+        {/* ---------------- LEFT: dark glass tree, pinned ---------------- */}
+        <div className="min-w-0">
+        <div className="xl:sticky xl:top-3">
           {/*  DARK GLASS TREE — owner's chosen design (6 Aug 2026, "design B":
               dark left panel, light editor right). Rich plum panel, glass rows,
               purple/orchid accents, rose-gold header. Colours are inline
@@ -364,6 +365,7 @@ export default function CategoriesView() {
             {!isEmpty && <StorePreview tree={tree} />}
             </div>
           </div>
+        </div>
         </div>
 
         {/* ---------------- RIGHT: editor zone (soft lavender) ---------------- */}
