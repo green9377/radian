@@ -1279,7 +1279,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     getVariantAttributes().then(setVAttrs).catch(() => {});
     getAddOns().then(setAddonBundle).catch(() => {});
     listProducts().then((r) => setAllProducts(r.items)).catch(() => {});
-    listSuppliers().then(setVendors).catch(() => {});
+    /*  6 Aug 2026 fix — this used to load EVERY supplier (flower wholesalers,
+        packaging vendors, everyone in Suppliers), not just the ones marked
+        as a fulfillment vendor (SupplierType.isFulfillment). So "Which
+        vendor" here could list a plain material supplier as if picking them
+        meant Radian stops holding stock and they make the order — which
+        isn't what that supplier is set up for. Filtered to fulfillment-type
+        suppliers only, same rule Suppliers → Vendors itself uses.  */
+    listSuppliers().then((rows) => setVendors(rows.filter((v) => v.type?.isFulfillment))).catch(() => {});
     /*  DEC-DLV-008 — নামগুলো delivery module থেকে, প্রতিবার নতুন করে।
         cache করা হয় না ইচ্ছাকৃতভাবে: মালিক পাশের tab-এ একটা ধরন যোগ করে
         এখানে এলে সেটা যেন সাথে সাথেই দেখা যায়। */
