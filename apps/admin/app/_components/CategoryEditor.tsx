@@ -162,26 +162,34 @@ export default function CategoryEditor({
     <div className="max-w-[860px]">
       {/*  Sticky hero header — bold, brand gradient, save always in reach.
           Redesigned 6 Aug 2026 (owner: the page read as cluttered/"hibijibi").
-          Same fields, same saves — only the shell is clean now.  */}
-      <div className="sticky top-3 z-20 mb-3 rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.22)]"
-           style={{ background: "linear-gradient(135deg,#5b1670,#a021b8 55%,#c46aad)" }}>
-        <div className="absolute -right-8 -top-16 w-48 h-48 rounded-full bg-white opacity-[0.10]" />
-        <div className="relative flex items-center justify-between gap-3 px-6 py-5">
-          <div className="min-w-0">
-            <div className="text-white/75 text-[11px] font-bold tracking-[0.12em] uppercase">
-              {isNew ? "New category" : "Editing category"}
+
+          ⚠️ The OUTER div is a solid-lavender STICKY BACKDROP (matches the
+          editor zone bg in CategoriesView). The rounded purple hero sits
+          inside it. Without the backdrop, scrolling content peeked through
+          the hero's rounded corners and the gap below it; the backdrop is a
+          solid wall the content slides cleanly under. `top-0` + `pt-3` puts
+          the visible hero at 12px, aligned with the left tree card's top-3.  */}
+      <div className="sticky top-0 z-20 pt-3 pb-3 -mx-3.5 px-3.5" style={{ background: "#f5eefb" }}>
+        <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.22)]"
+             style={{ background: "linear-gradient(135deg,#5b1670,#a021b8 55%,#c46aad)" }}>
+          <div className="absolute -right-8 -top-16 w-48 h-48 rounded-full bg-white opacity-[0.10]" />
+          <div className="relative flex items-center justify-between gap-3 px-6 py-5">
+            <div className="min-w-0">
+              <div className="text-white/75 text-[11px] font-bold tracking-[0.12em] uppercase">
+                {isNew ? "New category" : "Editing category"}
+              </div>
+              <h2 className="font-display font-bold text-[24px] text-white leading-tight truncate mt-0.5">
+                {isNew ? "New category" : name || node?.name}
+              </h2>
+              <div className="text-white/80 text-[12.5px] mt-0.5">{subtitle}</div>
             </div>
-            <h2 className="font-display font-bold text-[24px] text-white leading-tight truncate mt-0.5">
-              {isNew ? "New category" : name || node?.name}
-            </h2>
-            <div className="text-white/80 text-[12.5px] mt-0.5">{subtitle}</div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={onCancel} className="text-[13px] text-white/85 hover:text-white font-medium px-3 py-2 rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
-            <button onClick={save} disabled={saving || !name.trim()}
-                    className="bg-white text-purple hover:bg-white/90 disabled:opacity-50 text-[14px] font-bold px-5 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-transform active:scale-95">
-              <Icon name="check" size={16} /> {saving ? "Saving…" : "Save"}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={onCancel} className="text-[13px] text-white/85 hover:text-white font-medium px-3 py-2 rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
+              <button onClick={save} disabled={saving || !name.trim()}
+                      className="bg-white text-purple hover:bg-white/90 disabled:opacity-50 text-[14px] font-bold px-5 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-transform active:scale-95">
+                <Icon name="check" size={16} /> {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
