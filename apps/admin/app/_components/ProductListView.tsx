@@ -211,6 +211,31 @@ export default function ProductListView() {
     setSel(new Set());
   }
 
+  /*  6 Aug 2026 — the bulk bar had Publish/Unpublish but no Delete, so
+      clearing junk meant one row at a time through each row's own button.
+      Same soft delete as the row button: everything lands in Trash,
+      recoverable. Failures are counted and said out loud, not swallowed.  */
+  async function bulkDelete() {
+    const chosen = all.filter((p) => sel.has(p.id));
+    if (!chosen.length) return;
+    if (!confirm(`Delete ${chosen.length} product(s)? They go to Trash and can be restored.`)) return;
+    let failed = 0;
+    if (!demo) {
+      for (const p of chosen) {
+        try {
+          await deleteProduct(p.id);
+        } catch {
+          failed++;
+        }
+      }
+    }
+    const okIds = new Set(chosen.map((p) => p.id));
+    setAll((prev) => prev.filter((x) => !okIds.has(x.id)));
+    setSel(new Set());
+    if (failed > 0) alert(`${failed} of ${chosen.length} could not be deleted — refresh and try again.`);
+    await load();
+  }
+
   function exportCsv() {
     const head = ["SKU", "Name", "Slug", "Category", "Cost", "Selling", "Offer", "Margin", "Margin %", "Stock", "Sold", "Zone", "Status"];
     const lines = filtered.map((p) =>
@@ -321,6 +346,7 @@ export default function ProductListView() {
           <b className="text-[13px] text-purple">{sel.size} selected</b>
           <button onClick={() => bulkPublish(true)} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white">Publish</button>
           <button onClick={() => bulkPublish(false)} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-lavender-deep text-purple">Unpublish</button>
+          <button onClick={() => bulkDelete()} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea]">Delete</button>
           <button onClick={() => setSel(new Set())} className="text-[12.5px] font-medium text-orchid ml-auto">Clear</button>
         </div>
       )}

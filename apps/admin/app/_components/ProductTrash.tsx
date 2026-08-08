@@ -21,6 +21,10 @@ export default function ProductTrash() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  /*  every outcome is said out loud — the owner's complaint was exactly
+      "delete holo ki holo na, kichui janay na" (6 Aug 2026)  */
+  const [flash, setFlash] = useState<{ ok: string[]; refused: string[] } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -55,22 +59,35 @@ export default function ProductTrash() {
   /*  6 Aug 2026 — the owner asked for a way to actually empty this list; it
       held 74 rows of test junk with no exit. The SERVER holds the rule, not
       this button: anything an order ever sold is refused with a plain
-      sentence and stays recoverable. The typed-word confirm is deliberate —
-      this is the one click in the whole admin that cannot be undone.  */
-  async function purge(p: TrashItem) {
-    const word = prompt(
-      `Permanently delete "${p.name}"?\n\nThis cannot be undone. If any order ever sold it, the server will refuse.\n\nType DELETE to continue:`,
-    );
-    if (word !== "DELETE") return;
-    setBusy(p.id);
-    try {
-      await purgeProduct(p.id);
-      setRows((x) => x.filter((y) => y.id !== p.id));
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not delete");
-    } finally {
-      setBusy(null);
+      sentence and stays recoverable.
+
+      ⚠️ The first version demanded a typed word to confirm, and reported
+      failure only through alert(). The owner's verdict: typing is
+      "biroktikor", and he could not tell whether anything happened at all.
+      Now: a plain confirm, and EVERY outcome lands in a banner — what got
+      deleted, what the server refused and why. Feedback is not optional on
+      a destructive action.  */
+  async function purgeMany(list: TrashItem[]) {
+    if (!list.length) return;
+    const label = list.length === 1 ? `"${list[0].name}"` : `${list.length} products`;
+    if (!confirm(`Permanently delete ${label}? This cannot be undone.\n\nAnything an order ever sold will be refused by the server and kept recoverable.`)) return;
+    setBusy("bulk");
+    const okIds = new Set<string>();
+    const ok: string[] = [];
+    const refused: string[] = [];
+    for (const p of list) {
+      try {
+        await purgeProduct(p.id);
+        okIds.add(p.id);
+        ok.push(p.name);
+      } catch (e) {
+        refused.push(e instanceof Error ? e.message : `${p.name}: could not delete`);
+      }
     }
+    setRows((x) => x.filter((y) => !okIds.has(y.id)));
+    setSel(new Set());
+    setFlash({ ok, refused });
+    setBusy(null);
   }
 
   const shown = rows.filter(
@@ -118,6 +135,39 @@ export default function ProductTrash() {
         </div>
       )}
 
+      {/* the answer to "did it delete or not" — every purge reports here */}
+      {flash && (
+        <div className="rounded-[14px] border border-lavender-deep bg-white px-4 py-3 mb-4 text-[13px] space-y-1">
+          {flash.ok.length > 0 && (
+            <div className="text-[#0f7d55] font-medium">
+              ✓ Permanently deleted: {flash.ok.length === 1 ? flash.ok[0] : `${flash.ok.length} products`}
+            </div>
+          )}
+          {flash.refused.map((r, i) => (
+            <div key={i} className="text-[#a3261f]">✕ {r}</div>
+          ))}
+          {flash.ok.length === 0 && flash.refused.length === 0 && (
+            <div className="text-body-soft">Nothing was deleted.</div>
+          )}
+          <button onClick={() => setFlash(null)} className="text-[12px] text-orchid hover:underline">Dismiss</button>
+        </div>
+      )}
+
+      {/* bulk bar — same shape as All products */}
+      {sel.size > 0 && (
+        <div className="bg-orchid-soft border border-orchid-mid rounded-[12px] px-4 py-2.5 mb-3 flex items-center gap-3 flex-wrap">
+          <b className="text-[13px] text-purple">{sel.size} selected</b>
+          <button
+            onClick={() => purgeMany(shown.filter((p) => sel.has(p.id)))}
+            disabled={busy === "bulk"}
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-40"
+          >
+            {busy === "bulk" ? "Deleting…" : "Delete forever"}
+          </button>
+          <button onClick={() => setSel(new Set())} className="text-[12.5px] font-medium text-orchid ml-auto">Clear</button>
+        </div>
+      )}
+
       {!loading && !err && shown.length === 0 && (
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-16 text-center">
           <div className="font-display text-[18px] text-purple mb-1">Nothing has been deleted</div>
@@ -130,6 +180,16 @@ export default function ProductTrash() {
           <table className="w-full border-collapse text-[13.5px]">
             <thead>
               <tr className="text-body-soft text-[11px] uppercase tracking-[0.05em] bg-lavender/60">
+                <th className="px-4 py-3 w-[40px]">
+                  <input
+                    type="checkbox"
+                    checked={shown.length > 0 && shown.every((p) => sel.has(p.id))}
+                    onChange={(e) =>
+                      setSel(e.target.checked ? new Set(shown.map((p) => p.id)) : new Set())
+                    }
+                    title="Select all"
+                  />
+                </th>
                 <th className="text-left font-medium px-4 py-3">Product</th>
                 <th className="text-left font-medium px-4 py-3">Category</th>
                 <th className="text-left font-medium px-4 py-3">Price</th>
@@ -141,6 +201,19 @@ export default function ProductTrash() {
             <tbody>
               {shown.map((p) => (
                 <tr key={p.id} className="border-t border-lavender-deep hover:bg-lavender/60">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={sel.has(p.id)}
+                      onChange={(e) =>
+                        setSel((s) => {
+                          const n = new Set(s);
+                          e.target.checked ? n.add(p.id) : n.delete(p.id);
+                          return n;
+                        })
+                      }
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="w-[38px] h-[38px] rounded-[10px] shrink-0 opacity-60" style={{ background: genBg(p.slug) }} />
@@ -167,8 +240,8 @@ export default function ProductTrash() {
                       <Icon name="check" size={15} /> {busy === p.id ? "Working…" : "Restore"}
                     </button>
                     <button
-                      onClick={() => purge(p)}
-                      disabled={busy === p.id}
+                      onClick={() => purgeMany([p])}
+                      disabled={busy === p.id || busy === "bulk"}
                       title="Permanently delete — refused if any order ever sold it"
                       className="ml-1.5 border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
                     >
