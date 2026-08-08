@@ -708,9 +708,17 @@ function Where({
  * save is even attempted.
  */
 function Req() {
+  /*  6 Aug 2026 — was a lone red `*`, and the owner still couldn't tell
+      which fields were mandatory ("kon gula baddhotamulok ta bujhar upay
+      nei"). A star the size of a comma is a sign only to people who already
+      know the convention. Now it says the word.  */
   return (
-    <span className="text-[#c0392b] font-bold ml-0.5" title="Required to publish">
-      *
+    <span
+      className="inline-flex items-center text-[10px] font-extrabold uppercase tracking-[0.05em] px-1.5 py-[1px] rounded-md ml-1"
+      style={{ background: "#fdecea", color: "#c0392b", border: "1px solid #f0b9b3" }}
+      title="Publishing is blocked until this is filled in"
+    >
+      Required
     </span>
   );
 }
@@ -850,6 +858,15 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   */
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [vendors, setVendors] = useState<ApiSupplier[]>([]);
+  /*  6 Aug 2026 fix — "A vendor does" looked dead. The Seg's value used to be
+      DERIVED (`supplierId ? "VENDOR" : "OURS"`), and picking VENDOR set
+      supplierId to the first vendor — or null when the vendor list is empty,
+      which snapped the control straight back to "We do". With zero vendors
+      set up (the common state on a fresh system) the button simply did not
+      respond. Now the choice is its own state: VENDOR is selectable even
+      with no vendors, and shows the "no vendors yet — add one" path instead
+      of ignoring the click.  */
+  const [providerMode, setProviderMode] = useState<"OURS" | "VENDOR">("OURS");
   /** the number shown on the website. "" = show the real one */
   const [displayQty, setDisplayQty] = useState("");
   /** minutes to make one — what the daily-capacity module counts in */
@@ -1389,6 +1406,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           if (p.itemId) setItemId(p.itemId);
           if (p.item) setLinkedItem(p.item);
           setSupplierId(p.supplierId ?? null);
+          setProviderMode(p.supplierId ? "VENDOR" : "OURS");
           setDisplayQty(p.displayQty != null ? String(p.displayQty) : "");
           setMakeMinutes(p.makeMinutes != null ? String(p.makeMinutes) : "");
           setStock(String(p.stockQty ?? 0));
@@ -2159,9 +2177,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           </h1>
           <p className="text-body-soft text-[12.5px] m-0">
             {slug ? "Editing product" : "New product — fill in and publish"}
-            {"  "}
-            <span className="text-[#c0392b] font-bold">*</span>
-            <span className="text-body-soft"> = required to publish</span>
+            {" — fields marked "}
+            <span
+              className="inline-flex items-center text-[9.5px] font-extrabold uppercase tracking-[0.05em] px-1.5 py-[1px] rounded-md align-middle"
+              style={{ background: "#fdecea", color: "#c0392b", border: "1px solid #f0b9b3" }}
+            >
+              Required
+            </span>
+            <span className="text-body-soft"> block publishing until filled</span>
           </p>
         </div>
         <button
@@ -3138,8 +3161,9 @@ No bundle products yet — add them on{" "}
                 title="Who provides this?"
               >
                 <Seg
-                  value={supplierId ? "VENDOR" : "OURS"}
+                  value={providerMode}
                   onChange={(v) => {
+                    setProviderMode(v as "OURS" | "VENDOR");
                     if (v === "OURS") setSupplierId(null);
                     else setSupplierId(vendors[0]?.id ?? null);
                   }}
@@ -3149,7 +3173,7 @@ No bundle products yet — add them on{" "}
                   ]}
                 />
 
-                {supplierId && (
+                {providerMode === "VENDOR" && (
                   <div className="mt-5">
                     <Field
                       label={
@@ -3169,8 +3193,8 @@ No bundle products yet — add them on{" "}
                     >
                       <select
                         className="ipt h-[48px] max-w-[420px]"
-                        value={supplierId}
-                        onChange={(e) => setSupplierId(e.target.value)}
+                        value={supplierId ?? ""}
+                        onChange={(e) => setSupplierId(e.target.value || null)}
                       >
                         {vendors.length === 0 && <option value="">— no vendors yet —</option>}
                         {vendors.map((v) => (
@@ -3214,7 +3238,7 @@ No bundle products yet — add them on{" "}
               </Card>
               {/*  everything below is only asked when the product is OURS —
                   a vendor keeps none of it  */}
-              {!supplierId && (
+              {providerMode === "OURS" && (
               <>
 
               <Card
