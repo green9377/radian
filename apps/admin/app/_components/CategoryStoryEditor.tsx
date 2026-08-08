@@ -39,7 +39,7 @@ import {
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-export default function CategoryStoryEditor({ categoryId }: { categoryId: string }) {
+export default function CategoryStoryEditor({ categoryId, only }: { categoryId: string; only?: "badges" | "inside" }) {
   const [badges, setBadges] = useState<ApiCategoryTrustBadge[]>([]);
   const [specs, setSpecs] = useState<ApiCategorySpec[]>([]);
   const [picking, setPicking] = useState<string | null>(null);
@@ -91,6 +91,7 @@ export default function CategoryStoryEditor({ categoryId }: { categoryId: string
       {err && <div className="text-[13px] text-[#c0392b]">{err}</div>}
 
       {/* ─────────────── TRUST BADGES ─────────────── */}
+      {only !== "inside" && (
       <div>
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           Trust badges
@@ -242,9 +243,11 @@ export default function CategoryStoryEditor({ categoryId }: { categoryId: string
           <Icon name="plus" size={15} /> Add a badge
         </button>
       </div>
+      )}
 
       {/* ─────────────── WHAT'S INSIDE ─────────────── */}
-      <div className="border-t border-lavender-deep pt-5">
+      {only !== "badges" && (
+      <div className={only === "inside" ? "" : "border-t border-lavender-deep pt-5"}>
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           What&rsquo;s inside
         </div>
@@ -311,6 +314,7 @@ export default function CategoryStoryEditor({ categoryId }: { categoryId: string
           <Icon name="plus" size={15} /> Add a row
         </button>
       </div>
+      )}
     </div>
   );
 }

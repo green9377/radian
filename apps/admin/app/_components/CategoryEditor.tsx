@@ -81,8 +81,9 @@ export default function CategoryEditor({
   const [icon, setIcon] = useState<string | null>(real(node?.iconUrl));
 
   const [saving, setSaving] = useState(false);
-  /* which of the four category-wide defaults is open (owner chose tabs, 6 Aug 2026) */
-  const [defTab, setDefTab] = useState<"bundles" | "badges" | "why" | "page">("bundles");
+  /* which category-wide default is open (owner chose tabs, 6 Aug 2026; badges
+     and "what's inside" split into two on his later request) */
+  const [defTab, setDefTab] = useState<"bundles" | "badges" | "inside" | "why" | "page">("bundles");
 
   const parentOptions = parents.filter((p) => p.id !== node?.id);
   const effectiveSlug = slug || categorySlug(name);
@@ -256,23 +257,33 @@ export default function CategoryEditor({
             own — the tabs only decide what's visible.  */}
         {!isNew && node && (
           <div className="bg-white border border-[#efe7f5] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
-            <div className="px-4 pt-3.5 pb-0.5 border-b border-[#f3eef8] bg-[#faf7fc]">
+            {/*  Colourful pill tabs (owner, 6 Aug 2026). Each tab carries its own
+                brand-family colour when active, so the strip reads lively rather
+                than grey. Content area has a min-height so switching tabs does
+                not change the page height — which was making the sticky left
+                tree jump on every click.  */}
+            <div className="px-4 pt-3.5 pb-3.5 border-b border-[#f3eef8]" style={{ background: "linear-gradient(120deg,#faf5fc,#fdf1f6)" }}>
               <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-body-soft mb-2.5">Applies to every product here</div>
-              <div className="flex gap-1.5 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {([
-                  ["bundles", "Bundles", "tag"],
-                  ["badges", "Badges & inside", "check"],
-                  ["why", "Why buy from us", "sparkle"],
-                  ["page", "Category page", "layers"],
-                ] as const).map(([key, label, icon]) => {
+                  ["bundles", "Bundles", "tag", "#8A2BB0"],
+                  ["badges", "Badges", "check", "#0f7d55"],
+                  ["inside", "What's inside", "grid", "#b45309"],
+                  ["why", "Why buy from us", "sparkle", "#c2185b"],
+                  ["page", "Category page", "layers", "#0369a1"],
+                ] as const).map(([key, label, icon, color]) => {
                   const on = defTab === key;
                   return (
                     <button
                       key={key}
                       type="button"
                       onClick={() => setDefTab(key)}
-                      className={"inline-flex items-center gap-1.5 text-[13px] font-semibold px-3.5 py-2 rounded-t-xl border-b-2 transition-colors " +
-                        (on ? "text-purple border-orchid bg-white" : "text-body-soft border-transparent hover:text-purple hover:bg-white/60")}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-bold px-3.5 py-2 rounded-full transition-all active:scale-95"
+                      style={
+                        on
+                          ? { background: color, color: "#fff", boxShadow: `0 4px 12px ${color}44` }
+                          : { background: "#fff", color, border: `1.5px solid ${color}33` }
+                      }
                     >
                       <Icon name={icon} size={15} /> {label}
                     </button>
@@ -280,9 +291,10 @@ export default function CategoryEditor({
                 })}
               </div>
             </div>
-            <div className="p-5">
+            <div className="p-5 min-h-[280px]">
               {defTab === "bundles" && <BundleEditor owner={{ categoryId: node.id }} />}
-              {defTab === "badges" && <CategoryStoryEditor categoryId={node.id} />}
+              {defTab === "badges" && <CategoryStoryEditor categoryId={node.id} only="badges" />}
+              {defTab === "inside" && <CategoryStoryEditor categoryId={node.id} only="inside" />}
               {defTab === "why" && <CraftEditor owner={{ categoryId: node.id }} />}
               {defTab === "page" && (
                 <div>
