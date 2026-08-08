@@ -195,71 +195,71 @@ export default function CategoryEditor({
         )}
 
         {/* ── BASICS ── */}
-        <Card title="Basics" sub="What the category is called and where it lives" icon="grid">
+        <Card title="Basics" icon="grid">
           <Field label="Name" required>
             <input className="ipt" placeholder="e.g. Fresh Flowers" value={name} onChange={(e) => onName(e.target.value)} />
           </Field>
-          <Field label="Web address (slug)">
-            <input className="ipt" placeholder="fresh-flowers" value={slug} onChange={(e) => { setSlug(categorySlug(e.target.value)); setSlugTouched(true); }} />
-            <Hint>
-              <span className="text-orchid font-medium">{WEB}{effectiveSlug || "your-slug"}</span>
-              <span className="text-[#b5642f]"> — changing it changes the public link.</span>
-            </Hint>
-          </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Parent category">
+            <Field label="Parent">
               <select className="ipt" value={parentId ?? ""} disabled={hasChildren} onChange={(e) => setParentId(e.target.value || null)}>
                 <option value="">— None (top-level) —</option>
                 {parentOptions.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
-              {hasChildren && <Hint>Has sub-categories, so it stays top-level.</Hint>}
             </Field>
             <Field label="Sort order">
               <input type="number" className="ipt" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} />
-              <Hint>Lower shows first.</Hint>
             </Field>
           </div>
+          <Field label="Web address">
+            <input className="ipt" placeholder="fresh-flowers" value={slug} onChange={(e) => { setSlug(categorySlug(e.target.value)); setSlugTouched(true); }} />
+            <Hint><span className="text-orchid">{WEB}{effectiveSlug || "your-slug"}</span></Hint>
+          </Field>
           <Field label="Size chooser heading">
             <input className="ipt" placeholder={parentId ? "Leave empty to use the parent's" : "Bouquet Size"} value={sizeLabel} onChange={(e) => setSizeLabel(e.target.value)} />
-            <Hint>The word above Standard / Large / Grand on a product page — “Cake Weight”, “Box Size”. Empty = plain “Size”.</Hint>
+            <Hint>The word above the size options on a product page — “Cake Weight”, “Box Size”.</Hint>
           </Field>
         </Card>
 
         {/* ── CARD ART ── */}
-        <Card title="Card art" sub="How this category looks in the menu and on the homepage" icon="photo">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[520px]">
-            <Drop label="Category image" hint="800 × 800 · square" value={image} busy={busy} onFile={(f) => pick(f, setImage, "categories")} onClear={() => setImage(null)} ratio="aspect-square" />
-            <Drop label="Category icon" hint="96 × 96 · a symbol, not a photo" value={icon} busy={busy} onFile={(f) => pick(f, setIcon, "icons")} onClear={() => setIcon(null)} ratio="aspect-square" />
+        <Card title="Card art" icon="photo">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[500px]">
+            <Drop label="Image" hint="800 × 800 · square" value={image} busy={busy} onFile={(f) => pick(f, setImage, "categories")} onClear={() => setImage(null)} ratio="aspect-square" />
+            <Drop label="Icon" hint="96 × 96 · a symbol" value={icon} busy={busy} onFile={(f) => pick(f, setIcon, "icons")} onClear={() => setIcon(null)} ratio="aspect-square" />
           </div>
-          <Hint>The banner picture at the top of the category's own page is set under <b>Storefront → Category pages</b>. JPG/PNG/WebP · up to 10 MB.</Hint>
         </Card>
 
         {/* ── VISIBILITY ── */}
-        <Card title="Visibility" sub="Where customers can see it" icon="eye">
+        <Card title="Visibility" icon="eye">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <ToggleField label="Active" hint="Off = hidden everywhere" on={isActive} onToggle={() => setIsActive((v) => !v)} />
-            <ToggleField label="Show in menu" hint="Appears in the top nav" on={showOnNavbar} onToggle={() => setShowOnNavbar((v) => !v)} />
-            <ToggleField label="Featured" hint="On the homepage rail" on={isFeatured} onToggle={() => setIsFeatured((v) => !v)} />
+            <ToggleField label="Active" hint="Off = hidden" on={isActive} onToggle={() => setIsActive((v) => !v)} />
+            <ToggleField label="In menu" hint="Top nav" on={showOnNavbar} onToggle={() => setShowOnNavbar((v) => !v)} />
+            <ToggleField label="Featured" hint="Homepage" on={isFeatured} onToggle={() => setIsFeatured((v) => !v)} />
           </div>
         </Card>
 
-        {/*  Lists that save on their own — hidden until the category exists,
-            since each one needs a category id to attach to.  */}
+        {/*  Category-wide defaults — set once here, they appear on every product
+            in this category; a product can override each on its own page. Hidden
+            until the category exists, since each needs a category id.  */}
         {!isNew && node && (
           <>
-            <Card title="Bundles" sub="Add-ons offered on every product in this category" icon="tag">
+            <div className="flex items-center gap-3 pt-2">
+              <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-body-soft whitespace-nowrap">Applies to every product here</span>
+              <span className="h-px flex-1 bg-[#ece5f2]" />
+            </div>
+
+            <Card title="Bundles" icon="tag">
               <BundleEditor owner={{ categoryId: node.id }} />
             </Card>
 
-            <Card title="Badges & what's inside" sub="Shown on every product page here — a product can override its own" icon="check">
+            <Card title="Badges & what's inside" icon="check">
               <CategoryStoryEditor categoryId={node.id} />
             </Card>
 
-            <Card title="Why buy from us" sub={node.parentId ? "Three cards below the fold — empty uses the parent's" : "Three cards below the fold on every product page here"} icon="sparkle">
+            <Card title="Why buy from us" icon="sparkle">
               <CraftEditor owner={{ categoryId: node.id }} />
             </Card>
 
-            <Card title="This category's page" sub="Banner, wording, sections and questions live together on one screen" icon="layers">
+            <Card title="This category's page" sub="Banner, wording and questions — set together on one screen" icon="layers">
               <a href="/storefront/category-page" className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-orchid hover:underline">
                 Open Storefront → Category pages →
               </a>
