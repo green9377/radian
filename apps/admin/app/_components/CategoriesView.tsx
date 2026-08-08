@@ -253,7 +253,7 @@ export default function CategoriesView() {
              Now the left is its own card with a rose-gold header — a second
              colour that reads clearly against the editor's purple.  */}
         <div className="xl:sticky xl:top-4 self-start">
-          <div className="border border-[#eadddf] rounded-2xl shadow-[0_2px_10px_rgba(150,90,110,0.10)] overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col" style={{ background: "#fdf7f8" }}>
+          <div className="border-2 border-[#e9c9cf] rounded-2xl shadow-[0_6px_20px_rgba(150,90,110,0.16)] overflow-hidden xl:max-h-[calc(100vh-2rem)] flex flex-col" style={{ background: "#fbe9ee" }}>
             {/* rose-gold header — distinct from the editor's purple */}
             <div className="relative px-5 py-4 shrink-0 overflow-hidden" style={{ background: "linear-gradient(135deg,#9c5560,#b76e79 55%,#d9a6ad)" }}>
               <div className="absolute -right-6 -top-12 w-40 h-40 rounded-full bg-white opacity-[0.10]" />
@@ -272,7 +272,7 @@ export default function CategoriesView() {
             </div>
 
             {/* scrollable body — everything lives inside so the card stays pinned */}
-            <div className="p-3 space-y-2 overflow-y-auto scrollbar-none">
+            <div className="p-3 space-y-2 overflow-y-auto scrollbar-none flex-1">
           {isEmpty && !isDemo && (
             <div className="rounded-[14px] border border-dashed border-lavender-deep p-6 text-center">
               <div className="font-display text-[17px] text-purple mb-1">No categories yet</div>
@@ -361,8 +361,8 @@ export default function CategoriesView() {
           </div>
         </div>
 
-        {/* ---------------- RIGHT: editor zone (purple-tinted) ---------------- */}
-        <div className="xl:bg-[#f6edfb] xl:rounded-[22px] xl:p-3.5">
+        {/* ---------------- RIGHT: editor zone (clearly purple) ---------------- */}
+        <div className="xl:rounded-[22px] xl:p-3.5 xl:border-2 xl:border-[#e3d0f4]" style={{ background: "#efe4fb" }}>
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}

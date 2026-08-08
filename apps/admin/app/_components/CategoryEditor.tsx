@@ -163,7 +163,7 @@ export default function CategoryEditor({
       {/*  Sticky hero header — bold, brand gradient, save always in reach.
           Redesigned 6 Aug 2026 (owner: the page read as cluttered/"hibijibi").
           Same fields, same saves — only the shell is clean now.  */}
-      <div className="sticky top-0 z-10 -mx-1 mb-5 rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.18)]"
+      <div className="sticky top-4 z-10 mb-4 rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.22)]"
            style={{ background: "linear-gradient(135deg,#5b1670,#a021b8 55%,#c46aad)" }}>
         <div className="absolute -right-8 -top-16 w-48 h-48 rounded-full bg-white opacity-[0.10]" />
         <div className="relative flex items-center justify-between gap-3 px-6 py-5">
