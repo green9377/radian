@@ -32,6 +32,8 @@ interface HeroBanner {
   visual: { gradient: string; art: "bouquet" | "hearts" | "hamper" };
   /** set once a real photo is uploaded; until then the drawn art shows */
   imageUrl?: string | null;
+  /** DEC-PRD-034 — written in the admin, so its words are never rewritten */
+  fromAdmin?: boolean;
 }
 
 const BANNERS: Record<"dhaka" | "bangladesh", HeroBanner[]> = {
@@ -159,7 +161,10 @@ function toHeroBanner(b: ShopBanner, keep: HeroBanner): HeroBanner {
     lead: b.lead ?? "",
     cta1: { label: b.cta1Label ?? "", href: b.cta1Href ?? "/products" },
     cta2: { label: b.cta2Label ?? "", href: b.cta2Href ?? "/products" },
+    /*  `fromAdmin` marks this slide as the owner's, so the Google rewrite
+        below leaves its words alone (DEC-PRD-034).  */
     proof: b.proof ?? [],
+    fromAdmin: true,
     float1: { icon: b.float1Icon ?? "", title: b.float1Title ?? "", sub: b.float1Sub ?? "" },
     float2: { icon: b.float2Icon ?? "", title: b.float2Title ?? "", sub: b.float2Sub ?? "" },
     visual: keep.visual,
@@ -175,6 +180,14 @@ function toHeroBanner(b: ShopBanner, keep: HeroBanner): HeroBanner {
  * owner's to write — he may put the Google line first, or not at all, and a
  * hard-coded index would then rewrite the wrong one.
  */
+/*  ⚠️ ONLY THE BUILT-IN SLIDES GO THROUGH THIS — DEC-PRD-034, owner 9 Aug 2026.
+    He typed "google rating 9:8" into the hero's trust lines and it never
+    appeared. This function was the reason: any chip mentioning Google was
+    replaced by the real review average, or DELETED when there were no reviews
+    — which, on a freshly emptied shop, is always. It was written to stop the
+    seeded slides shipping a hard-coded "★ 4.9 on Google", and for those it is
+    still right. But the owner's own words are not ours to rewrite: if he types
+    it, the shop says it. Applied to the seeded slides, never to his.  */
 function withRealRating(rating: number | null) {
   return (chip: string): string => {
     if (!/google/i.test(chip)) return chip;
@@ -370,7 +383,9 @@ export default function HeroSection({ zone }: Props) {
             </div>
 
             <div className="flex gap-6 mt-8 flex-wrap">
-              {c.proof.map(withRealRating(rating)).filter(Boolean).map((item, i) => (
+              {(c.fromAdmin ? c.proof : c.proof.map(withRealRating(rating)))
+                .filter(Boolean)
+                .map((item, i) => (
                 <div key={item} className="flex items-center gap-2.5 text-sm font-medium text-purple whitespace-nowrap">
                   <span className={`w-2 h-2 rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0 ${i === 2 ? "bg-rosegold" : "bg-orchid"}`} />
                   {item}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import CommaListInput from "./CommaListInput";
 import {
@@ -335,7 +336,7 @@ function Editor({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 grid place-items-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/30 grid place-items-center z-50 p-4" {...backdropClose(onClose)}>
       <div className="bg-white rounded-[16px] w-full max-w-[720px] max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-lavender-deep flex items-center justify-between sticky top-0 bg-white">
           <span className="font-display text-[16px] text-purple">Edit banner</span>

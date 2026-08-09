@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { listProducts, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiProduct, type ApiCustomer, type ApiPosShift } from "../_data/api";
 /*
@@ -402,7 +403,7 @@ export default function PosSellView() {
                   </button>
                   {custOpen && (
                     <>
-                      <div className="fixed inset-0 z-30" onClick={() => setCustOpen(false)} />
+                      <div className="fixed inset-0 z-30" {...backdropClose(() => setCustOpen(false))} />
                       <div className="absolute z-40 mt-1 left-0 right-0 bg-white border border-lavender-deep rounded-[12px] shadow-lift overflow-hidden">
                         <div className="p-2 border-b border-lavender-deep">
                           <input autoFocus className="ipt h-[38px]" placeholder="Search name or phone…" value={custQ} onChange={(e) => setCustQ(e.target.value)} />
@@ -567,7 +568,7 @@ export default function PosSellView() {
 
       {/* ===== manager PIN popup (DEC-POS-006) ===== */}
       {showPin && (
-        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" onClick={() => setShowPin(false)}>
+        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setShowPin(false))}>
           <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[360px]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-1"><Icon name="shield" size={18} /><h3 className="font-display text-[18px] text-purple m-0">Manager approval</h3></div>
             <p className="text-[12.5px] text-body-soft mb-3">Discount is {discountPct.toFixed(0)}% — above the {cap}% limit for this cart. Enter manager PIN to allow. <span className="opacity-60">(demo PIN 1234)</span></p>
@@ -583,7 +584,7 @@ export default function PosSellView() {
 
       {/* ===== held bills drawer ===== */}
       {showHeld && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex justify-end" onClick={() => setShowHeld(false)}>
+        <div className="fixed inset-0 z-50 bg-black/30 flex justify-end" {...backdropClose(() => setShowHeld(false))}>
           <div className="bg-white w-full max-w-[380px] h-full p-5 overflow-auto shadow-lift" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><h3 className="font-display text-[18px] text-purple m-0">Held bills ({held.length})</h3><button type="button" onClick={() => setShowHeld(false)} className="text-body-soft text-[20px] leading-none">×</button></div>
             {held.length === 0 ? (
@@ -607,7 +608,7 @@ export default function PosSellView() {
 
       {/* ===== receipt preview (DEC-POS-012) ===== */}
       {receipt && (
-        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" onClick={() => setReceipt(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setReceipt(null))}>
           <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[340px] text-center" onClick={(e) => e.stopPropagation()}>
             <div className="w-[46px] h-[46px] rounded-full bg-[#e9f9ef] grid place-items-center mx-auto mb-3 text-[#0e7a3d]"><Icon name="check" size={24} /></div>
             <h3 className="font-display text-[19px] text-purple m-0">Sale complete</h3>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import {
   loadUnitsSafe, createUnit, updateUnit, deleteUnit, seedSampleUnits,
@@ -729,7 +730,7 @@ function UnitDialog({
         : "Add a unit";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/35 flex items-start justify-center p-4 overflow-y-auto" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 bg-black/35 flex items-start justify-center p-4 overflow-y-auto" {...backdropClose(onCancel)}>
       {/* NO overflow-hidden here — it clipped the "breaks into" picker to the dialog's
           bottom edge, leaving a 2-row sliver. Header and footer are rounded individually
           instead, so the panel can hang past the card. */}
@@ -932,7 +933,7 @@ function UsageDrawer({
   const targetName = units.find((u) => u.id === target)?.name;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/35 flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/35 flex justify-end" {...backdropClose(onClose)}>
       <div className="bg-white w-full max-w-[560px] h-full flex flex-col shadow-soft" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-lavender-deep flex items-start justify-between gap-3" style={{ background: ACCENT_BG }}>
           <div>

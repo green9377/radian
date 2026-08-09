@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import Icon from "./Icon";
 import {
@@ -257,7 +258,7 @@ export function PosSalesHistory() {
       </div>
 
       {rx && (
-        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" onClick={() => setRx(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setRx(null))}>
           <div className="bg-white rounded-[16px] shadow-lift p-6 w-full max-w-[320px]" onClick={(e) => e.stopPropagation()}>
             <div className="text-center border-b border-dashed border-lavender-deep pb-3 mb-3">
               <div className="font-display text-[17px] text-purple">Radian</div>

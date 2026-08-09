@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
@@ -323,7 +324,7 @@ export default function ItemListView() {
       {confirming && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4"
           style={{ background: "rgba(44,15,61,.42)" }}
-          onClick={() => !delBusy && setConfirming(null)}>
+          {...backdropClose(() => !delBusy && setConfirming(null))}>
           <div className="bg-white rounded-[18px] shadow-lift w-[520px] max-w-full overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 flex items-center gap-3 border-b border-lavender-deep">

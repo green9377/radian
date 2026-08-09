@@ -8,6 +8,7 @@
 */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import Icon from "./Icon";
 import {
@@ -233,7 +234,7 @@ export function DeliveryBoardLive() {
 
       {/* assign modal */}
       {assigning && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" onClick={() => setAssigning(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setAssigning(null))}>
           <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-[18px] text-purple m-0 mb-1">Assign {assigning.orderNo}</h3>
             <p className="text-[12.5px] text-body-soft mt-0 mb-4">Re-assigning replaces the current carrier.</p>
@@ -350,7 +351,7 @@ export function RidersLive() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" onClick={() => setEditing(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setEditing(null))}>
           <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[400px]" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-[18px] text-purple m-0 mb-4">{editing.id ? "Edit rider" : "Add rider"}</h3>
             <Guide>Name *</Guide>
@@ -438,7 +439,7 @@ export function CouriersLive() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" onClick={() => setEditing(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setEditing(null))}>
           <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-[18px] text-purple m-0 mb-4">{editing.id ? "Edit courier" : "Add courier"}</h3>
             <Guide>Name *</Guide>
@@ -553,7 +554,7 @@ export function MethodsLive() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" onClick={() => setEditing(null)}>
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setEditing(null))}>
           <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-[18px] text-purple m-0 mb-4">{editing.id ? "Edit method" : "Add method"}</h3>
             <Guide>Label *</Guide>
