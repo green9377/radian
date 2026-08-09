@@ -796,10 +796,21 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /*  Moving to another section scrolls back to the top of it. Without this
       you land halfway down a section you have not read, because the browser
       keeps the old scroll position on a page whose content just changed.  */
-  /*  The Variants tab only exists for a product that says it has them
-      (Basics, owner 8 Aug 2026). Everything that walks the tabs — the nav,
-      the mobile dropdown, Next/Back — walks THIS list, so a plain product
-      never lands on a tab that has nothing to ask.  */
+  /*  Basics' "does it come in more than one?" (owner, 8 Aug 2026). Not a
+      column of its own — an existing product answers it by having variants,
+      and a new one starts at No.
+
+      ⚠️ DECLARED HERE, above `visibleSections`, and it must stay above it.
+      Put below, the filter reads it before initialisation and the whole
+      editor goes white with "Cannot access before initialization" — the
+      third time this file has been bitten by exactly that (see the variant
+      item picker, 2 Aug).  */
+  const [hasVariants, setHasVariants] = useState(false);
+
+  /*  The Variants tab only exists for a product that says it has them.
+      Everything that walks the tabs — the nav, the mobile dropdown,
+      Next/Back — walks THIS list, so a plain product never lands on a tab
+      that has nothing to ask.  */
   const visibleSections = SECTIONS.filter(([id]) => id !== "variants" || hasVariants);
   const secIdx = visibleSections.findIndex(([id]) => id === sec);
   const goSec = (i: number) => {
@@ -1091,10 +1102,6 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [vBusy, setVBusy] = useState<string | null>(null);
   //  DEC-PRD-031 — shown when a value from a SECOND list is clicked
   const [vMixWarn, setVMixWarn] = useState<string | null>(null);
-  /*  Basics' "does it come in more than one?" (owner, 8 Aug 2026). Not a
-      column of its own — an existing product answers it by having variants,
-      and a new one starts at No. Only the tab list reads it.  */
-  const [hasVariants, setHasVariants] = useState(false);
 
   /**
    * Which variant template is open. `null` = opens whichever one already
