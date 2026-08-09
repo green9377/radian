@@ -2797,7 +2797,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       <p className="text-[12.5px] text-body-soft mt-2 mb-0">
                         Every variant has its own price, so nothing is sold at this
                         one. The shop shows{" "}
-                        <b className="font-medium text-purple">from {taka(cheapestVariantPaisa)}</b>{" "}
+                        <b className="font-medium text-purple">from {taka(cheapestVariantPaisa / 100)}</b>{" "}
                         until a customer picks. Leave one variant blank and it falls
                         back to this price.
                       </p>
@@ -3359,10 +3359,13 @@ No bundle products yet — add them on{" "}
 
                               {/*  ⚠️ The answer, not the arithmetic. Owner reads
                                   what the customer will pay; he should not have
-                                  to work out 10% of 1,500 himself.  */}
+                                  to work out 10% of 1,500 himself.
+                                  ⚠️ `variantPays` is PAISA, `taka()` takes TAKA —
+                                  unconverted this printed ৳45,000 for a ৳450
+                                  price (owner, 9 Aug 2026).  */}
                               {v.discType !== "NONE" && (
                                 <span className="text-[12.5px] font-medium text-[#0f7d55]">
-                                  customer pays {taka(variantPays(v))}
+                                  customer pays {taka(variantPays(v) / 100)}
                                 </span>
                               )}
                             </>
@@ -6268,14 +6271,25 @@ No bundle products yet — add them on{" "}
                 </span>
                 {salesLabel && <span>· {salesLabel}</span>}
               </div>
+              {/*  DEC-PRD-035 — the preview mirrors the shop: every variant
+                  priced → "from" the cheapest, and no struck price.  */}
               <div className="flex items-baseline gap-2 mt-3">
-                <span className="text-[22px] font-medium text-purple font-display">
-                  {taka(offer || 0)}
-                </span>
-                {showDisc && (
-                  <span className="text-[14px] line-through text-body-soft">
-                    {taka(sellN)}
+                {allVariantsPriced ? (
+                  <span className="text-[22px] font-medium text-purple font-display">
+                    <span className="text-[13px] font-normal text-body-soft mr-1">from</span>
+                    {taka(cheapestVariantPaisa / 100)}
                   </span>
+                ) : (
+                  <>
+                    <span className="text-[22px] font-medium text-purple font-display">
+                      {taka(offer || 0)}
+                    </span>
+                    {showDisc && (
+                      <span className="text-[14px] line-through text-body-soft">
+                        {taka(sellN)}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               <button

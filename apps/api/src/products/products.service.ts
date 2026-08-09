@@ -781,7 +781,7 @@ export class ProductsService {
     মুহূর্তেই যাচাই করে।
   */
   private async assertPublishReady(
-    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[] },
+    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[]; variants?: ProductVariantInput[] },
     existing: {
       isPublished?: boolean;
       sellingPricePaisa?: number;
@@ -796,14 +796,34 @@ export class ProductsService {
     const willPublish = dto.isPublished ?? existing?.isPublished ?? false;
     if (!willPublish) return;
 
+    /*  DEC-PRD-035 — a product whose EVERY variant carries its own price is
+        legitimately sold without a product-level price: the shop quotes
+        "from ৳X" and each colour charges its own number. Blocking publish on
+        the empty box then (caught by the owner, 9 Aug 2026) forced him to
+        invent a price nothing would ever sell at. One blank variant, though,
+        genuinely falls back to this price — so the gate stays for that.  */
     const price = dto.sellingPricePaisa ?? existing?.sellingPricePaisa ?? 0;
     if (!(price > 0)) {
-      throw new BadRequestException('Publish করার আগে দাম (sellingPricePaisa) শূন্যের বেশি হতে হবে।');
+      const rows =
+        dto.variants ??
+        (productId
+          ? await this.prisma.db.productVariant.findMany({
+              where: { productId, deletedAt: null, isActive: true },
+              select: { pricePaisa: true },
+            })
+          : []);
+      const everyVariantPriced =
+        rows.length > 0 && rows.every((r) => r.pricePaisa != null && r.pricePaisa > 0);
+      if (!everyVariantPriced) {
+        throw new BadRequestException(
+          'Set a selling price above zero — or give every variant its own price — before publishing.',
+        );
+      }
     }
 
     const categoryId = dto.categoryId ?? existing?.categoryId;
     if (!categoryId) {
-      throw new BadRequestException('Publish করার আগে category বাছতে হবে।');
+      throw new BadRequestException('Pick a category before publishing.');
     }
 
     // SKU/product code required to publish (owner, 6 Aug 2026). Draft is never
@@ -818,7 +838,7 @@ export class ProductsService {
     const mn = dto.supportsMidnight ?? existing?.supportsMidnight ?? false;
     if (!exp && !sd && !mn) {
       throw new BadRequestException(
-        'Publish করার আগে অন্তত একটা delivery speed (Express / Same Day / Midnight) টিক করতে হবে।',
+        'Tick at least one delivery speed (Express / Same Day / Midnight) before publishing.',
       );
     }
 
@@ -835,7 +855,7 @@ export class ProductsService {
       imageCount = 0;
     }
     if (imageCount === 0) {
-      throw new BadRequestException('Publish করার আগে অন্তত একটা ছবি আপলোড করতে হবে।');
+      throw new BadRequestException('Upload at least one photo before publishing.');
     }
   }
 
