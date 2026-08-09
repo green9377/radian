@@ -159,7 +159,7 @@ export default function OrderEditForm({ id }: { id: string }) {
     setAdded((ls) => {
       const hit = ls.find((x) => x.productId === p.id);
       if (hit) return ls.map((x) => (x.productId === p.id ? { ...x, qty: x.qty + 1 } : x));
-      return [...ls, { key: `${p.id}-${Date.now()}`, productId: p.id, name: p.name, bg: genBg(p.slug), unitPaisa: p.offerPricePaisa, qty: 1, crafted: p.productType === "CRAFTED" }];
+      return [...ls, { key: `${p.id}-${Date.now()}`, productId: p.id, name: p.name, bg: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug), unitPaisa: p.offerPricePaisa, qty: 1, crafted: p.productType === "CRAFTED" }];
     });
     setShowPicker(false);
   };

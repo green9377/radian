@@ -630,6 +630,17 @@ export class ProductsService {
         stockQty: true,
         deletedAt: true,
         category: { select: { id: true, name: true, slug: true } },
+        /*  ⚠️ Recovery is where you decide "is this the one I meant to
+            delete?" — and the photo is how anybody answers that. It was the
+            one list still sending none (owner, 9 Aug 2026).
+            `deletedAt: null` on the images, not on the product: the product
+            IS deleted here; its photos are not.  */
+        images: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          select: { id: true, url: true, sortOrder: true },
+        },
       },
     });
     return { items: rows.map((r) => this.withOffer(r)), total: rows.length };

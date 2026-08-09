@@ -216,7 +216,18 @@ export default function ProductTrash() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="w-[38px] h-[38px] rounded-[10px] shrink-0 opacity-60" style={{ background: genBg(p.slug) }} />
+                      {/*  the real photo — this is the screen where you decide
+                          whether it is the right product to restore or destroy,
+                          and a coloured square answers nothing (owner, 9 Aug
+                          2026). Kept dimmed: it is still in the bin.  */}
+                      <span
+                        className="w-[38px] h-[38px] rounded-[10px] shrink-0 opacity-60"
+                        style={{
+                          background: p.images?.[0]?.url
+                            ? `url(${p.images[0].url}) center/cover no-repeat`
+                            : genBg(p.slug),
+                        }}
+                      />
                       <div className="min-w-0">
                         <div className="font-medium text-purple truncate">{p.name}</div>
                         <div className="text-[13px] text-body-soft font-mono">{p.sku ?? "no SKU"}</div>

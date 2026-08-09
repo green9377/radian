@@ -399,7 +399,7 @@ export default function NewOrderForm() {
                   if (!p) return null;
                   return (
                     <div key={l.key} className="grid grid-cols-[44px_minmax(0,1fr)_86px_100px_34px] gap-3 items-center border border-lavender-deep rounded-[12px] p-3 bg-lavender/40">
-                      <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: genBg(p.slug) }} />
+                      <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug) }} />
                       <div className="min-w-0">
                         <div className="font-medium text-purple text-[13.5px] truncate">{p.name}</div>
                         <div className="text-[13px] text-body-soft">{formatTaka(p.offerPricePaisa)} each{isCrafted(p) ? " · crafted (advance)" : " · readymade"}</div>

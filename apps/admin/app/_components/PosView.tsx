@@ -346,7 +346,7 @@ export default function PosSellView() {
           <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
             {grid.map((p) => (
               <button key={p.id} type="button" onClick={() => add(p)} className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full">
-                <div className="h-[104px] w-full shrink-0" style={{ background: genBg(p.slug) }} />
+                <div className="h-[104px] w-full shrink-0" style={{ background: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug) }} />
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
@@ -438,7 +438,7 @@ export default function PosSellView() {
               <div className="flex flex-col gap-2 mb-3">
                 {lines.map((l) => (
                   <div key={l.key} className="grid grid-cols-[36px_minmax(0,1fr)_auto] gap-2.5 items-center">
-                    <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: genBg(l.product.slug) }} />
+                    <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: l.product.images?.[0]?.url ? `url(${l.product.images[0].url}) center/cover no-repeat` : genBg(l.product.slug) }} />
                     <div className="min-w-0">
                       <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
                       <div className="text-[12px] text-[#c9a6e4]">{formatTaka(l.product.offerPricePaisa)} each</div>
