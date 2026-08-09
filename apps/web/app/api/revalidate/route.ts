@@ -22,11 +22,18 @@ import { SHOP_TAG } from "../../_data/cacheTags";
  *  dashboards to stop his own shop lagging, and a feature nobody configures
  *  is a feature that does not exist.
  *
- *  The throttle is what makes that safe. Expiring a tag does not rebuild
- *  anything by itself — the next visitor does, and they were going to be
- *  served a page anyway. So the worst an abuser achieves is a cache that
- *  behaves as if its life were 20 seconds instead of 60. Bounded, and still
- *  far cheaper than the `no-store` this replaced.
+ *  What the open door actually costs. Expiring a tag rebuilds nothing by
+ *  itself — the next visitor does, and they were going to be served a page
+ *  anyway. So an abuser calling this in a loop achieves a cold cache, which is
+ *  the `no-store` the shop ran on until 5 Aug: slower, more calls to a free
+ *  API, but nothing exposed and nothing broken.
+ *
+ *  ⚠️ AND THE THROTTLE IS WEAKER THAN IT LOOKS. `lastOpenCall` lives in one
+ *  serverless instance's memory; Vercel runs several, so the real ceiling is
+ *  20 seconds PER INSTANCE, not per shop. Verified 9 Aug 2026 — two calls
+ *  eight seconds apart were both accepted. It is a speed bump, not a lock.
+ *  Before the real shop goes live, set REVALIDATE_SECRET on both sides and
+ *  this branch stops being reachable (RADIAN_PENDING).
  *
  *  ⚠️ Returns 200 even when it changed nothing. This is a hint, not a
  *  transaction: the API must never fail a save because a cache ping did.
