@@ -288,7 +288,16 @@ export function PurchaseListView() {
           <button key={p.id} onClick={() => router.push(`/purchases/${p.id}`)}
             className={ROW + " w-full text-left hover:bg-lavender/25 transition-colors"}>
             <span>
-              <span className="block text-[13px] font-semibold text-purple">{p.purchaseNo}</span>
+              <span className="block text-[13px] font-semibold text-purple">
+                {p.purchaseNo}
+                {/* DEC-PUR-014 — received but no stock movement; open it to repair */}
+                {p.stockMissing && (
+                  <span className="ml-1.5 align-middle text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[6px]"
+                    style={{ background: "#fdebd0", color: "#8a5a00" }}>
+                    stock not posted
+                  </span>
+                )}
+              </span>
               <span className="block text-[13px] text-body-soft">{fmtDate(p.purchaseDate)}{p.partiallyReceived ? " · partly received" : ""}</span>
             </span>
             <span className="text-[13px] text-body min-w-0 truncate">{p.supplierName}</span>

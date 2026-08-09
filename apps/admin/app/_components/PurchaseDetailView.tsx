@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import { WRAP, ACCENT, ItemPageHead, ErrBar, OkBar, DemoBar, Modal, Field, ItemThumb, msg } from "./ItemUI";
 import { StatusChip, PayBadge, fmtDate } from "./PurchaseViews";
 import {
-  getPurchase, receivePurchase, addPurchasePayment, cancelPurchase, createPurchaseReturn,
+  getPurchase, receivePurchase, addPurchasePayment, cancelPurchase, createPurchaseReturn, repostPurchaseStock,
   getPurchaseTimeline, isCostJumpRefusal, formatTaka, fmtQty, toMilli, PAY_METHODS,
   type ApiPurchase, type PayMethod, type ActivityEvent,
 } from "../_data/api";
@@ -105,6 +105,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
   const alreadyReturned = (lineId: string) =>
     p.returns.reduce((s, r) => s + r.lines.filter((l) => l.purchaseLineId === lineId).reduce((x, l) => x + l.qtyMilli, 0), 0);
 
+  const gap = p.stockGap?.length ? p.stockGap : null;
   const outstanding = p.lines.some((l) => l.receivedQtyMilli < l.qtyMilli) && p.status !== "CANCELLED";
   const returnable = p.lines.some((l) => l.receivedQtyMilli - alreadyReturned(l.id) > 0);
 
@@ -132,6 +133,31 @@ export default function PurchaseDetailView({ id }: { id: string }) {
       {isDemo && <DemoBar what="a sample purchase (actions need the API)" onRetry={load} />}
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
+
+      {/* DEC-PUR-014 — goods received, stock never moved. Loud, on the purchase
+          itself, with the repair one press away. The receive hook is fail-soft on
+          purpose; before this the only trace was a line in the timeline. */}
+      {gap && (
+        <div className="mb-5 rounded-[14px] border px-5 py-4"
+          style={{ borderColor: "#f0c98a", background: "#fff8ec" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5a00" }}>
+            <Icon name="alert" size={13} /> These goods never reached stock
+          </b>
+          <p className="text-[13px] text-body-soft m-0 mb-2.5">
+            The receipt was saved but the stock movement failed, so the shop still
+            counts these as missing:{" "}
+            <b className="text-body">
+              {gap.map((g) => `${g.name} ${fmtQty(g.missingMilli)}`).join(", ")}
+            </b>
+            . Pressing this posts only what is missing — safe to press twice.
+          </p>
+          <button disabled={busy} onClick={() => act(() => repostPurchaseStock(id), "Stock posted.")}
+            className="text-[12.5px] font-medium px-3.5 py-1.5 rounded-[9px] text-white disabled:opacity-50"
+            style={{ background: "#b45309" }}>
+            Post stock now
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
         <div>

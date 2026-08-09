@@ -99,6 +99,12 @@ export class PurchasesController {
     return this.svc.receive(id, { ...dto, actorName: dto.actorName ?? actor });
   }
 
+  /** DEC-PUR-014 — repair: goods received but stock never moved */
+  @Post(':id/repost-stock')
+  repostStock(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.svc.repostStock(id, actor);
+  }
+
   @Post(':id/payments')
   addPayment(@Param('id') id: string, @Body() dto: PaymentDto, @Headers('x-actor-name') actor?: string) {
     return this.svc.addPayment(id, { ...dto, actorName: dto.actorName ?? actor });

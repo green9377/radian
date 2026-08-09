@@ -323,12 +323,49 @@ export class InventoryService {
     return agg._sum.qtyMilli ?? 0;
   }
 
+  /**
+   * ─────────────────────────────────────────────────────────────────────────
+   * DEC-INV-014 — a shop always has somewhere to put things
+   *
+   * Owner, 9 Aug 2026: he recorded PUR-000001 (20 Paper, 50 Sunflower, ৳12,000
+   * paid), and the timeline said *"Inventory posting failed — No active
+   * warehouse, run the inventory seed"*. His words: *"tahole to gora thekei
+   * gondogol."* He is right.
+   *
+   * ⚠️ "Run the seed" is a developer instruction wearing an error message. A
+   * shop owner receiving goods should never meet it — and a purchase that is
+   * marked Received and Paid while the stock silently goes nowhere is the
+   * worst possible outcome: the money moved and the goods did not.
+   *
+   * So the first receive CREATES the store instead of refusing. One row,
+   * code SHOP, named "Main store" — renameable in Inventory → Warehouses like
+   * anything else. Only ever created when there is genuinely none; the moment
+   * one exists this never runs again.
+   * ─────────────────────────────────────────────────────────────────────────
+   */
+  private async ensureWarehouseId(): Promise<string> {
+    const first = await this.prisma.db.warehouse.findFirst({ where: { isActive: true } });
+    if (first) return first.id;
+    /*  ⚠️ Deleted-but-present is a real case: `code` is unique, so a plain
+        create would collide with a soft-deleted SHOP row. Revive it instead.  */
+    const dormant = await this.prisma.warehouse.findFirst({ where: { code: 'SHOP' } });
+    if (dormant) {
+      const back = await this.prisma.warehouse.update({
+        where: { id: dormant.id },
+        data: { isActive: true, deletedAt: null },
+      });
+      return back.id;
+    }
+    const made = await this.prisma.db.warehouse.create({
+      data: { code: 'SHOP', name: 'Main store', isActive: true },
+    });
+    return made.id;
+  }
+
   private async receiveWarehouseId(): Promise<string> {
     const s = await this.settings();
     if (s.defaultReceiveWarehouseId) return s.defaultReceiveWarehouseId;
-    const first = await this.prisma.db.warehouse.findFirst({ where: { isActive: true } });
-    if (!first) throw new BadRequestException('No active warehouse — run the inventory seed');
-    return first.id;
+    return this.ensureWarehouseId();
   }
 
   private async saleWarehouseId(): Promise<string> {
@@ -354,6 +391,8 @@ export class InventoryService {
       unitPricePaisaLineUnit: number;
       expiryDate?: string;
     }[];
+    /** DEC-PUR-014 repair pass — post only what this purchase has not posted yet. */
+    onlyMissing?: boolean;
   }): Promise<Map<string, { addedQtyMilli: number; addedValuePaisa: number }>> {
     const warehouseId = await this.receiveWarehouseId();
     const perItem = new Map<string, { addedQtyMilli: number; addedValuePaisa: number }>();
@@ -391,10 +430,100 @@ export class InventoryService {
       perItem.set(l.itemId, agg);
     }
 
-    if (drafts.length) {
-      await this.prisma.db.$transaction(async (raw) => this.postMovements(asTx(raw), drafts));
+    const toPost = params.onlyMissing
+      ? await this.trimAlreadyPosted(params.purchaseId, drafts, perItem)
+      : drafts;
+
+    if (toPost.length) {
+      await this.prisma.db.$transaction(async (raw) => this.postMovements(asTx(raw), toPost));
     }
     return perItem;
+  }
+
+  /**
+   * DEC-PUR-014 — the hole between what a purchase received and what actually
+   * reached stock, per item, WITHOUT writing anything. Purchase asks this on every
+   * read so a silent posting failure shows up on the screen instead of only in the
+   * timeline note nobody scrolls to.
+   */
+  async purchaseReceiptGap(params: {
+    purchaseId: string;
+    lines: { itemId: string; qtyMilliLineUnit: number; lineFactor: number }[];
+  }): Promise<{ itemId: string; name: string; missingMilli: number }[]> {
+    const expected = new Map<string, { qty: number; name: string }>();
+    for (const l of params.lines) {
+      if (l.qtyMilliLineUnit <= 0) continue;
+      const item = await this.prisma.db.item.findFirst({
+        where: { id: l.itemId },
+        select: { id: true, name: true, unitId: true, isStockTracked: true, itemType: true },
+      });
+      if (!item || !item.isStockTracked || item.itemType === 'SERVICE') continue;
+      const itemFactor = await this.resolveRootFactor(item.unitId);
+      const qty = Math.round((l.qtyMilliLineUnit * Math.max(l.lineFactor, 1)) / Math.max(itemFactor, 1));
+      if (qty <= 0) continue;
+      const agg = expected.get(l.itemId) ?? { qty: 0, name: item.name };
+      agg.qty += qty;
+      expected.set(l.itemId, agg);
+    }
+    if (!expected.size) return [];
+
+    const posted = await this.purchasePostedByItem(params.purchaseId);
+    const gap: { itemId: string; name: string; missingMilli: number }[] = [];
+    for (const [itemId, e] of expected) {
+      const missing = e.qty - (posted.get(itemId) ?? 0);
+      if (missing > 0) gap.push({ itemId, name: e.name, missingMilli: missing });
+    }
+    return gap;
+  }
+
+  /**
+   * DEC-PUR-014 — what a purchase has ALREADY put into stock, per item.
+   * Movements are never soft-deleted, so the raw sum is the truth.
+   */
+  async purchasePostedByItem(purchaseId: string): Promise<Map<string, number>> {
+    const rows = await this.prisma.inventoryMovement.groupBy({
+      by: ['itemId'],
+      where: { refType: 'PURCHASE', refId: purchaseId },
+      _sum: { qtyMilli: true },
+    });
+    return new Map(rows.map((r) => [r.itemId, r._sum.qtyMilli ?? 0]));
+  }
+
+  /**
+   * Repair pass. Drops the part of `drafts` that is already standing in stock for
+   * this purchase, so pressing "Post stock now" twice cannot double the goods.
+   * `perItem` is trimmed in step so the caller's AVCO weighs only what really moved.
+   */
+  private async trimAlreadyPosted(
+    purchaseId: string,
+    drafts: MovementDraft[],
+    perItem: Map<string, { addedQtyMilli: number; addedValuePaisa: number }>,
+  ): Promise<MovementDraft[]> {
+    const posted = await this.purchasePostedByItem(purchaseId);
+    if (!posted.size) return drafts;
+
+    const budget = new Map<string, number>();
+    for (const [itemId, agg] of perItem) {
+      budget.set(itemId, Math.max(agg.addedQtyMilli - (posted.get(itemId) ?? 0), 0));
+    }
+
+    const kept: MovementDraft[] = [];
+    const moved = new Map<string, { addedQtyMilli: number; addedValuePaisa: number }>();
+    for (const d of drafts) {
+      const left = budget.get(d.itemId) ?? 0;
+      if (left <= 0) continue;
+      const qty = Math.min(d.qtyMilli, left);
+      budget.set(d.itemId, left - qty);
+      kept.push(qty === d.qtyMilli ? d : { ...d, qtyMilli: qty });
+      const agg = moved.get(d.itemId) ?? { addedQtyMilli: 0, addedValuePaisa: 0 };
+      agg.addedQtyMilli += qty;
+      agg.addedValuePaisa += Math.round((qty * d.unitCostPaisa) / 1000);
+      moved.set(d.itemId, agg);
+    }
+
+    perItem.clear();
+    for (const [itemId, agg] of moved) perItem.set(itemId, agg);
+    return kept;
   }
 
   /** Purchase return → PURCHASE_RETURN stock-out (valued at the return's own figures) */
@@ -669,9 +798,8 @@ export class InventoryService {
     const s = await this.settings();
     const fallback = async () => {
       if (s.defaultSaleWarehouseId) return s.defaultSaleWarehouseId;
-      const first = await this.prisma.db.warehouse.findFirst({ where: { isActive: true } });
-      if (!first) throw new BadRequestException('No active warehouse — run the inventory seed');
-      return first.id;
+      //  DEC-INV-014 — same rule: make the store rather than refuse the work
+      return this.ensureWarehouseId();
     };
     const fb = await fallback();
     return {

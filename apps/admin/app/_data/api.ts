@@ -3251,6 +3251,10 @@ export interface ApiPurchase {
   payablePaisa: number;
   returnedPaisa: number;
   partiallyReceived: boolean;
+  /** DEC-PUR-014 — received goods that never reached stock (detail read only) */
+  stockGap?: { itemId: string; name: string; missingMilli: number }[] | null;
+  /** DEC-PUR-014 — list-level flag: received, and not one movement posted */
+  stockMissing?: boolean;
   fullyReceived: boolean;
   paymentState: "PAID" | "PARTIAL" | "UNPAID";
 }
@@ -3307,6 +3311,9 @@ export const createPurchase = (b: PurchaseCreateWrite) =>
   j<ApiPurchase>(`/purchases`, { method: "POST", body: JSON.stringify(b) });
 export const receivePurchase = (id: string, b?: { lines?: { lineId: string; qtyMilli: number }[]; confirmCost?: boolean }) =>
   j<ApiPurchase>(`/purchases/${id}/receive`, { method: "POST", body: JSON.stringify(b ?? {}) });
+/** DEC-PUR-014 — received goods that never reached stock; safe to press twice */
+export const repostPurchaseStock = (id: string) =>
+  j<ApiPurchase>(`/purchases/${id}/repost-stock`, { method: "POST" });
 export const addPurchasePayment = (id: string, b: { amountPaisa: number; method: PayMethod; note?: string }) =>
   j<ApiPurchase>(`/purchases/${id}/payments`, { method: "POST", body: JSON.stringify(b) });
 export const cancelPurchase = (id: string, note?: string) =>

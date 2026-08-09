@@ -42,7 +42,13 @@ const purchaseInclude = {
   lines: {
     where: { deletedAt: null },
     include: {
-      item: { select: { id: true, sku: true, name: true, imageUrl: true, unitId: true } },
+      // isStockTracked/itemType — DEC-PUR-014 needs to know which lines OWE a movement
+      item: {
+        select: {
+          id: true, sku: true, name: true, imageUrl: true, unitId: true,
+          isStockTracked: true, itemType: true,
+        },
+      },
       unit: { select: { id: true, name: true, shortCode: true } },
     },
   },
@@ -85,6 +91,7 @@ export class PurchasesService {
     purchaseNo: string,
     actor: string,
     receipts: { itemId: string; qtyMilliLineUnit: number; lineFactor: number; unitPricePaisaLineUnit: number; expiryDate?: string }[],
+    onlyMissing = false, // DEC-PUR-014 repair pass
   ) {
     let stockPosted = false;
     try {
@@ -95,7 +102,7 @@ export class PurchasesService {
       }
 
       const perItem = await this.inventory.postPurchaseReceipt({
-        purchaseId, purchaseNo, actor, lines: receipts,
+        purchaseId, purchaseNo, actor, lines: receipts, onlyMissing,
       });
       // PUR-REV-9 — from here on, stock HAS posted. If the average step throws, the
       // catch must not go on claiming it did not (see below).
@@ -254,7 +261,31 @@ export class PurchasesService {
       orderBy,
       ...(dueQuery ? {} : { take: 500 }),
     });
-    let shaped = rows.map((r) => this.shape(r));
+    /* DEC-PUR-014 — one flag, one query. Per-item gap maths is too heavy for a list,
+       but "received goods and NOT one movement" is the shape every real failure took,
+       and it is the difference between him noticing today and noticing at stocktake. */
+    const owesStock = (r: PurchaseRow) =>
+      r.status !== PurchaseStatus.CANCELLED &&
+      r.lines.some(
+        (l) =>
+          l.receivedQtyMilli > 0 && l.item?.isStockTracked && l.item.itemType !== 'SERVICE',
+      );
+    const receivedIds = new Set(rows.filter(owesStock).map((r) => r.id));
+    const withMovements = new Set(
+      receivedIds.size
+        ? (
+            await this.prisma.inventoryMovement.groupBy({
+              by: ['refId'],
+              where: { refType: 'PURCHASE', refId: { in: [...receivedIds] } },
+            })
+          ).map((m) => m.refId as string)
+        : [],
+    );
+
+    let shaped = rows.map((r) => ({
+      ...this.shape(r),
+      stockMissing: receivedIds.has(r.id) && !withMovements.has(r.id),
+    }));
     if (q.status === 'due') shaped = shaped.filter((r) => r.duePaisa > 0);
     if (q.sort === 'due')
       shaped = [...shaped].sort((a, b) =>
@@ -304,7 +335,72 @@ export class PurchasesService {
       include: purchaseInclude,
     });
     if (!p) throw new NotFoundException('Purchase not found');
-    return this.shape(p);
+    return { ...this.shape(p), stockGap: await this.stockGap(p) };
+  }
+
+  /**
+   * DEC-PUR-014 (9 Aug 2026) — goods received, stock not moved.
+   *
+   * Owner: *"ami to purches krlm but stock tahole add hlo na"*. The receive hook is
+   * deliberately fail-soft (a stock error must not undo a committed receipt), but
+   * fail-soft used to mean the whole story lived in one timeline note. The purchase
+   * screen said Received and Paid, and nothing else. So the hole is now computed on
+   * every read and repaired with one button — never silently retried, because a
+   * wrong automatic re-post doubles real goods.
+   */
+  private async stockGap(p: PurchaseRow) {
+    const received = p.lines
+      .filter((l) => l.receivedQtyMilli > 0)
+      .map((l) => ({
+        itemId: l.itemId,
+        qtyMilliLineUnit: l.receivedQtyMilli,
+        lineFactor: l.factorSnapshot,
+      }));
+    if (!received.length || p.status === PurchaseStatus.CANCELLED) return null;
+    const gap = await this.inventory.purchaseReceiptGap({ purchaseId: p.id, lines: received });
+    return gap.length ? gap : null;
+  }
+
+  /** DEC-PUR-014 — "Post stock now". Idempotent: posts only what is missing. */
+  async repostStock(id: string, actorName?: string) {
+    const actor = actorName ?? 'Admin';
+    const p = await this.prisma.db.purchase.findFirst({
+      where: { id },
+      include: purchaseInclude,
+    });
+    if (!p) throw new NotFoundException('Purchase not found');
+    if (p.status === PurchaseStatus.CANCELLED)
+      throw new BadRequestException('This purchase is cancelled — nothing to post');
+
+    const gap = await this.stockGap(p);
+    if (!gap) throw new BadRequestException('Stock for this purchase is already posted');
+
+    await this.afterReceive(
+      id,
+      p.purchaseNo,
+      actor,
+      p.lines
+        .filter((l) => l.receivedQtyMilli > 0)
+        .map((l) => ({
+          itemId: l.itemId,
+          qtyMilliLineUnit: l.receivedQtyMilli,
+          lineFactor: l.factorSnapshot,
+          unitPricePaisaLineUnit: l.unitPricePaisa,
+        })),
+      true,
+    );
+
+    const left = await this.stockGap(p);
+    await this.audit.event({
+      entityType: ENTITY,
+      entityId: id,
+      kind: 'system',
+      label: left
+        ? `⚠ Stock repair on ${p.purchaseNo} ran but ${left.length} item(s) are still short`
+        : `Stock repaired on ${p.purchaseNo} — the missing receipt is now in stock`,
+      actorName: actor,
+    });
+    return this.findOne(id);
   }
 
   timeline(id: string) {
