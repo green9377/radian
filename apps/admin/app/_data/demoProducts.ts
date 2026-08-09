@@ -189,6 +189,10 @@ export interface DemoAddon {
   discountType: DiscountKind;
   discountValue: number; // FLAT = paisa · PERCENT = whole %
   stockQty: number | null; // null = unlimited
+  /** DEC-PRD-039 — the stockroom Item counting this add-on. null = by hand. */
+  itemId?: string | null;
+  /** display only — never sent on save */
+  itemLabel?: string | null;
   active: boolean;
 }
 export const DEMO_ADDONS: DemoAddon[] = [

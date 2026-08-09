@@ -1704,6 +1704,19 @@ model AddOn {
   discountType      DiscountType @default(NONE)
   discountValue     Int          @default(0) // FLAT=paisa; PERCENT=basis points
   stockQty          Int? // null = unlimited (gift wrap-এর মতো service কখনো শেষ হয় না)
+
+  /// ── DEC-PRD-039 · কোন Item এই add-on-টার মজুদ রাখে ────────────────────
+  /// মালিক, ৯ আগস্ট ২০২৬: *"add-on-এ manual stock দেওয়ার option আছে কিন্তু
+  /// inventory-র সাথে connect-এর option নেই।"*
+  ///
+  /// variant-এ (DEC-PRD-032) যা করা হয়েছে হুবহু তাই: বাঁধা থাকলে গোনাটা
+  /// Inventory থেকে **live** পড়া হয়, `stockQty` তখন পড়াই হয় না। একটা
+  /// chocolate bar গুদামে সত্যিকারের জিনিস; gift wrap নয় — তাই এটা ঐচ্ছিক।
+  ///
+  /// ⚠️ id দিয়ে, SKU লেখা মিলিয়ে নয় — DEC-ITM-021।
+  itemId            String?
+  item              Item?        @relation(fields: [itemId], references: [id])
+
   isActive          Boolean      @default(true)
   groupLinks        AddOnGroupItem[]
   createdAt         DateTime     @default(now())
@@ -2904,6 +2917,7 @@ model Item {
   usedIn     ItemComponent[] @relation("ItemUsedIn") // recipes THIS item appears in
   products   Product[] // DEC-ITM-002 — many Products may share one Item
   productVariants ProductVariant[] // DEC-PRD-015 — এক রঙ, এক Item
+  addOns     AddOn[] // DEC-PRD-039 — একটা add-on-এর মজুদ যে Item রাখে
   purchaseLines PurchaseLine[] // DEC-PUR-009 — purchase history of this item
 
   // ---- Inventory module back-relations (DEC-INV-001…015). Item still owns NO quantity;

@@ -1443,8 +1443,22 @@ export class ProductDetailService {
         imageUrl: true,
         isActive: true,
         stockQty: true,
+        itemId: true,
       },
     });
+    /*  DEC-PRD-039 — same live count as the product page uses, so the cart
+        cannot call an add-on available that the page has already hidden.  */
+    const linked = [...new Set(rows.flatMap((a) => (a.itemId ? [a.itemId] : [])))];
+    const sums = linked.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linked } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const qty = new Map(
+      sums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
     return rows.map((a) => ({
       id: a.id,
       name: a.name,
@@ -1455,7 +1469,11 @@ export class ProductDetailService {
       }),
       imageUrl: bareImageUrl(a.imageUrl),
       /** false → the cart can say so; it does not remove the line itself */
-      available: a.isActive && (a.stockQty === null || a.stockQty > 0),
+      available: (() => {
+        if (!a.isActive) return false;
+        const left = a.itemId ? (qty.get(a.itemId) ?? 0) : a.stockQty;
+        return left === null || left > 0;
+      })(),
     }));
   }
 
@@ -1527,12 +1545,34 @@ export class ProductDetailService {
                 isActive: true,
                 deletedAt: true,
                 stockQty: true,
+                /*  DEC-PRD-039 — linked to a stockroom Item, so the count is
+                    Inventory's, not the hand-typed box.  */
+                itemId: true,
               },
             },
           },
         },
       },
     });
+
+    /*  DEC-PRD-039 — an add-on bound to a stockroom Item counts from Inventory
+        LIVE, exactly as a linked variant does. One query for all of them.  */
+    const addonItemIds = [
+      ...new Set(groups.flatMap((g) => g.items.flatMap((i) => (i.addOn.itemId ? [i.addOn.itemId] : [])))),
+    ];
+    const addonInv = addonItemIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: addonItemIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const addonQty = new Map(
+      addonInv.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    /** what this add-on really has: Inventory when linked, the typed box otherwise */
+    const addonStock = (a: { itemId: string | null; stockQty: number | null }) =>
+      a.itemId ? (addonQty.get(a.itemId) ?? 0) : a.stockQty;
 
     return groups
       .map((g) => ({
@@ -1544,7 +1584,11 @@ export class ProductDetailService {
               a two-second impulse decision; a disabled card only teaches the
               shopper that the page has broken parts. `stockQty: null` means a
               service (gift wrap) that never runs out.  */
-          .filter((a) => a.isActive && a.deletedAt === null && (a.stockQty === null || a.stockQty > 0))
+          .filter((a) => {
+            if (!a.isActive || a.deletedAt !== null) return false;
+            const left = addonStock(a);
+            return left === null || left > 0;
+          })
           .map((a) => ({
             id: a.id,
             name: a.name,

@@ -31,6 +31,8 @@ interface AddOnDto {
   discountType?: DiscountType;
   discountValue?: number;
   stockQty?: number | null; // null = unlimited
+  /** DEC-PRD-039 — the stockroom Item that counts this add-on. null = by hand. */
+  itemId?: string | null;
   isActive?: boolean;
   actorName?: string;
 }
@@ -90,6 +92,7 @@ export class AddOnsService {
         discountType: dto.discountType ?? DiscountType.NONE,
         discountValue: dto.discountValue ?? 0,
         stockQty: dto.stockQty ?? null,
+        itemId: dto.itemId?.trim() ? dto.itemId : null,
         isActive: dto.isActive ?? true,
       },
     });
@@ -108,6 +111,8 @@ export class AddOnsService {
         discountType: dto.discountType,
         discountValue: dto.discountValue,
         stockQty: dto.stockQty === undefined ? undefined : dto.stockQty,
+        /*  DEC-PRD-039 — empty string means "unlink", not "leave alone".  */
+        itemId: dto.itemId === undefined ? undefined : dto.itemId?.trim() || null,
         isActive: dto.isActive,
       },
     });

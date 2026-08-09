@@ -10,6 +10,7 @@ import {
   genBg,
   type ApiProduct,
   getAddOns,
+  listItems,
   createAddOn,
   updateAddOn,
   deleteAddOn,
@@ -2873,6 +2874,8 @@ function fromApiAddon(a: ApiAddOn): DemoAddon {
     name: a.name,
     sku: a.sku ?? "",
     image: url ? `url(${url}) center/cover` : ADDON_TILE,
+    itemId: a.itemId ?? null,
+    itemLabel: a.item ? `${a.item.name} · ${a.item.sku}` : null,
     pricePaisa: a.pricePaisa,
     discountType: a.discountType,
     discountValue: a.discountValue,
@@ -2890,6 +2893,8 @@ function toApiAddon(a: DemoAddon): Record<string, unknown> {
     discountType: a.discountType,
     discountValue: a.discountValue,
     stockQty: a.stockQty,
+    /*  DEC-PRD-039 — the link travels; the label is display only.  */
+    itemId: a.itemId ?? null,
     isActive: a.active,
   };
 }
@@ -2903,6 +2908,25 @@ export function AddonsView() {
   const [tab, setTab] = useState<"items" | "groups" | "rules" | "preview" | "perf">("items");
   const [days, setDays] = useState(30);
   const [q, setQ] = useState("");
+  /** DEC-PRD-038 — "" = every group · a group id · "__none" = in no group */
+  const [groupFilter, setGroupFilter] = useState("");
+  /** DEC-PRD-039 — which add-on is choosing its stockroom Item, and the query */
+  const [itemFor, setItemFor] = useState<string | null>(null);
+  const [itemQ, setItemQ] = useState("");
+  const [itemHits, setItemHits] = useState<{ id: string; sku: string; name: string }[]>([]);
+
+  /*  DEC-PRD-039 — the same `listItems` search the product editor uses for a
+      variant's Item, so the two screens can never disagree about what exists.  */
+  useEffect(() => {
+    if (!itemFor) return;
+    let stale = false;
+    const t = setTimeout(() => {
+      listItems(itemQ.trim() ? { search: itemQ.trim() } : undefined)
+        .then((r) => !stale && setItemHits(r.slice(0, 30)))
+        .catch(() => !stale && setItemHits([]));
+    }, 250);
+    return () => { stale = true; clearTimeout(t); };
+  }, [itemQ, itemFor]);
   const [newGroup, setNewGroup] = useState("");
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string>("");
@@ -3106,9 +3130,24 @@ export function AddonsView() {
     PRODUCT_TYPE: "Product type",
   };
 
-  const shown = rows.filter(
-    (a) => !q || a.name.toLowerCase().includes(q.toLowerCase()) || a.sku.toLowerCase().includes(q.toLowerCase()),
-  );
+  /*  DEC-PRD-038 — owner, 9 Aug 2026: *"add-on page-e add-on search korar
+      option ache kintu group ta nei. dhoro ekta group 'flower', okhane
+      10,000 add-on holo — segula ke ber korbo kivabe?"*
+
+      Fair: the search box finds one add-on by name; it cannot answer "show me
+      this group". With a group of thousands the card wall is unusable without
+      it. `groupFilter` is "" for everything, or a group id.  */
+  const shown = rows.filter((a) => {
+    if (q) {
+      const needle = q.toLowerCase();
+      if (!a.name.toLowerCase().includes(needle) && !a.sku.toLowerCase().includes(needle)) {
+        return false;
+      }
+    }
+    if (groupFilter === "__none") return groupsOf(a.id).length === 0;
+    if (groupFilter) return groups.find((g) => g.id === groupFilter)?.addonIds.includes(a.id) ?? false;
+    return true;
+  });
   const outOfStock = rows.filter((a) => a.stockQty !== null && a.stockQty <= 0).length;
 
   /* things that would quietly break the storefront */
@@ -3239,6 +3278,32 @@ export function AddonsView() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
+
+            {/*  DEC-PRD-038 — pick a group and the wall narrows to it. The
+                count beside each name is why it is a dropdown and not a row
+                of chips: a shop with twenty groups would wrap three lines.  */}
+            <select
+              className="ipt h-[44px] max-w-[260px]"
+              value={groupFilter}
+              onChange={(e) => setGroupFilter(e.target.value)}
+            >
+              <option value="">Every group</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name} ({g.addonIds.length})
+                </option>
+              ))}
+              <option value="__none">In no group</option>
+            </select>
+
+            {(q || groupFilter) && (
+              <span className="text-[13px] text-body-soft">
+                {shown.length} of {rows.length}
+                {groupFilter && groupFilter !== "__none"
+                  ? ` in ${groups.find((g) => g.id === groupFilter)?.name ?? ""}`
+                  : ""}
+              </span>
+            )}
             <button
               onClick={addBlank}
               className="ml-auto bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] inline-flex items-center gap-2 shadow-soft"
@@ -3365,27 +3430,55 @@ export function AddonsView() {
                       </div>
                     </div>
 
-                    {/* Stock — full width, with a clear unlimited toggle */}
+                    {/* Stock — typed by hand, unlimited, or counted by Inventory */}
                     <div className="mt-2.5">
                       <span className="block text-[10px] font-semibold uppercase tracking-[0.04em] text-body-soft mb-1">Stock</span>
-                      <div className="grid grid-cols-[1fr_auto] gap-2">
-                        <input
-                          className="ipt"
-                          style={{ minHeight: 38 }}
-                          type="number"
-                          disabled={a.stockQty === null}
-                          placeholder={a.stockQty === null ? "Unlimited" : "0"}
-                          value={a.stockQty ?? ""}
-                          onChange={(e) => set(a.id, { stockQty: Number(e.target.value) || 0 })}
-                        />
-                        <button
-                          onClick={() => set(a.id, { stockQty: a.stockQty === null ? 0 : null })}
-                          title="A service like gift wrap never runs out"
-                          className={`text-[12px] font-semibold px-3 rounded-[10px] border inline-flex items-center gap-1.5 whitespace-nowrap ${a.stockQty === null ? "bg-purple border-purple text-white" : "bg-white border-lavender-deep text-body-soft hover:border-orchid"}`}
-                        >
-                          <span className="text-[14px] leading-none">∞</span> Unlimited
-                        </button>
-                      </div>
+                      {/*  DEC-PRD-039 — owner, 9 Aug 2026: *"add-on-e manual stock
+                          deoar option ache kintu inventory-r sathe connect-er
+                          option nei."* Right — a chocolate bar is a real thing in
+                          the stockroom; gift wrap is not. Linked wins and the
+                          typed box disappears, the same rule variants follow, so
+                          two counts can never disagree.  */}
+                      {a.itemId ? (
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 min-w-0 text-[12.5px] text-purple bg-lavender/60 border border-lavender-deep rounded-[10px] px-2.5 py-2 truncate">
+                            📦 {a.itemLabel ?? "Counted in Inventory"}
+                          </span>
+                          <button
+                            onClick={() => set(a.id, { itemId: null, itemLabel: null })}
+                            className="text-[12px] text-body-soft hover:text-[#c0392b] px-1"
+                          >
+                            Unlink
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-[1fr_auto] gap-2">
+                            <input
+                              className="ipt"
+                              style={{ minHeight: 38 }}
+                              type="number"
+                              disabled={a.stockQty === null}
+                              placeholder={a.stockQty === null ? "Unlimited" : "0"}
+                              value={a.stockQty ?? ""}
+                              onChange={(e) => set(a.id, { stockQty: Number(e.target.value) || 0 })}
+                            />
+                            <button
+                              onClick={() => set(a.id, { stockQty: a.stockQty === null ? 0 : null })}
+                              title="A service like gift wrap never runs out"
+                              className={`text-[12px] font-semibold px-3 rounded-[10px] border inline-flex items-center gap-1.5 whitespace-nowrap ${a.stockQty === null ? "bg-purple border-purple text-white" : "bg-white border-lavender-deep text-body-soft hover:border-orchid"}`}
+                            >
+                              <span className="text-[14px] leading-none">∞</span> Unlimited
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => { setItemFor(a.id); setItemQ(""); }}
+                            className="mt-1.5 w-full text-[11.5px] px-2 py-1.5 rounded-[9px] border border-dashed border-orchid-mid text-orchid bg-white hover:bg-orchid-soft/40"
+                          >
+                            Count from Inventory…
+                          </button>
+                        </>
+                      )}
                     </div>
 
                     {/* which groups it sits in - read only here, edited in Groups tab */}
@@ -3435,9 +3528,65 @@ export function AddonsView() {
               );
             })}
           </div>
-          {shown.length === 0 && (q || rows.length > 0) && (
+          {shown.length === 0 && (q || groupFilter || rows.length > 0) && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-12 text-center text-[13px] text-body-soft">
               Nothing matches your search.
+            </div>
+          )}
+
+          {/*  DEC-PRD-039 — the Item search, at full width under the wall. In a
+              152px card an item's name would not even be readable; this is the
+              same reasoning the variant picker settled on.  */}
+          {itemFor && (
+            <div className="mt-4 border border-lavender-deep rounded-[14px] p-4 bg-white shadow-soft">
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <div className="text-[13px] text-body-soft">
+                  Which stockroom item holds{" "}
+                  <b className="font-semibold text-purple">
+                    {rows.find((x) => x.id === itemFor)?.name || "this add-on"}
+                  </b>
+                  ?
+                </div>
+                <button
+                  onClick={() => setItemFor(null)}
+                  className="text-[13px] text-body-soft hover:text-purple"
+                >
+                  Close
+                </button>
+              </div>
+              <input
+                className="ipt h-[42px] mb-2.5"
+                placeholder="Search by item code or name…"
+                value={itemQ}
+                onChange={(e) => setItemQ(e.target.value)}
+                autoFocus
+              />
+              <div className="flex flex-col gap-1.5 max-h-[260px] overflow-y-auto">
+                {itemHits.length === 0 && (
+                  <div className="text-[13px] text-body-soft px-1 py-2">
+                    No item matches “{itemQ || "…"}”. Make it in{" "}
+                    <Link href="/items/new" className="text-orchid font-medium hover:underline">
+                      Items
+                    </Link>{" "}
+                    first.
+                  </div>
+                )}
+                {itemHits.map((it) => (
+                  <button
+                    key={it.id}
+                    onClick={() => {
+                      set(itemFor, { itemId: it.id, itemLabel: `${it.name} · ${it.sku}` });
+                      setItemFor(null);
+                    }}
+                    className="flex items-center gap-3 border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
+                  >
+                    <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
+                      {it.name}
+                    </span>
+                    <span className="text-[13px] text-body-soft font-mono">{it.sku}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {rows.length === 0 && !q && (

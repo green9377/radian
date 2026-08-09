@@ -1497,6 +1497,9 @@ export interface ApiAddOn {
   discountType: "NONE" | "FLAT" | "PERCENT";
   discountValue: number; // FLAT=paisa · PERCENT=basis points (1000=10%)
   stockQty: number | null; // null = unlimited
+  /** DEC-PRD-039 — linked stockroom Item; when set, Inventory owns the count */
+  itemId?: string | null;
+  item?: { id: string; sku: string; name: string } | null;
   isActive: boolean;
   groupIds: string[];
 }
