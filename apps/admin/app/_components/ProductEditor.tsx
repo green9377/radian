@@ -779,21 +779,10 @@ function L({
     1 Aug 2026: *"whatever gets edited or changed in the delivery module
     should automatically work across the whole system."*  */
 
-// One representative product per category — used to load a section template
-const CAT_REP: Record<string, string> = {
-  "Fresh Flowers": "velvet-red-24-premium-roses",
-  Cakes: "chocolate-fudge-celebration-cake",
-  Chocolates: "lindt-luxury-selection",
-  "Gift Boxes": "signature-radian-gift-box",
-  Personalised: "photo-mug-custom",
-  Plants: "money-plant-ceramic-pot",
-  "Balloon Bouquets": "birthday-balloon-bouquet",
-  "Flower Combos": "roses-and-chocolate-cake-combo",
-};
-const tplFor = (catLabel: string) => {
-  const s = CAT_REP[catLabel];
-  return s ? getProductDetail(s) : null;
-};
+/*  CAT_REP / tplFor deleted with DEC-PRD-037 (9 Aug 2026). They mapped eight
+    hard-coded category names to demo product slugs so a section could be
+    "loaded from a template" — i.e. filled with mock text. Category → FAQ is
+    the real source now.  */
 
 export default function ProductEditor({ slug }: { slug?: string }) {
   const src = useMemo(
@@ -841,8 +830,6 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     src?.prepaidOnly || src?.cat === "personalised" ? "CRAFTED" : "READYMADE",
   );
   const [status, setStatus] = useState<"ACTIVE" | "DRAFT">("ACTIVE");
-  // which category's template to load in section headers
-  const [tplCat, setTplCat] = useState(src ? CAT_LABEL[src.cat] : CATEGORIES[0]);
 
   // Pricing
   const [cost, setCost] = useState("");
@@ -2230,36 +2217,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     starting point, and the category's FAQ gets appended below anyway —
     nothing gets buried.
   */
-  const loadFaqTpl = () => {
-    const d = tplFor(tplCat);
-    if (d) setFaqs(d.faqs.map((f) => ({ q: f.q, a: f.a })));
-  };
-  const templateBar = (onLoad: () => void) => (
-    <div className="flex items-center gap-2 mb-4 bg-lavender/60 rounded-[11px] p-2">
-      <span className="text-[13px] text-body-soft px-1.5 font-medium">
-        Template
-      </span>
-      <select
-        className="ipt h-[38px] max-w-[260px]"
-        value={tplCat}
-        onChange={(e) => setTplCat(e.target.value)}
-      >
-        {CATEGORIES.map((c) => (
-          <option key={c}>{c}</option>
-        ))}
-      </select>
-      <button
-        type="button"
-        onClick={onLoad}
-        className="border border-lavender-deep bg-white text-[13px] px-3.5 py-2 rounded-[10px] hover:border-orchid text-purple font-medium"
-      >
-        Load
-      </button>
-      <span className="text-[13px] text-body-soft ml-1 hidden sm:block">
-        load, then edit
-      </span>
-    </div>
-  );
+  /*  `loadFaqTpl` / `templateBar` deleted with DEC-PRD-037 (9 Aug 2026) —
+      they filled a real product's FAQ from the mock catalogue. Category → FAQ
+      is where category-wide questions are written now, and the storefront
+      already shows those under the product's own.  */
 
   return (
     <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
@@ -5957,7 +5918,13 @@ No bundle products yet — add them on{" "}
                     inside" replace instead. Writing the distinction down
                     here, since with three cards side by side it's natural
                     to assume they all follow the same rule.  */}
-                {templateBar(loadFaqTpl)}
+                {/*  DEC-PRD-037 — the "Template · Load" bar is gone (owner,
+                    9 Aug 2026). It loaded questions and answers out of the
+                    MOCK catalogue, and its dropdown still listed eight
+                    category names that do not exist in this shop. Invented
+                    answers on a real product page, with no screen anywhere to
+                    author real ones. Category → FAQ is that screen now, and
+                    those answers already appear under these.  */}
                 <div className="flex flex-col gap-2.5">
                   {faqs.map((r, i) => (
                     <div

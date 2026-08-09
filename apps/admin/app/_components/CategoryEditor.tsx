@@ -83,7 +83,7 @@ export default function CategoryEditor({
   const [saving, setSaving] = useState(false);
   /* which category-wide default is open (owner chose tabs, 6 Aug 2026; badges
      and "what's inside" split into two on his later request) */
-  const [defTab, setDefTab] = useState<"bundles" | "badges" | "inside" | "why" | "page">("bundles");
+  const [defTab, setDefTab] = useState<"bundles" | "badges" | "inside" | "faqs" | "why" | "page">("bundles");
 
   const parentOptions = parents.filter((p) => p.id !== node?.id);
   const effectiveSlug = slug || categorySlug(name);
@@ -269,6 +269,11 @@ export default function CategoryEditor({
                   ["bundles", "Bundles", "tag", "#8A2BB0"],
                   ["badges", "Badges", "check", "#0f7d55"],
                   ["inside", "What's inside", "grid", "#b45309"],
+                  /*  DEC-PRD-037 — FAQ finally has a screen. The table and the
+                      endpoints existed all along; only this was missing, so the
+                      product editor's mock "Template" was the only FAQ anyone
+                      could reach (owner, 9 Aug 2026).  */
+                  ["faqs", "FAQ", "book", "#6d28d9"],
                   ["why", "Why buy from us", "sparkle", "#c2185b"],
                   ["page", "Category page", "layers", "#0369a1"],
                 ] as const).map(([key, label, icon, color]) => {
@@ -295,6 +300,7 @@ export default function CategoryEditor({
               {defTab === "bundles" && <BundleEditor owner={{ categoryId: node.id }} />}
               {defTab === "badges" && <CategoryStoryEditor categoryId={node.id} only="badges" />}
               {defTab === "inside" && <CategoryStoryEditor categoryId={node.id} only="inside" />}
+              {defTab === "faqs" && <CategoryStoryEditor categoryId={node.id} only="faqs" />}
               {defTab === "why" && <CraftEditor owner={{ categoryId: node.id }} />}
               {defTab === "page" && (
                 <div>

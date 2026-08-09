@@ -107,14 +107,44 @@ export class CategoryStoryService {
 
   async updateBadge(id: string, dto: Partial<BadgeDto>) {
     await this.ensure('categoryTrustBadge', id);
+
+    /*
+      ═══════════════════════════════════════════════════════════════════════
+      ⚠️ THE ICON WAS SAVED AND THEN IMMEDIATELY ERASED — owner, 9 Aug 2026:
+      *"category page-এ badge-এ icon দিয়ে save করলে সেটা save হয় না, অন্য
+      tab-এ গেলেই হাওয়া হয়ে যায়।"*
+
+      The rule is right — one badge shows EITHER a built-in name OR an
+      uploaded picture, never both. The way it was written was not. Two
+      spreads ran back to back:
+
+          ...(dto.icon    !== undefined ? { icon: dto.icon, iconUrl: null } : {}),
+          ...(dto.iconUrl !== undefined ? { iconUrl: dto.iconUrl, icon: null } : {}),
+
+      and the admin sends BOTH keys together — picking "bolt" posts
+      `{ icon: "bolt", iconUrl: null }`. The first spread set the icon; the
+      second, seeing `iconUrl` present, set `icon: null` again. Later keys
+      win in an object literal, so every pick was written and wiped in the
+      same statement. The screen looked right until the next fetch.
+
+      One decision, made once, instead of two clauses fighting.
+      ═══════════════════════════════════════════════════════════════════════
+    */
+    const picture = dto.iconUrl?.trim() || null;
+    const named = dto.icon?.trim() || null;
+    const touchesArt = dto.icon !== undefined || dto.iconUrl !== undefined;
+    /*  A picture wins when both arrive — uploading is the more deliberate
+        act, and it is the only one that can carry the shop's own artwork.  */
+    const art = touchesArt
+      ? picture
+        ? { iconUrl: picture, icon: null }
+        : { icon: named, iconUrl: null }
+      : {};
+
     return this.prisma.db.categoryTrustBadge.update({
       where: { id },
       data: {
-        /*  ⚠️ দুটোর একটা ভরলে অন্যটা খালি করা হয় — schema-র নিয়ম "হয় নাম,
-            নয় ছবি; দুটো একসাথে নয়"। নাহলে সারিটা দেখে বলা যেত না কোনটা
-            আসলে দেখাবে।  */
-        ...(dto.icon !== undefined ? { icon: dto.icon || null, iconUrl: null } : {}),
-        ...(dto.iconUrl !== undefined ? { iconUrl: dto.iconUrl || null, icon: null } : {}),
+        ...art,
         ...(dto.label !== undefined ? { label: dto.label } : {}),
         ...(dto.sub !== undefined ? { sub: dto.sub || null } : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),

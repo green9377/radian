@@ -14,6 +14,11 @@ import {
   addCategorySpec,
   updateCategorySpec,
   removeCategorySpec,
+  listCategoryFaqs,
+  addCategoryFaq,
+  updateCategoryFaq,
+  removeCategoryFaq,
+  type ApiCategoryFaq,
   type ApiCategoryTrustBadge,
   type ApiCategorySpec,
 } from "../_data/api";
@@ -39,25 +44,38 @@ import {
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-export default function CategoryStoryEditor({ categoryId, only }: { categoryId: string; only?: "badges" | "inside" }) {
+export default function CategoryStoryEditor({
+  categoryId,
+  only,
+}: {
+  categoryId: string;
+  only?: "badges" | "inside" | "faqs";
+}) {
   const [badges, setBadges] = useState<ApiCategoryTrustBadge[]>([]);
   const [specs, setSpecs] = useState<ApiCategorySpec[]>([]);
+  const [faqs, setFaqs] = useState<ApiCategoryFaq[]>([]);
   const [picking, setPicking] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([listCategoryBadges(categoryId), listCategorySpecs(categoryId)])
-      .then(([b, s]) => {
+    Promise.all([
+      listCategoryBadges(categoryId),
+      listCategorySpecs(categoryId),
+      listCategoryFaqs(categoryId).catch(() => [] as ApiCategoryFaq[]),
+    ])
+      .then(([b, s, f]) => {
         if (!alive) return;
         setBadges(b);
         setSpecs(s);
+        setFaqs(f);
       })
       .catch(() => {
         if (!alive) return;
         setBadges([]);
         setSpecs([]);
+        setFaqs([]);
       });
     return () => {
       alive = false;
@@ -91,7 +109,7 @@ export default function CategoryStoryEditor({ categoryId, only }: { categoryId: 
       {err && <div className="text-[13px] text-[#c0392b]">{err}</div>}
 
       {/* ─────────────── TRUST BADGES ─────────────── */}
-      {only !== "inside" && (
+      {(!only || only === "badges") && (
       <div>
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           Trust badges
@@ -246,8 +264,8 @@ export default function CategoryStoryEditor({ categoryId, only }: { categoryId: 
       )}
 
       {/* ─────────────── WHAT'S INSIDE ─────────────── */}
-      {only !== "badges" && (
-      <div className={only === "inside" ? "" : "border-t border-lavender-deep pt-5"}>
+      {(!only || only === "inside") && (
+      <div className={only ? "" : "border-t border-lavender-deep pt-5"}>
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           What&rsquo;s inside
         </div>
@@ -312,6 +330,96 @@ export default function CategoryStoryEditor({ categoryId, only }: { categoryId: 
           className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple border border-lavender-deep bg-white rounded-[10px] px-3 py-2 hover:border-orchid transition-colors"
         >
           <Icon name="plus" size={15} /> Add a row
+        </button>
+      </div>
+      )}
+
+      {/*
+        ─────────────── FAQ ───────────────
+        DEC-PRD-037, owner 9 Aug 2026: *"product upload page-এ যে FAQ আছে, যা
+        category-wise load হয় — কিন্তু এই FAQ কোথায় template বানাব সেটা তো
+        কোথাও দেখলাম না। Category create বা edit page-এও FAQ নেই।"*
+
+        ⚠️ He was right, and the gap was ours. `CategoryFaq` has had a table, a
+        service and four endpoints since the category work; the storefront has
+        been merging them under "Before You Order" all along. The one thing
+        never built was the screen to write them — so the only FAQ anybody
+        could reach was the product editor's "Template" loader, which read the
+        MOCK catalogue (its dropdown still lists eight category names that do
+        not exist in this shop). Invented answers, no way to author real ones.
+
+        This is that screen. The mock loader goes at the same time.
+      */}
+      {(!only || only === "faqs") && (
+      <div className={only ? "" : "border-t border-lavender-deep pt-5"}>
+        <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
+          FAQ
+        </div>
+        <p className="text-[12.5px] text-body-soft mt-0 mb-3">
+          Shown under &ldquo;Before You Order&rdquo; on every product page in this
+          category. A product can add its own questions; these come after them.
+        </p>
+
+        <div className="flex flex-col gap-2.5">
+          {faqs.map((f) => (
+            <div key={f.id} className="border border-lavender-deep rounded-[12px] bg-white p-3">
+              <div className="flex items-start gap-2.5">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <input
+                    className="ipt font-semibold text-purple"
+                    defaultValue={f.question}
+                    placeholder="How long do the flowers last?"
+                    onBlur={(e) => {
+                      if (e.target.value === f.question) return;
+                      const v = e.target.value;
+                      setFaqs((r) => r.map((x) => (x.id === f.id ? { ...x, question: v } : x)));
+                      updateCategoryFaq(f.id, { question: v }).catch((err: Error) =>
+                        setErr(err.message),
+                      );
+                    }}
+                  />
+                  <textarea
+                    className="ipt min-h-[74px] py-2"
+                    defaultValue={f.answer}
+                    placeholder="Five to seven days with a daily water change…"
+                    onBlur={(e) => {
+                      if (e.target.value === f.answer) return;
+                      const v = e.target.value;
+                      setFaqs((r) => r.map((x) => (x.id === f.id ? { ...x, answer: v } : x)));
+                      updateCategoryFaq(f.id, { answer: v }).catch((err: Error) =>
+                        setErr(err.message),
+                      );
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFaqs((r) => r.filter((x) => x.id !== f.id));
+                    removeCategoryFaq(f.id).catch(() => {});
+                  }}
+                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
+                >
+                  <Icon name="trash" size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const row = await addCategoryFaq(categoryId, { question: "", answer: "" });
+              setFaqs((r) => [...r, row]);
+            } catch (e) {
+              setErr((e as Error).message);
+            }
+          }}
+          className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple border border-lavender-deep bg-white rounded-[10px] px-3 py-2 hover:border-orchid transition-colors"
+        >
+          <Icon name="plus" size={15} /> Add a question
         </button>
       </div>
       )}
