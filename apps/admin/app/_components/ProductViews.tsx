@@ -2838,12 +2838,34 @@ export function UpgradeProducts() {
    add-on is shown only once. */
 /* the storefront/editor UI speaks the Demo* shapes; the API speaks ApiAddOn.
    these two adapters are the only place the two vocabularies meet. */
+/*  ── DEC-PRD-033, 9 Aug 2026 — the add-on photo never reached the shop ──
+    `DemoAddon.image` is a CSS background (a gradient OR a picture), and it
+    was being written into `AddOn.imageUrl` as-is. So the column held
+    `url(https://…) center/cover`, the storefront wrapped that in url()
+    a second time, and the tile came out blank — add-ons showed, photos
+    did not. The column holds an ADDRESS; CSS is a style, not an address.
+    The sibling variant field learned this on 1 Aug (see `pickUrl`); the
+    add-on card was missed.
+
+    These two adapters are now the only place the CSS and the URL meet.  */
+const ADDON_TILE = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
+/** `url(https://x) center/cover` → `https://x`; anything else → null */
+const bareUrl = (css: string | null | undefined): string | null => {
+  if (!css) return null;
+  const m = /^url\(\s*['"]?(.+?)['"]?\s*\)/.exec(css.trim());
+  if (m) return m[1];
+  return /^https?:\/\//i.test(css.trim()) ? css.trim() : null;
+};
+
 function fromApiAddon(a: ApiAddOn): DemoAddon {
+  /*  ⚠️ Tolerates the rows saved wrong before this fix — an address that
+      still arrives wearing CSS is unwrapped rather than shown broken.  */
+  const url = bareUrl(a.imageUrl);
   return {
     id: a.id,
     name: a.name,
     sku: a.sku ?? "",
-    image: a.imageUrl ?? "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
+    image: url ? `url(${url}) center/cover` : ADDON_TILE,
     pricePaisa: a.pricePaisa,
     discountType: a.discountType,
     discountValue: a.discountValue,
@@ -2855,7 +2877,8 @@ function toApiAddon(a: DemoAddon): Record<string, unknown> {
   return {
     name: a.name,
     sku: a.sku || null,
-    imageUrl: a.image ?? null,
+    //  the column takes the address only — never the CSS around it
+    imageUrl: bareUrl(a.image),
     pricePaisa: a.pricePaisa,
     discountType: a.discountType,
     discountValue: a.discountValue,

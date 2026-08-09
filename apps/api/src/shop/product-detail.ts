@@ -16,6 +16,7 @@ import { ShopCatalogModule, ShopCatalogService, type ShopProduct } from './catal
     "Out of stock" above a button that still takes money. */
 import { availabilityOf, type Availability } from '../common/availability';
 import { paidPaisa } from '../common/discount-window';
+import { bareImageUrl } from '../common/image-url';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -1408,7 +1409,7 @@ export class ProductDetailService {
         discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
         discountValue: a.discountValue,
       }),
-      imageUrl: a.imageUrl,
+      imageUrl: bareImageUrl(a.imageUrl),
       /** false → the cart can say so; it does not remove the line itself */
       available: a.isActive && (a.stockQty === null || a.stockQty > 0),
     }));
@@ -1508,7 +1509,7 @@ export class ProductDetailService {
               discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
               discountValue: a.discountValue,
             }),
-            imageUrl: a.imageUrl,
+            imageUrl: bareImageUrl(a.imageUrl),
           })),
       }))
       /*  An empty tab is worse than a missing one — it reads as a page that
