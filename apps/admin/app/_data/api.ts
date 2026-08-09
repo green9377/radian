@@ -919,6 +919,8 @@ export interface ApiFunnelItem {
   slug: string;
   sku: string | null;
   name: string;
+  /** the product's real photo — null only when it truly has none */
+  imageUrl?: string | null;
   categoryId: string | null;
   categoryName: string | null;
   isPublished: boolean;

@@ -270,11 +270,18 @@ function ImgBox({ bg }: { bg?: string }) {
   );
 }
 
-function Thumb({ slug, size = 40 }: { slug: string; size?: number }) {
+/*  the real photo when there is one; the coloured tile only for a product
+    that truly has none (owner, 9 Aug 2026 — every list showed colour boxes
+    for products whose photos were sitting right there)  */
+function Thumb({ slug, imageUrl, size = 40 }: { slug: string; imageUrl?: string | null; size?: number }) {
   return (
     <div
       className="rounded-[10px] shrink-0 shadow-soft"
-      style={{ background: genBg(slug), width: size, height: size }}
+      style={{
+        background: imageUrl ? `url(${imageUrl}) center/cover no-repeat` : genBg(slug),
+        width: size,
+        height: size,
+      }}
     />
   );
 }
@@ -492,7 +499,7 @@ function MiniList({
             href={`/products/${p.slug}`}
             className="flex items-center gap-3 hover:bg-lavender/60 rounded-[10px] -mx-1.5 px-1.5 py-1 transition-colors"
           >
-            <Thumb slug={p.slug} size={34} />
+            <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={34} />
             <span className="flex-1 min-w-0 text-[13px] text-body truncate">{p.name}</span>
             <span className={`text-[12.5px] font-semibold shrink-0 ${c}`}>{right(p)}</span>
           </Link>
@@ -654,7 +661,7 @@ export function StockBoard() {
               <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <Thumb slug={p.slug} />
+                    <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} />
                     <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline">
                       {p.name}
                     </Link>
@@ -831,7 +838,7 @@ export function MarginBoard() {
                 <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Thumb slug={p.slug} />
+                      <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} />
                       <div>
                         <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline block">
                           {p.name}
@@ -961,7 +968,7 @@ export function HealthBoard() {
             key={p.id}
             className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5 flex items-center gap-4 flex-wrap"
           >
-            <Thumb slug={p.slug} size={44} />
+            <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={44} />
             <div className="min-w-[170px] flex-1">
               <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline block">
                 {p.name}
@@ -1431,7 +1438,7 @@ export function BulkActions() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Thumb slug={p.slug} />
+                      <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} />
                       <span className="font-medium text-purple">{p.name}</span>
                     </div>
                   </td>
@@ -2339,7 +2346,7 @@ export function UpgradeProducts() {
                     onClick={() => linkExisting(base, x)}
                     className="flex items-center gap-3 bg-white border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
                   >
-                    <Thumb slug={x.slug} size={32} />
+                    <Thumb slug={x.slug} imageUrl={x.images?.[0]?.url} size={32} />
                     <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">{x.name}</span>
                     <span className="text-[13px] text-body-soft font-mono">{x.sku ?? "—"}</span>
                     <span className="text-[13px] text-body-soft">{formatTaka(x.offerPricePaisa)}</span>
@@ -2356,7 +2363,7 @@ export function UpgradeProducts() {
           return (
             <div key={baseId} className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5">
               <div className="flex items-center gap-3 mb-4">
-                <Thumb slug={slugOf(baseId)} size={44} />
+                <Thumb slug={slugOf(baseId)} imageUrl={items.find((p) => p.id === baseId)?.images?.[0]?.url} size={44} />
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-body-soft">Base product</div>
                   <Link href={`/products/${slugOf(baseId)}`} className="font-display text-[16px] text-purple hover:underline">
@@ -2547,7 +2554,7 @@ export function UpgradeProducts() {
                           onClick={() => linkExisting(baseId, x)}
                           className="flex items-center gap-3 bg-white border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
                         >
-                          <Thumb slug={x.slug} size={32} />
+                          <Thumb slug={x.slug} imageUrl={x.images?.[0]?.url} size={32} />
                           <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
                             {x.name}
                           </span>

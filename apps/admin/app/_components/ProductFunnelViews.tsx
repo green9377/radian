@@ -389,9 +389,15 @@ export function CatalogFunnel() {
                       href={`/products/${r.slug}/analysis`}
                       className="flex items-center gap-3 group"
                     >
+                      {/*  the real photo; the coloured tile only for a product
+                          that truly has none (owner, 9 Aug 2026)  */}
                       <div
-                        className="w-[40px] h-[40px] rounded-[10px] shrink-0 shadow-soft"
-                        style={{ background: genBg(r.slug) }}
+                        className="w-[40px] h-[40px] rounded-[10px] shrink-0 shadow-soft bg-cover bg-center"
+                        style={{
+                          background: r.imageUrl
+                            ? `url(${r.imageUrl}) center/cover no-repeat`
+                            : genBg(r.slug),
+                        }}
                       />
                       <div className="min-w-0">
                         <div className="font-medium text-purple group-hover:underline leading-snug">
@@ -683,7 +689,14 @@ export function ProductAnalysis({ slug }: { slug: string }) {
           {/* right */}
           <div className="lg:sticky lg:top-4 flex flex-col gap-3">
             <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
-              <div className="h-[130px]" style={{ background: genBg(p.slug) }} />
+              <div
+                className="h-[130px]"
+                style={{
+                  background: p.images?.[0]?.url
+                    ? `url(${p.images[0].url}) center/cover no-repeat`
+                    : genBg(p.slug),
+                }}
+              />
               <div className="p-4">
                 <div className="font-medium text-purple leading-snug">{p.name}</div>
                 <div className="text-[13px] text-body-soft mt-0.5">

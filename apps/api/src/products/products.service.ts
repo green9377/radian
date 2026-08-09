@@ -200,6 +200,14 @@ export class ProductsService {
         stockQty: true,
         isPublished: true,
         category: { select: { id: true, name: true } },
+        /*  the real photo — the funnel rows showed a coloured tile for
+            products that have one (owner, 9 Aug 2026)  */
+        images: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          select: { url: true },
+        },
       },
     });
 
@@ -216,6 +224,7 @@ export class ProductsService {
         slug: p.slug,
         sku: p.sku,
         name: p.name,
+        imageUrl: p.images[0]?.url ?? null,
         categoryId: p.category?.id ?? null,
         categoryName: p.category?.name ?? null,
         isPublished: p.isPublished,
