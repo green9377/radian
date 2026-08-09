@@ -1,4 +1,5 @@
 import { baseFor, type ShopProduct } from "./shop";
+import { SHOP_TAG } from "./cacheTags";
 import type { Occasion, Product, ProductBadge, ProductCategory, Recipient } from "./products";
 import {
   CAT_META,
@@ -188,7 +189,13 @@ async function getJson<T>(path: string): Promise<T | null> {
     // localhost:4000 is the web container itself. See the note in shop.ts.
     // ৫ আগস্ট: `no-store` → ৬০ সেকেন্ড cache — কারণটা shop.ts-এর get()-এ।
     // মজুদ/দামের চূড়ান্ত সত্য এমনিতেই checkout-এর server-side pricing।
-    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60 } });
+    /*  DEC-WEB-004, ৯ আগস্ট ২০২৬ — `tags` যোগ হলো। ৬০ সেকেন্ডটা এখন শুধু
+        **জাল**; আসল কাজটা করে admin-এর save: API তখন web-কে ডেকে এই tag-টা
+        অকেজো করে দেয়, আর পাতা সাথে সাথেই নতুন হয়। আগে মালিককে এক-দুই
+        মিনিট আর দু'বার reload অপেক্ষা করতে হতো।  */
+    const res = await fetch(`${baseFor()}${path}`, {
+      next: { revalidate: 60, tags: [SHOP_TAG] },
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

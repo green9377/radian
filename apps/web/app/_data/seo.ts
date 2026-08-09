@@ -1,4 +1,5 @@
 import { baseFor } from "./shop";
+import { SHOP_TAG } from "./cacheTags";
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -64,7 +65,7 @@ export async function getSiteSeo(): Promise<SiteSeo> {
   try {
     const res = await fetch(`${baseFor()}/seo/public`, {
       // Next-এর নিজের fetch-cache-ও ৬০ সেকেন্ড — দুটো স্তর একই কথা বলে
-      next: { revalidate: 60 },
+      next: { revalidate: 60, tags: [SHOP_TAG] },
     });
     if (!res.ok) return cached?.value ?? SEO_FALLBACK;
     const j = (await res.json()) as Partial<SiteSeo>;

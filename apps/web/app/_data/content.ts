@@ -1,4 +1,5 @@
 import { baseFor } from "./shop";
+import { SHOP_TAG } from "./cacheTags";
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -39,7 +40,9 @@ export interface FaqGroupLive {
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${baseFor()}${path}`, {
+      next: { revalidate: 60, tags: [SHOP_TAG] },
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

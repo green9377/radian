@@ -1,3 +1,4 @@
+import { SHOP_TAG } from "./cacheTags";
 /*
   ═══════════════════════════════════════════════════════════════════════════
   Storefront → API client. The first one in `apps/web`.
@@ -81,7 +82,9 @@ async function get<T>(path: string): Promise<T | null> {
         content.ts আর seo.ts আগে থেকেই একই ৬০ সেকেন্ডের নিয়মে চলে।
         Cart/checkout/track-এর fetch checkoutApi.ts-এ, সেগুলো যথারীতি
         `no-store`-ই আছে。  */
-    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${baseFor()}${path}`, {
+      next: { revalidate: 60, tags: [SHOP_TAG] },
+    });
     if (!res.ok) {
       console.warn(`[shop] ${path} → ${res.status}`);
       return null;
