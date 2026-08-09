@@ -11,17 +11,15 @@ import {
   genBg,
   storefrontUrl,
   type ApiCatalogFunnel,
-  type ApiProduct,
   type ApiProductAnalytics,
   getProductTimeline,
   type ActivityEvent,
 } from "../_data/api";
-import {
-  DEMO_FUNNEL,
-  DEMO_FUNNEL_STAGES,
-  demoAnalyticsFor,
-  demoProductAnalytics,
-} from "../_data/demoFunnel";
+/*  DEMO_FUNNEL / demoAnalyticsFor imports removed 9 Aug 2026 — the funnel
+    no longer invents numbers when the shop is empty (owner's order). Only
+    DEMO_FUNNEL_STAGES survives: it labels the greyed-out stages that real
+    tracking has not reached yet, and draws nothing as data.  */
+import { DEMO_FUNNEL_STAGES } from "../_data/demoFunnel";
 
 /*
   Product Funnel (catalog) + Product Analysis (single) — Phase 1.
@@ -161,22 +159,22 @@ export function CatalogFunnel() {
   const [onlyLeaks, setOnlyLeaks] = useState(false);
   const [demo, setDemo] = useState(false);
 
+  /*  ⚠️ NO DEMO FALLBACK — owner, 9 Aug 2026: *"ager sob data catalog
+      funnel-e ache, egula sob clean koro."* The screen used to pour in
+      DEMO_FUNNEL whenever there were no real orders, so a freshly wiped
+      shop showed ৳23,95,850 of revenue that never happened — the same
+      invented-numbers trap already removed from the product list and POS
+      on 8 Aug. Empty is empty; API down is an error, not a story.  */
   async function load(d: number) {
     setLoading(true);
     setError(null);
     try {
       const res = await getCatalogFunnel(d);
-      if (res.totals.orders === 0) {
-        // no real orders yet — show the demo funnel so the screen is usable
-        setData({ ...DEMO_FUNNEL, days: d });
-        setDemo(true);
-      } else {
-        setData(res);
-        setDemo(false);
-      }
+      setData(res);
+      setDemo(false);
     } catch {
-      setData({ ...DEMO_FUNNEL, days: d });
-      setDemo(true);
+      setData(null);
+      setError("The funnel could not be loaded — the API did not answer");
     } finally {
       setLoading(false);
     }
@@ -496,30 +494,27 @@ export function ProductAnalysis({ slug }: { slug: string }) {
     (async () => {
       setLoading(true);
       setError(null);
-      // real product with no orders → build demo numbers from that product;
-      // unknown slug (a demo row) → fall back to the demo catalog
-      const fallback = (real?: ApiProduct | null) => {
-        if (!alive) return;
-        const d = real
-          ? demoAnalyticsFor(real, days)
-          : demoProductAnalytics(slug, days);
-        if (d) {
-          setData(d);
-          setDemo(true);
-        } else {
-          setError("No data for this product yet.");
-        }
-      };
+      /*  ⚠️ NO DEMO FALLBACK — same rule as the catalog funnel above (owner,
+          9 Aug 2026). A product with no orders shows zeros, because zero is
+          what happened. Invented numbers on an analysis screen are worse
+          than none: they get believed.  */
       try {
         const p = await getProductBySlug(slug).catch(() => null);
-        if (!p) return fallback(null);
+        if (!alive) return;
+        if (!p) {
+          setError("No such product");
+          return;
+        }
         const a = await getProductAnalytics(p.id, days).catch(() => null);
         if (!alive) return;
-        if (!a || a.funnel.orders === 0) return fallback(p);
+        if (!a) {
+          setError("Analytics could not be loaded — the API did not answer");
+          return;
+        }
         setData(a);
         setDemo(false);
       } catch {
-        fallback(null);
+        if (alive) setError("Analytics could not be loaded — the API did not answer");
       } finally {
         if (alive) setLoading(false);
       }
