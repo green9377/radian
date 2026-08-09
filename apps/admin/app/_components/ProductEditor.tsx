@@ -2775,12 +2775,20 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       </L>
                     }
                   >
+                    {/*  DEC-PRD-035 rev (owner, 9 Aug 2026): *"variant-এ price
+                        বসালেই main price-এর ঘর disable হবে, তুলে দিলে আবার
+                        enable."* Disabled exactly when EVERY variant prices
+                        itself — with one variant blank the box stays live,
+                        because that variant genuinely sells at this price.  */}
                     <input
-                      className="ipt h-[52px] text-[17px] font-medium"
+                      className={`ipt h-[52px] text-[17px] font-medium ${
+                        allVariantsPriced ? "opacity-50 cursor-not-allowed bg-[#f4f1f7]" : ""
+                      }`}
                       type="number"
                       value={sell}
                       onChange={(e) => setSell(e.target.value)}
                       placeholder="2450"
+                      disabled={allVariantsPriced}
                     />
                     {/*
                       DEC-PRD-035 — owner, 9 Aug 2026: *"২টা variant-এর দাম

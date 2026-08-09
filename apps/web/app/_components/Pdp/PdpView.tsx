@@ -413,14 +413,21 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       <div className="grid lg:grid-cols-[1.18fr_1fr] gap-8 lg:gap-10 items-start">
         {/* ════════ GALLERY ════════ */}
         <div className="lg:sticky lg:top-[124px]">
+          {/*  ⚠️ The rail is ABSOLUTE inside its grid cell — 9 Aug 2026. With
+              every colour's photo now always present (DEC-PRD-036) the rail
+              grew TALLER than the main image and dangled below it, which the
+              owner caught at once. Absolute means the rail contributes no
+              height, so the row's height is the main image's; anything past
+              that scrolls quietly inside.  */}
           <div className="grid grid-cols-[68px_1fr] sm:grid-cols-[76px_1fr] gap-3">
-            <div className="flex flex-col gap-2.5">
+            <div className="relative">
+            <div className="absolute inset-0 flex flex-col gap-2.5 overflow-y-auto scrollbar-none">
               {gallery.map((bg, i) => (
                 <button
                   key={i}
                   onClick={() => openMedia(i)}
                   aria-label={`Photo ${i + 1}`}
-                  className={`aspect-square rounded-[12px] border-2 transition-colors ${
+                  className={`aspect-square shrink-0 rounded-[12px] border-2 transition-colors ${
                     media === i ? "border-orchid" : "border-transparent"
                   }`}
                   style={{ background: bg }}
@@ -434,7 +441,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 <button
                   onClick={() => setMedia("video")}
                   aria-label="Watch video"
-                  className={`aspect-square rounded-[12px] border-2 relative overflow-hidden grid place-items-center ${
+                  className={`aspect-square shrink-0 rounded-[12px] border-2 relative overflow-hidden grid place-items-center ${
                     media === "video" ? "border-orchid" : "border-transparent"
                   }`}
                   style={{
@@ -446,6 +453,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   </span>
                 </button>
               )}
+            </div>
             </div>
 
             <div className="relative aspect-square rounded-[28px] overflow-hidden shadow-soft bg-lavender">
@@ -1084,7 +1092,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-6 flex gap-2.5"
+            className="absolute bottom-6 flex gap-2.5 max-w-[90vw] overflow-x-auto scrollbar-none"
           >
             {gallery.map((bg, i) => (
               <button
