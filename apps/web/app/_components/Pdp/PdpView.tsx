@@ -55,7 +55,21 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     নিয়ে; রঙ/stem বাছলে তবেই দুটো বদলায়।
   */
   const vList = detail.variants ?? [];
-  const [variantId, setVariantId] = useState("");
+  /*
+    DEC-PRD-036 — মালিক, ৯ আগস্ট ২০২৬: *"prothome je price show hoy, amar
+    bujhar upay nei ota kon variant-er. je price show hok se variant-e click
+    thakle eta clear hobe."*
+
+    তাই "from ৳50" যে রঙের দাম, page খোলে **সেই রঙটা বাছা অবস্থায়** — দাম
+    আর বাছাই একই কথা বলে। এটা শুধু তখনই, যখন সব variant নিজের দামে চলে
+    (priceFrom); product-এর নিজের দাম থাকলে আগের নিয়ম — কিছু বাছা থাকে না,
+    মূল ছবি আর মূল দাম (৮ আগস্টের সিদ্ধান্ত অটুট)।
+  */
+  const cheapestId =
+    detail.priceFrom && vList.length > 0
+      ? vList.reduce((a, b) => (b.pricePaisa < a.pricePaisa ? b : a)).id
+      : "";
+  const [variantId, setVariantId] = useState(cheapestId);
 
   /*
     DEC-PRD-020 — বড় সংস্করণ। মালিক, ২ আগস্ট ২০২৬: *"upgrade product-এ
@@ -109,28 +123,39 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       ছবি দুটোই বদলায়। রঙের ছবির চেয়ে upgrade আগে, কারণ upgrade বাছলে
       রঙের বাছাই এমনিতেই মুছে যায় (নিচে) — ওটা অন্য product-এর রঙ।  */
   /*
-    ⚠️ variant-এর ছবি **যোগ হয়, প্রতিস্থাপন করে না** — মালিক, ৯ আগস্ট ২০২৬:
-    *"variant-এ click করলে main product-এর thumbnail চলে যায়, আর refresh
-    না দেওয়া পর্যন্ত সেটা আর দেখার সুযোগ নেই।"*
+    ═══ GALLERY — DEC-PRD-036, মালিক ৯ আগস্ট ২০২৬ ═══════════════════════════
 
-    ঠিক তাই হতো: প্রথম ঘরটা বদলে দেওয়া হতো, তাই মূল ছবিটা তালিকা থেকেই
-    উধাও। এখন রঙের ছবিটা সামনে বসে আর product-এর সবগুলো ছবি পেছনে থেকে
-    যায় — গ্রাহক রঙ দেখে, তারপর চাইলে মূল ছবিগুলোতেও ফিরতে পারে।
+    *"variant-এর image just click korar pore ase — egula gallery-teo thakbe.
+    customer colour select korle gallery theke se colour-er image asbe, abar
+    gallery theke je variant-er image dekhbe, pash theke se variant-e auto
+    move hobe."*
 
-    ⚠️ ঘর একটা বাড়ে বলে `media`-র index সরে যেত; নিচের effect রঙ বদলালেই
-    সেটাকে ০-এ ফেরায়, তাই ভুল ছবি খোলার পথ নেই।
+    তাই তালিকাটা এখন **স্থির**: আগে product-এর নিজের সব ছবি, তারপর প্রতিটা
+    রঙের ছবি — সবসময়, বাছাই যা-ই হোক। ঘর নড়ে না বলে index-ও নড়ে না।
+
+    দুই দিকের বাঁধন:
+      রঙ বাছা      → বড় ছবি সেই রঙের ঘরে চলে যায় (নিচের effect)
+      রঙের ছবি ছোঁয়া → সেই রঙটাই বেছে যায় (openMedia)
+    Product-এর নিজের ছবি দেখলে বাছাই বদলায় না — রঙ ধরে রেখেই ঘোরা যায়।
   */
+  const variantSlots = upgrade ? [] : vList.filter((v) => v.imageUrl);
   const gallery = upgrade
     ? [upgrade.bg, ...detail.gallery]
-    : variant?.imageUrl
-      ? [`url(${variant.imageUrl}) center/cover`, ...detail.gallery]
-      : detail.gallery;
+    : [...detail.gallery, ...variantSlots.map((v) => `url(${v.imageUrl}) center/cover`)];
 
-  /*  রঙ বদলালে বড় ছবিটা আবার প্রথমটায় ফেরে — নাহলে ৪ নম্বর ছবি খোলা
-      অবস্থায় রঙ বদলালে নতুন ছবিটা কেউ দেখতেই পেত না। রঙ **তুলে নিলেও**
-      ফেরে, কারণ তখন ঘরটা একটা কমে আর index এক ধাপ পিছিয়ে যায়।  */
+  const openMedia = (i: number) => {
+    setMedia(i);
+    const slot = i - detail.gallery.length;
+    if (!upgrade && slot >= 0 && variantSlots[slot]) setVariantId(variantSlots[slot].id);
+  };
+
+  /*  রঙ বদলালে বড় ছবিটা তার ঘরে যায়; ছবি-ছাড়া রঙ (বা বাছাই তুলে নিলে)
+      প্রথম ছবিতে ফেরে — নাহলে ৪ নম্বর ছবি খোলা অবস্থায় রঙ বদলালে নতুন
+      ছবিটা কেউ দেখতেই পেত না।  */
   useEffect(() => {
-    setMedia(0);
+    if (upgrade) return;
+    const slot = variant?.imageUrl ? variantSlots.findIndex((v) => v.id === variant.id) : -1;
+    setMedia(slot >= 0 ? detail.gallery.length + slot : 0);
   }, [variantId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
@@ -393,7 +418,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               {gallery.map((bg, i) => (
                 <button
                   key={i}
-                  onClick={() => setMedia(i)}
+                  onClick={() => openMedia(i)}
                   aria-label={`Photo ${i + 1}`}
                   className={`aspect-square rounded-[12px] border-2 transition-colors ${
                     media === i ? "border-orchid" : "border-transparent"
@@ -401,20 +426,24 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   style={{ background: bg }}
                 />
               ))}
+              {/*  DEC-PRD-036 — the video's OWN thumbnail, not a purple box
+                  saying "Watch" (owner, 9 Aug 2026). YouTube serves a still
+                  for every video at a predictable address; the play badge on
+                  top says it is a video, the picture says what is in it.  */}
               {detail.videoId && (
                 <button
                   onClick={() => setMedia("video")}
                   aria-label="Watch video"
-                  className={`aspect-square rounded-[12px] border-2 bg-purple text-white grid place-items-center relative ${
+                  className={`aspect-square rounded-[12px] border-2 relative overflow-hidden grid place-items-center ${
                     media === "video" ? "border-orchid" : "border-transparent"
                   }`}
+                  style={{
+                    background: `url(https://i.ytimg.com/vi/${detail.videoId}/hqdefault.jpg) center/cover`,
+                  }}
                 >
-                  <span className="w-8 h-8 rounded-full bg-white/20 grid place-items-center">
+                  <span className="w-8 h-8 rounded-full bg-black/45 text-white grid place-items-center">
                     <Icon name="play" className="w-3.5 h-3.5" />
                   </span>
-                  <em className="absolute bottom-1 not-italic text-[8px] tracking-[0.12em] uppercase opacity-75">
-                    Watch
-                  </em>
                 </button>
               )}
             </div>
@@ -1060,7 +1089,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             {gallery.map((bg, i) => (
               <button
                 key={i}
-                onClick={() => setMedia(i)}
+                onClick={() => openMedia(i)}
                 aria-label={`Photo ${i + 1}`}
                 className={`w-14 h-14 rounded-[12px] border-2 transition-colors ${
                   media === i ? "border-orchid" : "border-white/40"
