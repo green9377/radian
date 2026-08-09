@@ -1772,6 +1772,12 @@ enum AddOnRuleField {
   OCCASION
   ZONE
   PRODUCT_TYPE
+  /// DEC-PRD-040 — দামের সীমা। `values` = ["min","max"] পয়সায়; খালি = সীমা নেই।
+  /// "৳3,000-এর উপরের bouquet-এ premium add-on দেখাও" — নিয়মে লেখা যায়।
+  PRICE_RANGE
+  /// DEC-PRD-040 — নির্দিষ্ট product। `values` = product id-র তালিকা।
+  /// category-র সবার জন্য নয়, হাতে বাছা কয়েকটার জন্য।
+  PRODUCT
 }
 
 /// variant template master — Colour / Flavour / Size / Weight।

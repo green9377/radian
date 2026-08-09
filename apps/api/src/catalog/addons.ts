@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,6 +11,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { AddOnRuleField, DiscountType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -127,6 +129,181 @@ export class AddOnsService {
     return { id, deleted: true };
   }
 
+  /* -------- recovery · DEC-PRD-041 --------
+     Owner, 9 Aug 2026: *"add-on trash-e jabe and permanent delete and restore
+     jeno thake."* Products have had this since the start; add-ons were
+     soft-deleted with no way back but the database. */
+  async trash() {
+    const rows = await this.prisma.db.addOn.findMany({
+      where: { NOT: { deletedAt: null } },
+      orderBy: { deletedAt: 'desc' },
+      take: 200,
+    });
+    return { items: rows, total: rows.length };
+  }
+
+  async restoreAddon(id: string, actorName = 'Admin') {
+    const row = await this.prisma.db.addOn.findFirst({ where: { id } });
+    if (!row) throw new NotFoundException('Add-on not found');
+    /*  ⚠️ The SKU is unique. If it was reused while this one sat in the bin,
+        say so instead of failing on a database constraint nobody can read.  */
+    if (row.sku) {
+      const clash = await this.prisma.db.addOn.findFirst({
+        where: { sku: row.sku, deletedAt: null, NOT: { id } },
+        select: { name: true },
+      });
+      if (clash) {
+        throw new BadRequestException(
+          `SKU "${row.sku}" is now used by "${clash.name}". Change that one first, or give this a new code.`,
+        );
+      }
+    }
+    const back = await this.prisma.db.addOn.update({ where: { id }, data: { deletedAt: null } });
+    await this.log('AddOn', id, 'UPDATE', actorName, `Add-on "${back.name}" restored`);
+    return back;
+  }
+
+  /** permanent — only from the bin, and only when no order ever sold it */
+  async purgeAddon(id: string, actorName = 'Admin') {
+    const row = await this.prisma.db.addOn.findFirst({ where: { id } });
+    if (!row) throw new NotFoundException('Add-on not found');
+    if (!row.deletedAt) {
+      throw new BadRequestException('Delete it first — permanent removal only works from the bin.');
+    }
+    /*  DEC-SAL-002 — an order line keeps the add-on ids it sold. Destroying
+        the row would leave yesterday's receipt pointing at nothing, so a
+        sold add-on stays recoverable for ever.  */
+    const sold = await this.prisma.db.orderLine.findFirst({
+      where: { addonIds: { has: id } },
+      select: { id: true },
+    });
+    if (sold) {
+      throw new BadRequestException(
+        'This add-on has been sold, so it cannot be destroyed — the old receipts point at it. It stays in the bin.',
+      );
+    }
+    await this.prisma.db.addOnGroupItem.deleteMany({ where: { addOnId: id } });
+    await this.prisma.db.addOn.delete({ where: { id } });
+    await this.log('AddOn', id, 'DELETE', actorName, `Add-on "${row.name}" destroyed`);
+    return { id, purged: true };
+  }
+
+  /* -------- bulk · DEC-PRD-042 --------
+     Owner, 9 Aug 2026: *"bulk kra jay se system kro."* A group of ten thousand
+     cannot be edited one card at a time. One endpoint, one action, one list of
+     ids — so an accidental "all" is one undo, not ten thousand. */
+  async bulk(dto: {
+    ids: string[];
+    action: 'ACTIVATE' | 'DEACTIVATE' | 'DELETE' | 'DISCOUNT' | 'ADD_TO_GROUP' | 'REMOVE_FROM_GROUP';
+    discountType?: DiscountType;
+    discountValue?: number;
+    groupId?: string;
+    actorName?: string;
+  }) {
+    const ids = [...new Set(dto.ids ?? [])].filter(Boolean);
+    if (ids.length === 0) throw new BadRequestException('pick at least one add-on');
+
+    switch (dto.action) {
+      case 'ACTIVATE':
+      case 'DEACTIVATE': {
+        const r = await this.prisma.db.addOn.updateMany({
+          where: { id: { in: ids } },
+          data: { isActive: dto.action === 'ACTIVATE' },
+        });
+        await this.log('AddOn', ids[0], 'UPDATE', dto.actorName, `${r.count} add-ons ${dto.action.toLowerCase()}d`);
+        return { changed: r.count };
+      }
+      case 'DELETE': {
+        await this.prisma.db.addOnGroupItem.deleteMany({ where: { addOnId: { in: ids } } });
+        const r = await this.prisma.db.addOn.updateMany({
+          where: { id: { in: ids } },
+          data: { deletedAt: new Date() },
+        });
+        await this.log('AddOn', ids[0], 'DELETE', dto.actorName, `${r.count} add-ons moved to the bin`);
+        return { changed: r.count };
+      }
+      case 'DISCOUNT': {
+        const type = dto.discountType ?? DiscountType.NONE;
+        const value = type === DiscountType.NONE ? 0 : (dto.discountValue ?? 0);
+        if (type !== DiscountType.NONE && value <= 0) {
+          throw new BadRequestException('a discount needs a value above zero');
+        }
+        if (type === DiscountType.PERCENT && value >= 100) {
+          throw new BadRequestException('a percentage discount has to be under 100%');
+        }
+        const r = await this.prisma.db.addOn.updateMany({
+          where: { id: { in: ids } },
+          data: { discountType: type, discountValue: value },
+        });
+        await this.log('AddOn', ids[0], 'UPDATE', dto.actorName, `${r.count} add-ons repriced`);
+        return { changed: r.count };
+      }
+      case 'ADD_TO_GROUP': {
+        if (!dto.groupId) throw new BadRequestException('groupId is required');
+        await this.prisma.db.addOnGroupItem.createMany({
+          data: ids.map((addOnId) => ({ groupId: dto.groupId!, addOnId })),
+          skipDuplicates: true,
+        });
+        await this.log('AddOnGroup', dto.groupId, 'UPDATE', dto.actorName, `${ids.length} add-ons added to the group`);
+        return { changed: ids.length };
+      }
+      case 'REMOVE_FROM_GROUP': {
+        if (!dto.groupId) throw new BadRequestException('groupId is required');
+        const r = await this.prisma.db.addOnGroupItem.deleteMany({
+          where: { groupId: dto.groupId, addOnId: { in: ids } },
+        });
+        await this.log('AddOnGroup', dto.groupId, 'UPDATE', dto.actorName, `${r.count} add-ons removed from the group`);
+        return { changed: r.count };
+      }
+      default:
+        throw new BadRequestException('unknown action');
+    }
+  }
+
+  /* -------- what actually sold · DEC-PRD-043 --------
+     Owner, 9 Aug 2026: *"add-on sell-er jeno hisab thake."* The order line
+     already records which add-ons it carried (`addonIds`); nothing ever read
+     it back. Delivered lines only — an order that never arrived is not a sale. */
+  async sales(days = 30) {
+    const from = new Date(Date.now() - days * 86400000);
+    const lines = await this.prisma.db.orderLine.findMany({
+      where: {
+        deletedAt: null,
+        createdAt: { gte: from },
+        /*  DEC-SAL-003 — two status tracks; delivery owns 'did it arrive'.  */
+        order: { deliveryStatus: 'delivered', deletedAt: null },
+      },
+      select: { addonIds: true, qty: true },
+    });
+    const units = new Map<string, number>();
+    for (const l of lines) {
+      for (const id of l.addonIds) units.set(id, (units.get(id) ?? 0) + l.qty);
+    }
+    const rows = await this.prisma.db.addOn.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true, sku: true, pricePaisa: true, discountType: true, discountValue: true },
+    });
+    const items = rows.map((a) => {
+      const sold = units.get(a.id) ?? 0;
+      const paid =
+        a.discountType === DiscountType.PERCENT
+          ? Math.max(0, Math.round(a.pricePaisa * (1 - a.discountValue / 10000)))
+          : a.discountType === DiscountType.FLAT
+            ? Math.max(0, a.pricePaisa - a.discountValue)
+            : a.pricePaisa;
+      return { addOnId: a.id, name: a.name, sku: a.sku, units: sold, revenuePaisa: sold * paid };
+    });
+    items.sort((x, y) => y.units - x.units || y.revenuePaisa - x.revenuePaisa);
+    return {
+      days,
+      totals: {
+        units: items.reduce((n, i) => n + i.units, 0),
+        revenuePaisa: items.reduce((n, i) => n + i.revenuePaisa, 0),
+      },
+      items,
+    };
+  }
+
   /* -------- group -------- */
   async createGroup(dto: GroupDto) {
     const g = await this.prisma.db.addOnGroup.create({ data: { name: dto.name, sortOrder: dto.sortOrder ?? 0 } });
@@ -200,6 +377,14 @@ export class AddOnsController {
   constructor(private readonly svc: AddOnsService) {}
 
   @Get() all() { return this.svc.all(); }
+  /*  ⚠️ Static paths BEFORE ':id', or Nest reads "trash" as an add-on id.  */
+  @Get('trash') trash() { return this.svc.trash(); }
+  @Get('sales') sales(@Query('days') days?: string) { return this.svc.sales(parseInt(days ?? '30', 10) || 30); }
+  @Post('bulk') bulk(@Body() dto: Parameters<AddOnsService['bulk']>[0], @Headers('x-actor-name') a?: string) {
+    return this.svc.bulk({ ...dto, actorName: dto.actorName ?? a });
+  }
+  @Post(':id/restore') restore(@Param('id') id: string, @Headers('x-actor-name') a?: string) { return this.svc.restoreAddon(id, a ?? 'Admin'); }
+  @Delete(':id/purge') purge(@Param('id') id: string, @Headers('x-actor-name') a?: string) { return this.svc.purgeAddon(id, a ?? 'Admin'); }
 
   @Post() createAddon(@Body() dto: AddOnDto, @Headers('x-actor-name') a?: string) { return this.svc.createAddon({ ...dto, actorName: dto.actorName ?? a }); }
   @Patch(':id') updateAddon(@Param('id') id: string, @Body() dto: Partial<AddOnDto>) { return this.svc.updateAddon(id, dto); }

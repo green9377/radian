@@ -643,6 +643,13 @@ export class ProductDetailService {
         categoryName: p.category.name,
         zone: p.zone,
         productType: p.productType,
+        pricePaisa: paidPaisa({
+          sellingPricePaisa: p.sellingPricePaisa,
+          discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+          discountValue: p.discountValue,
+          discountStartsAt: p.discountStartsAt,
+          discountEndsAt: p.discountEndsAt,
+        }),
         tagSlugs,
         manualGroupIds: p.manualAddOnGroups.map((g) => g.id),
       }),
@@ -1506,6 +1513,8 @@ export class ProductDetailService {
     categoryName: string;
     zone: string;
     productType: string;
+    /** DEC-PRD-040 — what the customer pays today, for the PRICE_RANGE rule */
+    pricePaisa: number;
     tagSlugs: string[];
     manualGroupIds: string[];
   }) {
@@ -1518,6 +1527,19 @@ export class ProductDetailService {
       if (field === 'CATEGORY') return values.includes(ctx.categoryName);
       if (field === 'ZONE') return values.includes(ctx.zone);
       if (field === 'PRODUCT_TYPE') return values.includes(ctx.productType);
+      /*  DEC-PRD-040 — owner, 9 Aug 2026. Two conditions the four original
+          ones could not express: "premium extras only above ৳3,000", and
+          "just these few products". `values` is [min, max] in paisa for the
+          first (either end may be blank) and a list of product ids for the
+          second.  */
+      if (field === 'PRICE_RANGE') {
+        const min = Number(values[0]);
+        const max = Number(values[1]);
+        if (Number.isFinite(min) && ctx.pricePaisa < min) return false;
+        if (Number.isFinite(max) && max > 0 && ctx.pricePaisa > max) return false;
+        return true;
+      }
+      if (field === 'PRODUCT') return values.includes(ctx.productId);
       return ctx.tagSlugs.some((t) => values.includes(t));
     };
 

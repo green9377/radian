@@ -11,6 +11,12 @@ import {
   type ApiProduct,
   getAddOns,
   listItems,
+  listAddOnTrash,
+  restoreAddOn,
+  purgeAddOn,
+  bulkAddOns,
+  getAddOnSales,
+  type ApiAddOnSales,
   createAddOn,
   updateAddOn,
   deleteAddOn,
@@ -35,6 +41,7 @@ import {
   DEMO_PRODUCTS,
   DEMO_UPGRADES,
   DEMO_ADDONS,
+  type AddonStat,
   DEMO_ADDON_GROUPS,
   DEMO_ADDON_RULES,
   type DemoUpgrade,
@@ -2899,13 +2906,26 @@ function toApiAddon(a: DemoAddon): Record<string, unknown> {
   };
 }
 
+/** one look for every button on the bulk bar */
+const bulkBtn =
+  "text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white/15 hover:bg-white/25 disabled:opacity-50";
+
 export function AddonsView() {
   const { items } = useCatalog();
   const [rows, setRows] = useState<DemoAddon[]>([]);
   const [groups, setGroups] = useState<DemoAddonGroup[]>([]);
   const [rules, setRules] = useState<DemoAddonRule[]>([]);
   const [demo, setDemo] = useState(false);
-  const [tab, setTab] = useState<"items" | "groups" | "rules" | "preview" | "perf">("items");
+  const [tab, setTab] = useState<"items" | "groups" | "rules" | "preview" | "perf" | "trash">("items");
+  /*  DEC-PRD-042 — which cards are ticked for a bulk action. A Set, because
+      the only questions asked of it are "is this one in?" and "how many".  */
+  const [picked, setPickedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  /*  DEC-PRD-041 — the bin.  */
+  const [trash, setTrash] = useState<(ApiAddOn & { deletedAt: string })[]>([]);
+  const [trashBusy, setTrashBusy] = useState<string | null>(null);
+  /*  DEC-PRD-043 — what actually sold.  */
+  const [sales, setSales] = useState<ApiAddOnSales | null>(null);
   const [days, setDays] = useState(30);
   const [q, setQ] = useState("");
   /** DEC-PRD-038 — "" = every group · a group id · "__none" = in no group */
@@ -3181,8 +3201,27 @@ export function AddonsView() {
     previewGroups.slice(0, gi).some((x) => x.group!.addonIds.includes(addonId));
 
   /* ---- performance (demo money data; real version reads OrderLine) ---- */
-  const orderCount = demoOrderCount(days);
-  const stats = demoAddonStats(rows, days);
+  /*  DEC-PRD-043 — real units and revenue from delivered order lines. The
+      demo maths that used to sit here invented an order count and an attach
+      rate from nothing (the same trap removed from the product funnel on
+      9 Aug). Attach rate needs an order total we do not fetch yet, so it is
+      shown as "—" rather than guessed.  */
+  const orderCount = 0;
+  const stats: AddonStat[] = (sales?.items ?? []).map((i) => ({
+    addonId: i.addOnId,
+    units: i.units,
+    revenuePaisa: i.revenuePaisa,
+    /*  One line can carry an add-on once, so lines-with == orders-with for
+        now. A quantity picker per add-on would split the two.  */
+    ordersWith: i.units,
+    /*  ⚠️ Left honest, not guessed: "how many times was it SHOWN" and "which
+        page did they pick it on" both need storefront tracking that is not
+        connected yet. The screen already prints "tracking pending" for these,
+        and that stays true instead of becoming an invented number.  */
+    shown: null,
+    prevAttachPct: 0,
+    byPage: [],
+  }));
   const statOf = (id: string) => stats.find((s) => s.addonId === id);
   const perfRows = rows
     .map((a) => {
@@ -3216,7 +3255,41 @@ export function AddonsView() {
     ["rules", "Auto rules", String(rules.filter((r) => r.active).length)],
     ["preview", "Product preview", ""],
     ["perf", "Performance", ""],
+    ["trash", "Trash", trash.length ? String(trash.length) : ""],
   ] as const;
+
+  /*  DEC-PRD-041/043 — the bin and the sales figures are only fetched when
+      their tab is opened. Neither is needed to edit an add-on, and both cost
+      a round trip to a free API.  */
+  useEffect(() => {
+    if (tab === "trash") listAddOnTrash().then((r) => setTrash(r.items)).catch(() => setTrash([]));
+    if (tab === "perf") getAddOnSales(30).then(setSales).catch(() => setSales(null));
+  }, [tab]);
+
+  /*  DEC-PRD-042 — one action, the ticked ids, then reload from the server.
+      Reloading rather than patching state locally: a bulk change touches
+      groups and rows at once, and guessing the new shape is how the screen
+      and the database drift apart.  */
+  async function runBulk(
+    action: "ACTIVATE" | "DEACTIVATE" | "DELETE" | "DISCOUNT" | "ADD_TO_GROUP" | "REMOVE_FROM_GROUP",
+    extra?: { discountType?: "NONE" | "FLAT" | "PERCENT"; discountValue?: number; groupId?: string },
+  ) {
+    const ids = [...picked];
+    if (ids.length === 0) return;
+    if (action === "DELETE" && !confirm(`Move ${ids.length} add-on${ids.length > 1 ? "s" : ""} to the bin?`)) return;
+    setBulkBusy(true);
+    try {
+      await bulkAddOns({ ids, action, ...extra });
+      const b = await getAddOns();
+      setRows(b.addons.map(fromApiAddon));
+      setGroups(b.groups.map((g) => ({ id: g.id, name: g.name, addonIds: g.addonIds })));
+      setPickedIds(new Set());
+    } catch {
+      /* the offline badge already says the API is unreachable */
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   return (
     <div className={WRAP}>
@@ -3312,6 +3385,87 @@ export function AddonsView() {
             </button>
           </div>
 
+          {/*  DEC-PRD-042 — the bulk bar. Only there when something is ticked,
+              so it never takes space from the wall it acts on.  */}
+          {picked.size > 0 && (
+            <div className="sticky top-2 z-20 mb-3.5 flex flex-wrap items-center gap-2 bg-purple text-white rounded-[14px] px-4 py-3 shadow-lift">
+              <b className="text-[13.5px] font-medium">
+                {picked.size} selected
+              </b>
+              <button
+                onClick={() => setPickedIds(new Set(shown.map((a) => a.id)))}
+                className="text-[12.5px] underline underline-offset-2 opacity-90 hover:opacity-100"
+              >
+                Select all {shown.length} shown
+              </button>
+              <button
+                onClick={() => setPickedIds(new Set())}
+                className="text-[12.5px] underline underline-offset-2 opacity-90 hover:opacity-100"
+              >
+                Clear
+              </button>
+
+              <span className="mx-1 h-4 w-px bg-white/30" />
+
+              <button disabled={bulkBusy} onClick={() => void runBulk("ACTIVATE")} className={bulkBtn}>Show on site</button>
+              <button disabled={bulkBusy} onClick={() => void runBulk("DEACTIVATE")} className={bulkBtn}>Hide</button>
+
+              <select
+                className="text-[12.5px] rounded-[9px] px-2 py-1.5 text-purple"
+                value=""
+                disabled={bulkBusy}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  e.currentTarget.value = "";
+                  if (!v) return;
+                  if (v === "none") return void runBulk("DISCOUNT", { discountType: "NONE" });
+                  const n = Number(prompt(v === "pct" ? "Percent off (e.g. 10)" : "Taka off (e.g. 200)"));
+                  if (!n || n <= 0) return;
+                  /*  ⚠️ PERCENT is basis points on the server (10% = 1000) and
+                      FLAT is paisa — the same convention every other price in
+                      the system uses.  */
+                  void runBulk("DISCOUNT", {
+                    discountType: v === "pct" ? "PERCENT" : "FLAT",
+                    discountValue: v === "pct" ? Math.round(n * 100) : Math.round(n * 100),
+                  });
+                }}
+              >
+                <option value="">Set discount…</option>
+                <option value="pct">% off</option>
+                <option value="flat">৳ off</option>
+                <option value="none">Remove discount</option>
+              </select>
+
+              <select
+                className="text-[12.5px] rounded-[9px] px-2 py-1.5 text-purple"
+                value=""
+                disabled={bulkBusy}
+                onChange={(e) => {
+                  const [act, gid] = e.target.value.split(":");
+                  e.currentTarget.value = "";
+                  if (!gid) return;
+                  void runBulk(act === "add" ? "ADD_TO_GROUP" : "REMOVE_FROM_GROUP", { groupId: gid });
+                }}
+              >
+                <option value="">Group…</option>
+                {groups.map((g) => (
+                  <option key={`add-${g.id}`} value={`add:${g.id}`}>Add to {g.name}</option>
+                ))}
+                {groups.map((g) => (
+                  <option key={`rem-${g.id}`} value={`rem:${g.id}`}>Remove from {g.name}</option>
+                ))}
+              </select>
+
+              <button
+                disabled={bulkBusy}
+                onClick={() => void runBulk("DELETE")}
+                className="ml-auto text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white/15 hover:bg-[#c0392b]"
+              >
+                Move to bin
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5">
             {shown.map((a) => {
               const pays = paysOf(a);
@@ -3324,8 +3478,28 @@ export function AddonsView() {
                   className={`group bg-white rounded-[16px] shadow-soft overflow-hidden border transition-all hover:shadow-lift hover:-translate-y-[2px] ${a.active ? "border-orchid-mid/60" : "border-lavender-deep opacity-70"}`}
                 >
                   <span className={`block h-[4px] ${a.active ? "bg-gradient-to-r from-[#7d2ea8] via-[#cf43ea] to-[#e6a8f5]" : "bg-lavender-deep"}`} />
-                  {/* photo - always 1:1, same shape as the storefront tile */}
-                  <div className="p-3 pb-0">
+                  {/*  DEC-PRD-042 — the tick that puts this card in a bulk
+                      action. Top-left of the photo so it never fights the
+                      OFFER / OUT badges on the right.  */}
+                  <div className="p-3 pb-0 relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPickedIds((p) => {
+                          const n = new Set(p);
+                          if (n.has(a.id)) n.delete(a.id); else n.add(a.id);
+                          return n;
+                        })
+                      }
+                      aria-label={picked.has(a.id) ? `Unpick ${a.name}` : `Pick ${a.name}`}
+                      className={`absolute top-5 left-5 z-[4] w-[24px] h-[24px] rounded-[8px] grid place-items-center border transition-colors ${
+                        picked.has(a.id)
+                          ? "bg-purple border-purple text-white"
+                          : "bg-white/90 border-lavender-deep text-transparent hover:border-orchid"
+                      }`}
+                    >
+                      <Icon name="check" size={14} />
+                    </button>
                     <div
                       className="relative aspect-square rounded-[12px] overflow-hidden border border-lavender-deep"
                       style={{ background: a.image }}
@@ -3984,6 +4158,89 @@ export function AddonsView() {
       )}
 
       {/* ---------- PERFORMANCE ---------- */}
+      {/*  DEC-PRD-041 — the bin. Products have had one since the start; an
+          add-on deleted by mistake used to be gone for good.  */}
+      {tab === "trash" && (
+        <>
+          <HowTo>
+            A deleted add-on is only hidden — everything here can be put back
+            exactly as it was. <b>Delete forever</b> works only on add-ons no
+            order has ever sold; anything with sales history stays here, because
+            old receipts still point at it.
+          </HowTo>
+
+          {trash.length === 0 ? (
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-12 text-center text-[13px] text-body-soft">
+              Nothing in the bin.
+            </div>
+          ) : (
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+              {trash.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center gap-3 px-5 py-3.5 border-b border-lavender-deep last:border-b-0"
+                >
+                  <span
+                    className="w-[38px] h-[38px] rounded-[10px] shrink-0 opacity-60"
+                    style={{
+                      background: a.imageUrl
+                        ? `url(${a.imageUrl}) center/cover no-repeat`
+                        : "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] font-medium text-purple truncate">{a.name}</div>
+                    <div className="text-[12.5px] text-body-soft">
+                      <span className="font-mono">{a.sku ?? "no SKU"}</span> · {formatTaka(a.pricePaisa)}
+                      {a.deletedAt ? ` · deleted ${new Date(a.deletedAt).toLocaleDateString()}` : ""}
+                    </div>
+                  </div>
+                  <button
+                    disabled={trashBusy === a.id}
+                    onClick={async () => {
+                      setTrashBusy(a.id);
+                      try {
+                        await restoreAddOn(a.id);
+                        setTrash((r) => r.filter((x) => x.id !== a.id));
+                        const b = await getAddOns();
+                        setRows(b.addons.map(fromApiAddon));
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : "Could not restore");
+                      } finally {
+                        setTrashBusy(null);
+                      }
+                    }}
+                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] border border-lavender-deep text-purple hover:border-orchid disabled:opacity-50"
+                  >
+                    Restore
+                  </button>
+                  <button
+                    disabled={trashBusy === a.id}
+                    onClick={async () => {
+                      if (!confirm(`Destroy "${a.name}" for good? This cannot be undone.`)) return;
+                      setTrashBusy(a.id);
+                      try {
+                        await purgeAddOn(a.id);
+                        setTrash((r) => r.filter((x) => x.id !== a.id));
+                      } catch (e) {
+                        /*  ⚠️ The refusal is the useful part — "it was sold, so
+                            it stays" is a rule, not a failure.  */
+                        alert(e instanceof Error ? e.message : "Could not delete");
+                      } finally {
+                        setTrashBusy(null);
+                      }
+                    }}
+                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    <Icon name="trash" size={14} /> Delete forever
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {tab === "perf" && (
         <>
           <HowTo>

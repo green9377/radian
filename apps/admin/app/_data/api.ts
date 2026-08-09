@@ -724,6 +724,28 @@ export interface ApiCategoryFaq {
   isActive: boolean;
 }
 
+/* ---- add-on recovery · bulk · sales (DEC-PRD-041/042/043) ---- */
+export const listAddOnTrash = () =>
+  j<{ items: (ApiAddOn & { deletedAt: string })[]; total: number }>(`/addons/trash`);
+export const restoreAddOn = (id: string) =>
+  j<ApiAddOn>(`/addons/${id}/restore`, { method: "POST" });
+export const purgeAddOn = (id: string) =>
+  j<{ id: string; purged: boolean }>(`/addons/${id}/purge`, { method: "DELETE" });
+export const bulkAddOns = (body: {
+  ids: string[];
+  action: "ACTIVATE" | "DEACTIVATE" | "DELETE" | "DISCOUNT" | "ADD_TO_GROUP" | "REMOVE_FROM_GROUP";
+  discountType?: "NONE" | "FLAT" | "PERCENT";
+  discountValue?: number;
+  groupId?: string;
+}) => j<{ changed: number }>(`/addons/bulk`, { method: "POST", body: JSON.stringify(body) });
+export interface ApiAddOnSales {
+  days: number;
+  totals: { units: number; revenuePaisa: number };
+  items: { addOnId: string; name: string; sku: string | null; units: number; revenuePaisa: number }[];
+}
+export const getAddOnSales = (days = 30) =>
+  j<ApiAddOnSales>(`/addons/sales?days=${days}`);
+
 export const listCategoryFaqs = (categoryId: string) =>
   j<ApiCategoryFaq[]>(`/categories/${categoryId}/faqs`);
 export const addCategoryFaq = (categoryId: string, b: { question: string; answer: string }) =>
