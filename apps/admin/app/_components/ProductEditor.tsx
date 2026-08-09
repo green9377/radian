@@ -114,12 +114,17 @@ const CAT_LABEL: Record<string, string> = {
   override, making him decide the same thing twice. With it last, all the
   facts are already in hand and it's set once, correctly.
 */
+/*  ── Order matters (owner, 8 Aug 2026) ──────────────────────────────────
+    Variants sits right after Basics because everything below it now asks
+    "…and for each variant?" — the photo tab, the stock tab and the pricing
+    tab each carry a per-variant section. Deciding which variants exist is
+    therefore the second thing you do, not the fifth.  */
 const SECTIONS = [
   ["basics", "Basics", "tag"],
+  ["variants", "Variants & options", "layers"],
   ["stock", "Stock & lead time", "box"],
   ["media", "Photos & video", "photo"],
   ["delivery", "Delivery", "truck"],
-  ["variants", "Variants & options", "layers"],
   ["tags", "Tags", "hash"],
   ["story", "Product story", "book"],
   // SEO-D01 — written here while adding the product, or later in bulk from
@@ -791,9 +796,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /*  Moving to another section scrolls back to the top of it. Without this
       you land halfway down a section you have not read, because the browser
       keeps the old scroll position on a page whose content just changed.  */
-  const secIdx = SECTIONS.findIndex(([id]) => id === sec);
+  /*  The Variants tab only exists for a product that says it has them
+      (Basics, owner 8 Aug 2026). Everything that walks the tabs — the nav,
+      the mobile dropdown, Next/Back — walks THIS list, so a plain product
+      never lands on a tab that has nothing to ask.  */
+  const visibleSections = SECTIONS.filter(([id]) => id !== "variants" || hasVariants);
+  const secIdx = visibleSections.findIndex(([id]) => id === sec);
   const goSec = (i: number) => {
-    setSec(SECTIONS[i][0]);
+    setSec(visibleSections[i][0]);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1075,11 +1085,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
    * the page doesn't show.
    */
   const [variants, setVariants] = useState<VariantRow[]>([]);
-  /** which variant is currently being edited */
-  const [vOpen, setVOpen] = useState<string | null>(null);
+  /*  `vOpen` removed 8 Aug 2026 — there is no expanding variant card any
+      more. Photo, stock and price each live on their own tab, so nothing
+      needs opening.  */
   const [vBusy, setVBusy] = useState<string | null>(null);
   //  DEC-PRD-031 — shown when a value from a SECOND list is clicked
   const [vMixWarn, setVMixWarn] = useState<string | null>(null);
+  /*  Basics' "does it come in more than one?" (owner, 8 Aug 2026). Not a
+      column of its own — an existing product answers it by having variants,
+      and a new one starts at No. Only the tab list reads it.  */
+  const [hasVariants, setHasVariants] = useState(false);
 
   /**
    * Which variant template is open. `null` = opens whichever one already
@@ -1485,6 +1500,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               isActive: v.isActive,
             })),
           );
+          //  an existing product answers the Basics question by what it has
+          setHasVariants((p.variants ?? []).length > 0);
 
           // variant & add-ons
           if (p.variantValueId) setVariantValueId(p.variantValueId);
@@ -2275,7 +2292,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       <div className="flex gap-6 items-start">
         {/* section nav */}
         <nav className="w-[196px] shrink-0 sticky top-[84px] hidden md:block">
-          {SECTIONS.map(([id, label, icon]) => (
+          {visibleSections.map(([id, label, icon]) => (
             <button
               key={id}
               type="button"
@@ -2302,7 +2319,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               value={sec}
               onChange={(e) => setSec(e.target.value as SecId)}
             >
-              {SECTIONS.map(([id, label]) => (
+              {visibleSections.map(([id, label]) => (
                 <option key={id} value={id}>
                   {label}
                 </option>
@@ -2607,6 +2624,52 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     </Sw>
                   </div>
                 </div>
+              </Card>
+
+              {/*
+                ═══════════════════════════════════════════════════════════
+                DOES IT COME IN MORE THAN ONE — owner, 8 Aug 2026:
+                *"basic-এ ঠিক করব এটা variant হবে কিনা; না দিলে পরের tab-এ
+                variant option আসবে না।"*
+
+                One question, asked once, at the top. Off hides the whole
+                Variants tab — and with it the per-variant rows in Photos,
+                Stock and Pricing — so a plain product never walks past a
+                single field it does not need.
+                ═══════════════════════════════════════════════════════════
+              */}
+              <Card
+                icon="layers"
+                title="Does it come in more than one?"
+                tip="Colours, stem counts, weights, flavours. Turn this on and the next tab lets you pick which ones."
+              >
+                <Seg
+                  value={hasVariants ? "YES" : "NO"}
+                  onChange={(v) => {
+                    if (v === "YES") {
+                      setHasVariants(true);
+                      return;
+                    }
+                    /*  ⚠️ Never silently. Each variant carries a photo, a
+                        price and a count somebody typed — losing that to a
+                        mis-click would be found out days later.  */
+                    if (
+                      variants.length > 0 &&
+                      !window.confirm(
+                        `${variants.length} variant${variants.length > 1 ? "s" : ""} will be removed from this product, along with their photos, prices and stock. Continue?`,
+                      )
+                    ) {
+                      return;
+                    }
+                    setVariants([]);
+                    setVMixWarn(null);
+                    setHasVariants(false);
+                  }}
+                  options={[
+                    { v: "NO", label: "No — one version only" },
+                    { v: "YES", label: "Yes — it has variants" },
+                  ]}
+                />
               </Card>
             </>
           )}
@@ -3136,6 +3199,98 @@ No bundle products yet — add them on{" "}
                   )}
                 </div>
               </Card>
+
+              {/*  Each variant's own price, beside the product's — owner,
+                  8 Aug 2026. DEC-PRD-031: a variant that prices itself is
+                  final; the product's discount above never touches it. So
+                  its own offer field lives here, not up there.  */}
+              {hasVariants && (
+                <Card
+                  icon="cash"
+                  title="Price for each one"
+                  hint="Leave blank and it sells at the product price above."
+                >
+                  {variants.length === 0 ? (
+                    <p className="text-[13px] text-body-soft m-0">
+                      Nothing picked yet — choose them in{" "}
+                      <button
+                        type="button"
+                        onClick={() => setSec("variants")}
+                        className="text-orchid font-semibold hover:underline"
+                      >
+                        Variants &amp; options
+                      </button>
+                      .
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {variants.map((v) => (
+                        <div
+                          key={v.variantValueId}
+                          className="flex items-center gap-3 border border-lavender-deep rounded-[12px] bg-white px-3 py-2.5 flex-wrap"
+                        >
+                          <span className="flex items-center gap-2 min-w-[130px]">
+                            {v.swatch && (
+                              <span
+                                className="w-[15px] h-[15px] rounded-full border border-lavender-deep shrink-0"
+                                style={{ background: v.swatch }}
+                              />
+                            )}
+                            <b className="text-[13.5px] font-medium text-purple truncate">{v.label}</b>
+                          </span>
+
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-[12.5px] text-body-soft">৳</span>
+                            <input
+                              className="ipt text-[13.5px]"
+                              style={{ width: 108, minHeight: 38 }}
+                              placeholder="same price"
+                              value={v.price}
+                              onChange={(e) =>
+                                setVariants((cur) =>
+                                  cur.map((x) =>
+                                    x.variantValueId === v.variantValueId
+                                      ? { ...x, price: e.target.value.replace(/[^0-9.]/g, "") }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                          </span>
+
+                          {/*  DEC-PRD-032 — an offer needs a regular price of its
+                              own to be measured against, so it only appears once
+                              there is one.  */}
+                          {v.price.trim() ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="text-[12.5px] text-body-soft">offer ৳</span>
+                              <input
+                                className="ipt text-[13.5px]"
+                                style={{ width: 108, minHeight: 38 }}
+                                placeholder="none"
+                                value={v.offerPrice}
+                                onChange={(e) =>
+                                  setVariants((cur) =>
+                                    cur.map((x) =>
+                                      x.variantValueId === v.variantValueId
+                                        ? { ...x, offerPrice: e.target.value.replace(/[^0-9.]/g, "") }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                              />
+                            </span>
+                          ) : (
+                            <span className="text-[12.5px] text-body-soft">
+                              sells at {taka(offer)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
             </>
           )}
 
@@ -3308,9 +3463,7 @@ No bundle products yet — add them on{" "}
                           {variants.reduce((n, v) => n + (parseInt(v.stockQty, 10) || 0), 0)} pcs
                         </span>
                         <span className="text-[13px] text-body-soft">
-                          Counted per colour in{" "}
-                          <b className="font-semibold text-purple">Variants &amp; options</b> —{" "}
-                          {variants.map((v) => `${v.label} ${parseInt(v.stockQty, 10) || 0}`).join(" · ")}
+                          The total of the counts below — each one is counted on its own.
                         </span>
                       </div>
                     </Field>
@@ -3757,6 +3910,167 @@ No bundle products yet — add them on{" "}
                 </div>
               </Card>
 
+              {/*  Each variant's count, beside the product's — owner, 8 Aug
+                  2026. Per-variant, either a number you type OR a stockroom
+                  Item that counts it for you (DEC-PRD-032). Never both: two
+                  numbers that disagree is worse than one that is wrong.  */}
+              {hasVariants && (
+                <Card
+                  icon="box"
+                  title="How many of each"
+                  hint="Type the count, or link the stockroom item that holds it."
+                >
+                  {variants.length === 0 ? (
+                    <p className="text-[13px] text-body-soft m-0">
+                      Nothing picked yet — choose them in{" "}
+                      <button
+                        type="button"
+                        onClick={() => setSec("variants")}
+                        className="text-orchid font-semibold hover:underline"
+                      >
+                        Variants &amp; options
+                      </button>
+                      .
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {variants.map((v) => (
+                        <div
+                          key={v.variantValueId}
+                          className="flex items-center gap-3 border border-lavender-deep rounded-[12px] bg-white px-3 py-2.5 flex-wrap"
+                        >
+                          <span className="flex items-center gap-2 min-w-[130px]">
+                            {v.swatch && (
+                              <span
+                                className="w-[15px] h-[15px] rounded-full border border-lavender-deep shrink-0"
+                                style={{ background: v.swatch }}
+                              />
+                            )}
+                            <b className="text-[13.5px] font-medium text-purple truncate">{v.label}</b>
+                          </span>
+
+                          {v.itemId ? (
+                            <>
+                              <span className="text-[13px] text-body-soft flex-1 min-w-0 truncate">
+                                Counted in Inventory · {v.itemLabel ?? "item linked"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setVariants((cur) =>
+                                    cur.map((x) =>
+                                      x.variantValueId === v.variantValueId
+                                        ? { ...x, itemId: null, itemLabel: null }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                                className="text-[12.5px] text-body-soft hover:text-[#c0392b]"
+                              >
+                                Unlink
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                className="ipt text-[13.5px]"
+                                style={{ width: 96, minHeight: 38 }}
+                                type="number"
+                                min={0}
+                                value={v.stockQty}
+                                onChange={(e) =>
+                                  setVariants((cur) =>
+                                    cur.map((x) =>
+                                      x.variantValueId === v.variantValueId
+                                        ? { ...x, stockQty: e.target.value }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                              />
+                              <span className="text-[12.5px] text-body-soft">in stock</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVItemFor(vItemFor === v.variantValueId ? null : v.variantValueId);
+                                  setVItemQ("");
+                                }}
+                                className="ml-auto text-[12.5px] px-2.5 py-1.5 rounded-[9px] border border-dashed border-orchid-mid text-orchid bg-white hover:bg-orchid-soft/40"
+                              >
+                                Count from Inventory…
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+
+                      {/*  DEC-PRD-015 — the Item search, at full width. Inside a
+                          row an item's name would not even be readable.  */}
+                      {vItemFor && (
+                        <div className="border border-lavender-deep rounded-[12px] p-3 bg-white">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="text-[12.5px] text-body-soft">
+                              Which stockroom item holds{" "}
+                              <b className="font-semibold text-purple">
+                                {variants.find((x) => x.variantValueId === vItemFor)?.label}
+                              </b>
+                              ?
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setVItemFor(null)}
+                              className="text-[12.5px] text-body-soft hover:text-purple"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <input
+                            className="ipt h-[40px] mb-2"
+                            placeholder="Search by item code or name…"
+                            value={vItemQ}
+                            onChange={(e) => setVItemQ(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto">
+                            {vItemHits.length === 0 && (
+                              <div className="text-[13px] text-body-soft px-1 py-2">
+                                No item matches “{vItemQ || "…"}”. Make it in{" "}
+                                <Link href="/items/new" className="text-orchid font-medium hover:underline">
+                                  Items
+                                </Link>{" "}
+                                first.
+                              </div>
+                            )}
+                            {vItemHits.map((it) => (
+                              <button
+                                key={it.id}
+                                type="button"
+                                onClick={() => {
+                                  setVariants((cur) =>
+                                    cur.map((x) =>
+                                      x.variantValueId === vItemFor
+                                        ? { ...x, itemId: it.id, itemLabel: `${it.name} · ${it.sku}` }
+                                        : x,
+                                    ),
+                                  );
+                                  setVItemFor(null);
+                                }}
+                                className="flex items-center gap-3 border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
+                              >
+                                <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
+                                  {it.name}
+                                </span>
+                                <span className="text-[13px] text-body-soft font-mono">{it.sku}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              )}
+
               {/*
                 ── TWO CLOCKS, AND THEY ARE NOT THE SAME CLOCK ───────────────
                 Owner, 1 Aug 2026: *"there's no way to tell the day field
@@ -4020,6 +4334,103 @@ No bundle products yet — add them on{" "}
                   {TARGET_MB} MB
                 </span>
               </Card>
+
+              {/*  Each variant's own photo, beside the product's — owner,
+                  8 Aug 2026. It used to hide inside a 132px card on the
+                  Variants tab; photographs belong with photographs.  */}
+              {hasVariants && (
+                <Card
+                  icon="photo"
+                  title="A photo for each one"
+                  hint="Optional. Without one, the customer keeps seeing the main photo when they pick this."
+                >
+                  {variants.length === 0 ? (
+                    <p className="text-[13px] text-body-soft m-0">
+                      Nothing picked yet — choose them in{" "}
+                      <button
+                        type="button"
+                        onClick={() => setSec("variants")}
+                        className="text-orchid font-semibold hover:underline"
+                      >
+                        Variants &amp; options
+                      </button>
+                      .
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      {variants.map((v) => {
+                        const shown = v.imageUrl || v.masterImage;
+                        return (
+                          <div key={v.variantValueId} style={{ width: 116 }}>
+                            <label className="block cursor-pointer">
+                              <span
+                                className="block w-full h-[92px] rounded-[12px] border border-lavender-deep bg-cover bg-center grid place-items-center text-body-soft hover:border-orchid transition-colors"
+                                style={
+                                  shown
+                                    ? { backgroundImage: `url(${shown})` }
+                                    : { background: v.swatch || "#f6f2fa" }
+                                }
+                              >
+                                {vBusy === v.variantValueId ? (
+                                  <span className="text-[11px] font-semibold">Uploading…</span>
+                                ) : (
+                                  !shown && <Icon name="plus" size={18} />
+                                )}
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/avif"
+                                className="hidden"
+                                disabled={vBusy === v.variantValueId}
+                                onChange={async (e) => {
+                                  const f = e.target.files?.[0];
+                                  e.target.value = "";
+                                  if (!f) return;
+                                  setVBusy(v.variantValueId);
+                                  try {
+                                    /*  ⚠️ 1:1 isn't forced here — that's a rule
+                                        only for product photos (owner). The 1 MB
+                                        limit applies to every image.  */
+                                    const url = await uploadItemImage(f, "products", 1600);
+                                    setVariants((cur) =>
+                                      cur.map((x) =>
+                                        x.variantValueId === v.variantValueId ? { ...x, imageUrl: url } : x,
+                                      ),
+                                    );
+                                  } catch {
+                                    /* the upload failing leaves everything else intact */
+                                  } finally {
+                                    setVBusy(null);
+                                  }
+                                }}
+                              />
+                            </label>
+                            <div className="text-[12.5px] font-medium text-purple mt-1.5 truncate">
+                              {v.label}
+                            </div>
+                            {v.imageUrl && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setVariants((cur) =>
+                                    cur.map((x) =>
+                                      x.variantValueId === v.variantValueId ? { ...x, imageUrl: "" } : x,
+                                    ),
+                                  )
+                                }
+                                className="text-[11.5px] text-body-soft hover:text-[#c0392b]"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
+              )}
+
               <Card
                 icon="photo"
                 title="Video"
@@ -4370,367 +4781,72 @@ No bundle products yet — add them on{" "}
                       </p>
                     )}
 
-                    {/* ── the picked ones, each with its own photo / stock / price ── */}
+                    {/*  ── what is picked ──────────────────────────────────
+                        Names only. Owner, 8 Aug 2026: *"just ta select krar
+                        option thakbe, image and stock and price agula kichui
+                        thakbe na"* — each variant's photo now lives in Photos,
+                        its count in Stock, its price in Pricing, beside the
+                        product's own. One tab, one kind of work.  */}
                     {variants.length > 0 && (
                       <div className="mt-5 pt-5 border-t border-lavender-deep">
                         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-2.5">
                           {variants.length} on this product
                         </div>
-                        {/*  Grouped by list (Colour, Stem count…) with a small
-                            heading each, so a mixed pile of picks reads clearly —
-                            you can tell which card belongs to which list without
-                            guessing (8 Aug 2026, owner's confusion).  */}
-                        {(() => {
-                          const groups: { name: string; items: typeof variants }[] = [];
-                          for (const v of variants) {
-                            const gname = v.attribute || "Other";
-                            let g = groups.find((x) => x.name === gname);
-                            if (!g) {
-                              g = { name: gname, items: [] };
-                              groups.push(g);
-                            }
-                            g.items.push(v);
-                          }
-                          return groups.map((grp) => (
-                            <div key={grp.name} className="mb-4 last:mb-0">
-                              <div className="text-[11.5px] font-semibold text-body-soft mb-1.5">
-                                {grp.name}
-                              </div>
-                              <div className="flex flex-wrap gap-2.5">
-                                {grp.items.map((v) => {
-                                  const editing = vOpen === v.variantValueId;
-                                  const shown = v.imageUrl || v.masterImage;
-                                  return (
-                              <div
-                                key={v.variantValueId}
-                                className={`rounded-[14px] border transition-colors ${
-                                  editing ? "border-orchid bg-orchid-soft/40" : "border-lavender-deep bg-white hover:border-orchid-mid"
-                                } ${v.isActive ? "" : "opacity-45"}`}
-                                style={{ width: 132 }}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => setVOpen(editing ? null : v.variantValueId)}
-                                  className="w-full p-2.5 text-left"
-                                >
-                                  <span
-                                    className="block w-full h-[62px] rounded-[10px] border border-lavender-deep bg-cover bg-center grid place-items-center text-body-soft"
-                                    style={
-                                      shown
-                                        ? { backgroundImage: `url(${shown})` }
-                                        : { background: v.swatch || "#f2edf7" }
-                                    }
-                                  >
-                                    {!shown && !v.swatch && <Icon name="photo" size={16} />}
-                                  </span>
-                                  <span className="block text-[13px] font-semibold text-purple mt-2 truncate">
-                                    {v.label}
-                                  </span>
-                                  <span className="block text-[11.5px] text-body-soft truncate">
-                                    {/*  when TRACKED, the hand-typed number
-                                         is never even read, so it isn't
-                                         shown either.  */}
-                                    {stockMode === "TRACKED"
-                                      ? (v.itemLabel ?? (v.itemId ? "item linked" : "no item yet"))
-                                      : `${v.stockQty} in stock`}
-                                    {v.price.trim() ? ` · ৳${v.price}` : ""}
-                                  </span>
-                                </button>
-
-                                {editing && (
-                                  <div className="border-t border-lavender-deep p-2.5 flex flex-col gap-2">
-                                    <label className="text-[12px] font-semibold text-orchid text-center py-1.5 rounded-[8px] bg-white border border-lavender-deep cursor-pointer hover:border-orchid">
-                                      <input
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,image/avif"
-                                        className="hidden"
-                                        disabled={vBusy === v.variantValueId}
-                                        onChange={async (e) => {
-                                          const f = e.target.files?.[0];
-                                          e.target.value = "";
-                                          if (!f) return;
-                                          setVBusy(v.variantValueId);
-                                          try {
-                                            /*  ⚠️ 1:1 isn't forced here —
-                                                that's a rule only for
-                                                product photos (owner's
-                                                correction). The 1 MB limit
-                                                applies to every image, and
-                                                `uploadItemImage` enforces
-                                                it.  */
-                                            const url = await uploadItemImage(f, "products", 1600);
-                                            setVariants((cur) =>
-                                              cur.map((x) =>
-                                                x.variantValueId === v.variantValueId ? { ...x, imageUrl: url } : x,
-                                              ),
-                                            );
-                                          } catch {
-                                            /* if the image fails to upload, everything else stays intact */
-                                          } finally {
-                                            setVBusy(null);
-                                          }
-                                        }}
-                                      />
-                                      {vBusy === v.variantValueId
-                                        ? "Uploading…"
-                                        : v.imageUrl
-                                          ? "Change photo"
-                                          : "Add photo"}
-                                    </label>
-
-                                    {/*
-                                      ═══════════════════════════════════════
-                                      DEC-PRD-015 — where the stock comes
-                                      from. Owner, 2 Aug 2026: *"manual should
-                                      stay as it is now. if it needs to pull
-                                      from inventory, call it the same way we
-                                      called from inventory in Stock & lead
-                                      time."*
-
-                                      ⚠️ The two fields are never shown
-                                      together. If they were, someone could
-                                      type 20 by hand while Inventory said
-                                      3 — and the page itself couldn't say
-                                      which one was true.
-                                      ═══════════════════════════════════════
-                                    */}
-                                    {/*  DEC-PRD-032 (owner, 8 Aug 2026) — the choice is
-                                        PER VARIANT now, not per product. "Red rose comes
-                                        from the stockroom, this new colour I'm counting by
-                                        hand" is a real situation, and the product-wide
-                                        switch made it unsayable. Linked wins: the typed
-                                        box disappears so two numbers can never disagree.  */}
-                                    {v.itemId ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setVItemFor(
-                                            vItemFor === v.variantValueId ? null : v.variantValueId,
-                                          );
-                                          setVItemQ("");
-                                        }}
-                                        title="Counted in Inventory — click to change or unlink"
-                                        className="text-[12px] text-left px-2 py-1.5 rounded-[8px] border bg-white border-lavender-deep text-purple hover:border-orchid truncate"
-                                      >
-                                        📦 {v.itemLabel ?? "Item linked"}
-                                      </button>
-                                    ) : (
-                                      <>
-                                        <div className="flex items-center gap-1.5">
-                                          <input
-                                            className="ipt text-[13px] w-full"
-                                            style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
-                                            type="number"
-                                            min={0}
-                                            value={v.stockQty}
-                                            onChange={(e) =>
-                                              setVariants((cur) =>
-                                                cur.map((x) =>
-                                                  x.variantValueId === v.variantValueId ? { ...x, stockQty: e.target.value } : x,
-                                                ),
-                                              )
-                                            }
-                                          />
-                                          <span className="text-[11px] text-body-soft shrink-0">stock</span>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setVItemFor(
-                                              vItemFor === v.variantValueId ? null : v.variantValueId,
-                                            );
-                                            setVItemQ("");
-                                          }}
-                                          className="text-[11.5px] text-left px-2 py-1 rounded-[8px] border border-dashed border-orchid-mid text-orchid bg-white hover:bg-orchid-soft/40"
-                                        >
-                                          Count from Inventory…
-                                        </button>
-                                      </>
-                                    )}
-
-                                    {/*
-                                      ⚠️ Leaving it blank is the normal case.
-                                      Owner: *"if it's the same product and
-                                      just the colour changes, the price
-                                      stays the same; but if the weight
-                                      changes, it'll be different."* Typing
-                                      the same number into every colour would
-                                      someday mean forgetting to update one
-                                      of them.
-                                    */}
-                                    <div className="flex items-center gap-1.5">
-                                      <input
-                                        className="ipt text-[13px] w-full"
-                                        style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
-                                        placeholder="same price"
-                                        value={v.price}
-                                        onChange={(e) =>
-                                          setVariants((cur) =>
-                                            cur.map((x) =>
-                                              x.variantValueId === v.variantValueId
-                                                ? { ...x, price: e.target.value.replace(/[^0-9.]/g, "") }
-                                                : x,
-                                            ),
-                                          )
-                                        }
-                                      />
-                                      <span className="text-[11px] text-body-soft shrink-0">৳</span>
-                                    </div>
-
-                                    {/*  DEC-PRD-032 — this variant's own offer. Only
-                                        offered once it has a regular price of its own,
-                                        because an offer needs something to be measured
-                                        against. The product-level discount never touches
-                                        a variant that prices itself (DEC-PRD-031).  */}
-                                    {v.price.trim() && (
-                                      <div className="flex items-center gap-1.5">
-                                        <input
-                                          className="ipt text-[13px] w-full"
-                                          style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
-                                          placeholder="offer price"
-                                          value={v.offerPrice}
-                                          onChange={(e) =>
-                                            setVariants((cur) =>
-                                              cur.map((x) =>
-                                                x.variantValueId === v.variantValueId
-                                                  ? { ...x, offerPrice: e.target.value.replace(/[^0-9.]/g, "") }
-                                                  : x,
-                                              ),
-                                            )
-                                          }
-                                        />
-                                        <span className="text-[11px] text-body-soft shrink-0">৳</span>
-                                      </div>
-                                    )}
-
-                                    <div className="flex gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setVariants((cur) =>
-                                            cur.map((x) =>
-                                              x.variantValueId === v.variantValueId ? { ...x, isActive: !x.isActive } : x,
-                                            ),
-                                          )
-                                        }
-                                        className={`flex-1 text-[11.5px] font-bold py-1.5 rounded-[8px] ${
-                                          v.isActive ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"
-                                        }`}
-                                      >
-                                        {v.isActive ? "ON" : "OFF"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setVariants((cur) => cur.filter((x) => x.variantValueId !== v.variantValueId));
-                                          setVOpen(null);
-                                        }}
-                                        className="w-[34px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
-                                      >
-                                        <Icon name="trash" size={13} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ));
-                        })()}
-
-                        {/*  DEC-PRD-015 — the Item search panel, at full
-                             width. Placed inside the card, an item's name
-                             wouldn't even be readable.  */}
-                        {vItemFor && (
-                          <div className="mt-3 border border-lavender-deep rounded-[12px] p-3 bg-white">
-                            <div className="flex items-center justify-between gap-3 mb-2">
-                              <div className="text-[12.5px] text-body-soft">
-                                Which stockroom item holds{" "}
-                                <b className="font-semibold text-purple">
-                                  {variants.find((x) => x.variantValueId === vItemFor)?.label}
-                                </b>
-                                ?
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setVItemFor(null)}
-                                className="text-[12.5px] text-body-soft hover:text-purple"
-                              >
-                                Close
-                              </button>
-                            </div>
-                            <input
-                              className="ipt h-[40px] mb-2"
-                              placeholder="Search by item code or name…"
-                              value={vItemQ}
-                              onChange={(e) => setVItemQ(e.target.value)}
-                              autoFocus
-                            />
-                            <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto">
-                              {vItemHits.length === 0 && (
-                                <div className="text-[13px] text-body-soft px-1 py-2">
-                                  No item matches “{vItemQ || "…"}”. Make it in{" "}
-                                  <Link href="/items/new" className="text-orchid font-medium hover:underline">
-                                    Items
-                                  </Link>{" "}
-                                  first.
-                                </div>
+                        <div className="flex flex-wrap gap-2">
+                          {variants.map((v) => (
+                            <span
+                              key={v.variantValueId}
+                              className={`inline-flex items-center gap-2 rounded-full border pl-3 pr-1.5 py-1 text-[13px] ${
+                                v.isActive
+                                  ? "border-lavender-deep bg-white text-purple"
+                                  : "border-lavender-deep bg-[#f4f1f7] text-body-soft"
+                              }`}
+                            >
+                              {v.swatch && (
+                                <span
+                                  className="w-[13px] h-[13px] rounded-full border border-lavender-deep"
+                                  style={{ background: v.swatch }}
+                                />
                               )}
-                              {vItemHits.map((it) => (
-                                <button
-                                  key={it.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setVariants((cur) =>
-                                      cur.map((x) =>
-                                        x.variantValueId === vItemFor
-                                          ? { ...x, itemId: it.id, itemLabel: `${it.name} · ${it.sku}` }
-                                          : x,
-                                      ),
-                                    );
-                                    setVItemFor(null);
-                                  }}
-                                  className="flex items-center gap-3 border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
-                                >
-                                  <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
-                                    {it.name}
-                                  </span>
-                                  <span className="text-[13px] text-body-soft font-mono">{it.sku}</span>
-                                </button>
-                              ))}
-                            </div>
-                            {variants.find((x) => x.variantValueId === vItemFor)?.itemId && (
+                              <b className="font-medium">{v.label}</b>
+                              {/*  OFF keeps the row and its numbers but takes it
+                                  off the website — the honest way to pause one
+                                  colour without losing what was typed.  */}
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={() =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === vItemFor
-                                        ? { ...x, itemId: null, itemLabel: null }
+                                      x.variantValueId === v.variantValueId
+                                        ? { ...x, isActive: !x.isActive }
                                         : x,
                                     ),
-                                  );
-                                  setVItemFor(null);
-                                }}
-                                className="mt-2 text-[12.5px] text-body-soft hover:text-[#c0392b]"
+                                  )
+                                }
+                                className={`text-[10.5px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  v.isActive ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#eae6ef] text-body-soft"
+                                }`}
                               >
-                                Unlink — use the product&rsquo;s own item
+                                {v.isActive ? "ON" : "OFF"}
                               </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/*  ⚠️ One line, and only what's actually true right
-                            now. Two rules used to be written together here
-                            — the owner called that exact thing "onk beshi
-                            text" [too much text].  */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setVariants((cur) =>
+                                    cur.filter((x) => x.variantValueId !== v.variantValueId),
+                                  )
+                                }
+                                aria-label={`Remove ${v.label}`}
+                                className="w-[20px] h-[20px] grid place-items-center rounded-full text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
+                              >
+                                <Icon name="trash" size={12} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
                         <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-                          Empty price = the product&rsquo;s own.{" "}
-                          {stockMode === "TRACKED"
-                            ? "Stock comes from each one's Inventory item."
-                            : "Stock counts per colour."}
+                          Photo, stock and price for each one are in the Photos,
+                          Stock and Pricing tabs.
                         </p>
                       </div>
                     )}
@@ -5959,20 +6075,20 @@ No bundle products yet — add them on{" "}
                 className="inline-flex items-center gap-2 text-[13.5px] font-medium text-body-soft hover:text-purple border border-lavender-deep bg-white rounded-[12px] px-4 py-3 transition-colors"
               >
                 <Icon name="chevronLeft" size={16} />
-                {SECTIONS[secIdx - 1][1]}
+                {visibleSections[secIdx - 1][1]}
               </button>
             ) : (
               <span />
             )}
 
-            {secIdx < SECTIONS.length - 1 && (
+            {secIdx < visibleSections.length - 1 && (
               <button
                 type="button"
                 onClick={() => goSec(secIdx + 1)}
                 className="ml-auto inline-flex items-center gap-2.5 text-[14px] font-medium text-white bg-purple hover:bg-purple-deep rounded-[12px] px-5 py-3 shadow-soft transition-colors"
               >
                 <span className="opacity-70 text-[13px]">Next</span>
-                {SECTIONS[secIdx + 1][1]}
+                {visibleSections[secIdx + 1][1]}
                 <span className="rotate-180 inline-flex">
                   <Icon name="chevronLeft" size={16} />
                 </span>
@@ -5981,7 +6097,7 @@ No bundle products yet — add them on{" "}
 
             {/*  The last section has nowhere to go next, so it offers the
                 thing you were always heading towards instead.  */}
-            {secIdx === SECTIONS.length - 1 && (
+            {secIdx === visibleSections.length - 1 && (
               <button
                 type="button"
                 onClick={() => void handleSave(true)}
