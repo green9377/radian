@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import CommaListInput from "./CommaListInput";
 import { OFFERS, SHAPE_LABEL, FESTIVALS, TEMPLATES, MOCK_PRODUCTS, PICK_PRODUCTS, PICK_CATEGORIES, taka, type Offer, type Shape } from "../_data/offers";
 
 /*
@@ -433,7 +434,7 @@ export function OfferEditor({ id }: { id: string }) {
             <div><Guide>Public title</Guide><input className="ipt" value={form.publicTitle} onChange={(e) => set({ publicTitle: e.target.value })} /></div>
             <div className="mt-3.5"><Guide>Benefit line</Guide><input className="ipt" value={form.benefitLine} onChange={(e) => set({ benefitLine: e.target.value })} /></div>
             <div className="mt-3.5"><Guide>Description</Guide><textarea className="ipt" rows={2} value={form.description} onChange={(e) => set({ description: e.target.value })} /></div>
-            <div className="mt-3.5"><Guide>Eligibility chips (comma-separated)</Guide><input className="ipt" value={form.eligibility.join(", ")} onChange={(e) => set({ eligibility: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} /></div>
+            <div className="mt-3.5"><Guide>Eligibility chips (comma-separated)</Guide><CommaListInput value={form.eligibility} onChange={(next) => set({ eligibility: next })} /></div>
           </Block>
 
           <div className="flex items-center gap-3 pt-1">

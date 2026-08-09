@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./Icon";
+import CommaListInput from "./CommaListInput";
 import {
   listBanners, createBanner, updateBanner, deleteBanner,
   getStorefrontSettings, setStorefrontSettings, uploadImage,
@@ -373,10 +374,12 @@ function Editor({
               {isHero && (
                 <>
                   <L label="Three short trust lines" hint="Under the buttons — comma separated">
-                    <input
-                      className="ipt"
-                      value={f.proof.join(", ")}
-                      onChange={(e) => set("proof", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                    {/*  CommaListInput, not a raw input — the raw one re-parsed
+                        and rewrote the box on every keystroke, so a comma or a
+                        space could never survive being typed (owner, 9 Aug 2026).  */}
+                    <CommaListInput
+                      value={f.proof}
+                      onChange={(next) => set("proof", next)}
                       placeholder="2-hour delivery, Freshness promise, ★ 4.9 on Google"
                     />
                   </L>
