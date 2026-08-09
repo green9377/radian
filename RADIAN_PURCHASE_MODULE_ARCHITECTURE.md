@@ -190,6 +190,46 @@ re-interpret how much was bought (same discipline flagged for OrderLine in
 `RADIAN_UOM_OWNERSHIP_RULING.md` §5.3).
 **Impact:** Purchase, Unit, future Inventory.
 
+### DEC-PUR-010 — A fail-soft receive must still be visible, and repairable in one press
+_(9 Aug 2026 — from a real failure: PUR-000001)_
+
+**What happened.** The owner recorded PUR-000001 (20 Paper, 50 Sunflower, ৳12,000 paid).
+The purchase said **Received** and **Paid**. Stock stayed at zero. The only trace was one
+line in the timeline: *"Inventory posting failed — No active warehouse, run the inventory
+seed"*. His words: *"ami to purches krlm but stock tahole add hlo na… gora thekei
+gondogol."*
+
+Two separate faults, and the second is the one that matters here:
+
+1. there was no warehouse — fixed in Inventory (DEC-INV-016);
+2. **a fail-soft failure was invisible.** Nothing on the purchase screen, nothing on the
+   list, no way to retry. The money moved and the goods did not, and the system was
+   content.
+
+**Decision.**
+
+- `afterReceive()` **stays fail-soft** — a stock error must never undo a committed
+  receipt. That part was right and does not change.
+- Purchase **detail** computes the per-item hole on every read
+  (`InventoryService.purchaseReceiptGap`) and shows it as a banner naming the items.
+- Purchase **list** carries a `stock not posted` badge, from ONE `groupBy` over movements
+  for the listed ids — not a gap calculation per row.
+- `POST /purchases/:id/repost-stock` posts **only what is missing**
+  (`postPurchaseReceipt({ onlyMissing: true })`), so pressing twice is refused with
+  *"Stock for this purchase is already posted"*.
+- Lines whose item is not stock-tracked (or is a SERVICE) never count as a hole — they
+  owe no movement.
+
+**Why it is not retried automatically.** A wrong automatic re-post duplicates real goods,
+and stock that is silently too high is worse than stock that is visibly missing: it sells
+what the shop does not have. So the system **shows** the hole and the owner closes it.
+
+**Verified live** (deployed demo, 9 Aug): badge appeared on the list → banner named
+"Paper 20, Sunflower Artificial 50" → re-post → `stockGap: null`, InventoryStock 20 / 50 →
+second press refused with 400 → badge gone.
+
+**Impact:** Purchase, Inventory, admin Purchases screens.
+
 ---
 
 ## 4. Sub-modules (sidebar: Purchases)

@@ -325,7 +325,7 @@ export class InventoryService {
 
   /**
    * ─────────────────────────────────────────────────────────────────────────
-   * DEC-INV-014 — a shop always has somewhere to put things
+   * DEC-INV-016 — a shop always has somewhere to put things
    *
    * Owner, 9 Aug 2026: he recorded PUR-000001 (20 Paper, 50 Sunflower, ৳12,000
    * paid), and the timeline said *"Inventory posting failed — No active
@@ -391,7 +391,7 @@ export class InventoryService {
       unitPricePaisaLineUnit: number;
       expiryDate?: string;
     }[];
-    /** DEC-PUR-014 repair pass — post only what this purchase has not posted yet. */
+    /** DEC-PUR-010 repair pass — post only what this purchase has not posted yet. */
     onlyMissing?: boolean;
   }): Promise<Map<string, { addedQtyMilli: number; addedValuePaisa: number }>> {
     const warehouseId = await this.receiveWarehouseId();
@@ -441,7 +441,7 @@ export class InventoryService {
   }
 
   /**
-   * DEC-PUR-014 — the hole between what a purchase received and what actually
+   * DEC-PUR-010 — the hole between what a purchase received and what actually
    * reached stock, per item, WITHOUT writing anything. Purchase asks this on every
    * read so a silent posting failure shows up on the screen instead of only in the
    * timeline note nobody scrolls to.
@@ -477,7 +477,7 @@ export class InventoryService {
   }
 
   /**
-   * DEC-PUR-014 — what a purchase has ALREADY put into stock, per item.
+   * DEC-PUR-010 — what a purchase has ALREADY put into stock, per item.
    * Movements are never soft-deleted, so the raw sum is the truth.
    */
   async purchasePostedByItem(purchaseId: string): Promise<Map<string, number>> {
@@ -798,7 +798,7 @@ export class InventoryService {
     const s = await this.settings();
     const fallback = async () => {
       if (s.defaultSaleWarehouseId) return s.defaultSaleWarehouseId;
-      //  DEC-INV-014 — same rule: make the store rather than refuse the work
+      //  DEC-INV-016 — same rule: make the store rather than refuse the work
       return this.ensureWarehouseId();
     };
     const fb = await fallback();

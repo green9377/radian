@@ -42,7 +42,7 @@ const purchaseInclude = {
   lines: {
     where: { deletedAt: null },
     include: {
-      // isStockTracked/itemType — DEC-PUR-014 needs to know which lines OWE a movement
+      // isStockTracked/itemType — DEC-PUR-010 needs to know which lines OWE a movement
       item: {
         select: {
           id: true, sku: true, name: true, imageUrl: true, unitId: true,
@@ -91,7 +91,7 @@ export class PurchasesService {
     purchaseNo: string,
     actor: string,
     receipts: { itemId: string; qtyMilliLineUnit: number; lineFactor: number; unitPricePaisaLineUnit: number; expiryDate?: string }[],
-    onlyMissing = false, // DEC-PUR-014 repair pass
+    onlyMissing = false, // DEC-PUR-010 repair pass
   ) {
     let stockPosted = false;
     try {
@@ -261,7 +261,7 @@ export class PurchasesService {
       orderBy,
       ...(dueQuery ? {} : { take: 500 }),
     });
-    /* DEC-PUR-014 — one flag, one query. Per-item gap maths is too heavy for a list,
+    /* DEC-PUR-010 — one flag, one query. Per-item gap maths is too heavy for a list,
        but "received goods and NOT one movement" is the shape every real failure took,
        and it is the difference between him noticing today and noticing at stocktake. */
     const owesStock = (r: PurchaseRow) =>
@@ -339,7 +339,7 @@ export class PurchasesService {
   }
 
   /**
-   * DEC-PUR-014 (9 Aug 2026) — goods received, stock not moved.
+   * DEC-PUR-010 (9 Aug 2026) — goods received, stock not moved.
    *
    * Owner: *"ami to purches krlm but stock tahole add hlo na"*. The receive hook is
    * deliberately fail-soft (a stock error must not undo a committed receipt), but
@@ -361,7 +361,7 @@ export class PurchasesService {
     return gap.length ? gap : null;
   }
 
-  /** DEC-PUR-014 — "Post stock now". Idempotent: posts only what is missing. */
+  /** DEC-PUR-010 — "Post stock now". Idempotent: posts only what is missing. */
   async repostStock(id: string, actorName?: string) {
     const actor = actorName ?? 'Admin';
     const p = await this.prisma.db.purchase.findFirst({

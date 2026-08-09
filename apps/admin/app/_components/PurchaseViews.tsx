@@ -290,7 +290,7 @@ export function PurchaseListView() {
             <span>
               <span className="block text-[13px] font-semibold text-purple">
                 {p.purchaseNo}
-                {/* DEC-PUR-014 — received but no stock movement; open it to repair */}
+                {/* DEC-PUR-010 — received but no stock movement; open it to repair */}
                 {p.stockMissing && (
                   <span className="ml-1.5 align-middle text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[6px]"
                     style={{ background: "#fdebd0", color: "#8a5a00" }}>

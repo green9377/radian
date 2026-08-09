@@ -134,7 +134,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
 
-      {/* DEC-PUR-014 — goods received, stock never moved. Loud, on the purchase
+      {/* DEC-PUR-010 — goods received, stock never moved. Loud, on the purchase
           itself, with the repair one press away. The receive hook is fail-soft on
           purpose; before this the only trace was a line in the timeline. */}
       {gap && (

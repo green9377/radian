@@ -165,6 +165,29 @@ item; `MAKE_TO_ORDER` deducts components per recipe (`factorSnapshot` discipline
 **Reason:** this is the live sales path; ভাঙলে আসল order আটকায়। Small steps, verified live.
 **Impact:** Inventory, Sales, Delivery, Product.
 
+### DEC-INV-016 — A shop always has somewhere to put things: the first receive CREATES the store
+_(9 Aug 2026 — from a real failure: PUR-000001)_
+
+**Decision:** `ensureWarehouseId()` replaces the old refusal. It returns the first active
+warehouse; failing that it **revives a soft-deleted `SHOP` row** (`code` is unique — a
+blind create would collide with it); failing that it creates
+`{ code: 'SHOP', name: 'Main store', isActive: true }`. `receiveWarehouseId()` and the
+assembly warehouse fallback both go through it. Renameable in Inventory → Warehouses like
+any other row, and it only ever runs when there is genuinely none.
+
+**Reason:** the seed (DEC-INV-014) creates SHOP and STORE, but a database that never had
+the seed run is a real state — and it met the owner as
+*"No active warehouse — run the inventory seed"* while his purchase sat Received and Paid
+with the stock nowhere. **That is a developer instruction wearing an error message.** A
+shop owner receiving goods must never be shown one. Making the store is safe; refusing the
+receipt is not.
+
+**Note on names:** the seed's rows are Bengali (দোকান / স্টোররুম) and predate the
+6 Aug ruling that nothing inside the code may be Bengali. The auto-created row is
+`Main store`; the seed should be brought in line when it is next touched.
+
+**Impact:** Inventory, Purchase, Assembly.
+
 ## 4. Business rules (service layer; cite in code)
 
 | # | Rule | Cite |

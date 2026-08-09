@@ -9,6 +9,17 @@
 **Demo-তে সব থাকবে — সব।** প্রতিটা জিনিস demo-তে sandbox/test মোডে সম্পূর্ণ
 পরীক্ষা হবে; real-এ যাওয়া মানে শুধু key/switch বদলানো。 ঝুঁকি সরাসরি real-এ নয়。
 
+## ✅ সদ্য শেষ (৯ আগস্ট রাত) — "purchase করলাম, stock ঢুকল না"
+
+| কাজ | প্রমাণ (deployed demo-তে যাচাই করা) |
+|---|---|
+| **DEC-INV-016 — গুদাম না থাকলে প্রথম receive নিজেই বানাবে** | PUR-000001 Received+Paid হয়েছিল কিন্তু timeline বলছিল *"No active warehouse — run the inventory seed"*। এটা error-এর ছদ্মবেশে developer-এর নির্দেশ। এখন `ensureWarehouseId()`: সক্রিয় গুদাম → নয়তো soft-deleted `SHOP` জাগাবে (code unique, খালি create করলে সংঘর্ষ) → নয়তো `Main store` বানাবে। **যাচাই:** live-এ এখন একটাই গুদাম, `SHOP / Main store / active` |
+| **DEC-PUR-010 — fail-soft মানে অদৃশ্য নয়** | receive hook ইচ্ছাকৃত fail-soft (stock-এর ভুলে committed receipt উল্টে যাবে না), কিন্তু গোটা ঘটনা ছিল শুধু timeline-এর এক লাইনে। এখন — detail-এ প্রতি read-এ per-item ফাঁক, list-এ `stock not posted` ব্যাজ (একটা groupBy, N+1 নয়), আর `POST /purchases/:id/repost-stock` **যা বাকি শুধু তাই** বসায় |
+| **PUR-000001 মেরামত** | re-post → `stockGap: null` · InventoryStock: **Paper 20, Sunflower Artificial 50** · দ্বিতীয়বার চাপলে `400 — Stock for this purchase is already posted` (দ্বিগুণ হওয়া অসম্ভব) · list-এর ব্যাজ মিলিয়ে গেছে |
+
+> **কেন নিজে থেকে আবার চেষ্টা করে না:** ভুল auto re-post আসল মাল দ্বিগুণ দেখাবে।
+> তাই সিস্টেম ফাঁকটা **দেখায়**, সারায় মালিকের এক চাপে।
+
 ## ✅ সদ্য শেষ (৭ আগস্ট)
 
 | কাজ | প্রমাণ |
