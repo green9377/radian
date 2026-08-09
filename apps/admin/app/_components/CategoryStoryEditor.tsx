@@ -409,9 +409,17 @@ export default function CategoryStoryEditor({
 
         <button
           type="button"
+          /*  ⚠️ NOT an empty row. Badges and specs are allowed to start blank,
+              but this endpoint refuses one ("a question needs both a question
+              and an answer") — so the button did nothing at all, silently.
+              Caught live, 9 Aug 2026. A new row starts as a real, editable
+              question instead; the shop only shows what is written anyway.  */
           onClick={async () => {
             try {
-              const row = await addCategoryFaq(categoryId, { question: "", answer: "" });
+              const row = await addCategoryFaq(categoryId, {
+                question: "New question",
+                answer: "Write the answer here.",
+              });
               setFaqs((r) => [...r, row]);
             } catch (e) {
               setErr((e as Error).message);
