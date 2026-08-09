@@ -134,7 +134,11 @@ export class AddOnsService {
      jeno thake."* Products have had this since the start; add-ons were
      soft-deleted with no way back but the database. */
   async trash() {
-    const rows = await this.prisma.db.addOn.findMany({
+    /*  ⚠️ `this.prisma`, NOT `this.prisma.db` — the extended client bolts
+        `deletedAt: null` onto every query, so the bin came back empty no
+        matter what was in it (caught live, 9 Aug 2026). The product trash
+        already uses the raw client for exactly this reason.  */
+    const rows = await this.prisma.addOn.findMany({
       where: { NOT: { deletedAt: null } },
       orderBy: { deletedAt: 'desc' },
       take: 200,
@@ -143,12 +147,13 @@ export class AddOnsService {
   }
 
   async restoreAddon(id: string, actorName = 'Admin') {
-    const row = await this.prisma.db.addOn.findFirst({ where: { id } });
+    //  raw client — the row we are looking for IS deleted (see trash())
+    const row = await this.prisma.addOn.findFirst({ where: { id } });
     if (!row) throw new NotFoundException('Add-on not found');
     /*  ⚠️ The SKU is unique. If it was reused while this one sat in the bin,
         say so instead of failing on a database constraint nobody can read.  */
     if (row.sku) {
-      const clash = await this.prisma.db.addOn.findFirst({
+      const clash = await this.prisma.addOn.findFirst({
         where: { sku: row.sku, deletedAt: null, NOT: { id } },
         select: { name: true },
       });
@@ -158,14 +163,14 @@ export class AddOnsService {
         );
       }
     }
-    const back = await this.prisma.db.addOn.update({ where: { id }, data: { deletedAt: null } });
+    const back = await this.prisma.addOn.update({ where: { id }, data: { deletedAt: null } });
     await this.log('AddOn', id, 'UPDATE', actorName, `Add-on "${back.name}" restored`);
     return back;
   }
 
   /** permanent — only from the bin, and only when no order ever sold it */
   async purgeAddon(id: string, actorName = 'Admin') {
-    const row = await this.prisma.db.addOn.findFirst({ where: { id } });
+    const row = await this.prisma.addOn.findFirst({ where: { id } });
     if (!row) throw new NotFoundException('Add-on not found');
     if (!row.deletedAt) {
       throw new BadRequestException('Delete it first — permanent removal only works from the bin.');
@@ -173,7 +178,7 @@ export class AddOnsService {
     /*  DEC-SAL-002 — an order line keeps the add-on ids it sold. Destroying
         the row would leave yesterday's receipt pointing at nothing, so a
         sold add-on stays recoverable for ever.  */
-    const sold = await this.prisma.db.orderLine.findFirst({
+    const sold = await this.prisma.orderLine.findFirst({
       where: { addonIds: { has: id } },
       select: { id: true },
     });
@@ -182,8 +187,8 @@ export class AddOnsService {
         'This add-on has been sold, so it cannot be destroyed — the old receipts point at it. It stays in the bin.',
       );
     }
-    await this.prisma.db.addOnGroupItem.deleteMany({ where: { addOnId: id } });
-    await this.prisma.db.addOn.delete({ where: { id } });
+    await this.prisma.addOnGroupItem.deleteMany({ where: { addOnId: id } });
+    await this.prisma.addOn.delete({ where: { id } });
     await this.log('AddOn', id, 'DELETE', actorName, `Add-on "${row.name}" destroyed`);
     return { id, purged: true };
   }
