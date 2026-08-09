@@ -3223,13 +3223,27 @@ export function AddonsView() {
     byPage: [],
   }));
   const statOf = (id: string) => stats.find((s) => s.addonId === id);
+  /*  ⚠️ `statOf` CAN MISS, and the `!` here crashed the whole screen — found
+      live, 9 Aug 2026. With the demo generator it returned a row for every
+      add-on, so the non-null assertion was safe; reading real sales it only
+      returns rows the API sent, and an add-on nobody has bought yet has none.
+      A blank row is the honest answer for "sold nothing".  */
+  const emptyStat = (id: string): AddonStat => ({
+    addonId: id,
+    ordersWith: 0,
+    units: 0,
+    revenuePaisa: 0,
+    shown: null,
+    prevAttachPct: 0,
+    byPage: [],
+  });
   const perfRows = rows
     .map((a) => {
-      const stat = statOf(a.id)!;
+      const stat = statOf(a.id) ?? emptyStat(a.id);
       const attachPct = orderCount ? Math.round((stat.ordersWith / orderCount) * 100) : 0;
       return { addon: a, stat, attachPct, delta: attachPct - stat.prevAttachPct };
     })
-    .sort((x, y) => y.attachPct - x.attachPct);
+    .sort((x, y) => y.stat.units - x.stat.units || y.attachPct - x.attachPct);
   const addonRevenue = stats.reduce((s, x) => s + x.revenuePaisa, 0);
   const ordersWithAny = Math.min(orderCount, Math.round(orderCount * (1 - stats.reduce((s, x) => s * (1 - x.ordersWith / (orderCount || 1)), 1))));
   const attachRateAll = orderCount ? Math.round((ordersWithAny / orderCount) * 100) : 0;
@@ -4409,8 +4423,12 @@ export function AddonsView() {
                             })}
                           </div>
                           <div className="text-[13px] text-body-soft mt-1 truncate">
+                            {/*  ⚠️ `byPage` is empty until storefront tracking
+                                lands, so "mostly picked at…" has no answer —
+                                say that, do not read [0] of nothing.  */}
                             {(() => {
                               const best = [...stat.byPage].sort((a2, b2) => b2.units - a2.units)[0];
+                              if (!best) return "tracking pending";
                               const pct = stat.units ? Math.round((best.units / stat.units) * 100) : 0;
                               return `mostly ${PLACEMENT_LABEL[best.page]} · ${pct}%`;
                             })()}
