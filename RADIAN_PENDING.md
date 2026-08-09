@@ -20,6 +20,29 @@
 > **কেন নিজে থেকে আবার চেষ্টা করে না:** ভুল auto re-post আসল মাল দ্বিগুণ দেখাবে।
 > তাই সিস্টেম ফাঁকটা **দেখায়**, সারায় মালিকের এক চাপে।
 
+### 🔍 `RADIAN_CHECKUP.bat` — bug খোঁজার কাজটা আর মালিকের নয়
+
+মালিকের কথা: *"avabe jodi protta jinis manullay amr check kre kre thik kra
+lage koto year lagbe ami jani na"*। এতদিন এই প্রকল্পে bug ধরার যন্ত্র ছিল
+একটাই — মালিকের চোখ। এখন নয়।
+
+| | |
+|---|---|
+| **চালানো** | `RADIAN_CHECKUP.bat` · `demo` · `screens` |
+| **নিরাপত্তা** | কেবল GET — একটাও লেখে না, **production-এও নিরাপদ** (RUN_TESTS ঠিক উল্টো) |
+| **তালিকা কোথা থেকে** | controller পড়ে — হাতে লেখা নয়, তাই নতুন endpoint যোগ হলে আপনাআপনি ঢোকে (আজ ২১৭টা) |
+| **ধরে** | CRASH (5xx) · BROKEN IMAGE · CSS LEAK (`url(...) center/cover`) · error-এ বাংলা · ফিরে আসা বানানো লেখা · [`screens`] সাদা পর্দা ও console error |
+| **exit code** | ভাঙা = 1, শুধু কুৎসিত = 0 |
+
+**প্রথম রানের ফল (deployed demo, ৯ আগস্ট):** ১৬০/১৬০ endpoint 200,
+১৯টা ছবিই খোলে, **একটাও দোষ নেই**। ছয়টা detector আলাদা করে প্রমাণ করা
+হয়েছে — ইচ্ছা করে ছয় রকম দোষ ভরা একটা নকল API-র বিরুদ্ধে।
+
+⚠️ **যা এখনো প্রমাণ হয়নি:** `screens` অংশটা。 playwright লাগে, আমার
+sandbox-এ browser নামেনি。 প্রথমবার আপনার machine-এ চলবে:
+`npm i -D playwright && npx playwright install chromium`, তারপর
+`RADIAN_CHECKUP.bat screens`。
+
 ## ✅ সদ্য শেষ (৭ আগস্ট)
 
 | কাজ | প্রমাণ |
