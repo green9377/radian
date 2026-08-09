@@ -25,6 +25,9 @@ export interface Product {
   slug: string;
   name: string;
   pricePaisa: number;
+  /** DEC-PRD-035 — the number above is the cheapest variant, so the card
+   *  writes "from ৳450" rather than promising it for every colour. */
+  priceFrom?: boolean;
   cat: ProductCategory;
   /** Sub-category slug (e.g. "roses"). API-তে এটা Category FK হবে. */
   sub?: string;

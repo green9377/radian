@@ -434,6 +434,9 @@ export interface ShopProduct {
   pricePaisa: number;
   /** struck-through price, or null when nothing is off */
   mrpPaisa: number | null;
+  /** DEC-PRD-035 — `pricePaisa` is the cheapest of several variant prices,
+   *  so the card reads "from ৳450" instead of promising that exact number */
+  priceFrom?: boolean;
   cat: string;
   sub: string | null;
   zone: "dhaka" | "both";

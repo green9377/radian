@@ -2107,6 +2107,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         ? Math.max(0, sellN - dv)
         : Math.max(0, Math.round(sellN * (1 - dv / 100)));
 
+  /*  DEC-PRD-035 — "does the product price still do anything?" It does not,
+      once every variant carries its own. Both facts are needed in two places
+      (the Pricing note and the live preview), so they are worked out once.  */
+  const allVariantsPriced = variants.length > 0 && variants.every((v) => v.price.trim() !== "");
+  const cheapestVariantPaisa = allVariantsPriced
+    ? Math.min(...variants.map(variantPays))
+    : 0;
+
   const showDisc = offer < sellN && sellN > 0;
   const saved = Math.max(0, sellN - offer);
   const margin = offer - costN;
@@ -2774,6 +2782,26 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       onChange={(e) => setSell(e.target.value)}
                       placeholder="2450"
                     />
+                    {/*
+                      DEC-PRD-035 — owner, 9 Aug 2026: *"২টা variant-এর দাম
+                      আলাদা হলে main price ঘরের কাজ কী?"*
+
+                      A fair question, and the honest answer is: almost none.
+                      Nothing sells at it once every variant prices itself —
+                      yet it was still the number on the category card, so a
+                      shopper saw ৳4,400 in a list and ৳450 on the page. Stock
+                      already solved this by deferring to the variants; price
+                      now says the same thing out loud.
+                    */}
+                    {allVariantsPriced && (
+                      <p className="text-[12.5px] text-body-soft mt-2 mb-0">
+                        Every variant has its own price, so nothing is sold at this
+                        one. The shop shows{" "}
+                        <b className="font-medium text-purple">from {taka(cheapestVariantPaisa)}</b>{" "}
+                        until a customer picks. Leave one variant blank and it falls
+                        back to this price.
+                      </p>
+                    )}
                   </Field>
                 </div>
 
@@ -3339,8 +3367,16 @@ No bundle products yet — add them on{" "}
                               )}
                             </>
                           ) : (
+                            /*  DEC-PRD-035 (owner, 9 Aug 2026) — his question was
+                                exactly right: "if I discount the product, do the
+                                variants get it?" They do, whenever they have no
+                                price of their own — and that is also why no
+                                discount box appears here. Saying so beats a blank
+                                row that looks like a missing feature.  */
                             <span className="text-[12.5px] text-body-soft">
-                              sells at {taka(offer)}
+                              follows the product{discLive.on ? " — discount and all" : ""} ·
+                              customer pays{" "}
+                              <b className="font-medium text-purple">{taka(offer)}</b>
                             </span>
                           )}
                         </div>

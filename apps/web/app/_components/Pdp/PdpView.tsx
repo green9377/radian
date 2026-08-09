@@ -630,6 +630,13 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           {/* price — title/review-এর একই ব্লকে, একটাই দাগ */}
           <div className="flex items-baseline gap-3 flex-wrap mt-4">
             <div className="font-display text-[32px] font-semibold text-ink">
+              {/*  DEC-PRD-035 — the page opens with nothing picked, so when
+                  every colour has its own price this headline is the cheapest
+                  of them, not a price on offer. Says "from" until they pick,
+                  then becomes that colour's real price.  */}
+              {detail.priceFrom && !variant && !upgrade && (
+                <span className="text-[15px] font-normal text-body-soft mr-1.5">from</span>
+              )}
               {formatTaka(unitPaisa)}
               {/*  "৳2,400 / stick" — smaller and lighter, because it explains
                   the number rather than competing with it. Absent unless the

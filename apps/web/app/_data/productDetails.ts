@@ -277,6 +277,9 @@ export interface ProductDetail {
    * products whether or not anything had ever been discounted.
    */
   mrpPaisa?: number | null;
+  /** DEC-PRD-035 — the headline is the cheapest variant, so the page writes
+   *  "from ৳450" until a colour is picked. */
+  priceFrom?: boolean;
   /**
    * "stick", "kg" — printed small after the price: "৳2,400 / stick".
    *

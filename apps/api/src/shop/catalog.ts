@@ -120,6 +120,15 @@ const CARD_SELECT = {
     select: { slug: true, group: { select: { slug: true } } },
   },
   variantValue: { select: { label: true, swatch: true, imageUrl: true } },
+  /*  DEC-PRD-035 — a card must not quote a price nothing is sold at. When
+      every live variant carries its own price, the card shows the cheapest
+      of them, marked "from". Owner, 9 Aug 2026: *"২টা variant-এর দাম আলাদা
+      হলে main price ঘরের কাজ কী?"* — on the card, none, and it was showing
+      ৳4,400 for a product whose colours cost ৳450, ৳320 and ৳50.  */
+  variants: {
+    where: { deletedAt: null, isActive: true },
+    select: { pricePaisa: true, discountType: true, discountValue: true },
+  },
 } satisfies Prisma.ProductSelect;
 
 type CardRow = Prisma.ProductGetPayload<{ select: typeof CARD_SELECT }>;
@@ -132,6 +141,10 @@ export interface ShopProduct {
   pricePaisa: number;
   /** the struck-through price, or null when nothing is off */
   mrpPaisa: number | null;
+  /** DEC-PRD-035 — true when `pricePaisa` is the cheapest of several variant
+   *  prices, so the card reads "from ৳450" rather than promising that exact
+   *  number for whatever the shopper ends up choosing. */
+  priceFrom?: boolean;
   cat: string;
   sub: string | null;
   zone: 'dhaka' | 'both';
@@ -954,7 +967,22 @@ export class ShopCatalogService {
     r: CardRow,
     review?: { _avg: { rating: number | null }; _count: { _all: number } },
   ): ShopProduct {
-    const price = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
+    const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
+
+    /*  DEC-PRD-035 — every live variant priced → the card quotes the cheapest
+        of them, "from". If even one is blank it falls back to the product's
+        price, so that number is still the honest answer for that variant.
+        ⚠️ Each variant's own discount is taken off here too, exactly as the
+        product page does it — a card promising ৳500 next to a page charging
+        ৳450 is the same one-page-two-answers bug in a different place.  */
+    const variantPrices = r.variants
+      .filter((v) => v.pricePaisa !== null)
+      .map((v) =>
+        offerPaisa(v.pricePaisa!, v.discountType, v.discountValue, null, null),
+      );
+    const allPriced = r.variants.length > 0 && variantPrices.length === r.variants.length;
+    const price = allPriced ? Math.min(...variantPrices) : ownPrice;
+
     const rating = review?._avg.rating ?? null;
     const reviewCount = review?._count._all ?? 0;
 
@@ -991,7 +1019,11 @@ export class ShopCatalogService {
       slug: r.slug,
       name: r.name,
       pricePaisa: price,
-      mrpPaisa: price < r.sellingPricePaisa ? r.sellingPricePaisa : null,
+      /*  ⚠️ No struck price on a "from" card. The product's ৳2,400 has nothing
+          to do with the cheapest colour's ৳450, and putting them side by side
+          would invent a saving nobody offered (DEC-PRD-035).  */
+      mrpPaisa: allPriced ? null : price < r.sellingPricePaisa ? r.sellingPricePaisa : null,
+      priceFrom: allPriced || undefined,
       cat: r.category.parent?.slug ?? r.category.slug,
       sub: r.category.parent ? r.category.slug : null,
       zone: r.zone === 'NATIONWIDE' ? 'both' : 'dhaka',

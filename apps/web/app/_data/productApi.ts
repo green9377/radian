@@ -87,6 +87,8 @@ export interface ApiProductDetail {
   pricePaisa: number;
   unitSuffix: string | null;
   mrpPaisa: number | null;
+  /** DEC-PRD-035 — headline is the cheapest variant, page says "from" */
+  priceFrom?: boolean;
   zone: "dhaka" | "both";
   productType: "READYMADE" | "CRAFTED";
   nature: { type: "fresh" | "artificial"; label: string | null };
@@ -531,6 +533,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
             }`,
     },
     mrpPaisa: a.mrpPaisa,
+    priceFrom: a.priceFrom,
     unitSuffix: a.unitSuffix,
     /*  Checkout reads this to work out the earliest date and to grey out
         express/same-day. Sent by the API all along; this line is what was
@@ -585,6 +588,7 @@ function toMockProduct(c: ShopProduct): Product {
     slug: c.slug,
     name: c.name,
     pricePaisa: c.pricePaisa,
+    priceFrom: c.priceFrom,
     cat: c.cat as ProductCategory,
     sub: c.sub ?? undefined,
     zone: c.zone,

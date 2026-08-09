@@ -208,6 +208,8 @@ export interface ShopProductDetail {
   mrpPaisa: number | null;
   zone: 'dhaka' | 'both';
   productType: 'READYMADE' | 'CRAFTED';
+  /** DEC-PRD-035 — `pricePaisa` is the cheapest variant, not a fixed price */
+  priceFrom?: boolean;
   nature: { type: 'fresh' | 'artificial'; label: string | null };
   /** COD is refused on this product — a made-to-order thing already engraved */
   prepaidOnly: boolean;
@@ -703,9 +705,35 @@ export class ProductDetailService {
       name: p.name,
       shortDesc: p.shortDesc,
       typeText: p.typeText,
-      pricePaisa: paidPaisa(money),
+      /*  DEC-PRD-035 — the page opens with nothing picked (8 Aug), so the
+          headline number must be one a shopper can actually pay. Every variant
+          priced → the cheapest of them, and the page marks it "from". One
+          blank → the product's own price still applies to that variant, so it
+          stays the headline.  */
+      pricePaisa: (() => {
+        const priced = p.variants.filter((v) => v.pricePaisa !== null);
+        if (p.variants.length === 0 || priced.length !== p.variants.length) {
+          return paidPaisa(money);
+        }
+        return Math.min(
+          ...priced.map((v) =>
+            paidPaisa({
+              sellingPricePaisa: v.pricePaisa!,
+              discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+              discountValue: v.discountValue,
+            }),
+          ),
+        );
+      })(),
+      /*  true → the page writes "from ৳450" and draws no struck price  */
+      priceFrom:
+        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null),
       unitSuffix: p.unit?.shortCode ?? null,
-      mrpPaisa: mrpOrNull(money),
+      /*  ⚠️ No struck price beside a "from" — see the card (DEC-PRD-035).  */
+      mrpPaisa:
+        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null)
+          ? null
+          : mrpOrNull(money),
       zone: p.zone === 'NATIONWIDE' ? 'both' : 'dhaka',
       productType: p.productType as 'READYMADE' | 'CRAFTED',
       nature: {

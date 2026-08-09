@@ -150,7 +150,14 @@ export default function ProductCard({
           </div>
         )}
         <div className="flex items-center justify-between gap-[6px] sm:gap-[10px]">
+          {/*  DEC-PRD-035 — "from" when every colour prices itself, because
+              this number is then the cheapest one, not the price of whatever
+              they end up choosing. A card that says ৳4,400 over a page that
+              charges ৳450 is the shop contradicting itself in public.  */}
           <div className="font-display text-[17px] sm:text-[20px] font-semibold text-purple whitespace-nowrap">
+            {product.priceFrom && (
+              <span className="text-[12px] font-medium text-body-soft mr-1">from</span>
+            )}
             {formatTaka(product.pricePaisa)}
           </div>
           <button className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0">
