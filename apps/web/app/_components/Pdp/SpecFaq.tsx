@@ -14,30 +14,20 @@ const CHEV =
 export default function SpecFaq({ detail }: { detail: ProductDetail }) {
   const fresh = detail.nature.type === "fresh";
 
-  const commonFaqs = [
-    {
-      q: "When will it arrive?",
-      /*  ⚠️ The speeds are no longer listed here. This answer named "2-hour"
-          alongside same-day and midnight, and the express is three hours in
-          the admin — so the FAQ contradicted the delivery step two clicks
-          later. The honest answer is the one that stays true whatever the
-          owner configures: you choose, on the next screen, from what the shop
-          is actually offering.  */
-      a: "You pick the exact date and time slot on the next step — you'll see every delivery option we can do for your area, with its price, before you pay. All Bangladesh: 1–3 days by trusted courier.",
-    },
-    {
-      q: "Can I send it anonymously or as a surprise?",
-      a: "Yes. At checkout you can mark it an anonymous gift — the card stays unsigned and our rider only says it's a gift from someone who cares. We never reveal sender details.",
-    },
-    {
-      q: "What if the recipient isn't home?",
-      a: "Our rider calls the recipient discreetly on arrival. If unreachable, we coordinate with you immediately — we never leave a gift unattended at a door.",
-    },
-    {
-      q: "What if I'm not happy with it?",
-      a: "Send one photo within 24 hours. We replace it the same day, or refund you in full. That's the entire process.",
-    },
-  ];
+  /*
+    DEC-PRD-034 — মালিক, ৯ আগস্ট ২০২৬: *"trust badge, faq আর inside না
+    থাকলে নিজের মতো করে অটো কিছু দিয়ে দেয় — এটা কেন করছে?"*
+
+    ⚠️ এখানে চারটে প্রশ্ন **হাতে লেখা ছিল, আর সবসময় জুড়ে যেত** — fallback
+    হিসেবেও নয়, মালিক নিজে লিখলেও তার পরে বসত। ফলে দোকান এমন প্রতিশ্রুতি
+    দিত যা মালিক কোনোদিন দেননি: "২৪ ঘণ্টায় ছবি পাঠালে একই দিনে বদলে দেব",
+    "rider কখনো দরজায় উপহার রেখে যাবে না"। এগুলো ব্যবসার নীতি — কোডের
+    সিদ্ধান্ত নয়।
+
+    এখন যা দেখানো হয় সবটাই দোকানের লেখা: product-এর নিজের FAQ, নাহলে
+    category-র (Occasions & Tags-এর পাশে Category → FAQ)। কিছু না থাকলে
+    একটাও accordion আঁকা হয় না।
+  */
 
   return (
     <section className="max-w-[900px] mx-auto pt-8">
@@ -141,7 +131,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
       </details>
 
       {/* ── product-নির্দিষ্ট FAQ (fresh/artificial প্রশ্ন এখানেই) ── */}
-      {[...detail.faqs, ...commonFaqs].map((f) => (
+      {detail.faqs.map((f) => (
         <details
           key={f.q}
           className="group bg-white border border-lavender-deep rounded-[18px] mb-2.5 overflow-hidden open:shadow-soft"

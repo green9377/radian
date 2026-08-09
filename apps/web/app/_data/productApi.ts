@@ -60,24 +60,9 @@ interface ApiVariantOption {
   active: boolean;
 }
 
-/**
- * Every label the category templates use to promise a delivery speed. Any of
- * them appearing in a FALLBACK badge list is dropped and replaced by
- * `deliveryTrust`, which reads the product's own three tick-boxes.
- *
- * ⚠️ Add a speed claim to a template and it must be added here in the same
- * commit, or that template quietly starts lying again for products that cannot
- * do it. This is a list of strings matching other strings, which is fragile —
- * it is worth it only because the alternative was rewriting eight category
- * templates to take a parameter they otherwise have no use for.
- */
-const SPEED_CLAIM_LABELS = new Set([
-  "2-Hour Delivery",
-  "Same Day",
-  "Same-Day Delivery",
-  "Midnight Delivery",
-  "Nationwide Delivery",
-]);
+/*  `SPEED_CLAIM_LABELS` removed with DEC-PRD-034 (9 Aug 2026). It existed to
+    strip speed promises out of the template badge list; there is no template
+    badge list any more, so there is nothing left to filter.  */
 
 /** the one speed badge this product has earned, or null if it has earned none */
 function deliveryTrust(a: ApiProductDetail) {
@@ -354,6 +339,16 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       typed it, he meant it, and second-guessing his words is not this seam's
       job.
     */
+    /*  DEC-PRD-034, মালিক ৯ আগস্ট ২০২৬: *"trust badge, faq আর inside না
+        থাকলে নিজের মতো করে অটো কিছু দিয়ে দেয় — এটা কেন করছে?"*
+
+        ⚠️ template-এর বানানো badge-গুলো তুলে দেওয়া হলো। ওগুলো দোকানের
+        কথা নয়, কোডে লেখা কথা — আর "4.9 on Google · 412 real reviews"
+        সংখ্যাটা কোথাও থেকে আসত না। মালিক যা লেখেননি তা তাঁর দোকান
+        বলবে না। খালি থাকলে অংশটাই আঁকা হয় না।
+
+        ⚠️ delivery badge-টা থাকল, কারণ সেটা বানানো নয় — product-এর নিজের
+        তিনটে tick-box পড়ে বলা হয়, আর সেটা সবসময় সত্য।  */
     trust:
       a.trust.length > 0
         ? a.trust.map((x) => ({
@@ -362,10 +357,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
             label: x.label,
             sub: x.sub ?? "",
           }))
-        : [
-            ...(deliveryTrust(a) ? [deliveryTrust(a)!] : []),
-            ...t.trust(product).filter((x) => !SPEED_CLAIM_LABELS.has(x.label)),
-          ],
+        : deliveryTrust(a)
+          ? [deliveryTrust(a)!]
+          : [],
     variant: a.variant
       ? {
           kind: a.variant.kind,
@@ -484,13 +478,13 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     /*  DEC-PRD-027 — বন্ধ থাকলে `null`, আর page বাক্সটাই আঁকে না।  */
     customise: a.customise,
     spec: a.spec.map((r) => ({ item: r.item, qty: r.qty })),
-    /*  The template is the fallback, not the source. A shop that has written
-        nothing keeps the wording the page shipped with — this is shop copy,
-        not a price or a stock claim, so a stale sentence costs nothing and an
-        empty section under a heading reads as a broken page.  */
-    craft: a.craft.length > 0
-      ? a.craft.map((c) => ({ icon: asIconName(c.icon), title: c.title, text: c.text }))
-      : t.craft,
+    /*  DEC-PRD-034 — the template fallback is gone (owner, 9 Aug 2026).
+        The old note said a stale sentence costs nothing. It was wrong: the
+        fresh-flower template ("Cut this morning · market run before sunrise,
+        no cold-storage roses") was appearing under an ARTIFICIAL bouquet.
+        That is not stale copy, it is a false claim about the goods. Written
+        by the shop or not shown at all.  */
+    craft: a.craft.map((c) => ({ icon: asIconName(c.icon), title: c.title, text: c.text })),
     cutoffMinutesLeft: a.cutoffMinutesLeft,
     /*  No template fallback, unlike the craft cards. A stale sentence about
         how flowers are wrapped costs nothing; a cashback offer the shop is not
