@@ -32,16 +32,23 @@ export class StorefrontCacheService {
   private pending: NodeJS.Timeout | null = null;
 
   purge(reason = 'catalogue changed') {
-    const base = process.env.WEB_PUBLIC_URL;
+    /*  ⚠️ `PUBLIC_WEB_URL` — the one CORS already uses (main.ts). Asking for
+        a second variable holding the same address was work for the owner and
+        one more thing to get out of step; he was right to push back.
+        `WEB_PUBLIC_URL` is still read as an alias for anyone who set it.  */
+    const base = process.env.PUBLIC_WEB_URL || process.env.WEB_PUBLIC_URL;
+    if (!base) return;
+    /*  Optional. Set on both sides → the shop trusts the call outright.
+        Unset → the shop still accepts it, but throttled (see the route), so
+        this works with no configuration at all.  */
     const secret = process.env.REVALIDATE_SECRET;
-    if (!base || !secret) return;
 
     if (this.pending) return;
     this.pending = setTimeout(() => {
       this.pending = null;
       void fetch(`${base.replace(/\/$/, '')}/api/revalidate`, {
         method: 'POST',
-        headers: { 'x-revalidate-secret': secret },
+        headers: secret ? { 'x-revalidate-secret': secret } : {},
       })
         .then((r) => {
           if (!r.ok) this.log.warn(`revalidate → ${r.status} (${reason})`);

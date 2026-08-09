@@ -14,27 +14,46 @@ import { SHOP_TAG } from "../../_data/cacheTags";
  *  The API calls this the moment a product, category, tag or page is written.
  *  The next visitor gets a rebuilt page — no waiting, no second reload.
  *
- *  ⚠️ GUARDED BY A SHARED SECRET. Without one, anyone on the internet could
- *  hold the shop's cache open by calling this in a loop, which on a free API
- *  plan is a bill and a slow shop. No secret configured = the door is bolted
- *  shut (503), never left open — a missing setting must fail closed.
+ *  ⚠️ THE SECRET IS OPTIONAL, AND THAT IS A DELIBERATE TRADE.
+ *
+ *  Set `REVALIDATE_SECRET` on both sides and the call is trusted outright.
+ *  Leave it unset and the door still opens — but no more than once every 20
+ *  seconds. Owner, 9 Aug 2026: he should not have to paste a secret into two
+ *  dashboards to stop his own shop lagging, and a feature nobody configures
+ *  is a feature that does not exist.
+ *
+ *  The throttle is what makes that safe. Expiring a tag does not rebuild
+ *  anything by itself — the next visitor does, and they were going to be
+ *  served a page anyway. So the worst an abuser achieves is a cache that
+ *  behaves as if its life were 20 seconds instead of 60. Bounded, and still
+ *  far cheaper than the `no-store` this replaced.
  *
  *  ⚠️ Returns 200 even when it changed nothing. This is a hint, not a
  *  transaction: the API must never fail a save because a cache ping did.
  * ─────────────────────────────────────────────────────────────────────────────
  */
+
+/** last accepted unauthenticated call, per server instance */
+let lastOpenCall = 0;
+const OPEN_THROTTLE_MS = 20_000;
+
 export async function POST(req: Request) {
   const expected = process.env.REVALIDATE_SECRET;
-  if (!expected) {
-    return NextResponse.json({ ok: false, reason: "not configured" }, { status: 503 });
-  }
 
-  const given =
-    req.headers.get("x-revalidate-secret") ??
-    new URL(req.url).searchParams.get("secret") ??
-    "";
-  if (given !== expected) {
-    return NextResponse.json({ ok: false }, { status: 401 });
+  if (expected) {
+    const given =
+      req.headers.get("x-revalidate-secret") ??
+      new URL(req.url).searchParams.get("secret") ??
+      "";
+    if (given !== expected) {
+      return NextResponse.json({ ok: false }, { status: 401 });
+    }
+  } else {
+    const now = Date.now();
+    if (now - lastOpenCall < OPEN_THROTTLE_MS) {
+      return NextResponse.json({ ok: true, skipped: "throttled" });
+    }
+    lastOpenCall = now;
   }
 
   /*  ⚠️ Next 16 wants the cache-life profile as a second argument — calling it
