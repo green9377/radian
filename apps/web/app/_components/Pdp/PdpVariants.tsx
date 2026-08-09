@@ -99,12 +99,25 @@ export function VariantPicker({
           const out = anyStock && v.stockQty === 0;
           const dearer = v.pricePaisa !== basePaisa;
 
-          /*  রঙের গোল বোতাম — নিজের ছবি থাকলে ছবিটাই, নাহলে রঙ। ছবিও নেই
-              রঙও নেই এমন মান page-এর নিজের নরম বেগুনি নেয়; কালো গোল বসিয়ে
-              "এটা একটা রঙ" বলার চেয়ে সেটা সৎ।  */
-          const fill = v.imageUrl
-            ? `url(${v.imageUrl}) center/cover`
-            : v.swatch || "#DDC9EC";
+          /*
+            ⚠️ রঙের গোল বোতামে **রঙ**, ছবি নয় — মালিক, ৯ আগস্ট ২০২৬:
+            *"color select kore image dile frontend-এ রঙের নাম আর রঙ না
+            দেখিয়ে ওই image-টা দেখায়, যা customer-এর জন্য সমস্যা।"*
+
+            ঠিকই ধরেছেন। আগে ছবি থাকলে ছবিটাই গোল বোতামে বসত, ফলে তিনটে
+            প্রায়-একরকম ছোট ছবি পাশাপাশি — কোনটা গোলাপি আর কোনটা সাদা তা
+            ১০ পিক্সেলের thumbnail থেকে বোঝা যেত না। রঙ বাছার বোতাম রঙই
+            দেখাবে; variant-এর ছবিটা উপরের বড় ছবিতে বদলায়, সেখানেই সেটা
+            আসল কাজে লাগে।
+
+            ছবি তখনই বসে যখন তালিকাটা PHOTO ধরনের (flavour, pattern) —
+            যেখানে দেখানোর মতো কোনো রঙই নেই।
+          */
+          const fill = asSwatch
+            ? v.swatch || "#DDC9EC"
+            : v.imageUrl
+              ? `url(${v.imageUrl}) center/cover`
+              : v.swatch || "#DDC9EC";
 
           /*
             ⚠️ ছবি কখনো বাধ্যতামূলক নয় — মালিকের নিয়ম, ২ আগস্ট ২০২৬:

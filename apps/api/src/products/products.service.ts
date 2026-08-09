@@ -1071,16 +1071,27 @@ export class ProductsService {
     });
 
     for (const [i, r] of rows.entries()) {
-      /*  DEC-PRD-032 — an offer that is not below the regular price is a
-          typo, and saving it would show a strike-through price that RAISES
-          the price. Refused loudly instead.  */
-      if (
-        r.offerPricePaisa != null &&
-        (r.pricePaisa == null || r.offerPricePaisa >= r.pricePaisa)
-      ) {
-        throw new BadRequestException(
-          'A variant offer price needs its own regular price above it (offer must be lower).',
-        );
+      /*  DEC-PRD-032 — a discount with nothing to discount is a typo. The
+          variant's own price is what it comes off; without one the product's
+          price rules and the number here would never be applied, so it is
+          refused loudly rather than saved and quietly ignored.  */
+      if (r.discountType && r.discountType !== 'NONE') {
+        if (r.pricePaisa == null) {
+          throw new BadRequestException(
+            'Give this variant its own price before putting a discount on it.',
+          );
+        }
+        if (!r.discountValue || r.discountValue <= 0) {
+          throw new BadRequestException('A variant discount needs a value above zero.');
+        }
+        if (r.discountType === 'PERCENT' && r.discountValue >= 10_000) {
+          throw new BadRequestException('A percentage discount has to be under 100%.');
+        }
+        if (r.discountType === 'FLAT' && r.discountValue >= r.pricePaisa) {
+          throw new BadRequestException(
+            'A flat discount has to be smaller than the variant’s own price.',
+          );
+        }
       }
       const data = {
         imageUrl: r.imageUrl?.trim() ? r.imageUrl : null,
@@ -1091,7 +1102,8 @@ export class ProductsService {
         /*  খালি = product-এর মূল দাম। মালিকের নিয়ম: রঙ বদলালে দাম এক,
             kg/flavour বদলালে আলাদা।  */
         pricePaisa: r.pricePaisa ?? null,
-        offerPricePaisa: r.offerPricePaisa ?? null,
+        discountType: r.discountType ?? 'NONE',
+        discountValue: r.discountValue ?? 0,
         sortOrder: r.sortOrder ?? i,
         isActive: r.isActive ?? true,
         deletedAt: null,

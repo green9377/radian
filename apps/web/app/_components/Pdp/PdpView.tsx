@@ -108,16 +108,29 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   /*  ⚠️ upgrade বাছা থাকলে তার ছবিটাই প্রথম ঘরে — মালিকের নিয়মে দাম আর
       ছবি দুটোই বদলায়। রঙের ছবির চেয়ে upgrade আগে, কারণ upgrade বাছলে
       রঙের বাছাই এমনিতেই মুছে যায় (নিচে) — ওটা অন্য product-এর রঙ।  */
+  /*
+    ⚠️ variant-এর ছবি **যোগ হয়, প্রতিস্থাপন করে না** — মালিক, ৯ আগস্ট ২০২৬:
+    *"variant-এ click করলে main product-এর thumbnail চলে যায়, আর refresh
+    না দেওয়া পর্যন্ত সেটা আর দেখার সুযোগ নেই।"*
+
+    ঠিক তাই হতো: প্রথম ঘরটা বদলে দেওয়া হতো, তাই মূল ছবিটা তালিকা থেকেই
+    উধাও। এখন রঙের ছবিটা সামনে বসে আর product-এর সবগুলো ছবি পেছনে থেকে
+    যায় — গ্রাহক রঙ দেখে, তারপর চাইলে মূল ছবিগুলোতেও ফিরতে পারে।
+
+    ⚠️ ঘর একটা বাড়ে বলে `media`-র index সরে যেত; নিচের effect রঙ বদলালেই
+    সেটাকে ০-এ ফেরায়, তাই ভুল ছবি খোলার পথ নেই।
+  */
   const gallery = upgrade
-    ? [upgrade.bg, ...detail.gallery.slice(1)]
+    ? [upgrade.bg, ...detail.gallery]
     : variant?.imageUrl
-      ? [`url(${variant.imageUrl}) center/cover`, ...detail.gallery.slice(1)]
+      ? [`url(${variant.imageUrl}) center/cover`, ...detail.gallery]
       : detail.gallery;
 
   /*  রঙ বদলালে বড় ছবিটা আবার প্রথমটায় ফেরে — নাহলে ৪ নম্বর ছবি খোলা
-      অবস্থায় রঙ বদলালে নতুন ছবিটা কেউ দেখতেই পেত না।  */
+      অবস্থায় রঙ বদলালে নতুন ছবিটা কেউ দেখতেই পেত না। রঙ **তুলে নিলেও**
+      ফেরে, কারণ তখন ঘরটা একটা কমে আর index এক ধাপ পিছিয়ে যায়।  */
   useEffect(() => {
-    if (variant?.imageUrl) setMedia(0);
+    setMedia(0);
   }, [variantId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
@@ -202,8 +215,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     আলাদা দাম লিখেছেন। মালিকের নিয়ম: *"same product just color change হলে
     দাম same থাকবে, আবার kg change হলে আলাদা হবে।"*
   */
-  const variantPaisa =
-    variant && variant.pricePaisa !== product.pricePaisa ? variant.pricePaisa : null;
+  /*  ⚠️ বাছা থাকলেই তার দাম — দাম মিলিয়ে অনুমান নয়। server payload নিজেই
+      ছাড় বসিয়ে চূড়ান্ত সংখ্যাটা পাঠায় (DEC-PRD-032); সেটা যদি কাকতালীয়ভাবে
+      product-এর দামের সমান হতো, পুরনো শর্তে page ভাবত "variant-এর নিজের দাম
+      নেই" আর ভুল দাম দেখাত। ৯ আগস্ট ২০২৬।  */
+  const variantPaisa = variant ? variant.pricePaisa : null;
   /*
     DEC-PRD-018 — মালিক, ২ আগস্ট: ছাড় বসে **main product সহ** মোট দামের
     উপর, আর তালিকা থেকে একটাও নিলে তবেই। তাই base হিসেবে যায় গ্রাহক
@@ -220,14 +236,30 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     detail.mrpPaisa && detail.mrpPaisa > product.pricePaisa
       ? 1 - product.pricePaisa / detail.mrpPaisa
       : 0;
-  /*  DEC-PRD-031 — variant-এর নিজের দাম চূড়ান্ত, তার উপর ছাড়ও নেই কাটা
-      দামও নেই। আগে এখানে অনুপাতের উল্টো হিসাবে একটা বানানো "was" দাম
+  /*  DEC-PRD-032 — রঙ বাছা থাকলে কাটা দামটা **তার নিজের**, server-এর পাঠানো
+      `wasPaisa`। bundle যোগ হলে কাটা দাম দেখানো হয় না: তখন যোগফলটা আর ওই
+      একটা জিনিসের দাম নয়, আর দুটো অসম সংখ্যা পাশাপাশি বসালে গ্রাহক ভুল
+      সঞ্চয় হিসাব করেন। ৯ আগস্ট ২০২৬।  */
+  /*  DEC-PRD-031 — variant-এর নিজের দাম চূড়ান্ত; product-এর ছাড় তার উপর
+      বসে না। আগে এখানে অনুপাতের উল্টো হিসাবে একটা বানানো "was" দাম
       উঠত (৳1,300 ÷ 0.9166 = ৳1,418) — server বলছে flat ৳200, page বলছে
       ratio ৳118, দুই অঙ্ক মিলে অর্থহীন সংখ্যা। মালিক ধরেছেন ৮ আগস্ট।  */
-  const wasPaisa =
-    variantPaisa === null && offRatio > 0 ? Math.round(unitPaisa / (1 - offRatio)) : null;
+  const bundled = bundleIds.length > 0;
+  const wasPaisa = variant
+    ? !bundled && variant.wasPaisa
+      ? variant.wasPaisa
+      : null
+    : offRatio > 0
+      ? Math.round(unitPaisa / (1 - offRatio))
+      : null;
   const total = (unitPaisa + addonTotal) * qty;
-  const off = wasPaisa ? Math.round(offRatio * 100) : 0;
+  /*  শতাংশটা যে দামের উপর ছাড় বসেছে ঠিক তার থেকেই — variant হলে তার
+      নিজেরটা, নাহলে product-এর ratio।  */
+  const off = wasPaisa
+    ? variant
+      ? Math.round(((wasPaisa - unitPaisa) / wasPaisa) * 100)
+      : Math.round(offRatio * 100)
+    : 0;
 
   /*
     Order cut-off countdown।

@@ -634,9 +634,20 @@ interface VariantRow {
   itemLabel: string | null;
   /** empty = the product's base price */
   price: string;
-  /** DEC-PRD-032 — this variant's own offer price. Empty = no offer. */
-  offerPrice: string;
+  /*  DEC-PRD-032 — this variant's own discount, in the product's own shape.
+      The value is what the owner types: percent as 10, flat as taka.  */
+  discType: "NONE" | "FLAT" | "PERCENT";
+  discValue: string;
   isActive: boolean;
+}
+
+/** what the customer ends up paying for one variant, in paisa */
+function variantPays(v: VariantRow): number {
+  const base = Math.round((parseFloat(v.price) || 0) * 100);
+  const n = parseFloat(v.discValue) || 0;
+  if (v.discType === "PERCENT") return Math.max(0, Math.round(base * (1 - n / 100)));
+  if (v.discType === "FLAT") return Math.max(0, base - Math.round(n * 100));
+  return base;
 }
 
 /**
@@ -1503,7 +1514,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               itemId: v.itemId ?? null,
               itemLabel: v.item ? `${v.item.name} · ${v.item.sku}` : null,
               price: v.pricePaisa != null ? String(v.pricePaisa / 100) : "",
-              offerPrice: v.offerPricePaisa != null ? String(v.offerPricePaisa / 100) : "",
+              discType: (v.discountType ?? "NONE") as VariantRow["discType"],
+              /*  PERCENT server-এ basis point (1000 = ১০%), মালিক দেখেন ১০।  */
+              discValue:
+                v.discountType === "PERCENT"
+                  ? String((v.discountValue ?? 0) / 100)
+                  : v.discountType === "FLAT"
+                    ? String((v.discountValue ?? 0) / 100)
+                    : "",
               isActive: v.isActive,
             })),
           );
@@ -1809,11 +1827,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         /*  an empty field = the product's base price, not zero taka.  */
         pricePaisa: v.price.trim() === "" ? null : Math.round(parseFloat(v.price) * 100),
         /*  DEC-PRD-032 — only meaningful beside a regular price of its own,
-            which is why the field is hidden without one.  */
-        offerPricePaisa:
-          v.price.trim() === "" || v.offerPrice.trim() === ""
-            ? null
-            : Math.round(parseFloat(v.offerPrice) * 100),
+            which is why the field is hidden without one. PERCENT goes as
+            basis points (10 → 1000), FLAT as paisa — the product's own
+            convention, so one rule reads both.  */
+        discountType: v.price.trim() === "" ? "NONE" : v.discType,
+        discountValue:
+          v.price.trim() === "" || v.discType === "NONE"
+            ? 0
+            : Math.round((parseFloat(v.discValue) || 0) * 100),
         sortOrder: i,
         isActive: v.isActive,
       })),
@@ -3265,28 +3286,58 @@ No bundle products yet — add them on{" "}
                             />
                           </span>
 
-                          {/*  DEC-PRD-032 — an offer needs a regular price of its
-                              own to be measured against, so it only appears once
-                              there is one.  */}
+                          {/*  DEC-PRD-032 — the same discount shape as the product
+                              above: % or Flat, not a "final price" box (owner,
+                              9 Aug 2026). A discount needs a price of its own to
+                              come off, so it only appears once there is one.  */}
                           {v.price.trim() ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="text-[12.5px] text-body-soft">offer ৳</span>
-                              <input
-                                className="ipt text-[13.5px]"
-                                style={{ width: 108, minHeight: 38 }}
-                                placeholder="none"
-                                value={v.offerPrice}
+                            <>
+                              <select
+                                className="ipt text-[13px]"
+                                style={{ width: 92, minHeight: 38 }}
+                                value={v.discType}
                                 onChange={(e) =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
                                       x.variantValueId === v.variantValueId
-                                        ? { ...x, offerPrice: e.target.value.replace(/[^0-9.]/g, "") }
+                                        ? { ...x, discType: e.target.value as VariantRow["discType"] }
                                         : x,
                                     ),
                                   )
                                 }
-                              />
-                            </span>
+                              >
+                                <option value="NONE">No offer</option>
+                                <option value="PERCENT">% off</option>
+                                <option value="FLAT">৳ off</option>
+                              </select>
+
+                              {v.discType !== "NONE" && (
+                                <input
+                                  className="ipt text-[13.5px]"
+                                  style={{ width: 84, minHeight: 38 }}
+                                  placeholder={v.discType === "PERCENT" ? "10" : "200"}
+                                  value={v.discValue}
+                                  onChange={(e) =>
+                                    setVariants((cur) =>
+                                      cur.map((x) =>
+                                        x.variantValueId === v.variantValueId
+                                          ? { ...x, discValue: e.target.value.replace(/[^0-9.]/g, "") }
+                                          : x,
+                                      ),
+                                    )
+                                  }
+                                />
+                              )}
+
+                              {/*  ⚠️ The answer, not the arithmetic. Owner reads
+                                  what the customer will pay; he should not have
+                                  to work out 10% of 1,500 himself.  */}
+                              {v.discType !== "NONE" && (
+                                <span className="text-[12.5px] font-medium text-[#0f7d55]">
+                                  customer pays {taka(variantPays(v))}
+                                </span>
+                              )}
+                            </>
                           ) : (
                             <span className="text-[12.5px] text-body-soft">
                               sells at {taka(offer)}
@@ -4759,7 +4810,8 @@ No bundle products yet — add them on{" "}
                                               itemId: null,
                                               itemLabel: null,
                                               price: "",
-                                              offerPrice: "",
+                                              discType: "NONE",
+                                              discValue: "",
                                               isActive: true,
                                             },
                                           ],

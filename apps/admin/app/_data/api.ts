@@ -62,8 +62,9 @@ export interface ApiProductVariant {
   item?: { id: string; sku: string; name: string } | null;
   /** ঐচ্ছিক। null = product-এর মূল দাম (মালিকের নিয়ম: রঙে এক দাম)। */
   pricePaisa?: number | null;
-  /** DEC-PRD-032 — এই variant-এর নিজের offer দাম। null = offer নেই। */
-  offerPricePaisa?: number | null;
+  /** DEC-PRD-032 — এই variant-এর নিজের ছাড়। PERCENT = basis point, FLAT = পয়সা। */
+  discountType?: "NONE" | "FLAT" | "PERCENT";
+  discountValue?: number;
   sortOrder: number;
   isActive: boolean;
   variantValue?: {

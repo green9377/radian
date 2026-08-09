@@ -336,12 +336,18 @@ export class CheckoutService {
       const size = d.sizes.find((s) => s.id === it.sizeId) ?? d.sizes[0] ?? null;
       const variant = (d.variants ?? []).find((v) => v.id === it.variantId) ?? null;
 
-      /*  variant-এর নিজের দাম থাকলে সেটাই base — PdpView আর resolveCart-এর
-          সাথে হুবহু একই শর্ত, তাই তিন জায়গায় তিন দাম হওয়ার পথ নেই।  */
-      const basePaisa =
-        variant && variant.pricePaisa !== d.pricePaisa
-          ? variant.pricePaisa
-          : (size?.pricePaisa ?? d.pricePaisa);
+      /*  একটা variant বাছা থাকলে **তারই** দাম — PdpView আর resolveCart-এর
+          সাথে হুবহু একই শর্ত, তাই তিন জায়গায় তিন দাম হওয়ার পথ নেই।
+
+          ⚠️ আগে শর্তটা ছিল `variant.pricePaisa !== d.pricePaisa` — অর্থাৎ
+          দাম মিলিয়ে অনুমান করা "নিজের দাম আছে কি না"। ছাড় বসার পর একটা
+          variant-এর দাম যদি হুবহু product-এর দামের সমান হয়ে যেত, তখন
+          checkout ভাবত variant-এর নিজের দাম নেই আর size-এর দাম নিত।
+          Server payload নিজেই হিসাব শেষ করে পাঠায় (DEC-PRD-032), তাই
+          বাছা থাকলেই সেটা নেওয়াই সঠিক ও সরল।  */
+      const basePaisa = variant
+        ? variant.pricePaisa
+        : (size?.pricePaisa ?? d.pricePaisa);
 
       const picks = (d.bundle?.items ?? []).filter((b) =>
         (it.bundleIds ?? []).includes(b.id),

@@ -535,7 +535,8 @@ export class ProductDetailService {
             imageUrl: true,
             stockQty: true,
             pricePaisa: true,
-            offerPricePaisa: true,
+            discountType: true,
+            discountValue: true,
             itemId: true,
             variantValue: {
               select: {
@@ -807,12 +808,27 @@ export class ProductDetailService {
         displayMode: v.variantValue.attribute.displayMode,
         swatch: v.variantValue.swatch,
         imageUrl: v.imageUrl ?? v.variantValue.imageUrl ?? null,
-        /*  DEC-PRD-032 — offer wins, then the variant's own price, then the
-            product's. `wasPaisa` is the struck-through figure the offer is
-            measured against — only when both exist and the offer is lower.  */
-        pricePaisa: v.offerPricePaisa ?? v.pricePaisa ?? paidPaisa(p),
+        /*  DEC-PRD-032 — the variant's own price with its OWN discount taken
+            off, run through the same `paidPaisa()` as everything else so the
+            date window behaves identically. No own price → the product's paid
+            price. `wasPaisa` is the struck figure, and only when a discount
+            actually reduced something — never a number derived backwards from
+            a ratio (that produced the ৳1,418 nonsense on 8 Aug).  */
+        pricePaisa:
+          v.pricePaisa !== null
+            ? paidPaisa({
+                sellingPricePaisa: v.pricePaisa,
+                discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+                discountValue: v.discountValue,
+              })
+            : paidPaisa(p),
         wasPaisa:
-          v.offerPricePaisa !== null && v.pricePaisa !== null && v.pricePaisa > v.offerPricePaisa
+          v.pricePaisa !== null &&
+          paidPaisa({
+            sellingPricePaisa: v.pricePaisa,
+            discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+            discountValue: v.discountValue,
+          }) < v.pricePaisa
             ? v.pricePaisa
             : null,
         stockQty: variantCount(v),
