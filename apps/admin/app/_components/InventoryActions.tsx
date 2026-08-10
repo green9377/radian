@@ -87,13 +87,15 @@ function WhPills({ whs, value, onChange, exclude }: {
 }
 
 /** shared multi-item line editor — CSS grid (the §১০.৫ .ipt flex trap) */
-function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: {
+function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, have }: {
   lines: Line[];
   setLines: (l: Line[]) => void;
   options: { id: string; label: string; hint?: string; imageUrl?: string | null; tintSeed?: string }[];
   byId: Map<string, ApiItem>;
   showValue?: boolean;
   showExpiry?: boolean;
+  /** Transfer only — how much the source store holds, so you cannot move air */
+  have?: { label: string; qtyMilliOf: (itemId: string) => number };
 }) {
   const patch = (key: number, p: Partial<Line>) =>
     setLines(lines.map((l) => (l.key === key ? { ...l, ...p } : l)));
@@ -101,19 +103,22 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: 
   /*  ⚠️ column order must match the cells below, and BOTH extras can be on at
       once (Opening stock shows expiry AND value) — the old chain picked only
       one and silently dropped the other's header.                            */
-  const cols =
-    showValue && showExpiry
-      ? "grid grid-cols-[minmax(220px,1fr)_120px_150px_110px_36px] gap-2.5 items-center"
-      : showValue
-        ? "grid grid-cols-[minmax(220px,1fr)_120px_110px_36px] gap-2.5 items-center"
-        : showExpiry
-          ? "grid grid-cols-[minmax(220px,1fr)_120px_150px_36px] gap-2.5 items-center"
-          : "grid grid-cols-[minmax(220px,1fr)_120px_36px] gap-2.5 items-center";
+  /*  ⚠️ grid-cols-[…] হাতে জোড়া দেওয়া যাবে না — Tailwind build-এর সময় class
+      খোঁজে, runtime-এ বানানো নাম bundle-এ থাকেই না (Stock board-এ একবার
+      ঠকেছি)। তাই মাপটা inline style-এ।                                      */
+  const cols = "grid gap-2.5 items-center";
+  const grid = {
+    gridTemplateColumns: [
+      "minmax(220px,1fr)", "120px",
+      have && "120px", showExpiry && "150px", showValue && "110px", "36px",
+    ].filter(Boolean).join(" "),
+  };
 
   return (
     <div>
-      <div className={cols + " mb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft"}>
+      <div style={grid} className={cols + " mb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft"}>
         <span>Item</span><span>Qty</span>
+        {have && <span className="text-right">{have.label}</span>}
         {showExpiry && <span>Expiry (if any)</span>}
         {showValue && <span className="text-right">Worth</span>}
         <span />
@@ -122,8 +127,10 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: 
         const item = byId.get(l.itemId);
         const cost = item ? item.effectiveCostPaisa : 0;
         const value = Math.round(toMilli(l.qty || 0) * cost / 1000);
+        const stock = have && item ? have.qtyMilliOf(l.itemId) : 0;
+        const tooMuch = !!have && !!item && toMilli(l.qty || 0) > stock;
         return (
-          <div key={l.key} className={cols + " mb-2"}>
+          <div key={l.key} style={grid} className={cols + " mb-2"}>
             <QuickSelect
               value={l.itemId} options={options} placeholder="Pick an item…"
               onChange={(id) => patch(l.key, { itemId: id })} allowClear={false}
@@ -131,6 +138,15 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: 
             <input className="ipt" placeholder={item ? item.unit?.name ?? "Qty" : "Qty"}
               inputMode="decimal" value={l.qty}
               onChange={(e) => patch(l.key, { qty: e.target.value })} />
+            {have && (
+              /* red the moment the line asks for more than the source holds —
+                 the API allows it (INV-RULE-006 never blocks), so the warning
+                 has to be here, before the press, not after */
+              <span className="text-right text-[13px]"
+                style={{ color: tooMuch ? "#c0392b" : "#5c4a6b" }}>
+                {item ? `${fmtQty(stock)}${tooMuch ? " ⚠" : ""}` : "—"}
+              </span>
+            )}
             {showExpiry && (
               item?.trackExpiry
                 ? <input type="date" className="ipt" value={l.expiryDate ?? ""}
@@ -161,6 +177,58 @@ function validLines(lines: Line[]): { itemId: string; qtyMilli: number; expiryDa
     .filter((l) => l.itemId && toMilli(l.qty) > 0)
     .map((l) => ({ itemId: l.itemId, qtyMilli: toMilli(l.qty), ...(l.expiryDate ? { expiryDate: l.expiryDate } : {}) }));
 }
+
+/* ── one shape for every action screen (10 Aug 2026) ──────────────────────
+   মালিক: *"3 vag ar ak vag design pore ache"* — প্রতিটা action পাতা ছিল
+   ৭৬০px-এর একটা card, ১৯০০px পর্দার এক-তৃতীয়াংশ。 এখন সবগুলো একই ছাঁচে:
+   বাঁয়ে কাজের শীট, ডানে চলতি হিসাব + বোতাম。 তিনটে পাতা আলাদা করে সাজালে
+   তিন রকম হয়ে যেত — তাই খোলসটা এক জায়গায়。                              */
+
+function ActionShell({ sheet, panel }: { sheet: React.ReactNode; panel: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-4 items-start max-w-[1300px] mb-6">
+      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">{sheet}</div>
+      <div className="grid gap-3">{panel}</div>
+    </div>
+  );
+}
+
+/** the sheet's top strip — where the "from / to / type" choices live */
+const SheetBar = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-3 border-b border-lavender-deep">{children}</div>
+);
+
+const SheetNote = ({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+}) => (
+  <div className="flex items-center gap-3 px-4 py-3 border-t border-lavender-deep">
+    <span className="text-[12.5px] text-body-soft shrink-0">Note</span>
+    <input className="ipt w-full" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+  </div>
+);
+
+function SummaryCard({ rows }: { rows: { label: string; value: string; big?: boolean; tone?: string }[] }) {
+  return (
+    <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-4">
+      {rows.map((r, i) => (
+        <div key={r.label} className={i ? "mt-3" : ""}>
+          <span className="block text-[12.5px] text-body-soft">{r.label}</span>
+          {r.big
+            ? <b className="block text-[24px] font-semibold leading-tight" style={{ color: r.tone ?? "#470066" }}>{r.value}</b>
+            : <b className="block text-[15px] text-body">{r.value}</b>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const PanelHint = ({ tone = "#8a5a00", bg = "#fff4e6", children }: {
+  tone?: string; bg?: string; children: React.ReactNode;
+}) => (
+  <div className="rounded-[12px] px-3 py-2.5" style={{ background: bg }}>
+    <span className="text-[12px]" style={{ color: tone }}>{children}</span>
+  </div>
+);
 
 const SaveBtn = ({ onClick, busy, disabled, label, full }: {
   onClick: () => void; busy: boolean; disabled: boolean; label: string; full?: boolean;
@@ -242,53 +310,39 @@ export function InvOpeningView() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
-      {/*  ১০ আগস্ট — আগে পুরোটা ছিল ৭৬০px-এর এক card, ১৯০০px পর্দার তিন ভাগের
-          এক ভাগ。 মালিক: *"3 vag ar ak vag design pore ache"*。 এখন বাঁয়ে
-          গোনার শীট, ডানে চলতি হিসাব — গুনতে গুনতেই যোগফল চোখে পড়ে。      */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-4 items-start max-w-[1300px]">
-
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 border-b border-lavender-deep">
-            <span className="text-[12.5px] text-body-soft">Counting in</span>
-            <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
-          </div>
-
-          <div className="px-4 py-3">
-            <LinesEditor lines={lines} setLines={setLines} options={openable} byId={byId} showExpiry showValue />
-            <p className="text-[12px] text-body-soft mt-2 mb-0">
-              Qty in the item&apos;s own unit — e.g. 120 stems, 2.5 kg
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 px-4 py-3 border-t border-lavender-deep">
-            <span className="text-[12.5px] text-body-soft shrink-0">Note</span>
-            <input className="ipt w-full" placeholder="e.g. First count, 10 Aug morning"
-              value={note} onChange={(e) => setNote(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="grid gap-3">
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-4">
-            <span className="block text-[12.5px] text-body-soft">Counting into</span>
-            <b className="block text-[15px] text-body mb-3">{whName}</b>
-            <span className="block text-[12.5px] text-body-soft">Lines ready</span>
-            <b className="block text-[24px] font-semibold text-purple leading-tight mb-3">{ready.length}</b>
-            <span className="block text-[12.5px] text-body-soft">Worth at cost</span>
-            <b className="block text-[24px] font-semibold text-purple leading-tight">{formatTaka(worthPaisa)}</b>
-          </div>
-
-          <SaveBtn onClick={save} busy={busy} disabled={!warehouseId || ready.length === 0} label="Post opening stock" full />
-
-          {hiddenCount > 0 && (
-            <div className="rounded-[12px] px-3 py-2.5" style={{ background: "#fff4e6" }}>
-              <span className="text-[12px]" style={{ color: "#8a5a00" }}>
+      <ActionShell
+        sheet={
+          <>
+            <SheetBar>
+              <span className="text-[12.5px] text-body-soft">Counting in</span>
+              <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
+            </SheetBar>
+            <div className="px-4 py-3">
+              <LinesEditor lines={lines} setLines={setLines} options={openable} byId={byId} showExpiry showValue />
+              <p className="text-[12px] text-body-soft mt-2 mb-0">
+                Qty in the item&apos;s own unit — e.g. 120 stems, 2.5 kg
+              </p>
+            </div>
+            <SheetNote value={note} onChange={setNote} placeholder="e.g. First count, 10 Aug morning" />
+          </>
+        }
+        panel={
+          <>
+            <SummaryCard rows={[
+              { label: "Counting into", value: whName },
+              { label: "Lines ready", value: String(ready.length), big: true },
+              { label: "Worth at cost", value: formatTaka(worthPaisa), big: true },
+            ]} />
+            <SaveBtn onClick={save} busy={busy} disabled={!warehouseId || ready.length === 0} label="Post opening stock" full />
+            {hiddenCount > 0 && (
+              <PanelHint>
                 <b>{hiddenCount} item{hiddenCount > 1 ? "s" : ""}</b> already moving in {whName} {hiddenCount > 1 ? "are" : "is"} not
                 in the list — opening only starts a ledger. Change one on the Stock board with Adjust.
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+              </PanelHint>
+            )}
+          </>
+        }
+      />
     </div>
   );
 }
@@ -321,6 +375,14 @@ export function InvTransferView() {
   }
   useEffect(() => { loadHistory(); }, []);
 
+  /*  কোন গুদামে কী আছে — না দেখিয়ে transfer লেখানো মানে অন্ধভাবে মাল সরানো।  */
+  const [stock, setStock] = useState<InvStockRow[]>([]);
+  useEffect(() => {
+    (async () => { try { setStock((await loadInvStockSafe()).rows); } catch { setStock([]); } })();
+  }, []);
+  const stockInFrom = (itemId: string) =>
+    stock.find((r) => r.itemId === itemId)?.perWarehouse.find((p) => p.warehouseId === fromId)?.qtyMilli ?? 0;
+
   async function save() {
     const ls = validLines(lines);
     if (!ls.length || !fromId || !toId || fromId === toId) return;
@@ -335,6 +397,14 @@ export function InvTransferView() {
   }
 
   const whName = (id: string) => whs.find((w) => w.id === id)?.name ?? "?";
+  const fromName = whs.find((w) => w.id === fromId)?.name ?? "";
+  const toName = whs.find((w) => w.id === toId)?.name ?? "";
+  const ready = validLines(lines);
+  const worthPaisa = ready.reduce((s, l) => {
+    const it = byId.get(l.itemId);
+    return s + (it ? Math.round((l.qtyMilli * it.effectiveCostPaisa) / 1000) : 0);
+  }, 0);
+  const shortLines = ready.filter((l) => l.qtyMilli > stockInFrom(l.itemId)).length;
 
   return (
     <div className={WRAP}>
@@ -347,26 +417,47 @@ export function InvTransferView() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 max-w-[760px] mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="From" required>
-            <WhPills whs={whs} value={fromId} onChange={(id) => { setFromId(id); if (id === toId) setToId(""); }} />
-          </Field>
-          <Field label="To" required>
-            <WhPills whs={whs} value={toId} onChange={setToId} exclude={fromId} />
-          </Field>
-        </div>
-        <Field label="Items" required>
-          <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} />
-        </Field>
-        <Field label="Note">
-          <input className="ipt w-full" placeholder="e.g. Morning restock for the shop floor"
-            value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-        <SaveBtn onClick={save} busy={busy}
-          disabled={!fromId || !toId || fromId === toId || validLines(lines).length === 0}
-          label="Post transfer" />
-      </div>
+      <ActionShell
+        sheet={
+          <>
+            <SheetBar>
+              <span className="flex items-center gap-2.5">
+                <span className="text-[12.5px] text-body-soft">From</span>
+                <WhPills whs={whs.filter((w) => w.isActive)} value={fromId}
+                  onChange={(id) => { setFromId(id); if (id === toId) setToId(""); }} />
+              </span>
+              <span className="text-body-soft"><Icon name="truck" size={14} /></span>
+              <span className="flex items-center gap-2.5">
+                <span className="text-[12.5px] text-body-soft">To</span>
+                <WhPills whs={whs.filter((w) => w.isActive)} value={toId} onChange={setToId} exclude={fromId} />
+              </span>
+            </SheetBar>
+            <div className="px-4 py-3">
+              <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId}
+                have={{ label: `In ${fromName || "source"}`, qtyMilliOf: stockInFrom }} />
+            </div>
+            <SheetNote value={note} onChange={setNote} placeholder="e.g. Morning restock for the shop floor" />
+          </>
+        }
+        panel={
+          <>
+            <SummaryCard rows={[
+              { label: "Route", value: `${fromName || "—"} → ${toName || "—"}` },
+              { label: "Lines ready", value: String(ready.length), big: true },
+              { label: "Worth at cost", value: formatTaka(worthPaisa), big: true },
+            ]} />
+            <SaveBtn onClick={save} busy={busy}
+              disabled={!fromId || !toId || fromId === toId || ready.length === 0}
+              label="Post transfer" full />
+            {shortLines > 0 && (
+              <PanelHint>
+                <b>{shortLines} line{shortLines > 1 ? "s" : ""}</b> ask{shortLines > 1 ? "" : "s"} for more than {fromName} holds.
+                It will still post and show as negative — count that store first if that is not what you meant.
+              </PanelHint>
+            )}
+          </>
+        }
+      />
 
       <h3 className="font-display text-[17px] text-purple mb-2.5">Recent transfers</h3>
       {histDemo && <DemoBar what="sample transfers" onRetry={loadHistory} />}
@@ -467,54 +558,70 @@ export function InvIssueView() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 max-w-[760px] mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Type" required>
-            <div className="flex gap-2">
-              {(["WASTAGE", "GIFT"] as const).map((k) => (
-                <button key={k} type="button" onClick={() => { setKind(k); setReason(""); }}
-                  className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
-                  style={kind === k
-                    ? { background: k === "WASTAGE" ? "#c0392b" : "#cf43ea", color: "#fff", borderColor: "transparent" }
+      <ActionShell
+        sheet={
+          <>
+            <SheetBar>
+              <span className="flex items-center gap-2">
+                {(["WASTAGE", "GIFT"] as const).map((k) => (
+                  <button key={k} type="button" onClick={() => { setKind(k); setReason(""); }}
+                    className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
+                    style={kind === k
+                      ? { background: k === "WASTAGE" ? "#c0392b" : "#cf43ea", color: "#fff", borderColor: "transparent" }
+                      : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+                    {k === "WASTAGE" ? "Wastage" : "Gift (free out)"}
+                  </button>
+                ))}
+              </span>
+              <span className="flex items-center gap-2.5">
+                <span className="text-[12.5px] text-body-soft">Out of</span>
+                <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
+              </span>
+            </SheetBar>
+
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-lavender-deep">
+              <span className="text-[12.5px] text-body-soft mr-1">Why</span>
+              {reasons.map((r) => (
+                <button key={r} type="button" onClick={() => setReason(r)}
+                  className="text-[12.5px] font-medium px-3 py-1.5 rounded-full border transition-colors"
+                  style={reason === r
+                    ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
                     : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-                  {k === "WASTAGE" ? "Wastage" : "Gift (free out)"}
+                  {r}
                 </button>
               ))}
             </div>
-          </Field>
-          <Field label="Warehouse" required>
-            <WhPills whs={whs} value={warehouseId} onChange={setWarehouseId} />
-          </Field>
-        </div>
-        <Field label="Reason" required>
-          <div className="flex flex-wrap gap-2">
-            {reasons.map((r) => (
-              <button key={r} type="button" onClick={() => setReason(r)}
-                className="text-[12.5px] font-medium px-3 py-1.5 rounded-full border transition-colors"
-                style={reason === r
-                  ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                  : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-                {r}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Items" required hint="Money is computed automatically at each item's AVCO cost">
-          <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} showValue />
-        </Field>
-        <Field label="Note">
-          <input className="ipt w-full" placeholder={kind === "WASTAGE" ? "e.g. Morning sorting" : "e.g. Sent to client office"}
-            value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-        <div className="flex items-center justify-between">
-          <span className="text-[13.5px] text-body">
-            Total write-off: <b style={{ color: kind === "WASTAGE" ? "#c0392b" : "#cf43ea" }}>{formatTaka(totalPaisa)}</b>
-          </span>
-          <SaveBtn onClick={save} busy={busy}
-            disabled={!warehouseId || !reason || validLines(lines).length === 0}
-            label={kind === "WASTAGE" ? "Post wastage" : "Post gift"} />
-        </div>
-      </div>
+
+            <div className="px-4 py-3">
+              <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} showValue />
+              <p className="text-[12px] text-body-soft mt-2 mb-0">
+                Money is computed at each item&apos;s AVCO cost — you never type a price here.
+              </p>
+            </div>
+            <SheetNote value={note} onChange={setNote}
+              placeholder={kind === "WASTAGE" ? "e.g. Morning sorting" : "e.g. Sent to client office"} />
+          </>
+        }
+        panel={
+          <>
+            <SummaryCard rows={[
+              { label: "Out of", value: whs.find((w) => w.id === warehouseId)?.name ?? "—" },
+              { label: "Lines ready", value: String(validLines(lines).length), big: true },
+              {
+                label: kind === "WASTAGE" ? "Written off" : "Given away",
+                value: formatTaka(totalPaisa), big: true,
+                tone: kind === "WASTAGE" ? "#c0392b" : "#a2189f",
+              },
+            ]} />
+            <SaveBtn onClick={save} busy={busy}
+              disabled={!warehouseId || !reason || validLines(lines).length === 0}
+              label={kind === "WASTAGE" ? "Post wastage" : "Post gift"} full />
+            {!reason && validLines(lines).length > 0 && (
+              <PanelHint>Pick a reason first — this is money leaving, and the report is only useful if it says why.</PanelHint>
+            )}
+          </>
+        }
+      />
 
       <div className="flex items-center gap-2.5 mb-2.5">
         <h3 className="font-display text-[17px] text-purple m-0">History</h3>
@@ -726,20 +833,32 @@ export function InvStocktakeView() {
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
       {!counting && (
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 max-w-[640px] mb-6">
-          <Field label="Warehouse to count" required>
-            <WhPills whs={whs} value={warehouseId} onChange={setWarehouseId} />
-          </Field>
-          <button onClick={startCounting} disabled={!warehouseId || busy}
-            className="text-white text-[13px] font-medium px-5 py-2.5 rounded-[10px] disabled:opacity-40"
-            style={{ background: ACCENT }}>
-            {busy ? "Loading…" : "Start counting"}
-          </button>
-        </div>
+        <ActionShell
+          sheet={
+            <SheetBar>
+              <span className="text-[12.5px] text-body-soft">Count which store</span>
+              <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
+            </SheetBar>
+          }
+          panel={
+            <>
+              <button onClick={startCounting} disabled={!warehouseId || busy}
+                className="w-full text-white text-[13px] font-medium px-5 py-2.5 rounded-[10px] disabled:opacity-40"
+                style={{ background: ACCENT }}>
+                {busy ? "Loading…" : "Start counting"}
+              </button>
+              <PanelHint bg="#f7f1fb" tone="#5c4a6b">
+                Every countable item in that store opens with its ledger figure beside it.
+                Leave a row blank if you did not count it — blank is not zero.
+              </PanelHint>
+            </>
+          }
+        />
       )}
 
       {counting && (
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-4 items-start mb-6">
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5">
           <div className="flex items-center gap-3 mb-4">
             <b className="text-[14.5px] text-body">Counting {whName(warehouseId)}</b>
             <span className="text-[12.5px] text-body-soft">Leave a row blank if you did not count it — blank ≠ zero.</span>
@@ -779,19 +898,28 @@ export function InvStocktakeView() {
             })}
           </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-[13.5px] text-body">
-              {filled.length} counted · net mismatch:{" "}
-              <b style={{ color: totalDiffPaisa === 0 ? "#5c4a6b" : totalDiffPaisa > 0 ? "#0e7a3d" : "#c0392b" }}>
-                {formatTaka(totalDiffPaisa)}
-              </b>
-            </span>
-            <span className="flex items-center gap-2.5">
-              <input className="ipt w-[220px]" placeholder="Note (e.g. Weekly count)"
-                value={note} onChange={(e) => setNote(e.target.value)} />
-              <SaveBtn onClick={save} busy={busy} disabled={filled.length === 0} label="Save session" />
-            </span>
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-lavender-deep">
+            <span className="text-[12.5px] text-body-soft shrink-0">Note</span>
+            <input className="ipt w-full" placeholder="e.g. Weekly count"
+              value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+        </div>
+
+        <div className="grid gap-3">
+          <SummaryCard rows={[
+            { label: "Counting", value: whName(warehouseId) },
+            { label: "Rows counted", value: `${filled.length} of ${rows.length}`, big: true },
+            {
+              label: "Net mismatch", value: formatTaka(totalDiffPaisa), big: true,
+              tone: totalDiffPaisa === 0 ? "#5c4a6b" : totalDiffPaisa > 0 ? "#0e7a3d" : "#c0392b",
+            },
+          ]} />
+          <SaveBtn onClick={save} busy={busy} disabled={filled.length === 0} label="Save session" full />
+          <PanelHint bg="#f7f1fb" tone="#5c4a6b">
+            Saving keeps this as a draft. Nothing moves in the ledger until you press
+            Apply on the session below — and an applied session can never be edited.
+          </PanelHint>
+        </div>
         </div>
       )}
 
