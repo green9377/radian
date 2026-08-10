@@ -539,7 +539,10 @@ export default function CustomerEditor({ id }: { id?: string }) {
                       {imageUrl
                         ? /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={imageUrl} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-[20px] font-semibold text-purple">{initials(name || "?")}</span>}
+                        : name.trim()
+                          ? <span className="text-[20px] font-semibold text-purple">{initials(name)}</span>
+                          /* নাম না থাকলে "?" নয় — ওটা ভাঙা মনে হয় */
+                          : <span className="text-purple/70"><Icon name="user" size={24} /></span>}
                     </span>
                     <span className="absolute -right-1 -bottom-1 w-[23px] h-[23px] rounded-full bg-orchid grid place-items-center border-2 border-white text-white">
                       <Icon name="photo" size={11} />
@@ -578,7 +581,13 @@ export default function CustomerEditor({ id }: { id?: string }) {
                 title="Profile"
                 hint="Phone is the login key, verified over WhatsApp."
               >
-                <div className={gridCls}>
+                {/*  ⚠️ ১০ আগস্ট — এখানে `gridCls` (auto-fit, minmax 220px) ছিল,
+                    আর সেটাই ফোনের ঘরটা পিষে দিয়েছিল: চারটে মাঠ চার কলামে বসত,
+                    ফোন পেত ~২২০px, তার ভেতরে code ১১৮px — নম্বরের জন্য বাকি
+                    থাকত ৯০px。 মালিক: *"customer number ar ghor ki obostha"*。
+                    সব মাঠ সমান চওড়া হওয়ার কোনো কারণ নেই。 তাই ইচ্ছাকৃত সারি:
+                    নাম+ইমেইল একসাথে, ফোন+দেশ আলাদা সারিতে ফোনকে বেশি জায়গা দিয়ে。 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <Field label="Full name">
                     <input
                       className="ipt h-[44px]"
@@ -595,6 +604,10 @@ export default function CustomerEditor({ id }: { id?: string }) {
                       placeholder="name@example.com"
                     />
                   </Field>
+                </div>
+
+                {/* the identity row — phone needs room, so it gets it */}
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-4 mb-4">
                   <Field
                     label={
                       <span className="inline-flex items-center gap-2">
@@ -626,11 +639,14 @@ export default function CustomerEditor({ id }: { id?: string }) {
                       )}
                       {COUNTRY_CODES.map((c) => (
                         <option key={c.iso} value={c.name}>
-                          {c.flag} {c.name}
+                          {c.name}
                         </option>
                       ))}
                     </select>
                   </Field>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Account status"
                     note="Blocked = cannot log in or order. Data is kept (not deleted). Applies immediately — no need to Save."

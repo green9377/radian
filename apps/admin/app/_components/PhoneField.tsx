@@ -76,19 +76,24 @@ export default function PhoneField({
 
   return (
     <div className="flex gap-2 w-full" ref={wrap}>
-      {/* country-code trigger */}
-      <div className="relative shrink-0" style={{ width: 118 }}>
+      {/*  ⚠️ পতাকার emoji ব্যবহার করা যাবে না。 Windows-এ flag font নেই, তাই
+          🇧🇩 পর্দায় ওঠে অক্ষর হয়ে — "BD"。 মালিকের পর্দায় ঠিক তাই দেখা গেছে
+          (১০ আগস্ট)。 তাই ISO কোডটাই ইচ্ছাকৃতভাবে একটা ছোট chip হিসেবে দেখাই:
+          যা রেন্ডার হবেই, আর পড়তেও পরিষ্কার。                                */}
+      <div className="relative shrink-0" style={{ width: 132 }}>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="ipt flex items-center justify-between gap-1"
-          style={{ width: 118, height: h, paddingLeft: 12, paddingRight: 10 }}
+          className="ipt flex items-center gap-2"
+          style={{ width: 132, height: h, paddingLeft: 10, paddingRight: 8 }}
           title="Country code — click to search"
         >
-          <span className="truncate">
-            {current.flag} {current.dial}
+          <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] shrink-0"
+            style={{ background: "#f9e9fd", color: "#470066", letterSpacing: ".02em" }}>
+            {current.iso}
           </span>
-          <span className="text-body-soft text-[11px]">▾</span>
+          <span className="truncate font-medium">{current.dial}</span>
+          <span className="text-body-soft text-[11px] ml-auto">▾</span>
         </button>
 
         {open && (
@@ -119,7 +124,8 @@ export default function PhoneField({
                       : "hover:bg-lavender text-body")
                   }
                 >
-                  <span className="text-[15px]">{c.flag}</span>
+                  <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] shrink-0 w-[30px] text-center"
+                    style={{ background: "#f9e9fd", color: "#470066" }}>{c.iso}</span>
                   <span className="flex-1 truncate">{c.name}</span>
                   <span className="text-body-soft">{c.dial}</span>
                 </button>
@@ -134,10 +140,10 @@ export default function PhoneField({
         )}
       </div>
 
-      {/* local number */}
+      {/* local number — min-width so a narrow column cannot squash it to nothing */}
       <input
-        className="ipt flex-1 min-w-0"
-        style={{ height: h }}
+        className="ipt flex-1"
+        style={{ height: h, minWidth: 150 }}
         inputMode="tel"
         value={local}
         onChange={(e) => onChange(joinPhone(dial, e.target.value))}

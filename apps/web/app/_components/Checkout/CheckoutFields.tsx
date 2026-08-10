@@ -196,9 +196,11 @@ export function PhoneInput({
         aria-label="Country code"
         className="shrink-0 border-[1.5px] border-lavender-deep rounded-[14px] px-3 py-3 text-[14px] text-body bg-white outline-none focus:border-orchid"
       >
+        {/* no flag emoji — Windows has no flag font and paints them as letters
+            ("BD"), which the owner saw on his own screen (10 Aug) */}
         {COUNTRIES.map((c) => (
           <option key={c.code} value={c.dial}>
-            {c.flag} {c.dial}
+            {c.code} {c.dial}
           </option>
         ))}
       </select>
