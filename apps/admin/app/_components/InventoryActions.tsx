@@ -98,18 +98,24 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: 
   const patch = (key: number, p: Partial<Line>) =>
     setLines(lines.map((l) => (l.key === key ? { ...l, ...p } : l)));
 
-  const cols = showValue
-    ? "grid grid-cols-[minmax(220px,1fr)_120px_110px_36px] gap-2.5 items-center"
-    : showExpiry
-      ? "grid grid-cols-[minmax(220px,1fr)_120px_150px_36px] gap-2.5 items-center"
-      : "grid grid-cols-[minmax(220px,1fr)_120px_36px] gap-2.5 items-center";
+  /*  ⚠️ column order must match the cells below, and BOTH extras can be on at
+      once (Opening stock shows expiry AND value) — the old chain picked only
+      one and silently dropped the other's header.                            */
+  const cols =
+    showValue && showExpiry
+      ? "grid grid-cols-[minmax(220px,1fr)_120px_150px_110px_36px] gap-2.5 items-center"
+      : showValue
+        ? "grid grid-cols-[minmax(220px,1fr)_120px_110px_36px] gap-2.5 items-center"
+        : showExpiry
+          ? "grid grid-cols-[minmax(220px,1fr)_120px_150px_36px] gap-2.5 items-center"
+          : "grid grid-cols-[minmax(220px,1fr)_120px_36px] gap-2.5 items-center";
 
   return (
     <div>
       <div className={cols + " mb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft"}>
         <span>Item</span><span>Qty</span>
-        {showValue && <span className="text-right">Value</span>}
         {showExpiry && <span>Expiry (if any)</span>}
+        {showValue && <span className="text-right">Worth</span>}
         <span />
       </div>
       {lines.map((l) => {
@@ -125,16 +131,16 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry }: 
             <input className="ipt" placeholder={item ? item.unit?.name ?? "Qty" : "Qty"}
               inputMode="decimal" value={l.qty}
               onChange={(e) => patch(l.key, { qty: e.target.value })} />
-            {showValue && (
-              <span className="text-right text-[13px] font-medium text-body">
-                {item && l.qty ? formatTaka(value) : "—"}
-              </span>
-            )}
             {showExpiry && (
               item?.trackExpiry
                 ? <input type="date" className="ipt" value={l.expiryDate ?? ""}
                     onChange={(e) => patch(l.key, { expiryDate: e.target.value })} />
                 : <span className="text-[12px] text-body-soft">n/a</span>
+            )}
+            {showValue && (
+              <span className="text-right text-[13px] font-medium text-body">
+                {item && l.qty ? formatTaka(value) : "—"}
+              </span>
             )}
             <button type="button" onClick={() => setLines(lines.filter((x) => x.key !== l.key))}
               className="text-body-soft hover:text-purple text-[17px]" title="Remove line">×</button>
@@ -156,9 +162,11 @@ function validLines(lines: Line[]): { itemId: string; qtyMilli: number; expiryDa
     .map((l) => ({ itemId: l.itemId, qtyMilli: toMilli(l.qty), ...(l.expiryDate ? { expiryDate: l.expiryDate } : {}) }));
 }
 
-const SaveBtn = ({ onClick, busy, disabled, label }: { onClick: () => void; busy: boolean; disabled: boolean; label: string }) => (
+const SaveBtn = ({ onClick, busy, disabled, label, full }: {
+  onClick: () => void; busy: boolean; disabled: boolean; label: string; full?: boolean;
+}) => (
   <button onClick={onClick} disabled={disabled || busy}
-    className="text-white text-[13px] font-medium px-5 py-2.5 rounded-[10px] disabled:opacity-40"
+    className={`text-white text-[13px] font-medium px-5 py-2.5 rounded-[10px] disabled:opacity-40${full ? " w-full" : ""}`}
     style={{ background: ACCENT }}>
     {busy ? "Saving…" : label}
   </button>
@@ -174,8 +182,39 @@ export function InvOpeningView() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
+  /* itemId → warehouseIds it has already moved in (DEC-INV-012) */
+  const [touched, setTouched] = useState<Map<string, Set<string>>>(new Map());
 
   useEffect(() => { if (!warehouseId && whs.length) setWarehouseId(whs[0].id); }, [whs, warehouseId]);
+
+  useEffect(() => {
+    /*  একটা stock সারি তৈরি হয় কেবল প্রথম movement-এর পর — তাই সারিটার থাকা
+        মানেই "এই গুদামে এই মাল ইতিমধ্যে চলছে"。 নতুন endpoint লাগে না。      */
+    (async () => {
+      try {
+        const st = await loadInvStockSafe();
+        const m = new Map<string, Set<string>>();
+        for (const r of st.rows) m.set(r.itemId, new Set(r.perWarehouse.map((p) => p.warehouseId)));
+        setTouched(m);
+      } catch { setTouched(new Map()); }
+    })();
+  }, []);
+
+  /*  DEC-INV-012 — একবার চলা মাল আর "opening" হয় না, API না বলে দেয়。 আগে
+      সেটা বাছাই করা যেত আর save-এর সময় ভুল ধরা পড়ত。 এখন তালিকাতেই আসে না —
+      নিশ্চিত ভুলটা করার সুযোগই থাকল না。 নিয়ম বদলায়নি, শুধু আগে ঠেকানো。   */
+  const openable = useMemo(
+    () => options.filter((o) => !(warehouseId && touched.get(o.id)?.has(warehouseId))),
+    [options, touched, warehouseId],
+  );
+  const hiddenCount = options.length - openable.length;
+
+  const ready = validLines(lines);
+  const worthPaisa = ready.reduce((s, l) => {
+    const it = byId.get(l.itemId);
+    return s + (it ? Math.round((l.qtyMilli * it.effectiveCostPaisa) / 1000) : 0);
+  }, 0);
+  const whName = whs.find((w) => w.id === warehouseId)?.name ?? "—";
 
   async function save() {
     const ls = validLines(lines);
@@ -197,24 +236,58 @@ export function InvOpeningView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Opening stock"
-        blurb="Count what is on the shelf, enter it item by item — these OPENING entries start the ledger (DEC-INV-006). An item already moving in a warehouse cannot be re-opened; use Adjust on the Stock board instead."
+        blurb="Count what is on the shelf and write it down. This is where the ledger starts (DEC-INV-006)."
       />
       {isDemo && <DemoBar what="warehouses" onRetry={reload} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 max-w-[760px]">
-        <Field label="Warehouse" required>
-          <WhPills whs={whs} value={warehouseId} onChange={setWarehouseId} />
-        </Field>
-        <Field label="Counted items" required hint="Qty in the item's own unit — e.g. 120 stems, 2.5 kg">
-          <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} showExpiry />
-        </Field>
-        <Field label="Note">
-          <input className="ipt w-full" placeholder="e.g. First count, 23 Jul morning"
-            value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-        <SaveBtn onClick={save} busy={busy} disabled={!warehouseId || validLines(lines).length === 0} label="Post opening stock" />
+      {/*  ১০ আগস্ট — আগে পুরোটা ছিল ৭৬০px-এর এক card, ১৯০০px পর্দার তিন ভাগের
+          এক ভাগ。 মালিক: *"3 vag ar ak vag design pore ache"*。 এখন বাঁয়ে
+          গোনার শীট, ডানে চলতি হিসাব — গুনতে গুনতেই যোগফল চোখে পড়ে。      */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-4 items-start max-w-[1300px]">
+
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+          <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 border-b border-lavender-deep">
+            <span className="text-[12.5px] text-body-soft">Counting in</span>
+            <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
+          </div>
+
+          <div className="px-4 py-3">
+            <LinesEditor lines={lines} setLines={setLines} options={openable} byId={byId} showExpiry showValue />
+            <p className="text-[12px] text-body-soft mt-2 mb-0">
+              Qty in the item&apos;s own unit — e.g. 120 stems, 2.5 kg
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-lavender-deep">
+            <span className="text-[12.5px] text-body-soft shrink-0">Note</span>
+            <input className="ipt w-full" placeholder="e.g. First count, 10 Aug morning"
+              value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-4">
+            <span className="block text-[12.5px] text-body-soft">Counting into</span>
+            <b className="block text-[15px] text-body mb-3">{whName}</b>
+            <span className="block text-[12.5px] text-body-soft">Lines ready</span>
+            <b className="block text-[24px] font-semibold text-purple leading-tight mb-3">{ready.length}</b>
+            <span className="block text-[12.5px] text-body-soft">Worth at cost</span>
+            <b className="block text-[24px] font-semibold text-purple leading-tight">{formatTaka(worthPaisa)}</b>
+          </div>
+
+          <SaveBtn onClick={save} busy={busy} disabled={!warehouseId || ready.length === 0} label="Post opening stock" full />
+
+          {hiddenCount > 0 && (
+            <div className="rounded-[12px] px-3 py-2.5" style={{ background: "#fff4e6" }}>
+              <span className="text-[12px]" style={{ color: "#8a5a00" }}>
+                <b>{hiddenCount} item{hiddenCount > 1 ? "s" : ""}</b> already moving in {whName} {hiddenCount > 1 ? "are" : "is"} not
+                in the list — opening only starts a ledger. Change one on the Stock board with Adjust.
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
