@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ItemThumb, Field, ErrBar, OkBar, msg } from "./ItemUI";
+import Icon from "./Icon";
+import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ItemThumb, ErrBar, OkBar, msg } from "./ItemUI";
 import {
   loadInvIssueReportSafe, loadInvValuationSafe, loadInvSettingsSafe, loadInvWarehousesSafe,
-  patchInvSettings, formatTaka, fmtQty,
+  loadInvStockSafe, patchInvSettings, formatTaka, fmtQty,
   type ApiWarehouse, type InvIssueReport, type InvSettings, type InvValuation,
 } from "../_data/api";
 
@@ -168,6 +169,7 @@ export function InvReportsView() {
 export function InvSettingsView() {
   const [settings, setSettings] = useState<InvSettings | null>(null);
   const [whs, setWhs] = useState<ApiWarehouse[]>([]);
+  const [held, setHeld] = useState<Record<string, number>>({});
   const [isDemo, setIsDemo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -178,6 +180,17 @@ export function InvSettingsView() {
     setSettings(s.settings);
     setWhs(w.rows);
     setIsDemo(s.isDemo || w.isDemo);
+    /*  "কোথায় কী আছে" পাশেই দেখানো — নইলে কোন গুদাম বাছব সেটা অনুমান।  */
+    try {
+      const st = await loadInvStockSafe();
+      const tally: Record<string, number> = {};
+      for (const r of st.rows) {
+        for (const p of r.perWarehouse) {
+          if (p.qtyMilli > 0) tally[p.warehouseId] = (tally[p.warehouseId] ?? 0) + 1;
+        }
+      }
+      setHeld(tally);
+    } catch { setHeld({}); }
   }
   useEffect(() => { load(); }, []);
 
@@ -203,79 +216,126 @@ export function InvSettingsView() {
     } finally { setBusy(false); }
   }
 
-  const WhChoice = ({ value, onPick }: { value: string | null; onPick: (id: string) => void }) => (
-    <div className="flex gap-2">
-      {whs.map((w) => (
-        <button key={w.id} type="button" disabled={busy} onClick={() => onPick(w.id)}
-          className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors disabled:opacity-60"
-          style={value === w.id
-            ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-          {w.name}
-        </button>
-      ))}
+  /* ── the page is four settings of two very different weights ────────────
+     Before 10 Aug they were one column of identical Fields squeezed into
+     640px on a 1900px screen. The owner: *"setting page ar size thik nei
+     and design o valo lage nai"*. Two real decisions now sit side by side
+     as cards; the two switches go below, quieter, label left / control
+     right. Nothing is wider than it needs to be, nothing is narrower.  */
+
+  const Pill = ({ on, tone = ACCENT, onClick, children }: {
+    on: boolean; tone?: string; onClick: () => void; children: React.ReactNode;
+  }) => (
+    <button type="button" disabled={busy} onClick={onClick}
+      className="text-[12.5px] font-medium px-4 py-2 rounded-full border transition-colors disabled:opacity-60"
+      style={on
+        ? { background: tone, color: "#fff", borderColor: tone }
+        : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+      {children}
+    </button>
+  );
+
+  const WhCard = ({ icon, title, blurb, value, onPick, foot }: {
+    icon: string; title: string; blurb: string;
+    value: string | null; onPick: (id: string) => void; foot: React.ReactNode;
+  }) => (
+    <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
+      <div className="flex items-center gap-2">
+        <span className="text-body-soft"><Icon name={icon} size={15} /></span>
+        <b className="text-[14px] text-purple">{title}</b>
+      </div>
+      <p className="text-[12.5px] text-body-soft mt-0.5 mb-3">{blurb}</p>
+      <div className="flex flex-wrap gap-2">
+        {whs.filter((w) => w.isActive).map((w) => (
+          <Pill key={w.id} on={value === w.id} onClick={() => onPick(w.id)}>{w.name}</Pill>
+        ))}
+      </div>
+      <div className="mt-3">{foot}</div>
     </div>
   );
+
+  const nameOf = (id: string | null) => whs.find((w) => w.id === id)?.name ?? null;
+  const others = whs.filter((w) => w.isActive && w.id !== settings?.defaultSaleWarehouseId);
+  const holdLine = (id: string | null) => {
+    if (!id) return "Not chosen yet";
+    const n = held[id] ?? 0;
+    return n > 0 ? `Holding ${n} item${n > 1 ? "s" : ""} right now` : "Currently holding nothing";
+  };
 
   return (
     <div className={WRAP}>
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Settings"
-        blurb="Where sales deduct from and where receiving lands."
+        blurb="How stock moves in and out."
       />
       {isDemo && <DemoBar what="sample settings" onRetry={load} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
       {settings && (
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 max-w-[640px]">
-          <Field label="Sales deduct from" required
-            hint="Every sale takes stock from this warehouse by default.">
-            <WhChoice value={settings.defaultSaleWarehouseId}
-              onPick={(id) => save({ defaultSaleWarehouseId: id })} />
-          </Field>
+        <div className="max-w-[1100px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 items-start">
+            <WhCard icon="bag" title="Sales leave from"
+              blurb="Where an order takes stock from first"
+              value={settings.defaultSaleWarehouseId}
+              onPick={(id) => save({ defaultSaleWarehouseId: id })}
+              foot={
+                /* DEC-INV-018 — the rule has to be readable HERE. A shop owner
+                   cannot trust behaviour nobody told him about. */
+                others.length > 0 ? (
+                  <span className="block text-[12px] rounded-[9px] px-2.5 py-2"
+                    style={{ background: "#e7f5f1", color: "#0e6b56" }}>
+                    Runs out here? The rest comes from{" "}
+                    <b>{others.map((w) => w.name).join(" / ")}</b> automatically (DEC-INV-018).
+                  </span>
+                ) : (
+                  <span className="text-[12px] text-body-soft">{holdLine(settings.defaultSaleWarehouseId)}</span>
+                )
+              }
+            />
 
-          <Field label="Purchases receive into" required
-            hint="Default destination when a purchase is received (arrives with the Purchase hook)">
-            <WhChoice value={settings.defaultReceiveWarehouseId}
-              onPick={(id) => save({ defaultReceiveWarehouseId: id })} />
-          </Field>
+            <WhCard icon="box" title="Purchases land in"
+              blurb="Where received goods are counted"
+              value={settings.defaultReceiveWarehouseId}
+              onPick={(id) => save({ defaultReceiveWarehouseId: id })}
+              foot={<span className="text-[12px] text-body-soft">{holdLine(settings.defaultReceiveWarehouseId)}</span>}
+            />
+          </div>
 
-          <Field label="Per-order warehouse choice"
-            hint="On: staff may pick a warehouse on each order; Off: the default above always applies">
-            <button type="button" disabled={busy}
-              onClick={() => save({ allowPerOrderWarehouse: !settings.allowPerOrderWarehouse })}
-              className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors disabled:opacity-60"
-              style={settings.allowPerOrderWarehouse
-                ? { background: "#0e7a3d", color: "#fff", borderColor: "#0e7a3d" }
-                : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-              {settings.allowPerOrderWarehouse ? "On — staff can choose per order" : "Off — always use the default"}
-            </button>
-          </Field>
-
-          <Field label="When stock hits zero"
-            hint="Allow keeps orders moving and flags the row; Block stops deductions below zero">
-            <div className="flex gap-2">
-              {([["ALLOW_WARN", "Allow negative + warn"], ["BLOCK", "Block below zero"]] as const).map(([k, label]) => (
-                <button key={k} type="button" disabled={busy}
-                  onClick={() => save({ negativeStockPolicy: k })}
-                  className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors disabled:opacity-60"
-                  style={settings.negativeStockPolicy === k
-                    ? { background: k === "ALLOW_WARN" ? "#b45309" : "#c0392b", color: "#fff", borderColor: "transparent" }
-                    : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-                  {label}
-                </button>
-              ))}
+          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 divide-y divide-lavender-deep/70">
+            <div className="flex items-start justify-between gap-6 py-4">
+              <span>
+                <b className="block text-[13.5px] text-body">Staff pick a store per order</b>
+                <span className="block text-[12.5px] text-body-soft">Off means the choices above always apply</span>
+              </span>
+              <Pill on={settings.allowPerOrderWarehouse} tone="#0e7a3d"
+                onClick={() => save({ allowPerOrderWarehouse: !settings.allowPerOrderWarehouse })}>
+                {settings.allowPerOrderWarehouse ? "On" : "Off"}
+              </Pill>
             </div>
-          </Field>
 
-          <p className="text-[12px] text-body-soft mb-0">
+            <div className="flex items-start justify-between gap-6 py-4">
+              <span>
+                <b className="block text-[13.5px] text-body">When every store is empty</b>
+                <span className="block text-[12.5px] text-body-soft">
+                  Allow keeps the order moving and turns the row red; Block refuses the sale
+                </span>
+              </span>
+              <span className="flex gap-2 shrink-0">
+                <Pill on={settings.negativeStockPolicy === "ALLOW_WARN"} tone="#b45309"
+                  onClick={() => save({ negativeStockPolicy: "ALLOW_WARN" })}>Allow, warn me</Pill>
+                <Pill on={settings.negativeStockPolicy === "BLOCK"} tone="#c0392b"
+                  onClick={() => save({ negativeStockPolicy: "BLOCK" })}>Block the sale</Pill>
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[12px] text-body-soft mt-3 mb-0">
             Every change is audited. To add, rename or close a store, go to{" "}
             <a href="/inventory/warehouses" className="underline font-medium" style={{ color: ACCENT }}>
               Inventory → Warehouses
-            </a>{" "}
-            (DEC-INV-017).
+            </a>.
           </p>
         </div>
       )}

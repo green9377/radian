@@ -650,10 +650,108 @@ export class InventoryService {
       }
     }
 
-    if (drafts.length) {
-      await this.prisma.db.$transaction(async (raw) => this.postMovements(asTx(raw), drafts));
+    const final =
+      params.direction === -1
+        ? await this.takeFromWhereverItIs(drafts)
+        : await this.mirrorOriginalSale(params.orderId, drafts);
+
+    if (final.length) {
+      await this.prisma.db.$transaction(async (raw) => this.postMovements(asTx(raw), final));
     }
-    return { posted: drafts.length, skipped };
+    return { posted: final.length, skipped };
+  }
+
+  /* ───────────────────────────────────────────────── DEC-INV-018 (10 Aug 2026)
+     Sell from where the goods actually are.
+
+     Owner's question: *"sales deduct krbe dhoro storeroom theke but main store a
+     stock ache — sale atke jabe naki?"*
+
+     Before this, the answer was ugly. The shop counts stock across ALL stores, so
+     the page said IN STOCK 50; the sale then deducted from the ONE default store,
+     drove it to −1, and never touched the 50 sitting next door. The sale went
+     through (right), but the ledger claimed a shortage that did not exist (wrong),
+     and only a human noticing the red row would ever fix it.
+
+     `Block below zero` is not the answer either — it refuses a sale for goods the
+     shop is holding. That is the worse mistake.
+
+     His ruling: take from the default store first, then from whichever store has
+     the rest. The movement note says where it came from, so the ledger reads like
+     what really happened. Nothing is ever blocked: if every store is dry, the
+     remainder still lands on the default and goes negative — which is now an
+     honest shortage rather than a bookkeeping artefact.
+     ───────────────────────────────────────────────────────────────────────── */
+  private async takeFromWhereverItIs(drafts: MovementDraft[]): Promise<MovementDraft[]> {
+    const out: MovementDraft[] = [];
+    /*  একই item দুই line-এ থাকলে দ্বিতীয়টা যেন প্রথমটার কাটা টাকা আবার না গোনে  */
+    const spent = new Map<string, number>();
+
+    for (const d of drafts) {
+      if (d.qtyMilli >= 0) { out.push(d); continue; }
+
+      const held = await this.prisma.db.inventoryStock.findMany({
+        where: { itemId: d.itemId, qtyMilli: { gt: 0 }, warehouse: { isActive: true } },
+        select: { warehouseId: true, qtyMilli: true, warehouse: { select: { name: true } } },
+      });
+      // default store first, then the fullest — fewest splits, least surprise
+      held.sort((a, b) =>
+        a.warehouseId === d.warehouseId ? -1
+          : b.warehouseId === d.warehouseId ? 1
+            : b.qtyMilli - a.qtyMilli);
+
+      let need = -d.qtyMilli;
+      for (const h of held) {
+        if (need <= 0) break;
+        const key = `${d.itemId}:${h.warehouseId}`;
+        const free = h.qtyMilli - (spent.get(key) ?? 0);
+        if (free <= 0) continue;
+        const take = Math.min(free, need);
+        spent.set(key, (spent.get(key) ?? 0) + take);
+        need -= take;
+        out.push({
+          ...d,
+          warehouseId: h.warehouseId,
+          qtyMilli: -take,
+          note: h.warehouseId === d.warehouseId ? d.note : `${d.note ?? ''} · from ${h.warehouse.name}`.trim(),
+        });
+      }
+      // nothing anywhere (or not enough) — the shortfall is real, book it on the default
+      if (need > 0) out.push({ ...d, qtyMilli: -need });
+    }
+    return out;
+  }
+
+  /**
+   * DEC-INV-018 — a cancel must put the goods back in the store they LEFT.
+   * The ledger already knows: read this order's own SALE movements instead of
+   * guessing the default, otherwise cancelling quietly moves stock between stores.
+   */
+  private async mirrorOriginalSale(orderId: string, drafts: MovementDraft[]): Promise<MovementDraft[]> {
+    const taken = await this.prisma.inventoryMovement.groupBy({
+      by: ['itemId', 'warehouseId'],
+      where: { refType: 'ORDER', refId: orderId, reason: 'SALE', qtyMilli: { lt: 0 } },
+      _sum: { qtyMilli: true },
+    });
+    if (!taken.length) return drafts;
+
+    const out: MovementDraft[] = [];
+    for (const d of drafts) {
+      if (d.qtyMilli <= 0) { out.push(d); continue; }
+      const rows = taken.filter((t) => t.itemId === d.itemId);
+      if (!rows.length) { out.push(d); continue; }
+
+      let left = d.qtyMilli;
+      for (const r of rows) {
+        if (left <= 0) break;
+        const give = Math.min(-(r._sum.qtyMilli ?? 0), left);
+        if (give <= 0) continue;
+        left -= give;
+        out.push({ ...d, warehouseId: r.warehouseId, qtyMilli: give });
+      }
+      if (left > 0) out.push({ ...d, qtyMilli: left });
+    }
+    return out;
   }
 
   /**
