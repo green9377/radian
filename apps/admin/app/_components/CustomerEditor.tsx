@@ -24,7 +24,6 @@ import {
   initials,
   shortDate,
   ago,
-  occasionDate,
   type Segment,
   type Recipient,
   type RecipientOccasion,
@@ -36,6 +35,7 @@ import { formatTaka, type Zone } from "../_data/products";
 import { isDemoMode } from "../_data/demoMode";
 import Icon from "./Icon";
 import PhoneField from "./PhoneField";
+import SpecialDateField from "./SpecialDateField";
 
 /*
   Customer Editor — add / edit for Customer Management.
@@ -50,14 +50,43 @@ import PhoneField from "./PhoneField";
   - Orders / lifetime value / deliveries are OWNED BY SALES — read-only (One Data, One Owner).
 */
 
+/*  ১০ আগস্ট — মালিক: *"protita card colorfull hok"*。 প্রতিটা অংশের নিজের রং,
+    কিন্তু সবগুলোই ব্র্যান্ডের ভেতর থেকে (বেগুনি → orchid → গোলাপি → rose gold)。
+    বাইরের রং ঢুকলে রঙিন নয়, এলোমেলো লাগত。 যেটা খোলা সেটা ভরাট হয়ে যায় — কোন
+    পাতায় আছেন, দূর থেকেই বোঝা যায়。                                          */
 const SECTIONS = [
-  ["profile", "Profile", "user"],
-  ["recipients", "Recipients", "pin"],
-  ["segments", "Segments & notes", "hash"],
-  ["orders", "Orders & value", "bag"],
-  ["activity", "Activity log", "clock"],
+  {
+    id: "profile", label: "Profile", blurb: "Name, phone, photo", icon: "user",
+    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
+    ink: "#3b0b52", sub: "#816894", strong: "#470066",
+    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+  },
+  {
+    id: "recipients", label: "Recipients", blurb: "Who they send to", icon: "pin",
+    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
+    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
+    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
+  },
+  {
+    id: "segments", label: "Segments", blurb: "Tags and notes", icon: "hash",
+    tint: "#f9e9fd", edge: "#eecffa", chip: "#eecffa",
+    ink: "#5e1a5c", sub: "#96639a", strong: "#8c2d84",
+    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#f0c4ec",
+  },
+  {
+    id: "orders", label: "Orders", blurb: "Value and history", icon: "bag",
+    tint: "#f8eef0", edge: "#e8c9ce", chip: "#e8c9ce",
+    ink: "#6d3a43", sub: "#a5757e", strong: "#98545f",
+    fill: "linear-gradient(100deg,#98545f,#c07f8a)", glow: "rgba(152,84,95,.26)", soft: "#eccdd2",
+  },
+  {
+    id: "activity", label: "Activity", blurb: "Every change, logged", icon: "clock",
+    tint: "#f3eff8", edge: "#e4dcee", chip: "#e4dcee",
+    ink: "#453556", sub: "#8b7c9c", strong: "#5f4b73",
+    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#ded4ec",
+  },
 ] as const;
-type SecId = (typeof SECTIONS)[number][0];
+type SecId = (typeof SECTIONS)[number]["id"];
 
 
 /* ---------- small building blocks (same visual language as ProductEditor) ---------- */
@@ -120,7 +149,6 @@ function Field({
   );
 }
 
-const gridCls = "grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4";
 const delBtn =
   "border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
 const addBtn =
@@ -133,23 +161,6 @@ const OCC_LABEL: Record<OccasionType, string> = {
   birthday: "Birthday",
   anniversary: "Anniversary",
   custom: "Custom",
-};
-
-/* ---- special-date helpers (DEC-CUS-010) ----------------------------------
-   The stored value stays "MM-DD" — the occasion list and the one-message-per-
-   year rule both match on it, and a birthday recurs whatever year it began.
-   The year is a separate, optional field, used only to SAY "11th this year".
-   February gets 29 on purpose: a 29 Feb birthday is real, and the reminder
-   list is what decides when to send in a common year — not this picker.     */
-const MONTHS = ["January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
-const pad2 = (v: string | number) => String(Number(v)).padStart(2, "0");
-const daysInMonth = (m: number) =>
-  [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Math.min(Math.max(m, 1), 12) - 1];
-const ordinal = (n: number) => {
-  if (n <= 0) return "1st";
-  const s = ["th", "st", "nd", "rd"][(n % 100 - 20) % 10] ?? ["th", "st", "nd", "rd"][n % 100] ?? "th";
-  return `${n}${s}`;
 };
 
 export default function CustomerEditor({ id }: { id?: string }) {
@@ -483,28 +494,44 @@ export default function CustomerEditor({ id }: { id?: string }) {
 
       <div className="flex gap-6 items-start">
         {/* section nav */}
-        <nav className="w-[196px] shrink-0 sticky top-[84px] hidden md:block">
-          {SECTIONS.map(([sid, label, icon]) => (
-            <button
-              key={sid}
-              type="button"
-              onClick={() => setSec(sid)}
-              className={
-                "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[11px] text-[13.5px] mb-1 text-left transition-colors " +
-                (sec === sid
-                  ? "bg-white text-purple font-medium shadow-soft border border-lavender-deep"
-                  : "text-body-soft hover:bg-white/60 hover:text-purple")
-              }
-            >
-              <Icon name={icon} size={18} />
-              {label}
-              {sid === "recipients" && recipients.length > 0 && (
-                <span className="ml-auto text-[11px] bg-lavender-deep/70 text-purple px-1.5 py-0.5 rounded-full">
-                  {recipients.length}
+        <nav className="w-[236px] shrink-0 sticky top-[84px] hidden md:grid gap-2">
+          {SECTIONS.map((s) => {
+            const on = sec === s.id;
+            const badge =
+              s.id === "recipients" && recipients.length > 0 ? String(recipients.length)
+                : s.id === "orders" && orders > 0 ? formatTaka(ltvPaisa)
+                  : null;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSec(s.id)}
+                className="w-full flex items-center gap-3 px-3.5 py-3 rounded-[14px] text-left transition-all"
+                style={on
+                  ? { background: s.fill, border: "1px solid transparent", boxShadow: `0 5px 16px ${s.glow}` }
+                  : { background: s.tint, border: `1px solid ${s.edge}` }}
+              >
+                <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0"
+                  style={{ background: on ? "rgba(255,255,255,.22)" : s.chip, color: on ? "#fff" : s.strong }}>
+                  <Icon name={s.icon} size={18} />
                 </span>
-              )}
-            </button>
-          ))}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-medium truncate"
+                    style={{ color: on ? "#fff" : s.ink }}>{s.label}</span>
+                  <span className="block text-[11px] truncate"
+                    style={{ color: on ? s.soft : s.sub }}>{s.blurb}</span>
+                </span>
+                {badge && (
+                  <span className="text-[11px] font-medium shrink-0 rounded-full grid place-items-center px-2 h-[20px]"
+                    style={on
+                      ? { background: "rgba(255,255,255,.25)", color: "#fff" }
+                      : { background: s.strong, color: "#fff" }}>
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* main column */}
@@ -516,9 +543,9 @@ export default function CustomerEditor({ id }: { id?: string }) {
               value={sec}
               onChange={(e) => setSec(e.target.value as SecId)}
             >
-              {SECTIONS.map(([sid, label]) => (
-                <option key={sid} value={sid}>
-                  {label}
+              {SECTIONS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
                 </option>
               ))}
             </select>
@@ -579,7 +606,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
               <Card
                 icon="user"
                 title="Profile"
-                hint="Phone is the login key, verified over WhatsApp."
+                
               >
                 {/*  ⚠️ ১০ আগস্ট — এখানে `gridCls` (auto-fit, minmax 220px) ছিল,
                     আর সেটাই ফোনের ঘরটা পিষে দিয়েছিল: চারটে মাঠ চার কলামে বসত,
@@ -596,7 +623,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                       placeholder="Nusrat Jahan"
                     />
                   </Field>
-                  <Field label="Email" note="Optional — for receipts & offers">
+                  <Field label="Email" >
                     <input
                       className="ipt h-[44px]"
                       value={email}
@@ -617,13 +644,13 @@ export default function CustomerEditor({ id }: { id?: string }) {
                         </span>
                       </span>
                     }
-                    note="✓ Verified over WhatsApp. Pick the country code, then type the number. Changing it re-verifies the account."
+                    note="Changing it re-verifies the account."
                   >
                     <PhoneField value={phone} onChange={setPhone} />
                   </Field>
                   <Field
                     label="Lives in"
-                    note="Many customers order from abroad (NRB) — it changes nothing about delivery, only who they are."
+                    
                   >
                     {/*  ১০ আগস্ট — এটা খোলা লেখার ঘর ছিল。 "Banglades" লিখলেও কেউ
                         ধরত না, আর NRB ফিল্টার country মিলিয়ে চলে。 তাই তালিকা。
@@ -649,7 +676,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Account status"
-                    note="Blocked = cannot log in or order. Data is kept (not deleted). Applies immediately — no need to Save."
+                    note="Blocked = cannot log in or order. Nothing is deleted."
                   >
                     <div className="inline-flex bg-lavender rounded-[11px] p-[4px] gap-[4px]">
                       {(["active", "blocked"] as CustomerStatus[]).map((s) => (
@@ -671,7 +698,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                       ))}
                     </div>
                   </Field>
-                  <Field label="Joined" note="Set by the system on first login — read-only.">
+                  <Field label="Joined" >
                     <input
                       className="ipt h-[44px] opacity-70"
                       value={id ? shortDate(joinedMs) : "— on first login —"}
@@ -684,7 +711,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
               <Card
                 icon="pin"
                 title="Own address"
-                hint="The customer’s own location."
+                
               >
                 <Field label="Address line" full>
                   <input
@@ -703,7 +730,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
             <Card
               icon="pin"
               title="Recipient book"
-              hint="People this customer sends gifts to, with their dates."
+              
             >
               <div className="flex flex-col gap-4">
                 {recipients.map((r) => (
@@ -867,53 +894,12 @@ export default function CustomerEditor({ id }: { id?: string }) {
                                 }
                               />
                             )}
-                            {/*  ১০ আগস্ট — আগে এখানে "MM-DD" টাইপ করতে হতো。
-                                কেউ তারিখ ওভাবে ভাবে না。 এখন দিন + মাস বাছাই,
-                                আর সাল ঐচ্ছিক (মালিকের রায়: গ্রাহক সাল দিলে
-                                রাখব, না দিলে নয় — DEC-CUS-010)。            */}
-                            <select
-                              className="ipt h-[38px] w-[86px]"
-                              value={Number(o.date.split("-")[1] ?? 1)}
-                              onChange={(e) =>
-                                patchOccasion(r.id, i, {
-                                  date: `${o.date.split("-")[0] ?? "01"}-${pad2(e.target.value)}`,
-                                })
-                              }
-                            >
-                              {Array.from({ length: daysInMonth(Number(o.date.split("-")[0] ?? 1)) }, (_, d) => d + 1)
-                                .map((d) => <option key={d} value={d}>{d}</option>)}
-                            </select>
-                            <select
-                              className="ipt h-[38px] w-[132px]"
-                              value={Number(o.date.split("-")[0] ?? 1)}
-                              onChange={(e) => {
-                                const m = Number(e.target.value);
-                                /*  ৩১ মার্চ থেকে ফেব্রুয়ারিতে গেলে দিনটা আর নেই —
-                                    চুপচাপ ভুল তারিখ না বানিয়ে শেষ দিনে নামাই。  */
-                                const day = Math.min(Number(o.date.split("-")[1] ?? 1), daysInMonth(m));
-                                patchOccasion(r.id, i, { date: `${pad2(m)}-${pad2(day)}` });
-                              }}
-                            >
-                              {MONTHS.map((mn, mi) => (
-                                <option key={mn} value={mi + 1}>{mn}</option>
-                              ))}
-                            </select>
-                            <input
-                              className="ipt h-[38px] w-[92px]"
-                              inputMode="numeric"
-                              placeholder="Year"
-                              title="Only if the customer gave it — birthdays repeat every year"
-                              value={o.year ?? ""}
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                patchOccasion(r.id, i, { year: v ? Number(v) : null });
-                              }}
+                            {/* one box, one calendar — DEC-CUS-010 */}
+                            <SpecialDateField
+                              date={o.date}
+                              year={o.year}
+                              onChange={(next) => patchOccasion(r.id, i, next)}
                             />
-                            <span className="text-[12.5px]"
-                              style={{ color: o.year ? "#b76e79" : "#8d7a97" }}>
-                              {occasionDate(o.date)}
-                              {o.year ? ` · ${ordinal(new Date().getFullYear() - o.year)} this year` : " · every year"}
-                            </span>
                             <button
                               type="button"
                               onClick={() => removeOccasion(r.id, i)}
