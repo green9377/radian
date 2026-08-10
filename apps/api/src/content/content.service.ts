@@ -252,7 +252,12 @@ export class ContentService {
       data.title = t;
     }
     if (dto.slug !== undefined) {
-      const s = slugify(String(dto.slug));
+      /*  ⚠️ Blanking the slug box used to SAVE an empty slug — the owner's
+          first article published with slug "" and its homepage card pointed
+          at /journal/, a page that does not exist (found live, 10 Aug 2026).
+          An empty slug is never what anyone meant: fall back to the title.  */
+      const s = slugify(String(dto.slug)) || slugify(String(data.title ?? before.title));
+      if (!s) throw new BadRequestException('A post needs an address — give it a slug or a title');
       if (s !== before.slug) {
         const clash = await this.prisma.journalPost.findUnique({ where: { slug: s } });
         if (clash) throw new BadRequestException(`The address "${s}" is already used`);
@@ -280,6 +285,15 @@ export class ContentService {
       data.isPublished = pub;
       // first publish stamps the date; unpublishing does not erase it
       if (pub && !before.publishedAt) data.publishedAt = new Date();
+      /*  Publishing with an empty slug puts a card on the homepage that links
+          to /journal/ — nowhere. Repair it from the title at the moment it
+          matters, for rows that predate the guard above.  */
+      if (pub && !(data.slug ?? before.slug)) {
+        const repaired = slugify(String(data.title ?? before.title));
+        if (!repaired) throw new BadRequestException('Give the post a title before publishing');
+        const clash = await this.prisma.journalPost.findUnique({ where: { slug: repaired } });
+        data.slug = clash ? `${repaired}-${Date.now() % 10000}` : repaired;
+      }
     }
 
     const row = await this.prisma.db.journalPost.update({ where: { id }, data });
