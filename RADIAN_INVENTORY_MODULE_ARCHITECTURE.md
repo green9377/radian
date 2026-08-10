@@ -227,6 +227,44 @@ purchases → Storeroom, sales → Main store.
 **Impact:** Inventory, Purchase, Assembly, Administration (access key
 `inventory.warehouses`).
 
+### DEC-INV-018 — A sale comes out of the store that actually has the goods
+_(10 Aug 2026)_
+
+**The question, from the owner:** *"sales deduct krbe dhoro storeroom theke but
+main store a stock ache — sale atke jabe naki?"*
+
+**What used to happen, and why it was wrong.** The shop counts stock across ALL
+stores (`InventoryStock.groupBy` by item), so the page said IN STOCK 50. The sale
+then deducted from the ONE default store, drove it to −1, and never touched the 50
+sitting next door. The sale went through — correct — but the ledger claimed a
+shortage that did not exist, and only a human noticing the red row would ever
+reconcile it. Flipping `negativeStockPolicy` to BLOCK is worse: it refuses a sale
+for goods the shop is holding.
+
+**Decision:** the sale deduction is split across stores.
+
+1. take from the default sale warehouse first;
+2. then from the remaining active stores, **fullest first** (fewest splits);
+3. each non-default movement carries `· from <Warehouse>` in its note, so the
+   ledger reads like what really happened;
+4. if the stores together cannot cover it, the shortfall books on the default and
+   goes negative. **A sale is never refused** — DEC-INV-011 stands.
+
+**Cancel mirrors the original.** A revert reads this order's own SALE movements
+(`refType: ORDER`) and puts each piece back in the store it left. Guessing the
+default would have quietly moved stock between stores on every cancellation.
+
+**Not changed:** a sale RETURN still lands in the default sale warehouse — goods
+physically coming back arrive at the counter, which is not a reversal of a booking.
+
+**Testable without a database.** The arithmetic lives in
+`src/inventory/split-stores.ts` as a pure function; `scripts/split-stores.selftest.mjs`
+proves ten cases plus conservation (the pieces always add up to what was asked for)
+in about a second, and runs at the top of `RUN_TESTS.bat`. A rule that needs
+Postgres to test is a rule nobody tests.
+
+**Impact:** Inventory, Sales, POS, Delivery.
+
 ## 4. Business rules (service layer; cite in code)
 
 | # | Rule | Cite |

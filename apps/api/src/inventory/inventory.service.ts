@@ -4,6 +4,7 @@ import { MovementReason, Prisma, type InventoryMovement } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
 import { AuditService } from '../common/audit.service';
+import { splitAcrossStores } from './split-stores'; // DEC-INV-018
 import type {
   AdjustmentDto,
   IssueCreateDto,
@@ -684,7 +685,7 @@ export class InventoryService {
      ───────────────────────────────────────────────────────────────────────── */
   private async takeFromWhereverItIs(drafts: MovementDraft[]): Promise<MovementDraft[]> {
     const out: MovementDraft[] = [];
-    /*  একই item দুই line-এ থাকলে দ্বিতীয়টা যেন প্রথমটার কাটা টাকা আবার না গোনে  */
+    /*  একই item দুই line-এ থাকলে দ্বিতীয়টা যেন প্রথমটার কাটা মাল আবার না গোনে  */
     const spent = new Map<string, number>();
 
     for (const d of drafts) {
@@ -694,30 +695,26 @@ export class InventoryService {
         where: { itemId: d.itemId, qtyMilli: { gt: 0 }, warehouse: { isActive: true } },
         select: { warehouseId: true, qtyMilli: true, warehouse: { select: { name: true } } },
       });
-      // default store first, then the fullest — fewest splits, least surprise
-      held.sort((a, b) =>
-        a.warehouseId === d.warehouseId ? -1
-          : b.warehouseId === d.warehouseId ? 1
-            : b.qtyMilli - a.qtyMilli);
 
-      let need = -d.qtyMilli;
-      for (const h of held) {
-        if (need <= 0) break;
-        const key = `${d.itemId}:${h.warehouseId}`;
-        const free = h.qtyMilli - (spent.get(key) ?? 0);
-        if (free <= 0) continue;
-        const take = Math.min(free, need);
-        spent.set(key, (spent.get(key) ?? 0) + take);
-        need -= take;
+      const takes = splitAcrossStores(
+        -d.qtyMilli,
+        held.map((h) => ({
+          warehouseId: h.warehouseId,
+          name: h.warehouse.name,
+          freeMilli: h.qtyMilli - (spent.get(`${d.itemId}:${h.warehouseId}`) ?? 0),
+        })),
+        d.warehouseId,
+      );
+
+      for (const t of takes) {
+        spent.set(`${d.itemId}:${t.warehouseId}`, (spent.get(`${d.itemId}:${t.warehouseId}`) ?? 0) + t.takeMilli);
         out.push({
           ...d,
-          warehouseId: h.warehouseId,
-          qtyMilli: -take,
-          note: h.warehouseId === d.warehouseId ? d.note : `${d.note ?? ''} · from ${h.warehouse.name}`.trim(),
+          warehouseId: t.warehouseId,
+          qtyMilli: -t.takeMilli,
+          note: t.name ? `${d.note ?? ''} · from ${t.name}`.trim() : d.note,
         });
       }
-      // nothing anywhere (or not enough) — the shortfall is real, book it on the default
-      if (need > 0) out.push({ ...d, qtyMilli: -need });
     }
     return out;
   }
