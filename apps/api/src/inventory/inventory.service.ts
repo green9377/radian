@@ -1064,6 +1064,157 @@ export class InventoryService {
     return this.prisma.db.warehouse.findMany({ orderBy: { createdAt: 'asc' } });
   }
 
+  /* ─────────────────────────────────────────────────────────── warehouses
+     DEC-INV-017 (10 Aug 2026) — the owner can finally make his own stores.
+
+     Owner: *"amk abr blo amr inevntory add hoy nai karon amr gudam ar setup
+     kri nai"* — and he was half right. Stock could not land because there was
+     no warehouse; but there was also **no way for him to make one**. The seed
+     never ran on his database, the API only read, and no screen existed. He was
+     blamed for not doing something the system never let him do.
+
+     Every rule below is his ruling, 10 Aug:
+       · two stores are the normal shape — goods land in the storeroom, sales
+         leave from the shop, Transfer moves between them
+       · closing a store that still holds goods is REFUSED, not warned: those
+         goods would vanish from the count and the money figure would lie.
+     ───────────────────────────────────────────────────────────────────── */
+
+  /** shouty, no spaces — it is a key people type, not a sentence */
+  private normaliseCode(raw: string): string {
+    const code = (raw ?? '').trim().toUpperCase().replace(/\s+/g, '_');
+    if (!/^[A-Z0-9_-]{2,16}$/.test(code)) {
+      throw new BadRequestException(
+        'Short code: 2-16 characters, letters/numbers/underscore only (e.g. SHOP, STORE, UTTARA)',
+      );
+    }
+    return code;
+  }
+
+  async createWarehouse(dto: { code: string; name: string; address?: string; actorName?: string }) {
+    const actor = dto.actorName ?? 'Admin';
+    const code = this.normaliseCode(dto.code);
+    const name = (dto.name ?? '').trim();
+    if (name.length < 2) throw new BadRequestException('Give the store a name');
+
+    /*  code is unique across deleted rows too — revive rather than collide,
+        the same trap ensureWarehouseId() fell into (DEC-INV-016).            */
+    const existing = await this.prisma.warehouse.findUnique({ where: { code } });
+    if (existing && !existing.deletedAt) {
+      throw new BadRequestException(`"${code}" is already used by ${existing.name}`);
+    }
+    const row = existing
+      ? await this.prisma.warehouse.update({
+          where: { id: existing.id },
+          data: { name, address: dto.address ?? null, isActive: true, deletedAt: null },
+        })
+      : await this.prisma.db.warehouse.create({
+          data: { code, name, address: dto.address ?? null, isActive: true },
+        });
+
+    await this.audit.record({
+      entityType: 'Warehouse', entityId: row.id, action: 'CREATE', actorName: actor,
+      changes: { code, name, address: dto.address ?? null },
+    });
+    return row;
+  }
+
+  async updateWarehouse(
+    id: string,
+    patch: { name?: string; address?: string | null; isActive?: boolean; actorName?: string },
+  ) {
+    const actor = patch.actorName ?? 'Admin';
+    const wh = await this.prisma.db.warehouse.findFirst({ where: { id } });
+    if (!wh) throw new NotFoundException('Warehouse not found');
+
+    if (patch.isActive === false && wh.isActive) await this.assertClosable(wh);
+
+    const name = patch.name !== undefined ? patch.name.trim() : wh.name;
+    if (name.length < 2) throw new BadRequestException('Give the store a name');
+
+    const row = await this.prisma.db.warehouse.update({
+      where: { id },
+      data: {
+        name,
+        address: patch.address !== undefined ? patch.address : wh.address,
+        isActive: patch.isActive ?? wh.isActive,
+      },
+    });
+    await this.audit.record({
+      entityType: 'Warehouse', entityId: id, action: 'UPDATE', actorName: actor,
+      changes: { before: { name: wh.name, address: wh.address, isActive: wh.isActive }, after: row },
+    });
+    return row;
+  }
+
+  /** soft delete — history never disappears (core rule 5) */
+  async deleteWarehouse(id: string, actorName?: string) {
+    const actor = actorName ?? 'Admin';
+    const wh = await this.prisma.db.warehouse.findFirst({ where: { id } });
+    if (!wh) throw new NotFoundException('Warehouse not found');
+    await this.assertClosable(wh);
+
+    const moved = await this.prisma.inventoryMovement.count({ where: { warehouseId: id } });
+    if (moved > 0) {
+      /*  একবার ledger-এ নাম উঠে গেলে সারি মুছলে পুরনো movement অনাথ হয়ে যায়।  */
+      throw new BadRequestException(
+        `"${wh.name}" already has ${moved} stock movement(s) in its history — close it instead of deleting, so the old records still make sense`,
+      );
+    }
+    await this.prisma.db.warehouse.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+    await this.audit.record({
+      entityType: 'Warehouse', entityId: id, action: 'DELETE', actorName: actor,
+      changes: { code: wh.code, name: wh.name },
+    });
+    return { ok: true };
+  }
+
+  /**
+   * ওনার রায় (১০ আগস্ট): মাল রেখে গুদাম বন্ধ করা যাবে না — সতর্ক করে নয়,
+   * সরাসরি আটকে। কারণ বন্ধ গুদামের মাল হিসাব থেকে উবে যায়, আর তখন টাকার
+   * অঙ্কটাই মিথ্যা বলে।
+   */
+  private async assertClosable(wh: { id: string; name: string }) {
+    const held = await this.prisma.inventoryStock.findMany({
+      where: { warehouseId: wh.id, NOT: { qtyMilli: 0 } },
+      include: { item: { select: { name: true } } },
+      take: 4,
+    });
+    if (held.length) {
+      const names = held
+        .map((h) => `${h.item.name} ${(h.qtyMilli / 1000).toLocaleString('en-US')}`)
+        .join(', ');
+      throw new BadRequestException(
+        `"${wh.name}" still holds stock (${names}) — move it out with a Transfer first, then close`,
+      );
+    }
+
+    const others = await this.prisma.db.warehouse.count({
+      where: { isActive: true, NOT: { id: wh.id } },
+    });
+    if (others === 0) {
+      throw new BadRequestException(
+        `"${wh.name}" is the only store left — the shop must have somewhere to put things. Make another one first`,
+      );
+    }
+
+    const s = await this.settings();
+    const uses = [
+      s.defaultSaleWarehouseId === wh.id && 'sales deduct from it',
+      s.defaultReceiveWarehouseId === wh.id && 'purchases receive into it',
+      s.defaultAssemblyComponentWarehouseId === wh.id && 'assembly takes components from it',
+      s.defaultAssemblyFinishedWarehouseId === wh.id && 'assembly puts finished goods in it',
+    ].filter(Boolean);
+    if (uses.length) {
+      throw new BadRequestException(
+        `"${wh.name}" is still in use — ${uses.join(' and ')}. Point Inventory → Settings somewhere else first`,
+      );
+    }
+  }
+
   async settings() {
     // ensureSingleton — survives two requests creating this row at once (P2002)
     return ensureSingleton(

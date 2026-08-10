@@ -271,7 +271,11 @@ export function InvSettingsView() {
           </Field>
 
           <p className="text-[12px] text-body-soft mb-0">
-            Every change is audited. Warehouse names are managed by the future Warehouse module (DEC-INV-014).
+            Every change is audited. To add, rename or close a store, go to{" "}
+            <a href="/inventory/warehouses" className="underline font-medium" style={{ color: ACCENT }}>
+              Inventory → Warehouses
+            </a>{" "}
+            (DEC-INV-017).
           </p>
         </div>
       )}

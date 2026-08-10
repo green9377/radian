@@ -3380,8 +3380,9 @@ export const getPurchasePriceHistory = (itemId: string) =>
 
 export interface ApiWarehouse {
   id: string;
-  code: string; // SHOP · STORE
-  name: string; // দোকান · স্টোররুম
+  code: string; // SHOP · STORE · any code the owner types
+  name: string;
+  address?: string | null;
   isActive: boolean;
 }
 
@@ -3452,6 +3453,15 @@ export const INV_REASON_META: Record<InvReason, { label: string; colour: string;
 };
 
 export const listInvWarehouses = () => j<ApiWarehouse[]>(`/inventory/warehouses`);
+/* DEC-INV-017 — the owner makes and names his own stores */
+export const createInvWarehouse = (b: { code: string; name: string; address?: string }) =>
+  j<ApiWarehouse>(`/inventory/warehouses`, { method: "POST", body: JSON.stringify(b) });
+export const updateInvWarehouse = (
+  id: string,
+  b: { name?: string; address?: string | null; isActive?: boolean },
+) => j<ApiWarehouse>(`/inventory/warehouses/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deleteInvWarehouse = (id: string) =>
+  j<{ ok: boolean }>(`/inventory/warehouses/${id}`, { method: "DELETE" });
 export const getInvOverview = () => j<InvOverview>(`/inventory/overview`);
 export const listInvStock = (params?: { search?: string; filter?: string }) => {
   const q = new URLSearchParams();

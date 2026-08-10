@@ -331,6 +331,7 @@ const GROUPS: Group[] = [
           { label: "Wastage & Gift", href: "/inventory/issue" },
           { label: "Stocktake", href: "/inventory/stocktake" },
           { label: "Movements", href: "/inventory/movements" },
+          { label: "Warehouses", href: "/inventory/warehouses" },
           { label: "Reports", href: "/inventory/reports" },
           { label: "Settings", href: "/inventory/settings" },
         ],

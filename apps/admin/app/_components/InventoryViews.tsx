@@ -178,7 +178,14 @@ export function InventoryOverview() {
 
 /* ============================================================== STOCK BOARD */
 
-const ROW = "grid grid-cols-[44px_minmax(180px,1.4fr)_1fr_1fr_1fr_100px_110px_74px] gap-3 items-center px-4 py-3";
+/*  DEC-INV-017 — the columns are the warehouses that EXIST, not two guesses.
+    Until 10 Aug this row hardcoded SHOP and STORE, and when a warehouse was
+    missing it printed the name "Storeroom" anyway with a 0 under it. The owner
+    was looking at a store that had never been created. Empty means empty.     */
+const ROW = "grid gap-3 items-center px-4 py-3";
+const rowCols = (warehouses: number) => ({
+  gridTemplateColumns: `44px minmax(180px,1.4fr) ${'1fr '.repeat(Math.max(warehouses, 0) + 1)}100px 110px 74px`,
+});
 
 export function InvStockBoard() {
   const [rows, setRows] = useState<InvStockRow[]>([]);
@@ -213,12 +220,9 @@ export function InvStockBoard() {
     return r;
   }, [rows, search, filter]);
 
-  const whQty = (r: InvStockRow, code: string) => {
-    const wh = whs.find((w) => w.code === code);
-    const hit = wh ? r.perWarehouse.find((p) => p.warehouseId === wh.id) : undefined;
-    return hit?.qtyMilli ?? 0;
-  };
-  const whName = (code: string) => whs.find((w) => w.code === code)?.name ?? (code === "SHOP" ? "Shop" : "Storeroom");
+  const cols = whs.filter((w) => w.isActive);
+  const whQty = (r: InvStockRow, id: string) =>
+    r.perWarehouse.find((p) => p.warehouseId === id)?.qtyMilli ?? 0;
 
   const totalValue = shown.reduce((s, r) => s + Math.max(r.valuePaisa, 0), 0);
 
@@ -268,10 +272,10 @@ export function InvStockBoard() {
       </div>
 
       <DataTable head={
-        <div className={ROW + " text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95"}>
+        <div className={ROW + " text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95"}
+          style={rowCols(cols.length)}>
           <span /><span>Item</span>
-          <span className="text-right">{whName("SHOP")}</span>
-          <span className="text-right">{whName("STORE")}</span>
+          {cols.map((w) => <span key={w.id} className="text-right">{w.name}</span>)}
           <span className="text-right">Total</span>
           <span className="text-right">@ cost</span>
           <span className="text-right">Value</span>
@@ -285,7 +289,8 @@ export function InvStockBoard() {
           </div>
         )}
         {shown.map((r) => (
-          <div key={r.itemId} className={ROW + (r.isNegative ? " bg-[#fdecea]/40" : r.isLow ? " bg-[#fff4e6]/40" : "")}>
+          <div key={r.itemId} style={rowCols(cols.length)}
+            className={ROW + (r.isNegative ? " bg-[#fdecea]/40" : r.isLow ? " bg-[#fff4e6]/40" : "")}>
             <ItemThumb item={r} size={38} />
             <span className="min-w-0">
               <span className="block text-[13.5px] font-semibold text-body truncate">
@@ -296,14 +301,14 @@ export function InvStockBoard() {
             </span>
             {r.assemblyMode === "MAKE_TO_ORDER" ? (
               <>
-                <span className="text-right text-[12.5px] text-body-soft">—</span>
-                <span className="text-right text-[12.5px] text-body-soft">—</span>
+                {cols.map((w) => <span key={w.id} className="text-right text-[12.5px] text-body-soft">—</span>)}
                 <span className="text-right"><StockNum r={r} /></span>
               </>
             ) : (
               <>
-                <span className="text-right text-[13px] text-body">{fmtQty(whQty(r, "SHOP"))}</span>
-                <span className="text-right text-[13px] text-body">{fmtQty(whQty(r, "STORE"))}</span>
+                {cols.map((w) => (
+                  <span key={w.id} className="text-right text-[13px] text-body">{fmtQty(whQty(r, w.id))}</span>
+                ))}
                 <span className="text-right"><StockNum r={r} /></span>
               </>
             )}

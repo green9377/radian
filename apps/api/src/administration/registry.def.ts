@@ -867,6 +867,16 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 80
   },
   {
+    "key": "inventory.warehouses",
+    "parentKey": "inventory",
+    "kind": "SCREEN",
+    "label": "Warehouses",
+    "domain": "Operations",
+    "href": "/inventory/warehouses",
+    "legacyRoles": null,
+    "sortOrder": 80.5
+  },
+  {
     "key": "inventory.reports",
     "parentKey": "inventory",
     "kind": "SCREEN",

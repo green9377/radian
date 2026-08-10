@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import type {
   AdjustmentDto,
@@ -44,6 +44,30 @@ export class InventoryController {
   @Get('warehouses')
   warehouses() {
     return this.svc.warehouses();
+  }
+
+  /* ---- warehouses, DEC-INV-017 — the owner makes his own stores ---- */
+
+  @Post('warehouses')
+  createWarehouse(
+    @Body() dto: { code: string; name: string; address?: string; actorName?: string },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.createWarehouse({ ...dto, actorName: dto.actorName ?? actor });
+  }
+
+  @Patch('warehouses/:id')
+  updateWarehouse(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; address?: string | null; isActive?: boolean; actorName?: string },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.updateWarehouse(id, { ...dto, actorName: dto.actorName ?? actor });
+  }
+
+  @Delete('warehouses/:id')
+  deleteWarehouse(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.svc.deleteWarehouse(id, actor);
   }
 
   @Get('settings')
