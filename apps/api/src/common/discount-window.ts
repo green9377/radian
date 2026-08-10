@@ -39,9 +39,47 @@ export interface DiscountWindow {
  */
 export function discountLive(w: DiscountWindow, at: Date = new Date()): boolean {
   const now = at.getTime();
-  if (w.discountStartsAt && startOfBdDay(w.discountStartsAt) > now) return false;
-  if (w.discountEndsAt && endOfBdDay(w.discountEndsAt) < now) return false;
+  const s = windowStartMs(w.discountStartsAt);
+  const e = windowEndMs(w.discountEndsAt);
+  if (s !== null && s > now) return false;
+  if (e !== null && e < now) return false;
   return true;
+}
+
+/**
+ * DEC-PRD-042 (১০ আগস্ট ২০২৬) — মালিক এখন সময়ও বসাতে চান।
+ *
+ * আগের নিয়মটা পুরো দিন ধরত: শুরু = ওই দিনের ০০:০০, শেষ = ২৩:৫৯:৫৯。 ফলে
+ * "রাত ৯টায় শেষ" বলার কোনো উপায় ছিল না — সময় পাঠালেও ফেলে দেওয়া হতো。
+ *
+ * এখন: **মালিক সময় দিলে সেই সময়টাই**, না দিলে আগের আচরণই — শুরুর দিনের
+ * শুরু, শেষ দিনের শেষ。 তাঁর ৩ আগস্টের রায় ("১০ তারিখ পর্যন্ত মানে ১০
+ * তারিখ দিনটাও") তাই অক্ষত থাকল, আর মধ্যরাতের অফার এখন সম্ভব。
+ *
+ * ⚠️ "সময় দেওয়া হয়েছে" চেনার উপায় — বাংলাদেশ সময়ে মধ্যরাত কি না。 admin
+ * তারিখ-মাত্র হলে ঠিক 00:00:00 BD পাঠায়; সময় বসালে অন্য কিছু。 সীমারেখার
+ * ঠিক উপরের এক সেকেন্ড (রাত ১২টায় শেষ) তাই দিনের শেষ ধরা হবে — সেটাই
+ * মালিকের বোঝানো জিনিস。
+ */
+function windowStartMs(d?: Date | null): number | null {
+  if (!d) return null;
+  return hasTimeOfDay(d) ? d.getTime() : startOfBdDay(d);
+}
+function windowEndMs(d?: Date | null): number | null {
+  if (!d) return null;
+  return hasTimeOfDay(d) ? d.getTime() : endOfBdDay(d);
+}
+function hasTimeOfDay(d: Date): boolean {
+  return (d.getTime() + BD_OFFSET_MS) % DAY_MS !== 0;
+}
+
+/** the moment this discount stops, in epoch ms — `null` = no end (storefront countdown) */
+export function discountEndsMs(w: DiscountWindow): number | null {
+  return windowEndMs(w.discountEndsAt);
+}
+/** the moment it starts, in epoch ms — `null` = already running */
+export function discountStartsMs(w: DiscountWindow): number | null {
+  return windowStartMs(w.discountStartsAt);
 }
 
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000;

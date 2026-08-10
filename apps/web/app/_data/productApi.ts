@@ -87,6 +87,8 @@ export interface ApiProductDetail {
   pricePaisa: number;
   unitSuffix: string | null;
   mrpPaisa: number | null;
+  /** DEC-PRD-042 — when the offer ends, so the page can say so */
+  offer?: { endsAtMs: number | null; startsAtMs: number | null; percentOff: number } | null;
   /** DEC-PRD-035 — headline is the cheapest variant, page says "from" */
   priceFrom?: boolean;
   zone: "dhaka" | "both";
@@ -533,6 +535,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
             }`,
     },
     mrpPaisa: a.mrpPaisa,
+    /*  ⚠️ Forgetting this one line is exactly how the dates stayed invisible
+        for a week: the API sent them, nothing carried them across.  */
+    offer: a.offer ?? null,
     priceFrom: a.priceFrom,
     unitSuffix: a.unitSuffix,
     /*  Checkout reads this to work out the earliest date and to grey out

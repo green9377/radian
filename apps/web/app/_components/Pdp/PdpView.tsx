@@ -17,6 +17,7 @@ import {
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
+import OfferWindow from "./OfferWindow";
 import { BundleCards, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
 import { bundleTotals } from "../../_data/bundlePricing";
 
@@ -700,6 +701,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               </>
             )}
           </div>
+
+          {/*  DEC-PRD-042 — when the offer ends, right under the price where the
+              eye already is. Only alongside a real struck price: a window with
+              nothing struck through is not an offer, and a variant's own price
+              is not covered by the product's window.  */}
+          {wasPaisa !== null && !variant && !bundled && detail.offer?.endsAtMs != null && (
+            <OfferWindow endsAtMs={detail.offer.endsAtMs} />
+          )}
 
           <div className="h-px bg-lavender-deep my-[18px]" />
 

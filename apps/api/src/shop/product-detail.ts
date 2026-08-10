@@ -15,7 +15,7 @@ import { ShopCatalogModule, ShopCatalogService, type ShopProduct } from './catal
     order endpoint. Two copies of "is it buyable" is how a page ends up saying
     "Out of stock" above a button that still takes money. */
 import { availabilityOf, type Availability } from '../common/availability';
-import { paidPaisa } from '../common/discount-window';
+import { paidPaisa, discountEndsMs, discountStartsMs } from '../common/discount-window';
 import { bareImageUrl } from '../common/image-url';
 
 /*
@@ -97,6 +97,29 @@ export { paidPaisa };
  * Null when nothing is off, so the page can simply not draw the line rather
  * than draw a strike-through equal to the price.
  */
+/**
+ * DEC-PRD-042 — what the shop needs to talk about the offer, or null.
+ *
+ * Deliberately returns null unless a discount is REALLY reducing the price
+ * right now: a window on a product with no discount is not an offer, and an
+ * expired one must not leave a countdown behind.
+ */
+export function offerOrNull(p: {
+  sellingPricePaisa: number;
+  discountType: 'NONE' | 'FLAT' | 'PERCENT';
+  discountValue: number;
+  discountStartsAt?: Date | null;
+  discountEndsAt?: Date | null;
+}): ShopOfferWindow | null {
+  const paid = paidPaisa(p);
+  if (paid >= p.sellingPricePaisa || p.sellingPricePaisa <= 0) return null;
+  return {
+    endsAtMs: discountEndsMs(p),
+    startsAtMs: discountStartsMs(p),
+    percentOff: Math.round(((p.sellingPricePaisa - paid) / p.sellingPricePaisa) * 100),
+  };
+}
+
 export function mrpOrNull(p: {
   sellingPricePaisa: number;
   discountType: 'NONE' | 'FLAT' | 'PERCENT';
@@ -185,6 +208,25 @@ const BUNDLE_ADDS = {
   */
 };
 
+/**
+ * DEC-PRD-042 — the offer window, sent to the shop.
+ *
+ * Owner, 10 Aug 2026: the start and end he sets *"just admin a thake, amder
+ * frontend a show kre na"*. Quite right — the dates gated the price and then
+ * stayed behind the counter, so a shopper could not tell whether the number
+ * in front of them was ending tonight or standing all month.
+ *
+ * `endsAtMs` is an absolute instant, not a formatted string: the page draws a
+ * calm date most of the time and a live countdown in the final hours, and both
+ * need arithmetic, not prose. `null` means no end — nothing is drawn.
+ */
+export interface ShopOfferWindow {
+  endsAtMs: number | null;
+  startsAtMs: number | null;
+  /** whole percent off, for the badge — computed, never stored */
+  percentOff: number;
+}
+
 export interface ShopProductDetail {
   slug: string;
   name: string;
@@ -192,6 +234,8 @@ export interface ShopProductDetail {
   typeText: string | null;
   /** what they pay today — integer paisa */
   pricePaisa: number;
+  /** DEC-PRD-042 — null when nothing is discounted right now */
+  offer: ShopOfferWindow | null;
   /**
    * "stick", "kg" — printed after the price as "৳2,400 / stick".
    *
@@ -732,6 +776,13 @@ export class ProductDetailService {
           ),
         );
       })(),
+      /*  DEC-PRD-042 — the window itself, so the page can say when it ends.
+          Suppressed on a "from ৳X" product: that headline is a variant's
+          price, and the product's own window says nothing true about it.  */
+      offer:
+        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null)
+          ? null
+          : offerOrNull(money),
       /*  true → the page writes "from ৳450" and draws no struck price  */
       priceFrom:
         p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null),

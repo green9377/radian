@@ -595,6 +595,32 @@ const addBtn =
 const gridCls =
   "grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4";
 
+/* ── the offer window, in Dhaka time — DEC-PRD-042 ─────────────────────────
+   A shop day is a Dhaka day. If these conversions used the browser's own
+   zone, the same offer would start at a different moment depending on which
+   laptop saved it, and an owner travelling abroad would quietly move every
+   sale he touched. Both directions are pinned to +06:00.
+
+   `discountStartsAt`/`EndsAt` travel as instants (ISO with the offset);
+   `<input type="datetime-local">` speaks "YYYY-MM-DDTHH:mm" with no zone.
+   These two functions are the only bridge between them.                    */
+const BD_OFFSET_MIN = 6 * 60;
+
+export function toDhakaLocal(iso?: string | null): string {
+  if (!iso) return "";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  return new Date(t + BD_OFFSET_MIN * 60_000).toISOString().slice(0, 16);
+}
+
+/** "" → null. A date with no time takes `fallbackTime` (start 00:00, end 23:59). */
+export function fromDhakaLocal(local: string, fallbackTime: string): string | null {
+  if (!local) return null;
+  const [d, tm] = local.split("T");
+  if (!d) return null;
+  return `${d}T${(tm && tm.length >= 4 ? tm : fallbackTime)}:00+06:00`;
+}
+
 /**
  * Two even columns, generous rows.
  *
@@ -1479,8 +1505,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           setPreorderDate(p.preorderDate ? p.preorderDate.slice(0, 10) : "");
           /*  DEC-PRD-028 — `slice(0,10)`, not `new Date()`: if the browser's
               timezone creeps in, the date can shift by a day.  */
-          setDiscStart(p.discountStartsAt ? p.discountStartsAt.slice(0, 10) : "");
-          setDiscEnd(p.discountEndsAt ? p.discountEndsAt.slice(0, 10) : "");
+          /*  DEC-PRD-042 — datetime-local wants "YYYY-MM-DDTHH:mm" in DHAKA
+              time. The API stores an instant; converting with the browser's
+              own clock would show a Dubai laptop the wrong hour.  */
+          setDiscStart(toDhakaLocal(p.discountStartsAt));
+          setDiscEnd(toDhakaLocal(p.discountEndsAt));
           setLead(String(p.leadTimeDays ?? 0));
 
           // delivery
@@ -1728,8 +1757,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           of the day. ⚠️ `23:59:59` on the end date — otherwise "until 10
           Aug" would mean the discount ends at 12:01 AM on the 10th, losing
           the whole day.  */
-      discountStartsAt: discStart ? new Date(discStart + "T00:00:00").toISOString() : null,
-      discountEndsAt: discEnd ? new Date(discEnd + "T23:59:59").toISOString() : null,
+      /*  ⚠️ `new Date("2026-08-12T00:00:00")` reads the STAFF LAPTOP's zone.
+          A shop day is a Dhaka day, so the offset is written explicitly —
+          otherwise the same offer starts at different moments depending on
+          who saved it (DEC-PRD-042).  */
+      discountStartsAt: fromDhakaLocal(discStart, "00:00"),
+      discountEndsAt: fromDhakaLocal(discEnd, "23:59"),
       discountValue:
         discType === "FLAT"
           ? toPaisa(discVal)
@@ -2072,12 +2105,22 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     'discLive' before initialization" — this mistake happened twice on
     2 Aug.
   */
+  /*  DEC-PRD-042 — compares INSTANTS now, not "YYYY-MM-DD" strings. The old
+      string compare could not see a time at all, so an offer that ended at
+      9 PM read "Running" until midnight — the admin disagreeing with the
+      shop is precisely what this line exists to prevent.  */
   const discLive = (() => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (discStart && discStart > today)
-      return { on: false, text: `Starts ${discStart}` };
-    if (discEnd && discEnd < today) return { on: false, text: `Ended ${discEnd}` };
-    if (discEnd) return { on: true, text: `Running · ends ${discEnd}` };
+    const now = Date.now();
+    const s = discStart ? Date.parse(fromDhakaLocal(discStart, "00:00") ?? "") : NaN;
+    const e = discEnd ? Date.parse(fromDhakaLocal(discEnd, "23:59") ?? "") : NaN;
+    const show = (ms: number) =>
+      new Date(ms).toLocaleString("en-GB", {
+        day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+        hour12: true, timeZone: "Asia/Dhaka",
+      });
+    if (!Number.isNaN(s) && s > now) return { on: false, text: `Starts ${show(s)}` };
+    if (!Number.isNaN(e) && e < now) return { on: false, text: `Ended ${show(e)}` };
+    if (!Number.isNaN(e)) return { on: true, text: `Running · ends ${show(e)}` };
     return { on: true, text: "Running · no end date" };
   })();
 
@@ -2839,11 +2882,15 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     */}
                     {discType !== "NONE" && (
                       <div className="mt-3 flex items-end gap-3 flex-wrap">
+                        {/*  DEC-PRD-042 — date AND time. These were date-only,
+                            and the gate threw any time away, so "ends at 9 PM"
+                            could not be expressed at all. Leave the time at
+                            00:00 / 23:59 and it behaves exactly as before.  */}
                         <Field label="Starts" note="Blank = right away">
                           <input
                             className="ipt h-[44px]"
-                            style={{ width: 170 }}
-                            type="date"
+                            style={{ width: 215 }}
+                            type="datetime-local"
                             value={discStart}
                             onChange={(e) => setDiscStart(e.target.value)}
                           />
@@ -2851,8 +2898,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                         <Field label="Ends" note="Blank = until you stop it">
                           <input
                             className="ipt h-[44px]"
-                            style={{ width: 170 }}
-                            type="date"
+                            style={{ width: 215 }}
+                            type="datetime-local"
                             value={discEnd}
                             onChange={(e) => setDiscEnd(e.target.value)}
                           />

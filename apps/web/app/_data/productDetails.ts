@@ -277,6 +277,12 @@ export interface ProductDetail {
    * products whether or not anything had ever been discounted.
    */
   mrpPaisa?: number | null;
+  /** DEC-PRD-042 — the offer's own window, so the page can say when it ends */
+  offer?: {
+    endsAtMs: number | null;
+    startsAtMs: number | null;
+    percentOff: number;
+  } | null;
   /** DEC-PRD-035 — the headline is the cheapest variant, so the page writes
    *  "from ৳450" until a colour is picked. */
   priceFrom?: boolean;
