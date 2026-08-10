@@ -2,7 +2,9 @@ import { Relationship, DeliveryZone, OccasionType } from '@prisma/client';
 
 export interface RecipientOccasionInput {
   type: OccasionType; // BIRTHDAY | ANNIVERSARY | CUSTOM
-  date: string; // "MM-DD" recurring
+  date: string; // "MM-DD" recurring — the occasion list matches on this
+  /** DEC-CUS-010 — only when the customer volunteered it ("10th anniversary") */
+  year?: number | null;
   label?: string;
 }
 
@@ -26,6 +28,8 @@ export interface CreateCustomerDto {
   ownAddressLine?: string;
   note?: string;
   avatarBg?: string;
+  /** DEC-CUS-009 — optional; empty means the initials stand in */
+  imageUrl?: string | null;
   segmentIds?: string[];
   recipients?: RecipientInput[];
   actorName?: string;

@@ -1922,6 +1922,8 @@ model Customer {
   status           CustomerStatus @default(ACTIVE) // block ≠ delete (DEC-CUS-003)
   note             String?
   avatarBg         String?
+  /// DEC-CUS-009 — ছবি থাকলে ছবি, না থাকলে নামের আদ্যাক্ষর (মালিক, ১০ আগস্ট)
+  imageUrl         String?
 
   segments   Segment[]
   recipients Recipient[]
@@ -2008,7 +2010,10 @@ model RecipientOccasion {
   recipientId String
   recipient   Recipient    @relation(fields: [recipientId], references: [id])
   type        OccasionType
-  date        String // "MM-DD" year-less recurring
+  date        String // "MM-DD" — recurring; marketing matches on this, never on the year
+  /// DEC-CUS-010 — গ্রাহক সাল বললে রাখি, না বললে নয়。 "১০ম বিবাহবার্ষিকী" বলার
+  /// জন্য。 `date` ইচ্ছাকৃতভাবে MM-DD-ই থাকল — occasion list ওটাই পড়ে。
+  year        Int?
   label       String? // custom হলে
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

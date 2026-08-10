@@ -70,6 +70,8 @@ export interface RecipientOccasion {
   type: OccasionType;
   /** recurring day "MM-DD" (year-less) — for reminders */
   date: string;
+  /** DEC-CUS-010 — only when the customer volunteered it ("10th anniversary") */
+  year?: number | null;
   label?: string; // for custom
 }
 

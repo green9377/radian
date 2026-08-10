@@ -1054,7 +1054,10 @@ export interface ApiSegment {
 export interface ApiRecipientOccasion {
   id: string;
   type: "BIRTHDAY" | "ANNIVERSARY" | "CUSTOM";
+  /** "MM-DD" — recurring; the occasion list matches on this, never on the year */
   date: string;
+  /** DEC-CUS-010 — optional, only if the customer gave it */
+  year?: number | null;
   label?: string | null;
 }
 export interface ApiRecipient {
@@ -1081,6 +1084,8 @@ export interface ApiCustomer {
   status: "ACTIVE" | "BLOCKED";
   note?: string | null;
   avatarBg?: string | null;
+  /** DEC-CUS-009 — a photo if there is one; otherwise the initials stand in */
+  imageUrl?: string | null;
   ordersCount: number;
   ltvPaisa: number;
   lastOrderAt?: string | null;
@@ -1124,6 +1129,24 @@ export function updateCustomer(id: string, body: Record<string, unknown>): Promi
   }
   return j<ApiCustomer>(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }
+/* ---- the recipient book (DEC-CUS-011) ------------------------------------
+   The customer PATCH deliberately ignores `recipients` — nesting writes there
+   would need a diff the server cannot see. These three endpoints are how an
+   existing customer's book actually changes. Until 10 Aug the editor simply
+   dropped the recipients on save, so every edit to a recipient — including a
+   birthday just typed in — was silently thrown away.                        */
+export function addCustomerRecipient(id: string, body: Record<string, unknown>): Promise<ApiRecipient> {
+  return j<ApiRecipient>(`/customers/${id}/recipients`, { method: "POST", body: JSON.stringify(body) });
+}
+export function updateCustomerRecipient(
+  id: string, rid: string, body: Record<string, unknown>,
+): Promise<ApiRecipient> {
+  return j<ApiRecipient>(`/customers/${id}/recipients/${rid}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+export function removeCustomerRecipient(id: string, rid: string): Promise<unknown> {
+  return j(`/customers/${id}/recipients/${rid}`, { method: "DELETE" });
+}
+
 export function deleteCustomer(id: string): Promise<{ id: string; deleted: boolean }> {
   if (isDemoRow(id)) {
     demoRemove(id);

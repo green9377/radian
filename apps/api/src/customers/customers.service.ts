@@ -107,6 +107,7 @@ export class CustomersService {
         ownAddressLine: dto.ownAddressLine,
         note: dto.note,
         avatarBg: dto.avatarBg,
+        imageUrl: dto.imageUrl, // DEC-CUS-009
         segments: dto.segmentIds?.length ? { connect: dto.segmentIds.map((id) => ({ id })) } : undefined,
         recipients: dto.recipients?.length
           ? { create: dto.recipients.map((r) => this.recipientData(r)) }
@@ -146,6 +147,7 @@ export class CustomersService {
         ownAddressLine: dto.ownAddressLine,
         note: dto.note,
         avatarBg: dto.avatarBg,
+        imageUrl: dto.imageUrl, // DEC-CUS-009
         segments: dto.segmentIds ? { set: dto.segmentIds.map((sid) => ({ id: sid })) } : undefined,
       },
       include: FULL_INCLUDE,
@@ -280,7 +282,7 @@ export class CustomersService {
         note: dto.note,
         isFavorite: dto.isFavorite,
         occasions: dto.occasions?.length
-          ? { create: dto.occasions.map((o) => ({ type: o.type, date: o.date, label: o.label })) }
+          ? { create: dto.occasions.map((o) => ({ type: o.type, date: o.date, year: o.year ?? null, label: o.label })) }
           : undefined,
       },
       include: RECIPIENT_INCLUDE,
@@ -361,6 +363,14 @@ export class CustomersService {
     if (!r.addressLine?.trim()) throw new BadRequestException('recipient addressLine required');
     r.occasions?.forEach((o) => {
       if (!/^\d{2}-\d{2}$/.test(o.date)) throw new BadRequestException('occasion date must be "MM-DD"');
+      /*  DEC-CUS-010 — সাল ঐচ্ছিক。 এলে সেটা যেন সত্যিকারের সাল হয়: ভবিষ্যতের
+          জন্মদিন বা ১৮৭২ সালের বিবাহবার্ষিকী দুটোই টাইপো。                   */
+      if (o.year !== undefined && o.year !== null) {
+        const now = new Date().getFullYear();
+        if (!Number.isInteger(o.year) || o.year < 1900 || o.year > now) {
+          throw new BadRequestException(`occasion year must be between 1900 and ${now}`);
+        }
+      }
     });
   }
 
@@ -374,7 +384,7 @@ export class CustomersService {
       note: r.note,
       isFavorite: r.isFavorite,
       occasions: r.occasions?.length
-        ? { create: r.occasions.map((o) => ({ type: o.type, date: o.date, label: o.label })) }
+        ? { create: r.occasions.map((o) => ({ type: o.type, date: o.date, year: o.year ?? null, label: o.label })) }
         : undefined,
     };
   }

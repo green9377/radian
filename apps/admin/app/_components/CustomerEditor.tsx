@@ -11,8 +11,13 @@ import {
   listSegmentsSafe,
   type ApiSegment,
   type ApiRecipient,
+  uploadImage,
+  addCustomerRecipient,
+  updateCustomerRecipient,
+  removeCustomerRecipient,
   type ApiCustomer,
 } from "../_data/api";
+import { COUNTRY_CODES } from "../_data/countryCodes";
 import {
   SEGMENT_LABEL,
   RELATIONSHIP_LABEL,
@@ -130,6 +135,23 @@ const OCC_LABEL: Record<OccasionType, string> = {
   custom: "Custom",
 };
 
+/* ---- special-date helpers (DEC-CUS-010) ----------------------------------
+   The stored value stays "MM-DD" — the occasion list and the one-message-per-
+   year rule both match on it, and a birthday recurs whatever year it began.
+   The year is a separate, optional field, used only to SAY "11th this year".
+   February gets 29 on purpose: a 29 Feb birthday is real, and the reminder
+   list is what decides when to send in a common year — not this picker.     */
+const MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+const pad2 = (v: string | number) => String(Number(v)).padStart(2, "0");
+const daysInMonth = (m: number) =>
+  [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Math.min(Math.max(m, 1), 12) - 1];
+const ordinal = (n: number) => {
+  if (n <= 0) return "1st";
+  const s = ["th", "st", "nd", "rd"][(n % 100 - 20) % 10] ?? ["th", "st", "nd", "rd"][n % 100] ?? "th";
+  return `${n}${s}`;
+};
+
 export default function CustomerEditor({ id }: { id?: string }) {
   const [sec, setSec] = useState<SecId>("profile");
 
@@ -140,6 +162,8 @@ export default function CustomerEditor({ id }: { id?: string }) {
   const [country, setCountry] = useState("Bangladesh");
   const [ownLine, setOwnLine] = useState("");
   const [status, setStatus] = useState<CustomerStatus>("active");
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // DEC-CUS-009
+  const [uploading, setUploading] = useState(false);
 
   // Recipients (rich book)
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -173,6 +197,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
           setPhone(c.phone);
           setCountry(c.country);
           setOwnLine(c.ownAddressLine ?? "");
+          setImageUrl(c.imageUrl ?? null);
           setStatus(c.status === "BLOCKED" ? "blocked" : "active");
           setNote(c.note ?? "");
           setSegments(((c.segments ?? []).map((s) => s.slug)) as Segment[]);
@@ -191,6 +216,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
               occasions: (r.occasions ?? []).map((o) => ({
                 type: o.type.toLowerCase() as OccasionType,
                 date: o.date,
+                year: o.year ?? null,
                 label: o.label ?? undefined,
               })),
             })),
@@ -213,6 +239,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
       occasions: (r.occasions ?? []).map((o) => ({
         type: o.type.toUpperCase(),
         date: o.date,
+        year: o.year ?? null, // DEC-CUS-010 — only if the customer gave one
         label: o.label,
       })),
     };
@@ -228,11 +255,35 @@ export default function CustomerEditor({ id }: { id?: string }) {
       email: email || undefined,
       country: country || "Bangladesh",
       ownAddressLine: ownLine || undefined,
+      imageUrl: imageUrl ?? null, // DEC-CUS-009 — null clears the photo
       note: note || undefined,
       whatsappVerified: true,
       segmentIds,
       recipients: recipients.filter((r) => r.name && r.phone).map(recipientToApi),
     };
+  }
+
+  /**
+   * DEC-CUS-011 — bring the stored recipient book in line with what is on screen.
+   * Removed rows go first: a phone freed by a delete may be reused by an add in
+   * the same save, and doing it the other way round would collide.
+   */
+  async function syncRecipients(customerId: string) {
+    const onScreen = recipients.filter((r) => r.name.trim() && r.phone.trim());
+    const before = api?.recipients ?? [];
+    const keptIds = new Set(onScreen.map((r) => r.id));
+
+    for (const old of before) {
+      if (!keptIds.has(old.id)) await removeCustomerRecipient(customerId, old.id);
+    }
+    for (const r of onScreen) {
+      const body = recipientToApi(r);
+      if (before.some((b) => b.id === r.id)) {
+        await updateCustomerRecipient(customerId, r.id, body);
+      } else {
+        await addCustomerRecipient(customerId, body);
+      }
+    }
   }
 
   async function handleSave() {
@@ -249,9 +300,17 @@ export default function CustomerEditor({ id }: { id?: string }) {
     try {
       const dto = buildDto();
       if (apiCustomerId) {
-        // Live API cannot nest recipient writes yet — demo store can, so keep them there.
-        if (!isDemoMode()) delete (dto as Record<string, unknown>).recipients;
-        await updateCustomer(apiCustomerId, dto);
+        /*  DEC-CUS-011 (১০ আগস্ট) — customer PATCH `recipients` দেখেই না。
+            আগে এখানে শুধু `delete` করা হতো, ফলে চলতি গ্রাহকের recipient-এ করা
+            প্রতিটা বদল — সদ্য টাইপ করা জন্মদিনও — চুপচাপ হারিয়ে যেত。 এখন
+            নিজের endpoint দিয়ে বই মিলিয়ে দিই。                              */
+        if (!isDemoMode()) {
+          delete (dto as Record<string, unknown>).recipients;
+          await updateCustomer(apiCustomerId, dto);
+          await syncRecipients(apiCustomerId);
+        } else {
+          await updateCustomer(apiCustomerId, dto);
+        }
       } else {
         await createCustomer(dto);
       }
@@ -468,6 +527,52 @@ export default function CustomerEditor({ id }: { id?: string }) {
           {/* PROFILE */}
           {sec === "profile" && (
             <>
+              {/*  DEC-CUS-009 (১০ আগস্ট) — মালিক: *"profile picture upload dewar
+                  option nei"*。 ছবি থাকলে ছবি, না থাকলে নামের আদ্যাক্ষর。 ব্র্যান্ড
+                  purple → rose gold ঢাল, accent দুই জায়গায় মাত্র。            */}
+              <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden mb-5">
+                <div className="flex items-center gap-4 px-5 py-4"
+                  style={{ background: "linear-gradient(105deg,#470066,#320049 62%,#b76e79)" }}>
+                  <label className="relative shrink-0 cursor-pointer" title="Upload a photo">
+                    <span className="w-[58px] h-[58px] rounded-full grid place-items-center overflow-hidden border-2 border-orchid-mid"
+                      style={{ background: imageUrl ? "#fff" : "#f9e9fd" }}>
+                      {imageUrl
+                        ? /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-[20px] font-semibold text-purple">{initials(name || "?")}</span>}
+                    </span>
+                    <span className="absolute -right-1 -bottom-1 w-[23px] h-[23px] rounded-full bg-orchid grid place-items-center border-2 border-white text-white">
+                      <Icon name="photo" size={11} />
+                    </span>
+                    <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setUploading(true); setSaveErr(null);
+                        try { setImageUrl((await uploadImage(f, "people")).url); }
+                        catch (err) { setSaveErr(err instanceof Error ? err.message : "Upload failed"); }
+                        finally { setUploading(false); e.target.value = ""; }
+                      }} />
+                  </label>
+                  <div className="min-w-0">
+                    <div className="text-[16px] font-semibold text-white truncate">
+                      {name || "New customer"}
+                    </div>
+                    <div className="text-[12.5px] text-orchid-mid">
+                      {uploading ? "Uploading…" : imageUrl ? "Photo added" : "Add a photo, or leave the initials"}
+                      {imageUrl && !uploading && (
+                        <button type="button" onClick={() => setImageUrl(null)}
+                          className="ml-2 underline hover:text-white">remove</button>
+                      )}
+                    </div>
+                  </div>
+                  <span className="ml-auto shrink-0 text-[11.5px] px-3 py-1.5 rounded-full font-medium inline-flex items-center gap-1.5"
+                    style={{ background: "#e8c9ce", color: "#7a3f48" }}>
+                    <Icon name="shield" size={12} /> WhatsApp is the login
+                  </span>
+                </div>
+              </div>
+
               <Card
                 icon="user"
                 title="Profile"
@@ -504,15 +609,27 @@ export default function CustomerEditor({ id }: { id?: string }) {
                     <PhoneField value={phone} onChange={setPhone} />
                   </Field>
                   <Field
-                    label="Country"
-                    note="Where the customer lives — many order from abroad (NRB)."
+                    label="Lives in"
+                    note="Many customers order from abroad (NRB) — it changes nothing about delivery, only who they are."
                   >
-                    <input
+                    {/*  ১০ আগস্ট — এটা খোলা লেখার ঘর ছিল。 "Banglades" লিখলেও কেউ
+                        ধরত না, আর NRB ফিল্টার country মিলিয়ে চলে。 তাই তালিকা。
+                        ⚠️ চেনা তালিকায় না থাকা পুরনো নাম যেন হারিয়ে না যায় —
+                        সেটাকেও একটা option হিসেবে রাখি。                        */}
+                    <select
                       className="ipt h-[44px]"
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
-                      placeholder="Bangladesh / United States / Saudi Arabia…"
-                    />
+                    >
+                      {!COUNTRY_CODES.some((c) => c.name === country) && country && (
+                        <option value={country}>{country}</option>
+                      )}
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.iso} value={c.name}>
+                          {c.flag} {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </Field>
                   <Field
                     label="Account status"
@@ -734,16 +851,52 @@ export default function CustomerEditor({ id }: { id?: string }) {
                                 }
                               />
                             )}
-                            <input
-                              className="ipt h-[38px] max-w-[150px]"
-                              placeholder="MM-DD"
-                              value={o.date}
+                            {/*  ১০ আগস্ট — আগে এখানে "MM-DD" টাইপ করতে হতো。
+                                কেউ তারিখ ওভাবে ভাবে না。 এখন দিন + মাস বাছাই,
+                                আর সাল ঐচ্ছিক (মালিকের রায়: গ্রাহক সাল দিলে
+                                রাখব, না দিলে নয় — DEC-CUS-010)。            */}
+                            <select
+                              className="ipt h-[38px] w-[86px]"
+                              value={Number(o.date.split("-")[1] ?? 1)}
                               onChange={(e) =>
-                                patchOccasion(r.id, i, { date: e.target.value })
+                                patchOccasion(r.id, i, {
+                                  date: `${o.date.split("-")[0] ?? "01"}-${pad2(e.target.value)}`,
+                                })
                               }
+                            >
+                              {Array.from({ length: daysInMonth(Number(o.date.split("-")[0] ?? 1)) }, (_, d) => d + 1)
+                                .map((d) => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                            <select
+                              className="ipt h-[38px] w-[132px]"
+                              value={Number(o.date.split("-")[0] ?? 1)}
+                              onChange={(e) => {
+                                const m = Number(e.target.value);
+                                /*  ৩১ মার্চ থেকে ফেব্রুয়ারিতে গেলে দিনটা আর নেই —
+                                    চুপচাপ ভুল তারিখ না বানিয়ে শেষ দিনে নামাই。  */
+                                const day = Math.min(Number(o.date.split("-")[1] ?? 1), daysInMonth(m));
+                                patchOccasion(r.id, i, { date: `${pad2(m)}-${pad2(day)}` });
+                              }}
+                            >
+                              {MONTHS.map((mn, mi) => (
+                                <option key={mn} value={mi + 1}>{mn}</option>
+                              ))}
+                            </select>
+                            <input
+                              className="ipt h-[38px] w-[92px]"
+                              inputMode="numeric"
+                              placeholder="Year"
+                              title="Only if the customer gave it — birthdays repeat every year"
+                              value={o.year ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                patchOccasion(r.id, i, { year: v ? Number(v) : null });
+                              }}
                             />
-                            <span className="text-[13px] text-body-soft">
+                            <span className="text-[12.5px]"
+                              style={{ color: o.year ? "#b76e79" : "#8d7a97" }}>
                               {occasionDate(o.date)}
+                              {o.year ? ` · ${ordinal(new Date().getFullYear() - o.year)} this year` : " · every year"}
                             </span>
                             <button
                               type="button"
@@ -928,11 +1081,15 @@ export default function CustomerEditor({ id }: { id?: string }) {
               className="px-5 pt-6 pb-7 text-center text-white"
               style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}
             >
+              {/* the customer's own account view — photo if there is one */}
               <div
-                className="w-16 h-16 rounded-full mx-auto mb-2.5 grid place-items-center font-display text-[22px] border-2 border-white/50"
-                style={{ background: avatarBg }}
+                className="w-16 h-16 rounded-full mx-auto mb-2.5 grid place-items-center font-display text-[22px] border-2 border-white/50 overflow-hidden"
+                style={{ background: imageUrl ? "#fff" : avatarBg }}
               >
-                {initials(name || "?")}
+                {imageUrl
+                  ? /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                  : initials(name || "?")}
               </div>
               <div className="font-display text-[19px] leading-tight">
                 {name || "Customer name"}
