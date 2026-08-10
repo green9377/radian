@@ -41,6 +41,36 @@
 **demo-তে এখন:** SHOP `Main store` (বিক্রি এখান থেকে) · STORE `Storeroom`
 (ক্রয় এখানে ঢোকে)। প্রতিটা নিয়ম লাইভ ভেঙে দেখা হয়েছে — সবগুলোই ধরেছে。
 
+### ✍️ Content ও Review — মালিকের মানচিত্র (১০ আগস্ট, DEC-WEB-005)
+
+**সবকিছু Storefront module-এর ভেতরে:**
+
+| কী | কোথায় (admin) | দোকানে কোথায় ওঠে |
+|---|---|---|
+| Article/blog লেখা | **Storefront → Journal** | homepage "Latest Articles" (৩টা নতুন) + `/journal` |
+| Privacy/Terms/Refund/যেকোনো পাতা | **Storefront → Pages** | `/privacy-policy` ইত্যাদি — publish + "show in footer" টিক |
+| Footer-এর লিংক-দল | **Storefront → Footer** | দোকানের নিচের অংশ |
+| Review moderation + নিজের review | **Storefront → Reviews** | নিচে দেখুন |
+
+- Homepage-এ "Latest Articles" **তখনই ওঠে যখন অন্তত একটা লেখা published** —
+  খালি অবস্থায় লুকানো থাকে, admin পাতাই সেটা বলে দেয়。
+- **ধরা পড়া ফাঁদ (সারানো):** slug-এর ঘর মুছে save করলে খালি slug জমা হতো,
+  publish করলে homepage-এর card যেত `/journal/`-এ — অস্তিত্বহীন পাতায়。 এখন
+  খালি slug title থেকে নিজে তৈরি হয়; title-ও না থাকলে publish আটকায়。
+
+**Review-র পুরো চাকা (লাইভে প্রমাণিত, এক চক্করে):**
+গ্রাহক লিখল (PENDING, পর্দায় নেই) → Storefront → Reviews-এ "Waiting for you"
+গোনা → **Publish it** → `/reviews` পাতায় + সেই product-এর নিজের পাতায়。
+
+- **নতুন `/reviews` পাতা** — সব published review একসাথে, উপরে Google card,
+  নিচে লেখার form (FlowerAura-ধাঁচ)。
+- **Product পাতায় এখন সেই product-এর নিজের review** — গড়, star histogram,
+  লেখাগুলো, verified badge, আর ওই product-এ আটকানো লেখার form。 `#reviews`
+  লিংক এখন এখানেই নামে。
+- Homepage-এর rail এখন কেবল দেখায় — লেখার বাক্সটা উঠে গিয়ে "See all reviews →"。
+- Trust line-এর comma-ঘর: blur-এ লেখা tidy করা বন্ধ — টাইপ করা জিনিস আর
+  কেউ কখনো ফিরে লেখে না ("google4.4" আর হবে না)。
+
 ### 🧾 DEC-INV-018 — যেখানে মাল আছে সেখান থেকেই বিক্রি (১০ আগস্ট)
 
 প্রশ্ন ছিল: বিক্রি Storeroom থেকে কাটার কথা, কিন্তু মাল Main store-এ — আটকাবে?
