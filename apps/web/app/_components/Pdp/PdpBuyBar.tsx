@@ -240,7 +240,21 @@ export function StickyBar({
   and a button that collects an address nobody will ever send to is worse than
   no button. It goes in the day Marketing has the sending side.
 */
-export function SoldOut({ backHref }: { backHref: string }) {
+export function SoldOut({
+  backHref,
+  hasRelated,
+}: {
+  backHref: string;
+  /**
+   * ⚠️ `RelatedRail` returns null when it has nothing to show, so the #related
+   * anchor does not exist on those pages. The owner pressed "Similar gifts" and
+   * the page sat there (10 Aug 2026). A button that scrolls to a section that
+   * was never rendered is the same broken promise as a disabled button — the
+   * thing this whole panel was written to avoid. So it only appears when there
+   * is genuinely something below to scroll to.
+   */
+  hasRelated: boolean;
+}) {
   return (
     <div className="border-[1.5px] border-lavender-deep bg-lavender/40 rounded-[18px] p-6 mt-5">
       <div className="flex gap-3.5 items-start">
@@ -263,12 +277,20 @@ export function SoldOut({ backHref }: { backHref: string }) {
           <Icon name="gift" className="w-4 h-4" />
           See what else we have
         </Link>
-        <Link
-          href="#related"
-          className="inline-flex items-center gap-2 bg-white text-purple border-[1.5px] border-lavender-deep hover:border-orchid rounded-full px-5 py-3 text-[13.5px] font-semibold"
-        >
-          Similar gifts
-        </Link>
+        {hasRelated && (
+          <a
+            href="#related"
+            onClick={(e) => {
+              /*  Next's <Link> to a hash does not always scroll on an already
+                  rendered page; doing it by hand also gives the smooth glide. */
+              e.preventDefault();
+              document.getElementById("related")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="inline-flex items-center gap-2 bg-white text-purple border-[1.5px] border-lavender-deep hover:border-orchid rounded-full px-5 py-3 text-[13.5px] font-semibold"
+          >
+            Similar gifts
+          </a>
+        )}
       </div>
     </div>
   );

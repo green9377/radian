@@ -991,8 +991,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 a page that says sold out can never sit above a button that
                 still takes money.
               */}
+              {/*  ⚠️ backHref ছিল `/${catSlug}` — অমন কোনো route নেই。 category
+                  পাতা `/categories/<slug>`-এ থাকে (breadcrumb নিজেই তাই লেখে)。
+                  তাই "See what else we have" চাপলে ৪০৪ ছাড়া কিছু হতো না。   */}
               {soldOut ? (
-                <SoldOut backHref={`/${detail.crumb.catSlug}`} />
+                <SoldOut
+                  backHref={`/categories/${detail.crumb.catSlug}`}
+                  hasRelated={(detail.crossProducts ?? []).length > 0}
+                />
               ) : (
                 <CtaRow
                   qty={qty}
