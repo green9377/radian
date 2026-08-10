@@ -378,7 +378,12 @@ function Editor({
                     {/*  CommaListInput, not a raw input — the raw one re-parsed
                         and rewrote the box on every keystroke, so a comma or a
                         space could never survive being typed (owner, 9 Aug 2026).  */}
+                    {/*  key = this banner. The box keeps its own text now
+                        (CommaListInput), so switching to another banner must
+                        REMOUNT it — otherwise banner 2 would open showing
+                        banner 1's words.  */}
                     <CommaListInput
+                      key={f.id}
                       value={f.proof}
                       onChange={(next) => set("proof", next)}
                       placeholder="2-hour delivery, Freshness promise, ★ 4.9 on Google"

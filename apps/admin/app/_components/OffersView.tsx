@@ -434,7 +434,7 @@ export function OfferEditor({ id }: { id: string }) {
             <div><Guide>Public title</Guide><input className="ipt" value={form.publicTitle} onChange={(e) => set({ publicTitle: e.target.value })} /></div>
             <div className="mt-3.5"><Guide>Benefit line</Guide><input className="ipt" value={form.benefitLine} onChange={(e) => set({ benefitLine: e.target.value })} /></div>
             <div className="mt-3.5"><Guide>Description</Guide><textarea className="ipt" rows={2} value={form.description} onChange={(e) => set({ description: e.target.value })} /></div>
-            <div className="mt-3.5"><Guide>Eligibility chips (comma-separated)</Guide><CommaListInput value={form.eligibility} onChange={(next) => set({ eligibility: next })} /></div>
+            <div className="mt-3.5"><Guide>Eligibility chips (comma-separated)</Guide><CommaListInput key={form.id ?? "new"} value={form.eligibility} onChange={(next) => set({ eligibility: next })} /></div>
           </Block>
 
           <div className="flex items-center gap-3 pt-1">
