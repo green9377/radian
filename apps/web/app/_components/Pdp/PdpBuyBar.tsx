@@ -278,14 +278,17 @@ export function SoldOut({
           See what else we have
         </Link>
         {hasRelated && (
+          /*  A PLAIN <a>, on purpose. Not next/link — its router handles the
+              hash itself and does not reliably scroll a page that is already
+              rendered. And no onClick either: I wrote one with
+              scrollIntoView({behavior:"smooth"}) and could not prove it
+              worked, because a browser will not animate a smooth scroll in a
+              tab that is not in front. Native hash navigation always scrolls,
+              with no JavaScript involved at all. The glide comes from CSS
+              (scroll-behavior on <html>), which degrades to an instant jump
+              rather than to nothing.  */
           <a
             href="#related"
-            onClick={(e) => {
-              /*  Next's <Link> to a hash does not always scroll on an already
-                  rendered page; doing it by hand also gives the smooth glide. */
-              e.preventDefault();
-              document.getElementById("related")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
             className="inline-flex items-center gap-2 bg-white text-purple border-[1.5px] border-lavender-deep hover:border-orchid rounded-full px-5 py-3 text-[13.5px] font-semibold"
           >
             Similar gifts
