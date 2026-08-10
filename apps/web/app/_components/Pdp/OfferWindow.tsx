@@ -28,47 +28,60 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/** "12 August, 9:00 PM" — always Dhaka, whoever is looking */
-function readDhaka(ms: number): string {
-  return new Date(ms).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Dhaka",
-  });
+/** left → the four numbers, each floored, days uncapped (a 40-day offer reads "40") */
+function split(ms: number) {
+  const clamped = Math.max(0, ms);
+  return {
+    days: Math.floor(clamped / DAY),
+    hours: Math.floor((clamped % DAY) / HOUR),
+    mins: Math.floor((clamped % HOUR) / MINUTE),
+    secs: Math.floor((clamped % MINUTE) / 1000),
+  };
 }
 
-function readLeft(ms: number): string {
-  if (ms <= 0) return "0m";
-  const h = Math.floor(ms / HOUR);
-  const m = Math.floor((ms % HOUR) / MINUTE);
-  const s = Math.floor((ms % MINUTE) / 1000);
-  /*  Under an hour the seconds matter — that is when someone is deciding.
-      Above it they are noise that makes the page feel frantic.  */
-  return h > 0 ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2, "0")}s`;
+function Tile({ value, label }: { value: number | null; label: string }) {
+  return (
+    <span className="flex flex-col items-center">
+      <span
+        className="min-w-[42px] rounded-[10px] px-2 py-1.5 text-white text-[19px] font-bold leading-none tabular-nums text-center"
+        style={{ background: "#F0453B", boxShadow: "0 2px 6px rgba(240,69,59,0.35)" }}
+      >
+        {value === null ? "--" : String(value).padStart(2, "0")}
+      </span>
+      <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-body-soft">
+        {label}
+      </span>
+    </span>
+  );
 }
 
 export default function OfferWindow({ endsAtMs }: { endsAtMs: number | null }) {
   const router = useRouter();
-  const [now, setNow] = useState<number | null>(null);
 
   /*  ⚠️ null until mounted, on purpose. The server has no idea what time it is
       where the shopper is standing, and rendering a clock during SSR gives a
       hydration mismatch — React then throws away the markup and the whole
-      panel flickers. First paint shows the date; the clock arrives a tick
-      later, which nobody sees.  */
-  useEffect(() => { setNow(Date.now()); }, []);
+      panel flickers. First paint is a placeholder of the same size; the real
+      numbers arrive a tick later, which nobody sees.
 
-  const left = endsAtMs !== null && now !== null ? endsAtMs - now : null;
-  const finalDay = left !== null && left > 0 && left < DAY;
+      DEC-PRD-042 rev (10 Aug) — owner wants the flip-tile clock ALWAYS, not
+      only on the last day: *"timing ta avabe uthle attractive hoy and customer
+      k crazy kre"*. One interval sets `now` on its first tick (immediately)
+      and every second after, so the tiles are alive the whole time the offer
+      runs — and there is no synchronous setState in an effect body.  */
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!finalDay) return;
+    if (endsAtMs === null) return;
+    /*  queueMicrotask, not a bare setNow — a synchronous setState in an effect
+        body triggers a cascading-render lint error, and this runs a hair later
+        with no visible delay.  */
+    queueMicrotask(() => setNow(Date.now()));
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [finalDay]);
+  }, [endsAtMs]);
+
+  const left = endsAtMs !== null && now !== null ? endsAtMs - now : null;
 
   /*  the moment it runs out, go and get the real price  */
   useEffect(() => {
@@ -79,32 +92,37 @@ export default function OfferWindow({ endsAtMs }: { endsAtMs: number | null }) {
   if (endsAtMs === null) return null;
   if (left !== null && left <= 0) return null; // over — the server will drop the price too
 
-  if (finalDay && left !== null) {
-    return (
-      <div
-        className="mt-3 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5"
-        style={{ background: "#FFF1E6", border: "1px solid #F6C79A" }}
-      >
-        <span
-          className="w-7 h-7 rounded-full grid place-items-center shrink-0 text-white text-[13px]"
-          style={{ background: "#D97706" }}
-          aria-hidden
-        >
-          ⏱
-        </span>
-        <span className="text-[13.5px]" style={{ color: "#8A4B00" }}>
-          <b className="font-bold">Offer ends in {readLeft(left)}</b>
-          <span className="hidden sm:inline"> · {readDhaka(endsAtMs)}</span>
-        </span>
-      </div>
-    );
-  }
+  /*  left is null on the server and for the first client render (before the
+      microtask) — show "--" placeholder tiles of the same size so hydration
+      matches and there is no layout jump. Real numbers arrive a tick later.  */
+  const t = left !== null ? split(left) : null;
 
   return (
-    <div className="mt-3 flex items-center gap-2 text-[13.5px] text-body-soft">
-      <span aria-hidden>🗓</span>
-      <span>
-        Offer price until <b className="text-ink font-semibold">{readDhaka(endsAtMs)}</b>
+    <div
+      className="mt-3.5 inline-flex flex-col gap-2 rounded-[16px] px-4 py-3"
+      style={{ background: "#FFF4EC", border: "1px solid #F7CFA8" }}
+    >
+      <span className="flex items-center gap-1.5 text-[13px] font-bold" style={{ color: "#C23B00" }}>
+        <span aria-hidden>🔥</span> Offer ends in
+      </span>
+      <span
+        className="flex items-start gap-1.5"
+        aria-label={t ? `Offer ends in ${t.days} days ${t.hours} hours ${t.mins} minutes ${t.secs} seconds` : "Offer countdown loading"}
+      >
+        {/*  Days tile shows whenever the offer has one or more full days left,
+            OR before the numbers arrive (placeholder) — so the row does not
+            change width the instant the clock starts.  */}
+        {(t === null || t.days > 0) && (
+          <>
+            <Tile value={t ? t.days : null} label="Days" />
+            <span className="text-[19px] font-bold text-[#F0453B] leading-[38px]">:</span>
+          </>
+        )}
+        <Tile value={t ? t.hours : null} label="Hours" />
+        <span className="text-[19px] font-bold text-[#F0453B] leading-[38px]">:</span>
+        <Tile value={t ? t.mins : null} label="Min" />
+        <span className="text-[19px] font-bold text-[#F0453B] leading-[38px]">:</span>
+        <Tile value={t ? t.secs : null} label="Sec" />
       </span>
     </div>
   );
