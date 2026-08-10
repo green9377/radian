@@ -85,7 +85,10 @@ export default function SpecialDateField({
   const setYear = (y: number) => onChange({ date, year: Math.min(Math.max(y, 1900), thisYear) });
 
   return (
-    <span ref={wrap} className="flex items-center gap-2.5 min-w-0 relative">
+    /*  ⚠️ `min-w-0` একা দিলে এই span শূন্যে নেমে যায় — মোড়ক flex-wrap সারির
+        ভেতরে বসে, আর ভেতরের flex-1-এর বাড়ার জায়গাই থাকে না。 লাইভে ঘরটা
+        ৩০px চওড়া হয়ে গিয়েছিল。 তাই basis দিয়ে মেঝে বেঁধে দিলাম。          */
+    <span ref={wrap} className="flex items-center gap-2.5 relative flex-1 basis-[320px] min-w-[260px]">
       {/* the WHOLE box opens the calendar — it is a button, not an overlay */}
       <button
         type="button"
