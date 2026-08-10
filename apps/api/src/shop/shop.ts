@@ -376,6 +376,54 @@ export class ShopService {
    * — and averaging them produces a number that means nothing while looking
    * authoritative.
    */
+  /**
+   * DEC-WEB-005 (10 Aug 2026) — the /reviews page: EVERY published review, not
+   * the twelve featured ones. Owner: *"kon review page nei jekhane gele
+   * customer amder sob review aksathe dekhar sujog pabe"* — like FlowerAura's.
+   * Product reviews come along with the product's name attached, so the page
+   * can say what each one is about.
+   */
+  async allReviews() {
+    const [rows, settings] = await Promise.all([
+      this.prisma.db.review.findMany({
+        where: { status: 'PUBLISHED' },
+        orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+        take: 200,
+        select: {
+          id: true,
+          authorName: true,
+          rating: true,
+          body: true,
+          context: true,
+          imageUrl: true,
+          source: true,
+          verifiedPurchase: true,
+          createdAt: true,
+          product: { select: { name: true, slug: true } },
+        },
+      }),
+      this.prisma.db.storefrontSetting.findUnique({
+        where: { id: 'singleton' },
+        select: { googleRating: true, googleReviewCount: true, googleProfileUrl: true },
+      }),
+    ]);
+    const avg = rows.length
+      ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10
+      : null;
+    return {
+      reviews: rows,
+      count: rows.length,
+      average: avg,
+      google: settings?.googleRating
+        ? {
+            rating: settings.googleRating,
+            count: settings.googleReviewCount,
+            url: settings.googleProfileUrl,
+          }
+        : null,
+    };
+  }
+
   async reviews() {
     const [rows, settings] = await Promise.all([
       this.prisma.db.review.findMany({
@@ -903,6 +951,13 @@ export class ShopController {
   @Get('reviews')
   reviews() {
     return this.svc.reviews();
+  }
+
+  /** DEC-WEB-005 — the /reviews page: every published review */
+  @Public()
+  @Get('reviews/all')
+  allReviews() {
+    return this.svc.allReviews();
   }
 
   /** the section keys to render, in order, for this zone */

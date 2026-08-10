@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import Carousel from "../ui/Carousel";
 import { getShopReviews, type ShopReview } from "../../_data/shop";
@@ -195,7 +196,18 @@ export default function Reviews() {
         </Carousel>
         )}
 
-        <WriteReview />
+        {/*  DEC-WEB-005 (10 Aug) — the writing box moved OFF this rail. Owner:
+            the homepage section should show the love, not collect it; writing
+            happens on /reviews and on each product's own page. This rail now
+            ends with the door to the full page instead.  */}
+        <div className="text-center mt-8">
+          <Link
+            href="/reviews"
+            className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-purple px-6 py-3 text-[14px] font-semibold text-purple transition-all duration-300 hover:bg-purple hover:text-white"
+          >
+            See all reviews →
+          </Link>
+        </div>
       </div>
     </section>
   );

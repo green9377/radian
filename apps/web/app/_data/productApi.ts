@@ -154,7 +154,16 @@ export interface ApiProductDetail {
   /** DEC-PRD-023 — `iconUrl` ভরা থাকলে দোকানের নিজের ছবি */
   trust: { icon: string | null; iconUrl?: string | null; label: string; sub: string | null }[];
   addonTabs: { id: string; label: string; items: { id: string; name: string; pricePaisa: number; imageUrl: string | null }[] }[];
-  reviews: { rating: number | null; count: number };
+  reviews: {
+    rating: number | null;
+    count: number;
+    byStar: number[];
+    items: {
+      id: string; authorName: string; rating: number; body: string;
+      context: string | null; imageUrl: string | null;
+      verifiedPurchase: boolean; createdAt: string;
+    }[];
+  };
   crossSlugs: string[];
   seo: {
     title: string | null;
@@ -511,6 +520,8 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     reviews: {
       rating: a.reviews.rating === null ? null : a.reviews.rating.toFixed(1),
       count: a.reviews.count,
+      byStar: a.reviews.byStar ?? [0, 0, 0, 0, 0],
+      items: a.reviews.items ?? [],
       /*
         DEC-PRD-025 — মালিকের বসানো সংখ্যা + বাছা সময়ের সত্যিকারের order।
         মালিক কিছু না বসালে ১০-এর নিচে API `null` পাঠায়, আর লাইনটাই ওঠে

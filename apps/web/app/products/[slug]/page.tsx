@@ -7,6 +7,7 @@ import { formatTaka } from "../../_data/products";
 import PdpView from "../../_components/Pdp/PdpView";
 import SpecFaq from "../../_components/Pdp/SpecFaq";
 import RelatedRail from "../../_components/Pdp/RelatedRail";
+import ProductReviews from "../../_components/Pdp/ProductReviews";
 import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
 
@@ -134,6 +135,12 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
         </div>
 
         <SpecFaq detail={detail} />
+
+        {/*  DEC-WEB-005 — this product's OWN reviews, FlowerAura-style. Sits
+            above the shop-wide GBE rail, so the PDP's #reviews anchor lands
+            here (first match in document order) — on words about THIS bouquet,
+            not about the shop in general.  */}
+        <ProductReviews detail={detail} />
 
         <RelatedRail
           slugs={detail.crossSlugs}

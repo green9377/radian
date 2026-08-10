@@ -436,9 +436,24 @@ export interface ShopProductDetail {
     label: string;
     items: { id: string; name: string; pricePaisa: number; imageUrl: string | null }[];
   }[];
-  /** published reviews of THIS product. `rating` is null until one exists —
+  /** published reviews of THIS product, with the list itself (DEC-WEB-005). `rating` is null until one exists —
    *  never a shop-wide or Google average wearing a product's name. */
-  reviews: { rating: number | null; count: number };
+  reviews: {
+    rating: number | null;
+    count: number;
+    /** index 0 → 1★ … index 4 → 5★ */
+    byStar: number[];
+    items: {
+      id: string;
+      authorName: string;
+      rating: number;
+      body: string;
+      context: string | null;
+      imageUrl: string | null;
+      verifiedPurchase: boolean;
+      createdAt: Date;
+    }[];
+  };
   seo: {
     title: string | null;
     description: string | null;
@@ -1022,15 +1037,34 @@ export class ProductDetailService {
    * been printing a hard-coded "4.9 · 412 reviews" on all 71 products.
    */
   private async rating(productId: string) {
-    const agg = await this.prisma.db.review.aggregate({
+    /*  DEC-WEB-005 (10 Aug) — the page now shows the reviews THEMSELVES under
+        the product, FlowerAura-style, not just the average. One query serves
+        the average, the star histogram and the list; at a hundred reviews per
+        bouquet this shop has other problems worth having.  */
+    const rows = await this.prisma.db.review.findMany({
       where: { productId, status: 'PUBLISHED', deletedAt: null },
-      _avg: { rating: true },
-      _count: { _all: true },
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      take: 100,
+      select: {
+        id: true,
+        authorName: true,
+        rating: true,
+        body: true,
+        context: true,
+        imageUrl: true,
+        verifiedPurchase: true,
+        createdAt: true,
+      },
     });
-    const count = agg._count._all;
+    const count = rows.length;
+    const byStar = [0, 0, 0, 0, 0]; // index 0 → 1★
+    for (const r of rows) byStar[Math.min(Math.max(r.rating, 1), 5) - 1]++;
     return {
-      rating: count > 0 && agg._avg.rating !== null ? Math.round(agg._avg.rating * 10) / 10 : null,
+      rating:
+        count > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null,
       count,
+      byStar,
+      items: rows,
     };
   }
 

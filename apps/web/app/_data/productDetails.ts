@@ -268,7 +268,17 @@ export interface ProductDetail {
    * "4.9 · 412 reviews". A product nobody has reviewed now says nothing at all
    * rather than borrowing someone else's stars.
    */
-  reviews: { rating: string | null; count: number; live: string | null };
+  reviews: {
+    rating: string | null;
+    count: number;
+    live: string | null;
+    byStar?: number[];
+    items?: {
+      id: string; authorName: string; rating: number; body: string;
+      context: string | null; imageUrl: string | null;
+      verifiedPurchase: boolean; createdAt: string;
+    }[];
+  };
   /**
    * The struck-through price, from the owner's real discount. `null` or absent
    * means nothing is off and the page draws no strike-through.
