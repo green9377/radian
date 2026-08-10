@@ -188,6 +188,45 @@ receipt is not.
 
 **Impact:** Inventory, Purchase, Assembly.
 
+### DEC-INV-017 — Warehouses are the owner's to make, name and close
+_(10 Aug 2026 — supersedes the "future Warehouse module" note in DEC-INV-014)_
+
+**What was wrong.** DEC-INV-014 said the seed makes two stores and a future module
+would own them. In practice the seed never ran on the live database, the API only
+read, and no screen existed — so when the owner asked *"amr gudam ar setup kri
+nai?"* the honest answer was: **you could not have.** He was blamed for not doing
+something the system never allowed.
+
+**Decision:** `Inventory → Warehouses` — create, rename, close, reopen, delete.
+`POST/PATCH/DELETE /inventory/warehouses`. No schema change; the model was always
+there.
+
+**Business rules (the owner's rulings, 10 Aug):**
+
+| Rule | Behaviour |
+|---|---|
+| Shape | Two stores are normal — goods land in the storeroom, sales leave from the shop, Transfer between. More allowed; branches are a bigger question (people, POS, books) left for later. |
+| Closing a store that holds goods | **Refused**, not warned. The message names the items and says to Transfer them out. His words: goods left in a closed store vanish from the count, and then the money figure lies. |
+| Closing the last open store | Refused — the shop must have somewhere to put things (DEC-INV-016's whole point). |
+| Closing/deleting a store Settings points at | Refused, and the message says **which** setting still points at it. |
+| Deleting a store with any movement history | Refused — close it instead, so old ledger rows still read properly. Delete is only for a store that never held anything. |
+| Short code | Set once, never edited: stock records point at it. 2–16 chars, `A-Z0-9_-`, upper-cased on entry. Re-using the code of a soft-deleted store revives that row rather than colliding (the unique-`code` trap from DEC-INV-016). |
+
+**Also fixed here.** The Stock board hardcoded exactly two columns, `SHOP` and
+`STORE`, and when a warehouse did not exist it still printed the name
+*"Storeroom"* with a `0` under it — the owner was reading a store that had never
+been created. Columns now come from the real, active warehouse list.
+
+**Verified live** (deployed demo, 10 Aug): created Storeroom; duplicate code
+refused; `a b!` refused with the format rule; closing Main store refused —
+*"still holds stock (Paper 20, Sunflower Artificial 50)"*; closing the empty
+store allowed; a store Settings points at refused for both close and delete,
+naming the setting; a never-used store deleted cleanly. Settings now explicit:
+purchases → Storeroom, sales → Main store.
+
+**Impact:** Inventory, Purchase, Assembly, Administration (access key
+`inventory.warehouses`).
+
 ## 4. Business rules (service layer; cite in code)
 
 | # | Rule | Cite |
