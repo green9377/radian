@@ -113,6 +113,12 @@ export default function ProductReviews({ detail }: { detail: ProductDetail }) {
                     </div>
                   </div>
                   <p className="text-[14px] text-ink leading-[1.65] mt-2.5 mb-0">{it.body}</p>
+                  {/* the photo they attached — approved with the words (DEC-WEB-006) */}
+                  {it.imageUrl && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={it.imageUrl} alt=""
+                      className="mt-2.5 w-[120px] h-[120px] rounded-[14px] object-cover border border-lavender-deep" />
+                  )}
                   {it.context && (
                     <p className="text-[12px] text-body-soft mt-1 mb-0">{it.context}</p>
                   )}

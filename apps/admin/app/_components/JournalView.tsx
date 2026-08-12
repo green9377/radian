@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
+import { ModuleCard, ModuleHeader, StatTiles } from "./ModuleShell";
 import RichText from "./RichText";
 import {
   listJournalPosts, createJournalPost, updateJournalPost, deleteJournalPost, uploadImage,
@@ -78,11 +79,6 @@ export default function JournalView() {
 
   return (
     <div className={WRAP}>
-      <h1 className="font-display text-[22px] text-purple mb-1">Journal</h1>
-      <p className="text-[13px] text-body-soft mb-5">
-        The articles behind &ldquo;Latest Articles&rdquo; on the homepage, and the /journal page.
-      </p>
-
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
@@ -92,14 +88,26 @@ export default function JournalView() {
       )}
       {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
-      {/* The homepage shows three. Saying so here saves the question of why the
-          fourth one is not appearing. */}
-      <div className={"text-[12px] rounded-[10px] px-3.5 py-2 mb-4 " +
-        (live === 0 ? "bg-[#fff8e6] text-[#8a6414]" : "bg-[#eef7f0] text-[#12693f]")}>
-        {live === 0
-          ? "Nothing published yet — the Latest Articles section is hidden on the website."
-          : `${live} published. The homepage shows the newest three; /journal shows them all.`}
-      </div>
+      <ModuleCard>
+        <ModuleHeader
+          tone="orchid"
+          icon="book"
+          title="Journal"
+          blurb={live === 0
+            ? "Nothing published — Latest Articles is hidden on the website"
+            : "The homepage shows the newest three; /journal shows them all"}
+          chips={rows.length - live > 0
+            ? [{ label: `${rows.length - live} draft${rows.length - live > 1 ? "s" : ""}`, bg: "#f9e9fd", color: "#5e1a5c" }]
+            : []}
+          action={{ label: "Write an article", onClick: add }}
+        />
+        <StatTiles tone="orchid" stats={[
+          { label: "Published", value: live },
+          { label: "Drafts", value: rows.length - live },
+          { label: "On the homepage", value: Math.min(live, 3) },
+          { label: "Total articles", value: rows.length },
+        ]} />
+        <div className="px-5 pt-4 pb-1">
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : (
         <div className="space-y-1.5 mb-4">
@@ -191,9 +199,8 @@ export default function JournalView() {
         </div>
       )}
 
-      <button onClick={add} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] inline-flex items-center gap-1.5">
-        <Icon name="plus" size={15} /> Write an article
-      </button>
+        </div>
+      </ModuleCard>
     </div>
   );
 }

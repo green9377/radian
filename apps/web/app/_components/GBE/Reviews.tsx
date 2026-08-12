@@ -6,6 +6,8 @@ import SectionHead from "../ui/SectionHead";
 import Carousel from "../ui/Carousel";
 import { getShopReviews, type ShopReview } from "../../_data/shop";
 import { submitReview } from "../../_data/checkoutApi";
+import { baseFor } from "../../_data/shop";
+import { useAuthStore } from "../../_store/useAuthStore";
 
 /*
   GBE part 1 of 3 — Reviews ("Why Dhaka Loves Radian").
@@ -236,11 +238,42 @@ export function WriteReview({ productSlug }: { productSlug?: string }) {
   const [body, setBody] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  /*  DEC-WEB-006 — a photo with the words. Uploaded when picked (so Send is
+      instant), shown as a preview, removable. The upload door is public but
+      narrow — 3 MB, images only — and nothing shows anywhere until the owner
+      approves the review it belongs to.  */
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const customer = useAuthStore((st) => st.customer);
+
+  async function pickPhoto(file: File | null) {
+    if (!file) return;
+    setPhotoBusy(true); setErrMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${baseFor()}/media/upload/review-photo`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const b = await res.json().catch(() => null);
+        throw new Error(b?.message ?? "Could not upload the photo");
+      }
+      setPhoto((await res.json()).url as string);
+    } catch (err) {
+      setErrMsg(err instanceof Error ? err.message : "Could not upload the photo");
+      setState("error");
+    } finally { setPhotoBusy(false); }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setState("sending");
-    const r = await submitReview({ authorName: name, rating, body, productSlug });
+    const r = await submitReview({
+      authorName: name, rating, body, productSlug,
+      imageUrl: photo ?? undefined,
+      /*  which account — the logged-in session's phone. A guest simply sends
+          nothing; the server matches the phone to the customer book itself.  */
+      customerPhone: customer?.phone,
+    });
     if (r.ok) setState("done");
     else {
       setErrMsg(r.message);
@@ -303,6 +336,31 @@ export function WriteReview({ productSlug }: { productSlug?: string }) {
             maxLength={1200}
             className="w-full min-h-[90px] resize-none rounded-[12px] border-[1.5px] border-lavender-deep px-3.5 py-2.5 text-[13.5px] outline-none focus:border-orchid"
           />
+          {/* photo — optional, one, previewed */}
+          <div className="flex items-center gap-3">
+            {photo ? (
+              <span className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo} alt="" className="w-[72px] h-[72px] rounded-[12px] object-cover border border-lavender-deep" />
+                <button type="button" onClick={() => setPhoto(null)}
+                  aria-label="Remove photo"
+                  className="absolute -top-2 -right-2 w-[22px] h-[22px] rounded-full bg-white border border-lavender-deep text-body-soft text-[12px] leading-none grid place-items-center hover:text-[#C4172B]">
+                  ×
+                </button>
+              </span>
+            ) : (
+              <label className="inline-flex items-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-lavender-deep px-4 py-2.5 text-[12.5px] text-body-soft cursor-pointer hover:border-orchid hover:text-purple transition-colors">
+                📷 {photoBusy ? "Uploading…" : "Add a photo (optional)"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={photoBusy}
+                  onChange={(e) => { void pickPhoto(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+              </label>
+            )}
+            {customer && (
+              <span className="text-[11.5px] text-body-soft">
+                Posting as <b className="text-purple">{customer.name ?? customer.phone}</b>
+              </span>
+            )}
+          </div>
           {state === "error" && errMsg && (
             <p className="text-[12px] text-[#C4172B]">{errMsg}</p>
           )}

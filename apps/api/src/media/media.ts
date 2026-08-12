@@ -10,6 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Public } from '../auth/auth.guard';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -221,6 +222,27 @@ export class MediaController {
   )
   upload(@UploadedFile() file: UploadedImage, @Query('folder') folder = 'products') {
     return this.svc.upload(file, folder);
+  }
+
+  /**
+   * DEC-WEB-006 (11 Aug 2026) — a customer attaching a photo to their review.
+   *
+   * The ONLY public upload in the system, and deliberately narrower than the
+   * admin one: the folder is hard-coded (no query parameter to wander with),
+   * the size cap is 3 MB instead of 10, and JPG/PNG/WebP only — never SVG,
+   * which can carry scripts. What the photo shows is the owner's problem, not
+   * this endpoint's: a review is born PENDING and nothing shows on the site
+   * until he approves it, photo included.
+   */
+  @Public()
+  @Post('upload/review-photo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 3 * 1024 * 1024, files: 1 },
+    }),
+  )
+  uploadReviewPhoto(@UploadedFile() file: UploadedImage) {
+    return this.svc.upload(file, 'reviews');
   }
 }
 

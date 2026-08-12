@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
+import { ModuleCard, ModuleHeader, StatTiles, FilterChips } from "./ModuleShell";
 import {
   listReviews, createReview, updateReview, deleteReview,
   getGoogleSummary, saveGoogleSummary, uploadImage,
@@ -29,11 +30,6 @@ import {
   carried into the database — see the reviews migration for why.
 */
 
-const TABS: { v: ReviewStatus | "ALL"; label: string }[] = [
-  { v: "PENDING", label: "Waiting for you" },
-  { v: "PUBLISHED", label: "On the site" },
-  { v: "ALL", label: "Everything" },
-];
 
 const SOURCE_LABEL: Record<string, string> = {
   CUSTOMER: "customer wrote this",
@@ -57,7 +53,7 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 
 export default function ReviewsView() {
   const [rows, setRows] = useState<ApiReview[]>([]);
-  const [tab, setTab] = useState<ReviewStatus | "ALL">("PUBLISHED");
+  const [tab, setTab] = useState<ReviewStatus | "ALL" | "CUSTOMER" | "GOOGLE" | "SHOP">("ALL");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -71,7 +67,6 @@ export default function ReviewsView() {
   const flash = (m: string) => { setOk(m); setSaveState("saved"); setTimeout(() => setOk(null), 2000); };
   const fail = (e: unknown, what: string) => { setErr(e instanceof Error ? e.message : what); setSaveState("error"); };
 
-  useEffect(() => { void reload(); }, []);
   async function reload() {
     setLoading(true);
     try {
@@ -80,9 +75,20 @@ export default function ReviewsView() {
     } catch (e) { fail(e, "Could not load"); }
     finally { setLoading(false); }
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void reload(); }, []);
 
-  const shown = useMemo(() => (tab === "ALL" ? rows : rows.filter((r) => r.status === tab)), [rows, tab]);
+  const shown = useMemo(() => {
+    if (tab === "ALL") return rows;
+    if (tab === "CUSTOMER" || tab === "GOOGLE" || tab === "SHOP") return rows.filter((r) => r.source === tab);
+    return rows.filter((r) => r.status === tab);
+  }, [rows, tab]);
   const pending = rows.filter((r) => r.status === "PENDING").length;
+  const published = rows.filter((r) => r.status === "PUBLISHED");
+  const avg = published.length
+    ? Math.round((published.reduce((a, r) => a + r.rating, 0) / published.length) * 10) / 10
+    : null;
+  const withPhoto = rows.filter((r) => r.imageUrl).length;
 
   async function patch(id: string, body: Parameters<typeof updateReview>[1]) {
     setSaveState("saving");
@@ -104,11 +110,6 @@ export default function ReviewsView() {
 
   return (
     <div className={WRAP}>
-      <h1 className="font-display text-[22px] text-purple mb-1">Reviews</h1>
-      <p className="text-[13px] text-body-soft mb-5">
-        What customers say. Nothing appears on the website until you publish it.
-      </p>
-
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
@@ -118,75 +119,118 @@ export default function ReviewsView() {
       )}
       {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
-      {/* ---- the Google summary card ---- */}
-      <div className="border border-lavender-deep rounded-[14px] bg-white p-4 mb-6">
-        <p className="text-[11.5px] font-medium text-body-soft uppercase tracking-[0.12em] mb-1">The Google card</p>
-        {/* Spelled out because a typed-in rating is an invented one unless he
-            copies it, and the number is the most quoted thing on the page. */}
-        <p className="text-[12px] text-body-soft mb-3">
-          Open your Google Business Profile and copy exactly what it says. Leave these empty and the card is hidden — better than a number nobody can stand behind.
-          Once the profile is verified and connected, these fill themselves.
-        </p>
-        {/* Says whether the card is on the site right now. The first version
-            left the owner to work that out from two empty boxes, and he could
-            not — reasonably, since the placeholders looked like values. */}
-        <div className={"text-[12px] rounded-[10px] px-3.5 py-2 mb-3 " +
-          (g.googleRating ? "bg-[#eef7f0] text-[#12693f]" : "bg-[#fff8e6] text-[#8a6414]")}>
-          {g.googleRating
-            ? `Showing on the website: ${g.googleRating.toFixed(1)} stars${g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}.`
-            : "Not showing — the stars box is still empty. The faint numbers below are examples, not what you have entered."}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-[110px_130px_1fr] gap-3">
-          <L label="Stars" hint="required for the card">
-            {/* "e.g." prefixes so a grey placeholder cannot be mistaken for a
-                saved value — which is exactly what happened. */}
-            <input type="number" step="0.1" min="0" max="5" className="ipt" defaultValue={g.googleRating ?? ""} placeholder="e.g. 4.9"
-              onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleRating) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleRating: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-          </L>
-          <L label="How many" hint="optional">
-            <input type="number" className="ipt" defaultValue={g.googleReviewCount ?? ""} placeholder="e.g. 127"
-              onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleReviewCount) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleReviewCount: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-          </L>
-          <L label="Link to your profile">
-            <input className="ipt" defaultValue={g.googleProfileUrl ?? ""} placeholder="https://g.page/…"
-              onBlur={async (e) => { if (e.target.value === (g.googleProfileUrl ?? "")) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleProfileUrl: e.target.value })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-          </L>
-        </div>
+      <ModuleCard>
+        <ModuleHeader
+          tone="purple"
+          icon="star"
+          title="Reviews"
+          blurb="Nothing shows on the website until you publish it"
+          chips={pending > 0 ? [{ label: `⏳ ${pending} waiting`, bg: "#FBEAF0", color: "#6b2138" }] : []}
+          action={{ label: "Add your own", onClick: add }}
+        />
+        <StatTiles tone="purple" stats={[
+          { label: "On the site", value: published.length },
+          { label: "Waiting for you", value: pending },
+          { label: "Shop average", value: avg !== null ? <>{avg} <span style={{ color: "#b76e79" }}>★</span></> : "—" },
+          { label: "With photo", value: withPhoto },
+        ]} />
+
+      {/* ---- the Google card — a strip, not a wall ---- */}
+      <div className="flex items-center gap-3 mx-5 mt-4 px-3.5 py-3 border border-lavender-deep rounded-[14px] bg-[#fdfbff] flex-wrap">
+        <span className="w-[38px] h-[38px] rounded-[11px] bg-lavender grid place-items-center font-display text-[18px] text-purple shrink-0">G</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] text-body">
+            Google card —{" "}
+            {g.googleRating
+              ? <b className="text-[#0E7A3D]">showing: {g.googleRating.toFixed(1)} ★{g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}</b>
+              : <b className="text-[#8a6414]">hidden — the stars box is empty</b>}
+          </span>
+          <span className="block text-[11.5px] text-body-soft">
+            Copy exactly what your Business Profile says · Google&rsquo;s words can be hidden or featured, never edited
+          </span>
+        </span>
+        <span className="flex items-center gap-2 shrink-0">
+          <input type="number" step="0.1" min="0" max="5" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleRating ?? ""} placeholder="e.g. 4.9"
+            onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleRating) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleRating: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
+          <input type="number" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleReviewCount ?? ""} placeholder="e.g. 127"
+            onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleReviewCount) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleReviewCount: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
+          <input className="ipt !w-[170px] h-[38px]" defaultValue={g.googleProfileUrl ?? ""} placeholder="https://g.page/…"
+            onBlur={async (e) => { if (e.target.value === (g.googleProfileUrl ?? "")) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleProfileUrl: e.target.value })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
+        </span>
       </div>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {TABS.map((t) => (
-          <button key={t.v} onClick={() => setTab(t.v)}
-            className={"text-[12.5px] px-3.5 py-1.5 rounded-full border transition-colors inline-flex items-center gap-2 " +
-              (tab === t.v ? "bg-purple text-white border-purple" : "bg-white text-body border-lavender-deep hover:border-orchid")}>
-            {t.label}
-            {t.v === "PENDING" && pending > 0 && (
-              <span className={"rounded-full px-1.5 text-[11px] " + (tab === t.v ? "bg-white/25" : "bg-[#fdecea] text-[#a3261f]")}>{pending}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <FilterChips
+        value={tab}
+        onChange={setTab}
+        options={[
+          { v: "ALL" as const, label: "All", count: rows.length },
+          { v: "PENDING" as const, label: "⏳ Waiting", count: pending, tint: { bg: "#FBEAF0", color: "#6b2138" } },
+          { v: "PUBLISHED" as const, label: "On the site" },
+          { v: "CUSTOMER" as const, label: "🌐 Website" },
+          { v: "GOOGLE" as const, label: "G Google" },
+          { v: "SHOP" as const, label: "✍ Added by you" },
+        ]}
+      />
 
-      {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : shown.length === 0 ? (
-        <p className="text-[13px] text-body-soft mb-4">
+      {loading ? <p className="text-[13px] text-body-soft px-5 pb-4">Loading…</p> : shown.length === 0 ? (
+        <p className="text-[13px] text-body-soft px-5 pb-5">
           {tab === "PENDING" ? "Nothing waiting." : "Nothing here yet — the reviews section is hidden on the website until you publish one."}
         </p>
       ) : (
-        <div className="space-y-1.5 mb-4">
+        <div className="border-t border-lavender-deep">
           {shown.map((r) => {
             const expanded = open === r.id;
             const locked = r.source === "GOOGLE";
+            const account = r.customer
+              ? `${r.customer.phone} (${r.customer.name})`
+              : r.customerPhone ?? null;
             return (
-              <div key={r.id} className={"border rounded-[14px] overflow-hidden " +
-                (r.status === "PENDING" ? "border-[#f5e2b8] bg-[#fffdf6]" : r.isFeatured ? "border-lavender-deep bg-white" : "border-lavender-deep/60 bg-lavender/20")}>
-                <button onClick={() => setOpen(expanded ? null : r.id)} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-lavender/30 transition-colors">
-                  <span className={"text-body-soft text-[11px] transition-transform shrink-0 " + (expanded ? "rotate-90" : "")}>▶</span>
+              <div key={r.id}
+                className={"border-b border-lavender-deep/50 last:border-b-0 " +
+                  (r.status === "PENDING" ? "bg-[#fffdf6] border-l-4 border-l-[#E8A23D]" : "")}>
+                <button onClick={() => setOpen(expanded ? null : r.id)}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-lavender/25 transition-colors">
+                  {/* photo when they attached one; initials circle otherwise */}
+                  {r.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.imageUrl} alt="" className="w-[44px] h-[44px] rounded-[12px] object-cover shrink-0" />
+                  ) : (
+                    <span className="w-[44px] h-[44px] rounded-full grid place-items-center text-white text-[13px] font-semibold shrink-0"
+                      style={{ background: r.source === "GOOGLE" ? "#f7f1fb" : "linear-gradient(135deg,#e9a8f5,#cf43ea)", color: r.source === "GOOGLE" ? "#470066" : "#fff" }}>
+                      {r.source === "GOOGLE" ? "G" : (r.authorName || "?").split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?"}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-medium text-purple">
+                      {r.authorName || "(no name)"}
+                      {r.status === "PENDING" && <Badge bg="#FFF4E6" color="#8a5a00">waiting</Badge>}
+                      {r.source === "CUSTOMER" && <Badge bg="#E6F1FB" color="#185FA5">🌐 website</Badge>}
+                      {r.source === "SHOP" && <Badge bg="#f9e9fd" color="#8c2d84">✍ you added</Badge>}
+                      {r.source === "GOOGLE" && <Badge bg="#f7f1fb" color="#5f4b73">G Google</Badge>}
+                      {r.verifiedPurchase && <Badge bg="#E8F9EE" color="#0E7A3D">✓ verified</Badge>}
+                      {r.isFeatured && r.status === "PUBLISHED" && <Badge bg="#E8F9EE" color="#0E7A3D">on homepage</Badge>}
+                    </span>
+                    <span className="block text-[12px] text-body-soft truncate">{r.body || "(empty)"}</span>
+                    <span className="block text-[11px] text-body-soft mt-0.5">
+                      {account ? `${account} · ` : ""}
+                      {r.product ? <>about <b className="text-purple">{r.product.name}</b></> : "about the shop"}
+                      {" · "}{new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </span>
+                  </span>
                   <span className="text-rosegold text-[12px] tracking-[1px] shrink-0">{"★".repeat(r.rating)}</span>
-                  <span className="text-[14px] font-medium text-purple shrink-0">{r.authorName || "(no name)"}</span>
-                  <span className="text-[12.5px] text-body-soft truncate flex-1 min-w-0">{r.body || "(empty)"}</span>
-                  <span className="text-[11px] text-body-soft shrink-0">{SOURCE_LABEL[r.source]}</span>
-                  {r.verifiedPurchase && <span className="text-[10.5px] text-orchid bg-orchid-soft rounded-full px-2 py-0.5 shrink-0">verified</span>}
-                  {r.isFeatured && r.status === "PUBLISHED" && <span className="text-[10.5px] text-[#12693f] bg-[#eef7f0] rounded-full px-2 py-0.5 shrink-0">on homepage</span>}
+                  {r.status === "PENDING" && (
+                    <span className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => patch(r.id, { status: "PUBLISHED" })}
+                        className="text-[11.5px] font-medium px-3 py-1.5 rounded-full text-white" style={{ background: "#0E7A3D" }}>
+                        ✓ Publish
+                      </button>
+                      <button onClick={() => patch(r.id, { status: "REJECTED" })}
+                        className="text-[11.5px] font-medium px-3 py-1.5 rounded-full border" style={{ borderColor: "#f3c9c3", color: "#c0392b" }}>
+                        Reject
+                      </button>
+                    </span>
+                  )}
+                  <span className={"text-body-soft text-[11px] transition-transform shrink-0 " + (expanded ? "rotate-90" : "")}>▶</span>
                 </button>
 
                 {expanded && (
@@ -268,14 +312,21 @@ export default function ReviewsView() {
         </div>
       )}
 
-      <button onClick={add} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] inline-flex items-center gap-1.5">
-        <Icon name="plus" size={15} /> Add a review yourself
-      </button>
       {/* The advice he was given on 30 Jul, kept where the temptation is. */}
-      <p className="text-[12px] text-body-soft mt-2 max-w-[62ch]">
+      <p className="text-[12px] text-body-soft px-5 py-4 max-w-[62ch]">
         Best done by asking a real customer on WhatsApp and typing what they reply. Invented testimonials break Facebook&rsquo;s and Google&rsquo;s advertising rules, and readers can usually tell.
       </p>
+      </ModuleCard>
     </div>
+  );
+}
+
+function Badge({ bg, color, children }: { bg: string; color: string; children: React.ReactNode }) {
+  return (
+    <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-full ml-1.5 align-middle"
+      style={{ background: bg, color }}>
+      {children}
+    </span>
   );
 }
 

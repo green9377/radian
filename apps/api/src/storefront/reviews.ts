@@ -63,7 +63,12 @@ export class ReviewsService {
     return this.prisma.db.review.findMany({
       where,
       orderBy: [{ status: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
-      include: { product: { select: { name: true, slug: true } } },
+      include: {
+        product: { select: { name: true, slug: true } },
+        /*  DEC-WEB-006 — the account it came from, when the phone matched one.
+            The screen shows the phone either way; the name only when known.  */
+        customer: { select: { name: true, phone: true } },
+      },
     });
   }
 
@@ -90,6 +95,10 @@ export class ReviewsService {
     body?: string;
     productSlug?: string;
     context?: string;
+    /** DEC-WEB-006 — the photo they attached (already uploaded, moderated with the words) */
+    imageUrl?: string;
+    /** the shopper's session phone — a CLAIM; customerId is matched server-side */
+    customerPhone?: string;
   }) {
     const body = dto.body?.trim() ?? '';
     if (body.length < 5) throw new BadRequestException('please write a few words');
@@ -104,6 +113,22 @@ export class ReviewsService {
       productId = prod?.id ?? null; // অজানা slug = shop-review, ব্যর্থতা নয়
     }
 
+    /*  DEC-WEB-006 — কোন account থেকে এলো。 ফোনটা session-এর দাবি; server
+        নিজে খাতার সাথে মিলিয়ে customerId বসায় — form-এর হাতে ওটা নেই。   */
+    const phone = dto.customerPhone?.trim() || null;
+    let customerId: string | null = null;
+    if (phone) {
+      const cust = await this.prisma.db.customer.findFirst({
+        where: { phone }, select: { id: true },
+      });
+      customerId = cust?.id ?? null;
+    }
+
+    /*  ছবি শুধুই আমাদের নিজের ঘর থেকে — যেকোনো ঠিকানা DB-তে ঢুকিয়ে দিলে
+        review-র ছবির নামে অন্যের সাইটের যা-খুশি ঝুলত。                    */
+    const imageUrl =
+      dto.imageUrl && /^https:\/\/ik\.imagekit\.io\//.test(dto.imageUrl) ? dto.imageUrl : null;
+
     await this.prisma.db.review.create({
       data: {
         source: 'CUSTOMER',
@@ -113,6 +138,9 @@ export class ReviewsService {
         body,
         context: dto.context?.trim() || null,
         productId,
+        imageUrl,
+        customerPhone: phone,
+        customerId,
       },
     });
     /*  পর্দায় দেখানোর মতো কিছুই ফেরত যায় না — PENDING review-র id-ও নয়।

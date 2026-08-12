@@ -443,6 +443,12 @@ model Review {
   verifiedPurchase Boolean @default(false)
   orderId          String?
 
+  /// DEC-WEB-006 — যে account থেকে লেখা হলো। ফোনটা form-এর দাবি (session
+  /// থেকে আসে); customerId server নিজে ফোন মিলিয়ে বসায়, form কখনো নয়।
+  customerPhone String?
+  customerId    String?
+  customer      Customer? @relation("CustomerReviews", fields: [customerId], references: [id])
+
   /// on the homepage rail. Being published is not the same as being chosen.
   isFeatured Boolean @default(false)
 
@@ -1939,6 +1945,7 @@ model Customer {
   referralsMade    Referral[] @relation("ReferralsMade")
   referredBy       Referral?  @relation("ReferralReceived")
   conversations    Conversation[] // INB-RULE-007 — Inbox references, never copies
+  reviews          Review[] @relation("CustomerReviews") // DEC-WEB-006
 
   // ---- OWNED BY SALES (read-only mirror; Customer module কখনো লেখে না) (DEC-CUS-004) ----
   ordersCount  Int       @default(0)

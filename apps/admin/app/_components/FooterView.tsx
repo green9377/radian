@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
+import { ModuleCard, ModuleHeader, StatTiles } from "./ModuleShell";
 import {
   listLinkGroups, createLinkGroup, updateLinkGroup, deleteLinkGroup,
   createNavLink, updateNavLink, deleteNavLink,
@@ -72,11 +73,6 @@ export default function FooterView() {
 
   return (
     <div className={WRAP}>
-      <h1 className="font-display text-[22px] text-purple mb-1">Footer &amp; menus</h1>
-      <p className="text-[13px] text-body-soft mb-5">
-        The bottom of every page, and the slide-out menu behind the ☰. Saves as you click away.
-      </p>
-
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
@@ -85,6 +81,21 @@ export default function FooterView() {
         </div>
       )}
       {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+
+      <ModuleCard>
+        <ModuleHeader
+          tone="rosegold"
+          icon="layers"
+          title="Footer & menus"
+          blurb="The bottom of every page, and the slide-out menu behind the ☰ — saves as you click away"
+        />
+        <StatTiles tone="rosegold" stats={[
+          { label: "Footer columns", value: groups.filter((g) => g.placement === "FOOTER").length },
+          { label: "Menu groups", value: groups.filter((g) => g.placement === "MORE").length },
+          { label: "Links in all", value: groups.reduce((n, g) => n + g.links.length, 0) },
+          { label: "Social profiles", value: socials.filter((x) => x.url).length },
+        ]} />
+        <div className="px-5 pt-4 pb-5">
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : (
         <>
@@ -252,6 +263,8 @@ export default function FooterView() {
           </div>
         </>
       )}
+        </div>
+      </ModuleCard>
     </div>
   );
 

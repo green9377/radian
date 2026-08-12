@@ -219,6 +219,10 @@ export const submitReview = (input: {
   body: string;
   productSlug?: string;
   context?: string;
+  /** DEC-WEB-006 — the photo they attached (already uploaded) */
+  imageUrl?: string;
+  /** the logged-in session's phone; the server matches it to the customer book */
+  customerPhone?: string;
 }) => post<{ received: true }>("/shop/reviews", input);
 
 export interface PlacedOrder {

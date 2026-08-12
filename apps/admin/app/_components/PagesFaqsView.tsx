@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
+import { ModuleCard, ModuleHeader, StatTiles, FilterChips } from "./ModuleShell";
 import SaveBar, { type SaveState } from "./SaveBar";
 import RichText from "./RichText";
 import {
@@ -131,15 +132,26 @@ export default function PagesFaqsView() {
       {err && <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[12.5px] text-red-800">{err}</p>}
       {ok && <p className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[12.5px] text-emerald-800">{ok}</p>}
 
-      <div className="mb-1 text-[11px] font-semibold tracking-[0.14em] uppercase text-[color:var(--brand)]">
-        ❀ Storefront · Content
-      </div>
-      <h1 className="font-display text-[26px] font-semibold text-[color:var(--ink)]">Pages & FAQs</h1>
-      <p className="mt-1 mb-6 max-w-[720px] text-[13px] text-[color:var(--muted)]">
-        Terms, refund policy, privacy and the FAQ page — the storefront renders exactly what is
-        published here. bKash and SSLCommerz ask to see the Terms and Refund pages live before
-        approving a merchant account.
-      </p>
+      <ModuleCard>
+        <ModuleHeader
+          tone="rose"
+          icon="shield"
+          title="Pages & FAQs"
+          blurb="Terms, refund, privacy and the FAQ page — the storefront renders exactly what is published here"
+          chips={pages.filter((x) => !x.isPublished).length > 0
+            ? [{ label: `${pages.filter((x) => !x.isPublished).length} unpublished`, bg: "#FBEAF0", color: "#6b2138" }]
+            : []}
+        />
+        <StatTiles tone="rose" stats={[
+          { label: "Pages live", value: pages.filter((x) => x.isPublished).length },
+          { label: "Unpublished", value: pages.filter((x) => !x.isPublished).length },
+          { label: "FAQs", value: faqs.length },
+          { label: "In the footer", value: pages.filter((x) => x.showInFooter).length },
+        ]} />
+        <div className="px-5 pt-4 pb-5">
+        <p className="mb-4 max-w-[720px] text-[12px] text-[color:var(--muted)]">
+          bKash and SSLCommerz ask to see the Terms and Refund pages live before approving a merchant account.
+        </p>
 
       {/* tabs */}
       <div className="mb-6 flex gap-2">
@@ -344,6 +356,8 @@ export default function PagesFaqsView() {
           </div>
         </>
       )}
+        </div>
+      </ModuleCard>
     </div>
   );
 }

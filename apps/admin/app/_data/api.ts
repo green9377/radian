@@ -527,6 +527,9 @@ export interface ApiReview {
   imageUrl: string | null;
   productId: string | null;
   product?: { name: string; slug: string } | null;
+  /** DEC-WEB-006 — the account it came from (phone is the session's claim) */
+  customerPhone?: string | null;
+  customer?: { name: string; phone: string } | null;
   verifiedPurchase: boolean;
   isFeatured: boolean;
   sortOrder: number;
