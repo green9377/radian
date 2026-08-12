@@ -281,9 +281,9 @@ export default function ReviewsView() {
           { label: "Verified", value: rows.filter((r) => r.verifiedPurchase).length },
         ]} />
 
-        <div className="flex gap-5 items-start mx-5 mt-5 mb-5">
+        <div className="grid grid-cols-1 md:grid-cols-[236px_minmax(0,1fr)] gap-5 items-start mx-5 mt-5 mb-5">
           {/* ---- the colourful section rail ---- */}
-          <nav className="w-[236px] shrink-0 sticky top-[84px] hidden md:grid gap-2">
+          <nav className="hidden md:grid gap-2 md:sticky md:top-[84px] self-start">
             {SECTIONS.map((s) => {
               const on = sec === s.id;
               const n = counts[s.id];
