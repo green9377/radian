@@ -292,7 +292,7 @@ export default function ReviewsView() {
                   key={s.id}
                   type="button"
                   onClick={() => setSec(s.id)}
-                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-[14px] text-left transition-all"
+                  className="w-full min-w-0 overflow-hidden flex items-center gap-3 px-3.5 py-3 rounded-[14px] text-left transition-all"
                   style={on
                     ? { background: s.fill, border: "1px solid transparent", boxShadow: `0 5px 16px ${s.glow}` }
                     : { background: s.tint, border: `1px solid ${s.edge}` }}
