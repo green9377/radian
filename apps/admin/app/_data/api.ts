@@ -6749,7 +6749,11 @@ export interface ApiIntegrationsOverview {
   groups: { kind: ApiIntKind; label: string; blurb: string; services: ApiIntegration[] }[];
   /** CONTENT owned by other modules — the connection is here, the wording is not */
   contentElsewhere: { label: string; owner: string; href: string; why: string }[];
-  couriers: { id: string; name: string }[];
+  /*  The whole courier record, not a name for a dropdown — Administration draws
+      one card per courier and folds that courier's keys into it (12 Aug 2026).
+      Inactive ones are here too, or a switched-off courier could never be
+      switched back on. */
+  couriers: ApiCourierService[];
 }
 
 export function getIntegrations(): Promise<ApiIntegrationsOverview> {

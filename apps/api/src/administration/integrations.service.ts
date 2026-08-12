@@ -289,10 +289,27 @@ export class IntegrationsService {
    */
   async overview() {
     const rows = await this.prisma.db.integration.findMany();
+    /*  THE COURIER LIST IS NOW THE COURIER SCREEN — 12 Aug 2026.
+        The owner: courier names lived in Delivery and courier keys lived here,
+        and he had to remember which screen held which. Two screens for one
+        thing is a screen too many. The list therefore carries the whole record,
+        not just a name to fill a dropdown, and Administration renders one card
+        per courier with its keys folded in.
+
+        ⚠️ Ownership did NOT move. The table stays Delivery's (every parcel ever
+        sent points at it); only the screen came here. Moving the rows as well
+        would have meant a migration whose only benefit was tidiness on a
+        diagram, paid for with the risk of orphaning delivery history.
+
+        Inactive couriers are included — the screen has to show a switched-off
+        courier in order to let anyone switch it back on. */
     const couriers = await this.prisma.db.courierService.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true },
+      where: { deletedAt: null },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true, name: true, phone: true,
+        trackingUrlTemplate: true, note: true, sortOrder: true, isActive: true,
+      },
     });
     const byProvider = new Map(rows.map((r) => [`${r.kind}:${r.provider}`, r]));
 

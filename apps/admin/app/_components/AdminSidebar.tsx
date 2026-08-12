@@ -359,7 +359,9 @@ const GROUPS: Group[] = [
         subs: [
           { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
           { label: "Riders", href: "/delivery/riders" },
-          { label: "Couriers", href: "/delivery/couriers" },
+          /*  Couriers left this menu on 12 Aug 2026 — they are added in
+              Administration → Courier & delivery now, keys and all. Riders stay
+              here because a rider is our own staff, not an outside company. */
           { label: "Methods & slots", href: "/delivery/zones" },
           { label: "Proof photos", href: "/delivery/proof" },
           { label: "Setup", href: "/delivery/setup" },

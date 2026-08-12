@@ -380,93 +380,15 @@ export function RidersLive() {
   );
 }
 
-/* ================= COURIERS (P2 master) ================= */
-export function CouriersLive() {
-  const [rows, setRows] = useState<ApiCourierService[] | null>(null);
-  const [demo, setDemo] = useState(false);
-  const [editing, setEditing] = useState<Partial<ApiCourierService> | null>(null);
+/*  COURIERS LEFT THIS FILE — 12 Aug 2026.
 
-  const load = useCallback(async () => {
-    try { setRows(await listCourierServices()); setDemo(false); } catch { setRows([]); setDemo(true); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
+    The courier master is edited in Administration -> Courier & delivery now,
+    where its API keys already lived. The owner's words: a courier screen in
+    Delivery as well 'is confusing and flow break kore'. Riders stayed, because
+    a rider is our own staff and has no keys, no account and no API.
 
-  const save = async () => {
-    if (!editing?.name?.trim()) { alert("name is required"); return; }
-    try {
-      if (editing.id) await updateCourierService(editing.id, editing as Record<string, unknown>);
-      else await createCourierService(editing as Record<string, unknown>);
-      setEditing(null);
-      await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
-  };
-
-  return (
-    <div className={WRAP}>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <PageHead eyebrow="Delivery · couriers" title="Courier services">
-          The nationwide parcel services you hand orders to. Use {"{cn}"} in a tracking link where the consignment number goes.
-        </PageHead>
-        <div className="flex items-center gap-3">
-          {demo && <DemoBadge />}
-          <button onClick={() => setEditing({ isActive: true })} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft"><Icon name="plus" size={16} /> Add courier</button>
-        </div>
-      </div>
-
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
-        <table className="w-full border-collapse text-[13.5px]">
-          <thead>
-            <tr className="text-body-soft text-[11px] uppercase tracking-[0.05em] bg-lavender/60">
-              <th className="text-left font-medium px-4 py-3">Courier</th>
-              <th className="text-left font-medium px-4 py-3">Phone</th>
-              <th className="text-left font-medium px-4 py-3">Tracking URL template</th>
-              <th className="text-left font-medium px-4 py-3">Active</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {(rows ?? []).map((c) => (
-              <tr key={c.id} className="border-t border-lavender-deep hover:bg-lavender/60">
-                <td className="px-4 py-3 font-medium text-purple">{c.name}</td>
-                <td className="px-4 py-3">{c.phone ?? "—"}</td>
-                <td className="px-4 py-3 font-mono text-[12px] text-body-soft">{c.trackingUrlTemplate ?? "—"}</td>
-                <td className="px-4 py-3">{c.isActive ? <span className="text-[11px] font-semibold bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full">Active</span> : <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full">Off</span>}</td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => setEditing(c)} className="text-[13px] font-medium text-orchid hover:text-purple mr-3">Edit</button>
-                  <button onClick={async () => { if (confirm(`Remove ${c.name}?`)) { await deleteCourierService(c.id); await load(); } }} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c]">Remove</button>
-                </td>
-              </tr>
-            ))}
-            {rows !== null && rows.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-body-soft py-12 border-t border-lavender-deep">No couriers yet.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {editing && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setEditing(null))}>
-          <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-[18px] text-purple m-0 mb-4">{editing.id ? "Edit courier" : "Add courier"}</h3>
-            <Guide>Name *</Guide>
-            <input className="ipt mb-3" value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-            <Guide>Phone</Guide>
-            <input className="ipt mb-3" value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} />
-            <Guide>Tracking URL template ({"{cn}"} = consignment)</Guide>
-            <input className="ipt mb-4 font-mono text-[12.5px]" value={editing.trackingUrlTemplate ?? ""} onChange={(e) => setEditing({ ...editing, trackingUrlTemplate: e.target.value })} placeholder="https://steadfast.com.bd/t/{cn}" />
-            <label className="flex items-center gap-2 text-[13px] text-body mb-4">
-              <input type="checkbox" checked={editing.isActive ?? true} onChange={(e) => setEditing({ ...editing, isActive: e.target.checked })} /> Active
-            </label>
-            <div className="flex gap-2.5">
-              <button onClick={save} className="flex-1 bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium py-2.5 rounded-[11px]">Save</button>
-              <button onClick={() => setEditing(null)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+    The board still assigns to couriers exactly as before — it reads the same
+    table through /delivery/couriers, which never moved.  */
 
 /* ================= METHODS & SLOTS (P3 master) ================= */
 export function MethodsLive() {

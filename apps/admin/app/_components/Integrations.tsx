@@ -35,7 +35,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
+  ApiCourierService, ApiIntegration, ApiIntegrationsOverview, ApiIntKind,
+  createCourierService, deleteCourierService, updateCourierService,
   getIntegrations, getWaTemplateStatus, revealIntegrationField, saveIntegration,
   submitWaTemplates, waTestSend, messagingTestSend, type ApiTemplateResult,
 } from "../_data/api";
@@ -194,28 +195,27 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
         {groups.map((g) => {
           const body = (
             <div className={only ? "" : "p-4"}>
-              {g.kind === "COURIER" && (
-                <p className="text-[12px] text-body-soft leading-relaxed max-w-[720px] mb-4">
-                  Courier names and tracking links live in{" "}
-                  <Link href="/delivery/setup" className="text-purple font-semibold">
-                    Delivery → Setup
-                  </Link>
-                  ; these are only the API keys.
-                </p>
+              {g.kind === "COURIER" ? (
+                <CourierSection
+                  couriers={data?.couriers ?? []}
+                  services={g.services}
+                  onSaved={(m) => { flash(m); load(); }}
+                  onError={setErr}
+                />
+              ) : (
+                /*  A grid of compact cards, like a wall of labelled switches —
+                    the owner's reference design, 7 Aug. */
+                /*  No items-start: cards in a row stretch to the tallest one, so
+                    a section reads as one tidy block (owner, 7 Aug). */
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {g.services.map((s) => (
+                    <ServiceCard
+                      key={s.provider} s={s}
+                      onSaved={(m) => { flash(m); load(); }} onError={setErr}
+                    />
+                  ))}
+                </div>
               )}
-              {/*  A grid of compact cards, like a wall of labelled switches —
-                  the owner's reference design, 7 Aug. */}
-              {/*  No items-start: cards in a row stretch to the tallest one, so
-                  a section reads as one tidy block (owner, 7 Aug). */}
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {g.services.map((s) => (
-                  <ServiceCard
-                    key={s.provider} s={s}
-                    couriers={g.kind === "COURIER" ? data?.couriers : undefined}
-                    onSaved={(m) => { flash(m); load(); }} onError={setErr}
-                  />
-                ))}
-              </div>
             </div>
           );
           return only ? (
@@ -289,6 +289,302 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
     then emptied means delete. That is the whole of it — there is no Clear
     button, by the owner's instruction.
 */
+
+/*
+  COURIERS — ONE CARD PER COURIER, KEYS FOLDED IN. 12 Aug 2026.
+
+  The owner, plainly: "delivery-তে courier থাকলে এটা confusing and flow break
+  করে." He was right, and the old note at the top of this section proved it —
+  it had to explain that names lived on one screen and keys on another, which
+  is a sentence no screen should ever need.
+
+  So the courier list IS this section now. A courier is a row you add here;
+  its API keys, if the company even has an API, are fields on that same row.
+
+  ⚠️ WHY "HAS KEYS" IS NOT THE SAME AS "EXISTS". The owner first asked for the
+  opposite of this — show only couriers that are integrated. That would have
+  shut the shop down. The three providers below (Pathao, Steadfast, RedX) are
+  a list written in code; there is no way to add a fourth from the panel, and
+  most couriers in Bangladesh have no API at all. Tying "can I send a parcel by
+  them" to "is there an API key" would have meant SA Paribahan could never
+  carry a parcel again, and that a shop with empty key boxes could not despatch
+  anything whatsoever. Existing in the list is what makes a courier usable;
+  keys only decide whether the consignment number is typed by hand.
+*/
+
+const providerKeyFor = (courierName: string) =>
+  courierName.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+function CourierSection({
+  couriers, services, onSaved, onError,
+}: {
+  couriers: ApiCourierService[];
+  services: ApiIntegration[];
+  onSaved: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [editing, setEditing] = useState<Partial<ApiCourierService> | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  /*  Which keys belong to which courier. `courierId` is the real answer — it is
+      what the owner picked, or what this screen wrote. The name match is only
+      for the three couriers that existed before this screen did and were never
+      linked to anything; without it their keys would look homeless on the very
+      first load after the change. */
+  const serviceFor = (c: ApiCourierService) =>
+    services.find((s) => s.courierId === c.id) ??
+    services.find((s) => !s.courierId && s.provider === providerKeyFor(c.name));
+
+  const claimed = new Set(couriers.map((c) => serviceFor(c)?.provider).filter(Boolean));
+  const orphanKeys = services.filter((s) => !claimed.has(s.provider));
+
+  async function save() {
+    if (!editing?.name?.trim()) { onError("A courier needs a name"); return; }
+    setBusy(true);
+    try {
+      if (editing.id) await updateCourierService(editing.id, editing as Record<string, unknown>);
+      else await createCourierService(editing as Record<string, unknown>);
+      setEditing(null);
+      onSaved(`${editing.name.trim()} saved`);
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(c: ApiCourierService) {
+    if (!confirm(`Remove ${c.name}? Parcels already sent by them keep their record.`)) return;
+    try {
+      await deleteCourierService(c.id);
+      onSaved(`${c.name} removed`);
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
+        <p className="text-[12.5px] text-body-soft leading-relaxed max-w-[640px] m-0">
+          Every courier you hand parcels to. These are the names the delivery
+          board offers when a parcel is assigned — add one here and it is there.
+        </p>
+        <button
+          onClick={() => setEditing({ isActive: true })}
+          className={btnPrimary} style={btnPrimaryStyle}
+        >
+          + Add courier
+        </button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {couriers.map((c) => (
+          <CourierCard
+            key={c.id} c={c} s={serviceFor(c)}
+            onSaved={onSaved} onError={onError}
+            onEdit={() => setEditing(c)}
+            onRemove={() => void remove(c)}
+          />
+        ))}
+      </div>
+
+      {couriers.length === 0 && (
+        <div className="bg-white rounded-2xl border border-[#e7dff0] p-10 text-center text-[13.5px] text-body-soft">
+          No couriers yet. Add the first one and it appears on the delivery board.
+        </div>
+      )}
+
+      {/*  Keys with nobody to belong to. This should stay empty; it is here so
+          that a key never disappears silently just because its courier was
+          removed — a vanished secret is worse than an untidy screen. */}
+      {orphanKeys.length > 0 && (
+        <div className="mt-5">
+          <p className="text-[12.5px] text-body-soft mb-3">
+            These keys are not attached to any courier in your list. Add a
+            courier with the matching name, or leave them — nothing uses them.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {orphanKeys.map((s) => (
+              <ServiceCard key={s.provider} s={s} couriers={couriers} onSaved={onSaved} onError={onError} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-white rounded-2xl border border-[#e7dff0] p-5 w-full max-w-[440px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display text-[18px] text-purple m-0 mb-4">
+              {editing.id ? `Edit ${editing.name}` : "Add courier"}
+            </h3>
+            <Lbl>Name *</Lbl>
+            <input
+              className={`${input} mb-3`} value={editing.name ?? ""}
+              placeholder="SA Paribahan"
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+            />
+            <Lbl>Phone</Lbl>
+            <input
+              className={`${input} mb-3`} value={editing.phone ?? ""}
+              onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
+            />
+            <Lbl>Tracking link — put {"{cn}"} where the consignment number goes</Lbl>
+            <input
+              className={`${input} mb-4 font-mono text-[12.5px]`}
+              value={editing.trackingUrlTemplate ?? ""}
+              placeholder="https://steadfast.com.bd/t/{cn}"
+              onChange={(e) => setEditing({ ...editing, trackingUrlTemplate: e.target.value })}
+            />
+            <div className="flex gap-2.5">
+              <button onClick={() => void save()} disabled={busy} className={`${btnPrimary} flex-1`} style={btnPrimaryStyle}>
+                {busy ? "Saving…" : "Save"}
+              </button>
+              <button onClick={() => setEditing(null)} className={btnGhost}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CourierCard({
+  c, s, onSaved, onError, onEdit, onRemove,
+}: {
+  c: ApiCourierService;
+  /** the manifest service holding this courier's keys, when it has one */
+  s?: ApiIntegration;
+  onSaved: (msg: string) => void;
+  onError: (msg: string) => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const brand = brandFor(s?.provider ?? providerKeyFor(c.name));
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [typed, setTyped] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+
+  const canAutoBook = !!s && s.fieldsFilled === s.fieldsTotal && s.isEnabled;
+
+  async function saveKeys() {
+    if (!s) return;
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = { courierId: c.id };
+      for (const k of typed) body[k] = (edits[k] ?? "").trim();
+      await saveIntegration(s.kind, s.provider, body);
+      setEdits({}); setTyped(new Set());
+      onSaved(`${c.name} keys saved`);
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleActive() {
+    setBusy(true);
+    try {
+      await updateCourierService(c.id, { isActive: !c.isActive });
+      onSaved(`${c.name} ${c.isActive ? "switched off" : "switched on"}`);
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="bg-white rounded-2xl border p-4 flex flex-col"
+      style={{ borderColor: c.isActive ? brand.ring : "#e7dff0" }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-[38px] h-[38px] rounded-xl grid place-items-center text-white text-[14px] font-semibold shrink-0"
+          style={{ background: brand.grad }}
+        >
+          {brand.badge}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-semibold text-purple truncate">{c.name}</div>
+          <div className="text-[12px] text-body-soft truncate">
+            {c.phone || "No phone yet"}
+            {" · "}
+            {c.trackingUrlTemplate || "no tracking link"}
+          </div>
+        </div>
+        <BigSwitch on={c.isActive} onClick={toggleActive} />
+      </div>
+
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        {canAutoBook ? (
+          <span className="text-[11px] font-semibold bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full">
+            Books by itself
+          </span>
+        ) : (
+          <span className="text-[11px] font-semibold bg-[#fff4e2] text-[#b45309] px-2.5 py-1 rounded-full">
+            Typed by hand
+          </span>
+        )}
+        {!c.isActive && (
+          <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full">
+            Not offered on the board
+          </span>
+        )}
+        <span className="flex-1" />
+        <button onClick={onEdit} className="text-[12.5px] font-semibold text-orchid hover:text-purple">Edit</button>
+        <button onClick={onRemove} className="text-[12.5px] font-semibold text-body-soft hover:text-[#b91c1c]">Remove</button>
+      </div>
+
+      {s ? (
+        <div className="mt-3 pt-3 border-t border-[#f2e9fa]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {s.fields.map((f) => (
+              <div key={f.key}>
+                <Lbl>{f.label}</Lbl>
+                <input
+                  className={input}
+                  type={f.secret ? "password" : "text"}
+                  autoComplete="new-password"
+                  placeholder={f.value ? String(f.value) : "not set"}
+                  value={edits[f.key] ?? ""}
+                  onChange={(e) => {
+                    setEdits((x) => ({ ...x, [f.key]: e.target.value }));
+                    setTyped((t) => new Set(t).add(f.key));
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => void saveKeys()} disabled={busy || typed.size === 0}
+            className={`${btnPrimary} w-full mt-3`} style={btnPrimaryStyle}
+          >
+            {busy ? "Saving…" : "Save keys"}
+          </button>
+          {/*  A blank box means "leave it alone", never "clear it" — opening the
+              page and pressing save must not wipe a working key. */}
+          <p className="text-[11.5px] text-body-soft mt-2 m-0">
+            Leave a box empty to keep what is already saved.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 pt-3 border-t border-[#f2e9fa] text-[12.5px] text-body-soft">
+          Added by you. This courier has no API, so its consignment number is
+          always typed in — which is how most couriers work.
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ServiceCard({
   s, couriers, onSaved, onError,
