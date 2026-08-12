@@ -103,3 +103,104 @@ auto-calc by weight (needs Item.weightGram coverage) · Employee adoption
 
 Schema: Delivery block in `schema.prisma`। API: `apps/api/src/delivery/*`।
 Admin: `DeliveryLive.tsx` + route swaps। Migration: `radian_delivery_migrate.bat`।
+
+---
+
+## 10. 12 August 2026 — scale, honesty, and one place for couriers
+
+Four decisions, all from one review session with the owner.
+
+### DEC-DLV-012 — the board is paged, and says how much it is not showing
+
+`board()` fetched `take: 300` and nothing on the screen mentioned it. At the
+owner's own target (84 branches, 64 districts) parcel 301 onwards was fetched by
+nobody and displayed nowhere. The reply is now `{ rows, total, page, limit,
+counts }` and every view prints the total.
+
+`counts` is deliberately computed over the **whole** queue, never the filtered
+page — otherwise typing a name in the search box would make 412 waiting parcels
+read as 3.
+
+**Order: `promisedBy` ascending, nulls last.** Not order number, not placedAt.
+For a two-hour-delivery shop "which one first" is the only question the screen
+exists to answer. Orders taken before `promisedBy` existed sort last: an unknown
+deadline must never push a real one down the page.
+
+### DEC-DLV-013 — a list view beside the board, and bulk assign
+
+Cards in four columns answer *what is going on*. They cannot answer *get these
+forty out*. The list is one row per parcel, late ones red at the top, with a
+tick box; `POST /delivery/assignments/bulk` sends the selection to one carrier.
+
+Three constraints, each learned the hard way rather than guessed:
+
+- **Not a transaction.** One cancelled order among forty must not discard the
+  other thirty-nine. Each parcel is assigned separately and failures come back
+  named, so the screen can say *which* three did not go and why. All-or-nothing
+  would make the busiest hour the hour nothing can be assigned.
+- **No consignment number on the bulk dialog.** One number pasted across forty
+  parcels is forty wrong tracking links sent to forty customers.
+- **No tick box on parcels already out for delivery.** Re-routing one that has
+  left the shop needs someone to say what happened to it; a bulk action is the
+  wrong place for that conversation.
+
+### DEC-DLV-014 — couriers are added in Administration, not Delivery
+
+The owner: a courier screen in Delivery *and* keys in Administration "is
+confusing and flow break kore". He was right — the old section header had to
+explain that names lived on one screen and keys on another, which is a sentence
+no screen should need.
+
+Administration → Courier & delivery is now the courier list itself: one card per
+courier holding name, phone, tracking link, on/off and that courier's API keys.
+**Add courier** is new; until now the three names were written in code and a
+fourth could not be added from the panel at all.
+
+He first asked for the opposite — show only couriers that have an API
+integrated. That would have shut the shop down: most couriers in Bangladesh have
+no API, and with empty key boxes the assign dropdown would have been empty.
+**Existing in the list is what makes a courier usable; keys only decide whether
+the consignment number is typed by hand.**
+
+Ownership did **not** move. `CourierService` is still Delivery's table — every
+parcel ever sent points at it — and the board still assigns through
+`/delivery/couriers`. Only the screen moved, so there is no migration and no
+risk to delivery history. `/delivery/couriers` redirects.
+
+### DEC-DLV-015 — `isActive` must never be used to find a finished delivery
+
+`isActive` means "the assignment this order is riding on right now". Delivery
+clears it the moment a parcel lands or fails, because a terminal assignment is
+not current. Two places paired it with a terminal status:
+
+- `delivery-analytics.service.ts` — `status: DELIVERED AND isActive: true`, a
+  pair that can never both be true. `/delivery/performance` therefore returned
+  zeros from the day it was written, which is why the screen still carried the
+  invented "94% on-time" from `deliveryDemo.ts`.
+- `finance-drift.service.ts` — the same mistake in `carrierCash`. The one drift
+  check whose whole job is catching COD that never came back was structurally
+  unable to fire.
+
+Both now filter on `deletedAt: null` only. `inFlight` keeps `isActive`, because
+that genuinely is a question about right now.
+
+### Still open (business rules, not built — owner must decide)
+
+- **Delivery cost.** `DeliveryAssignment.costPaisa` is read by analytics and by
+  `finance.onDeliveryCost()`, and **written by nothing**. Account 5200 Delivery
+  Cost is therefore always empty and delivery margin always equals the charge.
+  Owner has decided cost is entered *after* delivery and is never a fixed
+  amount; the carrier settle screen that captures it is the next piece of work.
+- **COD remittance matching.** Agreed shape: parcel-level, via a new
+  `CarrierRemittanceLine`. ⚠️ When built, the courier charge must be recorded
+  **once** — on the parcel — and the remittance header must stop posting its own
+  charge to 5200, or the same fee lands in Delivery Cost twice.
+- **Changing carrier mid-flight.** There is no Sales transition out of
+  `out_for_delivery` back to `preparing`. Today the path is Fail → Re-assign,
+  which is coherent but counts against the failure rate. Whether a direct
+  carrier swap should exist, and what it does to that rate, is the owner's call.
+- **A second courier-assign path still exists.** `POST /orders/:id/courier`
+  writes courier fields straight onto the Order without creating a
+  `DeliveryAssignment`, and the button is live in `OrderEditor`. Orders assigned
+  that way never reach the board, the analytics or Finance. Should be removed in
+  favour of `/delivery/assignments`.
