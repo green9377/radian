@@ -340,9 +340,16 @@ export const updateBanner = (id: string, b: Partial<BannerWrite>) =>
   j<ApiBanner>(`/banners/${id}`, { method: "PATCH", body: JSON.stringify(b) });
 export const deleteBanner = (id: string) => j<{ ok: true }>(`/banners/${id}`, { method: "DELETE" });
 
-export const getStorefrontSettings = () => j<{ heroRotateSeconds: number }>("/banners/settings");
-export const setStorefrontSettings = (s: { heroRotateSeconds: number }) =>
-  j<{ heroRotateSeconds: number }>("/banners/settings", { method: "PATCH", body: JSON.stringify(s) });
+export interface ApiStorefrontSettings {
+  heroRotateSeconds: number;
+  /** the small card floating over the shop photograph — both blank hides it */
+  shopChipTitle: string | null;
+  shopChipSub: string | null;
+}
+export const getStorefrontSettings = () => j<ApiStorefrontSettings>("/banners/settings");
+/** every field optional — the API only writes what is sent */
+export const setStorefrontSettings = (s: Partial<Omit<ApiStorefrontSettings, never>>) =>
+  j<ApiStorefrontSettings>("/banners/settings", { method: "PATCH", body: JSON.stringify(s) });
 
 /* ---- trust badges (30 Jul 2026) ---------------------------------------------
    The row under the hero. `icon` and `iconUrl` are mutually exclusive and the

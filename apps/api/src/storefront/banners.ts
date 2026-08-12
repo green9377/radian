@@ -173,12 +173,38 @@ export class StorefrontSettingsService {
     });
   }
 
-  update(dto: { heroRotateSeconds?: number }) {
-    const seconds = dto.heroRotateSeconds;
+  /**
+   * ⚠️ EVERY FIELD IS OPTIONAL AND ONLY WRITTEN WHEN SENT. The first version
+   * took `heroRotateSeconds` alone and always wrote it, so any screen touching
+   * another setting would have reset the slider to a default it never asked
+   * about.
+   *
+   * `shopChipTitle`/`shopChipSub` — the small card floating over the shop
+   * photograph ("Dhanmondi, Dhaka / Watch your gift arranged by hand"). The
+   * schema has carried them since the day the words were pulled out of the
+   * component, and the API has been serving them all along; there was simply
+   * no screen to type them into, so the owner could not change his own
+   * address (found 11 Aug 2026). Blank clears the card rather than leaving
+   * an empty white box on the photo.
+   */
+  update(dto: {
+    heroRotateSeconds?: number;
+    shopChipTitle?: string | null;
+    shopChipSub?: string | null;
+  }) {
+    const data: {
+      heroRotateSeconds?: number;
+      shopChipTitle?: string | null;
+      shopChipSub?: string | null;
+    } = {};
+    if (dto.heroRotateSeconds !== undefined) data.heroRotateSeconds = clampSeconds(dto.heroRotateSeconds);
+    if (dto.shopChipTitle !== undefined) data.shopChipTitle = String(dto.shopChipTitle ?? '').trim() || null;
+    if (dto.shopChipSub !== undefined) data.shopChipSub = String(dto.shopChipSub ?? '').trim() || null;
+
     return this.prisma.db.storefrontSetting.upsert({
       where: { id: 'singleton' },
-      create: { id: 'singleton', heroRotateSeconds: clampSeconds(seconds) },
-      update: { heroRotateSeconds: clampSeconds(seconds) },
+      create: { id: 'singleton', ...data },
+      update: data,
     });
   }
 }
@@ -207,7 +233,9 @@ export class BannersController {
     return this.settings.get();
   }
   @Patch('settings')
-  patchSettings(@Body() dto: { heroRotateSeconds?: number }) {
+  patchSettings(
+    @Body() dto: { heroRotateSeconds?: number; shopChipTitle?: string | null; shopChipSub?: string | null },
+  ) {
     return this.settings.update(dto);
   }
 

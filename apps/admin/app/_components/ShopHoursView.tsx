@@ -6,7 +6,8 @@ import SaveBar, { type SaveState } from "./SaveBar";
 import {
   listShopHours, setShopHour, listShopClosures, addShopClosure, removeShopClosure,
   getCompany, saveCompany, uploadImage,
-  type ApiShopHour, type ApiShopClosure, type ApiCompany,
+  getStorefrontSettings, setStorefrontSettings,
+  type ApiShopHour, type ApiShopClosure, type ApiCompany, type ApiStorefrontSettings,
 } from "../_data/api";
 
 /*
@@ -67,6 +68,7 @@ export default function ShopHoursView() {
   const [newDate, setNewDate] = useState("");
   const [newReason, setNewReason] = useState("");
   const [co, setCo] = useState<ApiCompany | null>(null);
+  const [settings, setSettings] = useState<ApiStorefrontSettings | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const flash = (m: string) => { setOk(m); setSaveState("saved"); setTimeout(() => setOk(null), 2000); };
@@ -75,8 +77,10 @@ export default function ShopHoursView() {
   async function reload() {
     setLoading(true);
     try {
-      const [h, c, company] = await Promise.all([listShopHours(), listShopClosures(), getCompany()]);
-      setHours(h); setClosures(c); setCo(company); setErr(null);
+      const [h, c, company, st] = await Promise.all([
+        listShopHours(), listShopClosures(), getCompany(), getStorefrontSettings(),
+      ]);
+      setHours(h); setClosures(c); setCo(company); setSettings(st); setErr(null);
     } catch (e) { setErr(e instanceof Error ? e.message : "Could not load"); }
     finally { setLoading(false); }
   }
@@ -90,6 +94,16 @@ export default function ShopHoursView() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not save"); setSaveState("error");
       void reload();
+    }
+  }
+
+  async function patchSettings(body: { shopChipTitle?: string; shopChipSub?: string }) {
+    try {
+      setSaveState("saving");
+      setSettings(await setStorefrontSettings(body));
+      flash("Saved");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save"); setSaveState("error");
     }
   }
 
@@ -190,6 +204,23 @@ export default function ShopHoursView() {
                 <input className="ipt" defaultValue={co.mapUrl ?? ""} placeholder="https://maps.app.goo.gl/…"
                   onBlur={(e) => e.target.value !== (co.mapUrl ?? "") && patchCompany({ mapUrl: e.target.value })} />
               </F>
+
+              {/*  The little card floating on the photograph. The owner asked
+                  where "Dhanmondi, Dhaka" is changed (11 Aug 2026) — the answer
+                  was nowhere: the schema and the API had carried these two
+                  since the words were pulled out of the component, and no
+                  screen was ever built for them. Both blank → the card is not
+                  drawn, rather than a white box on the photo.  */}
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Card on the photo — line 1" hint="the bold line">
+                  <input className="ipt" defaultValue={settings?.shopChipTitle ?? ""} placeholder="Dhanmondi, Dhaka"
+                    onBlur={(e) => e.target.value !== (settings?.shopChipTitle ?? "") && patchSettings({ shopChipTitle: e.target.value })} />
+                </F>
+                <F label="Card on the photo — line 2" hint="blank on both lines hides the card">
+                  <input className="ipt" defaultValue={settings?.shopChipSub ?? ""} placeholder="Watch your gift arranged by hand"
+                    onBlur={(e) => e.target.value !== (settings?.shopChipSub ?? "") && patchSettings({ shopChipSub: e.target.value })} />
+                </F>
+              </div>
             </div>
           </div>
         </div>
