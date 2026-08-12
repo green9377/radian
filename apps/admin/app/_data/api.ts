@@ -4554,6 +4554,8 @@ export interface ApiAssignment {
 }
 export interface ApiBoardOrder {
   id: string; orderNo: string; placedAt: string;
+  /** when we promised it would arrive — null on orders taken before this existed */
+  promisedBy?: string | null;
   customer: { id: string; name: string; phone: string };
   recipientName?: string | null; isGift: boolean; zone: string; address: string;
   methodLabel?: string | null; slotLabel?: string | null; date?: string | null;
@@ -4562,7 +4564,37 @@ export interface ApiBoardOrder {
   assignment: ApiAssignment | null;
 }
 
-export const deliveryBoard = () => j<ApiBoardOrder[]>(`/delivery/board`);
+/*  The board is paged now — it used to fetch a flat 300 and say nothing about
+    what it left behind (12 Aug 2026). `total` and `counts` are what let the
+    screen admit how much work there really is. */
+export interface ApiBoardPage {
+  rows: ApiBoardOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  /** the WHOLE queue by status, never narrowed by the current filter */
+  counts: Record<string, number>;
+}
+export interface BoardQuery {
+  status?: string; zone?: string; methodId?: string;
+  q?: string; page?: number; limit?: number;
+}
+export const deliveryBoard = (query: BoardQuery = {}) => {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== null && v !== "") p.set(k, String(v));
+  }
+  const qs = p.toString();
+  return j<ApiBoardPage>(`/delivery/board${qs ? `?${qs}` : ""}`);
+};
+
+/** Many parcels, one carrier. Never all-or-nothing — see `failed` in the reply. */
+export const bulkAssign = (b: Record<string, unknown>) =>
+  j<{
+    assigned: number; failedCount: number;
+    done: { orderId: string; assignmentNo: string }[];
+    failed: { orderId: string; reason: string }[];
+  }>(`/delivery/assignments/bulk`, { method: "POST", body: JSON.stringify(b) });
 export const deliveryConfig = () => j<ApiDeliveryMethod[]>(`/delivery/config`);
 export async function deliveryConfigSafe(): Promise<ApiDeliveryMethod[] | null> {
   try { return await deliveryConfig(); } catch { return null; }

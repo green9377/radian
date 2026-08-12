@@ -20,6 +20,8 @@ import type {
   CourierWriteDto,
   AssignDto,
   AssignmentActionDto,
+  BoardQuery,
+  BulkAssignDto,
 } from './delivery.dto';
 
 /* Static paths above any ':id' (project rule). */
@@ -42,9 +44,30 @@ export class DeliveryController {
     return this.analytics.analytics(from, to);
   }
 
+  /*  Everything is a query string, so a filtered board is a shareable link —
+      "the late Dhaka ones" can be pasted into a message to whoever is on
+      shift. Numbers arrive as text and are parsed here, not trusted. */
   @Get('board')
-  board() {
-    return this.delivery.board();
+  board(
+    @Query('status') status?: string,
+    @Query('zone') zone?: string,
+    @Query('methodId') methodId?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const num = (v?: string) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
+    };
+    return this.delivery.board({
+      status: status as BoardQuery['status'],
+      zone: zone as BoardQuery['zone'],
+      methodId: methodId || undefined,
+      q: q || undefined,
+      page: num(page),
+      limit: num(limit),
+    });
   }
 
   @Get('config')
@@ -196,6 +219,13 @@ export class DeliveryController {
   }
 
   /* ---- assignments ---- */
+  /*  Static path before ':id' (project rule) — 'bulk' must not be read as an
+      assignment id. */
+  @Post('assignments/bulk')
+  bulkAssign(@Body() dto: BulkAssignDto) {
+    return this.delivery.bulkAssign(dto);
+  }
+
   @Post('assignments')
   assign(@Body() dto: AssignDto) {
     return this.delivery.assign(dto);

@@ -20,6 +20,7 @@ import {
   addDeliverySlot,
   addOrderPhoto,
   assignmentAction,
+  bulkAssign,
   createAssignment,
   createRider,
   orderAction,
@@ -77,6 +78,169 @@ const ago = (iso: string) => {
   return `${Math.round(mins / 1440)}d ago`;
 };
 
+/*  HOW LATE, OR HOW LONG LEFT.
+
+    The number that decides what a delivery person does next. Shown as words
+    rather than a timestamp because "40 min late" is acted on and
+    "14:20" is worked out. `null` promise reads as a dash, never as "on time" —
+    orders taken before promisedBy existed cannot be judged (INT-R09).  */
+function due(promisedBy?: string | null) {
+  if (!promisedBy) return { text: "—", tone: "" as const, late: false };
+  const mins = Math.round((new Date(promisedBy).getTime() - Date.now()) / 60000);
+  if (mins < 0) {
+    const m = Math.abs(mins);
+    return { text: m < 60 ? `${m} min late` : `${Math.floor(m / 60)} h late`, tone: "late" as const, late: true };
+  }
+  if (mins < 60) return { text: `in ${mins} min`, tone: "soon" as const, late: false };
+  if (mins < 60 * 20) return { text: `in ${Math.round(mins / 60)} h`, tone: "" as const, late: false };
+  return { text: `in ${Math.round(mins / 1440)} d`, tone: "" as const, late: false };
+}
+
+/*  THE LIST — the working view (owner, 12 Aug 2026).
+
+    Four columns of cards answer "what is going on". They cannot answer "get
+    these forty out", which is the question at 400 orders. One row per parcel,
+    sorted by the promise, with a tick box — so a filter plus one tick plus one
+    carrier is forty assignments.
+
+    The tick box is missing on parcels already out for delivery, deliberately:
+    re-routing a parcel that has left the shop needs someone to say what
+    happened to it (mark it failed), and a bulk action is exactly the wrong
+    place for that conversation.  */
+function BoardList({
+  rows, total, page, limit, picked, allPicked, busy,
+  onTogglePick, onToggleAll, onPage, onAssign, onAct, onPrepare,
+}: {
+  rows: ApiBoardOrder[] | null;
+  total: number; page: number; limit: number;
+  picked: Set<string>; allPicked: boolean; busy: string | null;
+  onTogglePick: (id: string) => void;
+  onToggleAll: () => void;
+  onPage: (p: number) => void;
+  onAssign: (o: ApiBoardOrder) => void;
+  onAct: (o: ApiBoardOrder, a: "out" | "delivered" | "fail") => void;
+  onPrepare: (o: ApiBoardOrder) => void;
+}) {
+  const from = total === 0 ? 0 : (page - 1) * limit + 1;
+  const to = Math.min(page * limit, total);
+  const statusLabel: Record<string, string> = {
+    unassigned: "Needs assignment", preparing: "Preparing",
+    out_for_delivery: "On the road", failed: "Failed",
+  };
+
+  return (
+    <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="text-body-soft text-[11px] uppercase tracking-[0.05em] bg-lavender/60">
+              <th className="px-3 py-3 w-[36px]">
+                <input type="checkbox" checked={allPicked} onChange={onToggleAll} aria-label="Select all on this page" />
+              </th>
+              <th className="text-left font-medium px-3 py-3 w-[110px]">Order</th>
+              <th className="text-left font-medium px-3 py-3">Going to</th>
+              <th className="text-left font-medium px-3 py-3 w-[120px]">Due</th>
+              <th className="text-left font-medium px-3 py-3 w-[150px]">Carrier</th>
+              <th className="text-right font-medium px-3 py-3 w-[90px]">COD</th>
+              <th className="px-3 py-3 w-[190px]" />
+            </tr>
+          </thead>
+          <tbody>
+            {(rows ?? []).map((o) => {
+              const d = due(o.promisedBy);
+              const out = o.deliveryStatus === "out_for_delivery";
+              const rowBg = d.late ? "bg-[#fdf0f0]" : d.tone === "soon" ? "bg-[#fff8ec]" : "";
+              return (
+                <tr key={o.id} className={`border-t border-lavender-deep hover:bg-lavender/40 ${rowBg}`}>
+                  <td className="px-3 py-2.5 text-center">
+                    {!out && (
+                      <input type="checkbox" checked={picked.has(o.id)} onChange={() => onTogglePick(o.id)} aria-label={`Select ${o.orderNo}`} />
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Link href={`/orders/${o.id}`} className="font-mono font-bold text-purple text-[12.5px] hover:text-orchid">{o.orderNo}</Link>
+                    <div className="text-[11px] text-body-soft">{statusLabel[o.deliveryStatus] ?? o.deliveryStatus}</div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="font-medium text-purple text-[12.5px] truncate max-w-[280px]">
+                      {o.isGift ? `🎁 ${o.recipientName ?? "recipient"}` : o.customer?.name}
+                    </div>
+                    <div className="text-[11.5px] text-body-soft truncate max-w-[280px]">{o.address}</div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[12.5px] font-semibold ${d.late ? "text-[#b91c1c]" : d.tone === "soon" ? "text-[#b45309]" : "text-body-soft"}`}>{d.text}</span>
+                    <div className="text-[11px] text-body-soft truncate">{o.methodLabel ?? o.zone}</div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {o.assignment ? (
+                      <span className="text-[12px] font-semibold text-purple">
+                        {o.assignment.kind === "RIDER" ? "🛵" : "📦"} {o.assignment.rider?.name ?? o.assignment.courier?.name}
+                      </span>
+                    ) : (
+                      <span className="text-[12px] text-body-soft">— none —</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {o.duePaisa > 0 ? <span className="text-[12.5px] font-semibold text-[#b45309]">{formatTaka(o.duePaisa)}</span> : <span className="text-body-soft">—</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                    {o.deliveryStatus === "unassigned" && (
+                      <>
+                        <button disabled={busy === o.id} onClick={() => onAssign(o)} className="text-[12.5px] font-semibold text-orchid hover:text-purple mr-3">Assign</button>
+                        <button disabled={busy === o.id} onClick={() => onPrepare(o)} className="text-[12.5px] font-semibold text-body-soft hover:text-purple">Prepare</button>
+                      </>
+                    )}
+                    {o.deliveryStatus === "preparing" && (
+                      o.assignment
+                        ? <button disabled={busy === o.id} onClick={() => onAct(o, "out")} className="text-[12.5px] font-semibold text-orchid hover:text-purple">Send out →</button>
+                        : <button disabled={busy === o.id} onClick={() => onAssign(o)} className="text-[12.5px] font-semibold text-orchid hover:text-purple">Assign first</button>
+                    )}
+                    {o.deliveryStatus === "failed" && (
+                      <button disabled={busy === o.id} onClick={() => onAssign(o)} className="text-[12.5px] font-semibold text-orchid hover:text-purple">Re-assign</button>
+                    )}
+                    {out && (
+                      <>
+                        <button disabled={busy === o.id} onClick={() => onAct(o, "delivered")} className="text-[12.5px] font-semibold text-[#0f7d55] hover:underline mr-3">Delivered</button>
+                        <button disabled={busy === o.id} onClick={() => onAct(o, "fail")} className="text-[12.5px] font-semibold text-body-soft hover:text-[#b91c1c]">Fail</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {rows !== null && rows.length === 0 && (
+              <tr><td colSpan={7} className="text-center text-body-soft py-14 border-t border-lavender-deep">Nothing matches that.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/*  The total is always printed. A screen that shows fifty of four
+          hundred and twelve without saying four hundred and twelve is how
+          parcels go missing on a busy day. */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-lavender-deep flex-wrap">
+        <span className="text-[12.5px] text-body-soft">
+          {total === 0 ? "Nothing here" : `Showing ${from}–${to} of ${total}`}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            disabled={page <= 1} onClick={() => onPage(page - 1)}
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border border-lavender-deep text-purple disabled:opacity-40"
+          >
+            ← Previous
+          </button>
+          <button
+            disabled={to >= total} onClick={() => onPage(page + 1)}
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border border-lavender-deep text-purple disabled:opacity-40"
+          >
+            Next {Math.min(limit, Math.max(0, total - to))} →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================= BOARD ================= */
 const COLS: { key: string; label: string; tone: string; hint: string }[] = [
   { key: "unassigned", label: "Needs assignment", tone: "#b45309", hint: "confirmed — pick a rider/courier" },
@@ -97,19 +261,91 @@ export function DeliveryBoardLive() {
   const [aCourier, setACourier] = useState("");
   const [aCn, setACn] = useState("");
 
+  /*  VIEW, FILTERS AND SELECTION — 12 Aug 2026.
+      The owner asked what this screen does at 100–500 orders. Cards in four
+      columns answer "what is going on"; they cannot answer "get these forty
+      out". So the list is the working view and the board is the glance, and
+      the list opens by default once the queue is bigger than a screenful. */
+  const [view, setView] = useState<"list" | "board" | null>(null);
+  const [status, setStatus] = useState("");
+  const [zone, setZone] = useState("");
+  const [term, setTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const LIMIT = 50;
+
+  /*  Typing must not fire a request per keystroke on a table this size. */
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(term.trim()); setPage(1); }, 350);
+    return () => clearTimeout(t);
+  }, [term]);
+
   const load = useCallback(async () => {
     try {
-      const [b, r, c] = await Promise.all([deliveryBoard(), listRiders(), listCourierServices()]);
-      setRows(b);
+      const [b, r, c] = await Promise.all([
+        deliveryBoard({ status: status || undefined, zone: zone || undefined, q: search || undefined, page, limit: LIMIT }),
+        listRiders(),
+        listCourierServices(),
+      ]);
+      setRows(b.rows);
+      setTotal(b.total);
+      setCounts(b.counts ?? {});
+      /*  Decide the view once, from the real size of the queue, then leave it
+          to the person — flipping it back under them on every refresh would
+          be the screen arguing. */
+      setView((v) => v ?? (Object.values(b.counts ?? {}).reduce((a, n) => a + n, 0) > 12 ? "list" : "board"));
       setRiders(r.filter((x) => x.isActive));
       setCouriers(c.filter((x) => x.isActive));
       setDemo(false);
     } catch {
       setRows([]);
       setDemo(true);
+      setView((v) => v ?? "board");
     }
-  }, []);
+  }, [status, zone, search, page]);
   useEffect(() => { void load(); }, [load]);
+
+  /*  A tick must not survive the row leaving the page — assigning something you
+      can no longer see is how the wrong parcel goes to the wrong rider. */
+  useEffect(() => {
+    setPicked((prev) => {
+      const visible = new Set((rows ?? []).map((r) => r.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [rows]);
+
+  const assignable = (rows ?? []).filter((o) => o.deliveryStatus !== "out_for_delivery");
+  const allPicked = assignable.length > 0 && assignable.every((o) => picked.has(o.id));
+
+  const togglePick = (id: string) =>
+    setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  const doBulk = async () => {
+    if (picked.size === 0) return;
+    setBusy("bulk");
+    try {
+      const res = await bulkAssign({
+        orderIds: [...picked],
+        kind: aKind,
+        riderId: aKind === "RIDER" ? aRider : undefined,
+        courierId: aKind === "COURIER" ? aCourier : undefined,
+      });
+      setBulkOpen(false);
+      setPicked(new Set());
+      await load();
+      /*  Never a silent partial success. If three of forty did not go, the
+          screen says three, and says why for the first of them. */
+      if (res.failedCount > 0) {
+        alert(`${res.assigned} assigned, ${res.failedCount} could not be — first reason: ${res.failed[0]?.reason ?? "unknown"}`);
+      }
+    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    setBusy(null);
+  };
 
   const byCol = useMemo(() => {
     const m: Record<string, ApiBoardOrder[]> = {};
@@ -177,6 +413,81 @@ export function DeliveryBoardLive() {
         </div>
       </div>
 
+      {/* ---- toolbar: view, search, filters ---- */}
+      <div className="flex items-center gap-2.5 flex-wrap mb-4">
+        <div className="inline-flex bg-lavender rounded-[11px] p-1 gap-1">
+          {(["list", "board"] as const).map((v) => (
+            <button
+              key={v} onClick={() => setView(v)}
+              className={`text-[12.5px] font-semibold px-4 py-2 rounded-[9px] capitalize ${view === v ? "bg-white text-purple shadow-soft" : "text-body-soft hover:text-purple"}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <input
+          className="ipt flex-1 min-w-[190px] max-w-[340px]" value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          placeholder="Order no, phone, name or address"
+        />
+        <select className="ipt w-auto min-w-[130px]" value={zone} onChange={(e) => { setZone(e.target.value); setPage(1); }}>
+          <option value="">All zones</option>
+          <option value="DHAKA">Dhaka</option>
+          <option value="BANGLADESH">Nationwide</option>
+        </select>
+      </div>
+
+      {/*  The chips count the WHOLE queue, so they stay honest while a filter
+          narrows the table under them. */}
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+        <button
+          onClick={() => { setStatus(""); setPage(1); }}
+          className={`text-[12px] font-semibold px-3 py-1.5 rounded-full border ${status === "" ? "bg-purple text-white border-purple" : "bg-white text-body-soft border-lavender-deep hover:text-purple"}`}
+        >
+          Everything {Object.values(counts).reduce((a, n) => a + n, 0)}
+        </button>
+        {COLS.map((c) => (
+          <button
+            key={c.key} onClick={() => { setStatus(c.key); setPage(1); }}
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-full border"
+            style={
+              status === c.key
+                ? { background: c.tone, color: "#fff", borderColor: c.tone }
+                : { background: `${c.tone}12`, color: c.tone, borderColor: `${c.tone}33` }
+            }
+          >
+            {c.label} {counts[c.key] ?? 0}
+          </button>
+        ))}
+      </div>
+
+      {/* ---- bulk bar ---- */}
+      {picked.size > 0 && (
+        <div className="flex items-center gap-3 flex-wrap bg-purple text-white rounded-[13px] px-4 py-3 mb-4">
+          <span className="text-[13.5px] font-semibold">{picked.size} selected</span>
+          <button onClick={() => setPicked(new Set())} className="text-[12.5px] underline opacity-90 hover:opacity-100">clear</button>
+          <span className="flex-1" />
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="bg-white text-purple text-[13px] font-semibold px-4 py-2 rounded-[10px]"
+          >
+            Assign all {picked.size} →
+          </button>
+        </div>
+      )}
+
+      {view === "list" ? (
+        <BoardList
+          rows={rows} total={total} page={page} limit={LIMIT}
+          picked={picked} allPicked={allPicked} busy={busy}
+          onTogglePick={togglePick}
+          onToggleAll={() => setPicked(allPicked ? new Set() : new Set(assignable.map((o) => o.id)))}
+          onPage={setPage}
+          onAssign={(o) => { setAssigning(o); setAKind(o.zone === "BANGLADESH" ? "COURIER" : "RIDER"); }}
+          onAct={act}
+          onPrepare={startPreparing}
+        />
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {COLS.map((col) => (
           <div key={col.key} className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden flex flex-col">
@@ -234,6 +545,63 @@ export function DeliveryBoardLive() {
           </div>
         ))}
       </div>
+      )}
+
+      {/*  ⚠️ The board shows one page, like the list does. Before 12 Aug it
+          silently showed the first 300 of however many there were; saying so
+          out loud is the whole point. */}
+      {view === "board" && total > (rows?.length ?? 0) && (
+        <p className="text-[12.5px] text-body-soft mt-4 mb-0">
+          Showing {rows?.length ?? 0} of {total}. Switch to the list to page
+          through the rest, or filter above.
+        </p>
+      )}
+
+      {/*  BULK ASSIGN. No consignment box here on purpose — one number pasted
+          across forty parcels would be forty wrong tracking links. */}
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setBulkOpen(false))}>
+          <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-[18px] text-purple m-0 mb-1">Assign {picked.size} parcels</h3>
+            <p className="text-[12.5px] text-body-soft mt-0 mb-4">
+              They all go to one carrier. Consignment numbers are typed per parcel afterwards.
+            </p>
+            <Guide>Carrier type</Guide>
+            <div className="inline-flex bg-lavender rounded-[11px] p-1 gap-1 mb-4">
+              {(["RIDER", "COURIER"] as const).map((k) => (
+                <button key={k} onClick={() => setAKind(k)} className={`text-[12.5px] font-semibold px-4 py-2 rounded-[9px] ${aKind === k ? "bg-white text-purple shadow-soft" : "text-body-soft"}`}>{k === "RIDER" ? "🛵 Own rider" : "📦 Courier"}</button>
+              ))}
+            </div>
+            {aKind === "RIDER" ? (
+              <>
+                <Guide>Rider</Guide>
+                <select className="ipt" value={aRider} onChange={(e) => setARider(e.target.value)}>
+                  <option value="">— pick a rider —</option>
+                  {riders.map((r) => (<option key={r.id} value={r.id}>{r.name}{r.vehicle ? ` · ${r.vehicle}` : ""}</option>))}
+                </select>
+              </>
+            ) : (
+              <>
+                <Guide>Courier</Guide>
+                <select className="ipt" value={aCourier} onChange={(e) => setACourier(e.target.value)}>
+                  <option value="">— pick a courier —</option>
+                  {couriers.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                </select>
+              </>
+            )}
+            <div className="flex gap-2.5 mt-5">
+              <button
+                onClick={doBulk}
+                disabled={(aKind === "RIDER" && !aRider) || (aKind === "COURIER" && !aCourier) || busy === "bulk"}
+                className="flex-1 bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium py-2.5 rounded-[11px] disabled:opacity-50"
+              >
+                {busy === "bulk" ? "Assigning…" : `Assign all ${picked.size}`}
+              </button>
+              <button onClick={() => setBulkOpen(false)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* assign modal */}
       {assigning && (

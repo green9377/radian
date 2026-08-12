@@ -7,9 +7,12 @@ import {
   AssignmentKind,
   AssignmentStatus,
   DeliveryMethodKind,
+  DeliveryStatus,
   DeliveryTiming,
   DeliveryZone,
   FulfillmentType,
+  Prisma,
+  SalesStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
@@ -23,6 +26,8 @@ import type {
   CourierWriteDto,
   AssignDto,
   AssignmentActionDto,
+  BoardQuery,
+  BulkAssignDto,
 } from './delivery.dto';
 
 /*  DELIVERY MANAGEMENT — RADIAN_DELIVERY_MODULE_ARCHITECTURE.md (23 Jul 2026)
@@ -116,16 +121,80 @@ export class DeliveryService {
 
   /* ================= board (DLV-R07) ================= */
 
-  async board() {
-    const orders = await this.prisma.db.order.findMany({
-      where: {
-        deletedAt: null,
-        fulfillmentType: FulfillmentType.DELIVERY,
-        salesStatus: { in: ['confirmed', 'completed'] },
-        deliveryStatus: { in: ['unassigned', 'preparing', 'out_for_delivery', 'failed'] },
+  /*  ⚠️ `take: 300` USED TO SIT HERE AND SAY NOTHING — 12 Aug 2026.
+
+      The owner asked what this screen does at 100–500 orders. It dropped them:
+      order 301 onwards was fetched by nobody, displayed nowhere, and no count
+      anywhere on the screen revealed that anything was missing. A board that
+      quietly hides work is worse than a board that is slow, because the shop
+      finds out from the customer.
+
+      So the page now asks for a page at a time and is always told the true
+      total. `take` still exists — it is `limit`, and the screen prints what it
+      is a limit OF.
+
+      ORDER: by the time we PROMISED, soonest first, and never by order number.
+      In a shop whose whole promise is two hours, "which one first" is the only
+      question the screen exists to answer. Orders with no promise (taken before
+      `promisedBy` existed) sort last rather than first — an unknown deadline
+      must not push a real one down the page.  */
+  async board(q: BoardQuery = {}) {
+    const limit = Math.min(Math.max(q.limit ?? 50, 1), 200);
+    const page = Math.max(q.page ?? 1, 1);
+
+    const base: Prisma.OrderWhereInput = {
+      deletedAt: null,
+      fulfillmentType: FulfillmentType.DELIVERY,
+      salesStatus: { in: [SalesStatus.confirmed, SalesStatus.completed] },
+      deliveryStatus: {
+        in: [
+          DeliveryStatus.unassigned,
+          DeliveryStatus.preparing,
+          DeliveryStatus.out_for_delivery,
+          DeliveryStatus.failed,
+        ],
       },
-      orderBy: { placedAt: 'asc' },
-      take: 300,
+    };
+
+    const where: Prisma.OrderWhereInput = { ...base };
+    if (q.status) where.deliveryStatus = q.status as DeliveryStatus;
+    if (q.zone) where.zone = q.zone as DeliveryZone;
+    if (q.methodId) where.deliveryMethodId = q.methodId;
+
+    /*  One box, three things people actually have in hand: the order number a
+        customer read out, the phone they rang from, or a name. Anything more
+        clever would need explaining. */
+    const term = q.q?.trim();
+    if (term) {
+      where.OR = [
+        { orderNo: { contains: term, mode: 'insensitive' } },
+        { recipientPhone: { contains: term } },
+        { recipientName: { contains: term, mode: 'insensitive' } },
+        { address: { contains: term, mode: 'insensitive' } },
+        { customer: { is: { name: { contains: term, mode: 'insensitive' } } } },
+        { customer: { is: { phone: { contains: term } } } },
+      ];
+    }
+
+    /*  The chips count the WHOLE queue, not the filtered page — "412 waiting"
+        must not drop to "3" because somebody typed a name in the search box. */
+    const [total, grouped] = await Promise.all([
+      this.prisma.db.order.count({ where }),
+      this.prisma.db.order.groupBy({ by: ['deliveryStatus'], where: base, _count: { _all: true } }),
+    ]);
+    const counts: Record<string, number> = {
+      unassigned: 0, preparing: 0, out_for_delivery: 0, failed: 0,
+    };
+    for (const g of grouped) counts[g.deliveryStatus as string] = g._count?._all ?? 0;
+
+    const orders = await this.prisma.db.order.findMany({
+      where,
+      orderBy: [
+        { promisedBy: { sort: 'asc', nulls: 'last' } },
+        { placedAt: 'asc' },
+      ],
+      skip: (page - 1) * limit,
+      take: limit,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
         _count: { select: { lines: { where: { deletedAt: null } }, photos: { where: { deletedAt: null } } } },
@@ -136,27 +205,72 @@ export class DeliveryService {
         },
       },
     });
-    return orders.map((o) => ({
-      id: o.id,
-      orderNo: o.orderNo,
-      placedAt: o.placedAt,
-      customer: o.customer,
-      recipientName: o.recipientName,
-      isGift: o.isGift,
-      zone: o.zone,
-      address: o.address,
-      methodLabel: o.methodLabel,
-      slotLabel: o.slotLabel,
-      date: o.date,
-      salesStatus: o.salesStatus,
-      deliveryStatus: o.deliveryStatus,
-      totalPaisa: o.totalPaisa,
-      duePaisa: o.duePaisa,
-      paymentMethod: o.paymentMethod,
-      lineCount: o._count.lines,
-      photoCount: o._count.photos,
-      assignment: o.assignments[0] ?? null,
-    }));
+    return {
+      rows: orders.map((o) => ({
+        id: o.id,
+        orderNo: o.orderNo,
+        placedAt: o.placedAt,
+        promisedBy: o.promisedBy,
+        customer: o.customer,
+        recipientName: o.recipientName,
+        isGift: o.isGift,
+        zone: o.zone,
+        address: o.address,
+        methodLabel: o.methodLabel,
+        slotLabel: o.slotLabel,
+        date: o.date,
+        salesStatus: o.salesStatus,
+        deliveryStatus: o.deliveryStatus,
+        totalPaisa: o.totalPaisa,
+        duePaisa: o.duePaisa,
+        paymentMethod: o.paymentMethod,
+        lineCount: o._count.lines,
+        photoCount: o._count.photos,
+        assignment: o.assignments[0] ?? null,
+      })),
+      total,
+      page,
+      limit,
+      counts,
+    };
+  }
+
+  /*  BULK ASSIGN — the reason the list view exists (owner, 12 Aug 2026).
+
+      Forty Dhaka parcels to one rider is one decision, not forty. Doing it
+      forty times is not thoroughness, it is a screen making a person do its
+      arithmetic.
+
+      ⚠️ NOT A TRANSACTION, AND THAT IS DELIBERATE. One cancelled order in a
+      selection of forty must not throw the other thirty-nine away. Each parcel
+      is assigned on its own and every failure comes back named, so the screen
+      can say WHICH three did not go through and why. An all-or-nothing bulk
+      action on a delivery board would mean the busiest hour of the day is the
+      hour nothing can be assigned.  */
+  async bulkAssign(dto: BulkAssignDto) {
+    const ids = [...new Set(dto.orderIds ?? [])];
+    if (ids.length === 0) throw new BadRequestException('no orders selected');
+    if (ids.length > 200) throw new BadRequestException('assign at most 200 parcels at a time');
+
+    const done: { orderId: string; assignmentNo: string }[] = [];
+    const failed: { orderId: string; reason: string }[] = [];
+
+    for (const orderId of ids) {
+      try {
+        const a = await this.assign({
+          orderId,
+          kind: dto.kind,
+          riderId: dto.riderId,
+          courierId: dto.courierId,
+          note: dto.note,
+          actorName: dto.actorName,
+        } as AssignDto);
+        done.push({ orderId, assignmentNo: a.assignmentNo });
+      } catch (e) {
+        failed.push({ orderId, reason: e instanceof Error ? e.message : 'could not assign' });
+      }
+    }
+    return { assigned: done.length, failedCount: failed.length, done, failed };
   }
 
   /* ================= assignments ================= */

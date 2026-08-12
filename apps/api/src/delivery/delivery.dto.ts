@@ -102,3 +102,28 @@ export interface AssignmentActionDto {
   failReason?: string;
   consignmentNo?: string;
 }
+
+/** What the fulfilment list is asking for. Everything optional — no filter
+ *  chosen means the whole queue, which is what the screen opens on. */
+export interface BoardQuery {
+  status?: 'unassigned' | 'preparing' | 'out_for_delivery' | 'failed';
+  zone?: 'DHAKA' | 'BANGLADESH';
+  methodId?: string;
+  /** order number, phone, recipient, address or customer name */
+  q?: string;
+  page?: number;
+  limit?: number;
+}
+
+/*  No `consignmentNo` here, on purpose. A consignment number belongs to ONE
+    parcel; a single number pasted across forty of them would be forty wrong
+    tracking links sent to forty customers. Bulk picks the carrier — the
+    numbers are typed per parcel afterwards, or arrive from the courier. */
+export interface BulkAssignDto {
+  orderIds: string[];
+  kind: 'RIDER' | 'COURIER';
+  riderId?: string;
+  courierId?: string;
+  note?: string;
+  actorName?: string;
+}
