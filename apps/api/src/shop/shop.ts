@@ -351,14 +351,22 @@ export class ShopService {
       }),
     ]);
 
-    // An empty column would render as a heading with nothing under it.
-    const live = groups.filter((g) => g.links.length > 0);
+    /*  A link the owner added and never filled in would render as a blank
+        <a>, and a badge with no label and no logo as an empty pill — the
+        footer must only show finished things (12 Aug, found while the Footer
+        screen was being rebuilt). An empty column would render as a heading
+        with nothing under it.  */
+    const filled = groups.map((g) => ({
+      ...g,
+      links: g.links.filter((l) => l.label.trim() && l.href.trim()),
+    }));
+    const live = filled.filter((g) => g.links.length > 0);
 
     return {
       footerGroups: live.filter((g) => g.placement === 'FOOTER').map(strip),
       moreGroups: live.filter((g) => g.placement === 'MORE').map(strip),
       socials,
-      badges,
+      badges: badges.filter((b) => b.label.trim() || b.imageUrl),
       tagline: settings?.footerTagline ?? null,
       legal: settings?.footerLegal ?? null,
     };
