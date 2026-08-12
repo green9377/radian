@@ -204,14 +204,18 @@ export default function ReviewsView() {
           </div>
         </div>
 
-        {/* ---- filter cards ---- */}
-        <div className="mx-5 mt-5 grid grid-cols-3 md:grid-cols-6 gap-2.5">
-          <FilterCard active={tab === "ALL"} onClick={() => setTab("ALL")} n={counts.all} label="All" bg="#f3edfb" ink="#4a3f96" sub="#6a5fb8" />
-          <FilterCard active={tab === "PENDING"} onClick={() => setTab("PENDING")} n={counts.pending} label="Waiting" bg="#FFF4E6" ink="#8a5a00" sub="#b07a1a" />
-          <FilterCard active={tab === "PUBLISHED"} onClick={() => setTab("PUBLISHED")} n={counts.published} label="On the site" bg="#E8F9EE" ink="#0E7A3D" sub="#2f9c5c" />
-          <FilterCard active={tab === "REJECTED"} onClick={() => setTab("REJECTED")} n={counts.hidden} label="Hidden" bg="#f4f2f7" ink="#5f5a70" sub="#87819a" />
-          <FilterCard active={tab === "CUSTOMER"} onClick={() => setTab("CUSTOMER")} n={counts.website} label="Website" bg="#E6F1FB" ink="#185FA5" sub="#4d87bd" />
-          <FilterCard active={tab === "GOOGLE"} onClick={() => setTab("GOOGLE")} n={counts.google} label="Google" bg="#f7f1fb" ink="#5f4b73" sub="#8a75a0" />
+        {/*  Tabs sitting side by side inside one card — the owner's note,
+            12 Aug: "all / waiting — pase tab kre card akare diye sajaw".
+            The active tab wears its own tint; the rest stay quiet.  */}
+        <div className="mx-5 mt-5">
+          <div className="inline-flex flex-wrap items-center gap-1 bg-white border border-lavender-deep rounded-[14px] p-1.5">
+            <FilterTab active={tab === "ALL"} onClick={() => setTab("ALL")} n={counts.all} label="All" bg="#f3edfb" ink="#4a3f96" />
+            <FilterTab active={tab === "PENDING"} onClick={() => setTab("PENDING")} n={counts.pending} label="Waiting" bg="#FFF4E6" ink="#8a5a00" />
+            <FilterTab active={tab === "PUBLISHED"} onClick={() => setTab("PUBLISHED")} n={counts.published} label="On the site" bg="#E8F9EE" ink="#0E7A3D" />
+            <FilterTab active={tab === "REJECTED"} onClick={() => setTab("REJECTED")} n={counts.hidden} label="Hidden" bg="#f4f2f7" ink="#5f5a70" />
+            <FilterTab active={tab === "CUSTOMER"} onClick={() => setTab("CUSTOMER")} n={counts.website} label="Website" bg="#E6F1FB" ink="#185FA5" />
+            <FilterTab active={tab === "GOOGLE"} onClick={() => setTab("GOOGLE")} n={counts.google} label="Google" bg="#f7f1fb" ink="#5f4b73" />
+          </div>
         </div>
 
         {/* stars + product, one quiet row */}
@@ -370,20 +374,21 @@ export default function ReviewsView() {
   );
 }
 
-/* ─── filter card ─────────────────────────────────────────────────────────── */
-function FilterCard({ active, onClick, n, label, bg, ink, sub }: {
-  active: boolean; onClick: () => void; n: number; label: string; bg: string; ink: string; sub: string;
+/* ─── one tab in the filter bar ───────────────────────────────────────────── */
+function FilterTab({ active, onClick, n, label, bg, ink }: {
+  active: boolean; onClick: () => void; n: number; label: string; bg: string; ink: string;
 }) {
   return (
     <button onClick={onClick}
-      className="rounded-[13px] px-2 py-2.5 text-center transition-all"
-      style={{
-        background: bg,
-        border: active ? `2px solid ${ink}` : "1px solid transparent",
-        boxShadow: active ? "0 2px 8px rgba(71,0,102,0.08)" : "none",
-      }}>
-      <span className="block text-[19px] font-semibold leading-tight" style={{ color: ink }}>{n}</span>
-      <span className="block text-[11.5px]" style={{ color: sub }}>{label}</span>
+      className="flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] transition-all"
+      style={active
+        ? { background: bg, color: ink, fontWeight: 600, boxShadow: `inset 0 0 0 1.5px ${ink}` }
+        : { color: "#8d86a0" }}>
+      {label}
+      <span className="text-[11px] font-semibold px-1.5 py-px rounded-full leading-[1.4]"
+        style={active ? { background: "#ffffff", color: ink } : { background: bg, color: ink }}>
+        {n}
+      </span>
     </button>
   );
 }
