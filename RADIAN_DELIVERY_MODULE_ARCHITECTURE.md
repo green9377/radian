@@ -184,17 +184,46 @@ not current. Two places paired it with a terminal status:
 Both now filter on `deletedAt: null` only. `inFlight` keeps `isActive`, because
 that genuinely is a question about right now.
 
+### DEC-DLV-016 / 017 — delivery cost is written, COD is reconciled per parcel
+
+**Built 12 Aug 2026.** `costPaisa` had been in the schema for weeks, read by the
+analytics and by `finance.onDeliveryCost()`, and written by nothing at all.
+5200 Delivery Cost was always empty and delivery margin always read as the whole
+charge. `onDeliveryCost` existed and was never called; the settle screen calls it.
+
+`Delivery -> Settle a carrier` (`/delivery/settle`). **One list, not two:** a
+parcel is on it when nobody has said what the delivery cost, *or* when it was
+COD and the cash has not come back. Prepaid parcels are on it too — nothing to
+reconcile, but the rider was still paid, and a COD-only list would lose the cost
+of most of the shop's deliveries. Owner's decisions: one list, and the cost box
+is **never pre-filled** — delivery is not a fixed price, and a suggested number
+is one nobody checks.
+
+`costRecordedAt` is new because `costPaisa` defaults to 0, so a delivery that
+genuinely cost nothing and one nobody has priced looked identical.
+
+`CarrierRemittanceLine` records which parcels a settlement covered. A lump sum
+can say the month is 1,850 short; only a line can say RAD-24088 was delivered
+nineteen days ago and its cash never came back.
+
+**⚠️ The charge is expensed exactly once.** What is typed as Cost goes onto the
+parcel, and the parcel posts `Dr 5200 / Cr 2300 Accrued`. The remittance then
+clears the accrual — `Dr 2300`, **not** `Dr 5200` — so the fee is not counted
+twice. `remitWithLines()` is a separate method from `remit()` for that one
+reason and must not be merged into it behind a flag: the difference is an
+accounting fact about whether an expense has already been posted, not a
+preference, and getting it wrong is silent.
+
+Short payments are recorded, never rejected. Handing over less than was due is
+worth chasing, not an input error.
+
+**Not yet verified end to end.** The demo database has no delivered assignment
+to settle, so the screen, its dropdowns and the empty state are confirmed live
+but the cost -> 5200 -> accrual -> remittance chain has not been exercised
+against real data. Needs one delivered parcel to prove.
+
 ### Still open (business rules, not built — owner must decide)
 
-- **Delivery cost.** `DeliveryAssignment.costPaisa` is read by analytics and by
-  `finance.onDeliveryCost()`, and **written by nothing**. Account 5200 Delivery
-  Cost is therefore always empty and delivery margin always equals the charge.
-  Owner has decided cost is entered *after* delivery and is never a fixed
-  amount; the carrier settle screen that captures it is the next piece of work.
-- **COD remittance matching.** Agreed shape: parcel-level, via a new
-  `CarrierRemittanceLine`. ⚠️ When built, the courier charge must be recorded
-  **once** — on the parcel — and the remittance header must stop posting its own
-  charge to 5200, or the same fee lands in Delivery Cost twice.
 - **Changing carrier mid-flight.** There is no Sales transition out of
   `out_for_delivery` back to `preparing`. Today the path is Fail → Re-assign,
   which is coherent but counts against the failure rate. Whether a direct
