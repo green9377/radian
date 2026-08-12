@@ -1,8 +1,34 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ৭ আগস্ট ২০২৬。_
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ১২ আগস্ট ২০২৬。_
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+## ⭐ Review v3 — বানানো ও লাইভে যাচাই শেষ (১২ আগস্ট, DEC-WEB-007/008/009)
+
+সবই deployed demo-তে হাতে চালিয়ে দেখা:
+
+| জিনিস | অবস্থা |
+|---|---|
+| **Add-review dialog** — customer বই থেকে বাছাই (ছবি সহ), whole-shop/product | ✅ লাইভ — imran hasan দিয়ে পুরো flow চালানো |
+| **Verified** server-এর সিদ্ধান্ত — delivered order না থাকলে badge নেই | ✅ imran-এর delivered order নেই → badge আসেনি (নিয়মই কাজ করছে) |
+| **Shop reply** (DEC-WEB-007) — review-র নিচে দোকানের উত্তর | ✅ PDP-তে "REPLY FROM RADIAN" box লাইভ |
+| **Featured shelf ৪টা** — পঞ্চমটা দিলে "কে নামবে" dialog | ✅ dialog লাইভে খুলে দেখা, Never mind-এ কিছু বদলায় না |
+| **দুটো আলাদা rating card** — নিজের দোকান আর Google, কখনো মেশে না | ✅ `/reviews`-এ R-card + G-card পাশাপাশি |
+| **Star + product filter** admin-এ | ✅ |
+| **`/review/[token]`** — WhatsApp link-এর pre-filled form, single-use | ✅ ভুল token → "This link is not valid"; আসল token পরের delivered order-এ তৈরি হবে |
+| **Delivered + 24h → invite + queue** — বাকি সব OrderMessage-এর পথেই | ✅ code-এ; sweeper-ই পাঠাবে |
+
+**একটাই বাকি ধাপ (মালিকের হাত লাগবে):** Meta Business-এ `review_request`
+template বানানো — {{1}} নাম, {{2}} পণ্য, URL button `/review/{{1}}`।
+template approve হলে demo-র test নম্বরে পুরো চাকাটা একবার ঘুরিয়ে দেখব
+(order delivered → 24h → WhatsApp → link → form → PENDING+Verified review)。
+template না থাকা পর্যন্ত message রূপে `FAILED` জমা হবে — order আটকায় না。
+
+**পরিষ্কারও করা হলো:** পুরনো inline-add এক ক্লিকে খালি review বানিয়ে ফেলত —
+এমন ৫টা খালি (আর আমার ১টা test) review site থেকে নামানো হয়েছে (unpublish,
+মোছা হয়নি — Reviews তালিকায় আছে, চাইলে Remove চাপবেন)। নতুন dialog-এ
+লেখা না দিলে Add বোতামই জ্বলে না — এই ভুল আর হবে না।
 
 ## নীতি (মালিকের নির্দেশ, ৭ আগস্ট)
 
