@@ -51,11 +51,11 @@ export default function ProfilePanel() {
     e.target.value = ""; // একই ফাইল আবার বাছলেও trigger হয়
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setImgErr("Image ফাইল দিন।");
+      setImgErr("Please pick an image file.");
       return;
     }
     if (file.size > MAX_BYTES) {
-      setImgErr("ছবি 1.5MB-এর কম হতে হবে।");
+      setImgErr("The photo must be under 1.5 MB.");
       return;
     }
     const reader = new FileReader();

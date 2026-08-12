@@ -11,6 +11,8 @@ cd /d "%~dp0"
 
 REM  আগে যেগুলোর ডেটাবেজ লাগে না — দু-সেকেন্ড。 এগুলো ভাঙা মানে দাম বা মজুদের
 REM  নিয়মই ভাঙা, তখন test order বসিয়ে লাভ নেই。
+node apps\api\scripts\no-bangla.selftest.mjs
+if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\split-stores.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\discount-window.selftest.mjs

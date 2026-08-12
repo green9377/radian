@@ -206,7 +206,7 @@ export function AsmWastageView() {
         </div>
       }>
         {report && report.byComponent.length === 0 && (
-          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No production wastage in this window — ভালো খবর।</div>
+          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No production wastage in this window — good news.</div>
         )}
         {report?.byComponent.map((c) => (
           <div key={c.componentItemId} className="grid grid-cols-[44px_minmax(180px,1.5fr)_1fr_120px_130px] gap-3 items-center px-4 py-3">

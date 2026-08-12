@@ -21,7 +21,19 @@ REM ═════════════════════════�
 cd /d "%~dp0apps\api"
 
 echo ==================================================
-echo   [1/2] Regenerating Prisma client (on THIS PC)...
+echo   [0/3] No Bengali in the product (owner's rule)...
+echo ==================================================
+call node scripts\no-bangla.selftest.mjs
+if errorlevel 1 (
+  echo.
+  echo   *** BENGALI FOUND IN CODE - the owner's rule. Fix before pushing. ***
+  echo.
+  pause
+  exit /b 1
+)
+
+echo ==================================================
+echo   [1/3] Regenerating Prisma client (on THIS PC)...
 echo ==================================================
 call npx prisma generate
 if errorlevel 1 (
@@ -34,7 +46,7 @@ if errorlevel 1 (
 
 echo.
 echo ==================================================
-echo   [2/2] Building ^(1-2 minutes^)...
+echo   [2/3] Building ^(1-2 minutes^)...
 echo ==================================================
 call npm run build
 set "RC=%errorlevel%"

@@ -399,8 +399,13 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
     });
     // the ledger side IS the books number; the operational side is delivered
     // COD assignments that no remittance has covered yet
+    /*  ⚠️ no `isActive` here — Delivery clears that flag the moment a parcel
+        lands, so pairing it with DELIVERED matched nothing and this check
+        reported "0 tk still with carriers" however much cash was out there.
+        The one drift check whose whole job is catching money that never came
+        back was, until 12 Aug 2026, structurally unable to fire.  */
     const delivered = await this.prisma.db.deliveryAssignment.findMany({
-      where: { status: 'DELIVERED', isActive: true },
+      where: { status: 'DELIVERED', deletedAt: null },
       select: { order: { select: { paymentMethod: true, totalPaisa: true, paidPaisa: true } } },
     });
     const cod = delivered

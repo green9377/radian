@@ -58,8 +58,16 @@ export class DeliveryAnalyticsService {
 
   async analytics(from: Date, to: Date): Promise<DeliveryAnalytics> {
     const [rows, failed, inFlight] = await Promise.all([
+      /*  ⚠️ NEVER FILTER `isActive` ON A FINISHED DELIVERY — 12 Aug 2026.
+          `isActive` means "this is the assignment the order is riding on right
+          now". Delivery sets it to false the moment a parcel lands (DELIVERED)
+          or dies (FAILED), because a terminal assignment is not current any
+          more. So `status: DELIVERED AND isActive: true` is a pair that can
+          never both be true, and this query returned an empty array from the
+          day it was written — which is why the whole screen still shows the
+          demo file's invented "94% on-time".  */
       this.prisma.db.deliveryAssignment.findMany({
-        where: { status: 'DELIVERED', deliveredAt: { gte: from, lte: to }, isActive: true },
+        where: { status: 'DELIVERED', deliveredAt: { gte: from, lte: to }, deletedAt: null },
         select: {
           deliveredAt: true,
           assignedAt: true,
@@ -72,10 +80,11 @@ export class DeliveryAnalyticsService {
         },
       }),
       this.prisma.db.deliveryAssignment.count({
-        where: { status: 'FAILED', failedAt: { gte: from, lte: to }, isActive: true },
+        where: { status: 'FAILED', failedAt: { gte: from, lte: to }, deletedAt: null },
       }),
+      /*  in-flight IS a question about right now, so here `isActive` belongs. */
       this.prisma.db.deliveryAssignment.count({
-        where: { status: { in: ['ASSIGNED', 'OUT_FOR_DELIVERY'] }, isActive: true },
+        where: { status: { in: ['ASSIGNED', 'OUT_FOR_DELIVERY'] }, isActive: true, deletedAt: null },
       }),
     ]);
 

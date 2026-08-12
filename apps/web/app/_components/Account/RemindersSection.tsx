@@ -46,7 +46,7 @@ export default function RemindersSection() {
   );
 
   function save() {
-    if (title.trim().length < 2) return setErr("Occasion-এর নাম দিন।");
+    if (title.trim().length < 2) return setErr("Please give the occasion a name.");
     add({ title: title.trim(), month, day, daysBefore });
     setTitle("");
     setMonth(1);

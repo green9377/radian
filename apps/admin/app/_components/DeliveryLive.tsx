@@ -43,6 +43,12 @@ import {
   uploadItemImage,
 } from "../_data/api";
 
+/*  ⚠️ EVERY screen in this file uses this — 12 Aug 2026.
+    Riders, couriers and proof each carried their own `max-w-[1150px]` and the
+    method master `max-w-[1250px]`, so on a wide monitor they sat squeezed into
+    the left of a window the board filled completely. Four screens in one module
+    at three different widths is not a design, it is four people not looking at
+    each other's work. One constant, one width. */
 const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1600px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 
 function Guide({ children }: { children: React.ReactNode }) {
@@ -304,7 +310,7 @@ export function RidersLive() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1150px]">
+    <div className={WRAP}>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead eyebrow="Delivery · riders" title="Riders">
           Your own delivery people.
@@ -396,7 +402,7 @@ export function CouriersLive() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1150px]">
+    <div className={WRAP}>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead eyebrow="Delivery · couriers" title="Courier services">
           The nationwide parcel services you hand orders to. Use {"{cn}"} in a tracking link where the consignment number goes.
@@ -490,7 +496,7 @@ export function MethodsLive() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1250px]">
+    <div className={WRAP}>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead eyebrow="Delivery · zones & methods" title="Methods & slots">
           Your delivery options — zone, fee and time slots. The order form uses these.
@@ -639,7 +645,7 @@ export function ProofLive() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-7 pb-16 max-w-[1150px]">
+    <div className={WRAP}>
       <PageHead eyebrow="Delivery · proof" title="Proof photos">
         Add kitchen-prep and handover photos to any order.
       </PageHead>

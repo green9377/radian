@@ -264,7 +264,7 @@ async function main() {
 
     const beforeWaste = await inv.onHandMilli(rose.id);
     const waste = await inv.createIssue({
-      kind: 'WASTAGE', warehouseId: wh.id, reason: 'পচা',
+      kind: 'WASTAGE', warehouseId: wh.id, reason: 'Rotten',
       lines: [{ itemId: rose.id, qtyMilli: 5000 }],
     });
     // 5 stems × ৳20 = ৳100

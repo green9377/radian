@@ -4605,6 +4605,26 @@ export const orderAssignments = (orderId: string) => j<ApiAssignment[]>(`/delive
 export const addOrderPhoto = (orderId: string, b: Record<string, unknown>) =>
   j(`/orders/${orderId}/photos`, { method: "POST", body: JSON.stringify(b) });
 
+/* ── delivery performance — the real figures ──────────────────────────────
+   Rates come back in BASIS POINTS, and `null` when nothing could be measured.
+   `null` is not 0: "no delivery in this window carried a promised time" and
+   "every delivery was late" are opposite facts, and a screen that prints 0%
+   for the first one is lying. Divide by 100 for a percentage — never round a
+   null into a number on the way. */
+export interface ApiDeliveryAnalytics {
+  from: string; to: string;
+  delivered: number; failed: number; inFlight: number;
+  measurable: number; unmeasurable: number; onTimeCount: number;
+  onTimeBp: number | null; failedBp: number | null;
+  avgMinutesToDeliver: number | null;
+  chargedPaisa: number; costPaisa: number; marginPaisa: number;
+  byZone: { name: string; delivered: number; onTimeBp: number | null; measurable: number }[];
+  byCarrier: { name: string; kind: "RIDER" | "COURIER"; delivered: number; onTimeBp: number | null; measurable: number; costPaisa: number }[];
+  daily: { onDate: string; delivered: number; onTimeCount: number; measurable: number }[];
+}
+export const deliveryPerformance = (days = 30) =>
+  j<ApiDeliveryAnalytics>(`/delivery/performance?days=${days}`);
+
 /* ============================================================
    FINANCE (ledger) — RADIAN_FINANCE_MODULE_ARCHITECTURE.md v1.1
    Double-entry lives in the API; this screen layer never shows Dr/Cr.
@@ -4691,12 +4711,12 @@ export const financeReconciliations = (accountId?: string) =>
 export const financeReconcile = (b: Record<string, unknown>) =>
   j<ApiReconciliation>(`/finance/reconcile`, { method: "POST", body: JSON.stringify(b) });
 
-export const FIN_TYPE_META: Record<FinAccountType, { label: string; bn: string; bg: string; text: string }> = {
-  ASSET: { label: "Asset", bn: "যা আমাদের আছে", bg: "#e8f6ef", text: "#0f7d55" },
-  LIABILITY: { label: "Liability", bn: "যা আমাদের দিতে হবে", bg: "#fdecec", text: "#b91c1c" },
-  EQUITY: { label: "Equity", bn: "মালিকানা", bg: "#f3e8ff", text: "#7c3aed" },
-  INCOME: { label: "Income", bn: "আয়", bg: "#e0f2fe", text: "#0369a1" },
-  EXPENSE: { label: "Expense", bn: "খরচ", bg: "#fff4e2", text: "#b45309" },
+export const FIN_TYPE_META: Record<FinAccountType, { label: string; bg: string; text: string }> = {
+  ASSET: { label: "Asset", bg: "#e8f6ef", text: "#0f7d55" },
+  LIABILITY: { label: "Liability", bg: "#fdecec", text: "#b91c1c" },
+  EQUITY: { label: "Equity", bg: "#f3e8ff", text: "#7c3aed" },
+  INCOME: { label: "Income", bg: "#e0f2fe", text: "#0369a1" },
+  EXPENSE: { label: "Expense", bg: "#fff4e2", text: "#b45309" },
 };
 
 /** demo data for practice — every row carries a DEMO: key and can be cleared */

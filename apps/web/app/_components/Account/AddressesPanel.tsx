@@ -66,8 +66,8 @@ export default function AddressesPanel() {
   }
 
   function save() {
-    if (form.recipient.trim().length < 2) return setErr("Recipient name চাই।");
-    if (form.line.trim().length < 6) return setErr("পুরো ঠিকানা লিখুন।");
+    if (form.recipient.trim().length < 2) return setErr("Please give the recipient a name.");
+    if (form.line.trim().length < 6) return setErr("Please write the full address.");
     const payload = {
       label: form.label.trim() || form.recipient.trim(),
       recipient: form.recipient.trim(),

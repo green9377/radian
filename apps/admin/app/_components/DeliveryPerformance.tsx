@@ -1,82 +1,197 @@
 "use client";
 
-import { useMemo } from "react";
-import Icon from "./Icon";
-import { WRAP, Header, DemoBadge } from "./DeliveryUI";
-import { TONE, Panel, Stat, NoteBox, type Tone } from "./OrderViews";
-import { formatTaka } from "../_data/api";
-import { DEMO_ANALYTICS, DELIVERY_TYPE_META } from "../_data/deliveryDemo";
+/*  DELIVERY — COST & PERFORMANCE (LIVE, 12 Aug 2026)
 
-/* charge vs what we actually paid — the two are independent (margin can be negative) */
-const COST_LINES = [
-  { orderNo: "RAD-24110", zone: "Dhaka · Gulshan", chargePaisa: 8000, costPaisa: 6000, courier: "Nayeem" },
-  { orderNo: "RAD-24107", zone: "Dhaka · Bashundhara", chargePaisa: 8000, costPaisa: 12000, courier: "Rakib" },
-  { orderNo: "RAD-24088", zone: "Khulna", chargePaisa: 12000, costPaisa: 9000, courier: "Steadfast" },
-  { orderNo: "RAD-24101", zone: "Dhaka · Gulshan", chargePaisa: 25000, costPaisa: 15000, courier: "Shuvo" },
-  { orderNo: "RAD-24109", zone: "Chattogram", chargePaisa: 12000, costPaisa: 14000, courier: "Steadfast" },
-];
+    WHAT THIS SCREEN USED TO BE. Until today every number here was invented.
+    "On-time 94 %" came from `_data/deliveryDemo.ts`, and the "recent
+    deliveries" table listed five hand-typed order numbers — RAD-24110,
+    RAD-24107 — that never existed in any database. It carried a Demo badge, so
+    it was never dishonest; it simply outlived its purpose. `/delivery/
+    performance` in the API has computed the real figures for a while, and
+    nobody came back to plug the screen into it.
+
+    WHY `null` IS PRINTED AS "—" AND NEVER AS 0 %. On-time can only be judged
+    against a promise, and orders taken before `Order.promisedBy` existed have
+    none. The API returns `null` for those rates rather than 0, and this screen
+    keeps the distinction: "nothing could be measured" and "everything was
+    late" are opposite facts. The count of unmeasurable deliveries is printed
+    next to the rate, because a rate that hides its own denominator has stopped
+    being a rate (INT-R09).
+
+    WHY DELIVERY COST MAY READ ৳0. Nothing writes `DeliveryAssignment.costPaisa`
+    yet — the carrier settle screen that captures it is the next piece of work.
+    Until it exists, cost is genuinely zero in the database and margin equals
+    the charge. That is shown plainly rather than filled in with a guess.
+*/
+
+import { useCallback, useEffect, useState } from "react";
+import Icon from "./Icon";
+import { WRAP, Header } from "./DeliveryUI";
+import { TONE, Panel, Stat, NoteBox, type Tone } from "./OrderViews";
+import { formatTaka, deliveryPerformance, type ApiDeliveryAnalytics } from "../_data/api";
+
+const RANGES = [7, 30, 90, 365];
+
+/** basis points → "94%", and null → "—". Never null → "0%". */
+const pct = (bp: number | null) => (bp === null ? "—" : `${Math.round(bp / 100)}%`);
+
+const duration = (mins: number | null) => {
+  if (mins === null) return "—";
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+};
 
 export function DeliveryPerformance() {
-  const a = DEMO_ANALYTICS;
-  const c = useMemo(() => {
-    const charge = COST_LINES.reduce((n, x) => n + x.chargePaisa, 0);
-    const cost = COST_LINES.reduce((n, x) => n + x.costPaisa, 0);
-    return { charge, cost, margin: charge - cost };
-  }, []);
+  const [days, setDays] = useState(30);
+  const [a, setA] = useState<ApiDeliveryAnalytics | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const Bars = ({ title, icon, tone, rows }: { title: string; icon: string; tone: Tone; rows: { name: string; value: number; sub: string }[] }) => {
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      setA(await deliveryPerformance(days));
+    } catch (e) {
+      setA(null);
+      setError(e instanceof Error ? e.message : "could not reach the API");
+    }
+  }, [days]);
+  useEffect(() => { void load(); }, [load]);
+
+  const Bars = ({
+    title, icon, tone, rows, empty,
+  }: {
+    title: string; icon: string; tone: Tone; empty: string;
+    rows: { name: string; value: number; sub: string }[];
+  }) => {
     const max = Math.max(1, ...rows.map((r) => r.value));
     return (
       <Panel title={title} icon={icon} tone={tone}>
-        <div className="p-4 flex flex-col gap-3">
-          {rows.map((r) => (
-            <div key={r.name}>
-              <div className="flex justify-between text-[12.5px] mb-1"><span className="text-body font-medium">{r.name}</span><span className="text-body-soft">{r.sub}</span></div>
-              <div className="h-[9px] rounded-full bg-lavender overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.round((r.value / max) * 100)}%`, background: TONE[tone].solid }} /></div>
-            </div>
-          ))}
-        </div>
+        {rows.length === 0 ? (
+          <div className="p-4 text-[13px] text-body-soft">{empty}</div>
+        ) : (
+          <div className="p-4 flex flex-col gap-3">
+            {rows.map((r) => (
+              <div key={r.name}>
+                <div className="flex justify-between text-[12.5px] mb-1">
+                  <span className="text-body font-medium">{r.name}</span>
+                  <span className="text-body-soft">{r.sub}</span>
+                </div>
+                <div className="h-[9px] rounded-full bg-lavender overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${Math.round((r.value / max) * 100)}%`, background: TONE[tone].solid }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Panel>
     );
   };
 
+  const ranges = (
+    <div className="flex items-center gap-1.5 bg-lavender/60 p-1 rounded-[11px]">
+      {RANGES.map((d) => (
+        <button
+          key={d}
+          onClick={() => setDays(d)}
+          className={`text-[12.5px] font-medium px-3 py-1.5 rounded-[8px] ${d === days ? "bg-white text-purple shadow-soft" : "text-body-soft hover:text-purple"}`}
+        >
+          {d === 365 ? "1 year" : `${d} days`}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className={WRAP}>
-      <Header eyebrow="Operations · Delivery" title="Cost & performance" desc="What delivery costs us versus what we charge, and how well the promise is kept." />
-      <DemoBadge text="Sample 30-day figures from Radian's own delivery records — never GA4." />
+      <Header
+        eyebrow="Operations · Delivery"
+        title="Cost & performance"
+        desc="What delivery costs us versus what we charge, and how well the promise is kept. Every figure here comes from Radian's own delivery records."
+        actions={ranges}
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Stat label="Delivery charge (collected)" value={formatTaka(c.charge)} tone="green" icon="cash" sub="from customers" />
-        <Stat label="Delivery cost (paid out)" value={formatTaka(c.cost)} tone="amber" icon="truck" sub="to riders / couriers" />
-        <Stat label="Delivery margin" value={formatTaka(c.margin)} tone={c.margin >= 0 ? "purple" : "rose"} icon="chart" sub={c.margin >= 0 ? "profit" : "loss"} />
-        <Stat label="On-time" value={`${a.onTimePct}%`} tone="blue" icon="check" sub={`${a.failedPct}% failed`} />
-      </div>
-
-      <Panel title="Charge vs cost — recent deliveries" icon="cash" tone="purple" hint="the two are independent — margin can be negative">
-        <div className="hidden md:grid grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr] gap-3 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft/70 border-b border-[#f2e9fa]">
-          <span>Order</span><span>Zone</span><span>By</span><span className="text-right">Charge</span><span className="text-right">Cost</span><span className="text-right">Margin</span>
+      {error && (
+        <div className="flex items-center gap-2 bg-[#fff4e2] text-[#b45309] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">
+          <Icon name="bolt" size={15} /> API offline — nothing on this screen is live. ({error})
         </div>
-        {COST_LINES.map((x) => {
-          const margin = x.chargePaisa - x.costPaisa; const neg = margin < 0;
-          return (
-            <div key={x.orderNo} className="grid grid-cols-2 md:grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr] gap-2 md:gap-3 items-center px-5 py-3 border-b border-[#f5eefb] last:border-b-0 text-[12.5px]">
-              <span className="font-semibold text-purple">{x.orderNo}</span>
-              <span className="text-body-soft hidden md:block">{x.zone}</span>
-              <span className="text-body-soft hidden md:block">{x.courier}</span>
-              <span className="text-right text-body">{formatTaka(x.chargePaisa)}</span>
-              <span className="text-right text-body">{formatTaka(x.costPaisa)}</span>
-              <span className="text-right font-semibold" style={{ color: neg ? TONE.rose.text : TONE.green.text }}>{neg ? "−" : "+"}{formatTaka(Math.abs(margin))}</span>
-            </div>
-          );
-        })}
-      </Panel>
+      )}
 
-      <div className="grid md:grid-cols-2 gap-5">
-        <Bars title="By courier / rider" icon="user" tone="blue" rows={a.byCourier.map((x) => ({ name: x.name, value: x.delivered, sub: `${x.delivered} · ${x.onTimePct}% on-time` }))} />
-        <Bars title="By zone" icon="pin" tone="purple" rows={a.byZone.map((z) => ({ name: z.name, value: z.delivered, sub: `${z.delivered} · ${z.onTimePct}%` }))} />
-        <Bars title="By delivery type" icon="bolt" tone="amber" rows={a.byType.map((ty) => ({ name: DELIVERY_TYPE_META[ty.type].label, value: ty.delivered, sub: `${ty.delivered} · ${ty.onTimePct}%` }))} />
-        <Panel title="Where the numbers come from" icon="shield" tone="green"><div className="p-4 text-[13px] text-body-soft">Charge, cost, on-time and failures all come from Radian&apos;s own delivery records — never GA4. Customer charge and delivery cost are recorded separately, so margin is real.</div></Panel>
-      </div>
+      {!a && !error && <div className="text-body-soft text-[13.5px] py-16 text-center">Loading…</div>}
+
+      {a && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Stat label="Delivery charge (collected)" value={formatTaka(a.chargedPaisa)} tone="green" icon="cash" sub="from customers" />
+            <Stat label="Delivery cost (paid out)" value={formatTaka(a.costPaisa)} tone="amber" icon="truck" sub="to riders / couriers" />
+            <Stat
+              label="Delivery margin"
+              value={formatTaka(a.marginPaisa)}
+              tone={a.marginPaisa >= 0 ? "purple" : "rose"}
+              icon="chart"
+              sub={a.marginPaisa >= 0 ? "profit" : "loss"}
+            />
+            <Stat
+              label="On-time"
+              value={pct(a.onTimeBp)}
+              tone="blue"
+              icon="check"
+              sub={a.measurable > 0 ? `${a.onTimeCount} of ${a.measurable} judged` : "nothing measurable yet"}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Stat label="Delivered" value={String(a.delivered)} tone="green" icon="check" sub={`in the last ${days} days`} />
+            <Stat label="Failed" value={String(a.failed)} tone="rose" icon="alert" sub={pct(a.failedBp)} />
+            <Stat label="On the road now" value={String(a.inFlight)} tone="amber" icon="truck" sub="assigned or out" />
+            <Stat label="Average time to deliver" value={duration(a.avgMinutesToDeliver)} tone="purple" icon="clock" sub="leaving the shop to arriving" />
+          </div>
+
+          {a.costPaisa === 0 && a.delivered > 0 && (
+            <NoteBox tone="amber">
+              Delivery cost reads ৳0 because no rider or courier payment has been recorded against a parcel yet. Until
+              the carrier settle screen exists, margin here is simply the charge, and the real margin is lower.
+            </NoteBox>
+          )}
+
+          {a.unmeasurable > 0 && (
+            <NoteBox tone="blue">
+              {a.unmeasurable} of {a.delivered} deliveries carried no promised time, so they are not counted as late or
+              on-time — the on-time rate above is out of {a.measurable}, not {a.delivered}.
+            </NoteBox>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-5 mt-5">
+            <Bars
+              title="By courier / rider"
+              icon="user"
+              tone="blue"
+              empty="No deliveries completed in this window."
+              rows={a.byCarrier.map((x) => ({
+                name: x.name,
+                value: x.delivered,
+                sub: `${x.delivered} · ${pct(x.onTimeBp)} on-time · ${formatTaka(x.costPaisa)}`,
+              }))}
+            />
+            <Bars
+              title="By zone"
+              icon="pin"
+              tone="purple"
+              empty="No deliveries completed in this window."
+              rows={a.byZone.map((z) => ({ name: z.name, value: z.delivered, sub: `${z.delivered} · ${pct(z.onTimeBp)}` }))}
+            />
+          </div>
+
+          <div className="mt-5">
+            <Panel title="Where the numbers come from" icon="shield" tone="green">
+              <div className="p-4 text-[13px] text-body-soft">
+                On-time compares when a parcel actually arrived against the time the order promised — never GA4, never an
+                estimate. Charge and cost are recorded separately, so margin is real and can be negative. A dash means
+                nothing could be measured, which is not the same as zero.
+              </div>
+            </Panel>
+          </div>
+        </>
+      )}
     </div>
   );
 }
