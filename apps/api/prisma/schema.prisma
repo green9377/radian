@@ -4116,8 +4116,17 @@ model DeliveryAssignment {
   /// F12 / DEC-FIN-021 — what WE pay the courier/rider for this parcel.
   /// Delivery owns the number; Finance only consumes it (5200 Delivery Cost).
   costPaisa       Int       @default(0)
+  /// DEC-DLV-016 — ⚠️ WITHOUT THIS, ZERO HAS TWO MEANINGS. `costPaisa` defaults
+  /// to 0, so "this delivery cost us nothing" and "nobody has entered what it
+  /// cost yet" were the same row. The settle list has to tell them apart, or a
+  /// parcel whose cost was genuinely 0 would sit on the to-do list forever
+  /// while an unpriced one quietly counted as free. Set when a person types the
+  /// number, never by a default.
+  costRecordedAt  DateTime?
   codHandedOver   Boolean   @default(false) // cash reached us (CarrierRemittance)
   financePostedAt DateTime?
+
+  remittanceLines CarrierRemittanceLine[]
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -4840,11 +4849,51 @@ model CarrierRemittance {
   note           String?
   actorName      String?
 
+  lines CarrierRemittanceLine[]
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
   @@index([carrierType, carrierId])
   @@index([receivedAt])
+}
+
+/// DEC-DLV-017 — WHICH PARCELS THIS SETTLEMENT COVERED.
+///
+/// The owner asked how to reconcile COD, and whether a lump sum would do. It
+/// would not. A bulk figure can tell you the month is 1,850 tk short; it can
+/// never tell you that RAD-24088 was delivered nineteen days ago and its cash
+/// never came back. COD is the easiest money in this business to lose, and a
+/// total that does not name the parcel is a total nobody can chase.
+///
+/// One row per parcel in one settlement: what the carrier actually handed over
+/// for it, and what they charged to carry it.
+///
+/// ⚠️ THE CHARGE IS RECORDED HERE AND EXPENSED ONCE. `chargePaisa` here is the
+/// same money as `DeliveryAssignment.costPaisa` — the line writes it onto the
+/// parcel, and the parcel is what posts to 5200 Delivery Cost. A remittance
+/// that has lines therefore must NOT debit 5200 again; it clears the accrual
+/// instead. Getting this wrong doubles every courier fee in the accounts.
+model CarrierRemittanceLine {
+  id String @id @default(cuid())
+
+  remittanceId String
+  remittance   CarrierRemittance @relation(fields: [remittanceId], references: [id])
+
+  assignmentId String
+  assignment   DeliveryAssignment @relation(fields: [assignmentId], references: [id])
+
+  /// cash the carrier handed over for THIS parcel — 0 on a prepaid one
+  codPaisa    Int @default(0)
+  /// what they charged to carry it — mirrored onto the assignment
+  chargePaisa Int @default(0)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  /// a parcel cannot be settled twice in the same remittance
+  @@unique([remittanceId, assignmentId])
+  @@index([assignmentId])
 }
 
 /// DEC-FIN-011 / FIN-RULE-012 — counted vs system; the gap becomes a real entry.

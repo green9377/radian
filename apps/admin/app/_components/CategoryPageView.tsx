@@ -429,8 +429,9 @@ export default function CategoryPageView() {
       }));
   };
 
-  const overrides = rows.filter((r) => r.overridden).length;
-  const builtInKeys = rows.filter((r) => !r.blockType).map((r) => r.key);
+  /* the section the panel is editing — the rail's selection, first row until
+     one is picked (owner, 12 Aug: the same rail as Reviews/Journal/Pages) */
+  const sel = rows.find((x) => x.key === open) ?? rows[0] ?? null;
 
   return (
     <div className={WRAP}>
@@ -492,121 +493,106 @@ export default function CategoryPageView() {
       )}
       {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
-      {/* one card, a pinned column header, and the rows sitting on a tinted
-          body — the arrangement the owner approved on the homepage screen */}
-      <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-[#f6f0fa] shadow-[0_2px_14px_rgba(80,40,100,0.06)] mb-6">
-        <div className="px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap"
-          style={{ background: "linear-gradient(120deg,#f7f0fb 0%,#f4e9fa 55%,#fbf2f4 100%)" }}>
-          <div className="min-w-0">
-            <div className="font-display text-[16px] text-purple flex items-center gap-2.5">
-              Sections
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white text-purple border border-lavender-deep">{rows.length}</span>
-              {ok ? (
-                <span className="text-[11.5px] font-semibold text-[#12693f] inline-flex items-center gap-1">
-                  <Icon name="check" size={12} /> {ok}
-                </span>
-              ) : saveState === "saving" ? <span className="text-[11.5px] text-body-soft">Saving…</span> : null}
-            </div>
-            <div className="text-[12px] text-body-soft">
-              The order is fixed on every category page · press Wording to change what a section says
-            </div>
-          </div>
-        </div>
-
-        <div className="sticky top-0 z-10 px-5 py-2.5 flex items-center gap-3.5 text-white text-[11px] font-semibold uppercase tracking-[0.12em]"
-          style={{ background: "linear-gradient(120deg,#4a1259 0%,#7B2D8E 55%,#A73BBE 100%)" }}>
-          <span className="w-[22px] shrink-0" />
-          <span className="w-[40px] shrink-0" />
-          <span className="flex-1 min-w-0">Section</span>
-          <span className="w-[86px] shrink-0">Edit</span>
-          <span className="w-[158px] shrink-0">Status</span>
-        </div>
-
-      {loading ? <p className="text-[13px] text-body-soft px-5 py-4">Loading…</p> : (
-        <div className="divide-y divide-[#e5d8ef]">
+      {/*  The rail + panel — the same anatomy as Reviews, Journal and Pages
+          (owner, 12 Aug), pointed at the fourteen sections of this page.
+          The order stays fixed on every category page (D-CAT-04): the rail
+          SHOWS that order, the panel edits one section at a time.  */}
+      <div className="grid grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start mb-4">
+        <nav className="hidden md:grid gap-1.5 md:sticky md:top-[84px] self-start">
           {rows.map((r, i) => {
-            const src = SOURCE[r.key];
-            const c = copyFor(r.key);
-            const isOpen = open === r.key;
+            const on = sel?.key === r.key;
             return (
-              <div
-                key={r.key}
-                className={"relative transition-colors " +
-                  (r.isActive ? "bg-white hover:bg-[#fdfaff]" : "bg-[#efe7f5] hover:bg-[#ece2f3]")}
-              >
-                <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px]"
-                  style={{ background: r.isActive ? tintOf(r.key) : "#ddd3e6" }} />
+              /*  the search box is shared by the rows that have one, so it is
+                  cleared on the way in — otherwise yesterday's word silently
+                  narrows the next row's list  */
+              <button key={r.key} type="button"
+                onClick={() => { setPoolQ(""); setOpen(r.key); }}
+                className="w-full min-w-0 overflow-hidden flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-left transition-all"
+                style={on
+                  ? { background: tintOf(r.key), border: "1px solid transparent", boxShadow: "0 5px 16px rgba(80,40,100,.25)" }
+                  : { background: "#fff", border: "1px solid #e6d8f0" }}>
+                <span className="w-[18px] shrink-0 text-[11px] tabular-nums"
+                  style={{ color: on ? "rgba(255,255,255,.75)" : "#a394b5" }}>{i + 1}</span>
+                <span className="w-[30px] h-[30px] rounded-[10px] grid place-items-center shrink-0"
+                  style={on
+                    ? { background: "rgba(255,255,255,.22)", color: "#fff" }
+                    : { background: r.isActive ? tintOf(r.key) : "#cfc4da", color: "#fff" }}>
+                  {r.blockType
+                    ? <ShopIconPreview name={(r.config.icon as string) ?? null} url={(r.config.iconUrl as string) ?? null} size={15} />
+                    : <Icon name={SECTION_ICON[r.key] ?? "grid"} size={15} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12.5px] font-medium truncate" style={{ color: on ? "#fff" : "#3b2a4d" }}>{r.label}</span>
+                  <span className="block text-[10.5px] truncate" style={{ color: on ? "rgba(255,255,255,.75)" : "#a394b5" }}>
+                    {!r.canSwitchOff ? "always on" : r.isActive ? "live" : "hidden"}
+                    {r.blockType ? " · added by you" : r.overridden ? " · just this one" : ""}
+                  </span>
+                </span>
+                {r.canSwitchOff && (
+                  <span aria-hidden className="w-[8px] h-[8px] rounded-full shrink-0"
+                    style={{ background: on ? "#fff" : r.isActive ? "#2fa06a" : "#d9a441" }} />
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-                <div className="px-4 py-3 pl-5 flex items-center gap-3.5">
-                  <span className="w-[22px] shrink-0 text-[12px] text-body-soft tabular-nums">{i + 1}</span>
+        <div className="min-w-0">
+          <div className="md:hidden mb-4">
+            <select className="ipt h-[44px]" value={sel?.key ?? ""} onChange={(e) => { setPoolQ(""); setOpen(e.target.value); }}>
+              {rows.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+          </div>
 
-                  <span className="w-[40px] h-[40px] rounded-[13px] grid place-items-center shrink-0 text-white transition-all"
-                    style={{
-                      background: r.isActive ? tintOf(r.key) : "#cfc4da",
-                      boxShadow: r.isActive ? "0 3px 10px rgba(80,40,100,0.18)" : "none",
-                    }}>
+          {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : !sel ? null : (() => {
+            const r = sel;
+            const c = copyFor(r.key);
+            return (
+              <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-white shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
+                {/* the section's own header: who it is, and Live / Hidden */}
+                <div className="px-4 py-3.5 flex items-center gap-3.5 flex-wrap"
+                  style={{ background: "linear-gradient(120deg,#f7f0fb 0%,#f4e9fa 55%,#fbf2f4 100%)" }}>
+                  <span className="w-[40px] h-[40px] rounded-[13px] grid place-items-center shrink-0 text-white"
+                    style={{ background: r.isActive ? tintOf(r.key) : "#cfc4da" }}>
                     {r.blockType
                       ? <ShopIconPreview name={(r.config.icon as string) ?? null} url={(r.config.iconUrl as string) ?? null} size={18} />
                       : <Icon name={SECTION_ICON[r.key] ?? "grid"} size={18} />}
                   </span>
-
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-medium text-purple flex items-center gap-2">
+                    <div className="text-[15px] font-medium text-purple flex items-center gap-2">
                       {r.label}
                       {r.blockType && <span className="text-[10.5px] text-orchid bg-orchid-soft rounded-full px-2 py-0.5">added by you</span>}
                       {r.overridden && !r.blockType && <span className="text-[10.5px] text-orchid bg-orchid-soft rounded-full px-2 py-0.5">just this one</span>}
                     </div>
                     <div className="text-[12px] text-body-soft truncate">
                       {r.canSwitchOff ? r.hint : <span className="text-[#8a6414]">{r.lockedReason}</span>}
-                      {src?.where && <span className="text-body-soft/70"> · from {src.where}</span>}
+                      {SOURCE[r.key]?.where && <span className="text-body-soft/70"> · from {SOURCE[r.key].where}</span>}
                     </div>
                   </div>
-
-                  <div className="w-[86px] shrink-0">
-                    {/* one word on every row. It said "Wording" on the rows
-                        that also choose their own contents, which is how the
-                        owner came to believe those sections could only have
-                        their text changed. */}
-                    {/* the search box is shared by the rows that have one, so it
-                        is cleared on the way in — otherwise yesterday's word
-                        silently narrows the next row's list */}
-                    <button onClick={() => { setPoolQ(""); setOpen(isOpen ? null : r.key); }}
-                      title="Open this section"
-                      className={"w-[36px] h-[36px] rounded-[11px] grid place-items-center transition-colors " +
-                        (isOpen ? "bg-purple text-white" : "bg-lavender text-purple hover:bg-purple hover:text-white")}>
-                      <Icon name={isOpen ? "check" : "edit"} size={15} />
-                    </button>
-                  </div>
-
-                  {/* Live / Hidden — two buttons, the one in force filled in.
-                      Same control as the homepage, for the same reason. */}
-                  <div className="w-[158px] shrink-0">
-                    {r.canSwitchOff ? (
-                      <div className="inline-flex p-[3px] rounded-full bg-lavender/70">
-                        {[
-                          { on: true, label: "Live", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
-                          { on: false, label: "Hidden", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
-                        ].map((o) => (
-                          <button key={o.label}
-                            onClick={() => r.isActive !== o.on && patch(r.key, { isActive: o.on })}
-                            className={"text-[11.5px] font-semibold px-3.5 py-[6px] rounded-full transition-all " +
-                              (r.isActive === o.on ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
-                            style={r.isActive === o.on ? { background: o.fill } : undefined}>
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3.5 py-[7px] rounded-full text-purple bg-lavender/70"
-                        title={r.lockedReason ?? ""}>
-                        <Icon name="lock" size={12} /> Always on
-                      </span>
-                    )}
-                  </div>
+                  {r.canSwitchOff ? (
+                    <div className="inline-flex p-[3px] rounded-full bg-lavender/70 shrink-0">
+                      {[
+                        { on: true, label: "Live", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
+                        { on: false, label: "Hidden", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+                      ].map((o) => (
+                        <button key={o.label}
+                          onClick={() => r.isActive !== o.on && patch(r.key, { isActive: o.on })}
+                          className={"text-[11.5px] font-semibold px-3.5 py-[6px] rounded-full transition-all " +
+                            (r.isActive === o.on ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
+                          style={r.isActive === o.on ? { background: o.fill } : undefined}>
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3.5 py-[7px] rounded-full text-purple bg-lavender/70 shrink-0"
+                      title={r.lockedReason ?? ""}>
+                      <Icon name="lock" size={12} /> Always on
+                    </span>
+                  )}
                 </div>
 
-                {isOpen && (
-                  <div className="px-4 pb-4 pt-1 border-t border-lavender-deep space-y-3">
+                  <div className="px-4 pb-4 pt-3 border-t border-lavender-deep space-y-3">
                     {r.blockType ? (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1066,12 +1052,10 @@ export default function CategoryPageView() {
                       </button>
                     )}
                   </div>
-                )}
               </div>
             );
-          })}
+          })()}
         </div>
-      )}
       </div>
 
       {/*
