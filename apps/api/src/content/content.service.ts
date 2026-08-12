@@ -224,9 +224,21 @@ export class ContentService {
   async createPost(dto: Record<string, unknown>, actorName: string) {
     const title = String(dto.title ?? '').trim();
     if (!title) throw new BadRequestException('A post needs a title');
-    const slug = slugify(String(dto.slug ?? '') || title);
+    /*  ⚠️ Only an EXPLICITLY typed slug may refuse on clash — that is the
+        owner's own choice colliding with reality, and he should see it. A
+        slug derived from the title was never chosen by anyone: two articles
+        both called "New article" used to make the second one impossible to
+        create ("already used", found live 12 Aug). Derived slugs uniquify
+        themselves with -2, -3, …  */
+    const explicit = !!slugify(String(dto.slug ?? ''));
+    let slug = slugify(String(dto.slug ?? '') || title);
     const clash = await this.prisma.journalPost.findUnique({ where: { slug } });
-    if (clash) throw new BadRequestException(`The address "${slug}" is already used`);
+    if (clash) {
+      if (explicit) throw new BadRequestException(`The address "${slug}" is already used`);
+      let n = 2;
+      while (await this.prisma.journalPost.findUnique({ where: { slug: `${slug}-${n}` } })) n++;
+      slug = `${slug}-${n}`;
+    }
 
     const row = await this.prisma.db.journalPost.create({
       data: {
