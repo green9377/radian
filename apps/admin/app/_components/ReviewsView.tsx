@@ -3,60 +3,54 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
-import { ModuleCard, ModuleHeader, StatTiles, FilterChips } from "./ModuleShell";
+import { ModuleCard, ModuleHeader, StatTiles } from "./ModuleShell";
 import {
   listReviews, createReview, updateReview, replyReview, deleteReview,
   getGoogleSummary, saveGoogleSummary, uploadImage,
   listCustomers, listProducts,
-  type ApiReview, type ReviewStatus, type ApiCustomer, type ApiProduct,
+  type ApiReview, type ApiCustomer, type ApiProduct,
 } from "../_data/api";
 
 /*
-  Storefront · Reviews.
+  Storefront · Reviews — v4 (12 Aug 2026, owner's redesign notes).
 
-  Three sources, deliberately redundant (owner, 30 Jul): Google can go quiet
-  and the homepage still has words on it.
+  WHAT CHANGED AND WHY:
 
-  ⚠️ WHAT THE SCREEN WILL NOT LET HIM DO, and why it says so out loud:
+   · Every dialog closes ONLY from its × or Cancel. The overlay has no click
+     handler at all. The first build closed on overlay click, and selecting
+     text with the mouse — press inside, release outside — fired that click
+     and threw away everything typed. The owner hit this twice.
+   · A review card shows the words and four small actions. REPLY opens only
+     a reply box; EDIT opens a dialog with the full form. The old build
+     expanded everything at once, which read as chaos.
+   · Filters are cards with counts (All / Waiting / On the site / Hidden /
+     Website / Google), not a strip of chips. Hidden gets its own card so
+     rejected rows stop muddying "All".
 
-   · A review's SOURCE cannot be changed. "The shop wrote this" and "a customer
-     wrote this" are different claims, and one relabelled as the other is the
-     thing that costs an ad account.
-   · A GOOGLE review cannot be edited at all — only hidden or featured. Those
-     words belong to the person who left them.
-   · "Verified" cannot be ticked. It comes from the order history — the
-     composer picks a customer and the SERVER checks their delivered orders.
-   · The homepage shelf holds FOUR. Featuring a fifth asks which one steps
-     down; it never guesses (DEC-WEB-009).
-
-  The section on the site shows NOTHING until something is published here.
+  THE OLD RULES STILL HOLD (they are the point of this screen):
+   · SOURCE never changes after creation.
+   · A GOOGLE review cannot be edited — only hidden, featured, replied to.
+   · Verified comes from the order history, never from a form.
+   · The homepage shelf holds FOUR; a fifth must name who steps down.
 */
 
-
-const SOURCE_LABEL: Record<string, string> = {
-  CUSTOMER: "customer wrote this",
-  SHOP: "you added this",
-  GOOGLE: "from Google",
-};
-
 const FEATURED_CAP = 4;
-
-/* Same page frame as every other admin screen (31 Jul 2026). */
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
+
+type Tab = "ALL" | "PENDING" | "PUBLISHED" | "REJECTED" | "CUSTOMER" | "GOOGLE";
 
 export default function ReviewsView() {
   const [rows, setRows] = useState<ApiReview[]>([]);
-  const [tab, setTab] = useState<ReviewStatus | "ALL" | "CUSTOMER" | "GOOGLE" | "SHOP">("ALL");
-  const [starFilter, setStarFilter] = useState<number | 0>(0);
-  const [productFilter, setProductFilter] = useState<string>("");
+  const [tab, setTab] = useState<Tab>("ALL");
+  const [starFilter, setStarFilter] = useState(0);
+  const [productFilter, setProductFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
-  const [open, setOpen] = useState<string | null>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [replyFor, setReplyFor] = useState<string | null>(null);
+  const [editFor, setEditFor] = useState<ApiReview | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
-  /** the review that wants a homepage spot while the shelf is full */
   const [swapFor, setSwapFor] = useState<string | null>(null);
   const [g, setG] = useState<{ googleRating: number | null; googleReviewCount: number | null; googleProfileUrl: string | null }>({
     googleRating: null, googleReviewCount: null, googleProfileUrl: null,
@@ -77,6 +71,14 @@ export default function ReviewsView() {
   useEffect(() => { void reload(); }, []);
 
   const featured = useMemo(() => rows.filter((r) => r.isFeatured), [rows]);
+  const counts = useMemo(() => ({
+    all: rows.length,
+    pending: rows.filter((r) => r.status === "PENDING").length,
+    published: rows.filter((r) => r.status === "PUBLISHED").length,
+    hidden: rows.filter((r) => r.status === "REJECTED").length,
+    website: rows.filter((r) => r.source === "CUSTOMER").length,
+    google: rows.filter((r) => r.source === "GOOGLE").length,
+  }), [rows]);
   const productsInRows = useMemo(() => {
     const seen = new Map<string, string>();
     for (const r of rows) if (r.productId && r.product) seen.set(r.productId, r.product.name);
@@ -85,19 +87,16 @@ export default function ReviewsView() {
 
   const shown = useMemo(() => {
     let out = rows;
-    if (tab === "CUSTOMER" || tab === "GOOGLE" || tab === "SHOP") out = out.filter((r) => r.source === tab);
+    if (tab === "CUSTOMER" || tab === "GOOGLE") out = out.filter((r) => r.source === tab);
     else if (tab !== "ALL") out = out.filter((r) => r.status === tab);
     if (starFilter) out = out.filter((r) => r.rating === starFilter);
     if (productFilter) out = out.filter((r) => r.productId === productFilter);
     return out;
   }, [rows, tab, starFilter, productFilter]);
 
-  const pending = rows.filter((r) => r.status === "PENDING").length;
-  const published = rows.filter((r) => r.status === "PUBLISHED");
-  const avg = published.length
-    ? Math.round((published.reduce((a, r) => a + r.rating, 0) / published.length) * 10) / 10
+  const avg = counts.published
+    ? Math.round((rows.filter((r) => r.status === "PUBLISHED").reduce((a, r) => a + r.rating, 0) / counts.published) * 10) / 10
     : null;
-  const verifiedCount = rows.filter((r) => r.verifiedPurchase).length;
 
   async function patch(id: string, body: Parameters<typeof updateReview>[1]) {
     setSaveState("saving");
@@ -105,10 +104,10 @@ export default function ReviewsView() {
       const u = await updateReview(id, body);
       setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...u, product: r.product, customer: r.customer } : r)));
       flash("Saved");
-    } catch (e) { fail(e, "Could not save"); }
+      return true;
+    } catch (e) { fail(e, "Could not save"); return false; }
   }
 
-  /** DEC-WEB-009 — the shelf holds 4. A fifth must name who steps down. */
   function requestFeature(r: ApiReview) {
     if (r.isFeatured) { void patch(r.id, { isFeatured: false }); return; }
     if (featured.length >= FEATURED_CAP) { setSwapFor(r.id); return; }
@@ -143,253 +142,187 @@ export default function ReviewsView() {
           icon="star"
           title="Reviews"
           blurb="Nothing shows on the website until you publish it"
-          chips={pending > 0 ? [{ label: `⏳ ${pending} waiting`, bg: "#FBEAF0", color: "#6b2138" }] : []}
+          chips={counts.pending > 0 ? [{ label: `⏳ ${counts.pending} waiting`, bg: "#FBEAF0", color: "#6b2138" }] : []}
           action={{ label: "＋ Add a review", onClick: () => setComposerOpen(true) }}
         />
         <StatTiles tone="purple" stats={[
-          { label: "On the site", value: published.length },
-          { label: "Waiting for you", value: pending },
+          { label: "On the site", value: counts.published },
+          { label: "Waiting for you", value: counts.pending },
           { label: "Shop average", value: avg !== null ? <>{avg} <span style={{ color: "#b76e79" }}>★</span></> : "—" },
-          { label: "Verified", value: verifiedCount },
+          { label: "Verified", value: rows.filter((r) => r.verifiedPurchase).length },
         ]} />
 
-      {/* ---- the Google card — a strip, not a wall. NEVER merged with the shop's own average. ---- */}
-      <div className="flex items-center gap-3 mx-5 mt-4 px-3.5 py-3 border border-lavender-deep rounded-[14px] bg-[#fdfbff] flex-wrap">
-        <span className="w-[38px] h-[38px] rounded-[11px] bg-lavender grid place-items-center font-display text-[18px] text-purple shrink-0">G</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] text-body">
-            Google card —{" "}
-            {g.googleRating
-              ? <b className="text-[#0E7A3D]">showing: {g.googleRating.toFixed(1)} ★{g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}</b>
-              : <b className="text-[#8a6414]">hidden — the stars box is empty</b>}
+        {/* ---- Google strip — its own card, never mixed into the shop average ---- */}
+        <div className="flex items-center gap-3 mx-5 mt-4 px-3.5 py-3 border border-lavender-deep rounded-[14px] bg-[#fdfbff] flex-wrap">
+          <span className="w-[38px] h-[38px] rounded-[11px] bg-lavender grid place-items-center font-display text-[18px] text-purple shrink-0">G</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] text-body">
+              Google card —{" "}
+              {g.googleRating
+                ? <b className="text-[#0E7A3D]">showing: {g.googleRating.toFixed(1)} ★{g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}</b>
+                : <b className="text-[#8a6414]">hidden — the stars box is empty</b>}
+            </span>
+            <span className="block text-[11.5px] text-body-soft">
+              Copy exactly what your Business Profile says · shown as its own card on the site
+            </span>
           </span>
-          <span className="block text-[11.5px] text-body-soft">
-            Copy exactly what your Business Profile says · shown as its own card, never mixed into your shop average
+          <span className="flex items-center gap-2 shrink-0">
+            <input type="number" step="0.1" min="0" max="5" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleRating ?? ""} placeholder="e.g. 4.9"
+              onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleRating) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleRating: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
+            <input type="number" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleReviewCount ?? ""} placeholder="e.g. 127"
+              onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleReviewCount) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleReviewCount: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
+            <input className="ipt !w-[170px] h-[38px]" defaultValue={g.googleProfileUrl ?? ""} placeholder="https://g.page/…"
+              onBlur={async (e) => { if (e.target.value === (g.googleProfileUrl ?? "")) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleProfileUrl: e.target.value })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
           </span>
-        </span>
-        <span className="flex items-center gap-2 shrink-0">
-          <input type="number" step="0.1" min="0" max="5" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleRating ?? ""} placeholder="e.g. 4.9"
-            onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleRating) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleRating: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-          <input type="number" className="ipt !w-[86px] h-[38px]" defaultValue={g.googleReviewCount ?? ""} placeholder="e.g. 127"
-            onBlur={async (e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v === g.googleReviewCount) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleReviewCount: v })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-          <input className="ipt !w-[170px] h-[38px]" defaultValue={g.googleProfileUrl ?? ""} placeholder="https://g.page/…"
-            onBlur={async (e) => { if (e.target.value === (g.googleProfileUrl ?? "")) return; setSaveState("saving"); try { setG(await saveGoogleSummary({ googleProfileUrl: e.target.value })); flash("Saved"); } catch (er) { fail(er, "Could not save"); } }} />
-        </span>
-      </div>
-
-      {/* ---- the homepage shelf — four spots, owner-picked (DEC-WEB-009) ---- */}
-      <div className="mx-5 mt-4">
-        <p className="text-[12.5px] font-medium text-body mb-2">
-          Homepage picks <span className="text-body-soft font-normal">· {featured.length} of {FEATURED_CAP} spots</span>
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
-          {featured.map((r) => (
-            <div key={r.id} className="rounded-[13px] border border-lavender-deep bg-gradient-to-br from-[#fdfbff] to-[#f9e9fd]/60 px-3 py-2.5 min-w-0">
-              <div className="flex items-center gap-2">
-                <Avatar r={r} size={30} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12.5px] font-medium text-purple truncate">{r.authorName}</span>
-                  <span className="block text-rosegold text-[10px] tracking-[1px]">{"★".repeat(r.rating)}</span>
-                </span>
-                <button onClick={() => patch(r.id, { isFeatured: false })} title="Take it off the homepage"
-                  className="text-body-soft hover:text-[#c0392b] text-[13px] shrink-0 leading-none">×</button>
-              </div>
-              <p className="text-[11px] text-body-soft mt-1.5 line-clamp-2">{r.body}</p>
-            </div>
-          ))}
-          {Array.from({ length: Math.max(0, FEATURED_CAP - featured.length) }).map((_, i) => (
-            <div key={`empty-${i}`} className="rounded-[13px] border-2 border-dashed border-lavender-deep/70 grid place-items-center py-4 text-[11px] text-body-soft min-h-[68px]">
-              empty spot
-            </div>
-          ))}
         </div>
-      </div>
 
-      <FilterChips
-        value={tab}
-        onChange={setTab}
-        options={[
-          { v: "ALL" as const, label: "All", count: rows.length },
-          { v: "PENDING" as const, label: "⏳ Waiting", count: pending, tint: { bg: "#FBEAF0", color: "#6b2138" } },
-          { v: "PUBLISHED" as const, label: "On the site" },
-          { v: "CUSTOMER" as const, label: "🌐 Website" },
-          { v: "GOOGLE" as const, label: "G Google" },
-          { v: "SHOP" as const, label: "✍ Added by you" },
-        ]}
-      />
+        {/* ---- Homepage shelf — four spots (DEC-WEB-009) ---- */}
+        <div className="mx-5 mt-4">
+          <p className="text-[12.5px] font-medium text-body mb-2">
+            Homepage picks <span className="text-body-soft font-normal">· {featured.length} of {FEATURED_CAP} spots</span>
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+            {featured.map((r) => (
+              <div key={r.id} className="rounded-[13px] border border-lavender-deep bg-gradient-to-br from-[#fdfbff] to-[#f9e9fd]/60 px-3 py-2.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Avatar r={r} size={30} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12.5px] font-medium text-purple truncate">{r.authorName}</span>
+                    <span className="block text-rosegold text-[10px] tracking-[1px]">{"★".repeat(r.rating)}</span>
+                  </span>
+                  <button onClick={() => patch(r.id, { isFeatured: false })} title="Take it off the homepage"
+                    className="text-body-soft hover:text-[#c0392b] text-[13px] shrink-0 leading-none">×</button>
+                </div>
+                <p className="text-[11px] text-body-soft mt-1.5 line-clamp-2">{r.body}</p>
+              </div>
+            ))}
+            {Array.from({ length: Math.max(0, FEATURED_CAP - featured.length) }).map((_, i) => (
+              <div key={`empty-${i}`} className="rounded-[13px] border-2 border-dashed border-lavender-deep/70 grid place-items-center py-4 text-[11px] text-body-soft min-h-[68px]">
+                empty spot
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* second row of filters: stars + product */}
-      <div className="flex items-center gap-2 px-5 pb-3 flex-wrap">
-        {[0, 5, 4, 3, 2, 1].map((n) => (
-          <button key={n} onClick={() => setStarFilter(n as number | 0)}
-            className={"text-[11.5px] px-2.5 py-1 rounded-full border transition-colors " +
-              (starFilter === n
-                ? "bg-purple text-white border-purple"
-                : "border-lavender-deep text-body-soft hover:border-orchid")}>
-            {n === 0 ? "Any stars" : "★".repeat(n)}
-          </button>
-        ))}
-        {productsInRows.length > 0 && (
-          <select className="ipt !w-auto h-[30px] !py-0 !text-[11.5px]" value={productFilter} onChange={(e) => setProductFilter(e.target.value)}>
-            <option value="">Any product</option>
-            {productsInRows.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        )}
-      </div>
+        {/* ---- filter cards ---- */}
+        <div className="mx-5 mt-5 grid grid-cols-3 md:grid-cols-6 gap-2.5">
+          <FilterCard active={tab === "ALL"} onClick={() => setTab("ALL")} n={counts.all} label="All" bg="#f3edfb" ink="#4a3f96" sub="#6a5fb8" />
+          <FilterCard active={tab === "PENDING"} onClick={() => setTab("PENDING")} n={counts.pending} label="Waiting" bg="#FFF4E6" ink="#8a5a00" sub="#b07a1a" />
+          <FilterCard active={tab === "PUBLISHED"} onClick={() => setTab("PUBLISHED")} n={counts.published} label="On the site" bg="#E8F9EE" ink="#0E7A3D" sub="#2f9c5c" />
+          <FilterCard active={tab === "REJECTED"} onClick={() => setTab("REJECTED")} n={counts.hidden} label="Hidden" bg="#f4f2f7" ink="#5f5a70" sub="#87819a" />
+          <FilterCard active={tab === "CUSTOMER"} onClick={() => setTab("CUSTOMER")} n={counts.website} label="Website" bg="#E6F1FB" ink="#185FA5" sub="#4d87bd" />
+          <FilterCard active={tab === "GOOGLE"} onClick={() => setTab("GOOGLE")} n={counts.google} label="Google" bg="#f7f1fb" ink="#5f4b73" sub="#8a75a0" />
+        </div>
 
-      {loading ? <p className="text-[13px] text-body-soft px-5 pb-4">Loading…</p> : shown.length === 0 ? (
-        <p className="text-[13px] text-body-soft px-5 pb-5">
-          {tab === "PENDING" ? "Nothing waiting." : "Nothing here yet — the reviews section is hidden on the website until you publish one."}
-        </p>
-      ) : (
-        <div className="border-t border-lavender-deep">
-          {shown.map((r) => {
-            const expanded = open === r.id;
+        {/* stars + product, one quiet row */}
+        <div className="flex items-center gap-2 mx-5 mt-3 flex-wrap">
+          {[0, 5, 4, 3, 2, 1].map((n) => (
+            <button key={n} onClick={() => setStarFilter(n)}
+              className={"text-[11.5px] px-2.5 py-1 rounded-full border transition-colors " +
+                (starFilter === n
+                  ? "bg-purple text-white border-purple"
+                  : "border-lavender-deep text-body-soft hover:border-orchid")}>
+              {n === 0 ? "Any stars" : "★".repeat(n)}
+            </button>
+          ))}
+          {productsInRows.length > 0 && (
+            <select className="ipt !w-auto h-[30px] !py-0 !text-[11.5px]" value={productFilter} onChange={(e) => setProductFilter(e.target.value)}>
+              <option value="">Any product</option>
+              {productsInRows.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          )}
+        </div>
+
+        {/* ---- the review cards ---- */}
+        <div className="mx-5 mt-4 mb-2 space-y-3">
+          {loading ? <p className="text-[13px] text-body-soft pb-4">Loading…</p> : shown.length === 0 ? (
+            <p className="text-[13px] text-body-soft pb-4">
+              {tab === "PENDING" ? "Nothing waiting." : "Nothing here — the reviews section stays hidden on the website until you publish one."}
+            </p>
+          ) : shown.map((r) => {
             const locked = r.source === "GOOGLE";
-            const account = r.customer
-              ? `${r.customer.phone} (${r.customer.name})`
-              : r.customerPhone ?? null;
+            const account = r.customer ? `${r.customer.phone} (${r.customer.name})` : r.customerPhone ?? null;
+            const replying = replyFor === r.id;
             return (
               <div key={r.id}
-                className={"border-b border-lavender-deep/50 last:border-b-0 " +
-                  (r.status === "PENDING" ? "bg-[#fffdf6] border-l-4 border-l-[#E8A23D]" : "")}>
-                <button onClick={() => setOpen(expanded ? null : r.id)}
-                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-lavender/25 transition-colors">
-                  <Avatar r={r} size={44} />
+                className={"rounded-[16px] border px-4 py-3.5 bg-white " +
+                  (r.status === "PENDING" ? "border-[#f0d5a8] bg-[#fffdf6]" : "border-lavender-deep")}>
+                <div className="flex items-center gap-3">
+                  <Avatar r={r} size={40} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13.5px] font-medium text-purple">
                       {r.authorName || "(no name)"}
                       {r.status === "PENDING" && <Badge bg="#FFF4E6" color="#8a5a00">waiting</Badge>}
-                      {r.source === "CUSTOMER" && <Badge bg="#E6F1FB" color="#185FA5">🌐 website</Badge>}
-                      {r.source === "SHOP" && <Badge bg="#f9e9fd" color="#8c2d84">✍ you added</Badge>}
-                      {r.source === "GOOGLE" && <Badge bg="#f7f1fb" color="#5f4b73">G Google</Badge>}
+                      {r.status === "REJECTED" && <Badge bg="#f4f2f7" color="#5f5a70">hidden</Badge>}
+                      {r.source === "CUSTOMER" && <Badge bg="#E6F1FB" color="#185FA5">website</Badge>}
+                      {r.source === "SHOP" && <Badge bg="#f9e9fd" color="#8c2d84">you added</Badge>}
+                      {r.source === "GOOGLE" && <Badge bg="#f7f1fb" color="#5f4b73">Google</Badge>}
                       {r.verifiedPurchase && <Badge bg="#E8F9EE" color="#0E7A3D">✓ verified</Badge>}
-                      {r.isFeatured && r.status === "PUBLISHED" && <Badge bg="#E8F9EE" color="#0E7A3D">on homepage</Badge>}
+                      {r.isFeatured && <Badge bg="#E8F9EE" color="#0E7A3D">on homepage</Badge>}
                       {r.imageUrl && <Badge bg="#f1f0fb" color="#4a4494">📷 photo</Badge>}
-                      {r.replyText && <Badge bg="#fdf3e7" color="#8a5a00">↩ replied</Badge>}
                     </span>
-                    <span className="block text-[12px] text-body-soft truncate">{r.body || "(empty)"}</span>
-                    <span className="block text-[11px] text-body-soft mt-0.5">
+                    <span className="block text-[11.5px] text-body-soft">
                       {account ? `${account} · ` : ""}
                       {r.product ? <>about <b className="text-purple">{r.product.name}</b></> : "about the shop"}
                       {" · "}{new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     </span>
                   </span>
-                  <span className="text-rosegold text-[12px] tracking-[1px] shrink-0">{"★".repeat(r.rating)}</span>
-                  {r.status === "PENDING" && (
-                    <span className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => patch(r.id, { status: "PUBLISHED" })}
-                        className="text-[11.5px] font-medium px-3 py-1.5 rounded-full text-white" style={{ background: "#0E7A3D" }}>
-                        ✓ Publish
-                      </button>
-                      <button onClick={() => patch(r.id, { status: "REJECTED" })}
-                        className="text-[11.5px] font-medium px-3 py-1.5 rounded-full border" style={{ borderColor: "#f3c9c3", color: "#c0392b" }}>
-                        Reject
-                      </button>
-                    </span>
-                  )}
-                  <span className={"text-body-soft text-[11px] transition-transform shrink-0 " + (expanded ? "rotate-90" : "")}>▶</span>
-                </button>
+                  <span className="text-rosegold text-[12.5px] tracking-[1px] shrink-0">{"★".repeat(r.rating)}</span>
+                </div>
 
-                {expanded && (
-                  <div className="px-4 pb-4 pt-1 border-t border-lavender-deep space-y-3">
-                    {locked && (
-                      <p className="text-[12px] text-body-soft bg-lavender/40 border border-lavender-deep rounded-[10px] px-3.5 py-2.5">
-                        These are the customer&rsquo;s own words on Google, so they cannot be edited here — only hidden, chosen for the homepage, or replied to.
-                      </p>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_110px] gap-3">
-                      <L label="Name">
-                        <input className="ipt" defaultValue={r.authorName} disabled={locked} placeholder="Tanvir A."
-                          onBlur={(e) => e.target.value !== r.authorName && patch(r.id, { authorName: e.target.value })} />
-                      </L>
-                      <L label="Stars">
-                        <select className="ipt" value={r.rating} disabled={locked} onChange={(e) => patch(r.id, { rating: Number(e.target.value) })}>
-                          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
-                        </select>
-                      </L>
-                    </div>
-                    <L label="What they said">
-                      <textarea className="ipt" rows={3} defaultValue={r.body} disabled={locked}
-                        onBlur={(e) => e.target.value !== r.body && patch(r.id, { body: e.target.value })} />
-                    </L>
-                    <L label="The line under the name" hint="Anniversary · Midnight delivery">
-                      <input className="ipt" defaultValue={r.context ?? ""} disabled={locked}
-                        onBlur={(e) => e.target.value !== (r.context ?? "") && patch(r.id, { context: e.target.value })} />
-                    </L>
+                <p className="text-[13.5px] text-body mt-2.5 mb-0 leading-[1.55]">{r.body || <span className="text-body-soft">(no words)</span>}</p>
 
-                    {/* DEC-WEB-007 — the shop's reply, shown under the review on the site */}
-                    <L label="Your reply" hint="Shows under the review on the website · empty removes it">
-                      <textarea className="ipt" rows={2} defaultValue={r.replyText ?? ""}
-                        placeholder="Thank you! It was a joy to make this one — see you at the next birthday. — Team Radian"
-                        onBlur={async (e) => {
-                          if (e.target.value === (r.replyText ?? "")) return;
-                          setSaveState("saving");
-                          try {
-                            const u = await replyReview(r.id, e.target.value);
-                            setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, replyText: u.replyText, replyAt: u.replyAt } : x)));
-                            flash("Reply saved");
-                          } catch (er) { fail(er, "Could not save the reply"); }
-                        }} />
-                    </L>
-
-                    <div className="grid grid-cols-1 md:grid-cols-[170px_1fr] gap-4">
-                      <L label="Photo" hint="the customer's photo of the gift · optional">
-                        <label className="relative block w-full aspect-[11/5] rounded-[10px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
-                          {r.imageUrl
-                            // eslint-disable-next-line @next/next/no-img-element
-                            ? <img src={r.imageUrl} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploadingId === r.id ? "opacity-40" : "")} />
-                            : <span className="text-body-soft text-[11px]">{uploadingId === r.id ? "Uploading…" : "add a photo"}</span>}
-                          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0]; if (!file) return;
-                              setUploadingId(r.id);
-                              try { const { url } = await uploadImage(file, "reviews"); await patch(r.id, { imageUrl: url }); }
-                              catch (er) { fail(er, "Upload failed"); }
-                              finally { setUploadingId(null); }
-                            }} />
-                        </label>
-                        {r.imageUrl && <button onClick={() => patch(r.id, { imageUrl: null })} className="text-[12px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
-                      </L>
-
-                      <div className="space-y-2.5">
-                        {r.status === "PENDING" ? (
-                          <div className="flex gap-2">
-                            <button onClick={() => patch(r.id, { status: "PUBLISHED" })}
-                              className="bg-purple hover:bg-purple-deep text-white text-[13px] font-medium px-4 py-2 rounded-[10px]">
-                              Publish it
-                            </button>
-                            <button onClick={() => patch(r.id, { status: "REJECTED" })}
-                              className="border border-lavender-deep text-body text-[13px] px-4 py-2 rounded-[10px] hover:border-[#c0392b] hover:text-[#c0392b]">
-                              Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <Toggle label="Showing on the website" on={r.status === "PUBLISHED"}
-                            onClick={() => patch(r.id, { status: r.status === "PUBLISHED" ? "REJECTED" : "PUBLISHED" })} />
-                        )}
-                        <Toggle label={`Homepage spot (${featured.length}/${FEATURED_CAP} used)`} on={r.isFeatured} onClick={() => requestFeature(r)} />
-                        <div className="text-[11.5px] text-body-soft">
-                          {SOURCE_LABEL[r.source]} · {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                          {r.product ? ` · about ${r.product.name}` : ""}
-                          {r.verifiedPurchase ? " · verified from the order book" : ""}
-                        </div>
-                        <button onClick={async () => { if (!confirm("Remove this review?")) return; await deleteReview(r.id); setRows((rs) => rs.filter((x) => x.id !== r.id)); flash("Removed"); }}
-                          className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove this review</button>
-                      </div>
-                    </div>
+                {r.replyText && !replying && (
+                  <div className="mt-2.5 border-l-[3px] border-orchid bg-lavender/35 px-3 py-2">
+                    <p className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-orchid mb-0.5">Your reply</p>
+                    <p className="text-[12.5px] text-body mb-0">{r.replyText}</p>
                   </div>
+                )}
+
+                {/* ---- the four small actions ---- */}
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  {r.status === "PENDING" ? (
+                    <>
+                      <ActionBtn solid onClick={() => patch(r.id, { status: "PUBLISHED" })}>✓ Publish</ActionBtn>
+                      <ActionBtn danger onClick={() => patch(r.id, { status: "REJECTED" })}>Reject</ActionBtn>
+                      <ActionBtn onClick={() => setEditFor(r)}>Edit</ActionBtn>
+                    </>
+                  ) : (
+                    <>
+                      <ActionBtn onClick={() => setReplyFor(replying ? null : r.id)}>↩ Reply</ActionBtn>
+                      <ActionBtn onClick={() => setEditFor(r)}>{locked ? "View" : "Edit"}</ActionBtn>
+                      <ActionBtn active={r.isFeatured} onClick={() => requestFeature(r)}>★ Homepage</ActionBtn>
+                      {r.status === "PUBLISHED"
+                        ? <ActionBtn onClick={() => patch(r.id, { status: "REJECTED" })}>Hide</ActionBtn>
+                        : <ActionBtn onClick={() => patch(r.id, { status: "PUBLISHED" })}>Show again</ActionBtn>}
+                    </>
+                  )}
+                </div>
+
+                {/* ---- reply box — the ONLY thing Reply opens ---- */}
+                {replying && (
+                  <ReplyBox
+                    initial={r.replyText ?? ""}
+                    onCancel={() => setReplyFor(null)}
+                    onSave={async (text) => {
+                      setSaveState("saving");
+                      try {
+                        const u = await replyReview(r.id, text);
+                        setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, replyText: u.replyText, replyAt: u.replyAt } : x)));
+                        setReplyFor(null);
+                        flash("Reply saved");
+                      } catch (er) { fail(er, "Could not save the reply"); }
+                    }}
+                  />
                 )}
               </div>
             );
           })}
         </div>
-      )}
 
-      {/* The advice he was given on 30 Jul, kept where the temptation is. */}
-      <p className="text-[12px] text-body-soft px-5 py-4 max-w-[62ch]">
-        Best done by asking a real customer on WhatsApp and typing what they reply. Invented testimonials break Facebook&rsquo;s and Google&rsquo;s advertising rules, and readers can usually tell.
-      </p>
+        <p className="text-[12px] text-body-soft px-5 pb-4 max-w-[62ch]">
+          Best done by asking a real customer on WhatsApp and typing what they reply. Invented testimonials break Facebook&rsquo;s and Google&rsquo;s advertising rules, and readers can usually tell.
+        </p>
       </ModuleCard>
 
       {composerOpen && (
@@ -400,9 +333,20 @@ export default function ReviewsView() {
         />
       )}
 
+      {editFor && (
+        <EditDialog
+          review={editFor}
+          onClose={() => setEditFor(null)}
+          onSaved={async () => { setEditFor(null); await reload(); flash("Saved"); }}
+          onError={(e) => fail(e, "Could not save")}
+        />
+      )}
+
+      {/*  the overlay has NO click handler — a text-selection drag that ends
+          outside the card must never throw the owner's work away  */}
       {swapFor && (
-        <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4" onClick={() => setSwapFor(null)}>
-          <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[420px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4">
+          <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[420px] p-5">
             <p className="font-display text-[17px] text-purple mb-1">The homepage shelf is full</p>
             <p className="text-[12.5px] text-body-soft mb-3">All {FEATURED_CAP} spots are taken. Pick the one that steps down:</p>
             <div className="space-y-2">
@@ -426,15 +370,101 @@ export default function ReviewsView() {
   );
 }
 
-/* ─── the composer dialog (DEC-WEB-009) ─────────────────────────────────────
-   Its own surface, on purpose: adding a review no longer happens squeezed
-   between existing rows. Pick a customer from the book (their photo comes
-   along), say whether it is about the whole shop or one product, then the
-   words. Verified is decided by the server from the order history. */
+/* ─── filter card ─────────────────────────────────────────────────────────── */
+function FilterCard({ active, onClick, n, label, bg, ink, sub }: {
+  active: boolean; onClick: () => void; n: number; label: string; bg: string; ink: string; sub: string;
+}) {
+  return (
+    <button onClick={onClick}
+      className="rounded-[13px] px-2 py-2.5 text-center transition-all"
+      style={{
+        background: bg,
+        border: active ? `2px solid ${ink}` : "1px solid transparent",
+        boxShadow: active ? "0 2px 8px rgba(71,0,102,0.08)" : "none",
+      }}>
+      <span className="block text-[19px] font-semibold leading-tight" style={{ color: ink }}>{n}</span>
+      <span className="block text-[11.5px]" style={{ color: sub }}>{label}</span>
+    </button>
+  );
+}
+
+/* ─── small action button ─────────────────────────────────────────────────── */
+function ActionBtn({ children, onClick, solid, danger, active }: {
+  children: React.ReactNode; onClick: () => void; solid?: boolean; danger?: boolean; active?: boolean;
+}) {
+  if (solid) {
+    return (
+      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full text-white" style={{ background: "#0E7A3D" }}>
+        {children}
+      </button>
+    );
+  }
+  if (danger) {
+    return (
+      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#f3c9c3", color: "#c0392b" }}>
+        {children}
+      </button>
+    );
+  }
+  return (
+    <button onClick={onClick}
+      className={"text-[12px] font-medium px-3.5 py-1.5 rounded-full border transition-colors " +
+        (active ? "bg-purple text-white border-purple" : "border-lavender-deep text-body hover:border-orchid hover:text-purple")}>
+      {children}
+    </button>
+  );
+}
+
+/* ─── reply box — Reply opens this and nothing else (owner, 12 Aug) ───────── */
+function ReplyBox({ initial, onSave, onCancel }: {
+  initial: string; onSave: (text: string) => Promise<void>; onCancel: () => void;
+}) {
+  const [text, setText] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="mt-3 border-l-[3px] border-orchid bg-lavender/35 px-3.5 py-3">
+      <p className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-orchid mb-1.5">
+        Your reply · shows under the review on the site · empty removes it
+      </p>
+      <textarea className="ipt" rows={2} value={text} autoFocus
+        placeholder="Thank you! It was a joy to make this one. - Team Radian"
+        onChange={(e) => setText(e.target.value)} />
+      <div className="flex gap-2 mt-2">
+        <button disabled={busy}
+          onClick={async () => { setBusy(true); try { await onSave(text); } finally { setBusy(false); } }}
+          className="text-[12.5px] font-medium px-4 py-1.5 rounded-full bg-purple hover:bg-purple-deep text-white disabled:opacity-50">
+          {busy ? "Saving…" : "Save reply"}
+        </button>
+        <button onClick={onCancel} className="text-[12.5px] px-3 py-1.5 text-body-soft hover:text-purple">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── shared dialog frame — closes ONLY from × / Cancel, never the overlay ── */
+function Dialog({ title, sub, onClose, children, footer }: {
+  title: string; sub?: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[560px] my-6">
+        <div className="px-5 pt-5 pb-3 border-b border-lavender-deep flex items-center justify-between">
+          <div>
+            <p className="font-display text-[18px] text-purple">{title}</p>
+            {sub && <p className="text-[12px] text-body-soft">{sub}</p>}
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-body-soft hover:text-purple text-[20px] leading-none">×</button>
+        </div>
+        <div className="p-5 space-y-4">{children}</div>
+        <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-between gap-2">{footer}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── the composer (create) ───────────────────────────────────────────────── */
 function Composer({ onClose, onCreated, onError }: {
-  onClose: () => void;
-  onCreated: () => Promise<void>;
-  onError: (e: unknown) => void;
+  onClose: () => void; onCreated: () => Promise<void>; onError: (e: unknown) => void;
 }) {
   const [customer, setCustomer] = useState<ApiCustomer | null>(null);
   const [freeName, setFreeName] = useState("");
@@ -467,90 +497,178 @@ function Composer({ onClose, onCreated, onError }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[560px] my-6" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 pt-5 pb-3 border-b border-lavender-deep flex items-center justify-between">
-          <div>
-            <p className="font-display text-[18px] text-purple">Add a review</p>
-            <p className="text-[12px] text-body-soft">Goes live immediately — it is the shop speaking, labelled &ldquo;you added&rdquo;</p>
-          </div>
-          <button onClick={onClose} className="text-body-soft hover:text-purple text-[20px] leading-none">×</button>
-        </div>
+    <Dialog
+      title="Add a review"
+      sub="Goes live immediately — it is the shop speaking, labelled &ldquo;you added&rdquo;"
+      onClose={onClose}
+      footer={
+        <>
+          <span />
+          <span className="flex items-center gap-2">
+            <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
+            <button onClick={save} disabled={!canSave || saving}
+              className={"text-[13px] font-medium px-5 py-2.5 rounded-[11px] text-white transition-opacity " +
+                (canSave && !saving ? "bg-purple hover:bg-purple-deep" : "bg-purple/40 cursor-not-allowed")}>
+              {saving ? "Saving…" : "Add the review"}
+            </button>
+          </span>
+        </>
+      }>
+      <L label="Who said it" hint="pick from your customer book — their photo and Verified badge come along">
+        <CustomerPicker value={customer} onPick={setCustomer} />
+        {!customer && (
+          <input className="ipt mt-2" placeholder="…or just type a name (no account linked)"
+            value={freeName} onChange={(e) => setFreeName(e.target.value)} />
+        )}
+      </L>
 
-        <div className="p-5 space-y-4">
-          <L label="Who said it" hint="pick from your customer book — their photo and Verified badge come along">
-            <CustomerPicker value={customer} onPick={setCustomer} />
-            {!customer && (
-              <input className="ipt mt-2" placeholder="…or just type a name (no account linked)"
-                value={freeName} onChange={(e) => setFreeName(e.target.value)} />
-            )}
-          </L>
-
-          <L label="What is it about">
-            <div className="flex gap-2">
-              <button onClick={() => { setAbout("SHOP"); setProduct(null); }}
-                className={"flex-1 rounded-[11px] border px-3 py-2.5 text-[13px] transition-colors " +
-                  (about === "SHOP" ? "border-purple bg-lavender/50 text-purple font-medium" : "border-lavender-deep text-body-soft hover:border-orchid")}>
-                The whole shop
-              </button>
-              <button onClick={() => setAbout("PRODUCT")}
-                className={"flex-1 rounded-[11px] border px-3 py-2.5 text-[13px] transition-colors " +
-                  (about === "PRODUCT" ? "border-purple bg-lavender/50 text-purple font-medium" : "border-lavender-deep text-body-soft hover:border-orchid")}>
-                One product
-              </button>
-            </div>
-            {about === "PRODUCT" && <div className="mt-2"><ProductPicker value={product} onPick={setProduct} /></div>}
-          </L>
-
-          <div className="grid grid-cols-[110px_1fr] gap-3">
-            <L label="Stars">
-              <select className="ipt" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
-              </select>
-            </L>
-            <L label="The line under the name" hint="optional · Anniversary · Midnight delivery">
-              <input className="ipt" value={context} onChange={(e) => setContext(e.target.value)} />
-            </L>
-          </div>
-
-          <L label="What they said">
-            <textarea className="ipt" rows={4} value={body} onChange={(e) => setBody(e.target.value)}
-              placeholder="The roses arrived at midnight sharp — my wife cried. Thank you, Radian." />
-          </L>
-
-          <L label="Photo" hint="optional · the gift as it arrived">
-            <label className="relative block w-[170px] aspect-[11/5] rounded-[10px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
-              {imageUrl
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={imageUrl} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
-                : <span className="text-body-soft text-[11px]">{uploading ? "Uploading…" : "add a photo"}</span>}
-              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setUploading(true);
-                  try { const { url } = await uploadImage(file, "reviews"); setImageUrl(url); }
-                  catch (er) { onError(er); }
-                  finally { setUploading(false); }
-                }} />
-            </label>
-            {imageUrl && <button onClick={() => setImageUrl(null)} className="text-[12px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
-          </L>
-        </div>
-
-        <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-end gap-2">
-          <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
-          <button onClick={save} disabled={!canSave || saving}
-            className={"text-[13px] font-medium px-5 py-2.5 rounded-[11px] text-white transition-opacity " +
-              (canSave && !saving ? "bg-purple hover:bg-purple-deep" : "bg-purple/40 cursor-not-allowed")}>
-            {saving ? "Saving…" : "Add the review"}
+      <L label="What is it about">
+        <div className="flex gap-2">
+          <button onClick={() => { setAbout("SHOP"); setProduct(null); }}
+            className={"flex-1 rounded-[11px] border px-3 py-2.5 text-[13px] transition-colors " +
+              (about === "SHOP" ? "border-purple bg-lavender/50 text-purple font-medium" : "border-lavender-deep text-body-soft hover:border-orchid")}>
+            The whole shop
+          </button>
+          <button onClick={() => setAbout("PRODUCT")}
+            className={"flex-1 rounded-[11px] border px-3 py-2.5 text-[13px] transition-colors " +
+              (about === "PRODUCT" ? "border-purple bg-lavender/50 text-purple font-medium" : "border-lavender-deep text-body-soft hover:border-orchid")}>
+            One product
           </button>
         </div>
+        {about === "PRODUCT" && <div className="mt-2"><ProductPicker value={product} onPick={setProduct} /></div>}
+      </L>
+
+      <div className="grid grid-cols-[110px_1fr] gap-3">
+        <L label="Stars">
+          <select className="ipt" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
+          </select>
+        </L>
+        <L label="The line under the name" hint="optional · Anniversary · Midnight delivery">
+          <input className="ipt" value={context} onChange={(e) => setContext(e.target.value)} />
+        </L>
       </div>
-    </div>
+
+      <L label="What they said">
+        <textarea className="ipt" rows={4} value={body} onChange={(e) => setBody(e.target.value)}
+          placeholder="The roses arrived at midnight sharp — my wife cried. Thank you, Radian." />
+      </L>
+
+      <PhotoField imageUrl={imageUrl} uploading={uploading} onPick={async (file) => {
+        setUploading(true);
+        try { const { url } = await uploadImage(file, "reviews"); setImageUrl(url); }
+        catch (er) { onError(er); }
+        finally { setUploading(false); }
+      }} onRemove={() => setImageUrl(null)} />
+    </Dialog>
   );
 }
 
-/** search-as-you-type over the customer book; the pick shows photo + phone */
+/* ─── the edit dialog — full form, same shape as the composer ─────────────── */
+function EditDialog({ review, onClose, onSaved, onError }: {
+  review: ApiReview; onClose: () => void; onSaved: () => Promise<void>; onError: (e: unknown) => void;
+}) {
+  const locked = review.source === "GOOGLE";
+  const [name, setName] = useState(review.authorName);
+  const [rating, setRating] = useState(review.rating);
+  const [body, setBody] = useState(review.body);
+  const [context, setContext] = useState(review.context ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(review.imageUrl);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateReview(review.id, locked
+        ? {} // nothing editable — the dialog is read-only for Google
+        : {
+            authorName: name.trim() || "A customer",
+            rating,
+            body: body.trim(),
+            context: context.trim() || null,
+            imageUrl,
+          });
+      await onSaved();
+    } catch (e) { onError(e); setSaving(false); }
+  }
+
+  async function removeReview() {
+    if (!confirm("Remove this review for good?")) return;
+    try { await deleteReview(review.id); await onSaved(); }
+    catch (e) { onError(e); }
+  }
+
+  return (
+    <Dialog
+      title={locked ? "A Google review" : "Edit review"}
+      sub={locked
+        ? "Their words on Google — not ours to rewrite. Hide, feature or reply from the card."
+        : review.customer ? `linked to ${review.customer.name} (${review.customer.phone})` : undefined}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={removeReview} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Remove this review</button>
+          <span className="flex items-center gap-2">
+            <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
+            {!locked && (
+              <button onClick={save} disabled={saving}
+                className="text-[13px] font-medium px-5 py-2.5 rounded-[11px] text-white bg-purple hover:bg-purple-deep disabled:opacity-50">
+                {saving ? "Saving…" : "Save"}
+              </button>
+            )}
+          </span>
+        </>
+      }>
+      <div className="grid grid-cols-[1fr_110px] gap-3">
+        <L label="Name">
+          <input className="ipt" value={name} disabled={locked} onChange={(e) => setName(e.target.value)} />
+        </L>
+        <L label="Stars">
+          <select className="ipt" value={rating} disabled={locked} onChange={(e) => setRating(Number(e.target.value))}>
+            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
+          </select>
+        </L>
+      </div>
+      <L label="What they said">
+        <textarea className="ipt" rows={4} value={body} disabled={locked} onChange={(e) => setBody(e.target.value)} />
+      </L>
+      <L label="The line under the name" hint="optional · Anniversary · Midnight delivery">
+        <input className="ipt" value={context} disabled={locked} onChange={(e) => setContext(e.target.value)} />
+      </L>
+      {!locked && (
+        <PhotoField imageUrl={imageUrl} uploading={uploading} onPick={async (file) => {
+          setUploading(true);
+          try { const { url } = await uploadImage(file, "reviews"); setImageUrl(url); }
+          catch (er) { onError(er); }
+          finally { setUploading(false); }
+        }} onRemove={() => setImageUrl(null)} />
+      )}
+    </Dialog>
+  );
+}
+
+/* ─── photo picker used by both dialogs ───────────────────────────────────── */
+function PhotoField({ imageUrl, uploading, onPick, onRemove }: {
+  imageUrl: string | null; uploading: boolean; onPick: (f: File) => void; onRemove: () => void;
+}) {
+  return (
+    <L label="Photo" hint="optional · the gift as it arrived">
+      <label className="relative block w-[170px] aspect-[11/5] rounded-[10px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
+        {imageUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={imageUrl} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
+          : <span className="text-body-soft text-[11px]">{uploading ? "Uploading…" : "add a photo"}</span>}
+        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }} />
+      </label>
+      {imageUrl && <button onClick={onRemove} className="text-[12px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove photo</button>}
+    </L>
+  );
+}
+
+/* ─── pickers ─────────────────────────────────────────────────────────────── */
 function CustomerPicker({ value, onPick }: { value: ApiCustomer | null; onPick: (c: ApiCustomer | null) => void }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<ApiCustomer[]>([]);
@@ -605,7 +723,6 @@ function CustomerPicker({ value, onPick }: { value: ApiCustomer | null; onPick: 
   );
 }
 
-/** same pattern for products */
 function ProductPicker({ value, onPick }: { value: { id: string; name: string } | null; onPick: (p: { id: string; name: string } | null) => void }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<ApiProduct[]>([]);
@@ -652,7 +769,7 @@ function ProductPicker({ value, onPick }: { value: { id: string; name: string } 
   );
 }
 
-/** the face on a row: customer photo first, review photo second, initials last */
+/* ─── avatars & bits ──────────────────────────────────────────────────────── */
 function Avatar({ r, size }: { r: ApiReview; size: number }) {
   const src = r.customer?.imageUrl || null;
   if (r.source === "GOOGLE" && !src) {
@@ -696,7 +813,6 @@ function Badge({ bg, color, children }: { bg: string; color: string; children: R
 }
 
 function L({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  // a <div>, not a <label> — see the note in CollectionsView about picture drops
   return (
     <div>
       <span className="text-[12.5px] font-medium text-body block mb-1.5">
@@ -704,17 +820,6 @@ function L({ label, hint, children }: { label: string; hint?: string; children: 
         {hint && <span className="block text-[11px] text-body-soft font-normal mt-0.5">{hint}</span>}
       </span>
       {children}
-    </div>
-  );
-}
-
-function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[11px] px-3.5 py-2.5">
-      <span className="text-[13px] text-purple">{label}</span>
-      <button onClick={onClick} className={"relative rounded-full shrink-0 " + (on ? "bg-orchid" : "bg-lavender-deep")} style={{ width: 38, height: 22 }}>
-        <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: 16, height: 16, left: on ? 19 : 3 }} />
-      </button>
     </div>
   );
 }
