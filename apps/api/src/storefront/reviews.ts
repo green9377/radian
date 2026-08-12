@@ -50,16 +50,30 @@ export interface ReviewDto {
   status?: ReviewStatus;
   isFeatured?: boolean;
   sortOrder?: number;
+  /** DEC-WEB-009 — picked from the customer book. The server derives the
+      phone, the linked account and the Verified badge from it; none of those
+      are accepted directly. */
+  customerId?: string | null;
+  /** when featuring would exceed the cap of 4: which one steps down */
+  swapOutId?: string;
 }
+
+/** DEC-WEB-009 — homepage rail shows at most this many. A shelf, not a list. */
+const FEATURED_CAP = 4;
 
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(q: { status?: string; source?: string }) {
+  list(q: { status?: string; source?: string; rating?: string; productId?: string }) {
     const where: Prisma.ReviewWhereInput = {};
     if (q.status) where.status = q.status as ReviewStatus;
     if (q.source) where.source = q.source as ReviewSource;
+    if (q.rating) {
+      const r = Number(q.rating);
+      if (r >= 1 && r <= 5) where.rating = Math.round(r);
+    }
+    if (q.productId) where.productId = q.productId;
     return this.prisma.db.review.findMany({
       where,
       orderBy: [{ status: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -67,7 +81,7 @@ export class ReviewsService {
         product: { select: { name: true, slug: true } },
         /*  DEC-WEB-006 — the account it came from, when the phone matched one.
             The screen shows the phone either way; the name only when known.  */
-        customer: { select: { name: true, phone: true } },
+        customer: { select: { name: true, phone: true, imageUrl: true } },
       },
     });
   }
@@ -148,23 +162,85 @@ export class ReviewsService {
     return { received: true };
   }
 
-  create(dto: ReviewDto) {
+  async create(dto: ReviewDto) {
+    /*  DEC-WEB-009 — the composer picks a customer from the book. The pick
+        gives the review a face and an account link, and lets the server ask
+        the one question a form must never answer for itself: did this person
+        actually receive this? Verified comes from the order history or not
+        at all.  */
+    let customerId: string | null = null;
+    let customerPhone: string | null = null;
+    let authorName = dto.authorName?.trim() || '';
+    if (dto.customerId) {
+      const cust = await this.prisma.db.customer.findFirst({
+        where: { id: dto.customerId },
+        select: { id: true, name: true, phone: true },
+      });
+      if (!cust) throw new BadRequestException('That customer is not in the book');
+      customerId = cust.id;
+      customerPhone = cust.phone;
+      if (!authorName) authorName = cust.name;
+    }
+    const verified = customerId
+      ? await this.deliveredOrderOf(customerId, dto.productId || null)
+      : null;
+
+    if (dto.isFeatured) await this.makeFeaturedRoom(undefined, dto.swapOutId);
+
     return this.prisma.db.review.create({
       data: {
         source: 'SHOP',
         // typed in by the owner, so it is published immediately — there is
         // nobody else to approve it
         status: 'PUBLISHED',
-        authorName: dto.authorName?.trim() || 'A customer',
+        authorName: authorName || 'A customer',
         rating: clampRating(dto.rating),
         body: dto.body?.trim() || '',
         context: dto.context?.trim() || null,
         imageUrl: dto.imageUrl || null,
         productId: dto.productId || null,
+        customerId,
+        customerPhone,
+        verifiedPurchase: !!verified,
+        orderId: verified?.id ?? null,
         isFeatured: dto.isFeatured ?? false,
         sortOrder: dto.sortOrder ?? 0,
       },
     });
+  }
+
+  /** the delivered order that makes a review Verified — or null */
+  private deliveredOrderOf(customerId: string, productId: string | null) {
+    return this.prisma.db.order.findFirst({
+      where: {
+        customerId,
+        deliveryStatus: 'delivered',
+        ...(productId ? { lines: { some: { productId } } } : {}),
+      },
+      select: { id: true },
+      orderBy: { placedAt: 'desc' },
+    });
+  }
+
+  /**
+   * DEC-WEB-009 — at most 4 featured. Featuring a fifth needs a name: which
+   * one steps down. The admin screen asks; this only refuses to guess.
+   */
+  private async makeFeaturedRoom(excludeId?: string, swapOutId?: string) {
+    if (swapOutId) {
+      await this.prisma.db.review.update({
+        where: { id: swapOutId },
+        data: { isFeatured: false },
+      });
+    }
+    const n = await this.prisma.db.review.count({
+      where: { isFeatured: true, ...(excludeId ? { id: { not: excludeId } } : {}) },
+    });
+    if (n >= FEATURED_CAP) {
+      throw new BadRequestException(
+        `${FEATURED_CAP} reviews are already featured — pick one to step down first`,
+      );
+    }
   }
 
   async update(id: string, dto: ReviewDto) {
@@ -177,6 +253,10 @@ export class ReviewsService {
         whether it is featured, and where it sits — can change here.  */
     if (row.source === 'GOOGLE' && (dto.body !== undefined || dto.authorName !== undefined || dto.rating !== undefined)) {
       throw new BadRequestException('A Google review cannot be edited — only hidden or featured');
+    }
+
+    if (dto.isFeatured === true && !row.isFeatured) {
+      await this.makeFeaturedRoom(id, dto.swapOutId);
     }
 
     return this.prisma.db.review.update({
@@ -195,9 +275,114 @@ export class ReviewsService {
     });
   }
 
+  /**
+   * DEC-WEB-007 — the shop's reply, shown under the review on the site.
+   * Ours to write on any review, including Google's: replying is our own
+   * words next to theirs, not an edit of theirs. Empty text removes it.
+   */
+  async reply(id: string, text: string | undefined) {
+    const row = await this.prisma.db.review.findFirst({ where: { id } });
+    if (!row) throw new NotFoundException('Review not found');
+    const trimmed = text?.trim() || null;
+    if (trimmed && trimmed.length > 600) {
+      throw new BadRequestException('replies are limited to 600 characters');
+    }
+    return this.prisma.db.review.update({
+      where: { id },
+      data: { replyText: trimmed, replyAt: trimmed ? new Date() : null },
+    });
+  }
+
   async remove(id: string) {
     await this.prisma.db.review.update({ where: { id }, data: { deletedAt: new Date(), status: 'REJECTED' } });
     return { ok: true };
+  }
+
+  /*
+    ═══ DEC-WEB-008 — the WhatsApp invite's two doors ═══
+
+    The token is the identity. It was minted when the order was delivered and
+    sent to the customer's own phone; presenting it back IS the proof that the
+    holder received that order. So the form it opens is pre-filled, and the
+    review it produces is born Verified — the one path where the badge needs
+    no separate check, because the token could not exist without the delivery.
+
+    Single-use: `usedAt` closes the door. A link forwarded to a friend after
+    use is a page saying "already used", not a second review.
+  */
+
+  /** what the /review/[token] page needs to draw itself */
+  async inviteInfo(token: string) {
+    const inv = await this.prisma.db.reviewInvite.findFirst({
+      where: { token: token?.trim() },
+      include: {
+        order: { select: { orderNo: true, senderName: true } },
+        customer: { select: { name: true, imageUrl: true } },
+        product: {
+          select: {
+            name: true,
+            slug: true,
+            images: { orderBy: { sortOrder: 'asc' }, take: 1, select: { url: true } },
+          },
+        },
+      },
+    });
+    if (!inv) throw new NotFoundException('This review link is not valid');
+    return {
+      used: !!inv.usedAt,
+      orderNo: inv.order.orderNo,
+      customerName: inv.customer?.name ?? inv.order.senderName,
+      customerImageUrl: inv.customer?.imageUrl ?? null,
+      product: inv.product
+        ? {
+            name: inv.product.name,
+            slug: inv.product.slug,
+            imageUrl: inv.product.images[0]?.url ?? null,
+          }
+        : null,
+    };
+  }
+
+  /** the review a used token leaves behind — PENDING like every submission, but born Verified */
+  async submitFromInvite(
+    token: string,
+    dto: { rating?: number; body?: string; context?: string; imageUrl?: string },
+  ) {
+    const inv = await this.prisma.db.reviewInvite.findFirst({
+      where: { token: token?.trim() },
+      include: { customer: { select: { id: true, name: true, phone: true } } },
+    });
+    if (!inv) throw new NotFoundException('This review link is not valid');
+    if (inv.usedAt) throw new BadRequestException('This review link has already been used');
+
+    const body = dto.body?.trim() ?? '';
+    if (body.length < 5) throw new BadRequestException('please write a few words');
+    if (body.length > 1200) throw new BadRequestException('reviews are limited to 1200 characters');
+
+    const imageUrl =
+      dto.imageUrl && /^https:\/\/ik\.imagekit\.io\//.test(dto.imageUrl) ? dto.imageUrl : null;
+
+    const review = await this.prisma.db.review.create({
+      data: {
+        source: 'CUSTOMER',
+        status: 'PENDING', // মালিকের moderation-এর আগে পর্দায় নয় — token-ও ব্যতিক্রম নয়
+        authorName: inv.customer?.name || 'A customer',
+        rating: clampRating(dto.rating),
+        body,
+        context: dto.context?.trim() || null,
+        imageUrl,
+        productId: inv.productId,
+        customerId: inv.customer?.id ?? null,
+        customerPhone: inv.customer?.phone ?? null,
+        verifiedPurchase: true, // the token is the delivery receipt
+        orderId: inv.orderId,
+      },
+    });
+    await this.prisma.db.reviewInvite.update({
+      where: { id: inv.id },
+      data: { usedAt: new Date(), reviewId: review.id },
+    });
+    return { received: true };
   }
 
   googleSettings() {
@@ -252,8 +437,13 @@ export class ReviewsController {
   constructor(private readonly svc: ReviewsService) {}
 
   @Get()
-  list(@Query('status') status?: string, @Query('source') source?: string) {
-    return this.svc.list({ status, source });
+  list(
+    @Query('status') status?: string,
+    @Query('source') source?: string,
+    @Query('rating') rating?: string,
+    @Query('productId') productId?: string,
+  ) {
+    return this.svc.list({ status, source, rating, productId });
   }
   @Get('pending-count')
   pending() {
@@ -270,6 +460,10 @@ export class ReviewsController {
   @Post()
   create(@Body() dto: ReviewDto) {
     return this.svc.create(dto);
+  }
+  @Patch(':id/reply')
+  reply(@Param('id') id: string, @Body() dto: { replyText?: string }) {
+    return this.svc.reply(id, dto.replyText);
   }
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: ReviewDto) {
@@ -306,9 +500,28 @@ export class PublicReviewsController {
       body?: string;
       productSlug?: string;
       context?: string;
+      imageUrl?: string;
+      customerPhone?: string;
     },
   ) {
     return this.svc.submitFromCustomer(dto);
+  }
+
+  /*  DEC-WEB-008 — the invite's two doors. GET draws the pre-filled page,
+      POST leaves the born-Verified (but still PENDING) review behind.  */
+  @Public()
+  @Get('review-invite/:token')
+  invite(@Param('token') token: string) {
+    return this.svc.inviteInfo(token);
+  }
+
+  @Public()
+  @Post('review-invite/:token')
+  submitInvite(
+    @Param('token') token: string,
+    @Body() dto: { rating?: number; body?: string; context?: string; imageUrl?: string },
+  ) {
+    return this.svc.submitFromInvite(token, dto);
   }
 }
 

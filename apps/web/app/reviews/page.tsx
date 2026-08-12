@@ -33,6 +33,8 @@ interface AllReviews {
     imageUrl: string | null;
     source: string;
     verifiedPurchase: boolean;
+    replyText?: string | null;
+    replyAt?: string | null;
     createdAt: string;
     product: { name: string; slug: string } | null;
   }[];
@@ -79,35 +81,52 @@ export default async function ReviewsPage() {
           <h1 className="font-display text-[clamp(26px,3.4vw,40px)] font-medium text-purple leading-tight">
             Customer Reviews
           </h1>
-          {data?.average !== null && data?.average !== undefined && (
-            <p className="text-body-soft mt-2.5">
-              <b className="text-purple">{data.average}</b> average from{" "}
-              <b className="text-purple">{data.count}</b> reviews on our own shop
-            </p>
-          )}
         </div>
 
-        {/* the Google card — same honesty rule as the homepage: absent until real */}
-        {data?.google && (
-          <div className="flex items-center justify-center gap-6 bg-white border border-lavender-deep rounded-[28px] px-10 py-6 w-fit mx-auto mb-[34px] shadow-soft flex-wrap">
-            <div className="w-[54px] h-[54px] rounded-2xl bg-lavender grid place-items-center font-display text-[26px] font-semibold text-purple">
-              G
-            </div>
-            <div>
-              <div className="font-display text-[32px] font-semibold text-purple whitespace-nowrap leading-none">
-                {data.google.rating.toFixed(1)}
+        {/*  Two ratings, two cards, NEVER one number (owner, 11 Aug). Google's
+            4.7 and our shop's 4.9 are different measurements by different
+            people — averaging them would invent a figure nobody gave.  */}
+        {(data?.average != null || data?.google) && (
+          <div className="flex items-stretch justify-center gap-4 mb-[34px] flex-wrap">
+            {data?.average != null && (
+              <div className="flex items-center gap-5 bg-white border border-lavender-deep rounded-[28px] px-8 py-6 shadow-soft">
+                <div className="w-[54px] h-[54px] rounded-2xl grid place-items-center font-display text-[24px] font-semibold text-white"
+                  style={{ background: "linear-gradient(135deg,#a97ee8,#cf43ea)" }}>
+                  R
+                </div>
+                <div>
+                  <div className="font-display text-[32px] font-semibold text-purple whitespace-nowrap leading-none">
+                    {data.average}
+                  </div>
+                  <div className="text-rosegold text-[16px] tracking-[2px] whitespace-nowrap">★★★★★</div>
+                  <div className="text-[12px] text-body-soft whitespace-nowrap mt-0.5">
+                    {data.count} reviews on our shop
+                  </div>
+                </div>
               </div>
-              <div className="text-rosegold text-[16px] tracking-[2px] whitespace-nowrap">★★★★★</div>
-            </div>
-            {data.google.url && (
-              <a
-                href={data.google.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[13px] font-semibold text-orchid whitespace-nowrap border-b border-orchid-mid pb-[2px]"
-              >
-                Read them on Google →
-              </a>
+            )}
+            {data?.google && (
+              <div className="flex items-center gap-5 bg-white border border-lavender-deep rounded-[28px] px-8 py-6 shadow-soft">
+                <div className="w-[54px] h-[54px] rounded-2xl bg-lavender grid place-items-center font-display text-[26px] font-semibold text-purple">
+                  G
+                </div>
+                <div>
+                  <div className="font-display text-[32px] font-semibold text-purple whitespace-nowrap leading-none">
+                    {data.google.rating.toFixed(1)}
+                  </div>
+                  <div className="text-rosegold text-[16px] tracking-[2px] whitespace-nowrap">★★★★★</div>
+                  <div className="text-[12px] text-body-soft whitespace-nowrap mt-0.5">
+                    {data.google.count ? `${data.google.count} reviews on Google` : "on Google"}
+                    {data.google.url && (
+                      <>
+                        {" · "}
+                        <a href={data.google.url} target="_blank" rel="noopener noreferrer"
+                          className="text-orchid hover:underline">read them →</a>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -158,6 +177,14 @@ export default async function ReviewsPage() {
                       )}
                     </div>
                   </div>
+                  {r.replyText && (
+                    <div className="mt-4 bg-lavender/40 border-l-[3px] border-orchid rounded-r-[12px] px-4 py-3">
+                      <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-orchid mb-1">
+                        Reply from Radian
+                      </p>
+                      <p className="text-[13px] text-body leading-[1.55]">{r.replyText}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

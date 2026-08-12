@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { OrderMessageKind, OrderMessageStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +22,13 @@ const TEMPLATE_FOR: Record<OrderMessageKind, string> = {
   ORDER_OUT_FOR_DELIVERY: TPL.out,
   ORDER_DELIVERED: TPL.delivered,
   PAYMENT_FAILED: TPL.paymentFailed,
+  REVIEW_REQUEST: TPL.review,
 };
+
+/*  DEC-WEB-008 — the review request goes out this long after delivery. Not a
+    setting yet: one number, one meaning. The flowers have been seen, the
+    moment is still warm, and tomorrow's sweep is soon enough.  */
+const REVIEW_REQUEST_DELAY_MS = 24 * 3600_000;
 
 const taka = (paisa: number) => `৳${(paisa / 100).toLocaleString('en-IN')}`;
 
@@ -90,6 +97,48 @@ export class OrderMessagesService {
     }
   }
 
+  /**
+   * DEC-WEB-008 — one invite per delivered order, due 24h later.
+   *
+   * The token IS the identity: the form it opens already knows the customer,
+   * the order and the product, so a review born from it is Verified by
+   * construction. The invite pre-selects the order's most expensive line —
+   * the centrepiece is what the customer will have an opinion about.
+   *
+   * Both writes are idempotent: an existing invite for the order short-
+   * circuits, and the OrderMessage unique index refuses a second queue row.
+   */
+  async queueReviewRequest(orderId: string) {
+    const existing = await this.prisma.db.reviewInvite.findFirst({
+      where: { orderId }, select: { id: true },
+    });
+    if (!existing) {
+      const o = await this.prisma.db.order.findFirst({
+        where: { id: orderId },
+        select: {
+          customerId: true,
+          lines: { select: { productId: true, unitPaisa: true, qty: true } },
+        },
+      });
+      if (!o) return null;
+      const centrepiece = [...o.lines].sort(
+        (a, b) => b.unitPaisa * b.qty - a.unitPaisa * a.qty,
+      )[0];
+      await this.prisma.db.reviewInvite.create({
+        data: {
+          token: randomBytes(16).toString('hex'),
+          orderId,
+          customerId: o.customerId,
+          productId: centrepiece?.productId ?? null,
+          dueAt: new Date(Date.now() + REVIEW_REQUEST_DELAY_MS),
+        },
+      });
+    }
+    return this.queue(orderId, OrderMessageKind.REVIEW_REQUEST, {
+      dueAt: new Date(Date.now() + REVIEW_REQUEST_DELAY_MS),
+    });
+  }
+
   /* ---- send ---- */
 
   /** Sends everything that is due. Both the sweeper and "Run now" call this. */
@@ -131,9 +180,29 @@ export class OrderMessagesService {
       return 'SKIPPED';
     }
 
+    /*  DEC-WEB-008 — the review request carries a single-use link. The token
+        lives on ReviewInvite, not on this row: the message is a courtesy, the
+        invite is the contract. No invite or an already-used one = nothing to
+        ask, so the message is skipped, not failed.  */
+    let invite: { token: string; productName: string | null } | undefined;
+    if (m.kind === OrderMessageKind.REVIEW_REQUEST) {
+      const inv = await this.prisma.db.reviewInvite.findFirst({
+        where: { orderId: o.id, usedAt: null },
+        include: { product: { select: { name: true } } },
+      });
+      if (!inv) {
+        await this.prisma.db.orderMessage.update({
+          where: { id },
+          data: { status: OrderMessageStatus.SKIPPED, error: 'no open review invite for this order' },
+        });
+        return 'SKIPPED';
+      }
+      invite = { token: inv.token, productName: inv.product?.name ?? null };
+    }
+
     let payload: Record<string, unknown>;
     try {
-      payload = this.payloadFor(m.kind, o, await this.settings.supportPhone());
+      payload = this.payloadFor(m.kind, o, await this.settings.supportPhone(), invite);
     } catch (e) {
       await this.prisma.db.orderMessage.update({
         where: { id },
@@ -151,6 +220,13 @@ export class OrderMessagesService {
           ? { status: OrderMessageStatus.SKIPPED, error: 'WhatsApp is not connected' }
           : { status: OrderMessageStatus.FAILED, error: (r.error ?? 'unknown').slice(0, 500) },
     });
+
+    if (r.ok && invite) {
+      await this.prisma.db.reviewInvite.updateMany({
+        where: { orderId: o.id, usedAt: null },
+        data: { sentAt: new Date() },
+      });
+    }
 
     return r.ok ? 'SENT' : r.configured ? 'FAILED' : 'SKIPPED';
   }
@@ -176,6 +252,7 @@ export class OrderMessagesService {
     kind: OrderMessageKind,
     o: { orderNo: string; senderName: string; totalPaisa: number },
     supportPhone: string,
+    invite?: { token: string; productName: string | null },
   ) {
     switch (kind) {
       case OrderMessageKind.ORDER_CONFIRMATION:
@@ -195,6 +272,16 @@ export class OrderMessagesService {
           'en',
           o.orderNo,
         );
+      case OrderMessageKind.REVIEW_REQUEST: {
+        // {{1}} name, {{2}} what they bought; the button opens /review/{token}
+        if (!invite) throw new Error('review request without an invite');
+        return this.wa.template(
+          TPL.review,
+          [o.senderName, invite.productName ?? 'your order'],
+          'en',
+          invite.token,
+        );
+      }
       default:
         // A new kind with no template lands here. Failing loudly beats silence.
         throw new Error(`no template mapped for ${String(kind)}`);

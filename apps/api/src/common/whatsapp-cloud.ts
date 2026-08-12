@@ -44,6 +44,8 @@ export const TPL = {
   delivered: process.env.WA_TPL_ORDER_DELIVERED || 'order_delivered',
   paymentFailed: process.env.WA_TPL_PAYMENT_FAILED || 'payment_failed',
   abandoned: process.env.WA_TPL_CHECKOUT_ABANDONED || 'checkout_abandoned',
+  /** DEC-WEB-008 — {{1}} name, {{2}} product, URL button = /review/{{token}} */
+  review: process.env.WA_TPL_REVIEW_REQUEST || 'review_request',
 };
 
 /** Send result: whether it went, why not, and Meta's message id. */

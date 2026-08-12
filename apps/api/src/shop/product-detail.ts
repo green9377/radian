@@ -451,6 +451,9 @@ export interface ShopProductDetail {
       context: string | null;
       imageUrl: string | null;
       verifiedPurchase: boolean;
+      /** DEC-WEB-007 — the shop's own words under theirs */
+      replyText: string | null;
+      replyAt: Date | null;
       createdAt: Date;
     }[];
   };
@@ -1053,6 +1056,8 @@ export class ProductDetailService {
         context: true,
         imageUrl: true,
         verifiedPurchase: true,
+        replyText: true,
+        replyAt: true,
         createdAt: true,
       },
     });

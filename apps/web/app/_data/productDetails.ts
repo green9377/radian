@@ -276,7 +276,10 @@ export interface ProductDetail {
     items?: {
       id: string; authorName: string; rating: number; body: string;
       context: string | null; imageUrl: string | null;
-      verifiedPurchase: boolean; createdAt: string;
+      verifiedPurchase: boolean;
+      /** DEC-WEB-007 — the shop's reply, shown under the review */
+      replyText?: string | null; replyAt?: string | null;
+      createdAt: string;
     }[];
   };
   /**

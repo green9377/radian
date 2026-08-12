@@ -449,6 +449,11 @@ model Review {
   customerId    String?
   customer      Customer? @relation("CustomerReviews", fields: [customerId], references: [id])
 
+  /// DEC-WEB-007 — the shop's one-line reply, shown under the review on the
+  /// site. Editable; clearing it removes the line.
+  replyText String? @db.Text
+  replyAt   DateTime?
+
   /// on the homepage rail. Being published is not the same as being chosen.
   isFeatured Boolean @default(false)
 
@@ -472,6 +477,37 @@ enum ReviewStatus {
   PENDING
   PUBLISHED
   REJECTED
+}
+
+/// DEC-WEB-008 — WhatsApp review request. Order delivered → 24h later a
+/// message goes out with a single-use link. The token IS the identity: the
+/// form it opens already knows the customer, the order and the product, so
+/// a review born from it is Verified by construction.
+model ReviewInvite {
+  id    String @id @default(cuid())
+  token String @unique
+
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id])
+  customerId String?
+  customer   Customer? @relation("CustomerReviewInvites", fields: [customerId], references: [id])
+  /// which product the form pre-selects. Null = review the shop.
+  productId  String?
+  product    Product?  @relation(fields: [productId], references: [id])
+
+  /// delivered + 24h — the sweep sends everything past due and unsent
+  dueAt  DateTime
+  sentAt DateTime?
+  /// the link is single-use: set the moment a review is submitted through it
+  usedAt   DateTime?
+  reviewId String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([sentAt, dueAt])
+  @@index([orderId])
 }
 
 /// A column of links. Owner's request, 31 Jul 2026.
@@ -1275,7 +1311,8 @@ model Product {
   orderLines  OrderLine[] // Sales references (One Data One Owner)
   offers      Offer[]             @relation("OfferProducts") // DEC-OFR — PRODUCT-shape targeting
   collections CollectionProduct[] // hand-picked shelves this product sits on
-  reviews     Review[] // what customers said about this one
+  reviews       Review[] // what customers said about this one
+  reviewInvites ReviewInvite[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1946,6 +1983,7 @@ model Customer {
   referredBy       Referral?  @relation("ReferralReceived")
   conversations    Conversation[] // INB-RULE-007 — Inbox references, never copies
   reviews          Review[] @relation("CustomerReviews") // DEC-WEB-006
+  reviewInvites    ReviewInvite[] @relation("CustomerReviewInvites")
 
   // ---- OWNED BY SALES (read-only mirror; Customer module কখনো লেখে না) (DEC-CUS-004) ----
   ordersCount  Int       @default(0)
@@ -2176,6 +2214,7 @@ model Order {
   paySessions  PaymentSession[] // storefront online payment attempts (gateway ↔ order)
   messages     OrderMessage[] // এই order নিয়ে গ্রাহককে কী কী পাঠানো হলো
   checkoutLeads CheckoutLead[] // যে অসমাপ্ত checkout থেকে এই order এসেছে
+  reviewInvites ReviewInvite[] // DEC-WEB-008 — delivered হলে review-এর ডাক
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2245,6 +2284,8 @@ enum OrderMessageKind {
   /// gateway ফেল/বাতিল বলেছে, অথবা গ্রাহক gateway-তে গিয়ে আর ফেরেননি।
   /// দুটোতেই order আছে, শুধু টাকা আসেনি।
   PAYMENT_FAILED
+  /// DEC-WEB-008 — delivered + 24h, review-এর ডাক। token থাকে ReviewInvite-এ।
+  REVIEW_REQUEST
 }
 
 /// checkout-এ নাম-নম্বর দিয়েছেন, কিন্তু order **তৈরিই হয়নি**। DEC-WA-004।

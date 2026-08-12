@@ -529,8 +529,11 @@ export interface ApiReview {
   product?: { name: string; slug: string } | null;
   /** DEC-WEB-006 — the account it came from (phone is the session's claim) */
   customerPhone?: string | null;
-  customer?: { name: string; phone: string } | null;
+  customer?: { name: string; phone: string; imageUrl?: string | null } | null;
   verifiedPurchase: boolean;
+  /** DEC-WEB-007 — the shop's reply shown under the review on the site */
+  replyText?: string | null;
+  replyAt?: string | null;
   isFeatured: boolean;
   sortOrder: number;
   createdAt: string;
@@ -539,6 +542,10 @@ export interface ReviewWrite {
   authorName?: string; rating?: number; body?: string;
   context?: string | null; imageUrl?: string | null; productId?: string | null;
   status?: ReviewStatus; isFeatured?: boolean; sortOrder?: number;
+  /** DEC-WEB-009 — picked from the customer book; server derives phone/verified */
+  customerId?: string | null;
+  /** when featuring a fifth: which one steps down */
+  swapOutId?: string;
 }
 
 export const listReviews = (q?: { status?: string; source?: string }) =>
@@ -547,6 +554,8 @@ export const createReview = (b: ReviewWrite) =>
   j<ApiReview>("/reviews", { method: "POST", body: JSON.stringify(b) });
 export const updateReview = (id: string, b: ReviewWrite) =>
   j<ApiReview>(`/reviews/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const replyReview = (id: string, replyText: string) =>
+  j<ApiReview>(`/reviews/${id}/reply`, { method: "PATCH", body: JSON.stringify({ replyText }) });
 export const deleteReview = (id: string) => j<{ ok: true }>(`/reviews/${id}`, { method: "DELETE" });
 
 export const getGoogleSummary = () =>

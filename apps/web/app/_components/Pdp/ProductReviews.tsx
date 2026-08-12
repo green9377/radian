@@ -122,6 +122,15 @@ export default function ProductReviews({ detail }: { detail: ProductDetail }) {
                   {it.context && (
                     <p className="text-[12px] text-body-soft mt-1 mb-0">{it.context}</p>
                   )}
+                  {/* DEC-WEB-007 — the shop's own words under theirs */}
+                  {it.replyText && (
+                    <div className="mt-3 bg-lavender/40 border-l-[3px] border-orchid rounded-r-[12px] px-4 py-3 max-w-[560px]">
+                      <p className="text-[10.5px] font-semibold tracking-[0.12em] uppercase text-orchid mb-1">
+                        Reply from Radian
+                      </p>
+                      <p className="text-[13px] text-body leading-[1.55] mb-0">{it.replyText}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -651,6 +651,10 @@ export class OrdersService {
     await this.event(id, 'system', `Sales completed — salesCount +qty, Customer LTV +${o.totalPaisa} paisa`, actorName);
     void this.orderMessages
       .queue(id, OrderMessageKind.ORDER_DELIVERED)
+      // DEC-WEB-008 — the review invite queues now, due 24h from now; the
+      // sweeper sends it when its time comes. sendDue(5) only picks up what
+      // is already due, so the invite is safe from it.
+      .then(() => this.orderMessages.queueReviewRequest(id))
       .then(() => this.orderMessages.sendDue(5))
       .catch(() => undefined);
     return this.shape(updated);

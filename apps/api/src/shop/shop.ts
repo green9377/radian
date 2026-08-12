@@ -398,6 +398,8 @@ export class ShopService {
           imageUrl: true,
           source: true,
           verifiedPurchase: true,
+          replyText: true,
+          replyAt: true,
           createdAt: true,
           product: { select: { name: true, slug: true } },
         },
