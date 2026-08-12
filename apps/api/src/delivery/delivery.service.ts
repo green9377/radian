@@ -17,6 +17,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { OrdersService } from '../orders/orders.service';
+import { FinanceEventsService } from '../finance/finance-events.service';
+import { FinanceAssetsService } from '../finance/finance-assets.service';
 import type {
   AreaWriteDto,
   TypeWriteDto,
@@ -28,6 +30,7 @@ import type {
   AssignmentActionDto,
   BoardQuery,
   BulkAssignDto,
+  SettleDto,
 } from './delivery.dto';
 
 /*  DELIVERY MANAGEMENT — RADIAN_DELIVERY_MODULE_ARCHITECTURE.md (23 Jul 2026)
@@ -50,6 +53,12 @@ export class DeliveryService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly orders: OrdersService,
+    /*  Delivery never writes to the ledger itself. It records what happened to
+        a parcel and hands the completed event to Finance, which owns what that
+        means in the accounts (core principle: accounting receives events, never
+        manual inserts). Finance does not import Delivery, so there is no cycle. */
+    private readonly finance: FinanceEventsService,
+    private readonly financeAssets: FinanceAssetsService,
   ) {}
 
   /* ================= config (order form / storefront read) ================= */
@@ -421,6 +430,184 @@ export class DeliveryService {
       data: { status: AssignmentStatus.CANCELLED, isActive: false },
       include: { rider: true, courier: true },
     });
+  }
+
+  /* ================= settling a carrier (DEC-DLV-016/017) =================
+
+     WHAT IS ON THIS LIST. Every delivered parcel whose accounts are not
+     finished — and "finished" means two separate things:
+
+       the cost is recorded          (costRecordedAt, not costPaisa > 0)
+       and, if it was COD, the cash came back  (codHandedOver)
+
+     ⚠️ `costPaisa > 0` WOULD HAVE BEEN THE WRONG TEST. It defaults to 0, so a
+     delivery that genuinely cost nothing and one nobody has priced yet look
+     identical. `costRecordedAt` is set only when a person types a number, which
+     is why it exists at all.
+
+     ⚠️ PREPAID PARCELS ARE HERE TOO, on purpose. There is no cash to reconcile
+     on them, but the rider was still paid, and a list of only-COD parcels would
+     silently lose the cost of every prepaid delivery — which in this shop is
+     most of them. The owner chose this shape: one list, "Delivered — not
+     settled", and a parcel leaves it when both facts are true. */
+  async unsettled(carrierId?: string) {
+    const rows = await this.prisma.db.deliveryAssignment.findMany({
+      where: {
+        status: AssignmentStatus.DELIVERED,
+        deletedAt: null,
+        ...(carrierId ? { OR: [{ riderId: carrierId }, { courierId: carrierId }] } : {}),
+        OR: [{ costRecordedAt: null }, { codHandedOver: false }],
+      },
+      orderBy: { deliveredAt: 'asc' },
+      take: 500,
+      include: {
+        rider: { select: { id: true, name: true } },
+        courier: { select: { id: true, name: true } },
+        order: {
+          select: {
+            id: true, orderNo: true, zone: true, address: true,
+            paymentMethod: true, totalPaisa: true, paidPaisa: true, duePaisa: true,
+          },
+        },
+      },
+    });
+
+    /*  A parcel with no cash outstanding is not "settled" — it may still be
+        waiting for its cost. The two facts travel separately all the way to
+        the screen so it can grey the right box rather than hide the row. */
+    return rows
+      .filter((a) => a.costRecordedAt === null || (a.order?.duePaisa ?? 0) > 0)
+      .map((a) => ({
+        assignmentId: a.id,
+        assignmentNo: a.assignmentNo,
+        deliveredAt: a.deliveredAt,
+        daysSince: a.deliveredAt
+          ? Math.floor((Date.now() - a.deliveredAt.getTime()) / 86400000)
+          : null,
+        kind: a.kind,
+        carrier: a.rider ?? a.courier,
+        carrierId: a.riderId ?? a.courierId,
+        consignmentNo: a.consignmentNo,
+        orderId: a.order?.id,
+        orderNo: a.order?.orderNo,
+        zone: a.order?.zone,
+        address: a.order?.address,
+        /** what is still owed on the order — 0 on a prepaid one */
+        codDuePaisa: a.order?.duePaisa ?? 0,
+        costPaisa: a.costPaisa,
+        costRecorded: a.costRecordedAt !== null,
+        codHandedOver: a.codHandedOver,
+      }));
+  }
+
+  /*  ⚠️ THE CHARGE IS EXPENSED ONCE, AND THIS IS WHERE THAT IS DECIDED.
+
+      `chargePaisa` on a line is the same money as `costPaisa` on the parcel.
+      The parcel is what posts to 5200 Delivery Cost (Finance.onDeliveryCost).
+      So the remittance this creates must NOT debit 5200 as well — Finance
+      checks for lines and clears the accrual instead. Without that check every
+      courier fee in the accounts would be double what it really was.  */
+  async settle(dto: SettleDto) {
+    const actorName = dto.actorName ?? 'Delivery';
+    const lines = (dto.lines ?? []).filter((l) => l.assignmentId);
+    if (lines.length === 0) throw new BadRequestException('nothing selected to settle');
+    if (!dto.carrierId) throw new BadRequestException('which carrier is this?');
+
+    const ids = lines.map((l) => l.assignmentId);
+    const found = await this.prisma.db.deliveryAssignment.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      include: { order: { select: { duePaisa: true } } },
+    });
+    if (found.length !== ids.length) throw new BadRequestException('one of these parcels no longer exists');
+    for (const a of found) {
+      if (a.status !== AssignmentStatus.DELIVERED)
+        throw new BadRequestException(`${a.assignmentNo} has not been delivered yet`);
+    }
+
+    const byId = new Map(found.map((a) => [a.id, a]));
+    let gross = 0;
+    let charge = 0;
+    for (const l of lines) {
+      const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
+      const chg = Math.max(0, Math.round(l.chargePaisa ?? 0));
+      gross += cod;
+      charge += chg;
+    }
+
+    const now = dto.receivedAt ? new Date(dto.receivedAt) : new Date();
+
+    /*  The parcels are written first and each on its own terms: a line that
+        carries only a cost must not pretend the cash came back. */
+    await this.prisma.db.$transaction(async (tx) => {
+      for (const l of lines) {
+        const a = byId.get(l.assignmentId)!;
+        const chg = Math.max(0, Math.round(l.chargePaisa ?? 0));
+        const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
+        await tx.deliveryAssignment.update({
+          where: { id: a.id },
+          data: {
+            costPaisa: chg,
+            costRecordedAt: now,
+            /*  Only a parcel that actually owed money can have its cash come
+                back. A prepaid parcel is left alone — marking it handed over
+                would invent a payment that never happened. */
+            codHandedOver: (a.order?.duePaisa ?? 0) > 0 ? cod > 0 : a.codHandedOver,
+          },
+        });
+      }
+    });
+
+    const carrierName =
+      (dto.carrierType === 'RIDER'
+        ? (await this.prisma.db.rider.findFirst({ where: { id: dto.carrierId } }))?.name
+        : (await this.prisma.db.courierService.findFirst({ where: { id: dto.carrierId } }))?.name) ?? 'Carrier';
+
+    /*  The expense goes on the parcel, one parcel at a time. This is the call
+        that has been missing since `costPaisa` was added: the column existed,
+        Finance knew how to post it, and nothing ever pulled the trigger — so
+        5200 Delivery Cost has been empty the whole time and delivery margin
+        has read as pure profit. */
+    for (const l of lines) {
+      if ((l.chargePaisa ?? 0) > 0) await this.finance.onDeliveryCost(l.assignmentId);
+    }
+
+    /*  Only cash that actually came back becomes a remittance. A settlement of
+        prepaid parcels moves no money — the cost is accrued and paid later like
+        any other bill — so inventing a receipt for it would put money in the
+        books that never arrived. */
+    let remittance: { id: string; remittanceNo: string } | null = null;
+    if (gross > 0) {
+      if (!dto.intoAccountId) throw new BadRequestException('Where did the money land?');
+      const r = await this.financeAssets.remitWithLines({
+        carrierType: dto.carrierType,
+        carrierId: dto.carrierId,
+        carrierName,
+        intoAccountId: dto.intoAccountId,
+        receivedAt: now,
+        note: dto.note ?? null,
+        actorName,
+        lines: lines.map((l) => ({
+          assignmentId: l.assignmentId,
+          codPaisa: Math.max(0, Math.round(l.codPaisa ?? 0)),
+          chargePaisa: Math.max(0, Math.round(l.chargePaisa ?? 0)),
+        })),
+      });
+      remittance = { id: r.id, remittanceNo: r.remittanceNo };
+    }
+
+    await this.audit.record({
+      entityType: ENTITY, entityId: dto.carrierId, action: 'UPDATE', actorName,
+      changes: { settled: lines.length, grossPaisa: gross, chargePaisa: charge },
+    });
+
+    return {
+      settled: lines.length,
+      grossPaisa: gross,
+      chargePaisa: charge,
+      netPaisa: gross - charge,
+      carrierName,
+      remittance,
+    };
   }
 
   async orderAssignments(orderId: string) {

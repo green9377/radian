@@ -127,3 +127,31 @@ export interface BulkAssignDto {
   note?: string;
   actorName?: string;
 }
+
+/*  SETTLING A CARRIER — DEC-DLV-016/017.
+
+    One line per parcel. `codPaisa` is what the carrier actually handed over for
+    it, which is NOT assumed to equal what was due: a short payment is a fact
+    worth recording, not an error to reject. `chargePaisa` is what they charged
+    to carry it, and it is written onto the parcel — the parcel is what posts to
+    Delivery Cost.
+
+    A prepaid parcel appears here too, with `codPaisa` 0. There is no cash to
+    reconcile, but the rider still had to be paid, and a screen that only listed
+    COD parcels would quietly lose every prepaid delivery's cost. */
+export interface SettleLineDto {
+  assignmentId: string;
+  codPaisa?: number;
+  chargePaisa?: number;
+}
+
+export interface SettleDto {
+  carrierType: 'RIDER' | 'COURIER';
+  carrierId: string;
+  /** where the net money landed — a Finance money account */
+  intoAccountId?: string;
+  receivedAt?: string;
+  lines: SettleLineDto[];
+  note?: string;
+  actorName?: string;
+}

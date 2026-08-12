@@ -4642,6 +4642,32 @@ export const createAssignment = (b: Record<string, unknown>) => j<ApiAssignment>
 export const assignmentAction = (id: string, action: "out" | "delivered" | "fail" | "cancel", b: Record<string, unknown> = {}) =>
   j<ApiAssignment>(`/delivery/assignments/${id}/${action}`, { method: "POST", body: JSON.stringify(b) });
 export const orderAssignments = (orderId: string) => j<ApiAssignment[]>(`/delivery/orders/${orderId}/assignments`);
+/*  SETTLING A CARRIER — DEC-DLV-016/017.
+    `costRecorded` is a separate fact from `costPaisa`, because 0 is a real
+    cost and also the default. `codDuePaisa` is 0 on a prepaid parcel, which
+    still appears here: no cash to reconcile, but the rider was still paid. */
+export interface ApiUnsettledParcel {
+  assignmentId: string; assignmentNo: string;
+  deliveredAt: string | null; daysSince: number | null;
+  kind: "RIDER" | "COURIER";
+  carrier: { id: string; name: string } | null;
+  carrierId: string | null;
+  consignmentNo: string | null;
+  orderId?: string; orderNo?: string; zone?: string; address?: string;
+  codDuePaisa: number;
+  costPaisa: number;
+  costRecorded: boolean;
+  codHandedOver: boolean;
+}
+export const listUnsettled = (carrierId?: string) =>
+  j<ApiUnsettledParcel[]>(`/delivery/unsettled${carrierId ? `?carrierId=${encodeURIComponent(carrierId)}` : ""}`);
+
+export const settleCarrier = (b: Record<string, unknown>) =>
+  j<{
+    settled: number; grossPaisa: number; chargePaisa: number; netPaisa: number;
+    carrierName: string; remittance: { id: string; remittanceNo: string } | null;
+  }>(`/delivery/settle`, { method: "POST", body: JSON.stringify(b) });
+
 /** proof photo upload — existing Delivery-owned OrderPhoto endpoint (DLV-R08) */
 export const addOrderPhoto = (orderId: string, b: Record<string, unknown>) =>
   j(`/orders/${orderId}/photos`, { method: "POST", body: JSON.stringify(b) });

@@ -146,6 +146,105 @@ export class FinanceAssetsService {
     });
   }
 
+  /*  SETTLEMENT WITH LINES — DEC-DLV-017, 12 Aug 2026.
+
+      Called by Delivery when a carrier is settled parcel by parcel. It differs
+      from `remit()` below in exactly one way, and the difference is the whole
+      reason it exists:
+
+        remit()          the charge has been expensed nowhere yet, so it
+                         debits 5200 Delivery Cost here.
+        remitWithLines() the charge was ALREADY expensed on each parcel by
+                         onDeliveryCost (Dr 5200, Cr 2300 Accrued). Debiting
+                         5200 again would count every courier fee twice. So
+                         this clears the accrual instead: Dr 2300.
+
+      Both are balanced the same way — net + charge = gross — but only one of
+      them is an expense, and it already happened.
+
+      ⚠️ Do not "simplify" these two into one method by passing a flag. The flag
+      would be read as a preference; it is an accounting fact about whether an
+      expense has been posted, and getting it wrong is silent.  */
+  async remitWithLines(dto: {
+    carrierType: 'RIDER' | 'COURIER';
+    carrierId: string;
+    carrierName: string;
+    intoAccountId: string;
+    receivedAt?: Date;
+    note?: string | null;
+    actorName?: string;
+    lines: { assignmentId: string; codPaisa: number; chargePaisa: number }[];
+  }) {
+    const gross = dto.lines.reduce((n, l) => n + Math.max(0, l.codPaisa), 0);
+    const charge = dto.lines.reduce((n, l) => n + Math.max(0, l.chargePaisa), 0);
+    if (gross <= 0) throw new BadRequestException('No cash came back on these parcels — there is nothing to remit');
+    if (charge > gross)
+      throw new BadRequestException(
+        'They charged more than they handed over. Record the cash they returned here, and pay the rest as an expense',
+      );
+    if (!dto.intoAccountId) throw new BadRequestException('Where did the money land?');
+
+    const remittanceNo = await this.nextNo('RMT', async () => {
+      const r = await this.prisma.db.carrierRemittance.findFirst({
+        orderBy: { remittanceNo: 'desc' },
+        select: { remittanceNo: true },
+      });
+      return r?.remittanceNo ?? null;
+    });
+    const net = gross - charge;
+    const receivedAt = dto.receivedAt ?? new Date();
+
+    const row = await this.prisma.db.carrierRemittance.create({
+      data: {
+        remittanceNo,
+        carrierType: dto.carrierType,
+        carrierId: dto.carrierId,
+        carrierName: dto.carrierName,
+        receivedAt,
+        grossPaisa: gross,
+        chargePaisa: charge,
+        netPaisa: net,
+        intoAccountId: dto.intoAccountId,
+        note: dto.note ?? null,
+        actorName: dto.actorName ?? 'admin',
+        lines: {
+          create: dto.lines.map((l) => ({
+            assignmentId: l.assignmentId,
+            codPaisa: Math.max(0, l.codPaisa),
+            chargePaisa: Math.max(0, l.chargePaisa),
+          })),
+        },
+      },
+    });
+
+    const lines: LineInput[] = [{ accountId: dto.intoAccountId, debitPaisa: net }];
+    if (charge > 0)
+      lines.push({
+        accountId: await this.accId(ACC.ACCRUED),
+        debitPaisa: charge,
+        note: 'Carrier kept its charge — accrual cleared, already expensed per parcel',
+      });
+    lines.push({ accountId: await this.accId(ACC.CASH_WITH_CARRIER), creditPaisa: gross });
+
+    const entry = await this.finance.postEntry({
+      sourceType: 'REMITTANCE',
+      sourceId: row.id,
+      sourceKey: `REMITTANCE:${row.id}`,
+      entryDate: receivedAt,
+      narration: `${dto.carrierName} settled ${dto.lines.length} parcel(s)`,
+      carrierId: dto.carrierId,
+      isManual: true,
+      actorName: dto.actorName ?? 'admin',
+      lines,
+    });
+    if (entry)
+      await this.prisma.db.carrierRemittance.update({
+        where: { id: row.id },
+        data: { journalEntryId: entry.id },
+      });
+    return { ...row, journalEntryId: entry?.id ?? null };
+  }
+
   /** the carrier handed the money over — minus its charge */
   async remit(dto: RemitDto) {
     const gross = dto.grossPaisa ?? 0;

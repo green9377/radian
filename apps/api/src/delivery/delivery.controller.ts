@@ -22,6 +22,7 @@ import type {
   AssignmentActionDto,
   BoardQuery,
   BulkAssignDto,
+  SettleDto,
 } from './delivery.dto';
 
 /* Static paths above any ':id' (project rule). */
@@ -216,6 +217,20 @@ export class DeliveryController {
   @Delete('slots/:slotId')
   removeSlot(@Param('slotId') slotId: string) {
     return this.delivery.removeSlot(slotId);
+  }
+
+  /* ---- settling a carrier (DEC-DLV-016/017) ---- */
+  @Get('unsettled')
+  unsettled(@Query('carrierId') carrierId?: string) {
+    return this.delivery.unsettled(carrierId || undefined);
+  }
+
+  /*  Money moves here, so it is an OWNER/MANAGER action. A rider settling his
+      own round would be a person marking his own cash as returned. */
+  @Roles('OWNER', 'MANAGER')
+  @Post('settle')
+  settle(@Body() dto: SettleDto) {
+    return this.delivery.settle(dto);
   }
 
   /* ---- assignments ---- */
