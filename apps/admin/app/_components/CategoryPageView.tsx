@@ -498,7 +498,7 @@ export default function CategoryPageView() {
           The order stays fixed on every category page (D-CAT-04): the rail
           SHOWS that order, the panel edits one section at a time.  */}
       <div className="grid grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start mb-4">
-        <nav className="hidden md:grid gap-1.5 md:sticky md:top-[84px] self-start">
+        <nav className="hidden md:grid gap-1.5 md:sticky md:top-[16px] self-start md:max-h-[calc(100vh-32px)] md:overflow-y-auto">
           {rows.map((r, i) => {
             const on = sel?.key === r.key;
             return (

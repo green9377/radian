@@ -82,7 +82,7 @@ export function ModuleHeader({
 }) {
   const t = MODULE_TONES[tone];
   return (
-    <div className="flex items-center gap-3.5 px-5 py-4 flex-wrap" style={{ background: t.fill }}>
+    <div className="flex items-center gap-3.5 px-5 py-4 flex-wrap rounded-t-[17px]" style={{ background: t.fill }}>
       <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center shrink-0"
         style={{ background: "rgba(255,255,255,.2)", color: "#fff" }}>
         <Icon name={icon} size={21} />
@@ -129,10 +129,14 @@ export function StatTiles({ tone, stats }: {
   );
 }
 
-/** the white card everything sits in — header goes first inside it */
+/** the white card everything sits in — header goes first inside it.
+ *  ⚠️ NO overflow-hidden here: it silently kills position:sticky on every
+ *  descendant, which is why the section rails would not stay put while the
+ *  content scrolled (owner, 12 Aug). The header rounds its own top corners
+ *  instead. */
 export function ModuleCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-lavender-deep rounded-[18px] overflow-hidden shadow-soft">
+    <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft">
       {children}
     </div>
   );

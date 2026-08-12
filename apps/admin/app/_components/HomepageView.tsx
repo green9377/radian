@@ -98,7 +98,7 @@ export default function HomepageView() {
 
       <div className="grid grid-cols-1 md:grid-cols-[236px_minmax(0,1fr)] gap-5 items-start">
         {/* ---- the colourful section rail ---- */}
-        <nav className="hidden md:grid gap-2 md:sticky md:top-[84px] self-start">
+        <nav className="hidden md:grid gap-2 md:sticky md:top-[16px] self-start md:max-h-[calc(100vh-32px)] md:overflow-y-auto">
           {SECTIONS.map((s) => {
             const on = sec === s.id;
             return (
