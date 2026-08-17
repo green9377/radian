@@ -72,6 +72,25 @@ tsc --noEmit apps/api ............. clean
 href তুলনা (HEAD ↔ এখন) .......... একটাও হারায়নি (162 → 164, নতুন দুটো দরজা)
 ```
 
+### 🚨 নতুন ফাঁদ — ভুল author-এ commit করলে Vercel **চুপচাপ** আটকায়
+
+প্রথম দুটো push (`c46896c`, `c7013e0`) GitHub-এ পৌঁছেছিল, কিন্তু demo-তে
+কিচ্ছু বদলায়নি。 **কোনো build লাল হয়নি** — deployment-এর অবস্থা ছিল
+`BLOCKED`, যা dashboard না খুললে দেখাই যায় না。 সাইট আগের build পরিবেশন
+করতে থাকে, তাই মনে হয় "কিছুই তো হয়নি"。
+
+**কারণ:** ওই দুটো commit-এর author ছিল `sobuj <sobujgazi77@gmail.com>` →
+GitHub account `radian-business`, যে Vercel team-এ নেই。 Vercel অচেনা
+author-এর deployment **বানায় না**。 এর আগের প্রতিটা commit ছিল
+`green9377 <amiparboinshaallah@gmail.com>` — তাই এই সমস্যা কখনো হয়নি。
+
+**নিয়ম:** commit-এ `git config`-এর পরিচয়ই ব্যবহার হবে。 `-c user.email=...`
+দিয়ে override **করা যাবে না**。 এবং push-এর পরে deployment-এর state
+`READY` কিনা দেখে তবেই "দেখুন" বলা হবে — `BLOCKED` আর `ERROR` দুটোই নীরব。
+
+**এখন থেকে Vercel + Render MCP যুক্ত** (মালিক, ১৭ আগস্ট) — build সবুজ না লাল,
+error কী, redeploy — সব সরাসরি দেখা ও করা যায়。 আর আন্দাজ করতে হবে না。
+
 **যা এখনো বাকি:** মালিকের চোখে দেখা。 তারপর `BUILD_CHECK.bat` → commit → demo。
 
 ---
