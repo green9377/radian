@@ -4,6 +4,55 @@
 > প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ১২ আগস্ট ২০২৬。_
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
 
+---
+
+## 🔵 পরের কথোপকথন এখান থেকে শুরু (হস্তান্তর, ১২ আগস্ট শেষ)
+
+**অবস্থা:** সব কাজ commit + push করা, demo-তে deploy করা, কিছুই আধা-শেষ পড়ে নেই。
+শেষ commit `090730f`。 কোনো uncommitted বদল নেই。
+
+### ১. মালিকের হাত ছাড়া এগোয় না (একটাই)
+
+**Meta Business-এ `review_request` template approve করানো** —
+{{1}} গ্রাহকের নাম · {{2}} পণ্যের নাম · URL button-এ `/review/{{1}}` (token)。
+approve হলেই বলবেন — demo-র test নম্বরে পুরো চাকা একবার ঘুরিয়ে দেখাব:
+order delivered → ২৪ ঘণ্টা → WhatsApp → link → form → PENDING+Verified review。
+_template না থাকলে message `FAILED` হয়ে জমে — order কখনো আটকায় না。_
+
+### ২. পরের session-এ যা করার কথা (মালিকের ভাষায় "onk test baki")
+
+এগুলোর কোনোটাই শুরু হয়নি — যেটা আগে চান, সেটাই ধরব:
+
+| # | কাজ | কেন |
+|---|---|---|
+| ১ | **Storefront ৬ পাতা লাইভে হাতে চালানো** | নকশা নতুন; আমি DOM-এ যাচাই করেছি, মালিকের চোখে পুরো পথ চালানো বাকি |
+| ২ | **Pages: Terms + Refund publish** | ৮টাই এখনো draft; bKash/SSLCommerz merchant approval এই দুটো LIVE চায় |
+| ৩ | **Footer → Social profiles** | একটাও ঠিকানা বসানো নেই (`socials: []`), তাই দোকানে social icon-ই নেই |
+| ৪ | **Delivery module** — DEC-DLV-016/017 লেখা হয়েছে, **অপ্রমাণিত** | নিচের delivery অংশ দেখুন |
+| ৫ | **Journal-এর ফাঁকা "New article" draft** | সংঘর্ষের সময়ের অবশিষ্ট — Edit করে লিখুন, নয়তো Remove |
+
+### ৩. এই session-এ যা শেষ হয়েছে (প্রমাণসহ, নিচে বিস্তারিত)
+
+- **Review v3** — composer · reply · verified · featured-৪ · `/review/[token]` (নিচে ⭐ অংশ)
+- **Storefront ৬ পাতা এক ছাঁচে** — Homepage · Category pages · Reviews · Journal ·
+  Pages & FAQs · Footer & menus。 বাঁয়ে রঙিন rail (CustomerEditor-এর ভাষা),
+  ডানে এক section。 rail এখন সত্যিই আটকে থাকে (ModuleCard-এর `overflow-hidden`
+  sticky মেরে ফেলছিল — সরানো হয়েছে)。
+- **তিনটে লুকানো রোগ সারানো:** (ক) dialog overlay-তে drag করলে লেখা হারাত →
+  এখন শুধু ×/Cancel-এ বন্ধ; (খ) "নতুন কিছু" বোতাম চাপলেই DB-তে খালি সারি
+  ঢুকত (Journal-এ slug সংঘর্ষ, Pages-এ "Untitled page") → এখন Save-এ তৈরি;
+  (গ) footer-এ অসম্পূর্ণ link/badge দোকানে ফাঁকা `<a>` হয়ে উঠত → server
+  ছেঁকে দেয়。
+
+### ৪. মনে রাখার মতো ফাঁদ (এই session-এ ধরা)
+
+- **`overflow-hidden` sticky-র ঘাতক** — parent-এ থাকলে ভেতরের কোনো
+  `position:sticky` কাজ করে না, কোনো error ছাড়াই。
+- **Vercel-এর queue** — এক push-এর build মাঝে মাঝে পৌঁছায় না; খালি commit
+  দিয়ে আবার trigger করতে হয়েছে。 deploy-এর পরে **সবসময় লাইভে যাচাই**。
+- **truncate + flex = উপচে পড়া** — grid column-এ button-এ `min-w-0` না দিলে
+  লম্বা লেখা কলামের বাইরে ঠেলে দেয়।
+
 ## ⭐ Review v3 — বানানো ও লাইভে যাচাই শেষ (১২ আগস্ট, DEC-WEB-007/008/009)
 
 সবই deployed demo-তে হাতে চালিয়ে দেখা:
