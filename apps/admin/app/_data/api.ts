@@ -4339,10 +4339,14 @@ export interface ReturnAnalytics {
   compensationPaisa: number;
 }
 
-export const listReturns = (params?: { search?: string; status?: string }) => {
+/** DEC-RTN-016 — `channel` narrows the SAME book to the door it came in
+ *  through: "online" = website orders, "counter" = POS sales, undefined =
+ *  everything. Nothing is duplicated; the totals screen never passes it. */
+export const listReturns = (params?: { search?: string; status?: string; channel?: "online" | "counter" }) => {
   const q = new URLSearchParams({ pageSize: "100" });
   if (params?.search) q.set("search", params.search);
   if (params?.status) q.set("status", params.status);
+  if (params?.channel) q.set("channel", params.channel);
   return j<Paged<ApiReturn>>(`/returns?${q.toString()}`);
 };
 export const getReturn = (id: string) => j<ApiReturn>(`/returns/${id}`);

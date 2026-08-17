@@ -65,30 +65,44 @@ function readSidebar() {
   return eval(literal);
 }
 
-/*  These three MUST stay identical to the generator and to AdminSidebar.tsx's
-    own copy. Three places, and that is one too many — but the alternative is a
-    shared package for a two-app repo, and this test is what makes the
-    duplication safe.  */
-const slugOf = (h) => h.replace(/^\//, '').replace(/\//g, '.') || 'root';
+/*  These three MUST stay identical to registry.gen.mjs and to
+    AdminSidebar.tsx's own copy. Three places, and that is one too many — but
+    the alternative is a shared package for a two-app repo, and this test is
+    what makes the duplication safe.
+
+    The query string is stripped (17 Aug 2026): "/returns?channel=online" and
+    "/returns" are the same screen, so they are the same key. See the long note
+    in registry.gen.mjs.  */
+const slugOf = (h) => h.split('?')[0].replace(/^\//, '').replace(/\//g, '.') || 'root';
 const moduleKey = (it) =>
   it.href ? slugOf(it.href) : it.label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 const subKey = (sb, parentKey, parentHref) =>
-  sb.href === parentHref ? `${parentKey}.overview` : slugOf(sb.href);
+  parentHref && sb.href.split('?')[0] === parentHref.split('?')[0]
+    ? `${parentKey}.overview`
+    : slugOf(sb.href);
+
+/*  A row with a query string is a second DOOR onto a screen that already has a
+    node (DEC-RTN-016) — never a screen of its own. Skipping them here is what
+    keeps "no duplicate key" true when Returns appears in three groups.  */
+const isAlias = (href) => !!href && href.includes('?');
 
 function keysFromSidebar(GROUPS) {
   const moduleHrefs = new Set();
-  for (const g of GROUPS) for (const it of g.items) if (it.href) moduleHrefs.add(it.href);
+  for (const g of GROUPS)
+    for (const it of g.items) if (it.href) moduleHrefs.add(it.href.split('?')[0]);
 
   const keys = [];
   const shortcuts = [];
   for (const g of GROUPS) {
     for (const it of g.items) {
+      if (isAlias(it.href)) continue;
       const mk = moduleKey(it);
       keys.push(mk);
       const walk = (subs, parentKey, parentHref) => {
         for (const sb of subs ?? []) {
           // a sub pointing at ANOTHER module is a shortcut, not a screen of its own
-          if (sb.href !== parentHref && moduleHrefs.has(sb.href) && sb.href !== it.href) {
+          const base = sb.href.split('?')[0];
+          if (base !== (parentHref ?? '').split('?')[0] && moduleHrefs.has(base) && base !== (it.href ?? '').split('?')[0]) {
             shortcuts.push(`${mk} -> ${sb.href}`);
             continue;
           }

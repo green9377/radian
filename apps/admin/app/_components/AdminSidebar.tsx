@@ -42,17 +42,125 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
   items.find((it) => it.subs?.some((s) => subOwns(s, p))) ??
   items.find((it) => !!it.href && (p === it.href || p.startsWith(it.href + "/")));
 
+/*  ═══════════════════════════════════════════════════════════════════════
+    HOW THIS PANEL IS ARRANGED — owner, 17 August 2026. Read this before
+    moving anything, because the previous arrangement looked just as sensible
+    and was wrong for a reason worth remembering.
+
+    It used to be grouped by WHAT KIND OF DATA a thing was: Master Data,
+    Commerce, Operations, System. That is how a database is arranged, not how
+    a shop is. It put Products beside Staff (both "master data") and Orders
+    beside Purchases (both "commerce") — pairs nobody has ever thought about
+    together while actually running the shop.
+
+    Now it is grouped by WHAT A THING BELONGS TO. The owner's own words:
+    orders are the website, POS is the shop, delivery setup is configuration,
+    assembly and inventory are internal. So:
+
+      WEBSITE        what the customer sees and what arrives from it
+      SHOP           the physical counter
+      INTERNAL       the day's work behind the door, nobody outside sees it
+      MARKETING      bringing people in — its own thing, neither of the above
+      PEOPLE         everyone we deal with: customers, staff, suppliers
+      CONFIGURATION  set once, changed rarely
+
+    THREE RULES THAT KEEP IT HONEST — the arrangement breaks without them:
+
+    1. A MODULE MAY APPEAR IN TWO PLACES; ITS DATA MAY NOT. Returns shows up
+       under WEBSITE and under SHOP, but there is one returns table and one
+       total. The second row is a filtered door (?channel=), never a copy.
+       "amder total calculation jen sob ak jaygay hoy" — DEC-RTN-016.
+
+    2. A MODULE'S DAILY SCREENS AND ITS SETUP SCREENS CAN LIVE APART. Delivery
+       is the case: the fulfilment board is touched twenty times a day, methods
+       and slots maybe twice a year. They were siblings, so the board sat inside
+       a settings menu. Now the board is in INTERNAL and the setup is in
+       CONFIGURATION. Same module underneath, two entrances.
+
+    3. A REPORT LIVES WHERE ITS DECISION LIVES. A report that changes one
+       module's settings stays in that module (delivery Cost & performance sits
+       beside the delivery work, because reading it sends you to Methods &
+       slots). Only reports that ask across modules belong in Intelligence.
+
+    ⚠️ NOT ONE href CHANGED IN THIS REARRANGEMENT. Access keys derive from
+    hrefs (ADM-RULE-001, moduleKey/subKey below), so every existing tick in
+    Access control still points at the same screen and every bookmark still
+    works. Moving a row between groups is free; renaming its href is not.
+    ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    title: "Master Data",
+    /*  WEBSITE — the customer's side. An order is here rather than in some
+        "commerce" bucket because an order IS the website's output: it arrives
+        from the shop the customer browsed. Inbox likewise — those messages
+        come in over the web chat and the social channels.  */
+    title: "Website",
     items: [
+      /*  Storefront leads the group: it is the thing the rest of this section
+          is about. Everything below it feeds what these pages display.
+
+          ⚠️ ONE LEVEL, NOT TWO — and this is the second correction, so it is
+          worth writing down properly.
+
+          First it was ten entries sitting at the top of the panel. The owner
+          asked for one module with the rest inside it, so they were grouped
+          into Pages / Blocks / Words / Shop details. That fixed the top of the
+          panel and broke everything under it: reaching Banners went from one
+          click to three, and every click needed a decision — "is a banner a
+          Block or a Page?" — that only the person who invented the grouping
+          could answer.
+
+          The grouping still exists where it costs nothing: on the Overview
+          screen, where all four are visible at once and nothing is hidden
+          behind a word. In the nav, a plain list is easier than a tidy tree.
+          Tidiness that costs clicks is not tidiness.  */
+      {
+        label: "Storefront", href: "/storefront", icon: "▤",
+        subs: [
+          { label: "Overview", href: "/storefront", match: exact("/storefront") },
+
+          /*  ── PAGES ───────────────────────────────────────────────────────
+              Everything a page needs is now INSIDE the page — owner, 31 Jul.
+
+              Banners, the trust strip, the budget cards and every section's
+              wording used to be four more rows here. They belong to the
+              homepage and to nothing else, so they are edited inside the
+              homepage: open a section, and its editor is right there. The
+              standalone screens still exist at their old addresses for anyone
+              who arrives by link or bookmark; they are simply not a place he
+              has to KNOW about any more.  */
+          { label: "Homepage", href: "/storefront/layout" },
+          { label: "Category pages", href: "/storefront/category-page" },
+
+          /*  ── EVERY PAGE ──────────────────────────────────────────────────
+              These are not part of one page. Reviews, the shop card and the
+              footer render at the bottom of EVERY page, and the journal is its
+              own section of the site. Filing them inside the homepage would be
+              filing them under one of the many pages they appear on.  */
+          { label: "Reviews", href: "/storefront/reviews" },
+          { label: "Journal", href: "/storefront/journal" },
+          /*  Terms, Refund Policy, Privacy, FAQ — the storefront reads these
+              from the Content module (৪ আগস্ট); this is where they are written.
+              bKash/SSLCommerz merchant review asks to SEE these pages live.  */
+          { label: "Pages & FAQs", href: "/storefront/pages" },
+          { label: "Visit the shop", href: "/storefront/hours" },
+          { label: "Footer & menus", href: "/storefront/footer" },
+        ],
+      },
+      /*  Products = what goes ON those pages. It sits in Website and not in
+          some master-data drawer because a product IS a page in the shop:
+          editing one changes what a customer sees within the minute.
+
+          6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
+          store-facing classification master, like Categories/Tags/Brands),
+          and "Daily capacity" moved to Assembly (it is a back-of-house
+          production limit). URLs unchanged, so access ticks survive.
+
+          ⚠️ The physical master BEHIND a product — Items (flowers, ribbon,
+          paper) — is deliberately NOT here. A customer never sees an item;
+          it lives in Internal beside Inventory and Assembly, which is the
+          only place it is ever used.  */
       {
         label: "Products", href: "/products", icon: "❀",
-        /*  6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
-            store-facing classification master, like Categories/Tags/Brands),
-            and "Daily capacity" moved to Operations → Assembly (it is a
-            back-of-house production limit). URLs unchanged, so access ticks
-            survive — only the menu grouping moved.  */
         subs: [
           { label: "Overview", href: "/products", match: exact("/products") },
           { label: "All products", href: "/products/list" },
@@ -66,35 +174,13 @@ const GROUPS: Group[] = [
           { label: "Trash", href: "/products/trash" },
         ],
       },
-      // Items = the physical master behind every Product (RADIAN_ITEM_MODULE_ARCHITECTURE.md).
-      // Sits directly under Products because that is the pair people think in.
-      // ⚠️ /items/[id] is dynamic — the static names below can never be item ids.
-      // Everything the Item module needs lives INSIDE it (owner, 21 Jul): its own
-      // category tree, its own colour/size master, and Units.
-      {
-        label: "Items", href: "/items", icon: "◈",
-        subs: [
-          { label: "Overview", href: "/items", match: exact("/items") },
-          { label: "All items", href: "/items/list" },
-          { label: "New item", href: "/items/new" },
-          /* Recipes moved OUT with the Recipe tab (DEC-ITM-011 phase 3) — it belongs to
-             Assembly, and two homes for one idea is the confusion we just removed.
-             Costs removed too: every figure on it already lives on Overview (the "no
-             cost" alert) or All items (cost column, sort by dearest, the No-cost tick),
-             and half its numbers were about recipes. A screen that only repeats other
-             screens costs attention and gives nothing back. (sobuj, 21 Jul) */
-          { label: "Item categories", href: "/items/categories" },
-          { label: "Colours", href: "/items/colors" },
-          { label: "Sizes", href: "/items/sizes" },
-          { label: "Units", href: "/items/units" },
-          { label: "Trash", href: "/items/trash" },
-        ],
-      },
-      /*  Catalog = the three small classification masters under one roof
-          (owner, 6 Aug 2026: "choto choto 3 ta jinis main module e bose
-          ache — ek module kore sub-module bosao"). The URLS DO NOT MOVE —
-          /categories, /tags and /brands keep every deep link and every
-          existing access tick; only the menu groups them.
+      /*  Catalog = the classification masters under one roof (owner, 6 Aug
+          2026: "choto choto 3 ta jinis main module e bose ache — ek module
+          kore sub-module bosao"). Website, because these ARE the shop's
+          navigation: a category is a menu entry a customer clicks.
+
+          THE URLS DO NOT MOVE — /categories, /tags and /brands keep every
+          deep link and every existing access tick; only the menu groups them.
 
           ⚠️ NO href on the parent, deliberately. Access keys derive from
           hrefs (moduleKey/subKey below): give this row /categories and its
@@ -111,60 +197,10 @@ const GROUPS: Group[] = [
           { label: "Variants & options", href: "/products/variants" },
         ],
       },
-      // Units lives under Items' sub-menu (owner's call, 21 Jul) — units exist to serve
-      // items, so that is where people look for them. No top-level entry, or it appears twice.
-      {
-        label: "Customers", href: "/customers", icon: "◉",
-        subs: [
-          { label: "Overview", href: "/customers", match: exact("/customers") },
-          { label: "All customers", href: "/customers/list" },
-          { label: "Segments", href: "/customers/segments" },
-          { label: "Risk & blocklist", href: "/customers/risk" },
-          { label: "Consent", href: "/customers/consent" },
-          { label: "Duplicates & merge", href: "/customers/duplicates" },
-          { label: "Occasions", href: "/customers/occasions" },
-        ],
-      },
-      // Suppliers = everyone Radian pays (RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md, 23 Jul).
-      // Master data, same rank as Customers — Purchase only references it (DEC-SUP-001).
-      // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
-      {
-        label: "Suppliers", href: "/suppliers", icon: "⛟",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
-          { label: "All suppliers", href: "/suppliers/list" },
-          { label: "New supplier", href: "/suppliers/new" },
-          // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
-          // same Supplier table underneath, their own face on top
-          { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
-          { label: "Settings", href: "/suppliers/settings" },
-        ],
-      },
-      // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Master Data,
-      // same rank as Customers and Suppliers — Finance references it, never owns
-      // it. What a person is paid is a money fact, so MANAGER and up; the
-      // personal columns are stripped server-side for anyone but the OWNER.
-      // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
-      {
-        label: "Staff", href: "/employees", icon: "👥",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "All staff", href: "/employees", match: exact("/employees") },
-          { label: "New employee", href: "/employees/new" },
-          { label: "Job roles", href: "/employees/roles" },
-          { label: "Attendance", href: "/employees/attendance" },
-          { label: "Payroll", href: "/employees/payroll", match: (p) => p.startsWith("/employees/payroll") },
-          { label: "Removed staff", href: "/employees/trash" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Commerce",
-    items: [
-      // Inbox = সব channel-এর গ্রাহক-chat এক পর্দায় (RADIAN_INBOX_MODULE_ARCHITECTURE.md)
-      { label: "Inbox", href: "/inbox", icon: "💬" },
+      /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
+          ba website releted"). A counter sale is NOT here; it is under Shop,
+          in POS. Both still land in the one Order table (DEC-POS-001) — this
+          is a menu, not a second ledger.  */
       {
         label: "Orders", href: "/orders", icon: "🛍",
         subs: [
@@ -176,16 +212,34 @@ const GROUPS: Group[] = [
           // since Sales; there was never a screen, which is why foodpanda and
           // Sugary had nowhere to be recorded.
           { label: "Sales channels", href: "/orders/channels" },
-          { label: "Returns", href: "/returns" }, // → Returns & Refunds module (DEC-RTN)
+          { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
           { label: "Recovery", href: "/orders/recovery" },
           { label: "Scheduled", href: "/orders/scheduled" },
           { label: "Cancelled", href: "/orders/cancelled" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },
+      /*  DEC-RTN-016 — the website's door onto the ONE returns book. Not a
+          module of its own and not a copy: `?channel=online` narrows the same
+          list to returns raised against website/courier orders. The counter
+          has its own door below, and the whole book with its totals lives in
+          Internal. Three doors, one table, one total — which is the entire
+          point ("amder total calculation jen sob ak jaygay hoy").  */
+      { label: "Returns (online)", href: "/returns?channel=online", icon: "↩" },
+      // Inbox = সব channel-এর গ্রাহক-chat এক পর্দায় (RADIAN_INBOX_MODULE_ARCHITECTURE.md)
+      // Website, because every one of those conversations starts on the site
+      // or on a social channel pointing at it.
+      { label: "Inbox", href: "/inbox", icon: "💬" },
+    ],
+  },
+  {
+    /*  SHOP — the physical counter, and nothing else (owner: "pos holo shop
+        releted"). One module today; branches will add to it.  */
+    title: "Shop",
+    items: [
       // POS = the physical-store counter (RADIAN_POS_MODULE_ARCHITECTURE.md, 23 Jul).
       // Separate module, but a completed sale lands in the unified Order ledger
-      // (channel=POS, DEC-POS-001). Sell screen first; the rest grow in as built.
+      // (channel=POS, DEC-POS-001).
       // ⚠️ /pos/[static] only — no dynamic segment yet. /pos = Overview.
       {
         label: "POS", href: "/pos", icon: "🧾",
@@ -196,131 +250,54 @@ const GROUPS: Group[] = [
           { label: "Sales history", href: "/pos/sales" },
           { label: "Day-close", href: "/pos/day-close" },
           { label: "Due board", href: "/pos/due" },
+          { label: "Returns", href: "/returns?channel=counter" }, // the counter door, DEC-RTN-016
           { label: "Settings", href: "/pos/settings" },
         ],
       },
-      // Returns & Refunds = post-delivery grievance → resolution
-      // (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, 23 Jul, DEC-RTN-005..015).
-      // Staff-initiated only; refund ≤ collected; restock via Inventory.
-      // ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.
-      {
-        label: "Returns & Refunds", href: "/returns", icon: "↩",
-        subs: [
-          { label: "Overview", href: "/returns", match: exact("/returns") },
-          { label: "New return", href: "/returns/new" },
-          { label: "Reasons & settings", href: "/returns/settings" },
-        ],
-      },
-      // Purchases = the buying book (RADIAN_PURCHASE_MODULE_ARCHITECTURE.md, 22 Jul).
-      // One entity, two doors: quick market entry + advance orders (DEC-PUR-001).
-      // Requisition/Order screens arrive with the first branch — deliberately absent.
-      // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
-      {
-        label: "Purchases", href: "/purchases", icon: "🧺",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "Overview", href: "/purchases", match: exact("/purchases") },
-          { label: "All purchases", href: "/purchases/list" },
-          { label: "New purchase", href: "/purchases/new" },
-          { label: "Returns", href: "/purchases/returns" },
-          { label: "Reports", href: "/purchases/reports" },
-        ],
-      },
-      // Offers & Promotions moved to the Marketing group (owner's call, 28 Jul
-      // 2026). The Offers module still owns the Offer entity — only its place
-      // in the panel changed. See the Marketing group below.
+      /*  The counter's door onto the same returns book — see DEC-RTN-016 on
+          the online door above. `?channel=counter` = returns against POS
+          walk-in sales (Order.fulfillmentType = COUNTER).  */
+      { label: "Returns (counter)", href: "/returns?channel=counter", icon: "↩" },
     ],
   },
   {
-    // The shop's own front window — what a visitor lands on, as opposed to
-    // Marketing, which owns what gets sent out. Added 30 Jul 2026 with Banners;
-    // sections, collections, reviews, content and the footer join it as the
-    // homepage audit works through them.
-    title: "Storefront",
+    /*  INTERNAL — the day's work behind the door. Nothing here is ever seen by
+        a customer, and that is the whole test for membership.
+
+        Delivery's DAILY screens lead the group even though the Delivery module
+        itself is configuration-shaped: the fulfilment board is touched twenty
+        times a day and its setup twice a year, so they were separated (owner,
+        17 Aug). The setup half is in Configuration. Same module, two doors —
+        see rule 2 in the header comment.  */
+    title: "Internal",
     items: [
-      /*
-        ONE MODULE, SUB-MODULES INSIDE IT — owner, 31 Jul 2026.
+      /*  DELIVERY — the work half. Board, proof, carrier settlement and the
+          cost report; every one of them a thing that happens today.
 
-        This was ten flat entries: Homepage layout, Category pages, Banners,
-        Trust strip, Section headings, Collections, Visit the shop, Reviews,
-        Journal, Footer. Ten siblings with no shape, growing by one every time
-        a page got connected, and nothing to tell him which he wanted.
+          "Cost & performance" stays HERE and not in Intelligence on purpose
+          (rule 3): reading it sends you straight to Methods & slots to change
+          a zone. A report and the decision it drives belong in one room.
+          Intelligence answers the questions that cross modules; this one does
+          not leave Delivery.
 
-        Same three-deep arrangement Marketing already uses, and the grouping is
-        by the job in hand rather than by table:
-
-          Pages        — how a page is arranged, top to bottom
-          Blocks       — the pieces that get PLACED on those pages
-          Words        — what the shop says, and what customers say back
-          Shop details — facts about the business, shown on every page
-
-        "Where do I change the banner on the flowers page" is a Pages question,
-        even though a banner is a Block. Sorted by where he would look.
-      */
-      /*
-        ⚠️ ONE LEVEL, NOT TWO — and this is the second correction, so it is
-        worth writing down properly.
-
-        First it was ten entries sitting at the top of the panel. The owner
-        asked for one module with the rest inside it, so they were grouped into
-        Pages / Blocks / Words / Shop details. That fixed the top of the panel
-        and broke everything under it: reaching Banners went from one click to
-        three, and every click needed a decision — "is a banner a Block or a
-        Page?" — that only the person who invented the grouping could answer.
-
-        The grouping still exists where it costs nothing: on the Overview
-        screen, where all four are visible at once and nothing is hidden behind
-        a word. In the nav, a plain list of eleven is easier than a tidy tree
-        of four. Tidiness that costs clicks is not tidiness.
-
-        Order is by how often it is used, then by what the page is made of —
-        NOT alphabetical, which would put Banners above the pages they sit on.
-      */
+          ⚠️ KEEP THE href. It is tempting to drop it the way Catalog does,
+          since the first child points at the same /delivery — but that is
+          exactly backwards here. With the href, the parent keys as "delivery"
+          and the board keys as "delivery.overview" (subKey's same-href rule),
+          which is what the access registry has always held. Without it, the
+          parent would slug "delivery" from its LABEL and the board would slug
+          "delivery" from its href — two rows, one key.  */
       {
-        label: "Storefront", href: "/storefront", icon: "▤",
+        label: "Delivery", href: "/delivery", icon: "🚚",
         subs: [
-          { label: "Overview", href: "/storefront", match: exact("/storefront") },
-
-          /*
-            ── PAGES ────────────────────────────────────────────────────────
-            Everything a page needs is now INSIDE the page — owner, 31 Jul.
-
-            Banners, the trust strip, the budget cards and every section's
-            wording used to be four more rows here. They belong to the
-            homepage and to nothing else, so they are edited inside the
-            homepage: open a section, and its editor is right there. The
-            standalone screens still exist at their old addresses for anyone
-            who arrives by link or bookmark; they are simply not a place he
-            has to KNOW about any more.
-          */
-          { label: "Homepage", href: "/storefront/layout" },
-          { label: "Category pages", href: "/storefront/category-page" },
-
-          /*
-            ── EVERY PAGE ───────────────────────────────────────────────────
-            These four are not part of one page. Reviews, the shop card and
-            the footer render at the bottom of EVERY page, and the journal is
-            its own section of the site. Filing them inside the homepage would
-            be filing them under one of the many pages they appear on.
-          */
-          { label: "Reviews", href: "/storefront/reviews" },
-          { label: "Journal", href: "/storefront/journal" },
-          /*  Terms, Refund Policy, Privacy, FAQ — the storefront reads these
-              from the Content module (৪ আগস্ট); this is where they are written.
-              bKash/SSLCommerz merchant review asks to SEE these pages live.  */
-          { label: "Pages & FAQs", href: "/storefront/pages" },
-          { label: "Visit the shop", href: "/storefront/hours" },
-          { label: "Footer & menus", href: "/storefront/footer" },
+          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Proof photos", href: "/delivery/proof" },
+          { label: "Settle a carrier", href: "/delivery/settle" },
+          { label: "Cost & performance", href: "/delivery/performance" },
         ],
       },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
       // Inventory = stock's ONE owner (RADIAN_INVENTORY_MODULE_ARCHITECTURE.md, 22 Jul).
-      // Immutable ledger + AVCO money. Opening/Transfer/Wastage/Stocktake screens
-      // arrive in the next build steps — sidebar grows with them.
+      // Immutable ledger + AVCO money.
       {
         label: "Inventory", href: "/inventory", icon: "📦",
         subs: [
@@ -354,25 +331,125 @@ const GROUPS: Group[] = [
           { label: "Settings", href: "/assembly/settings" },
         ],
       },
+      /*  Items = the physical master behind every Product
+          (RADIAN_ITEM_MODULE_ARCHITECTURE.md). It sat beside Products for a
+          year; it is here now because an item is a thing in a bucket in the
+          back room. Nobody outside ever sees one, and the screens that use it
+          are the two directly above.
+
+          ⚠️ /items/[id] is dynamic — the static names below can never be item
+          ids. Everything the Item module needs lives INSIDE it (owner, 21
+          Jul): its own category tree, its own colour/size master, and Units.  */
       {
-        label: "Delivery", href: "/delivery", icon: "🚚",
+        label: "Items", href: "/items", icon: "◈",
         subs: [
-          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Riders", href: "/delivery/riders" },
-          /*  Couriers left this menu on 12 Aug 2026 — they are added in
-              Administration → Courier & delivery now, keys and all. Riders stay
-              here because a rider is our own staff, not an outside company. */
-          { label: "Settle a carrier", href: "/delivery/settle" },
-          { label: "Methods & slots", href: "/delivery/zones" },
-          { label: "Proof photos", href: "/delivery/proof" },
-          { label: "Setup", href: "/delivery/setup" },
-          { label: "Cost & performance", href: "/delivery/performance" },
+          { label: "Overview", href: "/items", match: exact("/items") },
+          { label: "All items", href: "/items/list" },
+          { label: "New item", href: "/items/new" },
+          /* Recipes moved OUT with the Recipe tab (DEC-ITM-011 phase 3) — it belongs to
+             Assembly, and two homes for one idea is the confusion we just removed.
+             Costs removed too: every figure on it already lives on Overview (the "no
+             cost" alert) or All items (cost column, sort by dearest, the No-cost tick),
+             and half its numbers were about recipes. A screen that only repeats other
+             screens costs attention and gives nothing back. (sobuj, 21 Jul) */
+          { label: "Item categories", href: "/items/categories" },
+          { label: "Colours", href: "/items/colors" },
+          { label: "Sizes", href: "/items/sizes" },
+          // Units lives under Items (owner's call, 21 Jul) — units exist to serve
+          // items, so that is where people look. No top-level entry, or it appears twice.
+          { label: "Units", href: "/items/units" },
+          { label: "Trash", href: "/items/trash" },
+        ],
+      },
+      // Purchases = the buying book (RADIAN_PURCHASE_MODULE_ARCHITECTURE.md, 22 Jul).
+      // One entity, two doors: quick market entry + advance orders (DEC-PUR-001).
+      // Requisition/Order screens arrive with the first branch — deliberately absent.
+      // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
+      {
+        label: "Purchases", href: "/purchases", icon: "🧺",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Overview", href: "/purchases", match: exact("/purchases") },
+          { label: "All purchases", href: "/purchases/list" },
+          { label: "New purchase", href: "/purchases/new" },
+          { label: "Returns", href: "/purchases/returns" },
+          { label: "Reports", href: "/purchases/reports" },
+        ],
+      },
+      /*  RETURNS & REFUNDS — the WHOLE book, and the only row that carries the
+          totals (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, DEC-RTN-005..016).
+          The website and the counter each have a narrowed door above; this is
+          where they meet and where every figure is added up. Staff-initiated
+          only; refund ≤ collected; restock via Inventory.
+
+          "Reasons & settings" is NOT here — it is set once and lives in
+          Configuration, by the same rule that split Delivery.
+
+          ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.  */
+      {
+        label: "Returns & Refunds", href: "/returns", icon: "↩",
+        subs: [
+          { label: "Overview (all returns)", href: "/returns", match: exact("/returns") },
+          { label: "New return", href: "/returns/new" },
+        ],
+      },
+      {
+        label: "Finance", href: "/finance", icon: "৳",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Overview", href: "/finance", match: (p) => p === "/finance" },
+          { label: "Money accounts", href: "/finance/accounts" },
+          { label: "Chart of accounts", href: "/finance/chart" },
+          { label: "Expenses", href: "/finance/expenses" },
+          { label: "Money in & moving", href: "/finance/income" },
+          { label: "Partners", href: "/finance/partners" },
+          { label: "Monthly bills", href: "/finance/recurring" },
+          { label: "Staff advance & salary", href: "/finance/staff" },
+          { label: "Cash with carriers", href: "/finance/carrier" },
+          { label: "Assets & loans", href: "/finance/assets" },
+          { label: "Reports", href: "/finance/reports" },
+          { label: "Books vs reality", href: "/finance/drift" },
+          { label: "VAT challan (Mushak 6.3)", href: "/finance/vat" },
+          { label: "Ledger", href: "/finance/ledger" },
+          { label: "Manual journal", href: "/finance/journal" },
+          { label: "Settings", href: "/finance/settings" },
+        ],
+      },
+      /*  INTELLIGENCE — RADIAN_INTELLIGENCE_MODULE_ARCHITECTURE.md (29 Jul 2026).
+          ONE module with four sub-modules, exactly as the owner's own map has
+          it. The Executive Dashboard is a SUB-MODULE, not a module of its own —
+          an earlier pass got that wrong and it is worth not repeating.
+
+          Last in Internal on purpose: by rule 3 in the header comment, a
+          module's own reports stay with that module, and only the questions
+          that cross modules ("where did this month's profit come from") land
+          here. So this is the room you enter after the work, not during it.
+
+          NO role gate on the module itself. DEC-INT-005 gives STAFF the
+          Executive Dashboard deliberately — the Today list IS their work, and
+          the server withholds cost and cash from it per figure rather than
+          closing the door. An earlier pass put roles here and hid the whole
+          module from staff, which quietly reversed a locked decision.  */
+      {
+        label: "Intelligence", href: "/intelligence", icon: "◎",
+        subs: [
+          { label: "Executive dashboard", href: "/intelligence", match: exact("/intelligence") },
+          { label: "Analytics", href: "/intelligence/analytics", roles: ["OWNER", "MANAGER"] },
+          { label: "Reports", href: "/intelligence/reports", roles: ["OWNER", "MANAGER"] },
+          { label: "Targets & KPIs", href: "/intelligence/kpis", roles: ["OWNER", "MANAGER"] },
+          { label: "Forecast & market", href: "/intelligence/forecast", roles: ["OWNER", "MANAGER"] },
         ],
       },
     ],
   },
   {
     /*  MARKETING & GROWTH — RADIAN_MARKETING_MODULE_ARCHITECTURE.md (28 Jul 2026).
+
+        Its own section rather than folded into Website or Internal (owner, 17
+        Aug 2026). It genuinely is neither: the website is where a customer
+        LANDS, marketing is what got them moving, and none of it is the day's
+        work behind the counter. Forcing it into either half would have made
+        one of them mean two things.
 
         One module, four parts under it, and each part big enough to carry its
         own screens (owner's call, 28 Jul). So the group title is the module and
@@ -394,7 +471,7 @@ const GROUPS: Group[] = [
            (list · sources · commissions · payouts · coupons · templates ·
            approvals · settings · perf) is therefore RESERVED — an id can never
            be one of those words. */
-    title: "Marketing & Growth",
+    title: "Marketing",
     items: [
       {
         label: "Marketing & Growth", href: "/marketing", icon: "📣",
@@ -498,64 +575,93 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Finance",
+    /*  PEOPLE — everyone Radian deals with (owner, 17 Aug 2026). Customers,
+        staff and suppliers used to be filed under "master data" beside
+        Products, which is a statement about tables rather than about people.
+
+        The order is by how often each book is opened, not alphabetical.  */
+    title: "People",
     items: [
       {
-        label: "Finance", href: "/finance", icon: "৳",
+        label: "Customers", href: "/customers", icon: "◉",
+        subs: [
+          { label: "Overview", href: "/customers", match: exact("/customers") },
+          { label: "All customers", href: "/customers/list" },
+          { label: "Segments", href: "/customers/segments" },
+          { label: "Risk & blocklist", href: "/customers/risk" },
+          { label: "Consent", href: "/customers/consent" },
+          { label: "Duplicates & merge", href: "/customers/duplicates" },
+          { label: "Occasions", href: "/customers/occasions" },
+        ],
+      },
+      // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Finance
+      // references it, never owns it. What a person is paid is a money fact,
+      // so MANAGER and up; the personal columns are stripped server-side for
+      // anyone but the OWNER.
+      // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
+      {
+        label: "Staff", href: "/employees", icon: "👥",
         roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Overview", href: "/finance", match: (p) => p === "/finance" },
-          { label: "Money accounts", href: "/finance/accounts" },
-          { label: "Chart of accounts", href: "/finance/chart" },
-          { label: "Expenses", href: "/finance/expenses" },
-          { label: "Money in & moving", href: "/finance/income" },
-          { label: "Partners", href: "/finance/partners" },
-          { label: "Monthly bills", href: "/finance/recurring" },
-          { label: "Staff advance & salary", href: "/finance/staff" },
-          { label: "Cash with carriers", href: "/finance/carrier" },
-          { label: "Assets & loans", href: "/finance/assets" },
-          { label: "Reports", href: "/finance/reports" },
-          { label: "Books vs reality", href: "/finance/drift" },
-          { label: "VAT challan (Mushak 6.3)", href: "/finance/vat" },
-          { label: "Ledger", href: "/finance/ledger" },
-          { label: "Manual journal", href: "/finance/journal" },
-          { label: "Settings", href: "/finance/settings" },
+          { label: "All staff", href: "/employees", match: exact("/employees") },
+          { label: "New employee", href: "/employees/new" },
+          { label: "Job roles", href: "/employees/roles" },
+          { label: "Attendance", href: "/employees/attendance" },
+          { label: "Payroll", href: "/employees/payroll", match: (p) => p.startsWith("/employees/payroll") },
+          { label: "Removed staff", href: "/employees/trash" },
         ],
       },
-    ],
-  },
-  /*  INTELLIGENCE — RADIAN_INTELLIGENCE_MODULE_ARCHITECTURE.md (29 Jul 2026).
-      ONE module with four sub-modules, exactly as the owner's own map has it.
-      The Executive Dashboard is a SUB-MODULE, not a module of its own — an
-      earlier pass got that wrong and it is worth not repeating.
-      Open to everyone: STAFF is meant to see the Today section, because that is
-      their own work. The server withholds cost, margin and cash per figure
-      (DEC-INT-005) rather than closing the door, so there is no role gate here.
-      Reports, KPIs and Forecast are not built yet and are therefore not listed —
-      a nav entry that leads nowhere is a promise the panel cannot keep. */
-  {
-    title: "Intelligence",
-    items: [
+      // Suppliers = everyone Radian pays (RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md, 23 Jul).
+      // Purchase only references it (DEC-SUP-001).
+      // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
       {
-        label: "Intelligence", href: "/intelligence", icon: "◎",
-        /*  NO role gate on the module itself. DEC-INT-005 gives STAFF the
-            Executive Dashboard deliberately — the Today list IS their work, and
-            the server withholds cost and cash from it per figure rather than
-            closing the door. An earlier pass put roles here and hid the whole
-            module from staff, which quietly reversed a locked decision. */
+        label: "Suppliers", href: "/suppliers", icon: "⛟",
+        roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Executive dashboard", href: "/intelligence", match: exact("/intelligence") },
-          { label: "Analytics", href: "/intelligence/analytics", roles: ["OWNER", "MANAGER"] },
-          { label: "Reports", href: "/intelligence/reports", roles: ["OWNER", "MANAGER"] },
-          { label: "Targets & KPIs", href: "/intelligence/kpis", roles: ["OWNER", "MANAGER"] },
-          { label: "Forecast & market", href: "/intelligence/forecast", roles: ["OWNER", "MANAGER"] },
+          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
+          { label: "All suppliers", href: "/suppliers/list" },
+          { label: "New supplier", href: "/suppliers/new" },
+          // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
+          // same Supplier table underneath, their own face on top
+          { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
+          { label: "Settings", href: "/suppliers/settings" },
         ],
       },
     ],
   },
   {
-    title: "System",
+    /*  CONFIGURATION — set once, changed rarely (owner: "delivery holo
+        configuration akta module"). Everything here answers "how should the
+        system behave", never "what happened today".
+
+        This is the far end of the panel deliberately. A person opening the
+        admin twenty times a day should never have to scroll past a settings
+        screen to reach their work — which is exactly what happened when the
+        delivery fulfilment board lived inside this same menu as Methods &
+        slots.  */
+    title: "Configuration",
     items: [
+      /*  Delivery's SETUP half — the other end of the split described in
+          Internal. Riders stay here rather than in People because adding a
+          rider is a delivery capability, not a person you have a relationship
+          with; couriers left this menu on 12 Aug 2026 and are added in
+          Administration → Courier & delivery, keys and all.
+
+          ⚠️ href-less parent, same reason as Delivery's work half: /delivery
+          belongs to the fulfilment board's key.  */
+      {
+        label: "Delivery setup", icon: "🚚",
+        subs: [
+          { label: "Methods & slots", href: "/delivery/zones" },
+          { label: "Riders", href: "/delivery/riders" },
+          { label: "Setup", href: "/delivery/setup" },
+        ],
+      },
+      /*  Returns' setup half (DEC-RTN-016) — reasons, approval rules and
+          default refund methods. Written once, then left alone for months,
+          which is why it no longer sits in the menu people open to handle
+          today's return.  */
+      { label: "Returns settings", href: "/returns/settings", icon: "↩" },
       /*  ADMINISTRATION (30 Jul 2026) — RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md
           Replaces the old "Settings" entry, which had NO href at all: a menu row
           that did nothing when clicked, sitting there since the first build.
@@ -627,12 +733,28 @@ const GROUPS: Group[] = [
       a sub with the SAME href as its parent (the "Overview" row)
                             -> <parentKey>.overview
       a sub pointing at ANOTHER module (Orders -> /returns)
-                            -> that module's own key, which resolves correctly  */
-const slugOf = (href: string) => href.replace(/^\//, "").replace(/\//g, ".") || "root";
+                            -> that module's own key, which resolves correctly
+      /returns?channel=online -> returns    (the ? and everything after is DROPPED)
+
+    THAT LAST LINE IS NEW (17 Aug 2026) and matters. Rows now exist that point
+    at the same screen with a filter on it: Returns has a website door and a
+    counter door (DEC-RTN-016), SEO has four tabs. A query string is not a
+    different screen, so it must not become a different access key — otherwise
+    Access control would have to tick "returns" four times, and a key nobody
+    ever created falls through to VISIBLE, which quietly hands a filtered view
+    to somebody who was denied the module itself. Strip the query, and every
+    door inherits the one tick the module already has.  */
+const slugOf = (href: string) =>
+  href.split("?")[0].replace(/^\//, "").replace(/\//g, ".") || "root";
 const moduleKey = (it: Item) =>
   it.href ? slugOf(it.href) : it.label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+/*  Compare hrefs with their query stripped too — "/returns" and
+    "/returns?channel=online" are the same screen, so the parent's row IS the
+    overview row.  */
 const subKey = (sb: Sub, parentKey: string, parentHref?: string) =>
-  sb.href === parentHref ? `${parentKey}.overview` : slugOf(sb.href);
+  parentHref && sb.href.split("?")[0] === parentHref.split("?")[0]
+    ? `${parentKey}.overview`
+    : slugOf(sb.href);
 
 export default function AdminSidebar() {
   const { me, signOut } = useAuth();

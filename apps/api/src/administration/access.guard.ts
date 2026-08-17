@@ -34,7 +34,16 @@ export class AccessGuard implements CanActivate {
         audit  — read-only and already @Roles('OWNER') on the whole controller
         health/root    — no session at all  */
   private static readonly NEVER = new Set([
-    'auth', 'administration', 'audit', 'health', '',
+    /*  shop — the customer browser calls this, every route @Public(). There is
+        no actor to judge, so judging it would mean inventing one. Added 17 Aug
+        2026: it had been neither node, alias nor exempt, which is the
+        "silently not judged" hole this list exists to close.
+
+        ⚠️ NO APOSTROPHES IN THIS COMMENT. registry.drift.mjs reads this set by
+        regex, pairing single quotes — one apostrophe in prose shifts every
+        pair after it and three exempt prefixes report as UNJUDGED. Cost half
+        an hour on the day it was written.  */
+    'auth', 'administration', 'audit', 'health', 'shop', '',
   ]);
 
   /*  ⚠️ WHERE THE API PATH AND THE MENU PATH DISAGREE — 30 Jul 2026, review.
@@ -60,6 +69,13 @@ export class AccessGuard implements CanActivate {
     hr: 'employees',
     offers: 'marketing.offers',
     seo: 'marketing.seo',
+    /*  API /messaging/*  panel /marketing/messaging  -> key "marketing.messaging"
+        Settings, templates and the send queue — WhatsApp/SMS wiring, all of it
+        OWNER or MANAGER on the controller. It was in neither list, so the guard
+        looked up "messaging", found nothing and waved it through: the one
+        prefix where a wrong hand can start sending real messages that cost real
+        money. Found by the drift check on 17 Aug 2026, which is what it is for. */
+    messaging: 'marketing.messaging',
   };
 
   /** the last 200 near-misses, newest last. In memory: this is a working note,

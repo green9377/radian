@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
 import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ErrBar, OkBar, msg } from "./ItemUI";
 import {
@@ -46,7 +46,37 @@ const NewBtn = () => (
 
 /* ================================================================== OVERVIEW / LIST */
 
+/*  DEC-RTN-016 — ONE BOOK, THREE DOORS (owner, 17 Aug 2026).
+
+    The panel is arranged by what a thing belongs to, so Returns appears under
+    the website (online orders) AND under the counter (POS sales). What it does
+    NOT do is split the data: there is still one SalesReturn table, one set of
+    numbers, one place a refund is recorded. `?channel=` only narrows the list
+    the way a search box does.
+
+    The KPI strip therefore always shows the WHOLE 30 days, on every door. That
+    is deliberate and is the whole reason the owner asked for this shape: "amder
+    total calculation jen sob ak jaygay hoy". A door that quietly changed the
+    totals would be two books wearing one name.  */
+const DOORS = {
+  online: {
+    eyebrow: "Website · Returns",
+    title: "Returns from online orders",
+    blurb: "Returns raised against website and courier orders. Same book as the counter's returns — this door only hides the rest (DEC-RTN-016).",
+  },
+  counter: {
+    eyebrow: "Shop · Returns",
+    title: "Returns from counter sales",
+    blurb: "Returns raised against POS walk-in sales. Same book as the website's returns — this door only hides the rest (DEC-RTN-016).",
+  },
+} as const;
+
 export function ReturnsOverview() {
+  const params = useSearchParams();
+  const raw = params.get("channel");
+  const channel = raw === "online" || raw === "counter" ? raw : undefined;
+  const door = channel ? DOORS[channel] : null;
+
   const [rows, setRows] = useState<ApiReturn[]>([]);
   const [stats, setStats] = useState<ReturnAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +88,7 @@ export function ReturnsOverview() {
     setLoading(true);
     try {
       const [list, an] = await Promise.all([
-        listReturns({ search: search || undefined, status: status || undefined }),
+        listReturns({ search: search || undefined, status: status || undefined, channel }),
         returnAnalytics(30),
       ]);
       setRows(list.items);
@@ -67,21 +97,33 @@ export function ReturnsOverview() {
     } catch { setFailed(true); }
     finally { setLoading(false); }
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status, channel]);
 
   return (
     <div className={WRAP}>
       <ItemPageHead
-        eyebrow="Commerce · Returns & Refunds"
-        title="Returns & Refunds"
-        blurb="Post-delivery returns — staff-initiated only. Refunds never exceed what was collected; returned goods restock through Inventory. Order status stays untouched (DEC-RTN)."
+        eyebrow={door?.eyebrow ?? "Commerce · Returns & Refunds"}
+        title={door?.title ?? "Returns & Refunds"}
+        blurb={door?.blurb ?? "Post-delivery returns — staff-initiated only. Refunds never exceed what was collected; returned goods restock through Inventory. Order status stays untouched (DEC-RTN)."}
         right={<NewBtn />}
       />
       {failed && <DemoBar what="returns (API offline?)" onRetry={load} />}
 
+      {/*  The way OUT of a filtered door, always visible. Without it the only
+          escape from a narrowed list is the sidebar, and a person who arrived
+          by link would never learn the rest of the book exists.  */}
+      {door && (
+        <Link href="/returns"
+          className="inline-flex items-center gap-1.5 mb-4 text-[13px] font-semibold" style={{ color: ACCENT }}>
+          ← See every return, both doors together
+        </Link>
+      )}
+
       {stats && (
         <Kpi items={[
-          { l: "Returns (30d)", v: stats.count, c: "#470066", bg: "#f5eafb", icon: "box" },
+          /*  Named "All returns" behind a door so nobody reads the strip as the
+              door's own count. The figure is the same on every door on purpose. */
+          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#470066", bg: "#f5eafb", icon: "box" },
           { l: "Needs approval", v: stats.pending, c: "#c77700", bg: "#fff4e6", icon: "bolt" },
           { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#c0392b", bg: "#fdecea", icon: "cash" },
           { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#2563eb", bg: "#eaf1fd", icon: "star" },

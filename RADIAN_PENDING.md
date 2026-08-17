@@ -1,8 +1,78 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ১২ আগস্ট ২০২৬。_
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ১৭ আগস্ট ২০২৬。_
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+---
+
+## 🧭 Admin panel নতুন করে সাজানো (১৭ আগস্ট) — DEC-NAV-001, DEC-RTN-016
+
+**অবস্থা: কোড লেখা ও যন্ত্রে যাচাই শেষ। commit করা হয়নি — মালিকের চোখে দেখা বাকি।**
+
+### কী বদলাল
+
+আগে ভাগ হতো **তথ্যের ধরন** দিয়ে (Master Data · Commerce · Operations · System)।
+ওভাবে Products আর Staff পাশাপাশি বসে, Orders আর Purchases পাশাপাশি বসে — যে
+জোড়াগুলো নিয়ে দোকান চালানোর সময় কেউ কখনো একসাথে ভাবে না。
+
+এখন ভাগ হয় **কোনটা কিসের সাথে সম্পর্কিত** (মালিকের কথায়: order = website,
+POS = shop, delivery setup = configuration, assembly/inventory = internal):
+
+| Section | কী আছে |
+|---|---|
+| **Website** | Storefront · Products · Catalog · Orders · Returns (online) · Inbox |
+| **Shop** | POS · Returns (counter) |
+| **Internal** | Delivery (কাজ) · Inventory · Assembly · Items · Purchases · Returns & Refunds (পুরোটা) · Finance · Intelligence |
+| **Marketing** | Marketing & Growth |
+| **People** | Customers · Staff · Suppliers |
+| **Configuration** | Delivery setup · Returns settings · Administration · My password & PIN |
+
+### তিনটে নিয়ম যা এই সাজটা ধরে রাখে
+
+1. **module দু-জায়গায় থাকতে পারে, তার ডেটা পারে না।** Returns তিন জায়গায় দেখায়,
+   কিন্তু টেবিল একটাই, যোগফল একটাই。 দ্বিতীয় সারি একটা **ছাঁকা দরজা**
+   (`?channel=`), কপি নয়。
+2. **রোজকার পর্দা আর setup পর্দা আলাদা থাকতে পারে।** Delivery-র উদাহরণ: board
+   দিনে ২০ বার, Methods & slots বছরে দুবার — তাই board গেল Internal-এ, setup
+   গেল Configuration-এ。 module একটাই, দরজা দুটো。
+3. **রিপোর্ট থাকবে যেখানে তার সিদ্ধান্ত থাকে।** Delivery-র "Cost & performance"
+   Intelligence-এ যায়নি — ওটা পড়ে আপনি Methods & slots-এ গিয়ে zone বদলাবেন。
+   Intelligence-এ যায় শুধু সেই প্রশ্ন যার উত্তর এক module-এ নেই。
+
+> ⚠️ **একটাও `href` বদলায়নি।** Access-এর টিক href থেকে তৈরি হয় (ADM-RULE-001),
+> তাই পুরনো প্রতিটা টিক আর প্রতিটা bookmark অক্ষত。 group বদলানো বিনামূল্যে,
+> href বদলানো নয়。
+
+### DEC-RTN-016 — এক বই, তিন দরজা
+
+`GET /returns?channel=online|counter` — `SalesReturn`-এ নতুন কলাম **নেই**;
+order-এর `fulfillmentType` (DELIVERY = online, COUNTER = POS, DEC-POS-001)
+দেখে ছাঁকা হয়。 অচেনা মান দিলে পুরো বই ফেরত আসে — কেউ চায়নি এমন ছাঁকনি যেন
+চুপচাপ সারি লুকিয়ে না ফেলে。 ছাঁকা দরজায় KPI strip **পুরো বইয়েরই** থাকে
+(লেখা "All returns (30d)"), আর উপরে "See every return, both doors together"
+লিংক。
+
+### 🔧 যা ঠিক করতে হলো (এই কাজ ধরতে গিয়ে বেরিয়েছে — আগে থেকেই ভাঙা ছিল)
+
+| জিনিস | আগে যা ছিল |
+|---|---|
+| **`registry.gen.mjs` — নতুন ফাইল** | `registry.def.ts`-এর মাথায় লেখা ছিল "নতুন পর্দা যোগ করলে এই ফাইল আবার তৈরি করতে হবে", আর `registry.drift.mjs` মিল না থাকলে চেঁচাত — **কিন্তু তৈরি করার যন্ত্রটাই কখনো commit হয়নি**。 ফলে নির্দেশ মানার উপায় ছিল না, আর registry-তে **১৩টা পর্দা অনুপস্থিত** ছিল (গোটা Storefront, Inbox, Daily capacity, Settle a carrier, Recover lost orders)。 অচেনা key ⇒ "সবাই দেখতে পাবে" — অর্থাৎ ওগুলো কারও জন্যই বন্ধ করা যেত না。 |
+| **`/messaging` guard-এর বাইরে** | AccessGuard প্রথম path-segment দিয়ে node খোঁজে; `messaging` node-ও ছিল না, alias-ও না — তাই **প্রতিটা request বিনা বিচারে পাশ**。 এটাই সেই একটা prefix যেখানে ভুল হাত পড়লে **আসল টাকায় আসল message** চলে যায়। এখন alias → `marketing.messaging`。 |
+| **`/shop` অবিচারিত** | পুরোটা `@Public()` (গ্রাহকের browser) — এখন NEVER তালিকায়, কারণসহ。 |
+| **query-string মানেই নতুন key ছিল** | `marketing.seo?tab=pages` আলাদা key হয়ে যেত — অর্থাৎ SEO module বন্ধ করলেও তার tab-গুলো খোলা থাকত。 এখন `?`-এর পরেরটা ফেলে দেওয়া হয়: এক পর্দা = এক key。 |
+
+### যন্ত্রে যাচাই (সবগুলো নিজে চালানো)
+
+```
+registry drift check .............. 6 passed, 0 failed   ← আগে ছিল 2 passed, 4 failed
+no-bangla selftest ................ PASS (769 files)
+tsc --noEmit apps/admin ........... clean
+tsc --noEmit apps/api ............. clean
+href তুলনা (HEAD ↔ এখন) .......... একটাও হারায়নি (162 → 164, নতুন দুটো দরজা)
+```
+
+**যা এখনো বাকি:** মালিকের চোখে দেখা。 তারপর `BUILD_CHECK.bat` → commit → demo。
 
 ---
 

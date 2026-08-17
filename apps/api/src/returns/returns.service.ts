@@ -64,6 +64,13 @@ export class ReturnsService {
 
     const where: Prisma.SalesReturnWhereInput = { deletedAt: null };
     if (q.status) where.status = q.status as ReturnStatus;
+    /*  DEC-RTN-016 — one book, two doors. The menu shows Returns under both
+        the website and the counter, but nothing is copied: this filters on the
+        order it came from (DELIVERY = online, COUNTER = POS, DEC-POS-001).
+        An unknown value falls through to the whole book on purpose — a filter
+        nobody asked for must never silently hide rows.  */
+    if (q.channel === 'online') where.order = { fulfillmentType: 'DELIVERY' };
+    else if (q.channel === 'counter') where.order = { fulfillmentType: 'COUNTER' };
     if (q.search) {
       where.OR = [
         { returnNo: { contains: q.search, mode: 'insensitive' } },

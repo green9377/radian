@@ -35,6 +35,12 @@ export interface ListReturnQuery {
   status?: string;
   page?: string;
   pageSize?: string;
+  /// DEC-RTN-016 — which door the return came in through. NOT a column on
+  /// SalesReturn: it is read off the order's fulfillmentType (DEC-POS-001),
+  /// so there is still exactly one returns table and one total. The admin
+  /// panel offers a website door and a counter door; both read this list.
+  /// Anything but 'online'/'counter' is ignored and the whole book is returned.
+  channel?: string;
 }
 
 export interface ReturnReasonDto {
