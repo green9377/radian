@@ -1523,19 +1523,19 @@ model Bundle {
   productId  String?
   product    Product?  @relation("BundleOnProduct", fields: [productId], references: [id])
 
-  /// ⚠️ পুরনো — এক bundle = এক product-এর দিন থেকে। DEC-PRD-017-এ এক
-  /// bundle-এ কয়েকটা product ঢুকেছে, আর সেগুলো `items`-এ। এই কলামটা এখনো
-  /// আছে শুধু পুরনো সারি না ভাঙার জন্য; নতুন কিছু এটা পড়ে না।
+  /// LEGACY - from the days when one bundle meant one product. DEC-PRD-017
+  /// let a bundle hold several, and those live in `items`. This column
+  /// survives only so the old rows do not break; nothing new reads it.
   addsProductId String
   addsProduct   Product @relation("BundleAddsProduct", fields: [addsProductId], references: [id])
 
-  /// DEC-PRD-017 — এই bundle-এ যে যে product যায়।
+  /// DEC-PRD-017 - the products that go into this bundle.
   ///
-  /// মালিক, ২ আগস্ট ২০২৬:
-  /// > *"আমি চাই ধরো main product-এর সাথে আরও ১, ২, ৩, ৪ যাই হোক যে পরিমাণ
-  /// >  product add করি, করার পর তারপর নিচে একটা discount ঘর আসবে — সেখানে
-  /// >  discount দিলে total সব product মিলিয়ে, main product সহ, discount
-  /// >  count হবে।"*
+  /// The owner, 2 August 2026:
+  /// > *"I want it so that alongside the main product I can add 1, 2, 3, 4 -
+  /// >  however many products - and after that a discount box appears below.
+  /// >  Put a discount there and it counts against the total of all the
+  /// >  products together, main product included."*
   items BundleItem[]
 
   /// "+ Chocolates". Null → the added product's own name, which is usually too
@@ -1551,7 +1551,7 @@ model Bundle {
   /// still sells it at ৳400, a ৳200 loss per order that nothing reports.
   ///
   /// Storing "৳50 off" instead can never go stale. FLAT = paisa,
-  /// PERCENT = basis points (1000 = 10%) — the same convention as Product and
+  /// PERCENT = basis points (1000 = 10%) - the same convention as Product and
   /// AddOn, so there is one rule to remember, not three.
   discountType  DiscountType @default(NONE)
   discountValue Int          @default(0)
@@ -1566,9 +1566,10 @@ model Bundle {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  /// ⚠️ DEC-PRD-016 (combo দাম) আর ব্যবহার হয় না — DEC-PRD-017-এ bundle
-  /// নিজেই একটা set হয়ে গেছে, আর তার নিচেই ছাড়ের ঘর। টেবিল দুটো রয়ে গেছে
-  /// (কিছু মোছা হয় না), কিন্তু কোনো পর্দা বা API আর সেগুলো পড়ে না।
+  /// DEC-PRD-016 (combo prices) is no longer used - DEC-PRD-017 made the
+  /// bundle itself a set, with the discount box right under it. The two
+  /// tables remain (nothing is ever deleted), but no screen or API reads
+  /// them any more.
   comboItems BundleComboItem[]
 
   @@index([categoryId])
@@ -1576,19 +1577,20 @@ model Bundle {
   @@index([addsProductId])
 }
 
-/// এক bundle-এর ভেতরের একটা product। DEC-PRD-017।
+/// One product inside one bundle. DEC-PRD-017.
 ///
-/// ⚠️ আলাদা টেবিল, কারণ সংখ্যাটা আগে থেকে জানা নেই — মালিক ১টাও দিতে পারেন,
-/// ৪টাও। `Bundle`-এ চারটে nullable কলাম রাখলে পঞ্চমটার দিন schema বদলাতে হতো।
+/// A separate table because the count is not known in advance - the owner may
+/// add one product or four. Four nullable columns on `Bundle` would have meant
+/// a schema change on the day he wanted a fifth.
 model BundleItem {
   id String @id @default(cuid())
 
   bundleId String
   bundle   Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
 
-  /// যে catalog product যোগ হচ্ছে। দাম **সবসময়** ওখান থেকেই পড়া হয় —
-  /// এখানে কোনো দাম রাখা হয় না, নাহলে ওই product-এর দাম বাড়লে এই সারি
-  /// পুরনো হয়ে বসে থাকত।
+  /// The catalog product being added. Its price is ALWAYS read from there;
+  /// no price is stored here, or this row would go stale the moment that
+  /// product's price went up.
   addsProductId String
   addsProduct   Product @relation("BundleItemProduct", fields: [addsProductId], references: [id])
 
@@ -1599,40 +1601,43 @@ model BundleItem {
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// COMBO PRICE — কয়েকটা একসাথে নিলে একটা নির্দিষ্ট দাম
+/// COMBO PRICE - one fixed price for taking several things together
 ///
-/// মালিক, ২ আগস্ট ২০২৬:
-/// > *"main product + 1 product combo and combo discount price. main product
-/// >  + extra 2, 3, 4 product যদি combo হয় তাহলে সেটার price বসবে — কতগুলা
-/// >  product select করছে সে হিসাবে।"*
+/// The owner, 2 August 2026:
+/// > *"main product + 1 product combo and combo discount price. If the main
+/// >  product + an extra 2, 3, 4 products form a combo, that combo's price
+/// >  applies - according to how many products are selected."*
 ///
-/// ⚠️ প্রতিটা combination লিখতে হয় না — মালিক শুধু যেগুলোতে আলাদা দাম চান
-/// সেগুলোই লেখেন। গ্রাহক যা tick করল তা কোনো combo-র সাথে **হুবহু** মিললে
-/// সেই দামটা বসে; না মিললে আগের হিসাব (প্রতিটার নিজের ছাড় যোগ) চলে।
-/// ৫টা add-on মানে ৩১টা combination — সবগুলো লিখতে বলা মানে কেউ লিখবেই না।
+/// Not every combination has to be written down; the owner writes only the
+/// ones he wants a special price for. If what the customer ticked matches a
+/// combo EXACTLY, that price applies; otherwise the ordinary calculation
+/// (each item's own discount, summed) runs. Five add-ons make 31
+/// combinations - asking for all of them means nobody writes any.
 ///
-/// ⚠️ এটা `Bundle.discountValue`-এর নিয়ম ভাঙে, আর জেনেই। ওখানে দাম নয় ছাড়
-/// রাখা হয়েছে যাতে চকলেটের দাম বাড়লে bundle পুরনো না হয়। এখানে মালিক
-/// **পুরো order-এর একটা দাম** চেয়েছেন (তাঁর নিজের বাছাই), তাই সংখ্যাটা
-/// একদিন পুরনো হতে পারে। সেটা ঢাকা হয় না — admin-এ প্রতিটা combo-র পাশে
-/// আজকের স্বাভাবিক দাম আর সাশ্রয় সবসময় হিসাব করে দেখানো হয়, তাই মূল দাম
-/// বদলালে সাশ্রয়ের সংখ্যাটা চোখের সামনেই বদলে যায়।
+/// This deliberately breaks the rule `Bundle.discountValue` follows. There we
+/// store a discount rather than a price so the bundle cannot go stale when
+/// the chocolate's price rises. Here the owner asked for ONE price for the
+/// whole order (his own choice), so the number can go stale one day. That is
+/// not hidden: the admin always recomputes and shows today's normal price and
+/// the saving beside every combo, so when a base price moves, the saving
+/// figure visibly moves with it.
 /// ═══════════════════════════════════════════════════════════════════════════
 model BundleCombo {
   id String @id @default(cuid())
 
-  /// কোন product-এর page-এ এই combo
+  /// which product's page this combo belongs to
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  /// ঐচ্ছিক নাম — "Birthday pack"। খালি হলে জিনিসগুলোর নামই দেখানো হয়।
+  /// Optional name - "Birthday pack". Blank shows the item names instead.
   label String?
 
-  /// ⚠️ পুরো line-এর দাম — মূল product সহ, base অবস্থার।
+  /// The price of the whole line, main product included, at its base state.
   ///
-  /// রঙ বা মাপে আলাদা দাম থাকলে সেই **পার্থক্যটুকু** এর উপরে যোগ হয়
-  /// (মালিকের অনুমোদিত নিয়ম)। নাহলে ২ কেজি কেক নিলেও combo একই দাম
-  /// দেখাত, আর দামি মাপটা কার্যত ফ্রি হয়ে যেত।
+  /// When a colour or a size carries its own price, only that DIFFERENCE is
+  /// added on top (the rule the owner approved). Otherwise a 2 kg cake would
+  /// have shown the same combo price and the expensive size would have been
+  /// effectively free.
   pricePaisa Int
 
   sortOrder Int     @default(0)
@@ -1647,8 +1652,8 @@ model BundleCombo {
   @@index([productId])
 }
 
-/// combo-র ভেতরের একটা bundle। জোড়া `Bundle`-এর সাথে, `Product`-এর সাথে নয় —
-/// গ্রাহক তো bundle card-ই tick করে, আর মেলানোটা ঠিক ওই tick-এর সাথেই হতে হবে।
+/// One bundle inside a combo. Joined to `Bundle`, not to `Product` - the
+/// customer ticks a bundle card, and the matching has to be against that tick.
 model BundleComboItem {
   id String @id @default(cuid())
 
