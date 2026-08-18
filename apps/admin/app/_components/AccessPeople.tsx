@@ -97,20 +97,26 @@ export default function AccessPeople({
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[13px] font-bold text-purple">
+      <div className="rounded-[18px] bg-white overflow-hidden border"
+        style={{ borderColor: "#a021b81f", boxShadow: "0 2px 10px #a021b810" }}>
+        <div className="flex items-center gap-2.5 px-4 py-2.5"
+          style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+          <span className="text-white text-[14px]">👥</span>
+          <span className="text-[12px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">
             {position ? `People in ${position.name}` : "People"}
-          </h3>
+          </span>
           {position && (
-            <button className={btnGhost} onClick={() => { setAdding((a) => !a); setErr(""); }}>
+            <button
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/90 text-purple hover:bg-white"
+              onClick={() => { setAdding((a) => !a); setErr(""); }}>
               {adding ? "Cancel" : "+ Add by email"}
             </button>
           )}
         </div>
+        <div className="p-3.5">
 
         {adding && position && (
-          <div className="mb-3 space-y-2 rounded-xl bg-[#fbf7fd] p-3">
+          <div className="mb-3 space-y-2 rounded-[13px] p-3" style={{ background: "#f5eafb" }}>
             <div>
               <Lbl>Email address</Lbl>
               <input
@@ -171,7 +177,8 @@ export default function AccessPeople({
             ))}
           </div>
         )}
-      </Card>
+        </div>
+      </div>
 
       {/*  Somebody with no position resolves to nothing but their legacy role,
           and once the enum is dropped they would silently have nothing at all.
@@ -230,9 +237,13 @@ function PersonRow({
   onLink: (p: ApiPerson) => void | Promise<void>;
 }) {
   return (
-    <div className="rounded-xl border border-[#eceaf1] px-3 py-2.5">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+    <div className="rounded-[13px] border border-[#eee8f5] px-3 py-2.5 bg-white">
+      <div className="flex items-start gap-2.5">
+        <span className="w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-bold text-white shrink-0 mt-0.5"
+          style={{ background: p.isActive ? "linear-gradient(135deg,#8a2bb0,#cf43ea)" : "#c9c2d6" }}>
+          {p.name.slice(0, 1).toUpperCase()}
+        </span>
+        <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-semibold text-body truncate">{p.name}</div>
           <div className="text-[11px] text-body-soft truncate">
             {p.email ?? `${p.username} (no email yet)`}
