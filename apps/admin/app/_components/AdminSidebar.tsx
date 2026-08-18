@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NO_SESSION_PATHS, useAuth } from "./AuthGate";
 import { getMyAccess, WEB_BASE } from "../_data/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Icon from "./Icon";
 
 /*
   Admin nav — active link via usePathname.
@@ -79,14 +80,14 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
     ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    title: "Today's work", accent: "#f0a8b8", emblem: "☀",
+    title: "Today's work", accent: "#f0a8b8", emblem: "clock",
     items: [
       /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
           ba website releted"). A counter sale is NOT here; it is under Shop,
           in POS. Both still land in the one Order table (DEC-POS-001) — this
           is a menu, not a second ledger.  */
       {
-        label: "Orders", href: "/orders", icon: "🛍",
+        label: "Orders", href: "/orders", icon: "bag",
         subs: [
           { label: "Overview", href: "/orders", match: exact("/orders") },
           { label: "All orders", href: "/orders/list" },
@@ -120,7 +121,7 @@ const GROUPS: Group[] = [
           parent would slug "delivery" from its LABEL and the board would slug
           "delivery" from its href — two rows, one key.  */
       {
-        label: "Delivery", href: "/delivery", icon: "🚚",
+        label: "Delivery", href: "/delivery", icon: "truck",
         subs: [
           { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
           { label: "Proof photos", href: "/delivery/proof" },
@@ -129,7 +130,7 @@ const GROUPS: Group[] = [
         ],
       },
       // Inbox — every customer conversation, whatever channel it arrived on.
-      { label: "Inbox", href: "/inbox", icon: "💬" },
+      { label: "Inbox", href: "/inbox", icon: "mail" },
       /*  RETURNS & REFUNDS — the WHOLE book, and the only row that carries the
           totals (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, DEC-RTN-005..016).
           The website and the counter each have a narrowed door above; this is
@@ -141,7 +142,7 @@ const GROUPS: Group[] = [
 
           ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.  */
       {
-        label: "Returns & Refunds", href: "/returns", icon: "↩",
+        label: "Returns & Refunds", href: "/returns", icon: "returnArrow",
         subs: [
           { label: "Overview (all returns)", href: "/returns", match: exact("/returns") },
           { label: "New return", href: "/returns/new" },
@@ -152,7 +153,7 @@ const GROUPS: Group[] = [
       // (channel=POS, DEC-POS-001).
       // ⚠️ /pos/[static] only — no dynamic segment yet. /pos = Overview.
       {
-        label: "POS", href: "/pos", icon: "🧾",
+        label: "POS", href: "/pos", icon: "register",
         subs: [
           { label: "Overview", href: "/pos", match: exact("/pos") },
           { label: "Sell (counter)", href: "/pos/sell" },
@@ -167,7 +168,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "What you sell", accent: "#e07be0", emblem: "❀",
+    title: "What you sell", accent: "#e07be0", emblem: "star",
     items: [
       /*  Products = what goes ON those pages. It sits in Website and not in
           some master-data drawer because a product IS a page in the shop:
@@ -183,7 +184,7 @@ const GROUPS: Group[] = [
           it lives in Internal beside Inventory and Assembly, which is the
           only place it is ever used.  */
       {
-        label: "Products", href: "/products", icon: "❀",
+        label: "Products", href: "/products", icon: "flower",
         subs: [
           { label: "Overview", href: "/products", match: exact("/products") },
           { label: "All products", href: "/products/list" },
@@ -216,7 +217,7 @@ const GROUPS: Group[] = [
           behind a word. In the nav, a plain list is easier than a tidy tree.
           Tidiness that costs clicks is not tidiness.  */
       {
-        label: "Storefront", href: "/storefront", icon: "▤",
+        label: "Storefront", href: "/storefront", icon: "store",
         subs: [
           { label: "Overview", href: "/storefront", match: exact("/storefront") },
 
@@ -263,7 +264,7 @@ const GROUPS: Group[] = [
           "catalog" from its label and simply opens the branch on click —
           the three children keep their exact old keys and old ticks.  */
       {
-        label: "Catalog", icon: "▦",
+        label: "Catalog", icon: "layers",
         subs: [
           { label: "Categories", href: "/categories" },
           { label: "Occasions & Tags", href: "/tags" },
@@ -274,12 +275,12 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Stock & buying", accent: "#5ec9a8", emblem: "▦",
+    title: "Stock & buying", accent: "#5ec9a8", emblem: "box",
     items: [
       // Inventory = stock's ONE owner (RADIAN_INVENTORY_MODULE_ARCHITECTURE.md, 22 Jul).
       // Immutable ledger + AVCO money.
       {
-        label: "Inventory", href: "/inventory", icon: "📦",
+        label: "Inventory", href: "/inventory", icon: "warehouse",
         subs: [
           { label: "Overview", href: "/inventory", match: exact("/inventory") },
           { label: "Stock board", href: "/inventory/stock" },
@@ -298,7 +299,7 @@ const GROUPS: Group[] = [
       // Requisition/Order screens arrive with the first branch — deliberately absent.
       // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
       {
-        label: "Purchases", href: "/purchases", icon: "🧺",
+        label: "Purchases", href: "/purchases", icon: "cart",
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "Overview", href: "/purchases", match: exact("/purchases") },
@@ -312,7 +313,7 @@ const GROUPS: Group[] = [
       // Purchase only references it (DEC-SUP-001).
       // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
       {
-        label: "Suppliers", href: "/suppliers", icon: "⛟",
+        label: "Suppliers", href: "/suppliers", icon: "users",
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
@@ -334,7 +335,7 @@ const GROUPS: Group[] = [
           ids. Everything the Item module needs lives INSIDE it (owner, 21
           Jul): its own category tree, its own colour/size master, and Units.  */
       {
-        label: "Items", href: "/items", icon: "◈",
+        label: "Items", href: "/items", icon: "gem",
         subs: [
           { label: "Overview", href: "/items", match: exact("/items") },
           { label: "All items", href: "/items/list" },
@@ -358,7 +359,7 @@ const GROUPS: Group[] = [
       // Template (no stock touch) → Pipeline (components → Assembly floor) →
       // Finished goods → Transfer (owner picks the Item). Stock via Inventory only.
       {
-        label: "Assembly", href: "/assembly", icon: "🛠",
+        label: "Assembly", href: "/assembly", icon: "tools",
         subs: [
           { label: "Overview", href: "/assembly", match: exact("/assembly") },
           { label: "Templates", href: "/assembly/templates" },
@@ -375,10 +376,10 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Money", accent: "#e9c46a", emblem: "৳",
+    title: "Money", accent: "#e9c46a", emblem: "cash",
     items: [
       {
-        label: "Finance", href: "/finance", icon: "৳",
+        label: "Finance", href: "/finance", icon: "wallet",
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "Overview", href: "/finance", match: (p) => p === "/finance" },
@@ -415,7 +416,7 @@ const GROUPS: Group[] = [
           closing the door. An earlier pass put roles here and hid the whole
           module from staff, which quietly reversed a locked decision.  */
       {
-        label: "Intelligence", href: "/intelligence", icon: "◎",
+        label: "Intelligence", href: "/intelligence", icon: "sparkle",
         subs: [
           { label: "Executive dashboard", href: "/intelligence", match: exact("/intelligence") },
           { label: "Analytics", href: "/intelligence/analytics", roles: ["OWNER", "MANAGER"] },
@@ -427,10 +428,10 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Growth", accent: "#7fb4f0", emblem: "↗",
+    title: "Growth", accent: "#7fb4f0", emblem: "chart",
     items: [
       {
-        label: "Marketing & Growth", href: "/marketing", icon: "📣",
+        label: "Marketing & Growth", href: "/marketing", icon: "megaphone",
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "Overview", href: "/marketing", match: exact("/marketing") },
@@ -529,7 +530,7 @@ const GROUPS: Group[] = [
         ],
       },
       {
-        label: "Customers", href: "/customers", icon: "◉",
+        label: "Customers", href: "/customers", icon: "heart",
         subs: [
           { label: "Overview", href: "/customers", match: exact("/customers") },
           { label: "All customers", href: "/customers/list" },
@@ -543,7 +544,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Setup", accent: "#b9aecf", emblem: "⚙",
+    title: "Setup", accent: "#b9aecf", emblem: "gear",
     items: [
       /*  Delivery's SETUP half — the other end of the split described in
           Internal. Riders stay here rather than in People because adding a
@@ -554,7 +555,7 @@ const GROUPS: Group[] = [
           ⚠️ href-less parent, same reason as Delivery's work half: /delivery
           belongs to the fulfilment board's key.  */
       {
-        label: "Delivery setup", icon: "🚚",
+        label: "Delivery setup", icon: "truck",
         subs: [
           { label: "Methods & slots", href: "/delivery/zones" },
           { label: "Riders", href: "/delivery/riders" },
@@ -565,14 +566,14 @@ const GROUPS: Group[] = [
           default refund methods. Written once, then left alone for months,
           which is why it no longer sits in the menu people open to handle
           today's return.  */
-      { label: "Returns settings", href: "/returns/settings", icon: "↩" },
+      { label: "Returns settings", href: "/returns/settings", icon: "gear" },
       // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Finance
       // references it, never owns it. What a person is paid is a money fact,
       // so MANAGER and up; the personal columns are stripped server-side for
       // anyone but the OWNER.
       // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
       {
-        label: "Staff", href: "/employees", icon: "👥",
+        label: "Staff", href: "/employees", icon: "user",
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "All staff", href: "/employees", match: exact("/employees") },
@@ -598,7 +599,7 @@ const GROUPS: Group[] = [
           means regenerating apps/api/src/administration/registry.def.ts — the two
           lists disagreeing is the exact bug this module was built to end. */
       {
-        label: "Administration", href: "/administration", icon: "⚙", roles: ["OWNER"],
+        label: "Administration", href: "/administration", icon: "shield", roles: ["OWNER"],
         subs: [
           { label: "Overview", href: "/administration", match: exact("/administration") },
           { label: "Access control", href: "/administration/access" },
@@ -637,7 +638,7 @@ const GROUPS: Group[] = [
       },
       // SEO moved into the Marketing group (owner, 28 Jul 2026) — being found
       // is marketing, not a system setting. /settings/seo is now a redirect.
-      { label: "My password & PIN", href: "/settings/me", icon: "🔒" },
+      { label: "My password & PIN", href: "/settings/me", icon: "lock" },
     ],
   },
 ];
@@ -758,45 +759,56 @@ export default function AdminSidebar() {
       .filter((g) => g.items.length > 0);
   }, [me?.role, me, access]);
 
-  /*  Which DEPARTMENTS are folded shut (owner, 18 Aug 2026: opening the panel
-      showed ~25 rows at once — "dukar por dekhlei voy lage"). Six coloured
+  /*  Which DEPARTMENT is open (owner, 18 Aug 2026, refined same day).
+
+      An accordion, exactly like the modules inside it: opening one department
+      closes the others, and clicking the open one closes it too — nothing is
+      pinned open, not even the department you are standing in. Six coloured
       headers are calm; twenty-five rows are not.
 
-      Folded ones are stored, not open ones, so the default for a first-time
-      visitor is: Today's work open, everything else shut. Choices persist in
-      localStorage. The department you are STANDING in can never fold away —
-      the page you are on must always be visible in the nav.  */
-  const FOLD_KEY = "radian.nav.folded";
-  const [folded, setFolded] = useState<Set<string>>(() => new Set());
+      Stored in localStorage so the panel opens the way it was left. Restoring
+      the window does NOT re-open anything (the pathname guard below) — only a
+      real click or a real navigation moves this.  */
+  const OPEN_KEY = "radian.nav.openGroup";
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(FOLD_KEY);
-      if (saved !== null) setFolded(new Set(JSON.parse(saved) as string[]));
-      else setFolded(new Set(GROUPS.map((g) => g.title).filter((t) => t !== "Today's work")));
-    } catch { /* ignore — an unreadable preference is just the default */ }
+      const saved = window.localStorage.getItem(OPEN_KEY);
+      setOpenGroup(saved !== null ? (saved === "" ? null : saved) : "Today's work");
+    } catch { /* unreadable preference = the default */ }
   }, []);
+  const setOpenGroupSticky = (title: string | null) => {
+    setOpenGroup(title);
+    try { window.localStorage.setItem(OPEN_KEY, title ?? ""); } catch { /* ignore */ }
+  };
   const toggleGroup = (title: string) =>
-    setFolded((prev) => {
-      const n = new Set(prev);
-      if (n.has(title)) n.delete(title);
-      else n.add(title);
-      try { window.localStorage.setItem(FOLD_KEY, JSON.stringify([...n])); } catch { /* ignore */ }
-      return n;
-    });
+    setOpenGroupSticky(openGroup === title ? null : title);
 
   // Arriving in a module opens exactly its branch and folds everything else.
   // Three levels now, so landing on /marketing/affiliates/payouts has to open
   // BOTH "Marketing & Growth" and "Affiliates & Partners" — otherwise the page
   // you are standing on is not visible anywhere in the nav.
+  //
+  //  ⚠️ GUARDED BY REAL NAVIGATION (owner, 18 Aug 2026). This used to depend on
+  //  [pathname, visibleGroups] — and visibleGroups is rebuilt whenever access
+  //  refreshes, which happens on window focus. So minimising the browser and
+  //  coming back re-opened every branch the user had deliberately closed.
+  //  Now it fires only when the PATH actually changes: a click that goes
+  //  somewhere. Closing a menu and staying put stays closed.
+  const lastPath = useRef<string | null>(null);
   useEffect(() => {
-    /*  A module also counts as active when one of its SUBS matches, even if
-        the module's own href is no prefix of it — Catalog's href is
-        /categories but its subs live at /tags and /brands too (6 Aug 2026).
-        Without this, landing on /brands left every branch folded and the
-        page you were standing on appeared nowhere in the nav.  */
-    const active = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
-    if (!active?.subs) return;
+    if (lastPath.current === pathname) return; // focus/refresh, not navigation
+    lastPath.current = pathname;
 
+    const active = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
+    if (!active) return;
+
+    /*  Real navigation into a folded department unfolds it (accordion), or the
+        page you land on would be invisible in the nav.  */
+    const holder = visibleGroups.find((g) => g.items.includes(active));
+    if (holder && openGroup !== holder.title) setOpenGroupSticky(holder.title);
+
+    if (!active.subs) return;
     const keys = [active.label];
     const activeSub = active.subs.find(
       (s) => s.subs && (s.match ? s.match(pathname) : pathname === s.href || pathname.startsWith(s.href + "/")),
@@ -809,6 +821,7 @@ export default function AdminSidebar() {
       if (prev.size === keys.length && keys.every((k) => prev.has(k))) return prev;
       return new Set(keys);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, visibleGroups]);
 
   /*  Accordion — one open at a time (sobuj, 28 Jul: "je module click krbo seta
@@ -850,12 +863,14 @@ export default function AdminSidebar() {
   const activeItem = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
 
   return (
-    <aside className="w-[246px] shrink-0 bg-purple-deep text-white px-3 py-5 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto">
-      <div className="flex items-center gap-2.5 px-2 pb-3">
-        <div className="w-[34px] h-[34px] rounded-[50%_50%_50%_0] -rotate-45" style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)" }} />
+    <aside className="w-[250px] shrink-0 text-white px-3 py-5 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto border-r border-white/[0.06]"
+      style={{ background: "linear-gradient(176deg,#2b0e40 0%,#38124f 46%,#2a0d3e 100%)" }}>
+      <div className="flex items-center gap-3 px-2 pb-4">
+        <div className="w-[36px] h-[36px] rounded-[50%_50%_50%_0] -rotate-45 shrink-0"
+          style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)", boxShadow: "0 0 18px rgba(207,67,234,0.45)" }} />
         <div>
-          <b className="font-display text-[19px] text-white font-semibold block leading-none">Radian</b>
-          <small className="text-[#d9c2ec] text-[11px] font-semibold tracking-[0.1em] uppercase">Admin OS</small>
+          <b className="font-display text-[20px] text-white font-semibold block leading-none tracking-[0.01em]">Radian</b>
+          <small className="text-[#d9c2ec] text-[10.5px] font-semibold tracking-[0.16em] uppercase">Admin OS</small>
         </div>
       </div>
 
@@ -867,50 +882,57 @@ export default function AdminSidebar() {
         href={WEB_BASE}
         target="_blank"
         rel="noreferrer"
-        className="mx-2 mb-3 flex items-center justify-center gap-2 rounded-[10px] bg-white/[0.12] hover:bg-white/[0.2] text-white text-[13px] font-semibold py-2 transition-colors"
+        className="mx-1 mb-4 flex items-center justify-center gap-2 rounded-[12px] border border-white/[0.14] bg-white/[0.07] hover:bg-white/[0.14] text-white text-[13px] font-semibold py-2.5 transition-colors backdrop-blur"
       >
         ↗ View website
       </a>
 
       <nav className="text-[15px]">
         {visibleGroups.map((g) => {
-          /*  The department you are standing in can never fold away.  */
+          const shut = openGroup !== g.title;
           const holdsActive = !!activeItem && g.items.includes(activeItem);
-          const shut = folded.has(g.title) && !holdsActive;
           return (
-          <div key={g.title} className="mb-1">
-            {/*  Department header — its own colour, its own emblem, and the
-                whole row is the fold/unfold control. Shut: just this line.  */}
+          <div key={g.title} className="mb-1.5">
+            {/*  Department header — its colour, its icon, and the whole row is
+                the fold control. An accordion: opening one closes the rest,
+                and even the department you are standing in may be closed
+                (owner, 18 Aug). A closed department holding the current page
+                keeps a small dot so "where am I" is never lost.  */}
             <button
               type="button"
               onClick={() => toggleGroup(g.title)}
               aria-expanded={!shut}
-              className="w-full flex items-center gap-2.5 px-2 pt-3.5 pb-1.5 group"
+              className={"w-full flex items-center gap-2.5 px-2 py-2 rounded-[12px] transition-colors " +
+                (shut ? "hover:bg-white/[0.06]" : "")}
+              style={shut ? undefined : { background: `${g.accent}14` }}
             >
               <span
-                className="w-[22px] h-[22px] rounded-[7px] grid place-items-center text-[12px] shrink-0"
-                style={{ background: `${g.accent}2e`, color: g.accent }}
+                className="w-[27px] h-[27px] rounded-[9px] grid place-items-center shrink-0"
+                style={{ background: `${g.accent}26`, color: g.accent, boxShadow: shut ? undefined : `0 0 12px ${g.accent}33` }}
               >
-                {g.emblem}
+                <Icon name={g.emblem} size={15} strokeWidth={2.4} />
               </span>
               <span
-                className="text-[11px] font-bold tracking-[0.13em] uppercase flex-1 text-left"
-                style={{ color: g.accent }}
+                className="text-[11.5px] font-extrabold tracking-[0.14em] uppercase flex-1 text-left"
+                style={{ color: shut ? `${g.accent}cc` : g.accent }}
               >
                 {g.title}
               </span>
-              {shut && (
-                <span className="text-[10.5px] font-semibold text-white/40">{g.items.length}</span>
+              {shut && holdsActive && (
+                <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: g.accent }} />
+              )}
+              {shut && !holdsActive && (
+                <span className="text-[10.5px] font-bold text-white/35 tabular-nums">{g.items.length}</span>
               )}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-                className={"shrink-0 opacity-50 transition-transform duration-200 " + (shut ? "" : "rotate-90")}
+                strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                className={"shrink-0 transition-transform duration-200 " + (shut ? "opacity-40" : "rotate-90 opacity-70")}
                 style={{ color: g.accent }}>
                 <path d="M9 6l6 6-6 6" />
               </svg>
             </button>
             {!shut && (
-            <div className="border-l-2 ml-[12px] pl-[9px]" style={{ borderColor: `${g.accent}38` }}>
+            <div className="mt-1 ml-[13px] pl-[10px] border-l-2" style={{ borderColor: `${g.accent}40` }}>
             {g.items.map((it) => {
               /*  Exactly ONE module highlights — the one the path really belongs
                   to. A sub match wins over a bare href prefix, so /products/variants
@@ -918,20 +940,26 @@ export default function AdminSidebar() {
               const parentActive = it === activeItem;
               const open = expanded.has(it.label);
               const rowCls =
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] mb-1 font-medium transition-colors text-left " +
+                "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-[11px] mb-0.5 font-medium transition-all text-left " +
                 (parentActive
-                  ? "bg-orchid text-white font-semibold"
-                  : "text-white/[0.94] hover:bg-white/[0.12]");
+                  ? "text-white font-semibold"
+                  : "text-white/[0.92] hover:bg-white/[0.09]");
+              const rowStyle = parentActive
+                ? { background: `linear-gradient(135deg, ${g.accent}52, #8A2BB066)`, boxShadow: `inset 0 0 0 1px ${g.accent}55` }
+                : undefined;
               const label = (
                 <>
-                  <span className="w-[19px] text-center text-[16px] opacity-95">{it.icon}</span>
-                  <span className="flex-1 min-w-0 truncate">{it.label}</span>
+                  <span className="w-[20px] grid place-items-center shrink-0"
+                    style={{ color: parentActive ? "#fff" : `${g.accent}e6` }}>
+                    <Icon name={it.icon} size={17} strokeWidth={2.1} />
+                  </span>
+                  <span className="flex-1 min-w-0 truncate text-[14.5px]">{it.label}</span>
                 </>
               );
               const chevron = (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
                   strokeLinecap="round" strokeLinejoin="round"
-                  className={"shrink-0 opacity-80 transition-transform duration-200 " + (open ? "rotate-90" : "")}>
+                  className={"shrink-0 opacity-70 transition-transform duration-200 " + (open ? "rotate-90" : "")}>
                   <path d="M9 6l6 6-6 6" />
                 </svg>
               );
@@ -953,12 +981,13 @@ export default function AdminSidebar() {
                       }}
                       aria-expanded={open}
                       className={rowCls}
+                      style={rowStyle}
                     >
                       {label}
                       {chevron}
                     </button>
                   ) : it.href ? (
-                    <Link href={it.href} className={rowCls}>{label}</Link>
+                    <Link href={it.href} className={rowCls} style={rowStyle}>{label}</Link>
                   ) : (
                     <span className={rowCls + " opacity-60 cursor-default"} title="Coming soon">{label}</span>
                   )}
