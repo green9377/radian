@@ -24,7 +24,12 @@ type Sub = { label: string; href: string; match?: (p: string) => boolean; subs?:
     clicking into a wall. */
 type Role = "OWNER" | "MANAGER" | "STAFF";
 type Item = { label: string; href?: string; icon: string; subs?: Sub[]; roles?: Role[] };
-type Group = { title: string; items: Item[] };
+/*  accent + emblem — each department wears its own colour (owner, 18 Aug 2026:
+    the six groups looked identical, so entering the panel read as one long
+    frightening wall). The colour appears on the header chip, the header text
+    and a thin rail beside the group's rows — enough to tell departments apart
+    at a glance, never enough to shout.  */
+type Group = { title: string; accent: string; emblem: string; items: Item[] };
 
 const exact = (h: string) => (p: string) => p === h;
 
@@ -74,7 +79,7 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
     ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    title: "Today's work",
+    title: "Today's work", accent: "#f0a8b8", emblem: "☀",
     items: [
       /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
           ba website releted"). A counter sale is NOT here; it is under Shop,
@@ -162,7 +167,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "What you sell",
+    title: "What you sell", accent: "#e07be0", emblem: "❀",
     items: [
       /*  Products = what goes ON those pages. It sits in Website and not in
           some master-data drawer because a product IS a page in the shop:
@@ -269,7 +274,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Stock & buying",
+    title: "Stock & buying", accent: "#5ec9a8", emblem: "▦",
     items: [
       // Inventory = stock's ONE owner (RADIAN_INVENTORY_MODULE_ARCHITECTURE.md, 22 Jul).
       // Immutable ledger + AVCO money.
@@ -370,7 +375,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Money",
+    title: "Money", accent: "#e9c46a", emblem: "৳",
     items: [
       {
         label: "Finance", href: "/finance", icon: "৳",
@@ -422,7 +427,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Growth",
+    title: "Growth", accent: "#7fb4f0", emblem: "↗",
     items: [
       {
         label: "Marketing & Growth", href: "/marketing", icon: "📣",
@@ -538,7 +543,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Setup",
+    title: "Setup", accent: "#b9aecf", emblem: "⚙",
     items: [
       /*  Delivery's SETUP half — the other end of the split described in
           Internal. Riders stay here rather than in People because adding a
@@ -753,6 +758,32 @@ export default function AdminSidebar() {
       .filter((g) => g.items.length > 0);
   }, [me?.role, me, access]);
 
+  /*  Which DEPARTMENTS are folded shut (owner, 18 Aug 2026: opening the panel
+      showed ~25 rows at once — "dukar por dekhlei voy lage"). Six coloured
+      headers are calm; twenty-five rows are not.
+
+      Folded ones are stored, not open ones, so the default for a first-time
+      visitor is: Today's work open, everything else shut. Choices persist in
+      localStorage. The department you are STANDING in can never fold away —
+      the page you are on must always be visible in the nav.  */
+  const FOLD_KEY = "radian.nav.folded";
+  const [folded, setFolded] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(FOLD_KEY);
+      if (saved !== null) setFolded(new Set(JSON.parse(saved) as string[]));
+      else setFolded(new Set(GROUPS.map((g) => g.title).filter((t) => t !== "Today's work")));
+    } catch { /* ignore — an unreadable preference is just the default */ }
+  }, []);
+  const toggleGroup = (title: string) =>
+    setFolded((prev) => {
+      const n = new Set(prev);
+      if (n.has(title)) n.delete(title);
+      else n.add(title);
+      try { window.localStorage.setItem(FOLD_KEY, JSON.stringify([...n])); } catch { /* ignore */ }
+      return n;
+    });
+
   // Arriving in a module opens exactly its branch and folds everything else.
   // Three levels now, so landing on /marketing/affiliates/payouts has to open
   // BOTH "Marketing & Growth" and "Affiliates & Partners" — otherwise the page
@@ -842,9 +873,44 @@ export default function AdminSidebar() {
       </a>
 
       <nav className="text-[15px]">
-        {visibleGroups.map((g) => (
-          <div key={g.title}>
-            <div className="text-[11px] font-bold tracking-[0.13em] uppercase text-[#c9a6e4] px-3 pt-4 pb-1.5">{g.title}</div>
+        {visibleGroups.map((g) => {
+          /*  The department you are standing in can never fold away.  */
+          const holdsActive = !!activeItem && g.items.includes(activeItem);
+          const shut = folded.has(g.title) && !holdsActive;
+          return (
+          <div key={g.title} className="mb-1">
+            {/*  Department header — its own colour, its own emblem, and the
+                whole row is the fold/unfold control. Shut: just this line.  */}
+            <button
+              type="button"
+              onClick={() => toggleGroup(g.title)}
+              aria-expanded={!shut}
+              className="w-full flex items-center gap-2.5 px-2 pt-3.5 pb-1.5 group"
+            >
+              <span
+                className="w-[22px] h-[22px] rounded-[7px] grid place-items-center text-[12px] shrink-0"
+                style={{ background: `${g.accent}2e`, color: g.accent }}
+              >
+                {g.emblem}
+              </span>
+              <span
+                className="text-[11px] font-bold tracking-[0.13em] uppercase flex-1 text-left"
+                style={{ color: g.accent }}
+              >
+                {g.title}
+              </span>
+              {shut && (
+                <span className="text-[10.5px] font-semibold text-white/40">{g.items.length}</span>
+              )}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                className={"shrink-0 opacity-50 transition-transform duration-200 " + (shut ? "" : "rotate-90")}
+                style={{ color: g.accent }}>
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+            {!shut && (
+            <div className="border-l-2 ml-[12px] pl-[9px]" style={{ borderColor: `${g.accent}38` }}>
             {g.items.map((it) => {
               /*  Exactly ONE module highlights — the one the path really belongs
                   to. A sub match wins over a bare href prefix, so /products/variants
@@ -958,8 +1024,11 @@ export default function AdminSidebar() {
                 </div>
               );
             })}
+            </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* who is at the keyboard — the name the ledger will record (DEC-FIN-028) */}
