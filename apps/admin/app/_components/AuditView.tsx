@@ -185,17 +185,9 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
       <Flash ok="" err={err} />
 
-      {stats?.backupStale && (
-        <Banner tone="rose" emoji="⚠"
-          title={stats.lastBackupAt
-            ? `The last backup was ${stats.lastBackupHoursAgo} hours ago`
-            : "No backup has ever been recorded"}>
-          The whole business is in one database. Run{" "}
-          <code>D:\radian\radian_backup.bat</code>, and{" "}
-          <code>radian_backup_schedule.bat</code> once so it happens by itself every night.
-        </Banner>
-      )}
-
+      {/*  The stale-backup warning moved into the notification bell (owner,
+          18 Aug 2026: system notices collect in one place, never on top of a
+          working page). The KPI tile below still shows the state in colour.  */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Kpi label="Recorded today" value={String(stats?.today ?? 0)} emoji="📌" tone="brand" />
         <Kpi label="This week" value={String(stats?.week ?? 0)} emoji="🗓" tone="sky" />

@@ -6,6 +6,7 @@ import { getMyAccess, WEB_BASE } from "../_data/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Icon from "./Icon";
+import NotificationsBell from "./NotificationsBell";
 
 /*
   Admin nav — active link via usePathname.
@@ -875,6 +876,9 @@ export default function AdminSidebar() {
           <b className="font-display text-[20px] text-white font-semibold block leading-none tracking-[0.01em]">Radian</b>
           <small className="text-[#d9c2ec] text-[10.5px] font-semibold tracking-[0.16em] uppercase">Admin OS</small>
         </div>
+        {/*  Every system notice lives behind this bell — never as a banner on
+            top of a working page (owner, 18 Aug 2026).  */}
+        <div className="ml-auto"><NotificationsBell /></div>
       </div>
 
       {/*  6 Aug 2026 — owner: one click from anywhere in the admin into the
