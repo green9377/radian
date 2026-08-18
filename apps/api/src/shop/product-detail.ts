@@ -919,11 +919,11 @@ export class ProductDetailService {
         which the owner caught: "but I never gave the variant a discount."
         With no price of its own, the product's price (discount included)
         applies. Checkout reads its prices from this same list,
-        তাই নিয়মটা এক জায়গাতেই থাকে।
+        so the rule stays in one place.
 
-        ⚠️ ছবি: variant-এর নিজের ছবি → না থাকলে master-এর ছবি → না থাকলে
-        null, আর তখন page product-এর মূল ছবিই রাখে। "লাল" বাছার পর সাদা
-        গোলাপের ছবি দেখানোর চেয়ে ছবি না বদলানো ভালো।
+        On images: the variant's own photo, else the master's, else null - and
+        then the page keeps the product's main photo. Not changing the picture
+        beats showing a white rose after somebody picked "red".
       */
       variants: p.variants.map((v) => ({
         id: v.id,
@@ -964,9 +964,10 @@ export class ProductDetailService {
       bundle,
       upgrades,
       /*
-        DEC-PRD-026 — দুটোর একটাও চালু না থাকলে `null`, আর page-এ অংশটাই
-        আঁকা হয় না। লেখা না থাকলে সাধারণ শব্দ বসে — মালিককে প্রতিটা
-        product-এ তিনটে বাক্য লিখতে বলা মানে ঘরগুলো ফাঁকাই থেকে যাওয়া।
+        DEC-PRD-026 - `null` when neither is switched on, and then the section
+        is not drawn on the page at all. With no wording written, plain
+        defaults are used: asking the owner to write three sentences on every
+        product means the boxes simply stay empty.
       */
       perso:
         p.persoText || p.persoImage
@@ -987,9 +988,10 @@ export class ProductDetailService {
                 : null,
             }
           : null,
-      /*  DEC-PRD-027 — switch বন্ধ থাকলে বাক্সটাই নেই। নম্বর Company
-          settings থেকে; সেখানে কিছু না থাকলে `null`, আর তখন page শুধু
-          লেখাটা দেখায় — ভুয়া নম্বরে নিয়ে যাওয়ার চেয়ে সেটা সৎ।  */
+      /*  DEC-PRD-027 - switch off and the box does not exist. The number comes
+          from Company settings; with nothing there it is `null` and the page
+          shows only the wording - honest, next to sending somebody to a fake
+          number.  */
       customise: p.customiseOn
         ? {
             title: p.customiseTitle?.trim() || 'Want this customised?',
