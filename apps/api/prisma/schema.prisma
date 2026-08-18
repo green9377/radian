@@ -1683,8 +1683,8 @@ model BundleComboItem {
 /// ⚠️ NOT `ProductTrustBadge`. That is the row of three short promises beside
 /// the price ("2-Hour Delivery"); this is three paragraphs about how the thing
 /// is made. They read as similar and are not: one is a delivery claim, the
-/// other is craft. Trust badges are still product-only and inherit nothing —
-/// audit §3গ, still open.
+/// other is craft. Trust badges are still product-only and inherit nothing -
+/// audit §3c, still open.
 model CraftPoint {
   id String @id @default(cuid())
 
@@ -1710,25 +1710,28 @@ model CraftPoint {
   @@index([productId])
 }
 
-/// দিনের সক্ষমতা — "আজ আর কতটা কাজ নেওয়া যাবে"। মালিকের সিদ্ধান্ত, 1 Aug 2026।
+/// Daily capacity - "how much more work can be taken today". Owner's ruling,
+/// 1 Aug 2026.
 ///
-/// কেন সংখ্যা নয়, সময়: "আজ ৫০টা" ধরে নেয় প্রতিটা জিনিসে সমান শ্রম লাগে। কিন্তু
-/// ১৫ মিনিটের তোড়া আর ৬ ঘণ্টার সাজানো এক নয় — ৫০ সংখ্যাটা জানেই না কোনটা ভারী।
-/// সময়ে গুনলে মিশ্রণ যাই হোক হিসাব নিজে থেকে মেলে।
+/// Why time and not a count: "50 today" assumes every item costs the same
+/// labour. A 15-minute bouquet and a 6-hour installation are not the same, and
+/// the number 50 has no idea which is which. Counting in minutes makes the
+/// arithmetic come out right whatever the mix.
 ///
-/// ⚠️ System কখনো ধরে নেয় না দিনে ২৪ ঘণ্টা। `workers × hoursEach` — মালিক যা
-/// বলেন তাই। কাল ৩ জন এলে একটা সংখ্যা বদলালেই হয়; ভাগ-ভিত্তিক হিসাবে তিনটে
-/// সংখ্যা বদলাতে হত আর প্রতিবার অনুপাত মেলাতে হত।
+/// The system never assumes a 24-hour day. It is `workers x hoursEach` -
+/// whatever the owner says. If three people come in tomorrow, one number
+/// changes; a shift-based model would have needed three numbers changed and
+/// the ratios kept in step every time.
 model CapacityGroup {
   id   String @id @default(cuid())
-  name String @unique // "ফুলের কাজ" · "কেক" · "Custom মগ"
+  name String @unique // "Flower work" - "Cakes" - "Custom mugs"
 
-  /// আজ কজন কাজ করছে, আর প্রতিজন কত ঘণ্টা। দুটো আলাদা, কারণ লোক বদলায় —
-  /// ঘণ্টা সাধারণত বদলায় না।
+  /// How many are working today, and how many hours each. Kept separate
+  /// because the people change and the hours usually do not.
   workers   Int @default(1)
   hoursEach Int @default(8)
 
-  /// ফুলের কারিগর কেক বানায় না — তাই প্রতিটা দলের নিজের হিসাব।
+  /// A florist does not bake cakes - so each group keeps its own arithmetic.
   categories Category[]
   bookings   CapacityBooking[]
 
@@ -1739,22 +1742,23 @@ model CapacityGroup {
   deletedAt DateTime?
 }
 
-/// একটা অর্ডারের কাজ কোন দিনে কতটা সময় নিল।
+/// How much of which day an order's work consumed.
 ///
-/// "রোজ নিজে থেকে রিসেট" — এর জন্য কিছু মুছতে হয় না। প্রতিটা দিনের হিসাব
-/// আলাদা সারিতে থাকে, তাই নতুন দিন এমনিতেই খালি। কোনো cron নেই, আর যে cron
-/// একদিন চলে না সেটার ব্যর্থতাও নেই।
+/// "Resets itself daily" needs nothing deleted: each day's figures live in
+/// their own rows, so a new day starts empty on its own. No cron, and
+/// therefore no cron that silently fails to run one morning.
 model CapacityBooking {
   id      String        @id @default(cuid())
   groupId String
   group   CapacityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  /// যেদিন কাজটা হবে — অর্ডারের দিন নয়। মালিকের সিদ্ধান্ত: scheduled অর্ডার
-  /// আজকের হিসাব খায় না; ২ ঘণ্টা / same-day / আজ রাতে — সব আজকের।
+  /// The day the work happens - not the day of the order. Owner's ruling: a
+  /// scheduled order does not eat today's capacity; 2-hour, same-day and
+  /// midnight all do.
   onDate  DateTime @db.Date
   minutes Int
 
-  /// লম্বা কাজ কয়েক দিনে ভাগ হয়ে বসে — তাই এক অর্ডারের একাধিক সারি থাকতে পারে
+  /// Long jobs spread across several days, so one order may have several rows
   orderId   String?
   productId String?
 
@@ -1769,10 +1773,10 @@ model CapacityBooking {
 // Source: RADIAN_ADMIN_PROGRESS.md §3 (locked Customer decisions)
 // ============================================================
 
-/// CRM segment master — admin-configurable, many-to-many (Tag-এর মতো) (DEC-CUS-001)
-/// ছোট বাড়তি জিনিস — greeting card, gift wrap, vase।
-/// Add-on কখনো website-এ product নয় এবং একা বিক্রি হয় না (locked, DEC-PRD-007)।
-/// সবসময় যোগ হয়: ৳500 bouquet + ৳50 card = ৳550।
+/// CRM segment master - admin-configurable, many-to-many (like Tag), DEC-CUS-001
+/// The small extras - greeting card, gift wrap, vase.
+/// An add-on is never a product on the website and never sells on its own
+/// (locked, DEC-PRD-007). It always adds: ৳500 bouquet + ৳50 card = ৳550.
 model AddOn {
   id                String       @id @default(cuid())
   name              String
@@ -1781,17 +1785,17 @@ model AddOn {
   pricePaisa        Int
   discountType      DiscountType @default(NONE)
   discountValue     Int          @default(0) // FLAT=paisa; PERCENT=basis points
-  stockQty          Int? // null = unlimited (gift wrap-এর মতো service কখনো শেষ হয় না)
+  stockQty          Int? // null = unlimited (a service like gift wrap never runs out)
 
-  /// ── DEC-PRD-039 · কোন Item এই add-on-টার মজুদ রাখে ────────────────────
-  /// মালিক, ৯ আগস্ট ২০২৬: *"add-on-এ manual stock দেওয়ার option আছে কিন্তু
-  /// inventory-র সাথে connect-এর option নেই।"*
+  /// ── DEC-PRD-039 · which Item holds this add-on's stock ─────────────────
+  /// The owner, 9 August 2026: *"an add-on has the option of manual stock but
+  /// no option to connect it to inventory."*
   ///
-  /// variant-এ (DEC-PRD-032) যা করা হয়েছে হুবহু তাই: বাঁধা থাকলে গোনাটা
-  /// Inventory থেকে **live** পড়া হয়, `stockQty` তখন পড়াই হয় না। একটা
-  /// chocolate bar গুদামে সত্যিকারের জিনিস; gift wrap নয় — তাই এটা ঐচ্ছিক।
+  /// Exactly what variants got in DEC-PRD-032: when linked, the count is read
+  /// LIVE from Inventory and `stockQty` is not read at all. A chocolate bar is
+  /// a real thing in the warehouse; gift wrap is not - hence optional.
   ///
-  /// ⚠️ id দিয়ে, SKU লেখা মিলিয়ে নয় — DEC-ITM-021।
+  /// By id, never by matching SKU text - DEC-ITM-021.
   itemId            String?
   item              Item?        @relation(fields: [itemId], references: [id])
 
