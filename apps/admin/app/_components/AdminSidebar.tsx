@@ -876,9 +876,6 @@ export default function AdminSidebar() {
           <b className="font-display text-[20px] text-white font-semibold block leading-none tracking-[0.01em]">Radian</b>
           <small className="text-[#d9c2ec] text-[10.5px] font-semibold tracking-[0.16em] uppercase">Admin OS</small>
         </div>
-        {/*  Every system notice lives behind this bell — never as a banner on
-            top of a working page (owner, 18 Aug 2026).  */}
-        <div className="ml-auto"><NotificationsBell /></div>
       </div>
 
       {/*  6 Aug 2026 — owner: one click from anywhere in the admin into the
@@ -1079,6 +1076,9 @@ export default function AdminSidebar() {
               <div className="text-[12.5px] font-semibold text-white truncate">{me.name}</div>
               <div className="text-[10.5px] text-[#d9c2ec] uppercase tracking-[0.06em]">{me.role.toLowerCase()}</div>
             </div>
+            {/*  System notices live behind this bell, beside the name — never
+                as banners on top of working pages (owner, 18 Aug 2026).  */}
+            <NotificationsBell />
             <button onClick={signOut} title="Sign out"
               className="text-[11px] font-bold text-[#d9c2ec] hover:text-white px-2 py-1 rounded-lg">
               exit

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Icon from "./Icon";
 import {
   WRAP, FinHeader, Card, Panel, Kpi, Table, Th, Td, Chip, Empty, Flash, Tabs, Banner,
   btnGhost, input, Lbl, taka, TONE, type Tone,
@@ -188,22 +189,41 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       {/*  The stale-backup warning moved into the notification bell (owner,
           18 Aug 2026: system notices collect in one place, never on top of a
           working page). The KPI tile below still shows the state in colour.  */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Kpi label="Recorded today" value={String(stats?.today ?? 0)} emoji="📌" tone="brand" />
-        <Kpi label="This week" value={String(stats?.week ?? 0)} emoji="🗓" tone="sky" />
-        <Kpi label="Money actions, 7 days" value={String(stats?.money7 ?? 0)} emoji="৳" tone="amber"
-          hint="expenses, payroll, payouts, orders" />
-        <Kpi label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"}
-          emoji="💾" tone={stats?.backupStale ? "rose" : "emerald"}
-          hint={stats?.lastBackupAt ? "nightly at 1:30 AM" : "nothing recorded yet"} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#7a2ea8"
+          label="Recorded today" value={String(stats?.today ?? 0)} />
+        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#3b76c4"
+          label="This week" value={String(stats?.week ?? 0)} />
+        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#b07818"
+          label="Money actions · 7d" value={String(stats?.money7 ?? 0)} />
+        <StatTile icon="download"
+          grad={stats?.backupStale ? "linear-gradient(135deg,#c62f20,#e8604f)" : "linear-gradient(135deg,#0e9767,#22c08b)"}
+          fg={stats?.backupStale ? "#c0392b" : "#0e9767"}
+          label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"} />
       </div>
 
-      <Tabs value={tab} onChange={setTab} items={[
-        { key: "MONEY", label: "Money actions", emoji: "৳", tone: "amber" },
-        { key: "ALL", label: "Everything", emoji: "☰", tone: "slate" },
-        { key: "ACTIVITY", label: "In plain words", emoji: "💬", tone: "sky" },
-        { key: "BACKUPS", label: "Backups", emoji: "💾", tone: "emerald" },
-      ]} />
+      <div className="inline-flex rounded-[12px] p-[3px] gap-[3px] mb-4" style={{ background: "#f1ecf7" }}>
+        {([
+          ["MONEY", "Money actions", "cash"],
+          ["ALL", "Everything", "layers"],
+          ["ACTIVITY", "In plain words", "mail"],
+          ["BACKUPS", "Backups", "download"],
+        ] as const).map(([key, label, icon]) => {
+          const on = tab === key;
+          return (
+            <button key={key} onClick={() => setTab(key)}
+              className="flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-[7px] rounded-[9px] transition-all"
+              style={{
+                background: on ? "#fff" : "transparent",
+                color: on ? "#7a2ea8" : "#8f87a0",
+                boxShadow: on ? "0 1px 5px rgba(70,0,102,0.14)" : undefined,
+              }}>
+              <Icon name={icon} size={13} strokeWidth={2.4} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       {/*  "Who changed this row" — kickoff §9, question 5. The endpoint existed
            and nothing called it, so the question had an answer nobody could see.
@@ -447,6 +467,26 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           </div>
         </Panel>
       )}
+    </div>
+  );
+}
+
+
+/*  Compact brand stat tile — the audit page's own, matching the overview's
+    visual language without dragging the chart kit in.  */
+function StatTile({ icon, grad, fg, label, value }: {
+  icon: string; grad: string; fg: string; label: string; value: string;
+}) {
+  return (
+    <div className="rounded-[15px] p-3.5 bg-white border" style={{ borderColor: `${fg}22`, boxShadow: `0 2px 8px ${fg}12` }}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white"
+          style={{ background: grad }}>
+          <Icon name={icon} size={13} strokeWidth={2.3} />
+        </span>
+        <span className="text-[11px] font-bold text-body-soft">{label}</span>
+      </div>
+      <div className="text-[22px] font-bold leading-none" style={{ color: fg }}>{value}</div>
     </div>
   );
 }

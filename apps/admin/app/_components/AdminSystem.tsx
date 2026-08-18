@@ -75,40 +75,56 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
       )}
       <Flash ok={ok} err={err} />
 
-      <Panel emoji="▤" title="Live sessions" sub="One row per device that is signed in">
+      <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+        style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+        <div className="px-4 py-2.5 flex items-center gap-2.5"
+          style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+          <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Live sessions</span>
+          <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{rows.length}</span>
+        </div>
+
         {rows.length === 0 ? (
-          <div className="p-5"><Empty title="Nobody is signed in" /></div>
+          <p className="text-[12.5px] text-body-soft px-4 py-4 m-0">Nobody is signed in.</p>
         ) : (
-          <Table head={<><Th>Who</Th><Th>Position</Th><Th>Since</Th><Th>Until</Th><Th /></>}>
+          <div>
             {rows.map((s) => (
-              <tr key={s.id}>
-                <Td>
-                  <div className="font-semibold">{s.name}</div>
-                  <div className="text-[11px] text-body-soft">{s.email ?? "no email"}</div>
-                </Td>
-                <Td><Chip tone="slate">{s.position}</Chip></Td>
-                <Td>{new Date(s.startedAt).toLocaleString()}</Td>
-                <Td>{new Date(s.expiresAt).toLocaleDateString()}</Td>
-                <Td right>
-                  {/*  You cannot sign yourself out from here. Locking yourself out
-                       of the screen that manages access is a mistake worth making
-                       impossible rather than recoverable — the sidebar does it.  */}
-                  {s.isYou ? (
-                    <Chip tone="brand">this device</Chip>
-                  ) : (
-                    <div className="flex gap-1.5 justify-end">
-                      <button className={btnGhost} disabled={busy === s.id}
-                              onClick={() => void drop(s)}>Sign out</button>
-                      <button className={btnGhost} disabled={busy === s.id}
-                              onClick={() => void dropAll(s)}>All devices</button>
-                    </div>
-                  )}
-                </Td>
-              </tr>
+              <div key={s.id}
+                className="flex items-center gap-3 px-4 py-3 border-b border-[#f3eff8] last:border-0 flex-wrap">
+                <span className="w-[34px] h-[34px] rounded-full grid place-items-center text-[13px] font-bold text-white shrink-0"
+                  style={{ background: s.isYou ? "linear-gradient(135deg,#b76e79,#e0a8a0)" : "linear-gradient(135deg,#8a2bb0,#cf43ea)" }}>
+                  {s.name.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-bold text-[#2d2838] truncate">
+                    {s.name}
+                    {s.isYou && (
+                      <span className="text-[9.5px] font-bold text-white px-1.5 py-[2px] rounded-full ml-1.5 align-middle"
+                        style={{ background: "linear-gradient(135deg,#b76e79,#e0a8a0)" }}>this device</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-body-soft truncate">{s.email ?? "no email"}</div>
+                </div>
+                <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full shrink-0"
+                  style={{ background: "#f5eafb", color: "#7a2ea8" }}>{s.position}</span>
+                <div className="text-right shrink-0 hidden sm:block">
+                  <div className="text-[11px] font-semibold text-body">since {new Date(s.startedAt).toLocaleString()}</div>
+                  <div className="text-[10px] text-body-soft">until {new Date(s.expiresAt).toLocaleDateString()}</div>
+                </div>
+                {!s.isYou && (
+                  <div className="flex gap-1 shrink-0">
+                    <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
+                      style={{ borderColor: "#e4ddef", color: "#7a2ea8" }}
+                      disabled={busy === s.id} onClick={() => void drop(s)}>Sign out</button>
+                    <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
+                      style={{ borderColor: "#f2c8c2", color: "#c0392b" }}
+                      disabled={busy === s.id} onClick={() => void dropAll(s)}>All devices</button>
+                  </div>
+                )}
+              </div>
             ))}
-          </Table>
+          </div>
         )}
-      </Panel>
+      </div>
 
       <p className="text-[11.5px] text-body-soft leading-relaxed mt-4 max-w-[720px]">
         Signing someone out does not change their password. If an account is

@@ -139,21 +139,25 @@ export default function NotificationsBell() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Notifications"
-        className="relative w-[32px] h-[32px] rounded-[10px] grid place-items-center transition-colors"
+        className="relative w-[30px] h-[30px] rounded-[9px] grid place-items-center transition-colors shrink-0"
         style={{ background: open ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.10)" }}
       >
-        <span className="text-white"><Icon name="alert" size={16} strokeWidth={2.2} /></span>
+        <span className="text-white"><Icon name="alert" size={15} strokeWidth={2.2} /></span>
         {notices.length > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[3px] rounded-full grid place-items-center text-[9.5px] font-bold text-white"
+          <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full grid place-items-center text-[9px] font-bold text-white"
             style={{ background: "linear-gradient(135deg,#c0392b,#e8604f)", boxShadow: "0 0 0 2px #2f1246" }}>
             {notices.length}
           </span>
         )}
       </button>
 
+      {/*  FIXED, not absolute — the sidebar scrolls its own overflow, and an
+          absolute panel was clipped inside it ("90 vag vitore chole jay").
+          Fixed positioning escapes the sidebar entirely: the panel floats
+          just to the right of it, bottom-aligned with the bell's home.  */}
       {open && (
-        <div className="absolute left-0 top-[40px] w-[300px] z-50 rounded-[16px] overflow-hidden bg-white"
-          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.35)", border: "1px solid #e9e2f2" }}>
+        <div className="fixed left-[258px] bottom-[14px] w-[310px] z-50 rounded-[16px] overflow-hidden bg-white"
+          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #e9e2f2" }}>
           <div className="px-3.5 py-2.5 flex items-center gap-2"
             style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Notifications</span>
