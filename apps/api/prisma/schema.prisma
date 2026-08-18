@@ -5126,22 +5126,25 @@ model AppUser {
   username String  @unique
   role     AppRole @default(STAFF)
 
-  /// ৩০ জুলাই ২০২৬ — মালিকের শর্ত: "সবাইকে যে email-এ access দেব তারা যেন login
-  /// করতে গেলে password লাগে, নিজের মতো করে password করে নিতে পারে, ভুলে গেলেও
-  /// email-এ forget দিয়ে ঠিক করতে পারে।"
+  /// 30 July 2026 - the owner's condition: "everyone I give access to by email
+  /// should need a password to log in, should be able to set their own
+  /// password, and should be able to fix it by email if they forget it."
   ///
-  /// nullable কারণ আজকের ইউজারদের ইমেইল নেই — migration তাদের ভাঙবে না, তারা
-  /// username দিয়েই ঢুকতে থাকবে। ইমেইল বসানো হলে সেটাও কাজ করবে।
-  /// লগইনে দুটোই চলবে; ইমেইল বসানোর পর ওটাই আসল পরিচয়।
+  /// Nullable because today's users have no email - the migration must not
+  /// break them, and they carry on signing in with a username. Once an email
+  /// is set, that works too. Both are accepted at login; after an email is
+  /// set it becomes the real identity.
   email String? @unique
 
-  /// nullable কারণ ডাকা হয়েছে কিন্তু এখনো নিজের পাসওয়ার্ড বসায়নি এমন মানুষ থাকবে।
-  /// নকল hash বসানোর চেয়ে খালি রাখা সৎ — খালি মানে "এখনো ঢুকতে পারবে না"।
+  /// Nullable because some people have been invited and have not set their
+  /// own password yet. Empty is more honest than a fake hash - empty means
+  /// "cannot sign in yet".
   passwordHash String?
   pinHash      String? // 4-digit confirm for money actions
 
-  /// ADM-D02 — enum-এর জায়গা নেবে। এক release দুটো পাশাপাশি চলবে, মিলছে কি না
-  /// দেখা হবে, তারপর role বাদ। একবারে ফেলে দিলে ফেরার পথ থাকে না।
+  /// ADM-D02 - this will replace the enum. For one release both run side by
+  /// side and are compared; then role goes. Dropping it in one step leaves no
+  /// way back.
   positionId String?
   position   Position? @relation(fields: [positionId], references: [id])
 
@@ -5151,7 +5154,7 @@ model AppUser {
   overrides UserAccessOverride[]
   authTokens AuthToken[]
   sessions  AppSession[]
-  // Inbox back-links (relation নামগুলোই সম্পর্ক বলে দেয়)
+  // Inbox back-links (the relation names say what each one is)
   assignedConversations Conversation[]    @relation("ConversationAssignee")
   inboxMessages         Message[]         @relation("MessageAuthor")
   escalationAcks        EscalationEvent[] @relation("EscalationAck")
@@ -5179,44 +5182,51 @@ model AppSession {
 // ============================================================================
 //  ADMINISTRATION  —  RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md (30 Jul 2026)
 //
-//  কেন এটা আছে: আজ "কে কী পারে" প্রশ্নের উত্তর তিন জায়গায় ছড়ানো — controller-এর
-//  @Roles (৭৩টা), হাতে লেখা if (১০টা), আর AdminSidebar.tsx-এর roles: array
-//  (১৫৯টা পর্দার মধ্যে মাত্র ১১টায়)। তিনটে আলাদা তালিকা একই প্রশ্নের উত্তর দেয়,
-//  আর কেউ মেলায় না। Intelligence বানানোর দিন সাইডবারে roles বসানোয় STAFF-এর কাছ
-//  থেকে পুরো module লুকিয়ে গিয়েছিল — অথচ সিদ্ধান্ত ছিল উল্টো, আর API খোলাই ছিল।
-//  কোনো error হয়নি। এই টেবিলগুলোর একমাত্র উদ্দেশ্য: তালিকা একটাই থাকবে।
+//  Why this exists: the answer to "who can do what" was spread across three
+//  places - the controllers' @Roles (73 of them), hand-written ifs (10), and
+//  the roles: arrays in AdminSidebar.tsx (on 11 of 159 screens). Three
+//  separate lists answering one question, with nobody reconciling them. On the
+//  day Intelligence was built, a roles: array in the sidebar hid the entire
+//  module from STAFF - while the decision had been the opposite and the API
+//  was serving it happily. Nothing errored. These tables exist for one reason:
+//  so there is only ever one list.
 //
-//  মালিকের সাথে লক করা সিদ্ধান্ত:
-//    ADM-D01  ভূমিকার নাম মালিক নিজে বানাবেন — গাঁথা তিনটে নাম নয়
-//    ADM-D02  AppRole enum → Position টেবিল (enum এক release পাশাপাশি থাকবে)
-//    ADM-D03  টিক module + ভেতরের পর্দা স্তরে
-//    ADM-D04  পদ = ছাঁচ; ব্যক্তির উপরে ব্যতিক্রম দেওয়া যাবে
-//    ADM-D05  registry কোড থেকে তৈরি হবে, হাতে লেখা নয়
-//    ADM-D06  নতুন পর্দা ডিফল্ট বন্ধ, কিন্তু Access পর্দায় লাল চিহ্ন সহ
-//    ADM-D07  permission matrix (প্রতিটা কাজের টিক) বানানো হবে না
+//  Decisions locked with the owner:
+//    ADM-D01  he names the roles himself - not three names baked into code
+//    ADM-D02  AppRole enum becomes the Position table (the enum runs
+//             alongside it for one release)
+//    ADM-D03  ticks at module level and at screen level inside it
+//    ADM-D04  a position is a template; a person may carry exceptions
+//    ADM-D05  the registry is generated from code, never hand-written
+//    ADM-D06  a new screen is closed by default, but flagged red on the
+//             Access screen
+//    ADM-D07  no permission matrix (a tick per action) will be built
 // ============================================================================
 
 enum NodeKind {
-  MODULE // "Finance" — সাইডবারের উপরের স্তর
-  SCREEN // "Finance → Profit & Loss" — ভেতরের পর্দা
+  MODULE // "Finance" - a top-level sidebar entry
+  SCREEN // "Finance -> Profit & Loss" - a screen inside it
 }
 
-/// সিস্টেমে কী কী আছে। ADM-D05 — এই সারিগুলো কোড থেকে sync হয় (সাইডবারের href
-/// আর controller-এর route), হাতে লেখা হয় না। হাতে লিখলে ঠিক সেই drift ফিরে আসে
-/// যেটা এই module বন্ধ করতে এসেছে।
+/// What exists in the system. ADM-D05 - these rows are synced from code (the
+/// sidebar's hrefs and the controllers' routes), never written by hand.
+/// Writing them by hand brings back exactly the drift this module was built to
+/// end.
 model AccessNode {
-  key       String   @id // "finance.pnl" — স্থির। কখনো বদলাবে না, নইলে টিক হারাবে
+  key       String   @id // "finance.pnl" - fixed. Never changes, or the ticks are lost
   parentKey String? // "finance"
   kind      NodeKind
-  label     String // পর্দায় যা দেখাবে
-  domain    String // "Finance" — শুধু সাজানোর জন্য
-  href      String? // সাইডবার এখান থেকে পড়বে
-  routes    String[] // ["GET /finance/pnl"] — API পাহারা এখান থেকে পড়বে
+  label     String // what is shown on screen
+  domain    String // "Finance" - for grouping only
+  href      String? // the sidebar reads this
+  routes    String[] // ["GET /finance/pnl"] - the API guard reads this
   sortOrder Int      @default(0)
 
-  /// ADM-D06 — লাল চিহ্নের ভিত্তি। নতুন node কেউ পায় না যতক্ষণ না মালিক দেখেন।
+  /// ADM-D06 - the basis of the red flag. Nobody gets a new node until the
+  /// owner has looked at it.
   firstSeenAt DateTime  @default(now())
-  /// কোড থেকে পর্দাটা চলে গেলে সারিটা মোছা হয় না — পুরনো টিক ও Audit বাঁচাতে হয়
+  /// When a screen leaves the code the row is not deleted - old ticks and the
+  /// audit trail have to survive
   retiredAt   DateTime?
 
   positionAccess PositionAccess[]
@@ -5226,15 +5236,17 @@ model AccessNode {
   @@index([retiredAt])
 }
 
-/// পদ — নামটা মালিকের (ADM-D01)। "হিসাবরক্ষক", "ডেলিভারি", যা খুশি।
+/// A position - the owner picks the name (ADM-D01). "Accountant", "Delivery",
+/// whatever he likes.
 model Position {
   id   String  @id @default(cuid())
   name String  @unique
   note String?
 
-  /// সব পায়, আর কাটা যায় না (ADM-RULE-004)। ঠিক একটা সারিতেই true থাকবে।
+  /// Gets everything, and cannot be cut back (ADM-RULE-004). Exactly one row
+  /// carries true.
   isOwner  Boolean @default(false)
-  /// শুরুর তিনটে পদ — নাম বদলানো যায়, কিন্তু মোছা যায় না
+  /// The three starting positions - renameable, but never deletable
   isLocked Boolean @default(false)
 
   access PositionAccess[]
