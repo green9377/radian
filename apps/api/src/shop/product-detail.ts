@@ -352,9 +352,8 @@ export interface ShopProductDetail {
    * owner's decision.
    *
    * Without sending this the page kept writing "this month" even when the
-   * owner had chosen "Today".
-   * এক জায়গায় সংখ্যা আর অন্য জায়গায় হাতে লেখা শব্দ, ঠিক এভাবেই মিথ্যা
-   * জন্মায়।
+   * owner had chosen "Today". A number in one place and a hand-written word
+   * in another is exactly how a lie gets born.
    */
   salesWindow: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
   /**
@@ -442,8 +441,8 @@ export interface ShopProductDetail {
   /** this product's own questions first, then the category's */
   faqs: { question: string; answer: string; scope: 'product' | 'category' }[];
   /**
-   * DEC-PRD-023 — product-এর নিজের, নাহলে category-র, নাহলে parent-এর।
-   * `iconUrl` ভরা থাকলে সেটাই আঁকা হয়; `icon` তখন খালি।
+   * DEC-PRD-023 - the product's own, else the category's, else the parent's.
+   * When `iconUrl` is filled that is what gets drawn, and `icon` stays empty.
    */
   trust: { icon: string | null; iconUrl?: string | null; label: string; sub: string | null }[];
   addonTabs: {
@@ -514,8 +513,9 @@ export class ProductDetailService {
         supportsMidnight: true,
         nationwideMsg: true,
         showStock: true,
-        /*  DEC-PRD-025/026/027 — বিক্রির সংখ্যা, personalisation আর
-            "Want this customised?" — তিনটেই product-এর নিজের সিদ্ধান্ত।  */
+        /*  DEC-PRD-025/026/027 - the sales figure, personalisation and
+            "Want this customised?" are all decisions the product makes for
+            itself.  */
         salesSeedToday: true,
         salesSeedWeek: true,
         salesSeedMonth: true,
@@ -565,8 +565,9 @@ export class ProductDetailService {
                 slug: true,
                 name: true,
                 sizeLabel: true,
-                /*  DEC-PRD-023 — sub-category-তে কিছু না থাকলে parent-এরটা।
-                    craft-এর সাথে একই সিঁড়ি: product → category → parent।  */
+                /*  DEC-PRD-023 - when a sub-category has none, the parent's are
+                    used. The same ladder craft points climb:
+                    product -> category -> parent.  */
                 trustBadges: {
                   where: { deletedAt: null, isActive: true },
                   orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
@@ -579,8 +580,9 @@ export class ProductDetailService {
                 },
               },
             },
-            /*  DEC-PRD-023 — এই category-তে লেখা badge আর "What's inside"।
-                product-এ নিজের কিছু না থাকলে এগুলোই যায়।  */
+            /*  DEC-PRD-023 - the badges and "What's inside" written on this
+                category. These are used when the product has none of its
+                own.  */
             trustBadges: {
               where: { deletedAt: null, isActive: true },
               orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
@@ -604,8 +606,9 @@ export class ProductDetailService {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           select: { id: true, label: true, sub: true, pricePaisa: true },
         },
-        /*  DEC-PRD-012 — এই product-এর রঙ / ফ্লেভার / মাপ। বন্ধ করে রাখা
-            variant পাঠানো হয় না: মালিক OFF করা মানে গ্রাহক ওটা দেখবেই না।  */
+        /*  DEC-PRD-012 - this product's colours, flavours and sizes. A
+            deactivated variant is never sent: the owner switching it off means
+            the customer does not see it at all.  */
         variants: {
           where: { ...LIVE_ROW, isActive: true },
           orderBy: [{ sortOrder: 'asc' }],
