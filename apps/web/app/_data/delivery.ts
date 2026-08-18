@@ -5,22 +5,24 @@ import type { DeliveryOption, DeliveryOptionSlot, DeliveryTiming } from "./shop"
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  DELIVERY MODULE config — Operations-এর rule, এখন static।
+  DELIVERY MODULE config — an Operations rule, static for now.
 
-  ★ চারটা method (Inside Dhaka)      ★ একটা (All Bangladesh)
-  · Express          — slot নেই, আজ; কত ঘণ্টা সেটা admin-এর promiseMinutes
-  · Same Day         — আজ + time slot
-  · Midnight         — slot নেই, ১২টা; আজকের জন্য সন্ধ্যা ৬টা পর্যন্ত order
-  · Scheduled        — যেকোনো দিন + time slot
-  · Nationwide Courier — 1–3 দিন, slot নেই
+  ★ Four methods (Inside Dhaka)      ★ One (All Bangladesh)
+  · Express          — no slot, today; how many hours comes from the admin's
+                       promiseMinutes
+  · Same Day         — today + time slot
+  · Midnight         — no slot, 12 AM; ordered until 6 PM for tonight
+  · Scheduled        — any day + time slot
+  · Nationwide Courier — 1–3 days, no slot
 
-  ★ Slot = capacity-driven (locked, 14 July — সোবুজ)
-  Slot শুরু হওয়ার **আগ পর্যন্ত** order নেওয়া যাবে — কোনো lead time নেই।
-  বন্ধ হয় শুধু দুই কারণে: (১) সময় পেরিয়ে গেছে, (২) capacity ভরে গেছে।
-  Capacity admin panel থেকে বসবে — নিচের `booked` আপাতত mock।
+  ★ Slot = capacity-driven (locked, 14 July — sobuj)
+  An order can be taken right **up until** the slot starts — there is no lead
+  time. It closes for two reasons only: (1) the time has passed, (2) capacity
+  is full. Capacity will be set from the admin panel — `booked` below is a mock
+  for now.
 
-  ⇄ SWAP HERE — Operations lock হলে METHODS/SLOTS/capacity সব API থেকে।
-  সংখ্যা কোনো component-এ লেখা নেই, শুধু এখানে (D23/D24)।
+  ⇄ SWAP HERE — once Operations is locked, METHODS/SLOTS/capacity all come from
+  the API. No number is written inside a component, only here (D23/D24).
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -31,33 +33,35 @@ export type MethodId = "express" | "sameday" | "midnight" | "scheduled" | "couri
 export interface DeliveryMethod {
   id: MethodId;
   /**
-   * DEC-DLV-009 — কোন **ছাঁচের** delivery। live method-এ delivery module
-   * থেকে আসে; নিচের হাতে-লেখা `METHODS`-এ থাকে না (ওখানে `id`-ই ছাঁচ)।
+   * DEC-DLV-009 — which **shape** of delivery this is. On a live method it
+   * comes from the delivery module; it is absent from the hand-written
+   * `METHODS` below (there the `id` is the shape).
    *
-   * ⚠️ আচরণের প্রতিটা নিয়ম এখন এটার উপর লেখা, `id`-র উপর নয়। `id` এখন
-   * database-এর সারির id (cuid) — `id === "express"` মিলিয়ে দেখা মানে live
-   * data-য় কোনোদিনই না মেলা, আর চুপচাপ ভুল আচরণ করা।
+   * ⚠️ Every behaviour rule is now written against this, not against `id`.
+   * `id` is now the database row id (cuid) — matching `id === "express"` means
+   * never matching on live data, and behaving wrongly in silence.
    */
   timing?: DeliveryTiming;
   /**
-   * `FROM_CONFIRM` হলে কত মিনিটের প্রতিশ্রুতি — ১৮০ = ৩ ঘণ্টা।
+   * For `FROM_CONFIRM`, how many minutes are promised — 180 = 3 hours.
    *
-   * ⚠️ পর্দায় "২ ঘণ্টা" জাতীয় কোনো সংখ্যা লেখা যাবে না; সবগুলো এই ঘর থেকে
-   * বানাতে হবে। মালিক admin-এ ধরনটার সময় বদলালে checkout-এর বাক্যও বদলাবে।
+   * ⚠️ No number like "2 hours" may be written on screen; every one of them
+   * has to be built from this field. When the owner changes the type's time in
+   * the admin, the sentence in checkout changes with it.
    */
   promiseMinutes?: number | null;
   label: string;
   sub: string;
   icon: IconName;
   feePaisa: number;
-  /** midnight-এর বাড়তি চার্জ (promo-তে মাফ হতে পারে — D25) */
+  /** midnight's extra charge (a promo may waive it — D25) */
   surchargePaisa: number;
   zone: Zone;
-  /** time slot লাগবে কি না */
+  /** whether a time slot is needed */
   slots: boolean;
-  /** তারিখ বাছাই করা যাবে কি না */
+  /** whether a date can be picked */
   datePick: boolean;
-  /** শুধু আজ */
+  /** today only */
   todayOnly?: boolean;
   midnight?: boolean;
 }
@@ -124,42 +128,44 @@ export const METHODS: DeliveryMethod[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE — delivery module থেকে আসা মেনু · DEC-DLV-009 / DEC-DLV-010
+   LIVE — the menu coming from the delivery module · DEC-DLV-009 / DEC-DLV-010
 
-   মালিক, ১ আগস্ট ২০২৬: *"delivery module-এ যা edit বা change করা হয়, তা যেন
-   auto পুরা system-এ কাজ করে — frontend, product upload page, আর যেখানে
-   দরকার সব জায়গায়।"*
+   Owner, 1 Aug 2026: *"whatever is edited or changed in the delivery module
+   should work automatically across the whole system — frontend, product upload
+   page, and everywhere else it is needed."*
 
-   ⚠️ উপরের `METHODS` তালিকাটা এখন **শুধু গঠনের নমুনা** — কোন ঘরগুলো লাগে
-   তা বলার জন্য। checkout আর ওটা পড়ে না। ওখানে ৳৬০ লেখা ছিল আর মালিকের
-   module-এ ৳২০০ — একই জিনিসের দুই দাম, দুই জায়গায়। এখন একটাই।
+   ⚠️ The `METHODS` list above is now **a shape sample only** — there to say
+   which fields are required. Checkout no longer reads it. It said ৳60 while
+   the owner's module said ৳200 — one thing with two prices in two places. Now
+   there is one.
 
-   ছাঁচ থেকে আচরণ, নাম থেকে নয় — এটাই পুরো কাজটার মূল কথা।
+   Behaviour from the shape, not from the name — that is the whole point of
+   this work.
 ─────────────────────────────────────────────────────────────────────────── */
 export interface LiveMethod extends DeliveryMethod {
-  /** delivery module-এর নামের id — product এর সাথেই যুক্ত */
+  /** id of the name in the delivery module — this is what a product is tied to */
   typeId: string | null;
   timing: DeliveryTiming;
   promiseMinutes: number | null;
-  /** আজ এই মুহূর্তে দিনের জানালার বাইরে কি না */
+  /** whether it is outside today's window at this moment */
   closedNow: boolean;
   closedReason: string | null;
   liveSlots: DeliverySlot[];
 }
 
 /**
- * API-র উত্তর → পর্দা যে আকার চেনে।
+ * The API's answer → the shape the screen knows.
  *
- * ⚠️ `datePick` / `slots` / `todayOnly` — তিনটাই `timing` থেকে আসে, নাম দেখে
- * আন্দাজ করে নয়। মালিক "3 Hours" নামে নতুন একটা ধরন বানালে সেটা নিজে থেকেই
- * ঠিক আচরণ করে, কারণ ছাঁচটা তিনিই বেছে দিয়েছেন।
+ * ⚠️ `datePick` / `slots` / `todayOnly` — all three come from `timing`, not
+ * from guessing at the name. If the owner creates a new type called "3 Hours",
+ * it behaves correctly by itself, because he already chose its shape.
  */
 export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
   return opts.map((o, i) => {
     const t = o.timing;
     return {
-      /*  ⚠️ `rateId`, `typeId` নয় — একই নামের দুই এলাকায় দুই দাম থাকতে পারে,
-          আর পর্দা যেটা দেখাচ্ছে সেটাই বাছা হচ্ছে।  */
+      /*  ⚠️ `rateId`, not `typeId` — the same name can carry two prices in two
+          areas, and what the screen is showing is what gets picked.  */
       id: o.rateId as MethodId,
       typeId: o.typeId,
       timing: t,
@@ -186,9 +192,9 @@ export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
         : t === "LEAD_DAYS" ? "truck"
         : "clock",
       feePaisa: o.feePaisa,
-      /*  ⚠️ সবসময় ০। "surcharge" বলে আলাদা কিছু delivery module-এ নেই —
-          একটা delivery-র একটাই দাম। পুরনো midnight-এর ৳৬০+৳২০০ ভাগটা
-          web app-এর নিজের বানানো ছিল।  */
+      /*  ⚠️ Always 0. There is no separate "surcharge" in the delivery module —
+          a delivery has one price. The old midnight ৳60+৳200 split was
+          something the web app invented for itself.  */
       surchargePaisa: 0,
       zone: o.kind === "COURIER" ? "bangladesh" : "dhaka",
       slots: t === "TODAY_SLOT" || t === "PICK_DATE_SLOT",
@@ -200,8 +206,8 @@ export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
       liveSlots: o.slots.map((sl) => ({
         id: sl.id,
         label: slotLabelText(sl),
-        /*  পুরনো আকারে `startHour` ছিল; মিনিট থেকে বানানো হয়। শূন্য হলে
-            slot-টা সারাদিন খোলা ধরা হয়।  */
+        /*  The old shape had `startHour`; it is built from minutes. When it is
+            zero the slot is treated as open all day.  */
         startHour: sl.startMin != null ? Math.floor(sl.startMin / 60) : 0,
         capacity: sl.capacityPerDay ?? 0,
         booked: 0,
@@ -215,9 +221,10 @@ export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
 /**
  * "11:30 PM – 12:30 AM".
  *
- * ⚠️ শেষ সময় শুরুর চেয়ে ছোট হলে slot মধ্যরাত পেরিয়েছে — Midnight Surprise-এ
- * ঠিক এটাই হয় (1410 → 30)। সংখ্যা দুটো বিয়োগ করলে উত্তর আসে ঋণাত্মক, তাই
- * এখানে শুধু লেখা বানানো হয় আর তুলনা করা হয় না।
+ * ⚠️ When the end time is smaller than the start, the slot has crossed
+ * midnight — which is exactly what Midnight Surprise does (1410 → 30).
+ * Subtracting the two gives a negative answer, so this only builds text and
+ * never compares.
  */
 export function slotWindowText(sl: DeliveryOptionSlot): string {
   if (sl.startMin == null || sl.endMin == null) return "";
@@ -242,15 +249,16 @@ export function methodsForZone(zone: Zone | null): DeliveryMethod[] {
 }
 
 /**
- * হাতে-লেখা তালিকায় খোঁজে — **না পেলে `null`**।
+ * Looks in the hand-written list — **`null` when not found**.
  *
- * ⚠️ আগে না পেলে চুপচাপ `METHODS[1]` (Same Day) ফিরত। DEC-DLV-009-এর পর
- * `id` হলো database-এর সারির id, তাই checkout-এর প্রতিটা খোঁজ ব্যর্থ হতো আর
- * সবাই "Same Day, ৳৬০" পেয়ে যেত: validation ভুল slot চাইত, রসিদে ভুল নাম
- * বসত, ETA ভুল হতো। একটা fallback পাঁচ জায়গায় মিথ্যা বলছিল।
+ * ⚠️ It used to silently return `METHODS[1]` (Same Day) on a miss. After
+ * DEC-DLV-009 the `id` is a database row id, so every lookup in checkout
+ * failed and everyone got "Same Day, ৳60": validation asked for the wrong
+ * slot, the receipt carried the wrong name, the ETA was wrong. One fallback
+ * was lying in five places.
  *
- * এখন না পাওয়া মানে না পাওয়া। live তালিকা যাদের আছে তারা সেখানেই খোঁজে;
- * এটা শুধু পুরনো seed/demo data-র জন্য রইল।
+ * Now not found means not found. Anyone holding the live list searches there;
+ * this remains only for old seed/demo data.
  */
 export function getMethod(id: MethodId): DeliveryMethod | null {
   return METHODS.find((m) => m.id === id) ?? null;
@@ -260,31 +268,32 @@ export function defaultMethod(zone: Zone | null): MethodId {
   return zone === "bangladesh" ? "courier" : "sameday";
 }
 
-/* ─────────────────── ছাঁচ চেনা · নাম নয় ───────────────────
-   live method-এর `id` cuid, তাই নাম মিলিয়ে আচরণ ঠিক করা যায় না। `timing`
-   থাকলে সেটাই সত্যি; না থাকলে (হাতে-লেখা METHODS) পুরনো `id`-ই ছাঁচ।
+/* ─────────────────── KNOW THE SHAPE · NOT THE NAME ───────────────────
+   A live method's `id` is a cuid, so behaviour cannot be decided by matching
+   names. When `timing` is present that is the truth; when it is absent (the
+   hand-written METHODS) the old `id` is the shape.
 */
 
 const shape = (m: DeliveryMethod, live: DeliveryTiming, legacy: MethodId) =>
   m.timing ? m.timing === live : m.id === legacy;
 
-/** ২ ঘণ্টার মতো — confirm হওয়ার পর থেকে গোনা, slot নেই */
+/** the 2-hour kind — counted from confirmation, no slot */
 export const isExpress = (m: DeliveryMethod) => shape(m, "FROM_CONFIRM", "express");
-/** আজ + slot */
+/** today + slot */
 export const isSameDay = (m: DeliveryMethod) => shape(m, "TODAY_SLOT", "sameday");
-/** nationwide courier — দিন গোনা, তারিখ বাছা যায় না */
+/** nationwide courier — counted in days, no date to pick */
 export const isCourier = (m: DeliveryMethod) => shape(m, "LEAD_DAYS", "courier");
 
 /**
- * Cart-এর speed flag-গুলোর কোনটা এই method-কে আটকায়।
+ * Which of the cart's speed flags blocks this method.
  *
- * ⚠️ আগে `speeds[method.id]` লেখা ছিল। live id cuid, আর `CartSpeeds`-এর চাবি
- * "express" | "sameday" | "midnight" — তাই কোনোদিন মিলত না, আর **product-এর
- * delivery restriction checkout-এ একেবারেই কাজ করত না**। যে cake midnight-এ
- * যেতে পারে না, সেটাও midnight-এ বিক্রি হয়ে যেত।
+ * ⚠️ It used to say `speeds[method.id]`. A live id is a cuid while the keys of
+ * `CartSpeeds` are "express" | "sameday" | "midnight" — so it never matched,
+ * and **a product's delivery restriction did nothing at all in checkout**. A
+ * cake that cannot travel at midnight was sold for midnight anyway.
  *
- * `null` = এই ছাঁচ কখনো আটকানো হয় না (Schedule It আর courier — শেষ ভরসা,
- * সবকিছু এখানে নামতে পারে)।
+ * `null` = this shape is never blocked (Schedule It and courier — the last
+ * resort, everything can land there).
  */
 export function speedKeyFor(m: DeliveryMethod): keyof CartSpeeds | null {
   if (isExpress(m)) return "express";
@@ -294,11 +303,12 @@ export function speedKeyFor(m: DeliveryMethod): keyof CartSpeeds | null {
 }
 
 /**
- * এই method-এর নিজের slot। live হলে delivery module-এর, নাহলে পুরনো তিনটা।
+ * This method's own slots. From the delivery module when live, otherwise the
+ * old three.
  *
- * ⚠️ পুরো checkout-এ slot খোঁজার একটাই জায়গা। আগে `getSlot()` সবসময় হাতে-লেখা
- * `SLOTS`-এ খুঁজত, তাই live slot বাছলে `null` আসত আর validation বলত
- * "That slot is gone" — order কখনো place-ই হতে পারত না।
+ * ⚠️ The one place in all of checkout that looks a slot up. `getSlot()` always
+ * searched the hand-written `SLOTS`, so picking a live slot returned `null`
+ * and validation said "That slot is gone" — the order could never be placed.
  */
 export function slotsOf(m: DeliveryMethod): DeliverySlot[] {
   return "liveSlots" in m ? (m as LiveMethod).liveSlots : SLOTS;
@@ -309,7 +319,7 @@ export function findSlot(m: DeliveryMethod, id: string | null): DeliverySlot | n
   return slotsOf(m).find((s) => s.id === id) ?? null;
 }
 
-/** Cart-এর "From ৳60" — METHODS থেকেই derive, আলাদা সংখ্যা নয় (D24) */
+/** The cart's "From ৳60" — derived from METHODS, never a separate number (D24) */
 export const DELIVERY_FROM_PAISA: Record<"dhaka" | "bangladesh", number> = {
   dhaka: Math.min(...METHODS.filter((m) => m.zone === "dhaka").map((m) => m.feePaisa)),
   bangladesh: Math.min(
@@ -319,11 +329,11 @@ export const DELIVERY_FROM_PAISA: Record<"dhaka" | "bangladesh", number> = {
 
 /* ─────────────────── CUT-OFF (Operations, locked 14 July) ─────────────────── */
 
-/** Express শুধু এই সময়ের মধ্যে order নেওয়া যায় */
+/** Express can only be ordered inside this window */
 export const EXPRESS_WINDOW = { startHour: 10, endHour: 17 }; // 10 AM – 5 PM
 
-/** আজ রাতের midnight-এর জন্য শেষ order */
-export const MIDNIGHT_CUTOFF_HOUR = 18; // সন্ধ্যা ৬টা
+/** last order for tonight's midnight */
+export const MIDNIGHT_CUTOFF_HOUR = 18; // 6 PM
 
 export const COURIER_DAYS = { min: 1, max: 3 };
 
@@ -332,27 +342,27 @@ export const COURIER_DAYS = { min: 1, max: 3 };
 export interface DeliverySlot {
   id: string;
   label: string;
-  /** ২৪ ঘণ্টার হিসাবে slot শুরু — এর আগ পর্যন্ত order নেওয়া যায় */
+  /** slot start on a 24-hour clock — orders are taken right up to this */
   startHour: number;
-  /** admin panel থেকে — slot-এ কতটা order নেওয়া যাবে */
+  /** from the admin panel — how many orders this slot can take */
   capacity: number;
-  /** ⇄ SWAP HERE — এখন mock, API এলে আজকের আসল booking count */
+  /** ⇄ SWAP HERE — a mock for now; the real booking count when the API lands */
   booked: number;
   /**
-   * DEC-DLV-010 — আজকের জন্য এই slot-এ আর কত মিনিট order নেওয়া যাবে।
-   * server-এ ঢাকার সময়ে হিসাব করা; ≤0 মানে আজ শেষ। `null` = কোনো
-   * শেষ-সময় বসানো নেই।
+   * DEC-DLV-010 — how many minutes are left to order into this slot today.
+   * Computed on the server in Dhaka time; ≤0 means it is over for today.
+   * `null` = no closing time is set.
    *
-   * ⚠️ browser-এর ঘড়ি নয়। বিদেশ থেকে যিনি উপহার পাঠাচ্ছেন, তাঁর ঘড়ি
-   * ঢাকার থেকে ছয় ঘণ্টা আলাদা — আগে `startHour` দিয়ে হিসাব হতো, আর
-   * তাতে দুবাই থেকে অর্ডার করলে ভুল slot খোলা দেখাত।
+   * ⚠️ Not the browser's clock. Someone sending a gift from abroad has a clock
+   * six hours from Dhaka's — this used to be worked out from `startHour`, and
+   * ordering from Dubai showed the wrong slots as open.
    */
   minutesLeft?: number | null;
 }
 
 export const SLOTS: DeliverySlot[] = [
   { id: "morning", label: "10 AM – 1 PM", startHour: 10, capacity: 40, booked: 12 },
-  { id: "afternoon", label: "3 PM – 6 PM", startHour: 15, capacity: 40, booked: 40 }, // ভরা — demo
+  { id: "afternoon", label: "3 PM – 6 PM", startHour: 15, capacity: 40, booked: 40 }, // full — demo
   { id: "evening", label: "6 PM – 9 PM", startHour: 18, capacity: 30, booked: 22 },
 ];
 
@@ -369,17 +379,18 @@ export type SlotState =
   | { ok: false; reason: "passed" | "full" };
 
 /**
- * Slot ধরা যাবে কি না।
- * · আজ হলে — slot শুরু হয়ে গেলে আর নয় (lead time নেই, সোবুজ 14 July)
- * · capacity ভরে গেলে আর নয়, তখন পরেরটা দেখাবে
+ * Whether this slot can still be taken.
+ * · today — not once the slot has started (no lead time, sobuj 14 July)
+ * · not once capacity is full; the next one is shown instead
  */
 export function slotState(
   slot: DeliverySlot,
   isToday: boolean,
   now = new Date(),
 ): SlotState {
-  /*  DEC-DLV-010 — server যদি ঢাকার সময়ে হিসাব করে পাঠিয়ে থাকে, সেটাই
-      সত্যি। browser-এর ঘড়ি শুধু তখনই ব্যবহার হয় যখন আর কিছু জানা নেই।  */
+  /*  DEC-DLV-010 — if the server worked it out in Dhaka time and sent it, that
+      is the truth. The browser's clock is used only when nothing else is
+      known.  */
   if (isToday && typeof slot.minutesLeft === "number")
     return slot.minutesLeft <= 0 ? { ok: false, reason: "passed" } : okOrFull(slot);
   if (isToday && slot.minutesLeft === null && slot.startHour === 0) return okOrFull(slot);
@@ -388,27 +399,28 @@ export function slotState(
 }
 
 function okOrFull(slot: DeliverySlot): SlotState {
-  /*  capacity ০ মানে "সীমা বসানো হয়নি", "ভরে গেছে" নয় — admin-এ ঘরটা
-      খালি রাখলে ঠিক এটাই হয়। শূন্যকে ভরা ধরলে প্রতিটা নতুন slot জন্মের
-      সাথে সাথেই বন্ধ দেখাত।  */
+  /*  capacity 0 means "no limit was set", not "it is full" — which is exactly
+      what happens when the field is left empty in the admin. Treating zero as
+      full would show every new slot as closed the moment it was born.  */
   if (slot.capacity > 0 && slotLeft(slot) <= 0) return { ok: false, reason: "full" };
   return { ok: true, left: slot.capacity > 0 ? slotLeft(slot) : 999 };
 }
 
 /**
- * এই method-এর আজকের জন্য একটাও slot খোলা আছে কি না — Same Day-র শর্ত।
+ * Whether this method has even one slot open today — Same Day's condition.
  *
- * ⚠️ method-এর **নিজের** slot দেখে। আগে সবসময় হাতে-লেখা `SLOTS` দেখত, তাই
- * মালিক admin-এ যে slot বানাতেন তার সাথে checkout-এর "সব slot শেষ" বার্তার
- * কোনো সম্পর্কই ছিল না।
+ * ⚠️ Looks at the method's **own** slots. It always looked at the hand-written
+ * `SLOTS`, so the slots the owner created in the admin had no bearing at all
+ * on checkout's "all slots are gone" message.
  */
 export function anySlotToday(m: DeliveryMethod, now = new Date()): boolean {
   return slotsOf(m).some((s) => slotState(s, true, now).ok);
 }
 
 /* ─────────────────── METHOD AVAILABILITY ───────────────────
-   বন্ধ card লুকাই না — ধূসর করে **কারণ** লিখি। লুকিয়ে দিলে customer
-   ভাববে Radian midnight করেই না, আর কেউ কখনো জানবে না কেন বিক্রি কমল।
+   A closed card is not hidden — it is greyed out with the **reason** written
+   on it. Hide it and the customer concludes Radian does not do midnight at
+   all, and nobody ever learns why sales fell.
 */
 
 export type MethodState = { ok: true } | { ok: false; reason: string };
@@ -436,8 +448,9 @@ export function cartLeadDays(items: { leadTimeDays?: number | null }[]): number 
 }
 
 /* ─────────────────── WHAT SPEEDS THIS BASKET CAN TAKE ───────────────────
-   Owner's ruling, 1 Aug 2026, asked and answered in his own words:
-   *"যতগুলা product cart-এ থাকুক, যে নিয়ম সবগুলা product-এ আছে সেটাই win হবে"*.
+   Owner's ruling, 1 Aug 2026, asked and answered in his own words (translated):
+   *"however many products are in the cart, the rule that ALL of the products
+   have wins"*.
 
    INTERSECTION, not union. One address, one rider, one journey — so a cream
    cake that cannot travel at midnight stops the whole order travelling at
@@ -513,9 +526,9 @@ export function methodState(
       invites them back tomorrow morning for something that will never be
       allowed express at all.
 
-      ⚠️ `speedKeyFor()`, `speeds[method.id]` নয় — ছাঁচ থেকে, নাম থেকে নয়।
-      দেখুন speedKeyFor()-এর নোট: id দিয়ে খুঁজলে live data-য় এই পুরো
-      restriction-টাই নিঃশব্দে বন্ধ ছিল।  */
+      ⚠️ `speedKeyFor()`, not `speeds[method.id]` — from the shape, not from
+      the name. See the note on speedKeyFor(): looking up by id meant this
+      entire restriction was silently off on live data.  */
   const key = speedKeyFor(method);
   const gate = key ? speeds[key] : null;
   if (gate && !gate.ok) {
@@ -544,20 +557,21 @@ export function methodState(
     };
   }
 
-  /*  ── DEC-DLV-010 · দিনের জানালা ─────────────────────────────────────────
-      live method-এ খোলা-বন্ধের হিসাব **server** করে, ঢাকার ঘড়িতে (`closedNow`
-      / `closedReason`)। browser-এর ঘড়ি নয় — দুবাই থেকে উপহার পাঠালে সেটা ছয়
-      ঘণ্টা আলাদা।
+  /*  ── DEC-DLV-010 · the day's window ──────────────────────────────────────
+      On a live method the **server** decides open or closed, on Dhaka's clock
+      (`closedNow` / `closedReason`). Not the browser's clock — a gift sent
+      from Dubai is six hours away from it.
 
-      ⚠️ এই যাচাই card আঁকার সময় হতো, কিন্তু `methodState()`-এ ছিল না। ফলে
-      "Closed for today" লেখা ধূসর card-ও validateStep(4) পার করে দিত।  */
+      ⚠️ This check ran while drawing the card but was missing from
+      `methodState()`. So a greyed-out card reading "Closed for today" still
+      passed validateStep(4).  */
   const live = method as Partial<LiveMethod>;
   if (live.closedNow)
     return { ok: false, reason: live.closedReason ?? "Not available right now" };
 
-  /*  হাতে-লেখা express-এর জানালা। live method-এ এই সংখ্যা delivery module-এ
-      বসে (openFromMin / openToMin) আর উপরের `closedNow`-ই তার উত্তর — তাই
-      `timing` থাকলে এখানে আর কিছু করার নেই।  */
+  /*  The hand-written express window. On a live method these numbers are set
+      in the delivery module (openFromMin / openToMin) and `closedNow` above is
+      the answer — so when `timing` is present there is nothing to do here.  */
   if (!method.timing && method.id === "express") {
     if (h < EXPRESS_WINDOW.startHour)
       return { ok: false, reason: `Opens at ${hourLabel(EXPRESS_WINDOW.startHour)}` };
@@ -594,9 +608,9 @@ export interface DateOption {
 }
 
 /**
- * Method অনুযায়ী তারিখের strip।
- * · midnight — আজকেরটা শুধু সন্ধ্যা ৬টার আগে (MIDNIGHT_CUTOFF_HOUR)
- * · scheduled — আজকেরটা তখনই, যখন আজ একটা slot অন্তত খোলা
+ * The date strip, per method.
+ * · midnight — today only before 6 PM (MIDNIGHT_CUTOFF_HOUR)
+ * · scheduled — today only while at least one slot is still open
  */
 export function dateOptions(
   method: DeliveryMethod,
@@ -644,7 +658,7 @@ export function dateOptions(
     });
   }
 
-  // midnight ছাড়া বাকিদের জন্য "Tonight" শব্দটা ভুল
+  // "Tonight" is the wrong word for everything except midnight
   if (!method.midnight && out[0]) out[0].label = "Today";
 
   return out;
@@ -656,7 +670,7 @@ export function toISODate(d: Date): string {
   ).padStart(2, "0")}`;
 }
 
-/** "Delivered in 1–3 days" — courier zone-এ তারিখের সীমা */
+/** "Delivered in 1–3 days" — the date range in the courier zone */
 export function courierWindow(now = new Date(), leadDays = 0): string {
   const fmt = (n: number) => {
     const d = new Date(now);
@@ -672,9 +686,10 @@ export function courierWindow(now = new Date(), leadDays = 0): string {
 /* ─────────────────── FEE ───────────────────
 
    ★ Free-midnight promo (D25)
-   promo.ts: ৳3,000-এর উপরে free midnight delivery।
-   ছুঁলে midnight-এর **fee + surcharge দুটোই মাফ** (৳60 + ৳200 → FREE)।
-   অন্য method-এ কিছু মাফ নয় — offer-এর কথাই "free MIDNIGHT delivery"।
+   promo.ts: free midnight delivery above ৳3,000.
+   Once reached, **both midnight's fee and its surcharge are waived**
+   (৳60 + ৳200 → FREE). Nothing is waived on any other method — the offer's own
+   words are "free MIDNIGHT delivery".
 */
 
 export interface DeliveryQuote {
@@ -689,20 +704,20 @@ export interface DeliveryQuote {
 export function quoteDelivery(args: {
   zone: Zone | null;
   methodId: MethodId;
-  /** deliverable subtotal — held item বাদ (D21) */
+  /** deliverable subtotal — held items excluded (D21) */
   subtotalPaisa: number;
   /**
-   * DEC-DLV-009 — delivery module থেকে আসা আসল সারি।
+   * DEC-DLV-009 — the real row from the delivery module.
    *
-   * ⚠️ এটা না দিলে নিচে `getMethod()` হাতে-লেখা তালিকায় খোঁজে, আর তখন
-   * মালিকের ৳২০০-র বদলে সেই পুরনো ৳৬০ বেরিয়ে আসে। checkout সবসময় এটা
-   * পাঠায়; পুরনো caller-দের জন্য fallback রাখা আছে।
+   * ⚠️ Without this, `getMethod()` below searches the hand-written list and
+   * the old ৳60 comes out instead of the owner's ৳200. Checkout always sends
+   * it; the fallback is kept for older callers.
    */
   method?: DeliveryMethod;
 }): DeliveryQuote {
-  /*  ⚠️ `?? METHODS[1]` — খোঁজ ব্যর্থ হলে শূন্য দাম দেখানোর চেয়ে পুরনো
-      fallback-ই কম ক্ষতিকর, কারণ checkout সবসময় `method` পাঠায় (উপরের নোট)।
-      এটা শুধু seed/demo caller-দের জন্য।  */
+  /*  ⚠️ `?? METHODS[1]` — on a failed lookup the old fallback does less damage
+      than showing a price of zero, because checkout always sends `method` (see
+      the note above). This is for seed/demo callers only.  */
   const method = args.method ?? getMethod(args.methodId) ?? METHODS[1];
   const grossPaisa = method.feePaisa + method.surchargePaisa;
 
