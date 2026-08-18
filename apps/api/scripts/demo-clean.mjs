@@ -54,20 +54,28 @@ const WIPE = [
   'Outreach', 'MarketingOptOut', 'OrderAttribution',
   'AffiliateCommission', 'AffiliatePayout', 'Affiliate',
   'LoyaltyPoint', 'Referral', 'ReferralCode',
-  'AdInsight', 'DailySnapshot', 'Campaign',
+  'AdInsight', 'DailySnapshot',
+  // Campaign moved down to the finance block: Expense.campaignId points here.
   // offers
   'OfferRedemption', 'Offer',
   // orders & payments
+  /*  Two children added in Aug 2026, after this list was first written, and both
+      hold a foreign key into rows deleted a few lines below — so they have to go
+      first or the whole transaction rolls back:
+        ReviewInvite          -> Order, Customer, Product
+        CarrierRemittanceLine -> CarrierRemittance, DeliveryAssignment
+      Caught by the dry run, which is exactly what the dry run is for.  */
+  'ReviewInvite', 'CarrierRemittanceLine',
   'OrderPhoto', 'PaymentTransaction', 'PaymentSession',
   'SalesReturnLine', 'SalesReturn', 'CustomerCredit',
   'OrderMessage', 'OrderLine', 'DeliveryAssignment', 'CapacityBooking',
   'CheckoutLead', 'Order',
   // POS
   'PosCashMovement', 'PosHeldCart', 'PosShift',
+  // reviews — before Customer: Review.customerId points at it
+  'Review',
   // customers
   'RecipientOccasion', 'Recipient', 'Customer',
-  // reviews
-  'Review',
   // assembly
   'AssemblyProductionLine', 'AssemblyProduction',
   'AssemblyTemplateLine', 'AssemblyTemplate',
@@ -85,19 +93,20 @@ const WIPE = [
   // purchases & suppliers (types kept)
   'SupplierPaymentAllocation', 'SupplierPayment', 'SupplierAdjustment', 'SupplierCredit',
   'PurchaseReturnLine', 'PurchaseReturn', 'PurchasePayment', 'PurchaseLine', 'Purchase',
-  'Supplier',
-  // items (masters kept)
+  // items (masters kept) — before Supplier: Item.supplierId points at it
   'ItemComponent', 'Item',
+  'Supplier',
   // finance transactions (chart of accounts + settings kept)
-  'JournalLine', 'JournalEntry', 'Expense', 'Income', 'Transfer',
+  'JournalLine', 'JournalEntry', 'Expense', 'Campaign', 'Income', 'Transfer',
   'PartnerTransaction', 'Partner', 'CarrierRemittance', 'AccountReconciliation',
   'LoanPayment', 'Loan', 'PrepaidItem', 'FixedAsset', 'FinancePostingFailure',
   'RecurringExpense',
-  // capacity groups sit on products
-  'CapacityGroup',
   // catalog last (products pointed at these)
   'Tag',
   'CategoryTrustBadge', 'CategorySpec', 'CategoryFaq', 'Category',
+  // capacity groups sit on products — and Category.capacityGroupId points here,
+  // so this has to come after Category, not before it.
+  'CapacityGroup',
   'Brand', 'Collection', 'Banner',
 ];
 

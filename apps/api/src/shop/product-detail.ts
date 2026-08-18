@@ -643,7 +643,7 @@ export class ProductDetailService {
         trustBadges: {
           where: LIVE_ROW,
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          /*  DEC-PRD-023 — নিজের আপলোড করা icon-ও আসে।  */
+          /*  DEC-PRD-023 - an uploaded icon comes through too.  */
           select: { icon: true, iconUrl: true, label: true, sub: true },
         },
         variantValue: { select: { label: true, swatch: true, imageUrl: true } },
@@ -686,8 +686,8 @@ export class ProductDetailService {
       catFaqs,
       bundle,
       upgrades,
-      /*  DEC-PRD-027 — WhatsApp নম্বরটা এখান থেকেই, দুই জায়গায় দুটো নম্বর
-          রাখার মানে নেই।  */
+      /*  DEC-PRD-027 - the WhatsApp number comes from here; there is no sense
+          keeping two numbers in two places.  */
       company,
       craft,
       cutoffMinutesLeft,
@@ -704,8 +704,8 @@ export class ProductDetailService {
       this.craft(p.id, p.category.id, p.category.parent?.id ?? null),
       this.cutoffs(),
       this.offers(p.id, p.category.id, p.category.parent?.id ?? null),
-      /*  ⚠️ বাছা সময়ের **নিজের** ঘরটা — মালিকের নিয়ম: আজকের জন্য এক
-          সংখ্যা, মাসের জন্য আরেক।  */
+      /*  The chosen window's OWN box - the owner's rule: one number for
+          today, a different one for the month.  */
       this.salesSignal(
         p.id,
         p.salesWindow === 'TODAY'
@@ -737,10 +737,11 @@ export class ProductDetailService {
     ]);
 
     /*
-      ⚠️ DEC-PRD-028 — তারিখ দুটো এখানে থাকতেই হবে। ৩ আগস্ট এই দুটো লাইন
-      বাদ পড়েছিল, ফলে গতকাল শেষ হওয়া ছাড় product page-এ বসেই ছিল: admin
-      ৳2,400 দেখাত আর দোকান ৳2,160 নিত। `paidPaisa()` গেটটা চালায়, কিন্তু
-      যা দেওয়া হয়নি তার উপর চালাতে পারে না।
+      DEC-PRD-028 - both dates MUST be selected here. On 3 August these two
+      lines were missed, so a discount that had ended the day before was still
+      sitting on the product page: the admin showed ৳2,400 while the shop
+      charged ৳2,160. `paidPaisa()` runs the gate, but it cannot run it on
+      something it was never given.
     */
     const money = {
       sellingPricePaisa: p.sellingPricePaisa,
@@ -782,8 +783,8 @@ export class ProductDetailService {
         not keep talking after the till has closed.  */
     const availability = availabilityOf({
       ...p,
-      /*  ⚠️ শুধু Manual-এ। TRACKED product এমনিতেই gate-এর বাইরে
-          (DEC-PDP-09), কারণ তাদের আসল গোনা Inventory-তে।  */
+      /*  Manual only. A TRACKED product is outside this gate anyway
+          (DEC-PDP-09), because its real count lives in Inventory.  */
       variantStock: p.stockMode === 'MANUAL' ? p.variants.map(variantCount) : undefined,
     });
 
@@ -850,9 +851,9 @@ export class ProductDetailService {
           vendor/stock work, the value was being SAVED, and this line published
           `stockQty` anyway. So the field did nothing and the owner had no way
           of knowing. Empty (`null`) still means "publish the real one".  */
-      /*  DEC-PRD-014 — variant থাকলে গোনাটা তাদের, তাই দেখানো সংখ্যাটাও
-          তাদের যোগফল। মালিকের নিজের হাতে লেখা `displayQty` তার উপরেও
-          চলে — ওটা বরাবরই একটা বিক্রির কথা, গোনা নয়।  */
+      /*  DEC-PRD-014 - with variants, the count belongs to them, so the number
+          shown is their sum. The owner's hand-written `displayQty` still wins
+          over that - it has always been a sales line, not a count.  */
       /*  ⚠️ Silenced whenever the availability gate says OUT_OF_STOCK —
           whatever showStock/displayQty say. See the comment above
           `availability`.  */
