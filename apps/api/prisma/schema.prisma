@@ -5354,58 +5354,62 @@ model CompanySetting {
   updatedAt DateTime @updatedAt
 }
 
-/// বাইরের সেবার চাবি। ADM-D09 (৩০ জুলাই ২০২৬)।
+/// Keys for outside services. ADM-D09 (30 July 2026).
 ///
-/// **ভাগ করা হয়েছে ধরন অনুযায়ী** (মালিকের নির্দেশ, ৩০ জুলাই): টাকা নেওয়ার
-/// gateway এক জায়গায়, courier আরেক জায়গায়। একটা লম্বা তালিকায় সব চাবি জড়ো
-/// করলে কোনটা টাকার আর কোনটা পার্সেলের সেটা আলাদা করা যায় না।
+/// GROUPED BY KIND (owner's instruction, 30 July): payment gateways in one
+/// place, couriers in another. Piling every key into one long list makes it
+/// impossible to tell which one moves money and which one moves parcels.
 ///
-/// **মালিকের সিদ্ধান্ত, ৩০ জুলাই: বাইরের সব সেবা এখানেই।** Facebook, WhatsApp,
-/// Google, Meta — সব।
+/// The owner's ruling, 30 July: EVERY outside service lives here. Facebook,
+/// WhatsApp, Google, Meta - all of it.
 ///
-/// ⚠️ তাহলে One Data One Owner রক্ষা পায় কীভাবে? **একটা লাইন টেনে**, আর লাইনটা
-/// এই:
+/// So how does One Data One Owner survive that? By drawing a line, and the
+/// line is this:
 ///
-///   **সংযোগ এখানে** — চাবি, token, account নম্বর, pixel ID, চালু/বন্ধ,
-///   sandbox নাকি live। "আমরা কার সাথে যুক্ত।"
+///   THE CONNECTION LIVES HERE - keys, tokens, account numbers, pixel IDs,
+///   on/off, sandbox or live. "Who we are connected to."
 ///
-///   **বিষয়বস্তু যার যার module-এ** — WhatsApp-এর বার্তার লেখা (Marketing),
-///   SEO-র title (SEO), loyalty-র হার (Marketing)। "ওই সংযোগ দিয়ে কী পাঠাব।"
+///   THE CONTENT LIVES IN ITS OWN MODULE - the WhatsApp message wording
+///   (Marketing), the SEO titles (SEO), the loyalty rate (Marketing).
+///   "What we send over that connection."
 ///
-/// এর মানে একটা চাবি ঠিক **এক জায়গায়** থাকে, দুই জায়গায় নয়। পুরনো
-/// `MessagingSetting.emailApiKey` আর `TrackingSetting.adsAccessToken`-এর মতো
-/// ঘরগুলো এক release-এর জন্য থাকবে (migration সেগুলো এখানে কপি করে দেয়), তারপর
-/// যাবে। যতক্ষণ দুটো আছে, পড়ার পথ একটাই — `IntegrationsService.credentials()`।
+/// That way a key sits in exactly one place, never two. Old fields such as
+/// `MessagingSetting.emailApiKey` and `TrackingSetting.adsAccessToken` stay
+/// for one release (the migration copies them here) and then go. While both
+/// exist there is only one way to read them:
+/// `IntegrationsService.credentials()`.
 enum IntegrationKind {
-  PAYMENT // টাকা নেওয়া — SSLCommerz · bKash · Nagad
-  COURIER // পার্সেল পাঠানো — Pathao · Steadfast · RedX
-  MESSAGING // গ্রাহককে পৌঁছানো — WhatsApp · Email · SMS
-  SOCIAL // পাতা ও বিজ্ঞাপন — Facebook · Instagram · Meta Ads
-  ANALYTICS // মাপা — Meta Pixel · GA4 · Google Ads · GTM · TikTok
+  PAYMENT // taking money - SSLCommerz, bKash, Nagad
+  COURIER // sending parcels - Pathao, Steadfast, RedX
+  MESSAGING // reaching the customer - WhatsApp, Email, SMS
+  SOCIAL // pages and ads - Facebook, Instagram, Meta Ads
+  ANALYTICS // measuring - Meta Pixel, GA4, Google Ads, GTM, TikTok
 }
 
-/// একটা সেবার চাবি ও অবস্থা।
+/// One service's keys and its state.
 ///
-/// ঘরগুলো নাম ধরে রাখা হয়েছে (`clientId`, `apiKey`…), `secret1`/`secret2`
-/// নয় — ছ'মাস পরে `secret2`-এ কী ছিল কেউ মনে রাখে না। কোন সেবা কোন ঘর ব্যবহার
-/// করে সেটা কোডের manifest-এ লেখা, আর পর্দা সেখান থেকেই লেবেল নেয়।
+/// The fields are named for what they are (`clientId`, `apiKey`...) rather
+/// than `secret1`/`secret2` - six months later nobody remembers what went in
+/// `secret2`. Which service uses which field is declared in a manifest in the
+/// code, and the screen takes its labels from there.
 ///
-/// ⚠️ চাবির মান **কখনো পুরো ফেরত পাঠানো হয় না** — পর্দায় শুধু শেষ চারটে অক্ষর
-/// (`••••3f8a`)। response-এ চাবি মানে browser cache-এ, স্ক্রিনশটে আর log-এ চাবি।
+/// A key's value is NEVER returned in full - the screen shows the last four
+/// characters only (`....3f8a`). A key in a response is a key in the browser
+/// cache, in a screenshot, and in the logs.
 model Integration {
   id       String          @id @default(cuid())
   kind     IntegrationKind
-  /// "SSLCOMMERZ" · "BKASH" · "PATHAO" — manifest-এর চাবি, কখনো বদলাবে না
+  /// "SSLCOMMERZ", "BKASH", "PATHAO" - the manifest key, and it never changes
   provider String
   label    String
 
-  /// বন্ধ থাকলে কোড এটা ব্যবহারই করবে না, চাবি বসানো থাকলেও
+  /// Disabled means the code will not use it at all, key or no key
   isEnabled Boolean @default(false)
-  /// ⚠️ false = sandbox (নকল টাকা), true = live (আসল টাকা)। আলাদা ঘর, কারণ
-  /// sandbox-এর চাবি দিয়ে live-এ চালানো মানে গ্রাহকের টাকা হারিয়ে যাওয়া।
+  /// false = sandbox (play money), true = live (real money). A separate field,
+  /// because running live on sandbox keys means a customer's money vanishing.
   isLive    Boolean @default(false)
 
-  /* ---- চাবি ---- */
+  /* ---- Keys ---- */
   clientId      String? @db.Text // SSLCommerz store id · bKash app key · pixel ID · ad account
   clientSecret  String? @db.Text // store password · app secret · client secret
   username      String? @db.Text
@@ -5414,20 +5418,22 @@ model Integration {
   baseUrl       String? @db.Text
   webhookSecret String? @db.Text
 
-  /// একই সেবার ভেতরে কোন সরবরাহকারী — email-এ BREVO নাকি RESEND, SMS-এ কোনটা,
-  /// Meta Ads-এ কোন মুদ্রা। manifest বলে দেয় কোন সেবায় এটা লাগে।
+  /// Which provider within the same kind of service - BREVO or RESEND for
+  /// email, which one for SMS, which currency for Meta Ads. The manifest says
+  /// which services need it.
   variant String?
 
-  /// COURIER-এর জন্য — Delivery-র `CourierService` সারির সাথে নরম যোগ।
-  /// নাম ও tracking URL ওখানেই থাকে; এখানে শুধু চাবি। দুটো আলাদা জিনিস:
-  /// courier-টা আমরা ব্যবহার করি (Delivery), আর তার API-তে ঢোকার চাবি (এটা)।
+  /// For COURIER - a soft link to Delivery's `CourierService` row. The name
+  /// and tracking URL live there; only the keys live here. Two different
+  /// things: the courier we use (Delivery), and the key that opens its API
+  /// (this).
   courierId String?
 
   note String?
 
-  /* ---- শেষ কবে পরীক্ষা করা হয়েছে ---- */
-  /// একটা চাবি বসানো আছে মানে সেটা কাজ করে না। এই দুটো ঘর ছাড়া "চালু" আর
-  /// "চালু বলে ধরে নেওয়া" এক দেখায়।
+  /* ---- When it was last checked ---- */
+  /// A key being present does not mean it works. Without these two fields,
+  /// "connected" and "assumed to be connected" look identical.
   lastCheckedAt DateTime?
   lastCheckOk   Boolean?
   lastCheckNote String?
@@ -5436,26 +5442,28 @@ model Integration {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  /// এক সেবার দুটো সারি থাকতে পারবে না — নইলে কোনটা আসল সেই প্রশ্ন ফিরে আসে
+  /// One service cannot have two rows - otherwise "which one is real" comes
+  /// back as a question
   @@unique([kind, provider])
   @@index([kind])
 }
 
 enum AuthTokenKind {
-  INVITE // মালিক ইমেইল দিয়ে ডাকলেন — মানুষটা নিজে পাসওয়ার্ড বসাবে
-  RESET // "পাসওয়ার্ড ভুলে গেছি"
+  INVITE // the owner invited someone by email - they set their own password
+  RESET // "I forgot my password"
 }
 
-/// ইমেইলে পাঠানো এককালীন লিংক।
+/// A one-time link sent by email.
 ///
-/// তিনটে জিনিস ইচ্ছে করে এভাবে:
-///   ১. tokenHash — আসল token কখনো ডেটাবেসে বসে না। ব্যাকআপ ফাঁস হলেও
-///      কারও অ্যাকাউন্ট খোলা যাবে না।
-///   ২. usedAt — একবারই চলে। ইমেইল ফরওয়ার্ড হলে দ্বিতীয়বার কাজ করবে না।
-///   ৩. expiresAt — INVITE ৭ দিন, RESET ১ ঘণ্টা।
+/// Three things are deliberate:
+///   1. tokenHash - the real token never sits in the database. Even a leaked
+///      backup opens nobody's account.
+///   2. usedAt - it works once. A forwarded email does not work a second time.
+///   3. expiresAt - 7 days for INVITE, 1 hour for RESET.
 ///
-/// ⚠️ PIN এই পথে রিসেট হয় না। ইমেইল হাতে পেলেই টাকার কাজের ক্ষমতা পাওয়া
-/// যাবে — সেটা হতে দেওয়া যায় না। PIN রিসেট শুধু OWNER, পর্দা থেকে (ADM-RULE-006)।
+/// The PIN is NOT reset down this path. Getting hold of the email would then
+/// hand over the power to move money, and that cannot be allowed. A PIN reset
+/// is OWNER-only, from the screen (ADM-RULE-006).
 model AuthToken {
   id        String        @id @default(cuid())
   kind      AuthTokenKind
