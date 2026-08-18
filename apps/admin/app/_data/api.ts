@@ -1979,8 +1979,7 @@ export async function listCategoriesSafe(): Promise<{ items: ApiCategoryNode[]; 
     const rows = await listCategoryTree();
     return { items: rows, isDemo: false };
   } catch {
-    const { DEMO_CATEGORIES } = await import("./categoryDemo");
-    return { items: DEMO_CATEGORIES, isDemo: true };
+    return { items: [], isDemo: true };
   }
 }
 /** POST a clean Bangladesh flower & gift starter taxonomy into an empty real DB */
@@ -2097,18 +2096,7 @@ export async function loadTagsSafe(): Promise<{ groups: UiTagGroup[]; tags: UiTa
         })),
     };
   } catch {
-    const { DEMO_GROUPS, DEMO_GROUP_TAGS } = await import("./tagGroupDemo");
-    return {
-      isDemo: true,
-      groups: DEMO_GROUPS.map((g) => ({
-        id: g.id, slug: g.slug, name: g.name, sortOrder: g.sortOrder,
-        isActive: g.isActive, isSystem: g.isSystem, displayStyle: g.displayStyle,
-      })),
-      tags: DEMO_GROUP_TAGS.map((t) => ({
-        id: t.id, slug: t.slug, name: t.name, groupId: t.groupId,
-        sortOrder: t.sortOrder, isActive: t.isActive, img: t.img, products: t.products,
-      })),
-    };
+    return { isDemo: true, groups: [], tags: [] };
   }
 }
 
@@ -2161,8 +2149,7 @@ export async function loadBrandsSafe(): Promise<{ items: ApiBrand[]; isDemo: boo
     const rows = await listBrands();
     return { items: rows, isDemo: false };
   } catch {
-    const { DEMO_BRANDS } = await import("./brandDemo");
-    return { items: DEMO_BRANDS, isDemo: true };
+    return { items: [], isDemo: true };
   }
 }
 /** POST a clean starter brand set into an empty real DB */
@@ -2251,8 +2238,7 @@ export async function loadUnitsSafe(): Promise<{ items: ApiUnit[]; isDemo: boole
     const rows = await listUnits();
     return { items: rows, isDemo: false };
   } catch {
-    const { DEMO_UNITS } = await import("./unitDemo");
-    return { items: DEMO_UNITS, isDemo: true };
+    return { items: [], isDemo: true };
   }
 }
 
@@ -2619,8 +2605,7 @@ export async function loadItemsSafe(): Promise<{ items: ApiItem[]; isDemo: boole
   try {
     return { items: await listItems(), isDemo: false };
   } catch {
-    const { DEMO_ITEMS } = await import("./itemDemo");
-    return { items: DEMO_ITEMS, isDemo: true };
+    return { items: [], isDemo: true };
   }
 }
 
@@ -2947,8 +2932,7 @@ export async function loadItemCategoriesSafe(): Promise<{ groups: ApiItemCategor
   try {
     return { groups: await listItemCategories(), isDemo: false };
   } catch {
-    const { DEMO_ITEM_GROUPS } = await import("./itemDemo");
-    return { groups: DEMO_ITEM_GROUPS, isDemo: true };
+    return { groups: [], isDemo: true };
   }
 }
 
@@ -2972,8 +2956,7 @@ export async function loadItemAttributesSafe(): Promise<{ attrs: ApiItemAttribut
   try {
     return { attrs: await listItemAttributes(), isDemo: false };
   } catch {
-    const { DEMO_ITEM_ATTRIBUTES } = await import("./itemDemo");
-    return { attrs: DEMO_ITEM_ATTRIBUTES, isDemo: true };
+    return { attrs: [], isDemo: true };
   }
 }
 
@@ -3053,8 +3036,7 @@ export async function loadItemTrashSafe(): Promise<{ items: ApiItem[]; isDemo: b
 export async function loadItemRecipesSafe(): Promise<{ items: ApiRecipeItem[]; isDemo: boolean }> {
   try { return { items: await listItemRecipes(), isDemo: false }; }
   catch {
-    const { DEMO_ITEMS } = await import("./itemDemo");
-    return { items: DEMO_ITEMS.filter((i) => i.itemType === "FINISHED"), isDemo: true };
+    return { items: [], isDemo: true };
   }
 }
 
@@ -3225,16 +3207,20 @@ export async function loadPurchasesSafe(): Promise<{ purchases: ApiPurchase[]; i
   try {
     return { purchases: await listPurchases(), isDemo: false };
   } catch {
-    const { DEMO_PURCHASES } = await import("./purchaseDemo");
-    return { purchases: DEMO_PURCHASES, isDemo: true };
+    return { purchases: [], isDemo: true };
   }
 }
 export async function loadPurchaseStatsSafe(): Promise<{ stats: PurchaseStats; isDemo: boolean }> {
   try {
     return { stats: await getPurchaseStats(), isDemo: false };
   } catch {
-    const { DEMO_PURCHASE_STATS } = await import("./purchaseDemo");
-    return { stats: DEMO_PURCHASE_STATS, isDemo: true };
+    return {
+      stats: {
+        totalBoughtPaisa: 0, totalPaidPaisa: 0, totalDuePaisa: 0, monthBoughtPaisa: 0,
+        monthCount: 0, dueCount: 0, advanceWaiting: [], openCreditPaisa: 0, count: 0,
+      },
+      isDemo: true,
+    };
   }
 }
 
@@ -3373,32 +3359,37 @@ export async function loadInvOverviewSafe(): Promise<{ overview: InvOverview; is
   try {
     return { overview: await getInvOverview(), isDemo: false };
   } catch {
-    const { DEMO_INV_OVERVIEW } = await import("./inventoryDemo");
-    return { overview: DEMO_INV_OVERVIEW, isDemo: true };
+    return {
+      overview: {
+        needsAttention: { negative: [], negativeCount: 0, low: [], lowCount: 0, expiring: [] },
+        kpis: {
+          totalValuePaisa: 0, itemCount: 0, wastageTodayPaisa: 0,
+          wastageMonthPaisa: 0, giftMonthPaisa: 0, movementsToday: 0,
+        },
+      },
+      isDemo: true,
+    };
   }
 }
 export async function loadInvStockSafe(params?: { search?: string; filter?: string }): Promise<{ rows: InvStockRow[]; isDemo: boolean }> {
   try {
     return { rows: await listInvStock(params), isDemo: false };
   } catch {
-    const { demoInvStock } = await import("./inventoryDemo");
-    return { rows: demoInvStock(params), isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 export async function loadInvMovementsSafe(params?: { reason?: string; warehouseId?: string }): Promise<{ rows: InvMovement[]; isDemo: boolean }> {
   try {
     return { rows: await listInvMovements(params), isDemo: false };
   } catch {
-    const { demoInvMovements } = await import("./inventoryDemo");
-    return { rows: demoInvMovements(params), isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 export async function loadInvWarehousesSafe(): Promise<{ rows: ApiWarehouse[]; isDemo: boolean }> {
   try {
     return { rows: await listInvWarehouses(), isDemo: false };
   } catch {
-    const { DEMO_WAREHOUSES } = await import("./inventoryDemo");
-    return { rows: DEMO_WAREHOUSES, isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 
@@ -3457,16 +3448,14 @@ export async function loadInvTransfersSafe(): Promise<{ rows: InvTransfer[]; isD
   try {
     return { rows: await listInvTransfers(), isDemo: false };
   } catch {
-    const { DEMO_INV_TRANSFERS } = await import("./inventoryDemo");
-    return { rows: DEMO_INV_TRANSFERS, isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 export async function loadInvIssuesSafe(kind?: string): Promise<{ rows: InvIssue[]; isDemo: boolean }> {
   try {
     return { rows: await listInvIssues(kind), isDemo: false };
   } catch {
-    const { demoInvIssues } = await import("./inventoryDemo");
-    return { rows: demoInvIssues(kind), isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 
@@ -3503,17 +3492,17 @@ export async function loadInvIssueReportSafe(days = 30): Promise<{ report: InvIs
   try {
     return { report: await getInvIssueReport(days), isDemo: false };
   } catch {
-    const { demoInvIssueReport } = await import("./inventoryDemo");
-    return { report: demoInvIssueReport(days), isDemo: true };
+    return {
+      report: { days, series: [], totalWastagePaisa: 0, totalGiftPaisa: 0 },
+      isDemo: true,
+    };
   }
 }
 export async function loadInvValuationSafe(): Promise<{ valuation: InvValuation; isDemo: boolean }> {
   try {
     return { valuation: await getInvValuation(), isDemo: false };
   } catch {
-    const { DEMO_INV_STOCK } = await import("./inventoryDemo");
-    const rows = DEMO_INV_STOCK.filter((r) => r.totalQtyMilli !== 0).sort((a, b) => b.valuePaisa - a.valuePaisa);
-    return { valuation: { totalPaisa: rows.reduce((s, r) => s + r.valuePaisa, 0), rows }, isDemo: true };
+    return { valuation: { totalPaisa: 0, rows: [] }, isDemo: true };
   }
 }
 export async function loadInvSettingsSafe(): Promise<{ settings: InvSettings; isDemo: boolean }> {
@@ -3564,8 +3553,7 @@ export async function loadInvStocktakesSafe(): Promise<{ rows: InvStocktake[]; i
   try {
     return { rows: await listInvStocktakes(), isDemo: false };
   } catch {
-    const { DEMO_INV_STOCKTAKES } = await import("./inventoryDemo");
-    return { rows: DEMO_INV_STOCKTAKES, isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 
@@ -3729,32 +3717,40 @@ export async function loadAsmTemplatesSafe(): Promise<{ rows: AsmTemplate[]; isD
   try {
     return { rows: await listAsmTemplates(), isDemo: false };
   } catch {
-    const { DEMO_ASM_TEMPLATES } = await import("./assemblyDemo");
-    return { rows: DEMO_ASM_TEMPLATES, isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 export async function loadAsmProductionsSafe(status?: string): Promise<{ rows: AsmProduction[]; isDemo: boolean }> {
   try {
     return { rows: await listAsmProductions(status), isDemo: false };
   } catch {
-    const { demoAsmProductions } = await import("./assemblyDemo");
-    return { rows: demoAsmProductions(status), isDemo: true };
+    return { rows: [], isDemo: true };
   }
 }
 export async function loadAsmOverviewSafe(): Promise<{ overview: AsmOverview; isDemo: boolean }> {
   try {
     return { overview: await getAsmOverview(), isDemo: false };
   } catch {
-    const { DEMO_ASM_OVERVIEW } = await import("./assemblyDemo");
-    return { overview: DEMO_ASM_OVERVIEW, isDemo: true };
+    return {
+      overview: {
+        kpis: {
+          runningCount: 0, awaitingTransferCount: 0, awaitingTransferValuePaisa: 0,
+          runsToday: 0, runsMonth: 0, producedMonthPaisa: 0, wastedMonthPaisa: 0, templateCount: 0,
+        },
+        noEntryToday: false, running: [], finishedAwaiting: [], byActor: [], topTemplates: [],
+      },
+      isDemo: true,
+    };
   }
 }
 export async function loadAsmWastageSafe(days = 30): Promise<{ report: AsmWastageReport; isDemo: boolean }> {
   try {
     return { report: await getAsmWastage(days), isDemo: false };
   } catch {
-    const { demoAsmWastage } = await import("./assemblyDemo");
-    return { report: demoAsmWastage(days), isDemo: true };
+    return {
+      report: { days, totalWastedPaisa: 0, byComponent: [], docs: [] },
+      isDemo: true,
+    };
   }
 }
 

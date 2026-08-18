@@ -76,11 +76,11 @@ export function OkBar({ text, onClose }: { text: string; onClose: () => void }) 
 export function DemoBar({ onRetry, what }: { onRetry: () => void; what: string }) {
   return (
     <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
-      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Demo data</span>
+      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
       <span className="flex-1 min-w-[240px]">
-        The API (:4000) is not reachable — showing {what}. Start the API and
+        The API is not reachable, so nothing can be shown. Start it and
         <button className="underline font-medium mx-1" onClick={onRetry}>retry</button>
-        for your real data. (Edits here are not saved.)
+        to see what is really there.
       </span>
     </div>
   );
