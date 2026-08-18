@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Icon from "./Icon";
 import {
-  WRAP, FinHeader, Card, Panel, Kpi, Table, Th, Td, Chip, Empty, Flash, Tabs, Banner,
-  btnGhost, input, Lbl, taka, TONE, type Tone,
+  WRAP, FinHeader, Card, Table, Th, Td, Chip, Empty, Flash,
+  btnGhost, input, Lbl, taka, type Tone,
 } from "./FinanceUI";
 import {
   auditStats, auditFacets, auditList, auditBackups, auditActivity, auditForEntity, ago,
@@ -30,6 +30,13 @@ import {
     · backups sit at the top, because "did last night's copy happen" is the
       one thing worth checking without being asked.
 */
+
+const TAB_DEFS = [
+  { key: "MONEY", label: "Money actions", icon: "cash", fg: "#b07818", bg: "#fdf3e2", grad: "linear-gradient(135deg,#b07818,#d9a53a)" },
+  { key: "ALL", label: "Everything", icon: "layers", fg: "#7a2ea8", bg: "#f5eafb", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
+  { key: "ACTIVITY", label: "In plain words", icon: "mail", fg: "#3b76c4", bg: "#eef5fd", grad: "linear-gradient(135deg,#3b76c4,#6ba3e8)" },
+  { key: "BACKUPS", label: "Backups", icon: "download", fg: "#0e9767", bg: "#e7f7f0", grad: "linear-gradient(135deg,#0e9767,#22c08b)" },
+] as const;
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   CREATE: "added",
@@ -144,6 +151,15 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
     }
   }, []);
 
+  /* modal manners: Esc closes, and the page behind holds still */
+  useEffect(() => {
+    if (!trace) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setTrace(null); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [trace]);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -202,101 +218,116 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"} />
       </div>
 
-      <div className="inline-flex rounded-[12px] p-[3px] gap-[3px] mb-4" style={{ background: "#f1ecf7" }}>
-        {([
-          ["MONEY", "Money actions", "cash"],
-          ["ALL", "Everything", "layers"],
-          ["ACTIVITY", "In plain words", "mail"],
-          ["BACKUPS", "Backups", "download"],
-        ] as const).map(([key, label, icon]) => {
-          const on = tab === key;
+      {/*  Four views, four colours — the chosen one goes solid in its own hue
+          so which book is open reads from across the room.  */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {TAB_DEFS.map((t) => {
+          const on = tab === t.key;
           return (
-            <button key={key} onClick={() => setTab(key)}
-              className="flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-[7px] rounded-[9px] transition-all"
-              style={{
-                background: on ? "#fff" : "transparent",
-                color: on ? "#7a2ea8" : "#8f87a0",
-                boxShadow: on ? "0 1px 5px rgba(70,0,102,0.14)" : undefined,
-              }}>
-              <Icon name={icon} size={13} strokeWidth={2.4} />
-              {label}
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-[13px] text-[12.5px] font-bold border transition-all"
+              style={on
+                ? { background: t.grad, color: "#fff", borderColor: "transparent", boxShadow: `0 4px 14px ${t.fg}55` }
+                : { background: "#fff", color: "#2d2838", borderColor: "#e9e2f2" }}>
+              <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center"
+                style={on ? { background: "rgba(255,255,255,0.22)", color: "#fff" } : { background: t.bg, color: t.fg }}>
+                <Icon name={t.icon} size={12} strokeWidth={2.4} />
+              </span>
+              {t.label}
             </button>
           );
         })}
       </div>
 
-      {/*  "Who changed this row" — kickoff §9, question 5. The endpoint existed
-           and nothing called it, so the question had an answer nobody could see.
-
-           It shows BOTH tables for the same record: AuditLog is the machine's
-           field-level diff, ActivityEvent is the human sentence. Either alone
-           tells half the story — the diff without the sentence is unreadable,
-           and the sentence without the diff does not say what the price was
-           before.  */}
+      {/*  The full history opens as a MODAL over wherever you are. It used to
+          be a panel pinned to the top of the page - click "Full history" on
+          row forty and the panel opened somewhere above the fold while you
+          stayed put, none the wiser (owner, 19 Aug). An overlay has no
+          location: it appears in front of you and, closed, you are exactly
+          where you left off - page five of the results included.  */}
       {trace && (
-        <div className="mb-5">
-          <Panel
-            emoji="🔎" tone="brand"
-            title={`Everything that ever happened to this ${humanType(trace.entityType).toLowerCase()}`}
-            sub={trace.entityId}
-            right={
-              <button className={btnGhost} onClick={() => setTrace(null)}>Close</button>
-            }
-          >
-            {trace.loading ? (
-              <div className="p-5 text-[13px] text-body-soft">Reading the trail…</div>
-            ) : trace.audit.length === 0 && trace.activity.length === 0 ? (
-              <div className="p-5">
-                <Empty emoji="🕰" title="Nothing recorded for this record"
-                  sub="Which is itself worth knowing — it means no module has ever written a change against this id." />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(28,12,42,0.5)", backdropFilter: "blur(3px)" }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setTrace(null); }}>
+          <div className="w-full max-w-[880px] max-h-[86vh] rounded-[20px] bg-white overflow-hidden flex flex-col"
+            style={{ boxShadow: "0 24px 80px rgba(20,5,35,0.5)" }}>
+            <div className="px-5 py-3.5 flex items-center gap-3 shrink-0"
+              style={{ background: "linear-gradient(120deg,#470066,#8a2bb0 55%,#cf43ea)" }}>
+              <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-white shrink-0"
+                style={{ background: "rgba(255,255,255,0.16)" }}>
+                <Icon name="clock" size={16} strokeWidth={2.2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14.5px] font-bold text-white leading-tight">
+                  Everything that ever happened to this {humanType(trace.entityType).toLowerCase()}
+                </div>
+                <div className="text-[10.5px] text-white/70 font-mono truncate">{trace.entityId}</div>
               </div>
-            ) : (
-              <div className="p-4 space-y-4">
-                {trace.audit.length > 0 && (
-                  <div>
-                    <div className="text-[12px] font-bold text-purple mb-2">
-                      Field by field ({trace.audit.length})
+              <button onClick={() => setTrace(null)} aria-label="Close"
+                className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0 hover:bg-white/30 transition-colors"
+                style={{ background: "rgba(255,255,255,0.16)" }}>
+                <span style={{ transform: "rotate(45deg)", display: "grid" }}><Icon name="plus" size={15} strokeWidth={2.4} /></span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto">
+              {trace.loading ? (
+                <div className="p-6 text-[13px] text-body-soft">Reading the trail…</div>
+              ) : trace.audit.length === 0 && trace.activity.length === 0 ? (
+                <div className="p-6">
+                  <Empty emoji="🕰" title="Nothing recorded for this record"
+                    sub="Which is itself worth knowing — it means no module has ever written a change against this id." />
+                </div>
+              ) : (
+                <div className="p-4 space-y-5">
+                  {trace.audit.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">Field by field</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#f5eafb", color: "#7a2ea8" }}>{trace.audit.length}</span>
+                      </div>
+                      <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th></>}>
+                        {trace.audit.map((r) => (
+                          <tr key={r.id}>
+                            <Td>
+                              <div className="text-[12.5px]">{ago(r.createdAt)}</div>
+                              <div className="text-[11px] text-body-soft">
+                                {new Date(r.createdAt).toLocaleString()}
+                              </div>
+                            </Td>
+                            <Td><span className="font-semibold text-purple">{r.actorName}</span></Td>
+                            <Td><Chip tone={ACTION_TONE[r.action]}>{ACTION_LABEL[r.action]}</Chip></Td>
+                            <Td><Changes changes={r.changes} /></Td>
+                          </tr>
+                        ))}
+                      </Table>
                     </div>
-                    <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th></>}>
-                      {trace.audit.map((r) => (
-                        <tr key={r.id}>
-                          <Td>
-                            <div className="text-[12.5px]">{ago(r.createdAt)}</div>
-                            <div className="text-[11px] text-body-soft">
-                              {new Date(r.createdAt).toLocaleString()}
-                            </div>
-                          </Td>
-                          <Td><span className="font-semibold text-purple">{r.actorName}</span></Td>
-                          <Td><Chip tone={ACTION_TONE[r.action]}>{ACTION_LABEL[r.action]}</Chip></Td>
-                          <Td><Changes changes={r.changes} /></Td>
-                        </tr>
-                      ))}
-                    </Table>
-                  </div>
-                )}
-                {trace.activity.length > 0 && (
-                  <div>
-                    <div className="text-[12px] font-bold text-purple mb-2">
-                      In plain words ({trace.activity.length})
+                  )}
+                  {trace.activity.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">In plain words</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#eef5fd", color: "#3b76c4" }}>{trace.activity.length}</span>
+                      </div>
+                      <Table head={<><Th>When</Th><Th>What</Th><Th>Who</Th></>}>
+                        {trace.activity.map((e) => (
+                          <tr key={e.id}>
+                            <Td>{ago(e.createdAt)}</Td>
+                            <Td>
+                              <Chip tone={KIND_TONE[e.kind] ?? "slate"}>{e.kind}</Chip>
+                              <div className="text-[13px] mt-0.5">{e.label}</div>
+                              {e.note && <div className="text-[11.5px] text-body-soft">{e.note}</div>}
+                            </Td>
+                            <Td><span className="text-[12.5px] text-body-soft">{e.actorName}</span></Td>
+                          </tr>
+                        ))}
+                      </Table>
                     </div>
-                    <Table head={<><Th>When</Th><Th>What</Th><Th>Who</Th></>}>
-                      {trace.activity.map((e) => (
-                        <tr key={e.id}>
-                          <Td>{ago(e.createdAt)}</Td>
-                          <Td>
-                            <Chip tone={KIND_TONE[e.kind] ?? "slate"}>{e.kind}</Chip>
-                            <div className="text-[13px] mt-0.5">{e.label}</div>
-                            {e.note && <div className="text-[11.5px] text-body-soft">{e.note}</div>}
-                          </Td>
-                          <Td><span className="text-[12.5px] text-body-soft">{e.actorName}</span></Td>
-                        </tr>
-                      ))}
-                    </Table>
-                  </div>
-                )}
-              </div>
-            )}
-          </Panel>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -307,19 +338,19 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                  actually arrive wanting: they have an order number in their hand,
                  not a date range. It matches the record's id, who did it, and the
                  kind of thing — no amount of filtering finds one specific parcel. */}
-            <div className="mb-3">
-              <Lbl>Search</Lbl>
+            {/*  Just the field — no label, no helper prose (owner, 19 Aug:
+                "search barer niche jen kon text na thake").  */}
+            <div className="relative mb-3">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a08fb8] pointer-events-none">
+                <Icon name="search" size={15} strokeWidth={2.2} />
+              </span>
               <input
                 className={input}
+                style={{ paddingLeft: 36 }}
                 placeholder="An order number, a name, anything — e.g. RAD-58217"
                 value={searchLive}
                 onChange={(e) => setSearchLive(e.target.value)}
               />
-              <p className="text-[11px] text-body-soft mt-1">
-                Looks in the record&apos;s ID, who did it, and what kind of thing it
-                was. Then click any row to see everything that ever happened to
-                that one record.
-              </p>
             </div>
             <div className="grid md:grid-cols-5 gap-3">
               <div>
@@ -369,7 +400,8 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               <>
                 <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th><Th /></>}>
                   {rows.map((r) => (
-                    <tr key={r.id}>
+                    <tr key={r.id} className="cursor-pointer hover:bg-[#faf7fd] transition-colors"
+                      onClick={() => void openTrace(r.entityType, r.entityId)}>
                       <Td>
                         <div className="text-[12.5px]">{ago(r.createdAt)}</div>
                         <div className="text-[11px] text-body-soft">
@@ -389,8 +421,9 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                              order" — and that needs every row for that id, not
                              this one.  */}
                         <button
-                          className={btnGhost}
-                          onClick={() => void openTrace(r.entityType, r.entityId)}
+                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white whitespace-nowrap"
+                          style={{ borderColor: "#e4ddef", color: "#7a2ea8" }}
+                          onClick={(e) => { e.stopPropagation(); void openTrace(r.entityType, r.entityId); }}
                         >
                           Full history
                         </button>
@@ -416,7 +449,13 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       {tab === "ACTIVITY" && (
-        <Panel title="What happened, in plain words" emoji="💬" tone="sky" sub="last 14 days">
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+          style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2.5"
+            style={{ background: "linear-gradient(120deg,#3b76c4,#6ba3e8)" }}>
+            <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">What happened, in plain words</span>
+            <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">last 14 days</span>
+          </div>
           {feed.length === 0 ? (
             <Empty emoji="💬" title="Nothing in the last two weeks" />
           ) : (
@@ -434,12 +473,17 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               ))}
             </Table>
           )}
-        </Panel>
+        </div>
       )}
 
       {tab === "BACKUPS" && (
-        <Panel title="Nightly copies of the database" emoji="💾" tone="emerald"
-          sub="written by radian_backup.bat, read here">
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+          style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2.5"
+            style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
+            <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Nightly copies of the database</span>
+            <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{backups.length}</span>
+          </div>
           {backups.length === 0 ? (
             <Empty emoji="💾" title="No backup has ever been recorded"
               sub="Run D:\radian\radian_backup.bat once, then radian_backup_schedule.bat so it happens every night without anybody remembering." />
@@ -465,7 +509,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
             A copy on the same disk as the database survives a mistake, not a dead drive. Copy
             <code className="mx-1">D:\radian\backups\</code> somewhere else now and then.
           </div>
-        </Panel>
+        </div>
       )}
     </div>
   );
