@@ -2432,8 +2432,9 @@ model CheckoutLead {
   @@index([orderId])
 }
 
-/// checkout-এ কতদূর পৌঁছেছিলেন। staff যখন ফোন করবে, "উনি ঠিকানা পর্যন্ত
-/// দিয়ে থেমে গেছেন" আর "শুধু cart-এ রেখেছেন" — দুটো সম্পূর্ণ আলাদা কথা।
+/// How far they got in checkout. When staff make the call, "he filled in the
+/// address and stopped" and "he only left it in the cart" are two completely
+/// different conversations.
 enum CheckoutStage {
   CART
   DETAILS
@@ -2442,24 +2443,24 @@ enum CheckoutStage {
 }
 
 enum CheckoutLeadStatus {
-  /// এখনো checkout-এ আছেন বা সদ্য গেছেন — ১৫ মিনিট পার হয়নি
+  /// Still in checkout, or only just gone - the 15 minutes have not passed
   OPEN
-  /// order হয়ে গেছে — কিছু পাঠানোর দরকার নেই
+  /// An order happened - there is nothing to send
   CONVERTED
-  /// ১৫ মিনিট পেরিয়েছে, বার্তা পাঠানো হয়েছে
+  /// The 15 minutes passed and the message went
   MESSAGED
-  /// পাঠানো হয়নি এবং হবেও না — opt-out, নম্বর নেই, ইত্যাদি
+  /// Not sent, and never will be - opted out, no number, and so on
   SKIPPED
 }
 
-/// বার্তা কোন পথে গেল। Email এখনো ব্যবহার হয় না, কিন্তু রসিদ email-এ পাঠানো
-/// দিনের কাজ — তখন enum বদলাতে migration লাগবে না।
+/// Which road the message went down. Email is not used yet, but emailing a
+/// receipt is a day's work away, and then this enum needs no migration.
 ///
-/// ⚠️ নাম `MessageChannel` নয়, যদিও সেটাই স্বাভাবিক নাম হতো। ওই নামে
-/// Marketing-এর `MessageLog`-এর নিজস্ব enum আগে থেকেই আছে (EMAIL · SMS,
-/// WhatsApp নেই)। ওটায় WHATSAPP যোগ করে ভাগাভাগি করা যেত, কিন্তু তাতে
-/// দুই module একটা enum-এর উপর আটকে যেত — একদিন Marketing-এর দরকারে
-/// মান যোগ হলে সেটা এখানেও এসে পড়ত। এক তথ্যের এক মালিক।
+/// Deliberately NOT called `MessageChannel`, natural as that name would be.
+/// Marketing's `MessageLog` already owns an enum by that name (EMAIL, SMS, no
+/// WhatsApp). Adding WHATSAPP to it and sharing would have chained two modules
+/// to one enum - the day Marketing needed another value, it would have landed
+/// here too. One data, one owner.
 enum OrderMessageChannel {
   WHATSAPP
   SMS
@@ -2467,12 +2468,13 @@ enum OrderMessageChannel {
 }
 
 enum OrderMessageStatus {
-  /// পাঠানোর কথা, এখনো পাঠানো হয়নি
+  /// Due to be sent, not sent yet
   QUEUED
   SENT
   FAILED
-  /// পাঠানোর দরকার ফুরিয়ে গেছে — যেমন ২৪ ঘণ্টা পার হওয়ার আগেই টাকা এসে গেছে,
-  /// বা গ্রাহক opt-out করা। ব্যর্থতা নয়, তাই আলাদা।
+  /// The reason to send it disappeared - the money arrived before the 24
+  /// hours were up, or the customer had opted out. Not a failure, so it is
+  /// kept apart from one.
   SKIPPED
 }
 
@@ -2514,8 +2516,9 @@ enum PaymentStatus {
   refunded
 }
 
-/// order line — productId FK (One Data One Owner) + frozen name/price snapshot।
-/// productType per-line → cancel/refund শাখা (DEC-SAL-005)।
+/// An order line - a productId FK (One Data One Owner) plus a frozen snapshot
+/// of the name and price. `productType` is per line because that is what the
+/// cancel/refund branch reads (DEC-SAL-005).
 model OrderLine {
   id        String  @id @default(cuid())
   orderId   String
@@ -2528,25 +2531,29 @@ model OrderLine {
   sizeLabel   String?
   bundleLabel String?
   addonLabels String[] // Postgres text[]
-  // এই line customer কোন page থেকে যোগ করল — add-on performance এখান থেকেই আসে
+  // Which page the customer added this line from - add-on performance is
+  // measured from here
   addedFrom   AddedFrom @default(PRODUCT)
   persoText   String?
 
-  /// DEC-PRD-012/014 — কোন রঙ/ফ্লেভার বিক্রি হলো। null = variant নেই।
+  /// DEC-PRD-012/014 - which colour or flavour was sold. null = no variant.
   ///
-  /// ⚠️ যোগ হয়েছে ৩ আগস্ট ২০২৬, একটা আসল গরমিল ধরা পড়ার পর: DEC-PRD-014 বলে
-  /// variant থাকলে মজুদ variant-এর ঘরেই, আর সব পর্দা যোগফল দেখায়। কিন্তু
-  /// OrderLine জানতই না কোন variant বিক্রি হলো, তাই Preparing-এর stock −qty
-  /// product-এর ঘরে কাটত — আর দোকান বিক্রির পরেও পুরনো সংখ্যাই দেখত, চিরকাল।
-  /// `variantLabel` snapshot — মালিক রঙটার নাম বদলালেও পুরনো রসিদ বদলায় না।
+  /// Added 3 August 2026 after a real discrepancy surfaced. DEC-PRD-014 says
+  /// that when variants exist the stock lives on the variant and every screen
+  /// shows the sum. But OrderLine had no idea which variant had sold, so the
+  /// -qty at Preparing came off the PRODUCT's own box - and the shop kept
+  /// seeing the old number after a sale, forever.
+  /// `variantLabel` is a snapshot: renaming the colour later must not change
+  /// an old receipt.
   variantId    String?
   variant      ProductVariant? @relation(fields: [variantId], references: [id])
   variantLabel String?
 
-  /// কোন কোন AddOn এই line-এ (id-তালিকা) — মালিকের রায়, ৪ আগস্ট ২০২৬:
-  /// *"add-এর বিনিময়ে যে টাকা আসবে তার জিনিসটা inventory-তে আছে কিনা দেখে
-  /// তবেই sell/process।"* `addonLabels` রসিদের লেখা; এটা মজুদের চাবি —
-  /// লেখা দিয়ে stock খোঁজা যায় না, মালিক নাম বদলালেই হারিয়ে যেত।
+  /// Which AddOns are on this line, by id. The owner's ruling, 4 August 2026:
+  /// *"before selling or processing, check that the thing we are taking money
+  /// for is actually in inventory."* `addonLabels` is the wording on the
+  /// receipt; this is the key into stock - you cannot look stock up by a
+  /// label, and it would vanish the moment he renamed one.
   addonIds String[] @default([])
 
   productType ProductType // per-line readymade/crafted (reuse enum)
@@ -2554,7 +2561,7 @@ model OrderLine {
   unitPaisa   Int
   linePaisa   Int
   discountPaisa Int     @default(0) // per-line discount (edit, audited)
-  refundPaisa Int? // cancel-এ per-line refund (readymade full, crafted advance forfeit)
+  refundPaisa Int? // per-line refund on cancel (readymade full, crafted forfeits the advance)
   refundNote  String?
 
   returnLines SalesReturnLine[] // DEC-RTN-002 — post-delivery returns reference this line
