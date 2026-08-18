@@ -160,32 +160,36 @@ model Category {
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// CATEGORY TRUST BADGE — product page-এর তিনটে প্রতিশ্রুতি, একবার লেখা
+/// CATEGORY TRUST BADGE - the three promises on a product page, written once
 ///
-/// মালিক, ২ আগস্ট ২০২৬:
-/// > *"trust badges, what's inside, faq আসতাছে — কিন্তু এগুলা admin panel-এর
-/// >  কোথা থেকে আসতাছে? আমি তো কোথাও করি নাই, just product upload-এ আছে।
-/// >  আমি চাই প্রতিটা admin panel-এ যেন create করে রাখা যায় আর এখানে যেন
-/// >  just সে data আসে। trust badge-এ তো আমি কোন icon কিছুই custom করে
-/// >  বানাতে পারছি না, তুমি নিজের মতো করে দিয়ে দিছ।"*
+/// The owner, 2 August 2026:
+/// > *"trust badges, what's inside, faq are showing up - but where in the
+/// >  admin panel do they come from? I never created them anywhere, they are
+/// >  only in the product upload. I want to be able to create them in the
+/// >  admin panel and have the data simply arrive here. On a trust badge I
+/// >  cannot customise the icon or anything - you decided it for me."*
 ///
-/// ⚠️ ঠিক ধরেছেন। এতদিন product page-এর badge আসত `ProductTrustBadge` থেকে,
-/// আর সেই সারিগুলো তৈরি হতো product editor-এ **হাতে লেখা template** থেকে —
-/// অর্থাৎ আমার বেছে দেওয়া icon আর শব্দ। মালিকের কোথাও কিছু বদলানোর পথ ছিল না।
+/// He was right. Until then a product page's badges came from
+/// `ProductTrustBadge`, and those rows were generated from a hand-written
+/// template inside the product editor - meaning the icon and the wording were
+/// whatever I had picked. He had no way to change either, anywhere.
 ///
-/// ⚠️ Storefront → Trust-এর `TrustBadge` টেবিলটা **আলাদা জিনিস** — ওটা
-/// homepage-এর strip, গোটা সাইটের। এটা product page-এর, category ধরে।
+/// Do not confuse this with the `TrustBadge` table behind Storefront -> Trust.
+/// That one is the homepage strip and applies to the whole site. This one is
+/// the product page, per category.
 ///
-/// নিয়ম bundle আর craft-এর মতোই: category-তে লেখা = সবাই পায়; product-এ
-/// নিজের কিছু থাকলে সেটাই **বদলে** বসে, যোগ হয় না।
+/// The rule matches bundles and craft points: written on the category, every
+/// product gets it; if a product has its own, that REPLACES the category's
+/// rather than adding to it.
 /// ═══════════════════════════════════════════════════════════════════════════
 model CategoryTrustBadge {
   id         String   @id @default(cuid())
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  /// ⚠️ হয় built-in নামের একটা icon, নয় নিজের আপলোড করা ছবি — দুটো একসাথে নয়।
-  /// `TrustBadge`-এর হুবহু একই নকশা, একই কারণে: সারিটা দেখেই বোঝা যায় কোনটা।
+  /// Either a built-in icon by name or an uploaded image - never both at once.
+  /// Exactly the shape `TrustBadge` uses, for the same reason: looking at the
+  /// row tells you which one it is.
   icon    String?
   iconUrl String? @db.Text
 
@@ -202,10 +206,10 @@ model CategoryTrustBadge {
   @@index([categoryId])
 }
 
-/// "What's inside" — category-র সাধারণ তালিকা, DEC-PRD-023।
+/// "What's inside" - the category's generic list, DEC-PRD-023.
 ///
-/// ⚠️ বেশিরভাগ product-এ এটা নিজের ("24 sticks"), তাই category-রটা কেবল
-/// শুরু করার জায়গা — product-এ কিছু লেখা থাকলে সেটাই চলে।
+/// Most products override this with their own ("24 sticks"), so the category
+/// version is only a starting point: anything written on the product wins.
 model CategorySpec {
   id         String   @id @default(cuid())
   categoryId String
@@ -448,8 +452,9 @@ model Review {
   verifiedPurchase Boolean @default(false)
   orderId          String?
 
-  /// DEC-WEB-006 — যে account থেকে লেখা হলো। ফোনটা form-এর দাবি (session
-  /// থেকে আসে); customerId server নিজে ফোন মিলিয়ে বসায়, form কখনো নয়।
+  /// DEC-WEB-006 - the account this was written from. The phone is what the
+  /// form claims (it comes from the session); customerId is set by the server
+  /// after matching that phone, never by the form.
   customerPhone String?
   customerId    String?
   customer      Customer? @relation("CustomerReviews", fields: [customerId], references: [id])
@@ -983,8 +988,9 @@ enum TagType {
   RECIPIENT
 }
 
-/// colour/flavour sibling group। Variant = আলাদা product (locked §2, DEC-PRD-003):
-/// প্রতি রঙের নিজের ছবি+stock; সাদা গোলাপ শেষ হলে লালের বিক্রি থামে না।
+/// Colour/flavour sibling group. A variant IS a separate product (locked §2,
+/// DEC-PRD-003): each colour carries its own photos and stock, so white roses
+/// running out does not stop the red ones selling.
 model VariantGroup {
   id        String      @id @default(cuid())
   kind      VariantKind
@@ -1000,8 +1006,9 @@ enum VariantKind {
   FLAVOUR
 }
 
-/// sellable catalog entity। "assembled, not manufactured" — আলাদা কাঁচামাল-Item/BOM
-/// table নেই (core principle); what's-inside = নিজের ProductSpec রো।
+/// The sellable catalog entity. "Assembled, not manufactured" - there is no
+/// separate raw-material Item/BOM table (core principle); what's-inside is
+/// simply this product's own ProductSpec rows.
 model Product {
   id         String   @id @default(cuid())
   slug       String   @unique
@@ -1019,115 +1026,126 @@ model Product {
   unitId String?
   unit   Unit?   @relation(fields: [unitId], references: [id])
 
-  // core classification — business logic এর উপর নির্ভর করে, তাই enum
-  productType ProductType // READYMADE | CRAFTED — cancel/advance শাখা (locked §2)
-  zone        ProductZone // DHAKA | NATIONWIDE  (mock "both" → NATIONWIDE)
+  // Core classification - business logic branches on these, so they are enums
+  productType ProductType // READYMADE | CRAFTED - the cancel/advance split (locked §2)
+  zone        ProductZone // DHAKA | NATIONWIDE  (mock "both" -> NATIONWIDE)
   natureType  NatureType // FRESH | ARTIFICIAL
-  natureLabel String? // "100% Fresh Flowers" ইত্যাদি
+  natureLabel String? // "100% Fresh Flowers" and the like
 
-  // PDP story — Product owns (locked §2)
-  shortDesc     String? // title-এর নিচের লাইন
+  // PDP story - owned by Product (locked §2)
+  shortDesc     String? // the line under the title
   typeText      String? // free-text "type"
   videoId       String? // YouTube id
-  nationwideMsg String? // NATIONWIDE-তে না পাওয়া গেলে message
+  nationwideMsg String? // shown when it cannot be delivered NATIONWIDE
 
-  // pricing — সব paisa integer (locked: টাকা=paisa, DEC-PRD-004)
+  // Pricing - everything is integer paisa (locked: taka = paisa, DEC-PRD-004)
   costPaisa         Int
   sellingPricePaisa Int
   discountType      DiscountType @default(NONE)
-  discountValue     Int          @default(0) // FLAT=paisa; PERCENT=basis points (1000 = 10%) — float নয়
+  discountValue     Int          @default(0) // FLAT = paisa; PERCENT = basis points (1000 = 10%) - never a float
 
-  /// ── DEC-PRD-028 · ছাড়টা কবে থেকে কবে পর্যন্ত ───────────────────────────
-  /// মালিক, ৩ আগস্ট ২০২৬:
-  /// > *"আমরা যদি নির্দিষ্ট product-এ কোনো offer চালাই like discount, তার
-  /// >  timing দেওয়ার জায়গা নেই — start date আর end date। যা frontend আর
-  /// >  admin panel একই সাথে দেখাবে আর কাজ করবে।"*
+  /// ── DEC-PRD-028 · when the discount starts and when it stops ───────────
+  /// The owner, 3 August 2026:
+  /// > *"If we run an offer on a particular product, like a discount, there
+  /// >  is nowhere to set its timing - a start date and an end date. The
+  /// >  frontend and the admin panel should both show it and honour it."*
   ///
-  /// দুটোই ঐচ্ছিক, আর প্রতিটার নিজের অর্থ আছে:
-  ///   দুটোই খালি  → ছাড় এখনই চলছে, শেষ হওয়ার তারিখ নেই (আগের আচরণ)
-  ///   শুধু শুরু    → ওই দিন থেকে চলবে, তার আগে দাম পুরোটাই
-  ///   শুধু শেষ     → এখনই চলছে, ওই দিনের পরে নিজে থেকে বন্ধ
+  /// Both are optional, and each combination means something:
+  ///   both empty  -> the discount is on now, with no end (the old behaviour)
+  ///   start only  -> it begins that day; before it, the price is full
+  ///   end only    -> on now, and switches itself off after that day
   ///
-  /// ⚠️ সময় ফুরালে ছাড়ের **সংখ্যাটা মুছে যায় না** — শুধু বসে না। মালিক
-  /// তারিখ বাড়ালেই আবার চলবে, আর পুরনো ছাড় কত ছিল সেটাও দেখা যাবে।
+  /// When the window closes the discount NUMBER is not erased - it simply
+  /// stops applying. Extend the date and it runs again, and what the old
+  /// discount was stays visible.
   ///
-  /// ⚠️ এটা Offers module-এর জায়গা নেয় না। ওখানে campaign — coupon, শর্ত,
-  /// অনুমোদন, অনেক product একসাথে। এটা একটা product-এর নিজের দাম, আর
-  /// দোকানকে "তিন দিনের জন্য ১০% কমাও" করতে ওই পুরো যন্ত্র চালাতে বলা
-  /// মানে সে কখনো করবেই না।
+  /// This does not replace the Offers module. That one runs campaigns:
+  /// coupons, conditions, approvals, many products at once. This is one
+  /// product's own price, and asking the shop to drive that whole machine
+  /// just to take 10% off for three days means it will never happen.
   discountStartsAt DateTime?
   discountEndsAt   DateTime?
 
   // payment override (Product-level) — locked §2 (DEC-PRD-005)
   advanceRequired    Boolean      @default(false)
   advanceType        AdvanceType? // FULL | PARTIAL
-  advancePercent     Int? // PARTIAL হলে %
-  advanceAmountPaisa Int? // অথবা fixed paisa upfront
+  advancePercent     Int? // % when PARTIAL
+  advanceAmountPaisa Int? // or a fixed paisa amount upfront
 
-  // stock — এখন MANUAL, Product-owned; আসল stock পরে Inventory module (locked §2)
+  // Stock - MANUAL and Product-owned for now; real stock came later with the
+  // Inventory module (locked §2)
   stockMode StockMode @default(MANUAL)
   stockQty  Int       @default(0)
-  showStock Boolean   @default(false) // storefront-এ দেখানো হবে কিনা
+  showStock Boolean   @default(false) // whether to show it on the storefront
 
-  /// ── শূন্য হলে কী হবে (মালিকের সিদ্ধান্ত, 1 Aug 2026) ────────────────────
-  /// "stock 0 হলে order দেওয়া যাবে না। হয় stock out আসবে, বা pre-order আসবে।"
+  /// ── What happens at zero (owner's ruling, 1 Aug 2026) ──────────────────
+  /// "At stock 0 no order may be placed. Either it says stock out, or it
+  /// becomes a pre-order."
   ///
-  /// এটা প্রতি product-এ মালিক নিজে ঠিক করেন — product type থেকে আন্দাজ করা
-  /// হয় না। তাজা ফুল কখনোই pre-order নয়, কিন্তু একই READYMADE ঘরে বসা mug
-  /// বা hamper হতে পারে। আন্দাজ করলে ব্যতিক্রমের জায়গা থাকত না।
+  /// The owner sets this per product; it is never inferred from the product
+  /// type. Fresh flowers are never a pre-order, but a mug or a hamper sitting
+  /// in the same READYMADE bucket can be. Inferring it would have left no
+  /// room for the exception.
   ///
-  /// Default `STOCK_OUT` — কারণ ভুল করে বিক্রি বন্ধ হওয়া সারানো যায়, আর ভুল
-  /// করে এমন জিনিসের প্রতিশ্রুতি দেওয়া যেটা আসবেই না, সেটা যায় না।
+  /// Defaults to `STOCK_OUT`, because accidentally stopping a sale can be
+  /// undone and accidentally promising something that will never arrive
+  /// cannot.
   soldOutMode SoldOutMode @default(STOCK_OUT)
 
-  /// PRE_ORDER হলে মালিক নিজে যে তারিখ লিখে দেন — "Expected back on"।
-  /// lead time থেকে হিসাব করা হয় না; মালিক তারিখ লিখে দেওয়াই বেছেছেন।
-  /// ⚠️ তারিখ পার হয়ে গেলে page মিথ্যা বলবে, তাই পার হওয়া তারিখ website-এ
-  /// পাঠানো হয় না — তখন শুধু "Pre-order" লেখা যায়, তারিখ ছাড়া।
+  /// The date the owner types himself when PRE_ORDER - "Expected back on".
+  /// Not computed from a lead time; he chose to write the date.
+  /// A date in the past would make the page lie, so a passed date is not sent
+  /// to the website - it then simply reads "Pre-order", with no date.
   preorderDate DateTime?
 
-  /// ── কে সরবরাহ করে (owner's ruling, 1 Aug 2026) ─────────────────────────
-  /// Vendor-এর product: আমাদের গুদামে কিছুই থাকে না, Item-ও লাগে না। Vendor
-  /// অর্ডার পেলে বানায়, আমরা খবর পাঠাই, আর টাকা consignment হিসেবে ভাগ হয়।
+  /// ── Who supplies it (owner's ruling, 1 Aug 2026) ───────────────────────
+  /// A vendor product: nothing sits in our warehouse and no Item is needed.
+  /// The vendor makes it when an order arrives, we pass the order on, and the
+  /// money is split as consignment.
   ///
-  /// ⚠️ এটা `Item.supplierId` (DEC-SUP-004) নয়, আর দুটো গুলিয়ে ফেলা সহজ:
-  ///   · `Item.supplierId`    — এই কাঁচামাল কার কাছ থেকে কিনি (stock আমাদের)
-  ///   · `Product.supplierId` — এই listing কে বানিয়ে দেয় (কিছুই আমাদের নয়)
-  /// দুটো আলাদা প্রশ্ন, তাই দুটো আলাদা column।
+  /// This is NOT `Item.supplierId` (DEC-SUP-004), and the two are easy to mix:
+  ///   · `Item.supplierId`    - who we buy this raw material from (stock ours)
+  ///   · `Product.supplierId` - who makes this listing (nothing is ours)
+  /// Two different questions, so two different columns.
   supplierId String?
   supplier   Supplier? @relation("VendorProducts", fields: [supplierId], references: [id])
 
-  /// ── website-এ কোন সংখ্যা দেখাবে ────────────────────────────────────────
-  /// null = আসল সংখ্যাই দেখাবে। সংখ্যা বসালে **সেটাই** দেখায়, আর অর্ডার এলে
-  /// সেটাই কমে — আসল মজুদ অপরিবর্তিত থাকে delivery পর্যন্ত।
+  /// ── Which number the website shows ─────────────────────────────────────
+  /// null = show the real one. Set a number and THAT is displayed, and that
+  /// is what an order decrements - the real stock is untouched until delivery.
   ///
-  /// মালিকের সিদ্ধান্ত, 1 Aug: গুদামের গভীরতা ফাঁস না করে তাড়া তৈরি করা।
-  /// ⚠️ ঝুঁকিটা তাঁকে জানানো হয়েছে (৫০০০ থাকা অবস্থায় "২০ বাকি" সত্য নয়)
-  /// এবং তিনি জেনেই সিদ্ধান্ত নিয়েছেন। শূন্যে নামলে admin-এ notification
-  /// যাবে — নাহলে যে জিনিস প্রচুর আছে সেটাই চুপচাপ বিক্রি বন্ধ হয়ে যেত।
+  /// Owner's ruling, 1 Aug: create urgency without revealing how deep the
+  /// warehouse is. The risk was put to him plainly ("20 left" is not true
+  /// when 5000 are in stock) and he decided knowingly. A notification goes to
+  /// the admin when it reaches zero - otherwise something we hold plenty of
+  /// would quietly stop selling.
   displayQty Int?
 
-  /// এটা বানাতে কত মিনিট লাগে। null = বানাতে হয় না, তাই দিনের সময়ও খায় না।
+  /// How many minutes this takes to make. null = nothing to make, so it eats
+  /// none of the day's capacity.
   ///
-  /// ⚠️ ভাগে ফেলা হয়নি ("২০-৩০ মিনিট") ইচ্ছাকৃত — ৪০ মিনিটের কাজকে কোন ভাগে
-  /// ফেলব সেই আন্দাজটাই ভুলের উৎস। যা লাগে তাই লেখা হয়।
+  /// Deliberately not bucketed ("20-30 minutes"): guessing which bucket a
+  /// 40-minute job belongs in is where the errors come from. Write what it
+  /// actually takes.
   makeMinutes Int?
 
-  /// ⚠️ `isHandmade` আর `stockDisplay` এখানে ছিল, ১ আগস্টেই সরানো হয়েছে।
-  /// "হাতে বানানো" Basics-এ `productType = CRAFTED` দিয়ে আগেই ঠিক হয়। একই
-  /// তথ্যের দ্বিতীয় ঘর মানে একদিন দুই উত্তর। দিনের সক্ষমতা `productType` +
-  /// `categoryId` পড়ে নেবে, আর সেটা নিজের module-এর জিনিস — একটা product-এর নয়।
+  /// `isHandmade` and `stockDisplay` used to live here and were removed on
+  /// 1 Aug. "Handmade" is already answered in Basics by
+  /// `productType = CRAFTED`, and a second home for one fact means two
+  /// answers one day. Daily capacity reads `productType` + `categoryId`, and
+  /// that belongs to its own module, not to a single product.
 
-  /// DEC-DLV-008 — কোন কোন delivery-তে এই product যেতে পারে।
-  /// `supportsExpress/SameDay/Midnight` তিনটা boolean-এর উত্তরসূরি।
+  /// DEC-DLV-008 - which delivery kinds this product can go out on.
+  /// Successor to the three `supportsExpress/SameDay/Midnight` booleans.
   deliveryTypes ProductDeliveryType[]
 
-  /// DEC-PRD-012 — এই product-এর রঙ / ফ্লেভার / মাপগুলো, প্রতিটার নিজের
-  /// ছবি আর মজুদ নিয়ে। খালি = এই product-এর কোনো variant নেই, আর তখন
-  /// product page-এ ওই অংশটাই দেখা যায় না।
+  /// DEC-PRD-012 - this product's colours, flavours and sizes, each with its
+  /// own photos and stock. Empty means the product has no variants, and then
+  /// that whole section disappears from the product page.
   variants ProductVariant[]
 
-  // sales counter — Sales module "delivered" event-এ +1 করবে (locked §4, DEC-MOD-003 পরিবারভুক্ত)
+  // Sales counter - the Sales module adds 1 on the "delivered" event
+  // (locked §4, part of the DEC-MOD-003 family)
   salesCount Int @default(0)
 
   /// ── DEC-PRD-025 · বিক্রির সংখ্যা কীভাবে দেখাবে ─────────────────────────
