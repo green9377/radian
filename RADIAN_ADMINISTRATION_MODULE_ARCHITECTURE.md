@@ -314,3 +314,29 @@ model UserAccessOverride {
 | ৩ | **Finance থেকে পরিচয়ের ঘর সরানো** — Mushak ৬.৩ আবার পরীক্ষা করতে হবে, রাজি? |
 | ৪ | **Audit পর্দায় কী** — "কে কখন কী বদলাল", নাকি "এই অর্ডারটার ইতিহাস"? |
 | ৫ | **শুরুতে কোন পদগুলো** বানাব? (নাম বলে দিলে সেগুলো দিয়েই শুরু) |
+
+
+---
+
+## ADM-D10 — Who may hold an account: both doors, linked (owner, 18 Aug 2026)
+
+**Decision.** Access is always granted by **email invite** (ADM-RULE-006 path:
+invite link, the person sets their own password). Two doors lead to that one
+path:
+
+1. **From an Employee** — the employee's page gets a "Give access" action.
+   An account created this way is **linked** to that Employee row
+   (`AppUser.employeeId`). The link carries a rule: when the employment ends
+   (Employee goes inactive/terminated), the linked account is deactivated and
+   its sessions are killed **automatically**. One switch, not two.
+2. **Directly by email** — for people who are not on the payroll (an outside
+   accountant, a partner). Same invite, no link, managed by hand.
+
+**Why not employee-only:** the first real outside accountant would have to be
+faked into HR. **Why not email-only:** the same human ends up in two books
+that never agree, and closing access on exit relies on somebody remembering.
+
+**What this changes in code:** one nullable `AppUser.employeeId` column (+ the
+auto-deactivate hook in HR's status transition). Positions/templates apply to
+both kinds of account identically — the access model does not care which door
+a person came through.
