@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Donut, HBar, LegendDot } from "./Charts";
 import {
   listOrders,
   orderAction,
@@ -259,7 +260,7 @@ export function OrdersOverview() {
   return (
     <div className={WRAP}>
       <PageHead
-        eyebrow="Commerce · Sales"
+        eyebrow="Today's work · Orders"
         title="Orders overview"
         action={
           <Link href="/orders/new" className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft">
@@ -272,7 +273,7 @@ export function OrdersOverview() {
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       {/* hero — the one thing to do next */}
-      <div className="rounded-[18px] p-5 mb-5 text-white shadow-lift flex items-center gap-5 flex-wrap" style={{ background: "linear-gradient(135deg,#470066 0%,#7d2ea8 55%,#cf43ea 100%)" }}>
+      <div className="rounded-[18px] p-5 mb-5 text-white shadow-lift flex items-center gap-5 flex-wrap" style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
         <div className="min-w-0 flex-1">
           <div className="text-[12px] uppercase tracking-[0.08em] opacity-80">Waiting on you</div>
           <div className="font-display text-[34px] leading-none mt-1">
@@ -301,22 +302,17 @@ export function OrdersOverview() {
           {s.byChannel.length === 0 ? (
             <EmptyRow text="No orders yet." tone="blue" />
           ) : (
-            <div className="p-4 flex flex-col gap-3">
-              {s.byChannel.map(([ch, n], i) => {
-                const pct = items.length ? Math.round((n / items.length) * 100) : 0;
-                const c = CH_COLORS[i % CH_COLORS.length];
-                return (
-                  <div key={ch}>
-                    <div className="flex justify-between text-[12.5px] mb-1">
-                      <span className="text-body font-medium">{ch}</span>
-                      <span className="text-body-soft">{n} · {pct}%</span>
-                    </div>
-                    <div className="h-[9px] rounded-full bg-lavender overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: c }} />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="p-4 flex items-center gap-5 flex-wrap">
+              <Donut size={128} thickness={16}
+                segments={s.byChannel.map(([, n], i) => ({ value: n, color: CH_COLORS[i % CH_COLORS.length] }))}
+                centerTop={String(items.length)} centerBottom="orders" />
+              <div className="flex-1 min-w-[180px]">
+                {s.byChannel.slice(0, 5).map(([ch, n], i) => (
+                  <HBar key={ch} label={ch} value={n} max={s.byChannel[0][1]}
+                    color={CH_COLORS[i % CH_COLORS.length]}
+                    right={`${n} · ${items.length ? Math.round((n / items.length) * 100) : 0}%`} />
+                ))}
+              </div>
             </div>
           )}
         </Panel>
