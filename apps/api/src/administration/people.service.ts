@@ -126,10 +126,13 @@ export class PeopleService {
       throw new BadRequestException(`${email} already has an account`);
     }
 
-    if (dto.positionId) {
-      const p = await this.prisma.db.position.findUnique({ where: { id: dto.positionId } });
-      if (!p) throw new BadRequestException('That position does not exist');
-    }
+    /*  A template is REQUIRED (owner, 18 Aug 2026): an account that reaches
+        nothing is a key ring with no keys — creating it is only confusion.
+        The column stays nullable for old rows; new invites must choose.  */
+    if (!dto.positionId)
+      throw new BadRequestException('Pick a template first — an account with no template can reach nothing');
+    const pos = await this.prisma.db.position.findUnique({ where: { id: dto.positionId } });
+    if (!pos) throw new BadRequestException('That template does not exist');
 
     const user = await this.prisma.db.appUser.create({
       data: {
@@ -364,7 +367,14 @@ export class PeopleService {
       data: { kind, userId, tokenHash: fingerprint(token), expiresAt },
     });
 
-    const base = process.env.PANEL_URL || 'http://localhost:3001';
+    /*  The admin panel's own address. PUBLIC_ADMIN_URL is what the deployed
+        environments actually set (Render env, also used for CORS); PANEL_URL
+        stays first for anyone who had it. The localhost fallback is for local
+        dev only — on 18 Aug an invite link on the live demo pointed at
+        localhost:3001 because only PANEL_URL was read, and that name was set
+        nowhere.  */
+    const base =
+      process.env.PANEL_URL || process.env.PUBLIC_ADMIN_URL || 'http://localhost:3001';
     return {
       /*  Handed back so the owner can send it himself while there is no email
           provider key. It is shown once and never stored in readable form —

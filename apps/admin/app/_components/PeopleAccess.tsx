@@ -83,6 +83,7 @@ export default function PeopleAccess() {
     if (!giving) return;
     const email = empEmail.trim();
     if (!email) { setErr("An email address is needed — the invite travels there."); return; }
+    if (!empPosition) { setErr("Pick a template — an account with no template can reach nothing."); return; }
     setBusy("door1"); setErr("");
     try {
       const r = await invitePerson({
@@ -105,6 +106,7 @@ export default function PeopleAccess() {
   async function giveByEmail() {
     const email = form.email.trim();
     if (!email) { setErr("An email address is needed."); return; }
+    if (!form.positionId) { setErr("Pick a template — an account with no template can reach nothing."); return; }
     setBusy("door2"); setErr("");
     try {
       const r = await invitePerson({
@@ -263,7 +265,7 @@ export default function PeopleAccess() {
                             <button
                               className="w-full text-[12.5px] font-bold py-2 rounded-[10px] text-white disabled:opacity-50"
                               style={{ background: GRAD }}
-                              disabled={busy === "door1"}
+                              disabled={busy === "door1" || !empEmail.trim() || !empPosition}
                               onClick={() => void giveToEmployee()}>
                               {busy === "door1" ? "Creating…" : "Create the invite & link to this employee"}
                             </button>
@@ -303,7 +305,7 @@ export default function PeopleAccess() {
             <button
               className="w-full text-[13px] font-bold py-2.5 rounded-[10px] text-white disabled:opacity-50"
               style={{ background: GRAD }}
-              disabled={busy === "door2"}
+              disabled={busy === "door2" || !form.email.trim() || !form.positionId}
               onClick={() => void giveByEmail()}>
               {busy === "door2" ? "Creating…" : "Create the invite"}
             </button>
