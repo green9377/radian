@@ -330,6 +330,15 @@ export class AccessService implements OnModuleInit {
       ).map((o) => [o.nodeKey, o.allowed]),
     );
 
+    /*  NO TEMPLATE = NOTHING — owner's ruling, 18 Aug 2026, after the rajib
+        incident: an account invited without a template signed in and the
+        panel opened like an owner's. The old ADM-D02 bridge (fall back to the
+        legacy enum when positionId is null) was written for migration day;
+        it also caught every new template-less account and handed it the
+        generous legacy defaults. The bridge is retired: invites now REQUIRE
+        a template, and an account without one reaches nothing until the
+        owner assigns one on People & accounts. OWNER accounts are unaffected
+        (handled above).  */
     const positionRules = user.positionId
       ? new Map(
           (
@@ -338,10 +347,7 @@ export class AccessService implements OnModuleInit {
             })
           ).map((r) => [r.nodeKey, r.allowed]),
         )
-      : /*  ADM-D02-এর সেতু: পদ না বসানো পর্যন্ত পুরনো enum-ই চলবে। এই ডালটা
-            না থাকলে migration-এর দিন প্রত্যেকে সব হারাত, কারণ কারও positionId
-            নেই। enum বাদ দেওয়ার দিন এটাও যাবে।  */
-        this.legacyRules(user.role as LegacyRole);
+      : new Map<string, boolean>();
 
     const out: Record<string, boolean> = {};
     for (const n of nodes) {
@@ -360,11 +366,8 @@ export class AccessService implements OnModuleInit {
     return out;
   }
 
-  private legacyRules(role: LegacyRole): Map<string, boolean> {
-    return new Map(
-      REGISTRY.filter((n) => n.kind === 'MODULE' || n.legacyRoles !== null).map(
-        (n) => [n.key, n.legacyRoles ? n.legacyRoles.includes(role) : true],
-      ),
-    );
-  }
+  /*  legacyRules was deleted here on 18 Aug 2026 — the ADM-D02 bridge it
+      served is retired (see effectiveFor). Seeding still reads legacyRoles
+      from the REGISTRY to build the starter positions; that path is separate
+      and untouched.  */
 }

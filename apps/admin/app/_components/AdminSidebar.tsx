@@ -716,13 +716,17 @@ export default function AdminSidebar() {
   const visibleGroups = useMemo(() => {
     const role = (me?.role ?? "STAFF") as Role;
 
-    /*  One predicate, two sources. A key the server did not mention is treated
-        as visible: that only happens for a nav row with no node yet, and hiding
-        rows nobody has decided on would hide them silently — the thing ADM-D06
-        exists to prevent. The Access screen shouts about undecided screens
-        instead, where it can actually be acted on.  */
+    /*  One predicate, two sources. A key the server did not mention falls back
+        to the hand-written roles arrays — NEVER to blanket-visible. The old
+        "unknown key = show it" rule opened Administration to a template-less
+        account on 18 Aug (the rajib incident): Administration is deliberately
+        outside the registry, so its key is never in the map, and the fallback
+        showed it to everyone. Undecided-but-registered screens are still
+        surfaced on the Access screen, where acting on them is possible.  */
     const allowed = (key: string, legacy?: Role[]) =>
-      access ? (key in access ? access[key] : true) : !legacy || legacy.includes(role);
+      access
+        ? (key in access ? access[key] : !legacy || legacy.includes(role))
+        : !legacy || legacy.includes(role);
 
     return GROUPS
       .map((g) => ({
