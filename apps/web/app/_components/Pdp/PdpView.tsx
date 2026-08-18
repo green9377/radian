@@ -417,12 +417,13 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   }
 
   /*
-    Buy Now (D17 — primary CTA)। Add to Cart-এর মতোই cart-এ config বসায়,
-    কিন্তু cart page না দেখিয়ে সোজা /checkout-এ নিয়ে যায়। দাম এখানে নয়,
-    checkout-এ resolveCart() হিসাব করবে — cart-এর সাথে এক নিয়ম।
+    Buy Now (D17 - the primary CTA). It puts the same config into the cart as
+    Add to Cart, but goes straight to /checkout instead of showing the cart
+    page. No price here either; resolveCart() works it out at checkout - the
+    same rule the cart follows.
 
-    ⚠️ blocked (zone mismatch) হলে OutOfZone panel দেখাচ্ছে, CtaRow নয় —
-    তাই এখানে আলাদা guard লাগে না।
+    When blocked (a zone mismatch) the OutOfZone panel is showing rather than
+    CtaRow, so no separate guard is needed here.
   */
   function buyNow() {
     if (soldOut) return;
@@ -509,7 +510,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                         gallery[typeof media === "number" ? media : 0] ?? FALLBACK_BG,
                     }}
                   />
-                  {/* zoom — ছবির উপরে click করলে বড় করে দেখা যায় */}
+                  {/* zoom - clicking the image opens it larger */}
                   <button
                     onClick={() => setZoom(true)}
                     aria-label="Zoom photo"
@@ -520,18 +521,18 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       Tap to zoom
                     </span>
                   </button>
-                  {/*  ⚠️ ছাড় না থাকলে sticker-টাই থাকে না। কাটা দামের
-                      সাথে এটাও gate করা উচিত ছিল প্রথম দিনেই — না করায়
-                      ছাড়-বিহীন product-এর ছবির উপরে গোলাপি গোল ব্যাজে
-                      **"0% OFF"** লেখা উঠছিল।  */}
+                  {/*  No discount, no sticker. This should have been gated
+                      along with the struck-through price on day one - because
+                      it was not, products with no discount carried a pink
+                      badge reading "0% OFF" over the photo.  */}
                   {wasPaisa !== null && (
                     <span className="absolute top-4 left-4 z-[4] bg-orchid text-white text-[12.5px] font-bold rounded-full px-4 py-2 shadow-[0_8px_22px_rgba(207,67,234,0.4)]">
                       {off}% OFF
                     </span>
                   )}
-                  {/*  ⚠️ শুধু ছবি না থাকলে। এটা tinted panel-এর লেবেল, ছবির
-                      জলছাপ নয় — আসল ছবির উপরে "Product photo" লেখা থাকলে
-                      মনে হয় page-টা এখনো তৈরি হয়নি।  */}
+                  {/*  Only when there are no photos. This labels the tinted
+                      panel; it is not a watermark. "Product photo" written
+                      over a real photograph makes the page look unfinished.  */}
                   {!hasPhotos && (
                     <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] tracking-[0.18em] uppercase text-purple/40 font-semibold">
                       Product photo
@@ -556,13 +557,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             </div>
           </div>
 
-          {/* trust — thumbnail row-এর নিচে, সব একই ওজনের */}
+          {/* trust - under the thumbnail row, all three weighted the same */}
           <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-lavender-deep">
             {detail.trust.map((t) => (
               <div key={t.label} className="flex flex-col items-center text-center gap-1.5">
-                {/*  DEC-PRD-023 — দোকানের নিজের আপলোড করা icon থাকলে সেটাই।
-                    ⚠️ `<img>`, `next/image` নয়: ফাইলটা যেকোনো আকারের হতে
-                    পারে আর SVG-ও হতে পারে, যেটা next/image মাপতে পারে না।  */}
+                {/*  DEC-PRD-023 - the shop's own uploaded icon wins when there
+                    is one. `<img>` rather than `next/image`: the file can be
+                    any size and can be an SVG, which next/image cannot
+                    measure.  */}
                 <span className="w-10 h-10 rounded-full border-[1.5px] border-lavender-deep grid place-items-center text-purple overflow-hidden">
                   {t.iconUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
