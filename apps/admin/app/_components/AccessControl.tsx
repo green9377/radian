@@ -1,30 +1,22 @@
 "use client";
 
 /*
-  ACCESS CONTROL — the one list (ADM-RULE-001), owner only.
-  RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md, 30 Jul 2026 · redesigned 18 Aug 2026.
+  ACCESS CONTROL — the template workshop. Owner only.
+  RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md, 30 Jul 2026 · rebuilt 18 Aug 2026.
 
-  Why this screen exists: "who can do what" used to live in three places that
-  never agreed. Now there is one list, on the server, and this screen is the
-  only way to change it.
+  The owner's ruling on what this page IS (18 Aug, second pass):
+    "amra akhane just template make krbo" — this page ONLY builds templates
+    (positions): the list of modules, and for each template, what it may see.
+    WHO holds a template is decided on People & accounts, not here. So the
+    position gallery and the people rail are gone from this page.
 
-  How a tick behaves (§5): a position inherits DOWN the tree; only the
-  EXCEPTIONS are stored. Three states per node — Allow, Block, Inherit.
+  And on how it should LOOK: the first pass was washed-out — pale pink rows,
+  faded pills, "chokhe japsa lage". This version is dense and crisp: dark
+  text on white, thin gradient department bars in the sidebar's exact hues,
+  and a segmented Allow/Inherit/Block control with solid colour when chosen.
 
-  ── 18 Aug redesign, all four by the owner's direct ruling ────────────────
-  1. The "N screens reach nobody" banner is GONE from this page. New screens
-     will always arrive here as modules are built; shouting about it every
-     visit was noise, not safety. (The fail-closed behaviour itself is
-     unchanged — an undecided screen still reaches nobody.)
-  2. The enforcement/would-block panel is GONE from this page. It reports a
-     background stage the owner does not need in his face while assigning
-     access; the same report still lives on the Administration overview.
-  3. The tree is six DEPARTMENT cards in the exact hues the sidebar wears,
-     gradient headers, bold pills — not a grey list.
-  4. Positions are a card gallery on top; People moved into a styled right
-     rail (AccessPeople). Layout: hero → positions → tree + people.
-
-  ⚠️ UI text is ENGLISH. Bangla is for talking to the owner, never the screen.
+  How a tick behaves (§5, unchanged): a template inherits DOWN the tree; only
+  the EXCEPTIONS are stored. Allow / Block / Inherit, never two states.
 */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,19 +27,17 @@ import {
 } from "../_data/api";
 import { Card, FinHeader, Flash, btnPrimary, btnPrimaryStyle, input, WRAP } from "./FinanceUI";
 import Icon from "./Icon";
-import AccessPeople from "./AccessPeople";
 
 type Verdict = boolean | null;
 
-/*  Department colours — the SAME hues the sidebar wears, so the tree here and
-    the nav read as one system.  */
-const DEPT: Record<string, { bar: string; text: string; soft: string; grad: string; icon: string }> = {
-  "Today's work":   { bar: "#f0a8b8", text: "#c25a72", soft: "#fdf1f4", grad: "linear-gradient(120deg,#c25a72,#f0a8b8)", icon: "clock" },
-  "What you sell":  { bar: "#e07be0", text: "#a021b8", soft: "#fbeffb", grad: "linear-gradient(120deg,#a021b8,#e07be0)", icon: "star" },
-  "Stock & buying": { bar: "#5ec9a8", text: "#12a172", soft: "#eaf8f2", grad: "linear-gradient(120deg,#12a172,#5ec9a8)", icon: "box" },
-  "Money":          { bar: "#e9c46a", text: "#b07818", soft: "#fdf6e7", grad: "linear-gradient(120deg,#b07818,#e9c46a)", icon: "cash" },
-  "Growth":         { bar: "#7fb4f0", text: "#3b76c4", soft: "#eef5fd", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", icon: "chart" },
-  "Setup":          { bar: "#b9aecf", text: "#7a6f96", soft: "#f4f1f8", grad: "linear-gradient(120deg,#7a6f96,#b9aecf)", icon: "gear" },
+/*  Department hues — the sidebar's own, so nav and this page read as one.  */
+const DEPT: Record<string, { text: string; grad: string; icon: string }> = {
+  "Today's work":   { text: "#c25a72", grad: "linear-gradient(120deg,#c25a72,#f0a8b8)", icon: "clock" },
+  "What you sell":  { text: "#a021b8", grad: "linear-gradient(120deg,#a021b8,#e07be0)", icon: "star" },
+  "Stock & buying": { text: "#12a172", grad: "linear-gradient(120deg,#12a172,#5ec9a8)", icon: "box" },
+  "Money":          { text: "#b07818", grad: "linear-gradient(120deg,#b07818,#e9c46a)", icon: "cash" },
+  "Growth":         { text: "#3b76c4", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", icon: "chart" },
+  "Setup":          { text: "#7a6f96", grad: "linear-gradient(120deg,#7a6f96,#b9aecf)", icon: "gear" },
 };
 const dept = (d: string) => DEPT[d] ?? DEPT["Setup"];
 const DEPT_ORDER = Object.keys(DEPT);
@@ -69,7 +59,6 @@ export default function AccessControl() {
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
 
-  /*  Every tick is written the moment it is clicked; the hero pill says so.  */
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -127,7 +116,7 @@ export default function AccessControl() {
     if (!selected || !position || position.isOwner) return;
     setBusy(nodeKey);
     setSaveState("saving");
-    // optimistic — the tree is 188 rows and a round-trip per click would crawl
+    // optimistic — 188 rows; a round-trip per click would crawl
     const before = { ...rules };
     setRules((r) => {
       const next = { ...r };
@@ -141,9 +130,7 @@ export default function AccessControl() {
       setSavedAt(new Date().toLocaleTimeString());
       void listPositions().then(setPositions);
     } catch (e) {
-      // put the tick back where it was — a screen that shows a change the
-      // server refused is worse than no feedback at all
-      setRules(before);
+      setRules(before); // never show a change the server refused
       setSaveState("error");
       flash("", (e as Error).message || "Could not save that");
     } finally {
@@ -166,7 +153,7 @@ export default function AccessControl() {
   }
 
   async function rename(p: ApiPosition) {
-    const name = window.prompt("New name for this position", p.name);
+    const name = window.prompt("New name for this template", p.name);
     if (!name || name === p.name) return;
     try {
       await renamePosition(p.id, name);
@@ -176,7 +163,7 @@ export default function AccessControl() {
   }
 
   async function drop(p: ApiPosition) {
-    if (!window.confirm(`Delete the "${p.name}" position?`)) return;
+    if (!window.confirm(`Delete the "${p.name}" template?`)) return;
     try {
       await removePosition(p.id);
       setSelected(null);
@@ -205,23 +192,21 @@ export default function AccessControl() {
   return (
     <div className={WRAP}>
       {/* ── hero ─────────────────────────────────────────────────────── */}
-      <div className="rounded-[22px] px-6 py-5 mb-5 relative overflow-hidden"
+      <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden"
         style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
-        <div className="absolute -right-10 -top-14 w-[220px] h-[220px] rounded-full opacity-20"
-          style={{ background: "radial-gradient(circle,#fff,transparent 70%)" }} />
-        <div className="flex items-center gap-3.5 relative flex-wrap">
-          <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center text-white shrink-0"
+        <div className="flex items-center gap-3 relative flex-wrap">
+          <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
             style={{ background: "rgba(255,255,255,0.16)" }}>
-            <Icon name="shield" size={20} strokeWidth={2.2} />
+            <Icon name="shield" size={18} strokeWidth={2.2} />
           </span>
           <div>
-            <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/70">Setup · Administration</div>
-            <h1 className="font-display text-[24px] text-white leading-tight m-0">Access control</h1>
+            <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-white/70">Setup · Administration</div>
+            <h1 className="font-display text-[21px] text-white leading-tight m-0">Access templates</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[11.5px] font-bold text-white bg-white/[0.16] px-3 py-1.5 rounded-full">{nodeCount} screens</span>
+            <span className="text-[11px] font-bold text-white bg-white/[0.16] px-2.5 py-1 rounded-full">{nodeCount} screens</span>
             {position && !position.isOwner && (
-              <span className="text-[11.5px] font-bold px-3 py-1.5 rounded-full"
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
                 style={{
                   background: saveState === "error" ? "#c0392b" : "rgba(255,255,255,0.92)",
                   color: saveState === "error" ? "#fff" : "#7a2ea8",
@@ -237,166 +222,149 @@ export default function AccessControl() {
       </div>
       <Flash ok={ok} err={err} />
 
-      {/* ── positions — the template gallery ─────────────────────────── */}
-      <div className="flex gap-3 mb-5 overflow-x-auto pb-1 scrollbar-none">
-        {positions.map((p) => {
-          const on = p.id === selected;
-          const grad = p.isOwner
-            ? "linear-gradient(135deg,#b76e79,#e0a8a0)"
-            : "linear-gradient(135deg,#8a2bb0,#cf43ea)";
-          return (
-            <button key={p.id} onClick={() => setSelected(p.id)}
-              className="rounded-[16px] px-4 py-3 min-w-[190px] text-left transition-all border-2 shrink-0"
-              style={{
-                background: on ? "#fff" : "rgba(255,255,255,0.6)",
-                borderColor: on ? "#cf43ea" : "transparent",
-                boxShadow: on ? "0 6px 18px rgba(160,33,184,0.18)" : "0 1px 4px rgba(70,0,102,0.06)",
-              }}>
-              <div className="flex items-center gap-2.5">
-                <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-[14px] font-bold text-white shrink-0"
-                  style={{ background: grad }}>
-                  {p.name.slice(0, 1).toUpperCase()}
-                </span>
-                <div className="min-w-0">
-                  <div className="text-[13.5px] font-bold text-purple truncate">{p.name}</div>
-                  <div className="text-[11px] text-body-soft">
-                    {p.isOwner ? "sees everything" : `${p.people} ${p.people === 1 ? "person" : "people"} · ${p.rules} rules`}
-                  </div>
-                </div>
-              </div>
-              {on && !p.isOwner && (
-                <div className="flex gap-3 mt-2 pt-2 border-t border-[#f3eef8]">
-                  <span role="button" tabIndex={0} className="text-[11px] font-bold text-purple hover:underline"
-                    onClick={(e) => { e.stopPropagation(); void rename(p); }}
-                    onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), void rename(p))}>
-                    Rename
-                  </span>
-                  {!p.isLocked && (
-                    <span role="button" tabIndex={0} className="text-[11px] font-bold hover:underline" style={{ color: "#c0392b" }}
-                      onClick={(e) => { e.stopPropagation(); void drop(p); }}
-                      onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), void drop(p))}>
-                      Delete
-                    </span>
-                  )}
-                </div>
-              )}
-            </button>
-          );
-        })}
-
-        {/* new position card */}
-        <div className="rounded-[16px] px-4 py-3 min-w-[190px] shrink-0 border-2 border-dashed grid place-items-center"
-          style={{ borderColor: "#dcc9ec", background: "rgba(255,255,255,0.45)" }}>
-          {adding ? (
-            <div className="flex gap-1.5 w-full">
-              <input className={input} placeholder="e.g. Accountant" value={newName} autoFocus
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && void addPosition()} />
-              <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void addPosition()}>Save</button>
+      <div className="grid gap-4 lg:grid-cols-[236px_minmax(0,1fr)] items-start">
+        {/* ── templates rail ─────────────────────────────────────────── */}
+        <div className="lg:sticky lg:top-4 space-y-2">
+          <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+            style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+            <div className="px-3.5 py-2.5 flex items-center gap-2"
+              style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+              <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Templates</span>
+              <button
+                className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-purple hover:bg-white"
+                onClick={() => setAdding((a) => !a)}>
+                {adding ? "×" : "+ New"}
+              </button>
             </div>
-          ) : (
-            <button onClick={() => setAdding(true)}
-              className="flex items-center gap-2 text-[13px] font-bold text-purple">
-              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white"
-                style={{ background: "linear-gradient(135deg,#8a2bb0,#cf43ea)" }}>
-                <Icon name="plus" size={15} strokeWidth={2.6} />
-              </span>
-              New position
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* ── tree + people ─────────────────────────────────────────────── */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px] items-start">
-        <div>
-          {position?.isOwner && (
-            <Card className="p-4 mb-4 flex items-center gap-3"
-              style={{ background: "#fbf0ec", borderColor: "#eed7d0" }}>
-              <span className="w-[30px] h-[30px] rounded-[10px] grid place-items-center text-white shrink-0"
-                style={{ background: "linear-gradient(135deg,#b76e79,#e0a8a0)" }}>
-                <Icon name="lock" size={15} />
-              </span>
-              <p className="text-[12.5px] m-0" style={{ color: "#8d5560" }}>
-                <b>{position.name}</b> sees everything, always — the last door into your
-                own business cannot be narrowed. Pick another position to shape it.
-              </p>
-            </Card>
-          )}
+            {adding && (
+              <div className="p-2.5 border-b border-[#f0eaf7] flex gap-1.5">
+                <input className={input} placeholder="e.g. Counter staff" value={newName} autoFocus
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void addPosition()} />
+                <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void addPosition()}>✓</button>
+              </div>
+            )}
 
-          {!position ? (
-            <Card className="p-6 text-center text-[13px] text-body-soft">Pick a position above.</Card>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {DEPT_ORDER.filter((d) => tree.some((m) => m.domain === d)).map((domain) => {
-                const c = dept(domain);
-                const mods = tree.filter((m) => m.domain === domain);
-                const openCount = mods.filter((m) => effective(m.key).allowed).length;
+            <div className="p-1.5">
+              {positions.map((p) => {
+                const on = p.id === selected;
                 return (
-                  <div key={domain} className="rounded-[18px] bg-white overflow-hidden border h-fit"
-                    style={{ borderColor: `${c.text}1f`, boxShadow: `0 2px 10px ${c.text}10` }}>
-                    {/* department header — gradient strip */}
-                    <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ background: c.grad }}>
-                      <span className="text-white"><Icon name={c.icon} size={15} strokeWidth={2.3} /></span>
-                      <span className="text-[12px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">{domain}</span>
-                      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">
-                        {openCount}/{mods.length} open
+                  <button key={p.id} onClick={() => setSelected(p.id)}
+                    className="w-full text-left rounded-[11px] px-2.5 py-2 mb-0.5 last:mb-0 transition-colors flex items-center gap-2.5"
+                    style={{
+                      background: on ? "linear-gradient(120deg,#8a2bb0,#cf43ea)" : undefined,
+                    }}>
+                    <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-[12px] font-bold shrink-0"
+                      style={{
+                        background: on ? "rgba(255,255,255,0.25)" : p.isOwner ? "linear-gradient(135deg,#b76e79,#e0a8a0)" : "#f0e6f8",
+                        color: on ? "#fff" : p.isOwner ? "#fff" : "#7a2ea8",
+                      }}>
+                      {p.isOwner ? <Icon name="lock" size={12} /> : p.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={"block text-[13px] font-bold truncate " + (on ? "text-white" : "text-[#2d2838]")}>{p.name}</span>
+                      <span className={"block text-[10.5px] font-medium " + (on ? "text-white/75" : "text-[#8f87a0]")}>
+                        {p.isOwner ? "everything, always" : `${p.rules} rules · ${p.people} using it`}
                       </span>
-                    </div>
-
-                    <div className="p-2.5 space-y-1">
-                      {mods.map((mod) => {
-                        const eff = effective(mod.key);
-                        const isOpen = open.has(mod.key);
-                        return (
-                          <div key={mod.key} className="rounded-[12px] overflow-hidden"
-                            style={{ background: eff.allowed ? c.soft : "#faf9fb" }}>
-                            <div className="flex items-center gap-2 px-2.5 py-2">
-                              <button className="w-5 h-5 grid place-items-center rounded-[6px] text-[10px] shrink-0"
-                                style={{ background: mod.children.length ? `${c.text}18` : "transparent", color: c.text }}
-                                onClick={() => toggleOpen(mod.key)} aria-label="Expand">
-                                {mod.children.length ? (isOpen ? "▾" : "▸") : ""}
-                              </button>
-                              <span className="text-[13px] font-semibold flex-1 truncate"
-                                style={{ color: eff.allowed ? "#3f3a4a" : "#9a93a8" }}>
-                                {mod.label}
-                              </span>
-                              <TriState
-                                value={mod.key in rules ? rules[mod.key] : null}
-                                effective={eff.allowed}
-                                disabled={position.isOwner || busy === mod.key}
-                                onChange={(v) => void tick(mod.key, v)}
-                              />
-                            </div>
-
-                            {isOpen && mod.children.length > 0 && (
-                              <div className="bg-white/70 mx-2 mb-2 rounded-[10px]">
-                                {mod.children.map((sc) => (
-                                  <ScreenRow key={sc.key} node={sc} depth={0} rules={rules}
-                                    effective={effective} disabled={position.isOwner}
-                                    busy={busy} onTick={tick} accent={c.text} />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 );
               })}
             </div>
-          )}
+
+            {position && !position.isOwner && (
+              <div className="px-3 py-2 border-t border-[#f0eaf7] flex gap-3">
+                <button className="text-[11px] font-bold text-purple hover:underline" onClick={() => void rename(position)}>Rename</button>
+                {!position.isLocked && (
+                  <button className="text-[11px] font-bold hover:underline" style={{ color: "#c0392b" }} onClick={() => void drop(position)}>Delete</button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-[#8f87a0] leading-relaxed px-1 m-0">
+            A template says what may be seen. Who holds it is decided on
+            People &amp; accounts.
+          </p>
         </div>
 
-        {/* people rail — sticky, its own scroll */}
-        <div className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
-          <AccessPeople
-            positions={positions}
-            selectedPositionId={selected}
-            onChanged={() => void listPositions().then(setPositions)}
-          />
-        </div>
+        {/* ── the module list — one dense card ───────────────────────── */}
+        {!position ? (
+          <Card className="p-6 text-center text-[13px] text-body-soft">Pick a template on the left.</Card>
+        ) : (
+          <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+            style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+            {position.isOwner && (
+              <div className="px-4 py-2.5 flex items-center gap-2.5 border-b border-[#f0eaf7]"
+                style={{ background: "#fbf0ec" }}>
+                <Icon name="lock" size={14} strokeWidth={2.4} />
+                <span className="text-[12px] font-semibold" style={{ color: "#8d5560" }}>
+                  {position.name} sees everything, always — pick another template to shape it.
+                </span>
+              </div>
+            )}
+
+            {DEPT_ORDER.filter((d) => tree.some((m) => m.domain === d)).map((domain) => {
+              const c = dept(domain);
+              const mods = tree.filter((m) => m.domain === domain);
+              const openCount = mods.filter((m) => effective(m.key).allowed).length;
+              return (
+                <div key={domain}>
+                  {/* department bar — thin, solid gradient */}
+                  <div className="flex items-center gap-2 px-4 py-[7px]" style={{ background: c.grad }}>
+                    <span className="text-white"><Icon name={c.icon} size={13} strokeWidth={2.4} /></span>
+                    <span className="text-[11px] font-extrabold tracking-[0.12em] uppercase text-white flex-1">{domain}</span>
+                    <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{openCount}/{mods.length}</span>
+                  </div>
+
+                  {mods.map((mod) => {
+                    const eff = effective(mod.key);
+                    const isOpen = open.has(mod.key);
+                    return (
+                      <div key={mod.key}>
+                        <div
+                          className="flex items-center gap-2.5 pr-3 py-[9px] border-b border-[#f3eff8] hover:bg-[#fbf9fd] transition-colors"
+                          style={{ paddingLeft: 13, borderLeft: `3px solid ${eff.allowed ? c.text : "transparent"}` }}>
+                          <button
+                            className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+                            onClick={() => mod.children.length && toggleOpen(mod.key)}>
+                            <span className="text-[14px] font-bold truncate"
+                              style={{ color: eff.allowed ? "#2d2838" : "#8f87a0" }}>
+                              {mod.label}
+                            </span>
+                            {mod.children.length > 0 && (
+                              <span className="text-[10px] font-bold px-1.5 py-[1px] rounded-full shrink-0"
+                                style={{ background: "#f0ebf7", color: "#7a6f96" }}>
+                                {mod.children.length}{isOpen ? " ▾" : " ▸"}
+                              </span>
+                            )}
+                          </button>
+                          <TriState
+                            value={mod.key in rules ? rules[mod.key] : null}
+                            effective={eff.allowed}
+                            disabled={position.isOwner || busy === mod.key}
+                            onChange={(v) => void tick(mod.key, v)}
+                          />
+                        </div>
+
+                        {isOpen && mod.children.length > 0 && (
+                          <div style={{ background: "#faf8fc" }}>
+                            {mod.children.map((sc) => (
+                              <ScreenRow key={sc.key} node={sc} depth={0} rules={rules}
+                                effective={effective} disabled={position.isOwner}
+                                busy={busy} onTick={tick} accent={c.text} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -421,17 +389,17 @@ function ScreenRow({
   return (
     <>
       <div
-        className="flex items-center gap-2 px-3 py-1.5 border-b border-[#f4f1f8] last:border-0"
-        style={{ paddingLeft: 12 + depth * 18 }}
+        className="flex items-center gap-2 pr-3 py-[6px] border-b border-[#f1edf6] last:border-0"
+        style={{ paddingLeft: 34 + depth * 18 }}
       >
         <span className="w-[6px] h-[6px] rounded-full shrink-0"
-          style={{ background: eff.allowed ? accent : "#ddd7e6" }} />
-        <span className="text-[12.5px] flex-1 truncate"
-          style={{ color: eff.allowed ? "#3f3a4a" : "#a9a3b5" }}>
+          style={{ background: eff.allowed ? accent : "#cfc8dc" }} />
+        <span className="text-[12.5px] font-semibold flex-1 truncate"
+          style={{ color: eff.allowed ? "#453f52" : "#8f87a0" }}>
           {node.label}
           {!explicit && (
-            <span className="text-[10px] text-body-soft ml-1.5">
-              · {eff.allowed ? "inherits open" : "inherits closed"}
+            <span className="text-[10px] font-medium ml-1.5" style={{ color: "#a89fb8" }}>
+              {eff.allowed ? "· open" : "· closed"}
             </span>
           )}
         </span>
@@ -450,7 +418,7 @@ function ScreenRow({
   );
 }
 
-/** Allow · Inherit · Block — three states, because two would hide the default */
+/** Allow · Inherit · Block — three states, crisp and solid when chosen */
 function TriState({
   value, effective, disabled, onChange,
 }: {
@@ -459,28 +427,26 @@ function TriState({
   disabled: boolean;
   onChange: (v: Verdict) => void;
 }) {
-  const opts: { v: Verdict; label: string }[] = [
-    { v: true, label: "Allow" },
-    { v: null, label: "Inherit" },
-    { v: false, label: "Block" },
+  const opts: { v: Verdict; label: string; on: string; onText: string }[] = [
+    { v: true, label: "Allow", on: "#12a172", onText: "#fff" },
+    { v: null, label: "Inherit", on: "#e8e3f0", onText: "#554d66" },
+    { v: false, label: "Block", on: "#d94838", onText: "#fff" },
   ];
   return (
-    <div className="flex rounded-[9px] overflow-hidden border border-[#e7e2ef] shrink-0 bg-white">
-      {opts.map((o) => {
+    <div className="flex rounded-[8px] overflow-hidden shrink-0"
+      style={{ border: "1.5px solid #d9d2e6" }}>
+      {opts.map((o, i) => {
         const on = value === o.v;
         return (
           <button
             key={String(o.v)}
             disabled={disabled}
             onClick={() => onChange(o.v)}
-            className="text-[10.5px] px-2.5 py-1 font-bold transition disabled:opacity-40"
+            className="text-[11px] px-2.5 py-[5px] font-bold transition-colors disabled:opacity-40"
             style={{
-              background: on
-                ? (o.v === true ? "linear-gradient(135deg,#12a172,#5ec9a8)"
-                  : o.v === false ? "linear-gradient(135deg,#c0392b,#e87a6e)"
-                  : "#eceaf1")
-                : "#fff",
-              color: on ? (o.v === null ? "#6b6478" : "#fff") : "#b3acc2",
+              background: on ? o.on : "#fff",
+              color: on ? o.onText : "#6f677f",
+              borderLeft: i > 0 ? "1px solid #e6e0ee" : undefined,
             }}
             title={
               o.v === null

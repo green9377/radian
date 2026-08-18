@@ -21,9 +21,14 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiAppUser,
+  ApiPerson,
+  ApiPosition,
   ApiRole,
+  assignPosition,
   createAppUser,
   listAppUsers,
+  listPeople,
+  listPositions,
   removeAppUser,
   updateAppUser,
 } from "../_data/api";
@@ -49,6 +54,12 @@ const blank = { name: "", username: "", password: "", pin: "", role: "STAFF" as 
 export default function PeopleAccess() {
   const { me } = useAuth();
   const [rows, setRows] = useState<ApiAppUser[]>([]);
+  /*  Templates (positions) — built on Access control; ASSIGNED here.
+      Owner's ruling, 18 Aug 2026: "people and access giye template dekhaia
+      dibo" — the workshop makes them, this page hands them out.  */
+  const [positions, setPositions] = useState<ApiPosition[]>([]);
+  const [positionOf, setPositionOf] = useState<Record<string, string | null>>({});
+  const [assigning, setAssigning] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
@@ -64,6 +75,12 @@ export default function PeopleAccess() {
     } catch {
       setOffline(true);
     }
+    /*  fail-soft: template data missing must not blank the people table  */
+    try {
+      const [pos, ppl] = await Promise.all([listPositions(), listPeople()]);
+      setPositions(pos);
+      setPositionOf(Object.fromEntries((ppl as ApiPerson[]).map((p) => [p.id, p.positionId])));
+    } catch { /* templates unavailable — the column shows a dash */ }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -97,6 +114,17 @@ export default function PeopleAccess() {
       await load();
       flash(u.isActive ? `${u.name} can no longer sign in` : `${u.name} can sign in again`);
     } catch (x) { fail(x); }
+  }
+
+  async function assign(u: ApiAppUser, positionId: string | null) {
+    setAssigning(u.id);
+    try {
+      await assignPosition(u.id, positionId);
+      setPositionOf((m) => ({ ...m, [u.id]: positionId }));
+      const name = positions.find((p) => p.id === positionId)?.name;
+      flash(positionId ? `${u.name} now holds "${name}"` : `${u.name} has no template now`);
+    } catch (x) { fail(x); }
+    finally { setAssigning(null); }
   }
 
   async function remove(u: ApiAppUser) {
@@ -191,7 +219,7 @@ export default function PeopleAccess() {
         {rows.length === 0 && !offline ? (
           <Empty title="Nobody yet" sub="Add the people who work in the shop, each with their own account." />
         ) : (
-          <Table head={<tr><Th>Person</Th><Th>Signs in as</Th><Th>May reach</Th><Th>PIN</Th><Th>Last seen</Th><Th right>Actions</Th></tr>}>
+          <Table head={<tr><Th>Person</Th><Th>Signs in as</Th><Th>Template</Th><Th>PIN</Th><Th>Last seen</Th><Th right>Actions</Th></tr>}>
             {rows.map((u) => {
               const t = TONE[ROLE_TONE[u.role]];
               return (
@@ -202,8 +230,25 @@ export default function PeopleAccess() {
                     {!u.isActive && <span className="text-[11px] text-[#b91c1c] font-semibold"> · turned off</span>}
                   </Td>
                   <Td>{u.username}</Td>
-                  <Td><Chip tone={ROLE_TONE[u.role]}>{u.role}</Chip>
-                    <div className="text-[11px] text-body-soft mt-0.5" style={{ color: t.text }}>{ROLE_NOTE[u.role]}</div>
+                  <Td>
+                    {u.role === "OWNER" ? (
+                      <Chip tone="brand">OWNER — everything</Chip>
+                    ) : positions.length ? (
+                      <select
+                        className={`${input} text-[12px] py-1 max-w-[190px]`}
+                        value={positionOf[u.id] ?? ""}
+                        disabled={assigning === u.id}
+                        onChange={(x) => void assign(u, x.target.value || null)}
+                      >
+                        <option value="">— no template —</option>
+                        {positions.filter((p) => !p.isOwner).map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-[12px] text-body-soft">—</span>
+                    )}
+                    <div className="text-[10.5px] text-body-soft mt-0.5">legacy: {u.role}</div>
                   </Td>
                   <Td>{u.hasPin ? "set" : <span className="text-[#b45309] font-semibold">not set</span>}</Td>
                   <Td>{u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : "never"}</Td>
