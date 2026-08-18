@@ -2580,7 +2580,8 @@ enum AddedFrom {
   CHECKOUT
 }
 
-/// টাকা collection/refund record (Radian রাখে); ledger = Finance-owned (পরে, completed event) (DEC-SAL-006)
+/// The record of money collected or refunded, kept by Radian. The ledger
+/// itself is Finance-owned and written on the completed event (DEC-SAL-006).
 model PaymentTransaction {
   id          String        @id @default(cuid())
   orderId     String
@@ -2612,20 +2613,22 @@ enum PaymentSessionStatus {
   CANCELLED
 }
 
-/// storefront-এর online payment attempt — gateway আর order-এর মাঝের সেতু।
+/// A storefront online payment attempt - the bridge between the gateway and
+/// the order.
 ///
-/// ⚠️ কেন `PaymentTransaction`-ই যথেষ্ট নয়: ওটা **টাকা এসেছে** তার রেকর্ড,
-/// আর সেটা লেখা হয় সব যাচাই শেষ হওয়ার পর। এই সারিটা তার আগের ধাপ — গ্রাহক
-/// gateway-তে গেছেন, কিন্তু টাকা এসেছে কি না জানা নেই। দুটো এক টেবিলে
-/// রাখলে অসফল চেষ্টাও আয় হিসেবে গোনা হতো।
+/// Why `PaymentTransaction` was not enough: that table records that MONEY
+/// ARRIVED, and it is written only after every validation has passed. This row
+/// is the step before it - the customer went to the gateway and whether the
+/// money arrived is not yet known. Putting both in one table would have
+/// counted failed attempts as income.
 ///
-/// ⚠️ `amountPaisa` এখানে জমা থাকে ইচ্ছাকৃতভাবে। gateway ফেরত এলে তার বলা
-/// টাকার সাথে **এই** সংখ্যাটা মেলানো হয়, order-এর চলতি total-এর সাথে নয় —
-/// নইলে গ্রাহক gateway-তে থাকা অবস্থায় admin order edit করলে কম টাকায়
-/// order paid হয়ে যেত।
+/// `amountPaisa` is stored here deliberately. When the gateway calls back, the
+/// amount it reports is checked against THIS number, not against the order's
+/// current total - otherwise an admin editing the order while the customer was
+/// still on the gateway would have marked the order paid for less.
 model PaymentSession {
   id       String @id @default(cuid())
-  /// gateway-কে পাঠানো tran_id — আমাদের দিক থেকে unique, তাই replay ধরা পড়ে
+  /// The tran_id sent to the gateway - unique on our side, so a replay shows up
   tranId   String @unique
   orderId  String
   order    Order  @relation(fields: [orderId], references: [id])
@@ -2634,11 +2637,11 @@ model PaymentSession {
   amountPaisa Int
   status      PaymentSessionStatus @default(INITIATED)
 
-  /// gateway-এর নিজের রেফারেন্স — মিলিয়ে দেখার সময় support এটাই খোঁজে
+  /// The gateway's own references - what support looks for when reconciling
   valId       String?
   bankTranId  String?
   cardType    String?
-  /// callback/IPN-এর কাঁচা payload — dispute হলে এটাই একমাত্র প্রমাণ
+  /// The raw callback/IPN payload - in a dispute this is the only evidence
   raw         Json?
   settledAt   DateTime?
 
@@ -2650,7 +2653,8 @@ model PaymentSession {
   @@index([status])
 }
 
-/// proof photo — Delivery-owned (kitchen prep + rider handover); Sales শুধু দেখায় (DEC-SAL-007)
+/// Proof photo - Delivery-owned (kitchen prep and rider handover); Sales only
+/// displays it (DEC-SAL-007)
 model OrderPhoto {
   id         String         @id @default(cuid())
   orderId    String
