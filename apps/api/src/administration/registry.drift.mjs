@@ -185,21 +185,26 @@ const never = new Set(
 );
 const aliases = new Set(
   [...(guardSrc.match(/PATH_TO_NODE[^=]*=\s*\{([\s\S]*?)\n  \};/)?.[1] ?? '')
-    .matchAll(/^\s*(\w+):/gm)].map((m) => m[1]),
+    .matchAll(/^\s*'?([\w-]+)'?:/gm)].map((m) => m[1]),
 );
 
+/*  EVERY .ts file, recursively - not only *.controller.ts. Most controllers
+    live in files like catalog/addons.ts, and the day this scan read only
+    controller-named files it reported 22 prefixes while the live guard was
+    warning about 25 more it had never heard of (19 Aug 2026).  */
 const apiSrc = join(ROOT, 'apps', 'api', 'src');
 const prefixes = new Set();
-for (const dir of readdirSync(apiSrc, { withFileTypes: true })) {
-  if (!dir.isDirectory()) continue;
-  for (const f of readdirSync(join(apiSrc, dir.name))) {
-    if (!f.endsWith('.controller.ts')) continue;
-    const src = readFileSync(join(apiSrc, dir.name, f), 'utf8');
-    for (const m of src.matchAll(/@Controller\('([^']*)'\)/g)) {
-      prefixes.add(m[1].split('/')[0]);
+const walk = (dir) => {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) { walk(join(dir, e.name)); continue; }
+    if (!e.name.endsWith('.ts')) continue;
+    const src = readFileSync(join(dir, e.name), 'utf8');
+    for (const m of src.matchAll(/@Controller\((['"])([^'"]*)\1\)/g)) {
+      prefixes.add(m[2].split('/')[0]);
     }
   }
-}
+};
+walk(apiSrc);
 
 const uncovered = [...prefixes].filter(
   (p) => !never.has(p) && !aliases.has(p) && !defSet.has(p),
@@ -208,7 +213,7 @@ ok('every API route group is judged, aliased, or explicitly exempt',
   uncovered.length === 0,
   uncovered.length
     ? `UNJUDGED: ${uncovered.map((p) => '/' + p).join(', ')}`
-    : `${prefixes.size} prefixes: ${prefixes.size - never.size - aliases.size} by node, ${aliases.size} aliased, ${never.size - 1} exempt`);
+    : `${prefixes.size} prefixes: ${[...prefixes].filter((p) => defSet.has(p)).length} by node, ${[...prefixes].filter((p) => aliases.has(p)).length} aliased, ${[...prefixes].filter((p) => never.has(p)).length} exempt`);
 
 console.log(`\n================ ${pass} passed, ${fail} failed ================`);
 if (fail > 0) {

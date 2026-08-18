@@ -51,6 +51,12 @@ export class AccessGuard implements CanActivate {
         pair after it and three exempt prefixes report as UNJUDGED. Cost half
         an hour on the day it was written.  */
     'auth', 'administration', 'audit', 'health', 'shop', '',
+    /*  media - the shared upload room. Every modules editor posts images
+        here (products, banners, brands, categories, reviews). Judging it by
+        one module would break uploads for every other allowed module, and
+        an uploaded file on its own changes no business row - the save that
+        USES the url is judged at its own modules prefix.  */
+    'media',
   ]);
 
   /*  ⚠️ WHERE THE API PATH AND THE MENU PATH DISAGREE — 30 Jul 2026, review.
@@ -83,6 +89,36 @@ export class AccessGuard implements CanActivate {
         prefix where a wrong hand can start sending real messages that cost real
         money. Found by the drift check on 17 Aug 2026, which is what it is for. */
     messaging: 'marketing.messaging',
+    /*  Found UNJUDGED in the live logs, 19 Aug 2026 - twenty-five prefixes
+        the guard could not name, because the drift check only read files
+        named *.controller.ts while most controllers live in files like
+        catalog/addons.ts. Every alias below points at the module or screen
+        whose panel page actually edits that data, read off the admin routes
+        - not at the folder name.  */
+    'item-attributes': 'items',
+    'item-categories': 'items',
+    'item-types': 'items',
+    units: 'items',
+    addons: 'products.addons',
+    capacity: 'products.capacity',
+    'variant-attributes': 'products.variants',
+    'variant-groups': 'products.variants',
+    bundles: 'products.upgrades',
+    'craft-points': 'products',
+    'tag-groups': 'tags',
+    'category-story': 'categories',
+    channels: 'orders',
+    segments: 'customers',
+    banners: 'storefront',
+    collections: 'storefront',
+    content: 'storefront',
+    footer: 'storefront',
+    'page-sections': 'storefront',
+    sections: 'storefront',
+    'shop-hours': 'storefront',
+    'trust-badges': 'storefront',
+    reviews: 'storefront.reviews',
+    webhooks: 'marketing.messaging',
   };
 
   /** the last 200 near-misses, newest last. In memory: this is a working note,
