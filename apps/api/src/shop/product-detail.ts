@@ -366,60 +366,64 @@ export interface ShopProductDetail {
    */
   crossSell: ShopProduct[];
   /**
-   * DEC-PRD-018 — এক product = একটাই bundle তালিকা, একটাই ছাড়।
+   * DEC-PRD-018 - one product means one bundle list and one discount.
    *
-   * মালিক, ২ আগস্ট ২০২৬:
-   * > *"just main product নিলে কোনো discount নেই, আর সাথে extra কোনো bundle
-   * >  থেকে product select করলেই সে discount পাবে।"*
+   * The owner, 2 August 2026:
+   * > *"taking just the main product gets no discount; the discount comes as
+   * >  soon as an extra product is selected from a bundle."*
    *
-   * ⚠️ প্যাকেজ নয়, তালিকা। গ্রাহক যা খুশি নেয়, বাকিগুলো skip করে — আর
-   * একটাও নিলেই ছাড় বসে, main product সহ মোট দামের উপর।
+   * A list, not a package. The customer takes whichever they want and skips
+   * the rest - and taking even one applies the discount, against the total
+   * including the main product.
    *
-   * ⚠️ শেষ দামটা এখানে পাঠানো হয় না, কাঁচা সংখ্যা যায়। ছাড় বসে গ্রাহক
-   * **কী কী বেছেছেন** তার উপর, আর সেটা এখানে জানা নেই। হিসাবটা এক
-   * জায়গায়: `_data/bundlePricing.ts`.
+   * The final price is NOT sent from here, only the raw numbers. The discount
+   * depends on WHAT THE CUSTOMER SELECTED, which is not known at this point.
+   * The arithmetic lives in one place: `_data/bundlePricing.ts`.
    */
   bundle: {
     discountType: 'NONE' | 'FLAT' | 'PERCENT';
     /** FLAT = paisa · PERCENT = basis points (1000 = 10%) */
     discountValue: number;
     items: {
-      /** যোগ হওয়া product-এর id — cart-এ এটাই যায় */
+      /** The added product's id - this is what travels to the cart */
       id: string;
       name: string;
       imageUrl: string | null;
-      /** এটার আজকের দাম, নিজের ছাড় বসানোর পর */
+      /** Its price today, with its own discount already applied */
       pricePaisa: number;
     }[];
   } | null;
   /**
-   * DEC-PRD-020 — এটার বড় সংস্করণ, যেগুলো নিজেরাই আলাদা product।
+   * DEC-PRD-020 - the larger versions of this, each a separate product in its
+   * own right.
    *
-   * মালিক, ২ আগস্ট ২০২৬: *"upgrade product-এ click করলে price change হবে,
-   * কিন্তু অন্য page-এ যেন না নেয়।"*
+   * The owner, 2 August 2026: *"clicking an upgrade product should change the
+   * price, but it must not take me to another page."*
    *
-   * ⚠️ ঘরটা schema-তে ২৬ জুলাই থেকেই ছিল আর admin-এ বাছাও যেত, কিন্তু
-   * storefront কোনোদিন এটা পড়েনি — অর্থাৎ মালিক যা বাছতেন তা কোথাও
-   * দেখাত না। ঠিক এই ভুলটাই variant swatch-এর বেলায় হয়েছিল: টেবিল ছিল,
-   * admin ছিল, পর্দা ছিল না।
+   * The field had been in the schema since 26 July and was selectable in the
+   * admin, but the storefront never read it - meaning whatever the owner chose
+   * appeared nowhere. This is the same mistake the variant swatches made: the
+   * table existed, the admin existed, the screen did not.
    *
-   * ⚠️ প্রতিটা upgrade একটা **সত্যিকারের product** — নিজের দাম, নিজের
-   * মজুদ, নিজের page। তাই বাছলে cart-এ ওরই `slug` যায়। page বদলায় না,
-   * শুধু দাম আর ছবি বদলায় — মালিকের স্পষ্ট নির্দেশ।
+   * Each upgrade is A REAL PRODUCT - its own price, its own stock, its own
+   * page. So selecting one sends ITS `slug` to the cart. The page does not
+   * change; only the price and the photo do - the owner's explicit
+   * instruction.
    */
   upgrades: {
     slug: string;
     name: string;
     imageUrl: string | null;
-    /** গ্রাহক যা দেবে — নিজের ছাড় বসানোর পর */
+    /** What the customer pays - with its own discount applied */
     pricePaisa: number;
   }[];
   /**
-   * DEC-PRD-026 — গ্রাহক নিজের লেখা বা ছবি দিতে পারবে কি না।
-   * `null` = এই product-এ কিছুই দেওয়ার নেই, আর page-এ অংশটাই আঁকা হয় না।
+   * DEC-PRD-026 - whether the customer may supply their own text or image.
+   * `null` means there is nothing to supply on this product, and the section
+   * is not drawn on the page at all.
    *
-   * ⚠️ ২ আগস্ট ২০২৬ পর্যন্ত storefront-এর seam-এ সোজা `perso: null` লেখা
-   * ছিল, তাই কোনো product-এ এটা **কখনো** আসেনি।
+   * Until 2 August 2026 the storefront seam had a literal `perso: null`, so
+   * this NEVER arrived on any product.
    */
   perso: {
     title: string;
@@ -427,10 +431,11 @@ export interface ShopProductDetail {
     image: { label: string; hint: string } | null;
   } | null;
   /**
-   * DEC-PRD-027 — "Want this customised?" সবুজ বাক্স। `null` = দেখাবে না।
+   * DEC-PRD-027 - the green "Want this customised?" box. `null` means do not
+   * show it.
    *
-   * ⚠️ নম্বরটা Company settings-এর `publicPhone` থেকে। আগে page-এ
-   * `wa.me/8801000000000` বসানো ছিল — একটা বানানো নম্বর।
+   * The number comes from Company settings' `publicPhone`. The page used to
+   * carry `wa.me/8801000000000` - an invented number.
    */
   customise: { title: string; sub: string; whatsapp: string | null } | null;
   spec: { item: string; qty: string }[];
