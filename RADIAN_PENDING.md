@@ -35,15 +35,23 @@ node apps/api/scripts/no-bangla.selftest.mjs --update-baseline   ← অনু�
 
 ### 🔒 প্রতিটা commit-এ যে যাচাইটা চালাতে হবে
 
-মন্তব্য বাদ দিয়ে ফাইলটা আগের মতোই আছে কিনা — schema-র জন্য:
-
 ```
-strip() { sed -e 's://.*::' -e 's/[[:space:]]*$//' -e '/^$/d' "$1"; }
-git show HEAD:apps/api/prisma/schema.prisma > /tmp/old
-diff <(strip /tmp/old) <(strip apps/api/prisma/schema.prisma) && echo SAFE
+node apps/api/scripts/comments-only.mjs <file>      ← এক বা একাধিক ফাইল
+node apps/api/scripts/comments-only.mjs --staged    ← যা staged আছে সব
 ```
 
-"SAFE" না এলে কোনো field/relation/index ছোঁয়া হয়েছে — **commit করা যাবে না**。
+মন্তব্য বাদ দিলে ফাইলটা HEAD-এর মতোই আছে কিনা দেখে。 **SAFE** = শুধু লেখা
+বদলেছে。 **CODE** = মন্তব্যের বাইরে কিছু বদলেছে, আর কোন লাইনটা সেটাও বলে দেয়
+— তখন **commit করা যাবে না**。
+
+> ⚠️ **`;` নয়, `&&` দিয়ে জুড়তে হবে** — ১৭ আগস্ট এক লাইনের পুরনো যাচাইয়ে
+> `;` ছিল, তাই DIFF দেখানোর পরেও commit চলে গিয়েছিল。 (ওই commit পরে
+> যাচাই করা হয়েছে — কোড বদলায়নি, সতর্কতাটাই ভুল ছিল: পুরনো যাচাই
+> `/* */` block ফেলত না。)
+
+```
+node apps/api/scripts/comments-only.mjs --staged && git commit ...
+```
 
 ### ▶️ পরের বার এখান থেকে শুরু
 
