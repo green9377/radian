@@ -27,12 +27,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   getBackups, getCompanyReadiness, getIntegrations, getSettingsMap,
-  getUndecidedNodes, getWouldBlock, listPeople, listPositions, listSessions,
+  getAccessRegistry, getUndecidedNodes, getWouldBlock, listPeople, listPositions, listSessions,
   type ApiBackups, type ApiCompanyReadiness, type ApiIntegrationsOverview,
   type ApiPerson, type ApiPosition, type ApiSession, type ApiSettingsEntry,
-  type ApiUndecided, type ApiWouldBlockReport,
+  type ApiAccessNode, type ApiUndecided, type ApiWouldBlockReport,
 } from "../_data/api";
 import { Banner, Card, Chip, WRAP } from "./FinanceUI";
+import { Donut, Gauge, HBar, LegendDot, MiniBars, Ring } from "./Charts";
 import Icon from "./Icon";
 
 /*  The brand family, one hue per section — same idea as the sidebar accents.
@@ -78,6 +79,7 @@ export default function AdministrationOverview() {
   const [backups, setBackups] = useState<ApiBackups | null>(null);
   const [ints, setInts] = useState<ApiIntegrationsOverview | null>(null);
   const [settings, setSettings] = useState<ApiSettingsEntry[] | null>(null);
+  const [nodes, setNodes] = useState<ApiAccessNode[] | null>(null);
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function AdministrationOverview() {
     soft(getBackups(), setBackups);
     soft(getIntegrations(), setInts);
     soft(getSettingsMap(), setSettings);
+    soft(getAccessRegistry(), setNodes);
   }, []);
 
   const active = people?.filter((p) => p.isActive) ?? [];
@@ -101,6 +104,16 @@ export default function AdministrationOverview() {
   const connected = services.filter((s) => s.isEnabled);
   const liveKeys = connected.filter((s) => s.isLive);
   const touched = settings?.filter((s) => s.exists) ?? [];
+
+  const withPin = active.filter((p) => p.hasPin);
+  const countNodes = (list: ApiAccessNode[]): number =>
+    list.reduce((n, x) => n + 1 + countNodes(x.children ?? []), 0);
+  const totalScreens = nodes ? countNodes(nodes) : 0;
+  const decidedPct = totalScreens
+    ? Math.round(((totalScreens - (undecided?.length ?? 0)) / totalScreens) * 100)
+    : null;
+  const backupSizes = (backups?.history ?? []).slice(0, 7).reverse().map((h) => h.bytes ?? 0);
+  const maxPeople = Math.max(1, ...(positions ?? []).map((p) => p.people));
 
   const backupHue: Hue =
     backups?.state === "ok" ? "emerald" : backups?.state === "stale" ? "amber" : "rose";
@@ -159,33 +172,78 @@ export default function AdministrationOverview() {
 
       {/* ── row 1 · four numbers, four brand hues ────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-4">
-        <Tile hue="purple" icon="users" label="People with access"
-          value={people ? String(active.length) : "—"}
-          foot={people ? `${pendingInvites.length} invite${pendingInvites.length === 1 ? "" : "s"} pending · ${noPin.length} without a PIN` : "loading"}
-          href="/settings/people" />
-        <Tile hue="orchid" icon="eye" label="Signed in now"
-          value={sessions ? String(sessions.length) : "—"}
-          foot={sessions?.length ? sessions.slice(0, 2).map((s) => s.name).join(" · ") + (sessions.length > 2 ? " …" : "") : "nobody"}
-          href="/administration/sessions" />
-        <Tile hue="pink" icon="shield" label="Positions (templates)"
-          value={positions ? String(positions.length) : "—"}
-          foot={positions ? `${positions.reduce((n, p) => n + p.rules, 0)} explicit rules stored` : "loading"}
-          href="/administration/access" />
-        <Tile hue={backupHue} icon="download" label="Last backup"
-          value={backupWord}
-          foot={backups ? `${backups.count} kept${backups.suspicious ? ` · ${backups.suspicious} suspicious` : ""}` : "loading"}
-          href="/administration/backup" />
+        <VizTile hue="purple" icon="users" label="People with access" href="/settings/people"
+          viz={<Donut size={86} thickness={11}
+            segments={[
+              { value: withPin.length, color: B.purple.text },
+              { value: noPin.length, color: B.amber.text },
+              { value: pendingInvites.length, color: "#d8d2e2" },
+            ]}
+            centerTop={people ? String(active.length) : "—"} />}
+          legend={<>
+            <LegendDot color={B.purple.text}>{withPin.length} with PIN</LegendDot>
+            <LegendDot color={B.amber.text}>{noPin.length} no PIN</LegendDot>
+            <LegendDot color="#d8d2e2">{pendingInvites.length} invited</LegendDot>
+          </>} />
+        <VizTile hue="orchid" icon="eye" label="Signed in now" href="/administration/sessions"
+          viz={
+            <div className="flex items-center h-[86px]">
+              <div className="flex -space-x-2.5">
+                {(sessions ?? []).slice(0, 5).map((x) => (
+                  <span key={x.id} title={x.name}
+                    className="w-[38px] h-[38px] rounded-full grid place-items-center text-[14px] font-bold text-white border-2 border-white shadow-soft"
+                    style={{ background: B.orchid.grad }}>
+                    {x.name.slice(0, 1).toUpperCase()}
+                  </span>
+                ))}
+                {sessions?.length === 0 && <span className="text-[12.5px] text-body-soft">nobody</span>}
+              </div>
+              <span className="text-[30px] font-bold ml-3" style={{ color: B.orchid.text }}>
+                {sessions ? sessions.length : "—"}
+              </span>
+            </div>
+          }
+          legend={<span className="text-[11.5px] text-body-soft">open sessions across every device</span>} />
+        <VizTile hue="pink" icon="shield" label="Positions (templates)" href="/administration/access"
+          viz={
+            <div className="w-full pt-1">
+              {(positions ?? []).slice(0, 3).map((p) => (
+                <HBar key={p.id} label={p.name} value={p.people} max={maxPeople}
+                  color={B.pink.text} right={`${p.people}`} />
+              ))}
+              {positions?.length === 0 && <span className="text-[12.5px] text-body-soft">none yet</span>}
+            </div>
+          }
+          legend={<span className="text-[11.5px] text-body-soft">
+            {positions ? `${positions.reduce((n, p) => n + p.rules, 0)} explicit rules stored` : "…"}
+          </span>} />
+        <VizTile hue={backupHue} icon="download" label="Last backup" href="/administration/backup"
+          viz={
+            <div className="flex items-end gap-3 h-[86px] pb-1">
+              <span className="text-[24px] font-bold leading-none" style={{ color: B[backupHue].text }}>{backupWord}</span>
+              {backupSizes.length > 0 && <MiniBars values={backupSizes} color={B[backupHue].text} width={100} height={44} />}
+            </div>
+          }
+          legend={<span className="text-[11.5px] text-body-soft">
+            {backups ? `${backups.count} kept${backups.suspicious ? ` · ${backups.suspicious} suspicious` : ""} · size per dump` : "…"}
+          </span>} />
       </div>
 
       {/* ── row 2 · access health (purple) + company (rose gold) ─────── */}
       <div className="grid gap-4 lg:grid-cols-2 mb-4">
         <Section hue="purple" icon="shield" title="Access — what the silent guard saw"
           sub="It blocks nobody yet; it writes down who it WOULD have refused">
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <MiniStat hue={guard ? (guard.rows.length ? "amber" : "emerald") : "lavender"}
-              value={guard ? String(guard.rows.length) : "—"} label="would have been refused" />
-            <MiniStat hue={guard ? (guard.unjudged.length ? "rose" : "emerald") : "lavender"}
-              value={guard ? String(guard.unjudged.length) : "—"} label="routes the guard cannot judge" />
+          <div className="flex items-start gap-4 mb-3">
+            <div className="shrink-0 text-center">
+              <Gauge pct={decidedPct ?? 0} size={132} color={B.purple.text}
+                label={decidedPct == null ? "—" : `${decidedPct}%`} sub="screens decided" />
+            </div>
+            <div className="grid gap-2.5 flex-1 min-w-0">
+              <MiniStat hue={guard ? (guard.rows.length ? "amber" : "emerald") : "lavender"}
+                value={guard ? String(guard.rows.length) : "—"} label="would have been refused" />
+              <MiniStat hue={guard ? (guard.unjudged.length ? "rose" : "emerald") : "lavender"}
+                value={guard ? String(guard.unjudged.length) : "—"} label="routes the guard cannot judge" />
+            </div>
           </div>
           {guard && guard.rows.length === 0 && guard.unjudged.length === 0 && (
             <p className="text-[12.5px] text-body-soft m-0">
@@ -259,6 +317,21 @@ export default function AdministrationOverview() {
         <Section hue="orchid" icon="bolt"
           title={`Integrations — ${connected.length} of ${services.length || "…"} connected`}
           sub={`${liveKeys.length} live · ${connected.length - liveKeys.length} sandbox`}>
+          <div className="flex items-center gap-4 mb-3">
+            <Donut size={104} thickness={13}
+              segments={[
+                { value: liveKeys.length, color: B.emerald.text },
+                { value: connected.length - liveKeys.length, color: B.amber.text },
+                { value: Math.max(0, services.length - connected.length), color: "#e4def0" },
+              ]}
+              centerTop={services.length ? String(connected.length) : "—"}
+              centerBottom="connected" />
+            <div className="flex flex-col gap-1.5">
+              <LegendDot color={B.emerald.text}>{liveKeys.length} live</LegendDot>
+              <LegendDot color={B.amber.text}>{connected.length - liveKeys.length} sandbox</LegendDot>
+              <LegendDot color="#e4def0">{Math.max(0, services.length - connected.length)} off</LegendDot>
+            </div>
+          </div>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {services.length === 0 && <span className="text-[12.5px] text-body-soft">—</span>}
             {services.map((s) => (
@@ -306,11 +379,11 @@ export default function AdministrationOverview() {
         <Section hue="pink" icon="gear"
           title={`Module settings — ${touched.length} of ${settings?.length ?? "…"} touched`}
           sub="Untouched means the module still runs on its defaults">
-          <div className="h-[9px] rounded-full overflow-hidden mb-3" style={{ background: B.pink.soft }}>
-            <div className="h-full rounded-full transition-all"
-              style={{ width: settings?.length ? `${(touched.length / settings.length) * 100}%` : 0, background: B.pink.grad }} />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex items-center gap-4 mb-1">
+            <Ring pct={settings?.length ? (touched.length / settings.length) * 100 : 0}
+              size={88} color={B.pink.text}
+              label={settings ? `${touched.length}/${settings.length}` : "—"} />
+            <div className="flex flex-wrap gap-1.5 flex-1">
             {settings?.map((s) => (
               <Link key={s.key} href={s.href}>
                 <span className="inline-block text-[11.5px] font-semibold px-2.5 py-1 rounded-full transition-colors"
@@ -321,6 +394,7 @@ export default function AdministrationOverview() {
                 </span>
               </Link>
             ))}
+            </div>
           </div>
         </Section>
 
@@ -345,6 +419,27 @@ export default function AdministrationOverview() {
 }
 
 /* ── pieces ──────────────────────────────────────────────────────────── */
+
+function VizTile({ hue, icon, label, viz, legend, href }: {
+  hue: Hue; icon: string; label: string; viz: React.ReactNode; legend: React.ReactNode; href: string;
+}) {
+  return (
+    <Link href={href} className="block group">
+      <div className="rounded-[18px] p-4 h-full bg-white border transition-all group-hover:-translate-y-[2px] group-hover:shadow-lg"
+        style={{ borderColor: `${B[hue].text}22`, boxShadow: `0 2px 10px ${B[hue].text}14` }}>
+        <div className="flex items-center gap-2.5 mb-2">
+          <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white"
+            style={{ background: B[hue].grad, boxShadow: `0 3px 10px ${B[hue].text}45` }}>
+            <Icon name={icon} size={15} strokeWidth={2.2} />
+          </span>
+          <span className="text-[11.5px] font-bold text-body-soft">{label}</span>
+        </div>
+        <div className="flex justify-center">{viz}</div>
+        <div className="mt-2 text-center leading-snug">{legend}</div>
+      </div>
+    </Link>
+  );
+}
 
 function Tile({ hue, icon, label, value, foot, href }: {
   hue: Hue; icon: string; label: string; value: string; foot: string; href: string;
