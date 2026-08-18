@@ -24,8 +24,7 @@ import {
   endAllSessions, endSession, getBackups, getSettingsMap, listSessions,
 } from "../_data/api";
 import {
-  Banner, Card, Chip, Empty, FinHeader, Flash, Panel, Table, Td, Th,
-  TONE, WRAP, btnGhost,
+  FinHeader, Flash, Table, Td, Th, WRAP,
 } from "./FinanceUI";
 
 /* ================================================================== *
@@ -140,13 +139,6 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
  *  Backup & restore
  * ================================================================== */
 
-const STATE: Record<ApiBackups["state"], { tone: keyof typeof TONE; title: string }> = {
-  ok: { tone: "emerald", title: "Backups are running" },
-  stale: { tone: "amber", title: "No backup in over a day and a half" },
-  bad: { tone: "rose", title: "No backup in over a week" },
-  never: { tone: "rose", title: "No backup has ever been recorded" },
-};
-
 export function BackupScreen() {
   const [b, setB] = useState<ApiBackups | null>(null);
   const [err, setErr] = useState("");
@@ -155,77 +147,75 @@ export function BackupScreen() {
     getBackups().then(setB).catch((e) => setErr((e as Error).message));
   }, []);
 
-  const meta = b ? STATE[b.state] : null;
+  /*  No state banners here - never / stale / suspicious all live in the
+      bell (owner, 19 Aug). The hero pill gives the verdict at a glance.  */
+  const pill = !b
+    ? null
+    : b.state === "never"
+      ? { dot: "#ff8a80", text: "Never run" }
+      : b.state === "ok"
+        ? { dot: "#4be3a4", text: `Last: ${b.hoursSince === 0 ? "under an hour" : `${b.hoursSince}h`} ago` }
+        : { dot: "#ffd166", text: `Last: ${b.hoursSince}h ago` };
 
   return (
     <div className={WRAP}>
-      <FinHeader
-        eyebrow="Administration" emoji="⛁" title="Backup & restore"
-        sub="The whole business lives in one Docker volume — if it goes, everything goes"
-      />
+      <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden"
+        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        <div className="flex items-center gap-3 relative flex-wrap">
+          <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
+            style={{ background: "rgba(255,255,255,0.16)" }}>
+            <Icon name="download" size={18} strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-white/70">Setup · Administration</div>
+            <h1 className="font-display text-[21px] text-white leading-tight m-0">Backup & restore</h1>
+          </div>
+          {pill && (
+            <span className="ml-auto flex items-center gap-1.5 px-3 py-[7px] rounded-full text-[11px] font-bold text-white"
+              style={{ background: "rgba(255,255,255,0.18)" }}>
+              <span className="w-[7px] h-[7px] rounded-full" style={{ background: pill.dot }} />
+              {pill.text}
+            </span>
+          )}
+        </div>
+      </div>
       <Flash ok="" err={err} />
 
-      {b && meta && (
-        <div className="mb-5">
-          <Banner tone={meta.tone} emoji={b.state === "ok" ? "✓" : "⚠"} title={meta.title}>
-            {b.last ? (
-              <>
-                Last one {b.hoursSince === 0 ? "less than an hour" : `${b.hoursSince} hours`} ago
-                {b.last.bytes != null && ` · ${(b.last.bytes / 1024).toFixed(0)} KB`}
-                {b.last.file && ` · ${b.last.file}`}
-              </>
-            ) : (
-              <>
-                Run <code>radian_backup.bat</code> now, then{" "}
-                <code>radian_backup_schedule.bat</code> so it happens nightly
-                without anybody remembering to.
-              </>
-            )}
-          </Banner>
+      <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+        style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+        <div className="px-4 py-2.5 flex items-center gap-2.5"
+          style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
+          <span className="text-white"><Icon name="download" size={14} strokeWidth={2.3} /></span>
+          <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Recent backups</span>
+          <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{b?.history.length ?? 0}</span>
         </div>
-      )}
-
-      {/*  An empty dump is a file that looks like a backup and restores nothing.
-           The .bat deletes those itself, so one appearing here means the check
-           was bypassed and the "backup" is a 0-byte lie.  */}
-      {b && b.suspicious > 0 && (
-        <div className="mb-5">
-          <Banner tone="rose" emoji="⚠" title={`${b.suspicious} dumps are suspiciously small`}>
-            A dump under 10 KB is almost certainly empty. Run{" "}
-            <code>radian_backup_check.bat</code> and look at them.
-          </Banner>
-        </div>
-      )}
-
-      <Panel emoji="▤" title="Recent backups" sub="Read from the audit trail, newest first">
         {!b || b.history.length === 0 ? (
-          <div className="p-5"><Empty title="Nothing recorded yet" /></div>
+          <div className="px-4 py-8 text-center">
+            <p className="text-[13px] font-bold text-[#2d2838] m-0">Nothing recorded yet</p>
+            <p className="text-[11.5px] text-body-soft mt-1 mb-0">
+              <code>radian_backup.bat</code> once, then <code>radian_backup_schedule.bat</code> for every night
+            </p>
+          </div>
         ) : (
           <Table head={<><Th>When</Th><Th>File</Th><Th right>Size</Th><Th>By</Th></>}>
             {b.history.map((h, i) => (
               <tr key={`${h.file}-${i}`}>
                 <Td>{new Date(h.at).toLocaleString()}</Td>
-                <Td><code className="text-[11px]">{h.file ?? "—"}</code></Td>
-                <Td right>{h.bytes == null ? "—" : `${(h.bytes / 1024).toFixed(0)} KB`}</Td>
+                <Td><code className="text-[11px]">{h.file ?? "\u2014"}</code></Td>
+                <Td right>
+                  {h.bytes == null ? "\u2014" : (
+                    <span className="font-semibold"
+                      style={{ color: h.bytes < 10 * 1024 ? "#c0392b" : "#0e9767" }}>
+                      {(h.bytes / 1024).toFixed(0)} KB
+                    </span>
+                  )}
+                </Td>
                 <Td>{h.by}</Td>
               </tr>
             ))}
           </Table>
         )}
-      </Panel>
-
-      <Card className="p-5 mt-5 max-w-[760px]">
-        <h3 className="text-[13.5px] font-bold text-purple mb-2">What this screen cannot tell you</h3>
-        <p className="text-[12.5px] text-body leading-relaxed">
-          It reads the trail the backup script writes, not the disk. So it knows a
-          backup <em>was taken</em> — it does not know the file is still there, or
-          that it would restore. Only a restore proves that.
-        </p>
-        <p className="text-[12.5px] text-body leading-relaxed mt-2">
-          Run <code>radian_restore.bat</code> against a copy once, on purpose,
-          while nothing is wrong. A backup nobody has ever restored is a guess.
-        </p>
-      </Card>
+      </div>
     </div>
   );
 }
