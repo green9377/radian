@@ -93,8 +93,18 @@ const WIPE = [
   // purchases & suppliers (types kept)
   'SupplierPaymentAllocation', 'SupplierPayment', 'SupplierAdjustment', 'SupplierCredit',
   'PurchaseReturnLine', 'PurchaseReturn', 'PurchasePayment', 'PurchaseLine', 'Purchase',
-  // items (masters kept) — before Supplier: Item.supplierId points at it
-  'ItemComponent', 'Item',
+  /*  items — before Supplier: Item.supplierId points at it.
+
+      ItemCategory is wiped too, and that is a correction. It used to be held
+      back as a "master", but Fresh Flowers / Packaging / Gift Items are the
+      owner's own stockroom groupings — business data, not configuration. The
+      admin's "Create starter categories" button used to plant 33 invented ones,
+      and a clean that left them behind is not a clean. That button is gone now;
+      this line makes sure its leftovers go with it.
+
+      Item attributes and values (Colour, Size and their options) DO stay: those
+      are a vocabulary the owner picks from, closer to Unit than to a category.  */
+  'ItemComponent', 'Item', 'ItemCategory',
   'Supplier',
   // finance transactions (chart of accounts + settings kept)
   'JournalLine', 'JournalEntry', 'Expense', 'Campaign', 'Income', 'Transfer',
