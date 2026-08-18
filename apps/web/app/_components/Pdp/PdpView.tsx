@@ -625,8 +625,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             {product.name}
           </h1>
 
-          {/*  DEC-PRD-031, ৬ আগস্ট — মালিকের লেখা এক লাইন, title আর
-              review-এর মাঝে। ফাঁকা রাখলে line-টাই থাকে না।  */}
+          {/*  DEC-PRD-031, 6 August - one line written by the owner, between
+              the title and the reviews. Leave it blank and the line is gone.  */}
           {detail.shortDesc && (
             <p className="mt-1.5 text-[14.5px] text-body-soft leading-[1.5]">
               {detail.shortDesc}
@@ -634,16 +634,17 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           )}
 
           {/*
-            ⚠️ কোনো review না থাকলে পুরো সারিটা উঠে যায় (31 Jul 2026)।
-            আগে ৭১টা product-এই hardcoded "4.9 · 412 Reviews" বসানো ছিল —
-            একটাও সত্যি নয়। এখন এই product-এর নিজের published review থেকেই
-            আসে; না থাকলে ⭐ লাইনটাই নেই, শূন্য বা ধার করা তারা নয়।
+            With no reviews the whole row disappears (31 Jul 2026). All 71
+            products used to carry a hardcoded "4.9 · 412 Reviews" - not one of
+            them true. It now comes from this product's own published reviews;
+            with none, there is no star line at all, rather than zeros or
+            borrowed stars.
           */}
           {(detail.reviews.rating !== null || detail.reviews.live) && (
             <div className="flex items-center gap-2.5 flex-wrap mt-3 text-[13.5px] text-body-soft">
               {detail.reviews.rating !== null && (
                 <>
-                  {/* 4.9 কীসের মধ্যে — স্পষ্ট করে "out of 5" */}
+                  {/* 4.9 out of what - say "out of 5" plainly */}
                   <span className="inline-flex items-center gap-1 bg-[#0E7A3D] text-white rounded-[7px] px-2 py-1 text-[12.5px] font-bold">
                     <Icon name="star" className="w-3 h-3 fill-white stroke-none" />
                     {detail.reviews.rating}
@@ -667,16 +668,19 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           )}
 
           {/*
-            ─── কত বাকি ───
+            ─── How many are left ───
 
-            মালিক switch চালু করলে **সংখ্যাটা সবসময় দেখায়** — সেটাই তো
-            চালু করার মানে। শুধু **কম হয়ে গেলে সুরটা বদলায়**: শান্ত ধূসর
-            "30 in stock" থেকে জরুরি হলুদ "Only 3 left"।
+            When the owner turns the switch on, THE NUMBER ALWAYS SHOWS - that
+            is what turning it on means. Only the TONE changes once it gets
+            low: from a calm grey "30 in stock" to an urgent amber
+            "Only 3 left".
 
-            একই তথ্য, দুই স্বর। ৩০টা থাকা একটা তথ্য; ৩টা থাকা একটা তাড়া।
+            Same fact, two voices. Having 30 is information; having 3 is a
+            reason to hurry.
 
-            `stockLeft` null মানে হয় দোকান বলতে চায় না, নয়তো কিছু গোনা হয় না।
-            দুটোর মানে এক — চুপ থাকা।
+            `stockLeft` being null means either the shop does not want to say
+            or nothing is being counted. Both mean the same thing here: stay
+            quiet.
           */}
           {typeof detail.stockLeft === "number" && detail.stockLeft > 0 && (
             <div
@@ -701,7 +705,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             </div>
           )}
 
-          {/* price — title/review-এর একই ব্লকে, একটাই দাগ */}
+          {/* price - in the same block as the title and reviews, one line */}
           <div className="flex items-baseline gap-3 flex-wrap mt-4">
             <div className="font-display text-[32px] font-semibold text-ink">
               {/*  DEC-PRD-035 — the page opens with nothing picked, so when
@@ -722,15 +726,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 </span>
               )}
             </div>
-            {/* তিনটেই একসাথে আসে বা একটাও আসে না — ছাড় না থাকলে কাটা দাগ,
-                শতাংশ আর "You save" তিনটেরই কোনো মানে নেই */}
+            {/* All three appear together or none does - with no discount, the
+                strike-through, the percentage and "You save" are all
+                meaningless */}
             {wasPaisa !== null && (
               <>
                 <span className="text-[17px] text-body-soft line-through">
                   {formatTaka(wasPaisa)}
                 </span>
                 <span className="text-[16px] font-bold text-[#E39400]">{off}% OFF</span>
-                {/* কত টাকা বাঁচল — %-এর চেয়ে এটা বেশি বোঝা যায় */}
+                {/* How much money is saved - people read this far better than a % */}
                 <span className="text-[12.5px] font-bold text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-full px-2.5 py-1">
                   You save {formatTaka(wasPaisa - unitPaisa)}
                 </span>
