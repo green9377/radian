@@ -205,13 +205,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   }, [product.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
-    Add-on tab গুলো এক আকারে আনা হয়।
+    Normalise the add-on tabs into one shape.
 
-    ⚠️ আগে `detail.addonTabs` ছিল শুধু tab-এর ID, আর প্রতিটা add-on
-    `getAddon(key)` দিয়ে এই file-এর নিজের তালিকা থেকে খোঁজা হত। Database-এর
-    add-on ওই তালিকায় নেই — তাই সেটা দাম ছাড়া বসত, আর cart-এ গিয়ে চুপচাপ
-    উধাও হয়ে যেত। এখন API পুরো tab পাঠায় (`addonGroups`); mock path শুধু
-    cart-এর পুরনো hard-coded catalog-এর জন্য বেঁচে আছে।
+    `detail.addonTabs` used to be only tab IDs, and each add-on was looked up
+    with `getAddon(key)` against a list inside this very file. An add-on from
+    the database is not in that list - so it rendered with no price and then
+    vanished silently on the way to the cart. The API now sends whole tabs
+    (`addonGroups`); the mock path survives only for the cart's old hard-coded
+    catalog.
   */
   const groups: AddonGroup[] = useMemo(() => {
     if (detail.addonGroups) return detail.addonGroups;
@@ -225,7 +226,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       }));
   }, [detail.addonGroups, detail.addonTabs]);
 
-  /*  এক জায়গায় দাম খোঁজার map — একই add-on দুই tab-এ থাকলেও একবারই।  */
+  /*  One map to look prices up in - the same add-on in two tabs is counted
+      once.  */
   const addonByKey = useMemo(() => {
     const m = new Map<string, AddonItem>();
     for (const g of groups) for (const a of g.items) m.set(a.key, a);
@@ -241,39 +243,44 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   );
 
   /*
-    দাম = size + bundle (+ add-ons)।
+    Price = size + bundle (+ add-ons).
 
-    ⚠️ কাটা দাম আর বানানো নয় (31 Jul 2026)। আগে ছিল `unitPaisa / 0.81` —
-    অর্থাৎ ৭১টা product-এর প্রত্যেকটাতে "19% OFF", কোনোটাতে সত্যিই ছাড়
-    দেওয়া হোক বা না হোক। এখন `detail.mrpPaisa` আসে মালিকের নিজের discount
-    থেকে; ছাড় না থাকলে সেটা null আর কাটা দাগটাই আঁকা হয় না।
+    The struck-through price is no longer invented (31 Jul 2026). It used to be
+    `unitPaisa / 0.81` - which is to say "19% OFF" on all 71 products, whether
+    any discount had been given or not. `detail.mrpPaisa` now comes from the
+    owner's own discount; with no discount it is null and no strike-through is
+    drawn at all.
 
-    ছাড়ের অনুপাত base দামের উপর মাপা হয়ে বেছে নেওয়া size-এ বসে — একটা
-    product-এ ২০% ছাড় মানে Large-এও ২০%। ⚠️ প্রতি size-এ আলাদা MRP-র ঘর
-    schema-তে নেই; মালিক size-ভিত্তিক ছাড় চাইলে সেটা আলাদা সিদ্ধান্ত।
+    The discount ratio is measured against the base price and applied to the
+    chosen size - 20% off a product means 20% off Large too. There is no
+    per-size MRP field in the schema; if the owner wants size-specific
+    discounts, that is a separate decision.
   */
   /*
-    DEC-PRD-012 — variant-এর নিজের দাম থাকলে সেটাই চলে।
+    DEC-PRD-012 - when a variant carries its own price, that price wins.
 
-    ⚠️ মিলিয়ে দেখা হয় product-এর দামের সাথে, কারণ server override না
-    থাকলে product-এর দামটাই ফেরত পাঠায় — অর্থাৎ আলাদা মানে সত্যিই মালিক
-    আলাদা দাম লিখেছেন। মালিকের নিয়ম: *"same product just color change হলে
-    দাম same থাকবে, আবার kg change হলে আলাদা হবে।"*
+    It is compared against the product's price because, with no override, the
+    server returns the product's price - so a difference means the owner
+    really did type a different one. The owner's rule: *"for the same product,
+    if only the colour changes the price stays the same; if the kg changes it
+    differs."*
   */
-  /*  ⚠️ বাছা থাকলেই তার দাম — দাম মিলিয়ে অনুমান নয়। server payload নিজেই
-      ছাড় বসিয়ে চূড়ান্ত সংখ্যাটা পাঠায় (DEC-PRD-032); সেটা যদি কাকতালীয়ভাবে
-      product-এর দামের সমান হতো, পুরনো শর্তে page ভাবত "variant-এর নিজের দাম
-      নেই" আর ভুল দাম দেখাত। ৯ আগস্ট ২০২৬।  */
+  /*  If a variant is selected, its price is used - never guessed by comparing
+      numbers. The server payload applies the discount and sends the final
+      figure (DEC-PRD-032); had that coincidentally equalled the product's
+      price, the old condition would have concluded "this variant has no price
+      of its own" and shown the wrong one. 9 August 2026.  */
   const variantPaisa = variant ? variant.pricePaisa : null;
   /*
-    DEC-PRD-018 — মালিক, ২ আগস্ট: ছাড় বসে **main product সহ** মোট দামের
-    উপর, আর তালিকা থেকে একটাও নিলে তবেই। তাই base হিসেবে যায় গ্রাহক
-    main-এর জন্য যা দিচ্ছে — রঙ বা মাপ বাছার পরের দাম। ২ কেজি কেক নিলে
-    ছাড়ও সেই বড় দামের উপরেই বসে।
+    DEC-PRD-018 - the owner, 2 August: the discount applies to the total
+    INCLUDING the main product, and only once something is taken from the
+    list. So the base is what the customer is paying for the main item - the
+    price after choosing a colour or a size. Take the 2 kg cake and the
+    discount lands on that larger price.
   */
-  /*  ⚠️ upgrade বাছা থাকলে সেটাই আসল দাম — ওটা অন্য একটা product, আর
-      তার নিজের দাম আছে। রঙ/মাপ তখন মুছে যায় (উপরের effect), তাই এখানে
-      দুটো নিয়ম পাশাপাশি লড়ে না।  */
+  /*  When an upgrade is selected that is the real price - it is a different
+      product with a price of its own. Colour and size are cleared at that
+      point (the effect above), so two rules never fight here.  */
   const chosenPaisa = upgrade ? upgrade.pricePaisa : (variantPaisa ?? size.pricePaisa);
   const totals = bundleTotals(chosenPaisa, detail.bundle, bundleIds);
   const unitPaisa = totals.totalPaisa;
@@ -281,14 +288,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     detail.mrpPaisa && detail.mrpPaisa > product.pricePaisa
       ? 1 - product.pricePaisa / detail.mrpPaisa
       : 0;
-  /*  DEC-PRD-032 — রঙ বাছা থাকলে কাটা দামটা **তার নিজের**, server-এর পাঠানো
-      `wasPaisa`। bundle যোগ হলে কাটা দাম দেখানো হয় না: তখন যোগফলটা আর ওই
-      একটা জিনিসের দাম নয়, আর দুটো অসম সংখ্যা পাশাপাশি বসালে গ্রাহক ভুল
-      সঞ্চয় হিসাব করেন। ৯ আগস্ট ২০২৬।  */
-  /*  DEC-PRD-031 — variant-এর নিজের দাম চূড়ান্ত; product-এর ছাড় তার উপর
-      বসে না। আগে এখানে অনুপাতের উল্টো হিসাবে একটা বানানো "was" দাম
-      উঠত (৳1,300 ÷ 0.9166 = ৳1,418) — server বলছে flat ৳200, page বলছে
-      ratio ৳118, দুই অঙ্ক মিলে অর্থহীন সংখ্যা। মালিক ধরেছেন ৮ আগস্ট।  */
+  /*  DEC-PRD-032 - with a colour selected, the struck-through price is ITS
+      OWN, the `wasPaisa` the server sent. Once a bundle is added no
+      strike-through is shown at all: the total is no longer the price of that
+      one thing, and two unlike numbers side by side make the customer compute
+      a saving that is not real. 9 August 2026.  */
+  /*  DEC-PRD-031 - a variant's own price is final; the product's discount does
+      not stack on it. This used to invert the ratio and invent a "was" price
+      (৳1,300 / 0.9166 = ৳1,418) - the server saying flat ৳200 and the page
+      saying ratio ৳118, two sets of arithmetic producing a meaningless
+      number. The owner caught it on 8 August.  */
   const bundled = bundleIds.length > 0;
   const wasPaisa = variant
     ? !bundled && variant.wasPaisa
@@ -298,8 +307,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       ? Math.round(unitPaisa / (1 - offRatio))
       : null;
   const total = (unitPaisa + addonTotal) * qty;
-  /*  শতাংশটা যে দামের উপর ছাড় বসেছে ঠিক তার থেকেই — variant হলে তার
-      নিজেরটা, নাহলে product-এর ratio।  */
+  /*  The percentage comes from whichever price the discount was applied to -
+      the variant's own when there is one, otherwise the product's ratio.  */
   const off = wasPaisa
     ? variant
       ? Math.round(((wasPaisa - unitPaisa) / wasPaisa) * 100)

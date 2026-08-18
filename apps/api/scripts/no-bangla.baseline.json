@@ -223,7 +223,7 @@
   "apps/web/app/_components/Pdp/PdpBuyBar.tsx": 10,
   "apps/web/app/_components/Pdp/PdpIcons.tsx": 2,
   "apps/web/app/_components/Pdp/PdpVariants.tsx": 83,
-  "apps/web/app/_components/Pdp/PdpView.tsx": 153,
+  "apps/web/app/_components/Pdp/PdpView.tsx": 112,
   "apps/web/app/_components/Pdp/RelatedRail.tsx": 10,
   "apps/web/app/_components/Pdp/SpecFaq.tsx": 18,
   "apps/web/app/_components/Policy/PolicyPageShell.tsx": 9,
