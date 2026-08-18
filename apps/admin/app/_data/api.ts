@@ -1984,24 +1984,6 @@ export async function listCategoriesSafe(): Promise<{ items: ApiCategoryNode[]; 
   }
 }
 /** POST a clean Bangladesh flower & gift starter taxonomy into an empty real DB */
-export async function seedSampleCategories(): Promise<void> {
-  const { SAMPLE_TAXONOMY } = await import("./categoryDemo");
-  for (let i = 0; i < SAMPLE_TAXONOMY.length; i++) {
-    const parent = SAMPLE_TAXONOMY[i];
-    const p = await createCategory({ slug: categorySlug(parent.name), name: parent.name, sortOrder: i, isActive: true });
-    for (let k = 0; k < parent.children.length; k++) {
-      const childName = parent.children[k];
-      await createCategory({
-        slug: categorySlug(parent.name + "-" + childName),
-        name: childName,
-        parentId: p.id,
-        sortOrder: k,
-        isActive: true,
-      });
-    }
-  }
-}
-
 /* ============================================================
    Occasions & Tags — real API. Dynamic groups + per-tag image.
    /tag-groups (group master; Occasions & Recipients seeded as system groups) +
@@ -2131,30 +2113,6 @@ export async function loadTagsSafe(): Promise<{ groups: UiTagGroup[]; tags: UiTa
 }
 
 /** seed the sample groups + tags into a reachable DB (skips anything already there) */
-export async function seedSampleTagsAndGroups(): Promise<void> {
-  const { DEMO_GROUPS, DEMO_GROUP_TAGS } = await import("./tagGroupDemo");
-  const existing = await listTagGroups();
-  const bySlug = new Map(existing.map((g) => [g.slug, g] as const));
-  for (const dg of DEMO_GROUPS) {
-    let g = bySlug.get(dg.slug);
-    if (!g) {
-      g = await createTagGroup({
-        slug: dg.slug, name: dg.name, sortOrder: dg.sortOrder,
-        isActive: true, isSystem: dg.isSystem, displayStyle: dg.displayStyle,
-      });
-      bySlug.set(g.slug, g);
-    }
-    const demoTags = DEMO_GROUP_TAGS.filter((t) => t.groupId === dg.id);
-    for (const dt of demoTags) {
-      try {
-        await createTag({ slug: dt.slug, name: dt.name, groupId: g.id, sortOrder: dt.sortOrder, isActive: dt.isActive });
-      } catch {
-        /* slug already exists in this group — skip */
-      }
-    }
-  }
-}
-
 /* ============================================================
    Brands — real API (:4000/brands). FLAT master (no parent-child).
    Product ↔ Brand = single FK. `website` + OG omitted (locked 20 Jul). DEC-PRD-008.
@@ -2208,17 +2166,6 @@ export async function loadBrandsSafe(): Promise<{ items: ApiBrand[]; isDemo: boo
   }
 }
 /** POST a clean starter brand set into an empty real DB */
-export async function seedSampleBrands(): Promise<void> {
-  const { SAMPLE_BRANDS } = await import("./brandDemo");
-  for (let i = 0; i < SAMPLE_BRANDS.length; i++) {
-    const b = SAMPLE_BRANDS[i];
-    await createBrand({
-      slug: brandSlug(b.name), name: b.name,
-      isFeatured: b.isFeatured, sortOrder: i, isActive: true, description: b.description,
-    });
-  }
-}
-
 /* ============================================================
    Units — real API (:4000/units). The THINNEST master: a Unit is only the
    measure WORD ("Bunch"), never the quantity ("Bunch of 12") — pack size stays
@@ -2318,42 +2265,6 @@ export async function loadUnitsSafe(): Promise<{ items: ApiUnit[]; isDemo: boole
  *  2. If a unit already exists the POST fails and is skipped — but its id must still be
  *     recorded, or its children get created with no base and the chain silently breaks.
  *     So existing rows are read into the map up front. */
-export async function seedSampleUnits(): Promise<void> {
-  const { SAMPLE_UNITS } = await import("./unitDemo");
-
-  const idByCode = new Map<string, string>();
-  try {
-    for (const u of await listUnits()) idByCode.set(u.shortCode, u.id);
-  } catch {
-    /* nothing there yet */
-  }
-
-  let pending = [...SAMPLE_UNITS];
-  let order = 0;
-  for (let pass = 0; pass < 10 && pending.length; pass++) {
-    const stuck: typeof pending = [];
-    for (const u of pending) {
-      if (u.baseCode && !idByCode.has(u.baseCode)) { stuck.push(u); continue; }
-      if (idByCode.has(u.shortCode)) { order++; continue; } // already in the DB
-      try {
-        const created = await createUnit({
-          name: u.name,
-          shortCode: u.shortCode,
-          baseUnitId: u.baseCode ? (idByCode.get(u.baseCode) as string) : null,
-          baseQty: u.baseQty ?? 1,
-          sortOrder: order++,
-          isActive: true,
-        });
-        idByCode.set(u.shortCode, created.id);
-      } catch {
-        /* name clash with a differently-coded row — leave it out rather than guess */
-      }
-    }
-    if (stuck.length === pending.length) break; // no progress — stop instead of looping
-    pending = stuck;
-  }
-}
-
 /* Everything still pointing at a unit — so "3 items are using this" is clickable and
    the admin can actually move them, instead of hunting for them by hand. */
 export interface UnitUsage {
@@ -2714,44 +2625,6 @@ export async function loadItemsSafe(): Promise<{ items: ApiItem[]; isDemo: boole
 }
 
 /** POST the starter set into an empty real DB (needs at least one Unit to exist) */
-export async function seedSampleItems(): Promise<void> {
-  const { SAMPLE_ITEMS } = await import("./itemDemo");
-  const units = await listUnits();
-  if (units.length === 0) throw new Error("Add at least one unit first (Master data → Units).");
-  const unitBy = (code: string) =>
-    (units.find((u) => u.shortCode === code) ?? units[0]).id;
-
-  // pass 1 — the simple items, so pass 2 has something to build a recipe from
-  const made: Record<string, string> = {};
-  for (const s of SAMPLE_ITEMS.filter((x) => !x.recipe)) {
-    try {
-      const it = await createItem({
-        name: s.name, itemType: s.itemType, unitId: unitBy(s.unit),
-        standardCostPaisa: s.costPaisa, isPerishable: s.perishable, sku: s.sku,
-      });
-      made[s.sku] = it.id;
-    } catch { /* already exists — skip */ }
-  }
-  // pass 2 — the assembled ones, then their recipe lines
-  for (const s of SAMPLE_ITEMS.filter((x) => x.recipe)) {
-    try {
-      const it = await createItem({
-        name: s.name, itemType: s.itemType, unitId: unitBy(s.unit),
-        standardCostPaisa: s.costPaisa, isPerishable: s.perishable, sku: s.sku,
-      });
-      for (const line of s.recipe ?? []) {
-        const childId = made[line.sku];
-        if (!childId) continue;
-        try {
-          await addItemComponent(it.id, { componentItemId: childId, qtyMilli: toMilli(line.qty) });
-        } catch { /* skip bad line */ }
-      }
-      // recipe is filled now → switch the cost to roll up automatically (DEC-ITM-008)
-      try { await updateItem(it.id, { costMode: "AUTO" }); } catch { /* ignore */ }
-    } catch { /* already exists — skip */ }
-  }
-}
-
 /* ---- Item visuals (DEC-ITM-012) -------------------------------------------------
    Every item gets SOMETHING to look at, immediately: a real photo when one has been
    uploaded, otherwise a stable colour tile derived from the SKU. Deterministic, so the
@@ -3080,18 +2953,6 @@ export async function loadItemCategoriesSafe(): Promise<{ groups: ApiItemCategor
 }
 
 /** the starter stockroom tree for a flower & gift shop */
-export async function seedSampleItemCategories(): Promise<void> {
-  const { SAMPLE_ITEM_GROUPS } = await import("./itemDemo");
-  for (const top of SAMPLE_ITEM_GROUPS) {
-    try {
-      const parent = await createItemCategory({ name: top.name });
-      for (const child of top.children ?? []) {
-        try { await createItemCategory({ name: child, parentId: parent.id }); } catch { /* dupe */ }
-      }
-    } catch { /* already exists */ }
-  }
-}
-
 /* ---- Item attributes (DEC-ITM-015) — Colour / Size, the stockroom's own ---- */
 export const listItemAttributes = () => j<ApiItemAttribute[]>(`/item-attributes`);
 export const createItemAttribute = (name: string) =>
@@ -3117,18 +2978,6 @@ export async function loadItemAttributesSafe(): Promise<{ attrs: ApiItemAttribut
 }
 
 /** the obvious starting set for a flower shop */
-export async function seedSampleItemAttributes(): Promise<void> {
-  const { SAMPLE_ITEM_ATTRIBUTES } = await import("./itemDemo");
-  for (const a of SAMPLE_ITEM_ATTRIBUTES) {
-    try {
-      const attr = await createItemAttribute(a.name);
-      for (const v of a.values) {
-        try { await addItemAttrValue(attr.id, v); } catch { /* dupe */ }
-      }
-    } catch { /* already exists */ }
-  }
-}
-
 /** DEC-ITM-016 — "Rose" + Colour[Red, Yellow, White] => three independent Items */
 export interface VariantGenerateBody {
   baseName: string;

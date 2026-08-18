@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { WRAP, ACCENT, msg, ErrBar, OkBar, DemoBar, ItemThumb, StatusPill } from "./ItemUI";
 import {
-  loadItemsSafe, updateItem, deleteItem, linkedProductCount, seedSampleItems, generateItemsFromProducts,
+  loadItemsSafe, updateItem, deleteItem, linkedProductCount, generateItemsFromProducts,
   listInvStock,
   formatTaka, itemStockLabel, ITEM_TYPE_META,
   type ApiItem, type InvStockRow, type ItemType,
@@ -275,13 +275,6 @@ export default function ItemListView() {
       if (n !== null) setConfirming({ item: i, linked: n });
       else { setErr(msg(e, "Could not delete.")); setConfirming(null); await load(); }
     } finally { setDelBusy(false); }
-  }
-
-  async function loadSamples() {
-    setBusy(true); setErr(null); setOk(null);
-    try { await seedSampleItems(); setOk("Sample items loaded."); await load(); }
-    catch (e) { setErr(msg(e, "Could not load samples.")); }
-    finally { setBusy(false); }
   }
 
   async function runGenerator() {
@@ -650,12 +643,6 @@ export default function ItemListView() {
                     <Link href="/items/new" className="inline-flex items-center gap-2 text-white text-[13px] font-semibold px-4 py-2 rounded-[10px]" style={{ background: ACCENT }}>
                       <Icon name="plus" size={14} /> New item
                     </Link>
-                    {!isDemo && (
-                      <button onClick={loadSamples} disabled={busy}
-                        className="border border-lavender-deep bg-white text-purple text-[13px] font-semibold px-4 py-2 rounded-[10px] hover:border-orchid disabled:opacity-60">
-                        {busy ? "Loading…" : "Load samples"}
-                      </button>
-                    )}
                   </>
                 )}
               </div>

@@ -7,7 +7,7 @@ import {
   WRAP, ACCENT, msg, ItemPageHead, ErrBar, OkBar, DemoBar, Kpi,
 } from "./ItemUI";
 import {
-  loadItemsSafe, loadItemCategoriesSafe, seedSampleItemCategories,
+  loadItemsSafe, loadItemCategoriesSafe,
   createItemCategory, updateItemCategory, deleteItemCategory,
   formatTaka, ITEM_TYPE_META,
   type ApiItem, type ApiItemCategory,
@@ -85,12 +85,6 @@ export function ItemCategoriesView() {
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
   }
 
-  async function seed() {
-    setBusy(true); setErr(null);
-    try { await seedSampleItemCategories(); setOk("Starter categories created."); await load(); }
-    catch (e) { setErr(msg(e, "Could not create the starter categories.")); }
-    finally { setBusy(false); }
-  }
 
   const ungrouped = items.filter((i) => !i.itemCategoryId).length;
 
@@ -123,17 +117,14 @@ export function ItemCategoriesView() {
 
       {!loading && groups.length === 0 && (
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-6 flex items-center gap-4 flex-wrap">
-          <span className="w-[42px] h-[42px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="download" size={20} /></span>
+          <span className="w-[42px] h-[42px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="folder" size={20} /></span>
           <div className="flex-1 min-w-[240px]">
-            <div className="font-display text-[16px] text-purple">Start with a ready-made tree</div>
+            <div className="font-display text-[16px] text-purple">No item categories yet</div>
             <p className="text-body-soft text-[12.5px] m-0">
-              Fresh Flowers · Artificial Flowers · Packaging · Gift Items · Workshop Supplies · Services — with the
-              obvious sub-groups. Rename or delete any of them.
+              Add your first group with the button above — Fresh Flowers, Packaging, Gift Items, whatever your
+              stockroom actually holds.
             </p>
           </div>
-          <button onClick={seed} disabled={busy} className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 shrink-0 disabled:opacity-60" style={{ background: ACCENT }}>
-            <Icon name="download" size={16} /> {busy ? "Creating…" : "Create starter categories"}
-          </button>
         </div>
       )}
 

@@ -9,7 +9,6 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-  seedSampleCategories,
   type ApiCategoryNode,
   type CategoryWrite,
 } from "../_data/api";
@@ -162,19 +161,6 @@ export default function CategoriesView() {
     }
   }
 
-  async function loadSamples() {
-    setBusy(true);
-    setErr(null);
-    try {
-      await seedSampleCategories();
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not load samples.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const parentTotal = (p: TreeParent) => pc(p) + p.kids.reduce((s, k) => s + pc(k), 0);
   const isEmpty = !loading && rows.length === 0;
 
@@ -286,10 +272,7 @@ export default function CategoriesView() {
           {isEmpty && !isDemo && (
             <div className="rounded-[14px] border border-dashed p-6 text-center" style={{ borderColor: "rgba(255,255,255,0.16)" }}>
               <div className="font-display text-[17px] text-white mb-1">No categories yet</div>
-              <p className="text-[13px] mb-4" style={{ color: "rgba(237,233,245,0.7)" }}>Add your first with the button above.</p>
-              <button onClick={loadSamples} disabled={busy} className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] inline-flex items-center gap-2 disabled:opacity-60" style={{ background: "#8A2BB0" }}>
-                <Icon name="download" size={16} /> {busy ? "Loading samples…" : "Load samples"}
-              </button>
+              <p className="text-[13px]" style={{ color: "rgba(237,233,245,0.7)" }}>Add your first with the button above.</p>
             </div>
           )}
 

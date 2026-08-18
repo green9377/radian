@@ -1724,23 +1724,6 @@ export function VariantAttributes() {
     setAttrs((a) => a.filter((x) => x.id !== id));
     if (!demo && id.length >= 20) deleteVariantAttribute(id).catch(() => {});
   }
-  async function seedSamples() {
-    if (demo) return;
-    setSeeding(true);
-    try {
-      const out: VAttribute[] = [];
-      for (const sa of SEED_ATTRIBUTES) {
-        const created = await createVariantAttribute({ name: sa.name, displayMode: sa.display });
-        const withValues = await setVariantValues(created.id, toApiValues(sa.values));
-        out.push(fromApiAttr(withValues));
-      }
-      setAttrs(out);
-    } catch {
-      alert("Could not seed samples — is the API running?");
-    } finally {
-      setSeeding(false);
-    }
-  }
 
   const totalValues = attrs.reduce((s, a) => s + a.values.length, 0);
 
@@ -1851,15 +1834,8 @@ export function VariantAttributes() {
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-16 text-center">
             <div className="font-display text-[19px] text-purple mb-1">No lists yet</div>
             <div className="text-[13px] text-body-soft mb-5 max-w-[420px] mx-auto">
-              Add one on the left, or drop in a ready-made set to see how it works.
+              Add one on the left to get started.
             </div>
-            <button
-              onClick={seedSamples}
-              disabled={seeding}
-              className="bg-purple hover:bg-purple-deep text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] disabled:opacity-40 inline-flex items-center gap-1.5"
-            >
-              <Icon name="sparkle" size={16} /> {seeding ? "Adding samples…" : "Load sample lists"}
-            </button>
           </div>
         ) : (
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-5">
@@ -3032,46 +3008,7 @@ export function AddonsView() {
     } catch { /* keep silent — badge covers offline */ }
   }
 
-  /* one-click: write the 8 sample add-ons + 3 groups + 3 rules into the real
-     database, so a fresh install is not staring at an empty screen. */
   const [seeding, setSeeding] = useState(false);
-  async function seedSamples() {
-    if (demo) return;
-    setSeeding(true);
-    try {
-      // add-ons first, keep demo-id → real-id so groups can be rebuilt
-      const idMap: Record<string, string> = {};
-      const created: DemoAddon[] = [];
-      for (const d of DEMO_ADDONS) {
-        const a = await createAddOn(toApiAddon(d));
-        idMap[d.id] = a.id;
-        created.push(fromApiAddon({ ...a, groupIds: [] }));
-      }
-      const newGroups: DemoAddonGroup[] = [];
-      const gMap: Record<string, string> = {};
-      for (const g of DEMO_ADDON_GROUPS) {
-        const ng = await createAddOnGroup({ name: g.name });
-        gMap[g.id] = ng.id;
-        const addonIds = g.addonIds.map((x) => idMap[x]).filter(Boolean);
-        await setAddOnGroupItems(ng.id, addonIds);
-        newGroups.push({ id: ng.id, name: ng.name, addonIds });
-      }
-      const newRules: DemoAddonRule[] = [];
-      for (const r of DEMO_ADDON_RULES) {
-        const gid = gMap[r.groupId];
-        if (!gid) continue;
-        const nr = await createAddOnRule({ field: r.field, values: r.values, groupId: gid, isActive: r.active });
-        newRules.push({ id: nr.id, field: nr.field, values: nr.values, groupId: nr.groupId, active: nr.isActive });
-      }
-      setRows(created);
-      setGroups(newGroups);
-      setRules(newRules);
-    } catch {
-      alert("Could not seed samples — is the API running?");
-    } finally {
-      setSeeding(false);
-    }
-  }
 
   /* deleting must not leave orphans: an add-on leaves every group it sits in,
      and a group takes its rules with it. The API mirrors this server-side. */
@@ -3781,18 +3718,8 @@ export function AddonsView() {
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-14 text-center">
               <div className="font-display text-[19px] text-purple mb-1">No add-ons yet</div>
               <div className="text-[13px] text-body-soft mb-5 max-w-[420px] mx-auto">
-                Start with <b>New add-on</b> above, or drop in a ready-made set —
-                greeting card, gift wrap, vase, teddy — to see how groups and rules work.
+                Start with <b>New add-on</b> above.
               </div>
-              {!demo && (
-                <button
-                  onClick={seedSamples}
-                  disabled={seeding}
-                  className="bg-purple hover:bg-purple-deep text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] disabled:opacity-40 inline-flex items-center gap-1.5"
-                >
-                  <Icon name="sparkle" size={16} /> {seeding ? "Adding samples…" : "Load 8 sample add-ons"}
-                </button>
-              )}
             </div>
           )}
         </>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import {
-  loadUnitsSafe, createUnit, updateUnit, deleteUnit, seedSampleUnits,
+  loadUnitsSafe, createUnit, updateUnit, deleteUnit,
   unitCode, resolveUnitRoot, getUnitUsage, moveItemToUnit, moveProductToUnit, moveUnitBase,
   type ApiUnit, type UnitUsage,
 } from "../_data/api";
@@ -253,12 +253,6 @@ export default function UnitsView() {
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
   }
 
-  async function loadSamples() {
-    setBusy(true); setErr(null);
-    try { await seedSampleUnits(); await load(); }
-    catch (e) { setErr(msg(e, "Could not load samples.")); }
-    finally { setBusy(false); }
-  }
 
   const emptyReal = !loading && !isDemo && units.length === 0;
   const genericCount = units.filter((u) => looksGeneric(u.name)).length;
@@ -340,18 +334,6 @@ export default function UnitsView() {
         </div>
       )}
 
-      {emptyReal && (
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-6 flex items-center gap-4 flex-wrap">
-          <span className="w-[42px] h-[42px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="download" size={20} /></span>
-          <div className="flex-1 min-w-[220px]">
-            <div className="font-display text-[16px] text-purple">Start with a working set</div>
-            <p className="text-body-soft text-[12.5px] m-0">Piece · Papri · Gram as base units, then Kg, Dozen, Box, Lily Stick, Gypsy Stick and Lily Bunch already converted.</p>
-          </div>
-          <button onClick={loadSamples} disabled={busy} className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 shrink-0 disabled:opacity-60" style={{ background: ACCENT }}>
-            <Icon name="download" size={16} /> {busy ? "Loading…" : "Load samples"}
-          </button>
-        </div>
-      )}
 
       <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-lavender-deep flex items-center gap-3 flex-wrap">

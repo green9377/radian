@@ -5,7 +5,7 @@ import Link from "next/link";
 import Icon from "./Icon";
 import {
   loadBrandsSafe, createBrand, updateBrand, deleteBrand,
-  brandSlug, seedSampleBrands, brandUrl, genBg, initials,
+  brandSlug, brandUrl, genBg, initials,
   uploadImage, uploadItemImage,
   type ApiBrand, type BrandWrite,
 } from "../_data/api";
@@ -159,12 +159,6 @@ export default function BrandsView() {
     catch (e) { setErr(e instanceof Error ? e.message : "Could not save the brand."); await load(); }
   }
 
-  async function loadSamples() {
-    setBusy(true); setErr(null);
-    try { await seedSampleBrands(); await load(); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Could not load samples."); }
-    finally { setBusy(false); }
-  }
 
   const emptyReal = !loading && !isDemo && brands.length === 0;
 
@@ -219,19 +213,6 @@ export default function BrandsView() {
         ))}
       </div>
 
-      {/* fresh DB → offer a starter set */}
-      {emptyReal && (
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-6 flex items-center gap-4 flex-wrap">
-          <span className="w-[42px] h-[42px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="download" size={20} /></span>
-          <div className="flex-1 min-w-[220px]">
-            <div className="font-display text-[16px] text-purple">Start with a ready-made set</div>
-            <p className="text-body-soft text-[12.5px] m-0">Loads a handful of common gift brands (Ferrero Rocher, Cadbury, your house label…) you can rename, re-logo or delete.</p>
-          </div>
-          <button onClick={loadSamples} disabled={busy} className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 shrink-0 disabled:opacity-60" style={{ background: ACCENT }}>
-            <Icon name="download" size={16} /> {busy ? "Loading…" : "Load samples"}
-          </button>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
         {/* -------- LEFT: brand list -------- */}

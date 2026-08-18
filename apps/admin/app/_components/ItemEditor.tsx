@@ -10,7 +10,7 @@ import {
 import {
   getItem, createItem, updateItem, deleteItem, listItems, loadItemFormRefs, generateItemVariants,
   itemUsage, getItemTimeline,
-  createItemCategory, createItemAttribute, addItemAttrValue, seedSampleItemAttributes,
+  createItemCategory, createItemAttribute, addItemAttrValue,
   listItemTypes, createItemType, FALLBACK_ITEM_TYPES, floorPrice,
   uploadItemImage, itemTint, itemInitials,
   formatTaka, itemStockLabel, getInvItemStock,
@@ -1645,12 +1645,6 @@ function HistoryPanel({ itemId }: { itemId: string }) {
 function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; onErr: (m: string) => void }) {
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function seedAll() {
-    setBusy("all");
-    try { await seedSampleItemAttributes(); await onDone(); }
-    catch (e) { onErr(msg(e, "Could not create those. Is the API (:4000) running?")); }
-    finally { setBusy(null); }
-  }
   async function one(name: string) {
     setBusy(name);
     try { await createItemAttribute(name); await onDone(); }
@@ -1665,11 +1659,6 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
         Labels are how you tell a red rose from a white one. Create them right here — you do not have to leave this page.
       </p>
       <div className="flex gap-1.5 flex-wrap">
-        <button type="button" onClick={seedAll} disabled={!!busy}
-          className="text-white text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] inline-flex items-center gap-1.5 disabled:opacity-60"
-          style={{ background: ACCENT }}>
-          <Icon name="download" size={13} /> {busy === "all" ? "Creating…" : "Colour, Size & Grade"}
-        </button>
         {["Colour", "Size"].map((n) => (
           <button key={n} type="button" onClick={() => one(n)} disabled={!!busy}
             className="text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] border bg-white disabled:opacity-60"
