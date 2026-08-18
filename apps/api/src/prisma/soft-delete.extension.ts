@@ -1,21 +1,25 @@
 import { Prisma } from '@prisma/client';
 
 /**
- * Soft-delete only (constitution core principle) — read query-তে deletedAt: null
- * auto-filter হয়, ফলে soft-deleted রেকর্ড কোথাও দেখা যায় না।
+ * Soft-delete only (constitution core principle) — read queries are
+ * auto-filtered with deletedAt: null, so a soft-deleted record is visible
+ * nowhere.
  *
- * NO_SOFT_DELETE = append-only log table (AuditLog, ActivityEvent) — এদের deletedAt
- * নেই ও কখনো delete হয় না, তাই filter বাদ (নইলে অস্তিত্বহীন column-এ query ভাঙবে)।
+ * NO_SOFT_DELETE = append-only log tables (AuditLog, ActivityEvent) — these
+ * have no deletedAt and are never deleted, so the filter is skipped (otherwise
+ * the query would break on a column that does not exist).
  *
- * findUnique-ও এখন filter হয় (REV-MKT-1, ৩০ জুলাই ২০২৬) — where-এ নয়, উত্তর
- * আসার পর। আগে হতো না, আর সেটাই ছিল সবচেয়ে বড় নীরব ফাঁক: মুছে ফেলা affiliate-কে
- * টাকা দেওয়া, মুছে ফেলা order-এ commission ও points জমা — সবই সম্ভব ছিল।
+ * findUnique is filtered now too (REV-MKT-1, 30 July 2026) — not in the where,
+ * but after the answer comes back. It was not before, and that was the biggest
+ * silent gap of all: paying a deleted affiliate, accruing commission and points
+ * on a deleted order — all of it was possible.
  *
- * সীমা যা এখনো আছে: nested include-এ পৌঁছায় না। ওখানে হাতে deletedAt দেখতে হবে
- * (উদাহরণ: OutreachService.occasions())।
+ * The limit that remains: it does not reach into a nested include. deletedAt
+ * has to be checked by hand there (example: OutreachService.occasions()).
  *
- * delete = প্রতিটি owning-module service-এ update(deletedAt) + audit event
- * (hard DELETE কখনো নয়)। Trash থেকে ফেরাতে RAW client লাগে — সেটাই ঠিক।
+ * delete = update(deletedAt) + an audit event in each owning-module service
+ * (never a hard DELETE). Restoring from Trash needs the RAW client — and that
+ * is right.
  */
 const NO_SOFT_DELETE = new Set([
   // Variant & Option master (D-CAT-01): a colour value is renamed or switched
@@ -96,18 +100,20 @@ const NO_SOFT_DELETE = new Set([
   // does not exist — the ReturnSetting lesson, applied up front.
   'DailySnapshot',
   'IntelligenceSetting',
-  // Administration (ADM-D05): AccessNode হলো কোড থেকে তৈরি registry — সারি
-  // মুছতে হলে retiredAt বসে, deletedAt নয়। PositionAccess ও UserAccessOverride
-  // হলো টিকের সারি, বাবার সাথে জন্মায় ও মরে (onDelete: Cascade)। AuthToken
-  // এককালীন লিংক — usedAt/expiresAt দিয়ে মরে। কারোরই deletedAt নেই, তাই এখানে
-  // নাম না থাকলে প্রতিটা call ৫০০ দেবে (ReturnSetting-এর শিক্ষা, আগেভাগে প্রয়োগ)।
-  // Position-এর deletedAt আছে — সে ইচ্ছে করেই এই তালিকার বাইরে।
+  // Administration (ADM-D05): AccessNode is a registry built from code — to
+  // retire a row you set retiredAt, not deletedAt. PositionAccess and
+  // UserAccessOverride are tick rows, born and dying with their parent
+  // (onDelete: Cascade). AuthToken is a one-time link — it dies by
+  // usedAt/expiresAt. None of them has deletedAt, so leaving a name off this
+  // list makes every call 500 (the ReturnSetting lesson, applied up front).
+  // Position DOES have deletedAt — it is deliberately outside this list.
   'AccessNode',
   'PositionAccess',
   'UserAccessOverride',
   'AuthToken',
-  // CompanySetting হলো singleton, deletedAt নেই — InventorySetting/PosSetting-এর
-  // মতোই। নাম না থাকলে প্রতিটা /administration/company call ৫০০ দেবে।
+  // CompanySetting is a singleton with no deletedAt — just like
+  // InventorySetting/PosSetting. Leave the name off and every
+  // /administration/company call 500s.
   'CompanySetting',
   /*  Storefront (31 Jul 2026) — the REV-RTN-4 lesson, learned again the hard way.
       A heading, an opening time and a closed day are never soft-deleted: they
@@ -133,35 +139,39 @@ const NO_SOFT_DELETE = new Set([
   'SocialLink',
   'PaymentBadge',
   'PageSection',
-  /*  ⚠️ AppSession — ৩০ জুলাই ২০২৬, Administration রিভিউতে ধরা পড়েছে।
+  /*  ⚠️ AppSession — caught on 30 July 2026 during the Administration review.
    *
-   *  সেশনের সারিতে deletedAt নেই, আর কখনো ছিল না। তবু আজ পর্যন্ত কিছু ভাঙেনি,
-   *  কারণ এই extension শুধু findMany, findFirst, count আর aggregate-এ filter
-   *  বসায় — আর auth module শুধু create / deleteMany / findUnique ব্যবহার করে,
-   *  যার একটাও filter হয় না।
+   *  A session row has no deletedAt and never had one. Yet nothing had broken
+   *  until then, because this extension only filters findMany, findFirst,
+   *  count and aggregate — and the auth module uses only create / deleteMany /
+   *  findUnique, none of which is filtered.
    *
-   *  "Signed in now" পর্দাটাই প্রথম যে `appSession.findMany()` ডাকল, আর সেটা
-   *  অস্তিত্বহীন column-এ query পাঠিয়ে **প্রতিবার ৫০০ দিত**। ঠিক
-   *  ReturnSetting-এর ফাঁদ, শুধু তিন মাস ঘাপটি মেরে বসে ছিল।
+   *  The "Signed in now" screen was the first thing to call
+   *  `appSession.findMany()`, and it sent a query against a column that does
+   *  not exist — **500 every time**. Exactly the ReturnSetting trap, only it
+   *  had been lying in wait for three months.
    *
-   *  শিক্ষা: একটা model নিরাপদ মনে হওয়ার কারণ হতে পারে শুধু এটাই যে তাকে এখনো
-   *  ভুল ভাবে জিজ্ঞেস করা হয়নি।
+   *  The lesson: a model can look safe purely because nobody has asked it the
+   *  wrong question yet.
    */
   'AppSession',
-  /*  ⚠️ দুটো আগের থেকেই ভাঙা ছিল — ৩০ জুলাই ২০২৬, Administration রিভিউয়ের সময়
-   *  পুরো API স্ক্যান করতে গিয়ে বেরিয়েছে। Administration-এর নিজের কোনো সম্পর্ক
-   *  নেই, কিন্তু ঠিক একই ফাঁদ, আর দুটোই জ্যান্ত পথ:
+  /*  ⚠️ Two that were already broken — found on 30 July 2026 while scanning the
+   *  whole API during the Administration review. Nothing to do with
+   *  Administration itself, but exactly the same trap, and both are live
+   *  paths:
    *
-   *    SupplierPaymentAllocation  finance-events.service.ts:457 — সাপ্লায়ারের
-   *      টাকা কোন বিলে বসল সেই হিসাব। findFirst করলেই ৫০০।
-   *    BroadcastTarget            whatsapp.service.ts:222/322/325/343 — broadcast
-   *      কাকে কাকে যাবে। চারটে জায়গায়।
+   *    SupplierPaymentAllocation  finance-events.service.ts:457 — the record of
+   *      which bill a supplier's money was applied to. A findFirst 500s.
+   *    BroadcastTarget            whatsapp.service.ts:222/322/325/343 — who a
+   *      broadcast goes to. In four places.
    *
-   *  কোনোটারই deletedAt নেই, আর কোনোটাই এই তালিকায় ছিল না।
+   *  Neither has deletedAt, and neither was on this list.
    *
-   *  একটাই কারণে এখনো ধরা পড়েনি: ওই দুটো পথ সম্ভবত এখনো চালানো হয়নি। AppSession
-   *  তিন মাস চুপ ছিল ঠিক এভাবেই। **এই তালিকা হাতে ঠিক রাখা যায় না** — এটা যন্ত্রে
-   *  গোনার কাজ, আর সেটাই এখন administration.selftest.ts করে।
+   *  There is only one reason they had not been caught: those two paths have
+   *  probably not been exercised yet. AppSession stayed quiet for three months
+   *  in exactly this way. **This list cannot be kept correct by hand** — it is
+   *  a job for a machine to count, and that is what administration.selftest.ts
+   *  now does.
    */
   'SupplierPaymentAllocation',
   'BroadcastTarget',

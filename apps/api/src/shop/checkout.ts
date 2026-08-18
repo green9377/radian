@@ -48,17 +48,18 @@ import { CheckoutLeadsService } from '../messaging/checkout-leads.service';
   same request re-sent with `unitPaisa: 1` must produce the same order at the
   same price, and it does, because no field of that name is read.
 
-  ⚠️ ADD-ON STOCK — RESOLVED by the owner, 4 Aug 2026: *"add-এর জিনিসটা
-  inventory-তে আছে কিনা দেখে তবেই sell/process।"* Lines now carry `addonIds`;
-  intake refuses a tracked add-on that is short, preparing deducts it, cancel
-  reverts it. Untracked (stockQty null) add-ons stay uncounted — that is the
-  admin's own switch.
+  ⚠️ ADD-ON STOCK — RESOLVED by the owner, 4 Aug 2026 (translated): *"check
+  whether the added thing is in inventory, and only then sell/process."* Lines
+  now carry `addonIds`; intake refuses a tracked add-on that is short,
+  preparing deducts it, cancel reverts it. Untracked (stockQty null) add-ons
+  stay uncounted — that is the admin's own switch.
 
-  ⚠️ SLOT CAPACITY — দুই দরজায় দুই নিয়ম, দুটোই মালিকের:
-  · STOREFRONT: ভরা slot **বন্ধ** — "next slot দেখাবে, ওই slot-এ order নেবে
-    না" (৪ আগস্ট, বরাবরের নিয়ম)। `deliveryFor()` দরজাতেই গোনে।
-  · ADMIN: warn-only (DLV-R05, ১ আগস্ট) — ব্যস্ত দিনে মালিক জেনে-বুঝে
-    overbook করতে পারেন; গ্রাহক পারেন না।
+  ⚠️ SLOT CAPACITY — two doors, two rules, both the owner's:
+  · STOREFRONT: a full slot is **closed** — "show the next slot, don't take an
+    order into that one" (4 Aug, the standing rule). `deliveryFor()` counts at
+    the door itself.
+  · ADMIN: warn-only (DLV-R05, 1 Aug) — on a busy day the owner may overbook
+    knowingly; a customer may not.
   ═══════════════════════════════════════════════════════════════════════════
 */
 
@@ -115,22 +116,25 @@ export interface PlaceOrderIn extends QuoteIn {
   /** Marks this browser's unfinished checkout as converted once the order lands. */
   clientKey?: string;
 
-  /** MKT-D02 — বিজ্ঞাপন-চিহ্ন, storefront-এর প্রথম দর্শনে ধরা */
+  /** MKT-D02 — the advertising marks, caught on the storefront's first view */
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
   refCode?: string;
 
   /**
-   * কত টাকা দেবেন বলে গ্রাহক বোতাম চেপেছেন — শেষ quote-এর `totalPaisa`।
+   * The amount the customer believed they were paying when they pressed the
+   * button — the last quote's `totalPaisa`.
    *
-   * ⚠️ পাঠালে server এর চেয়ে **বেশি** টাকার order কখনো বানাবে না; বেশি হলে
-   * ৪০৯ দিয়ে ফিরিয়ে দেবে, আর পর্দা নতুন দাম দেখিয়ে আবার জিজ্ঞেস করবে।
+   * ⚠️ When it is sent, the server will never create an order for **more** than
+   * this; if it comes to more it refuses with a 409, and the screen shows the
+   * new price and asks again.
    *
-   * কম হলে বানাবে — কারণ কম হওয়ার একটাই কারণ, order দেওয়ার সাথে সাথে
-   * গ্রাহকের account তৈরি হওয়ায় "প্রথম order-এর ছাড়" (OFR-R02) চালু হয়ে
-   * যাওয়া। quote-এর সময় তিনি এখনো কেউ নন, তাই ছাড়টা তখন গোনা যায় না।
-   * কম দাম কোনো ক্ষতি নয়; বেশি দাম প্রতিশ্রুতি ভাঙা।
+   * It will create one for less — because there is only one reason it can be
+   * less: placing the order creates the customer's account, which switches on
+   * the "first order discount" (OFR-R02). At quote time they are still nobody,
+   * so the discount cannot be counted then. A lower price harms no one; a
+   * higher price is a broken promise.
    */
   expectedTotalPaisa?: number;
 }
@@ -227,10 +231,10 @@ interface Resolved {
   name: string;
   imageUrl: string | null;
   sizeLabel: string | null;
-  /** DEC-PRD-014 — stock এই variant-এর ঘর থেকে কাটবে, তাই id-টা line-এ যায় */
+  /** DEC-PRD-014 — stock comes out of this variant's field, so the id goes on the line */
   variantId: string | null;
   variantLabel: string | null;
-  /** যে AddOn-গুলো সত্যিই এই line-এ আছে (id) — OrderLine-এ যায় */
+  /** the AddOns really on this line (ids) — these go onto the OrderLine */
   addonIdsPicked: string[];
   bundleLabels: string[];
   addonLabels: string[];
@@ -330,21 +334,24 @@ export class CheckoutService {
 
       const qty = Math.max(1, Math.min(20, Math.round(it.qty || 1)));
 
-      /*  size/variant না মিললে প্রথমটা — ঠিক যা storefront-এর resolveCart()
-          করে। মালিক একটা মাপ তুলে দিলে cart যেন ভেঙে না পড়ে; দাম নড়ে, আর
-          সেটাই সৎ সংকেত।  */
+      /*  If the size/variant does not match, the first one — exactly what the
+          storefront's resolveCart() does. So a cart does not fall apart when
+          the owner removes a size; the price moves, and that is the honest
+          signal.  */
       const size = d.sizes.find((s) => s.id === it.sizeId) ?? d.sizes[0] ?? null;
       const variant = (d.variants ?? []).find((v) => v.id === it.variantId) ?? null;
 
-      /*  একটা variant বাছা থাকলে **তারই** দাম — PdpView আর resolveCart-এর
-          সাথে হুবহু একই শর্ত, তাই তিন জায়গায় তিন দাম হওয়ার পথ নেই।
+      /*  When a variant is picked, **its** price — the exact same condition as
+          PdpView and resolveCart, so there is no route to three prices in
+          three places.
 
-          ⚠️ আগে শর্তটা ছিল `variant.pricePaisa !== d.pricePaisa` — অর্থাৎ
-          দাম মিলিয়ে অনুমান করা "নিজের দাম আছে কি না"। ছাড় বসার পর একটা
-          variant-এর দাম যদি হুবহু product-এর দামের সমান হয়ে যেত, তখন
-          checkout ভাবত variant-এর নিজের দাম নেই আর size-এর দাম নিত।
-          Server payload নিজেই হিসাব শেষ করে পাঠায় (DEC-PRD-032), তাই
-          বাছা থাকলেই সেটা নেওয়াই সঠিক ও সরল।  */
+          ⚠️ The condition used to be `variant.pricePaisa !== d.pricePaisa` —
+          guessing "does it have its own price" by comparing prices. If a
+          discount happened to make a variant's price identical to the
+          product's, checkout concluded the variant had no price of its own and
+          took the size's. The server payload finishes the arithmetic itself
+          (DEC-PRD-032), so taking it whenever one is picked is both correct
+          and simpler.  */
       const basePaisa = variant
         ? variant.pricePaisa
         : (size?.pricePaisa ?? d.pricePaisa);
@@ -357,9 +364,10 @@ export class CheckoutService {
         .filter((a): a is NonNullable<typeof a> => !!a);
       const addonPaisa = picked.reduce((n, a) => n + a.pricePaisa, 0);
 
-      /*  DEC-PRD-018 — কিছু না নিলে ছাড় নেই। শর্তটা এখানেও, কারণ ছাড়টা
-          main product-এর দামের উপরেও বসে, আর তালিকা থেকে কিছু না নিলে
-          সেটা বসা মানে তালিকাটা বানানোরই মানে থাকত না।  */
+      /*  DEC-PRD-018 — take nothing, get no discount. The condition is here
+          too, because the discount also applies to the main product's price,
+          and applying it when nothing was taken from the list would leave no
+          reason to build the list at all.  */
       const beforePaisa = basePaisa + picks.reduce((n, p) => n + p.pricePaisa, 0);
       const savePerUnit =
         d.bundle && picks.length > 0
@@ -367,15 +375,18 @@ export class CheckoutService {
           : 0;
 
       /*
-        ছাড়টা main আর bundle line-গুলোর মধ্যে দামের অনুপাতে ভাগ হয়।
+        The discount is split between the main and the bundle lines in
+        proportion to their prices.
 
-        ⚠️ পুরোটা main line-এ বসানো যেত না: ৳100-এর ফুলের সাথে ৳1,000-এর
-        কেক নিলে ছাড় main line-এর দামের চেয়েও বড় হয়ে যায়, আর তখন একটা
-        line ঋণাত্মক হয়ে বাকি order-এর দাম কমিয়ে দিত।
+        ⚠️ It could not all sit on the main line: take a ৳1,000 cake with ৳100
+        of flowers and the discount grows larger than the main line's own
+        price, at which point a line goes negative and drags the rest of the
+        order's price down with it.
 
-        ⚠️ শেষ পয়সাটা main line-এ — ভাগ করলে যা বাদ পড়ে। এক পয়সা তুচ্ছ,
-        কিন্তু হারিয়ে যাওয়া এক পয়সা মানে রসিদের যোগফল মেলে না, আর সেটাই
-        হিসাবরক্ষক প্রথমে দেখেন।
+        ⚠️ The last paisa goes on the main line — whatever the split leaves
+        over. One paisa is trivial, but a paisa that goes missing means the
+        receipt does not add up, and that is the first thing a bookkeeper
+        looks at.
       */
       const totalSave = savePerUnit * qty;
       const extras = picks.map((p) => ({
@@ -403,8 +414,8 @@ export class CheckoutService {
         addonLabels: picked.map((a) => a.name),
         persoText: it.persoText,
         qty,
-        /*  add-on ছাড়ের বাইরে — তালিকার জিনিস নয়, আর মালিকের ছাড়টা
-            তালিকার নিচে বসানো (DEC-PRD-018)।  */
+        /*  Add-ons stay outside the discount — they are not items on the list,
+            and the owner's discount sits under the list (DEC-PRD-018).  */
         grossUnitPaisa: basePaisa + addonPaisa,
         discountPaisa: mainDiscount,
         held: zone === DeliveryZone.BANGLADESH && d.zone === 'dhaka',
@@ -429,9 +440,9 @@ export class CheckoutService {
     zone: DeliveryZone,
     methodId?: string,
     slotId?: string,
-    /** "2026-08-05" — ভরা-slot গোনা এই দিনের জন্য */
+    /** "2026-08-05" — the full-slot count is for this day */
     date?: string,
-    /** DEC-DLV-011 — cart-এর slug-গুলো; দিলে method-টা সব product-এ চলে কিনা যাচাই হয় */
+    /** DEC-DLV-011 — the cart's slugs; given these, the method is checked against every product */
     cartSlugs?: string[],
   ) {
     if (!methodId) {
@@ -447,10 +458,13 @@ export class CheckoutService {
         `"${method.label}" is not offered for ${zone === DeliveryZone.DHAKA ? 'Dhaka' : 'nationwide'} delivery`,
       );
 
-    /*  DEC-DLV-011 — মালিকের নিয়ম, ৫ আগস্ট: *"multi product thake cart …
+    /*  DEC-DLV-011 — the owner's rule, 5 Aug: *"multi product thake cart …
         win hobe se method, je method win hole sobgula product delivery
-        possible. order kon vag hobe na."* Menu যা-ই দেখাক, দরজায় আবার গোনা
-        হয় — নাহলে dev tools-এ id বসিয়ে যে-কোনো speed নেওয়া যেত।  */
+        possible. order kon vag hobe na."* ("if the cart has multiple products,
+        the winning method is the one under which every product can be
+        delivered. The order will not be split.") Whatever the menu shows, it
+        is counted again at the door — otherwise any speed could be taken by
+        pasting an id in dev tools.  */
     if (cartSlugs?.length) {
       const sets = await cartTypeSets(this.prisma.db, cartSlugs);
       if (!methodOkForCart(method.type?.timing ?? null, method.type?.id ?? null, sets))
@@ -468,19 +482,20 @@ export class CheckoutService {
       if (!row) throw new BadRequestException('that delivery time is no longer available');
 
       /*
-        ═══ ভরা slot গ্রাহকের জন্য বন্ধ — মালিকের নিয়ম, বরাবরের ═══
-        *"slot book হয়ে গেলে বা ভরে গেলে customer-কে next slot দেখাবে; ওই
-        slot-এ অবশ্যই order নেবে না।"*
+        ═══ A FULL SLOT IS CLOSED TO CUSTOMERS — the owner's standing rule ═══
+        *"once a slot is booked or full, show the customer the next slot; it
+        must not take an order into that slot."* (translated)
 
-        গোনার অঙ্ক admin-এর `/delivery/slot-load`-এর হুবহু এক — ওই slot-এ,
-        ওই দিনে, cancel-নয় এমন order। দুই পর্দা দুই অঙ্কে গুনলে একদিন
-        admin বলত "ভরা" আর দোকান বলত "আসুন"।
+        The arithmetic is identical to the admin's `/delivery/slot-load` — that
+        slot, that day, orders that are not cancelled. Two screens counting two
+        ways would one day have the admin saying "full" while the shop said
+        "come on in".
 
-        ⚠️ শুধু STOREFRONT-এর দরজা block করে। admin-এর নিজের order form
-        warn-only-ই থাকে (DLV-R05, মালিক-locked) — ব্যস্ত দিনে মালিক জেনে-বুঝে
-        overbook করতে পারবেন; গ্রাহক পারবেন না।
+        ⚠️ This blocks the STOREFRONT's door only. The admin's own order form
+        stays warn-only (DLV-R05, owner-locked) — on a busy day the owner may
+        overbook knowingly; a customer may not.
 
-        ⚠️ capacityPerDay null = সীমা বসানো হয়নি = গোনা হয় না।
+        ⚠️ capacityPerDay null = no limit was set = nothing is counted.
       */
       if (row.capacityPerDay !== null && date) {
         const booked = await this.prisma.db.order.count({
@@ -713,11 +728,12 @@ export class CheckoutService {
         unitPaisa: l.grossUnitPaisa,
         discountPaisa: l.discountPaisa,
         sizeLabel: l.sizeLabel ?? undefined,
-        /*  DEC-PRD-014 — line-টা জানে কোন রঙ বিক্রি হলো, তাই Preparing-এর
-            stock −qty সঠিক ঘরে কাটে।  */
+        /*  DEC-PRD-014 — the line knows which colour was sold, so Preparing's
+            stock −qty comes out of the right field.  */
         variantId: l.variantId ?? undefined,
         variantLabel: l.variantLabel ?? undefined,
-        /*  stock-নিয়মের চাবি — labels রসিদের, এগুলো মজুদের (মালিকের রায়)।  */
+        /*  The key to the stock rule — labels are for the receipt, these are
+            for the stockroom (the owner's ruling).  */
         addonIds: l.addonIdsPicked,
         bundleLabel: l.bundleLabels.length ? l.bundleLabels.join(' + ') : undefined,
         addonLabels: l.addonLabels,
@@ -742,9 +758,9 @@ export class CheckoutService {
 
   /**
    * ⚠️ THE ACCOUNT IS MADE FROM THE ORDER, NOT BEFORE IT — owner's ruling,
-   * 3 Aug 2026: *"customer তার information দিবে and সে information নিয়ে system
-   * automatic account make করবে, তাতে আগে account create verify গুলার ঝামেলা
-   * থাকলো না।"*
+   * 3 Aug 2026 (translated): *"the customer will give their information and
+   * the system will make an account automatically from it, so there is none of
+   * the create-account-and-verify bother beforehand."*
    *
    * Phone is the identity key (DEC-CUS-002) and it is `@unique`, so the same
    * number ordering a second time lands on the same customer — which is what
@@ -876,9 +892,9 @@ export class CheckoutService {
       customerId: customer.id,
       channelId: channel.id,
 
-      /*  রসিদে যা টাইপ করা হয়েছে তা-ই — CRM-এ পুরনো নাম থাকলেও। মালিকের
-          রায়, ৩ আগস্ট ২০২৬। CRM-এর নিজের নাম `findOrCreateCustomer`-এর
-          নিয়মেই অটুট থাকে।  */
+      /*  Whatever was typed on the receipt — even if CRM holds an older name.
+          The owner's ruling, 3 Aug 2026. CRM's own name stays untouched under
+          `findOrCreateCustomer`'s rule.  */
       senderName: dto.senderName,
       senderPhone: dto.senderPhone,
       senderEmail: dto.senderEmail,
@@ -904,7 +920,8 @@ export class CheckoutService {
       paymentMethod: method,
       couponCode: dto.couponCode,
 
-      /*  MKT-D02 — কে পাঠাল এই order। Campaign/affiliate report-এর কাঁচামাল।  */
+      /*  MKT-D02 — who sent this order our way. The raw material of the
+          campaign/affiliate reports.  */
       utmSource: dto.utmSource,
       utmMedium: dto.utmMedium,
       utmCampaign: dto.utmCampaign,
@@ -919,10 +936,11 @@ export class CheckoutService {
     });
 
     /*
-      ═══ THE RECEIVER JOINS THE CUSTOMER'S ADDRESS BOOK — মালিকের রায়, ৩ আগস্ট ═══
+      ═══ THE RECEIVER JOINS THE CUSTOMER'S ADDRESS BOOK — owner's ruling, 3 Aug ═══
 
-      > *"receiver-এর নাম আগে থেকে profile-এ save থাকলে option দেখাবে, সেখান
-      >  থেকে select করবে — বা চাইলে নতুন receiver-এর information দেবে।"*
+      > *"if the receiver's name is already saved on the profile, show it as an
+      >  option to select from — or, if they want, they give a new receiver's
+      >  information."* (translated)
 
       The picker needs something to pick FROM, so every gift order quietly
       files its receiver under the customer (`Recipient`, DEC-CUS). Matched by
@@ -948,12 +966,13 @@ export class CheckoutService {
               customerId: customer.id,
               name: dto.recipientName.trim(),
               phone,
-              /*  checkout সম্পর্ক জিজ্ঞেস করে না — প্রতিটা বাড়তি প্রশ্নে order
-                  ঝরে (D27-এর যুক্তি)। `other` মানে "বলা হয়নি", আর মালিক
-                  admin-এ ঠিক করে দিতে পারেন।  */
+              /*  Checkout does not ask about the relationship — every extra
+                  question sheds orders (D27's reasoning). `other` means "not
+                  told", and the owner can set it in the admin.  */
               relationship: 'other',
               zone,
-              /*  উপহারের delivery ঠিকানাই প্রাপকের জানা ঠিকানা।  */
+              /*  The gift's delivery address IS the address we know for the
+                  recipient.  */
               addressLine: dto.address.trim(),
               note: `Saved from website order ${order.orderNo}`,
             },
@@ -964,9 +983,10 @@ export class CheckoutService {
       }
     }
 
-    /*  সাইটের প্রতিশ্রুতি — "confirmation on WhatsApp"। fail-soft: বার্তা
-        সৌজন্য, order চুক্তি; WhatsApp-এর কোনো ব্যর্থতা checkout আটকায় না।
-        `void` — উত্তরের অপেক্ষাও নয়, গ্রাহক ততক্ষণে success page-এ।
+    /*  The site's promise — "confirmation on WhatsApp". Fail-soft: the message
+        is a courtesy, the order is the contract; no WhatsApp failure stops
+        checkout. `void` — not even waited on, the customer is already on the
+        success page.
 
 Queued rather than sent directly: COD and prepaid say different
         things, and a queued row is the only record that the confirmation
@@ -1021,9 +1041,10 @@ Queued rather than sent directly: COD and prepaid say different
       },
     });
 
-    /*  DEC-DLV-011 — cart-এর slug এলে zone-এর menu-টা আরেকবার ছাঁকা হয়:
-        যে method পুরো cart delivery করতে পারে না, সে তালিকাতেই আসে না।
-        slug না এলে (পুরনো caller) আগের zone-only আচরণ।  */
+    /*  DEC-DLV-011 — when the cart's slugs arrive, the zone's menu is sieved
+        once more: a method that cannot deliver the whole cart never reaches
+        the list. With no slugs (an older caller) the previous zone-only
+        behaviour stands.  */
     let list = rows;
     const slugs = (itemsCsv ?? '')
       .split(',')
@@ -1044,8 +1065,8 @@ Queued rather than sent directly: COD and prepaid say different
       typeId: m.type?.id ?? null,
       typeName: m.type?.name ?? null,
       /*  TODAY_SLOT | TODAY_ONLY | ANY_DATE_SLOT | FROM_CONFIRM | LEAD_DAYS —
-          checkout এটা পড়েই ঠিক করে তারিখ চাইবে, slot চাইবে, নাকি শুধু
-          ঘড়ি চালাবে।  */
+          checkout reads this to decide whether to ask for a date, ask for a
+          slot, or just run the clock.  */
       timing: m.type?.timing ?? null,
       feePaisa: m.feePaisa,
       etaLabel: m.etaLabel,
@@ -1055,9 +1076,10 @@ Queued rather than sent directly: COD and prepaid say different
   }
 
   /**
-   * admin-এর `/delivery/slot-load`-এর public যমজ — একই where, একই অঙ্ক।
-   * (checkout-এর "Available/Full" এতদিন hardcoded `booked: 0` পড়ত — mock,
-   * তাই ভরা slot-ও "Available" দেখাত আর order নিয়ে নিত।)
+   * The public twin of the admin's `/delivery/slot-load` — same where, same
+   * arithmetic. (Checkout's "Available/Full" read a hardcoded `booked: 0` all
+   * this time — a mock, so a full slot still showed "Available" and took the
+   * order.)
    */
   async slotLoad(date: string) {
     if (!date.trim()) return {};
@@ -1139,7 +1161,7 @@ Queued rather than sent directly: COD and prepaid say different
 /**
  * What a customer may see about their own order — and nothing more.
  *
- * ⚠️ Locked (সোবুজ): the track number may be in the RECEIVER's hand — the
+ * ⚠️ Locked (sobuj): the track number may be in the RECEIVER's hand — the
  * page shows the delivery TIMELINE only. No prices, no receipt, no address,
  * no gift message. A surprise must not spoil itself.
  */
@@ -1163,12 +1185,13 @@ export class CheckoutController {
   @Public()
   @Get('delivery/menu')
   menu(@Query('zone') zone?: string, @Query('items') items?: string) {
-    /*  DEC-DLV-011 — `items` = cart-এর slug, comma-separated। দিলে menu-তে
-        শুধু সেই delivery আসে যেটা cart-এর সব product-এ চলে।  */
+    /*  DEC-DLV-011 — `items` = the cart's slugs, comma-separated. Given these,
+        only deliveries that work for every product in the cart reach the
+        menu.  */
     return this.svc.deliveryMenu(zone, items);
   }
 
-  /** কোন slot-এ ওই দিনে কয়টা order — checkout-এর "ভরা" চিহ্নের সত্যিকারের গোনা */
+  /** how many orders sit in each slot that day — the real count behind checkout's "Full" mark */
   @Public()
   @Get('delivery/slot-load')
   slotLoad(@Query('date') date?: string) {

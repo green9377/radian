@@ -14,31 +14,35 @@ import Icon from "./PdpIcons";
 import { BlkTitle } from "./PdpBuyBar";
 
 /*
-  VARIANT UI — তিনটা আলাদা স্তর, প্রতিটা আলাদা প্রশ্নের উত্তর দেয়:
+  VARIANT UI — three separate layers, each answering a different question:
 
-    VARIANT → sibling product (colour বা flavour)। Click = অন্য PDP
-              (নিজের ছবি, নিজের stock, নিজের SEO page)।
-    SIZE    → একই product, দাম বদলায়। ছোট pill — ছবি লাগে না।
-    BUNDLE  → অন্য product যোগ হয়। Photo card — নতুন জিনিস দেখাতে হয়।
+    VARIANT → a sibling product (colour or flavour). Click = another PDP
+              (own photos, own stock, own SEO page).
+    SIZE    → the same product at a different price. A small pill — no photo
+              needed.
+    BUNDLE  → another product is added. A photo card — a new thing has to be
+              shown.
 
-  কেন আলাদা: variant × size × bundle সব card করলে ২৭টা card — page অচল।
-  আলাদা রাখলে প্রতিটা সিদ্ধান্ত ছোট, আর customer এক নজরে বোঝে কী বদলাচ্ছে।
+  Why separate: making a card for every variant × size × bundle gives 27 cards
+  — an unusable page. Kept apart, each decision is small, and the customer sees
+  at a glance what is changing.
 */
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  DEC-PRD-012 — এক page, সব রঙ।  মালিক, ১ আগস্ট ২০২৬:
+  DEC-PRD-012 — one page, every colour. Owner, 1 Aug 2026 (translated):
 
-    *"যখন তার multi variant থাকবে তখন তা show করাব, আর তা একটা product
-      page-এ হবে। প্রতিটার আলাদা image আর stock।"*
+    *"when it has multiple variants we'll show them, and it will be on one
+      product page. Each with its own image and stock."*
 
-  ⚠️ নিচের `VariantRow`-এর সাথে গুলিয়ে ফেলা চলবে না। ওটা পুরনো নকশা —
-  প্রতিটা রঙ আলাদা product, swatch-এ click করলে অন্য page খুলত। সেই নকশায়
-  product-কে দলে ঢোকানোর পর্দাটা কখনো বানানোই হয়নি, তাই swatch বাস্তবে
-  কোনোদিন দেখা যায়নি।
+  ⚠️ Not to be confused with `VariantRow` below. That is the old design — every
+  colour a separate product, clicking a swatch opened another page. In that
+  design the screen for putting products into a group was never built, so the
+  swatches were in practice never seen at all.
 
-  এখানে click করলে **কোথাও যাওয়া হয় না** — একই page-এ ছবি, দাম আর মজুদ
-  বদলায়। কেনার পথ ছোট হয়, আর পুরো page নতুন করে লোড হয় না।
+  Clicking here goes **nowhere** — the photos, price and stock change on the
+  same page. The path to buying gets shorter, and the whole page is not
+  reloaded.
   ═══════════════════════════════════════════════════════════════════════════
 */
 export function VariantPicker({
@@ -50,28 +54,30 @@ export function VariantPicker({
 }: {
   variants: PickedVariant[];
   activeId: string;
-  /** product-এর নিজের দাম — এর সাথে আলাদা হলেই দামটা লেখা হয় */
+  /** the product's own price — the price is only printed when it differs from this */
   basePaisa: number;
   /**
-   * দোকান কি মজুদের সংখ্যা দেখাতে বলেছে (admin-এর switch)। মিথ্যা হলে
-   * এখানেও কিছু লেখা হয় না — উপরের সবুজ চিপ চুপ থাকলে নিচে সংখ্যা ফাঁস
-   * করাটা ওই switch-টাকে অর্থহীন করে দিত।
+   * Whether the shop asked for stock numbers to be shown (the admin's switch).
+   * When false nothing is printed here either — if the green chip above stays
+   * quiet, leaking the number below would make that switch meaningless.
    */
   showStock: boolean;
   onPick: (id: string) => void;
 }) {
   const active = variants.find((v) => v.id === activeId);
 
-  /*  শিরোনামটা মালিকের তালিকার নাম — "Colour", "Flavour", "Weight"।
-      সবগুলো এক তালিকার, তাই প্রথমটাই যথেষ্ট।  */
+  /*  The heading is the owner's list name — "Colour", "Flavour", "Weight".
+      They all belong to one list, so the first is enough.  */
   const heading = variants[0]?.attribute || "Choose";
 
-  /*  ⚠️ মজুদ তখনই দরজা বন্ধ করে যখন অন্তত একটায় মজুদ আছে। সবগুলো শূন্য
-      মানে ঘরগুলো এখনো ভরা হয়নি — তখন কোনোটাকেই "Sold out" বলা হয় না।
-      PdpView-তেও ঠিক এই একই শর্ত, দুই জায়গা যেন একই কথা বলে।  */
+  /*  ⚠️ Stock only closes the door when at least one of them has stock. All
+      zeroes means the fields have not been filled in yet — and then none of
+      them is called "Sold out". PdpView uses this exact same condition, so the
+      two places say the same thing.  */
   const anyStock = variants.some((v) => v.stockQty > 0);
 
-  /*  master যা দেখাতে বলেছে। এক তালিকার সবগুলো একই ধরনের, তাই একবার।  */
+  /*  What the master asked to show. Everything on one list is of the same
+      kind, so this is read once.  */
   const mode = variants[0]?.displayMode ?? "SWATCH";
   const asSwatch = mode === "SWATCH";
   const asPhoto = mode === "PHOTO";
@@ -83,9 +89,10 @@ export function VariantPicker({
         {active && (
           <span className="text-[13px] text-body-soft">
             — {active.label}
-            {/*  উপরের চিপটা গোটা product-এর যোগফল বলে (৬ + ৪ = ১০)। কোন
-                রঙটা কেনা হচ্ছে তার নিজের সংখ্যাটা এখানে, কারণ সিদ্ধান্তটা
-                এখানেই নেওয়া হচ্ছে — "১০ আছে" পড়ে লাল ৮টা চাইলে হতাশা।  */}
+            {/*  The chip above gives the whole product's total (6 + 4 = 10).
+                The number for the colour actually being bought belongs here,
+                because this is where the decision is made — reading "10 left"
+                and then asking for 8 red ones ends in disappointment.  */}
             {showStock && active.stockQty > 0 && (
               <span className="text-body-soft"> · {active.stockQty} left</span>
             )}
@@ -100,18 +107,20 @@ export function VariantPicker({
           const dearer = v.pricePaisa !== basePaisa;
 
           /*
-            ⚠️ রঙের গোল বোতামে **রঙ**, ছবি নয় — মালিক, ৯ আগস্ট ২০২৬:
-            *"color select kore image dile frontend-এ রঙের নাম আর রঙ না
-            দেখিয়ে ওই image-টা দেখায়, যা customer-এর জন্য সমস্যা।"*
+            ⚠️ The round colour button shows the **colour**, not the photo —
+            owner, 9 Aug 2026 (translated): *"if you select a colour and give an
+            image, the frontend shows that image instead of the colour's name
+            and colour, which is a problem for the customer."*
 
-            ঠিকই ধরেছেন। আগে ছবি থাকলে ছবিটাই গোল বোতামে বসত, ফলে তিনটে
-            প্রায়-একরকম ছোট ছবি পাশাপাশি — কোনটা গোলাপি আর কোনটা সাদা তা
-            ১০ পিক্সেলের thumbnail থেকে বোঝা যেত না। রঙ বাছার বোতাম রঙই
-            দেখাবে; variant-এর ছবিটা উপরের বড় ছবিতে বদলায়, সেখানেই সেটা
-            আসল কাজে লাগে।
+            He was right. When a photo existed it used to go on the round
+            button, leaving three near-identical little images side by side —
+            no way to tell which was pink and which was white from a 10-pixel
+            thumbnail. A button for choosing a colour will show the colour; the
+            variant's photo changes the big image above, which is where it is
+            actually useful.
 
-            ছবি তখনই বসে যখন তালিকাটা PHOTO ধরনের (flavour, pattern) —
-            যেখানে দেখানোর মতো কোনো রঙই নেই।
+            A photo only goes here when the list is of the PHOTO kind (flavour,
+            pattern) — where there is no colour to show at all.
           */
           const fill = asSwatch
             ? v.swatch || "#DDC9EC"
@@ -120,12 +129,14 @@ export function VariantPicker({
               : v.swatch || "#DDC9EC";
 
           /*
-            ⚠️ ছবি কখনো বাধ্যতামূলক নয় — মালিকের নিয়ম, ২ আগস্ট ২০২৬:
-            *"ami chai eta requirement na hok"*.
+            ⚠️ A photo is never required — the owner's rule, 2 Aug 2026:
+            *"ami chai eta requirement na hok"* ("I want this not to be a
+            requirement").
 
-            তালিকাটা PHOTO ধরনের হলেও যে মানটার ছবি নেই সেটা শুধু নাম নিয়ে
-            বসে। নাহলে "Standard"-এর ঘরে একটা খালি বেগুনি চৌকো উঠত, আর
-            গ্রাহক ভাবত ছবিটা লোড হতে পারেনি।
+            Even when the list is of the PHOTO kind, a value with no photo sits
+            there with just its name. Otherwise an empty purple square would
+            appear in "Standard"'s place and the customer would think the image
+            had failed to load.
           */
           const withPhoto = asPhoto && !!v.imageUrl;
 
@@ -149,8 +160,8 @@ export function VariantPicker({
                     <Icon name="check" className="w-4 h-4 text-white drop-shadow" />
                   </span>
                 )}
-                {/*  শেষ হয়ে যাওয়াটা কাটা দাগ দিয়ে বোঝানো — শুধু ফিকে করলে
-                    সেটা "বাছা হয়নি"-র মতোই দেখায়।  */}
+                {/*  Sold out is shown with a strike — fading alone looks the
+                    same as "not selected".  */}
                 {out && (
                   <span className="absolute inset-0 grid place-items-center">
                     <span className="block w-full h-[1.5px] bg-white/90 rotate-45" />
@@ -181,9 +192,10 @@ export function VariantPicker({
                 >
                   {v.label}
                 </span>
-                {/*  দাম তখনই লেখা হয় যখন সেটা সত্যিই আলাদা। এক দামের চারটে
-                    রঙের নিচে চারবার একই সংখ্যা লিখলে চোখ সেটা পড়াই ছেড়ে
-                    দেয়, আর তখন আসল আলাদা দামটাও কেউ দেখে না।  */}
+                {/*  The price is printed only when it really differs. Print
+                    the same number four times under four same-priced colours
+                    and the eye stops reading it — and then nobody sees the one
+                    that genuinely is different either.  */}
                 {/*  DEC-PRD-032 — this one's own offer, struck price beside it.
                     Only where the shop actually set one; a derived "was" price
                     is how the ৳1,418 nonsense happened (8 Aug 2026).  */}
@@ -223,7 +235,7 @@ export function VariantRow({ group }: { group: VariantGroup }) {
 
       <div className={`flex flex-wrap ${isColour ? "gap-3" : "gap-2.5"}`}>
         {group.options.map((o) => {
-          /* colour = গোল swatch · flavour = ছবির pill */
+          /* colour = a round swatch · flavour = a photo pill */
           const shape = isColour
             ? "w-11 h-11 rounded-full"
             : "w-[76px] rounded-[12px] overflow-hidden";
@@ -332,18 +344,20 @@ export function SizeRow({
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  UPGRADE — এটার বড় সংস্করণ।  DEC-PRD-020, মালিক ২ আগস্ট ২০২৬:
+  UPGRADE — bigger versions of this one. DEC-PRD-020, owner 2 Aug 2026:
 
-  > *"upgrade product-এ click করলে price change হবে, কিন্তু অন্য page-এ যেন
-  >  না নেয়।"*
+  > *"clicking an upgrade product should change the price, but it must not take
+  >  you to another page."* (translated)
 
-  ⚠️ প্রতিটা upgrade নিজেই একটা **সত্যিকারের product** — নিজের দাম, নিজের
-  মজুদ, নিজের page। তবু এখানে link নয়, বাছাই: click করলে দাম আর ছবি এই
-  page-এই বদলায়। কারণ গ্রাহক তখনো "কোনটা কিনব" ভাবছেন, আর প্রতিটা তুলনায়
-  page ছেড়ে চলে গেলে ফেরার পথ হারিয়ে যায়।
+  ⚠️ Every upgrade is itself a **real product** — its own price, its own stock,
+  its own page. Even so, these are choices here and not links: clicking changes
+  the price and photos on this very page. Because the customer is still working
+  out "which one do I buy", and leaving the page for every comparison loses
+  them the way back.
 
-  ⚠️ প্রথম card-টা "এইটাই" — যেটা এখন খোলা আছে। ফেরার পথ ছাড়া বাছাই দেওয়া
-  মানে একবার বড়টা ছুঁলে আর ছোটটায় ফেরা যায় না।
+  ⚠️ The first card is "this one" — the one currently open. Offering a choice
+  with no way back would mean that touching the bigger one once makes the
+  smaller unreachable.
   ═══════════════════════════════════════════════════════════════════════════
 */
 export function UpgradeRow({
@@ -354,10 +368,10 @@ export function UpgradeRow({
   onPick,
 }: {
   upgrades: { slug: string; name: string; pricePaisa: number; bg: string }[];
-  /** এই page-এর product-টার নাম — প্রথম card */
+  /** the name of this page's own product — the first card */
   thisName: string;
   thisPaisa: number;
-  /** `null` = এই product-টাই বাছা */
+  /** `null` = this product itself is the one selected */
   activeSlug: string | null;
   onPick: (slug: string | null) => void;
 }) {
@@ -385,9 +399,9 @@ export function UpgradeRow({
                   : "border-lavender-deep bg-white hover:border-orchid-mid"
               }`}
             >
-              {/*  ⚠️ গোল চিহ্ন, চৌকো নয় — এখানে একটাই বাছা যায়। bundle-এ
-                  চৌকো, কারণ ওখানে কয়েকটা নেওয়া যায়। চিহ্নটা যা বলে
-                  আচরণটাও তাই হওয়া দরকার।  */}
+              {/*  ⚠️ A round mark, not a square — only one can be chosen here.
+                  Bundles get squares, because several can be taken there. The
+                  behaviour has to match what the mark promises.  */}
               <span
                 className={`w-[18px] h-[18px] rounded-full border-2 shrink-0 grid place-items-center ${
                   on ? "border-orchid" : "border-lavender-deep"
@@ -418,16 +432,16 @@ export function UpgradeRow({
 }
 
 /*
-  DEC-PRD-013 — কয়েকটা একসাথে নেওয়া যায়। মালিক, ২ আগস্ট ২০২৬:
-  *"customer একসাথে কয়েকটা bundle নিতে পারবে"*.
+  DEC-PRD-013 — several can be taken together. Owner, 2 Aug 2026 (translated):
+  *"the customer will be able to take several bundles at once"*.
 
-  ⚠️ আগে এটা ছিল "এর মধ্যে একটা", আর সেজন্য প্রথম card-টা ছিল একটা বানানো
-  "Just Flowers · No extra" — ফেরার পথ। এখন কিছুই tick না করাই ফেরার পথ,
-  তাই ওই card-টা server-এ তৈরি হওয়াই বন্ধ করা হয়েছে।
+  ⚠️ This used to be "one of these", and that is why the first card was an
+  invented "Just Flowers · No extra" — the way back. Ticking nothing is the way
+  back now, so that card is no longer created on the server at all.
 
-  ⚠️ tick-box আঁকা হয় গোল নয়, চৌকো চিহ্ন দিয়ে — গোল মানে "একটা বাছুন"।
-  চিহ্নটা যা বলে আচরণটাও তাই হওয়া দরকার, নাহলে গ্রাহক দ্বিতীয়টা ছুঁতেই
-  ভয় পান যে প্রথমটা চলে যাবে।
+  ⚠️ The tick-box is drawn as a square, not a circle — a circle means "pick
+  one". The behaviour has to match what the mark promises, otherwise the
+  customer is afraid to touch the second one in case the first disappears.
 */
 export function BundleCards({
   bundles,
@@ -440,9 +454,9 @@ export function BundleCards({
   bundles: BundleOption[];
   activeIds: string[];
   hint: string;
-  /** main product-এর দাম — ছাড় এর উপরেই বসে (DEC-PRD-018) */
+  /** the main product's price — the discount applies on top of this (DEC-PRD-018) */
   basePaisa: number;
-  /** গোটা তালিকার একটাই ছাড়। `null` = ছাড় নেই। */
+  /** a single discount for the whole list. `null` = no discount. */
   list: BundleList | null | undefined;
   onToggle: (id: string) => void;
 }) {
@@ -455,10 +469,11 @@ export function BundleCards({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {bundles.map((b) => {
           const on = activeIds.includes(b.id);
-          /*  card-এ জিনিসটার **নিজের** দাম — ছাড় ছাড়া। ছাড়টা তালিকার
-              নিচে একবার লেখা হয়, কারণ সেটা main product সহ মোট দামের
-              উপর বসে; এখানে বসালে একই ছাড় চারবার লেখা হতো আর যোগফলটা
-              কেউ মেলাতে পারত না।  */
+          /*  The card shows the item's **own** price — no discount. The
+              discount is written once under the list, because it applies to
+              the total including the main product; putting it here would print
+              the same discount four times and leave nobody able to make the
+              total add up.  */
           return (
             <button
               key={b.id}
@@ -475,9 +490,9 @@ export function BundleCards({
                   {b.tag}
                 </span>
               )}
-              {/*  চৌকো tick — "আরও নিতে পারেন" বলার সবচেয়ে ছোট উপায়।
-                  না বাছা অবস্থাতেও ঘরটা দেখা যায়, নাহলে একাধিক নেওয়া যায়
-                  সেটা কেউ বুঝতই না।  */}
+              {/*  A square tick — the smallest way to say "you can take more".
+                  The box stays visible while unticked, otherwise nobody would
+                  realise several can be taken.  */}
               <span
                 className={`absolute top-2 right-2 z-[3] w-[22px] h-[22px] rounded-[7px] grid place-items-center transition-colors ${
                   on ? "bg-orchid text-white" : "bg-white/90 border-[1.5px] border-lavender-deep"
@@ -500,9 +515,10 @@ export function BundleCards({
       </div>
 
       {/*
-        DEC-PRD-018 — ছাড়টা এখানে, একবার। মালিকের নিয়ম: শুধু main product
-        নিলে ছাড় নেই; তালিকা থেকে একটাও নিলে ছাড় বসে, main সহ মোট দামের
-        উপর। তাই সংখ্যাটা কোনো একটা card-এ লেখা যায় না।
+        DEC-PRD-018 — the discount lives here, once. The owner's rule: take
+        only the main product and there is no discount; take even one thing
+        from the list and it applies, to the total including the main. So the
+        number cannot belong to any single card.
       */}
       {picked.length > 0 && totals.savePaisa > 0 ? (
         <p className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#0f7d55] bg-[#e8f6ef] rounded-full px-3 py-1.5 mt-2.5 mb-0">

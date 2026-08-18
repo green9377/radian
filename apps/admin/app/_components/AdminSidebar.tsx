@@ -43,58 +43,155 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
   items.find((it) => !!it.href && (p === it.href || p.startsWith(it.href + "/")));
 
 /*  ═══════════════════════════════════════════════════════════════════════
-    HOW THIS PANEL IS ARRANGED — owner, 17 August 2026. Read this before
-    moving anything, because the previous arrangement looked just as sensible
-    and was wrong for a reason worth remembering.
+    HOW THIS PANEL IS ARRANGED — owner, 18 August 2026 (replaces the 17 Aug
+    Website/Shop/Internal arrangement, which the owner found hard to read:
+    "Website" vs "Shop" vs "Internal" describe where a thing BELONGS, and he
+    thinks in terms of what he is DOING).
 
-    It used to be grouped by WHAT KIND OF DATA a thing was: Master Data,
-    Commerce, Operations, System. That is how a database is arranged, not how
-    a shop is. It put Products beside Staff (both "master data") and Orders
-    beside Purchases (both "commerce") — pairs nobody has ever thought about
-    together while actually running the shop.
+    Groups now follow the rhythm of a working day, most-touched first:
 
-    Now it is grouped by WHAT A THING BELONGS TO. The owner's own words:
-    orders are the website, POS is the shop, delivery setup is configuration,
-    assembly and inventory are internal. So:
+      TODAY'S WORK    what arrives and must be handled: orders, delivery,
+                      messages, returns, the counter
+      WHAT YOU SELL   the shop window and the catalogue behind it
+      STOCK & BUYING  goods in: inventory, purchases, suppliers, items, assembly
+      MONEY           the books, and the questions that cross modules
+      GROWTH          bringing people in and knowing who they are
+      SETUP           set once, changed rarely — the far end on purpose
 
-      WEBSITE        what the customer sees and what arrives from it
-      SHOP           the physical counter
-      INTERNAL       the day's work behind the door, nobody outside sees it
-      MARKETING      bringing people in — its own thing, neither of the above
-      PEOPLE         everyone we deal with: customers, staff, suppliers
-      CONFIGURATION  set once, changed rarely
+    The three rules from the previous arrangement still hold, unchanged:
 
-    THREE RULES THAT KEEP IT HONEST — the arrangement breaks without them:
+    1. A MODULE MAY APPEAR IN TWO PLACES; ITS DATA MAY NOT. Returns now has
+       ONE top-level row (the whole book). The website door and the counter
+       door live inside Orders and POS as filtered links (?channel=) —
+       DEC-RTN-016, one table, one total.
+    2. A MODULE'S DAILY SCREENS AND ITS SETUP SCREENS CAN LIVE APART.
+       Delivery's board is in TODAY'S WORK; Methods & slots stay in SETUP.
+    3. A REPORT LIVES WHERE ITS DECISION LIVES.
 
-    1. A MODULE MAY APPEAR IN TWO PLACES; ITS DATA MAY NOT. Returns shows up
-       under WEBSITE and under SHOP, but there is one returns table and one
-       total. The second row is a filtered door (?channel=), never a copy.
-       "amder total calculation jen sob ak jaygay hoy" — DEC-RTN-016.
-
-    2. A MODULE'S DAILY SCREENS AND ITS SETUP SCREENS CAN LIVE APART. Delivery
-       is the case: the fulfilment board is touched twenty times a day, methods
-       and slots maybe twice a year. They were siblings, so the board sat inside
-       a settings menu. Now the board is in INTERNAL and the setup is in
-       CONFIGURATION. Same module underneath, two entrances.
-
-    3. A REPORT LIVES WHERE ITS DECISION LIVES. A report that changes one
-       module's settings stays in that module (delivery Cost & performance sits
-       beside the delivery work, because reading it sends you to Methods &
-       slots). Only reports that ask across modules belong in Intelligence.
-
-    ⚠️ NOT ONE href CHANGED IN THIS REARRANGEMENT. Access keys derive from
-    hrefs (ADM-RULE-001, moduleKey/subKey below), so every existing tick in
-    Access control still points at the same screen and every bookmark still
-    works. Moving a row between groups is free; renaming its href is not.
+    ⚠️ NOT ONE href CHANGED. Access keys derive from hrefs (ADM-RULE-001), so
+    every tick and bookmark survives. After editing this array, regenerate the
+    registry: node apps/api/src/administration/registry.gen.mjs
     ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    /*  WEBSITE — the customer's side. An order is here rather than in some
-        "commerce" bucket because an order IS the website's output: it arrives
-        from the shop the customer browsed. Inbox likewise — those messages
-        come in over the web chat and the social channels.  */
-    title: "Website",
+    title: "Today's work",
     items: [
+      /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
+          ba website releted"). A counter sale is NOT here; it is under Shop,
+          in POS. Both still land in the one Order table (DEC-POS-001) — this
+          is a menu, not a second ledger.  */
+      {
+        label: "Orders", href: "/orders", icon: "🛍",
+        subs: [
+          { label: "Overview", href: "/orders", match: exact("/orders") },
+          { label: "All orders", href: "/orders/list" },
+          { label: "Needs action", href: "/orders/action" },
+          { label: "Payments", href: "/orders/payments" },
+          // where an order came in through (DEC-SAL-001). The API has existed
+          // since Sales; there was never a screen, which is why foodpanda and
+          // Sugary had nowhere to be recorded.
+          { label: "Sales channels", href: "/orders/channels" },
+          { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
+          { label: "Recovery", href: "/orders/recovery" },
+          { label: "Scheduled", href: "/orders/scheduled" },
+          { label: "Cancelled", href: "/orders/cancelled" },
+          { label: "Reports", href: "/orders/reports" },
+        ],
+      },
+      /*  DELIVERY — the work half. Board, proof, carrier settlement and the
+          cost report; every one of them a thing that happens today.
+
+          "Cost & performance" stays HERE and not in Intelligence on purpose
+          (rule 3): reading it sends you straight to Methods & slots to change
+          a zone. A report and the decision it drives belong in one room.
+          Intelligence answers the questions that cross modules; this one does
+          not leave Delivery.
+
+          ⚠️ KEEP THE href. It is tempting to drop it the way Catalog does,
+          since the first child points at the same /delivery — but that is
+          exactly backwards here. With the href, the parent keys as "delivery"
+          and the board keys as "delivery.overview" (subKey's same-href rule),
+          which is what the access registry has always held. Without it, the
+          parent would slug "delivery" from its LABEL and the board would slug
+          "delivery" from its href — two rows, one key.  */
+      {
+        label: "Delivery", href: "/delivery", icon: "🚚",
+        subs: [
+          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Proof photos", href: "/delivery/proof" },
+          { label: "Settle a carrier", href: "/delivery/settle" },
+          { label: "Cost & performance", href: "/delivery/performance" },
+        ],
+      },
+      // Inbox — every customer conversation, whatever channel it arrived on.
+      { label: "Inbox", href: "/inbox", icon: "💬" },
+      /*  RETURNS & REFUNDS — the WHOLE book, and the only row that carries the
+          totals (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, DEC-RTN-005..016).
+          The website and the counter each have a narrowed door above; this is
+          where they meet and where every figure is added up. Staff-initiated
+          only; refund ≤ collected; restock via Inventory.
+
+          "Reasons & settings" is NOT here — it is set once and lives in
+          Configuration, by the same rule that split Delivery.
+
+          ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.  */
+      {
+        label: "Returns & Refunds", href: "/returns", icon: "↩",
+        subs: [
+          { label: "Overview (all returns)", href: "/returns", match: exact("/returns") },
+          { label: "New return", href: "/returns/new" },
+        ],
+      },
+      // POS = the physical-store counter (RADIAN_POS_MODULE_ARCHITECTURE.md, 23 Jul).
+      // Separate module, but a completed sale lands in the unified Order ledger
+      // (channel=POS, DEC-POS-001).
+      // ⚠️ /pos/[static] only — no dynamic segment yet. /pos = Overview.
+      {
+        label: "POS", href: "/pos", icon: "🧾",
+        subs: [
+          { label: "Overview", href: "/pos", match: exact("/pos") },
+          { label: "Sell (counter)", href: "/pos/sell" },
+          { label: "Today / Shift", href: "/pos/shift" },
+          { label: "Sales history", href: "/pos/sales" },
+          { label: "Day-close", href: "/pos/day-close" },
+          { label: "Due board", href: "/pos/due" },
+          { label: "Returns", href: "/returns?channel=counter" }, // the counter door, DEC-RTN-016
+          { label: "Settings", href: "/pos/settings" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "What you sell",
+    items: [
+      /*  Products = what goes ON those pages. It sits in Website and not in
+          some master-data drawer because a product IS a page in the shop:
+          editing one changes what a customer sees within the minute.
+
+          6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
+          store-facing classification master, like Categories/Tags/Brands),
+          and "Daily capacity" moved to Assembly (it is a back-of-house
+          production limit). URLs unchanged, so access ticks survive.
+
+          ⚠️ The physical master BEHIND a product — Items (flowers, ribbon,
+          paper) — is deliberately NOT here. A customer never sees an item;
+          it lives in Internal beside Inventory and Assembly, which is the
+          only place it is ever used.  */
+      {
+        label: "Products", href: "/products", icon: "❀",
+        subs: [
+          { label: "Overview", href: "/products", match: exact("/products") },
+          { label: "All products", href: "/products/list" },
+          { label: "Stock", href: "/products/stock" },
+          { label: "Margin", href: "/products/margin" },
+          { label: "Health", href: "/products/health" },
+          { label: "Catalog funnel", href: "/products/funnel" },
+          { label: "Add-ons", href: "/products/addons" },
+          { label: "Upgrades", href: "/products/upgrades" },
+          { label: "Bulk actions", href: "/products/bulk" },
+          { label: "Trash", href: "/products/trash" },
+        ],
+      },
       /*  Storefront leads the group: it is the thing the rest of this section
           is about. Everything below it feeds what these pages display.
 
@@ -146,34 +243,6 @@ const GROUPS: Group[] = [
           { label: "Footer & menus", href: "/storefront/footer" },
         ],
       },
-      /*  Products = what goes ON those pages. It sits in Website and not in
-          some master-data drawer because a product IS a page in the shop:
-          editing one changes what a customer sees within the minute.
-
-          6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
-          store-facing classification master, like Categories/Tags/Brands),
-          and "Daily capacity" moved to Assembly (it is a back-of-house
-          production limit). URLs unchanged, so access ticks survive.
-
-          ⚠️ The physical master BEHIND a product — Items (flowers, ribbon,
-          paper) — is deliberately NOT here. A customer never sees an item;
-          it lives in Internal beside Inventory and Assembly, which is the
-          only place it is ever used.  */
-      {
-        label: "Products", href: "/products", icon: "❀",
-        subs: [
-          { label: "Overview", href: "/products", match: exact("/products") },
-          { label: "All products", href: "/products/list" },
-          { label: "Stock", href: "/products/stock" },
-          { label: "Margin", href: "/products/margin" },
-          { label: "Health", href: "/products/health" },
-          { label: "Catalog funnel", href: "/products/funnel" },
-          { label: "Add-ons", href: "/products/addons" },
-          { label: "Upgrades", href: "/products/upgrades" },
-          { label: "Bulk actions", href: "/products/bulk" },
-          { label: "Trash", href: "/products/trash" },
-        ],
-      },
       /*  Catalog = the classification masters under one roof (owner, 6 Aug
           2026: "choto choto 3 ta jinis main module e bose ache — ek module
           kore sub-module bosao"). Website, because these ARE the shop's
@@ -197,105 +266,11 @@ const GROUPS: Group[] = [
           { label: "Variants & options", href: "/products/variants" },
         ],
       },
-      /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
-          ba website releted"). A counter sale is NOT here; it is under Shop,
-          in POS. Both still land in the one Order table (DEC-POS-001) — this
-          is a menu, not a second ledger.  */
-      {
-        label: "Orders", href: "/orders", icon: "🛍",
-        subs: [
-          { label: "Overview", href: "/orders", match: exact("/orders") },
-          { label: "All orders", href: "/orders/list" },
-          { label: "Needs action", href: "/orders/action" },
-          { label: "Payments", href: "/orders/payments" },
-          // where an order came in through (DEC-SAL-001). The API has existed
-          // since Sales; there was never a screen, which is why foodpanda and
-          // Sugary had nowhere to be recorded.
-          { label: "Sales channels", href: "/orders/channels" },
-          { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
-          { label: "Recovery", href: "/orders/recovery" },
-          { label: "Scheduled", href: "/orders/scheduled" },
-          { label: "Cancelled", href: "/orders/cancelled" },
-          { label: "Reports", href: "/orders/reports" },
-        ],
-      },
-      /*  DEC-RTN-016 — the website's door onto the ONE returns book. Not a
-          module of its own and not a copy: `?channel=online` narrows the same
-          list to returns raised against website/courier orders. The counter
-          has its own door below, and the whole book with its totals lives in
-          Internal. Three doors, one table, one total — which is the entire
-          point ("amder total calculation jen sob ak jaygay hoy").  */
-      { label: "Returns (online)", href: "/returns?channel=online", icon: "↩" },
-      // Inbox = সব channel-এর গ্রাহক-chat এক পর্দায় (RADIAN_INBOX_MODULE_ARCHITECTURE.md)
-      // Website, because every one of those conversations starts on the site
-      // or on a social channel pointing at it.
-      { label: "Inbox", href: "/inbox", icon: "💬" },
     ],
   },
   {
-    /*  SHOP — the physical counter, and nothing else (owner: "pos holo shop
-        releted"). One module today; branches will add to it.  */
-    title: "Shop",
+    title: "Stock & buying",
     items: [
-      // POS = the physical-store counter (RADIAN_POS_MODULE_ARCHITECTURE.md, 23 Jul).
-      // Separate module, but a completed sale lands in the unified Order ledger
-      // (channel=POS, DEC-POS-001).
-      // ⚠️ /pos/[static] only — no dynamic segment yet. /pos = Overview.
-      {
-        label: "POS", href: "/pos", icon: "🧾",
-        subs: [
-          { label: "Overview", href: "/pos", match: exact("/pos") },
-          { label: "Sell (counter)", href: "/pos/sell" },
-          { label: "Today / Shift", href: "/pos/shift" },
-          { label: "Sales history", href: "/pos/sales" },
-          { label: "Day-close", href: "/pos/day-close" },
-          { label: "Due board", href: "/pos/due" },
-          { label: "Returns", href: "/returns?channel=counter" }, // the counter door, DEC-RTN-016
-          { label: "Settings", href: "/pos/settings" },
-        ],
-      },
-      /*  The counter's door onto the same returns book — see DEC-RTN-016 on
-          the online door above. `?channel=counter` = returns against POS
-          walk-in sales (Order.fulfillmentType = COUNTER).  */
-      { label: "Returns (counter)", href: "/returns?channel=counter", icon: "↩" },
-    ],
-  },
-  {
-    /*  INTERNAL — the day's work behind the door. Nothing here is ever seen by
-        a customer, and that is the whole test for membership.
-
-        Delivery's DAILY screens lead the group even though the Delivery module
-        itself is configuration-shaped: the fulfilment board is touched twenty
-        times a day and its setup twice a year, so they were separated (owner,
-        17 Aug). The setup half is in Configuration. Same module, two doors —
-        see rule 2 in the header comment.  */
-    title: "Internal",
-    items: [
-      /*  DELIVERY — the work half. Board, proof, carrier settlement and the
-          cost report; every one of them a thing that happens today.
-
-          "Cost & performance" stays HERE and not in Intelligence on purpose
-          (rule 3): reading it sends you straight to Methods & slots to change
-          a zone. A report and the decision it drives belong in one room.
-          Intelligence answers the questions that cross modules; this one does
-          not leave Delivery.
-
-          ⚠️ KEEP THE href. It is tempting to drop it the way Catalog does,
-          since the first child points at the same /delivery — but that is
-          exactly backwards here. With the href, the parent keys as "delivery"
-          and the board keys as "delivery.overview" (subKey's same-href rule),
-          which is what the access registry has always held. Without it, the
-          parent would slug "delivery" from its LABEL and the board would slug
-          "delivery" from its href — two rows, one key.  */
-      {
-        label: "Delivery", href: "/delivery", icon: "🚚",
-        subs: [
-          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Proof photos", href: "/delivery/proof" },
-          { label: "Settle a carrier", href: "/delivery/settle" },
-          { label: "Cost & performance", href: "/delivery/performance" },
-        ],
-      },
       // Inventory = stock's ONE owner (RADIAN_INVENTORY_MODULE_ARCHITECTURE.md, 22 Jul).
       // Immutable ledger + AVCO money.
       {
@@ -313,22 +288,35 @@ const GROUPS: Group[] = [
           { label: "Settings", href: "/inventory/settings" },
         ],
       },
-      // Assembly v2 (RADIAN_ASSEMBLY_MODULE_ARCHITECTURE.md, redesign 23 Jul):
-      // Template (no stock touch) → Pipeline (components → Assembly floor) →
-      // Finished goods → Transfer (owner picks the Item). Stock via Inventory only.
+      // Purchases = the buying book (RADIAN_PURCHASE_MODULE_ARCHITECTURE.md, 22 Jul).
+      // One entity, two doors: quick market entry + advance orders (DEC-PUR-001).
+      // Requisition/Order screens arrive with the first branch — deliberately absent.
+      // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
       {
-        label: "Assembly", href: "/assembly", icon: "🛠",
+        label: "Purchases", href: "/purchases", icon: "🧺",
+        roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Overview", href: "/assembly", match: exact("/assembly") },
-          { label: "Templates", href: "/assembly/templates" },
-          { label: "Production pipeline", href: "/assembly/pipeline" },
-          { label: "Finished goods", href: "/assembly/finished" },
-          { label: "Wastage", href: "/assembly/wastage" },
-          /*  Daily capacity — how much can be MADE per day. A back-of-house
-              production limit, so it lives here beside Assembly, not in
-              Products. URL unchanged (/products/capacity), 6 Aug 2026.  */
-          { label: "Daily capacity", href: "/products/capacity" },
-          { label: "Settings", href: "/assembly/settings" },
+          { label: "Overview", href: "/purchases", match: exact("/purchases") },
+          { label: "All purchases", href: "/purchases/list" },
+          { label: "New purchase", href: "/purchases/new" },
+          { label: "Returns", href: "/purchases/returns" },
+          { label: "Reports", href: "/purchases/reports" },
+        ],
+      },
+      // Suppliers = everyone Radian pays (RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md, 23 Jul).
+      // Purchase only references it (DEC-SUP-001).
+      // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
+      {
+        label: "Suppliers", href: "/suppliers", icon: "⛟",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
+          { label: "All suppliers", href: "/suppliers/list" },
+          { label: "New supplier", href: "/suppliers/new" },
+          // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
+          // same Supplier table underneath, their own face on top
+          { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
+          { label: "Settings", href: "/suppliers/settings" },
         ],
       },
       /*  Items = the physical master behind every Product
@@ -361,38 +349,29 @@ const GROUPS: Group[] = [
           { label: "Trash", href: "/items/trash" },
         ],
       },
-      // Purchases = the buying book (RADIAN_PURCHASE_MODULE_ARCHITECTURE.md, 22 Jul).
-      // One entity, two doors: quick market entry + advance orders (DEC-PUR-001).
-      // Requisition/Order screens arrive with the first branch — deliberately absent.
-      // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
+      // Assembly v2 (RADIAN_ASSEMBLY_MODULE_ARCHITECTURE.md, redesign 23 Jul):
+      // Template (no stock touch) → Pipeline (components → Assembly floor) →
+      // Finished goods → Transfer (owner picks the Item). Stock via Inventory only.
       {
-        label: "Purchases", href: "/purchases", icon: "🧺",
-        roles: ["OWNER", "MANAGER"],
+        label: "Assembly", href: "/assembly", icon: "🛠",
         subs: [
-          { label: "Overview", href: "/purchases", match: exact("/purchases") },
-          { label: "All purchases", href: "/purchases/list" },
-          { label: "New purchase", href: "/purchases/new" },
-          { label: "Returns", href: "/purchases/returns" },
-          { label: "Reports", href: "/purchases/reports" },
+          { label: "Overview", href: "/assembly", match: exact("/assembly") },
+          { label: "Templates", href: "/assembly/templates" },
+          { label: "Production pipeline", href: "/assembly/pipeline" },
+          { label: "Finished goods", href: "/assembly/finished" },
+          { label: "Wastage", href: "/assembly/wastage" },
+          /*  Daily capacity — how much can be MADE per day. A back-of-house
+              production limit, so it lives here beside Assembly, not in
+              Products. URL unchanged (/products/capacity), 6 Aug 2026.  */
+          { label: "Daily capacity", href: "/products/capacity" },
+          { label: "Settings", href: "/assembly/settings" },
         ],
       },
-      /*  RETURNS & REFUNDS — the WHOLE book, and the only row that carries the
-          totals (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, DEC-RTN-005..016).
-          The website and the counter each have a narrowed door above; this is
-          where they meet and where every figure is added up. Staff-initiated
-          only; refund ≤ collected; restock via Inventory.
-
-          "Reasons & settings" is NOT here — it is set once and lives in
-          Configuration, by the same rule that split Delivery.
-
-          ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.  */
-      {
-        label: "Returns & Refunds", href: "/returns", icon: "↩",
-        subs: [
-          { label: "Overview (all returns)", href: "/returns", match: exact("/returns") },
-          { label: "New return", href: "/returns/new" },
-        ],
-      },
+    ],
+  },
+  {
+    title: "Money",
+    items: [
       {
         label: "Finance", href: "/finance", icon: "৳",
         roles: ["OWNER", "MANAGER"],
@@ -443,35 +422,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    /*  MARKETING & GROWTH — RADIAN_MARKETING_MODULE_ARCHITECTURE.md (28 Jul 2026).
-
-        Its own section rather than folded into Website or Internal (owner, 17
-        Aug 2026). It genuinely is neither: the website is where a customer
-        LANDS, marketing is what got them moving, and none of it is the day's
-        work behind the counter. Forcing it into either half would have made
-        one of them mean two things.
-
-        One module, four parts under it, and each part big enough to carry its
-        own screens (owner's call, 28 Jul). So the group title is the module and
-        every entry below is a sub-module with its own sub-menu — three levels,
-        not two.
-
-        Offers & Promotions MOVED here from the top level. Nothing about
-        ownership changed: the Offer entity still belongs to the Offers module
-        and Marketing never writes to it. It moved because to the person using
-        the panel, a coupon IS marketing. Old /offers links still work — those
-        routes are now redirects.
-
-        MANAGER and up throughout: what was spent and what came back is a money
-        question, and the occasion list is the customer book by another name.
-        A payout is OWNER + PIN, enforced on the server — not by hiding a button.
-
-        ⚠️ /marketing/campaigns/[id], /marketing/affiliates/[id],
-           /marketing/offers/[id] are dynamic. Every static name at those levels
-           (list · sources · commissions · payouts · coupons · templates ·
-           approvals · settings · perf) is therefore RESERVED — an id can never
-           be one of those words. */
-    title: "Marketing",
+    title: "Growth",
     items: [
       {
         label: "Marketing & Growth", href: "/marketing", icon: "📣",
@@ -572,16 +523,6 @@ const GROUPS: Group[] = [
           { label: "Settings", href: "/marketing/settings" },
         ],
       },
-    ],
-  },
-  {
-    /*  PEOPLE — everyone Radian deals with (owner, 17 Aug 2026). Customers,
-        staff and suppliers used to be filed under "master data" beside
-        Products, which is a statement about tables rather than about people.
-
-        The order is by how often each book is opened, not alphabetical.  */
-    title: "People",
-    items: [
       {
         label: "Customers", href: "/customers", icon: "◉",
         subs: [
@@ -594,52 +535,10 @@ const GROUPS: Group[] = [
           { label: "Occasions", href: "/customers/occasions" },
         ],
       },
-      // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Finance
-      // references it, never owns it. What a person is paid is a money fact,
-      // so MANAGER and up; the personal columns are stripped server-side for
-      // anyone but the OWNER.
-      // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
-      {
-        label: "Staff", href: "/employees", icon: "👥",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "All staff", href: "/employees", match: exact("/employees") },
-          { label: "New employee", href: "/employees/new" },
-          { label: "Job roles", href: "/employees/roles" },
-          { label: "Attendance", href: "/employees/attendance" },
-          { label: "Payroll", href: "/employees/payroll", match: (p) => p.startsWith("/employees/payroll") },
-          { label: "Removed staff", href: "/employees/trash" },
-        ],
-      },
-      // Suppliers = everyone Radian pays (RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md, 23 Jul).
-      // Purchase only references it (DEC-SUP-001).
-      // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
-      {
-        label: "Suppliers", href: "/suppliers", icon: "⛟",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
-          { label: "All suppliers", href: "/suppliers/list" },
-          { label: "New supplier", href: "/suppliers/new" },
-          // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
-          // same Supplier table underneath, their own face on top
-          { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
-          { label: "Settings", href: "/suppliers/settings" },
-        ],
-      },
     ],
   },
   {
-    /*  CONFIGURATION — set once, changed rarely (owner: "delivery holo
-        configuration akta module"). Everything here answers "how should the
-        system behave", never "what happened today".
-
-        This is the far end of the panel deliberately. A person opening the
-        admin twenty times a day should never have to scroll past a settings
-        screen to reach their work — which is exactly what happened when the
-        delivery fulfilment board lived inside this same menu as Methods &
-        slots.  */
-    title: "Configuration",
+    title: "Setup",
     items: [
       /*  Delivery's SETUP half — the other end of the split described in
           Internal. Riders stay here rather than in People because adding a
@@ -662,6 +561,23 @@ const GROUPS: Group[] = [
           which is why it no longer sits in the menu people open to handle
           today's return.  */
       { label: "Returns settings", href: "/returns/settings", icon: "↩" },
+      // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Finance
+      // references it, never owns it. What a person is paid is a money fact,
+      // so MANAGER and up; the personal columns are stripped server-side for
+      // anyone but the OWNER.
+      // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
+      {
+        label: "Staff", href: "/employees", icon: "👥",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "All staff", href: "/employees", match: exact("/employees") },
+          { label: "New employee", href: "/employees/new" },
+          { label: "Job roles", href: "/employees/roles" },
+          { label: "Attendance", href: "/employees/attendance" },
+          { label: "Payroll", href: "/employees/payroll", match: (p) => p.startsWith("/employees/payroll") },
+          { label: "Removed staff", href: "/employees/trash" },
+        ],
+      },
       /*  ADMINISTRATION (30 Jul 2026) — RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md
           Replaces the old "Settings" entry, which had NO href at all: a menu row
           that did nothing when clicked, sitting there since the first build.

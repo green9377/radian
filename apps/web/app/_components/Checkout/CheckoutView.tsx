@@ -50,17 +50,17 @@ import { StepBar } from "./CheckoutFields";
   ═══════════════════════════════════════════════════════════════════
   CHECKOUT — orchestrator
 
-  ★ পাঁচ step: Details → Receiver → Where → When → Payment
+  ★ Five steps: Details → Receiver → Where → When → Payment
 
-  ★ Delivery timeline এখানে **নেই** (locked, 14 July)
-  অর্ডার confirm হওয়ার আগে timeline দেখানো মানে যে জিনিস এখনো ঘটেনি
-  তার প্রতিশ্রুতি। Timeline শুধু /order-success-এ।
+  ★ The delivery timeline is **not** here (locked, 14 July)
+  Showing a timeline before the order is confirmed is promising something that
+  has not happened yet. The timeline lives only on /order-success.
 
-  ★ খালি cart → /cart। কিন্তু zone conflict-এ **redirect নয়** —
-  আগে All Bangladesh বাছলে Dhaka-only cart খালি হয়ে checkout /cart-এ
-  ছুঁড়ে ফেলত। এখন এই page-এই বলে দিই, আর ফেরার পথ দিই।
+  ★ An empty cart → /cart. But on a zone conflict, **no redirect** — choosing
+  All Bangladesh used to empty a Dhaka-only cart and throw checkout out to
+  /cart. Now it is said on this page, with a way back.
 
-  ★ দাম: resolveCart() → checkoutTotals()। Checkout নিজে যোগ করে না।
+  ★ Prices: resolveCart() → checkoutTotals(). Checkout adds nothing up itself.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -80,11 +80,12 @@ export default function CheckoutView() {
 
   const [placing, setPlacing] = useState(false);
   /**
-   * দোকান কেন order নিল না — তার নিজের ভাষায়।
+   * Why the shop would not take the order — in its own words.
    *
-   * ⚠️ এই ঘরটা না থাকলে refusal-গুলো কোথাও দেখাত না। server "out of stock —
-   * cannot order: Custom Chocolate Cake" বা "COD not allowed with a crafted
-   * line" বলে ফিরিয়ে দিত, আর গ্রাহক শুধু দেখতেন বোতাম টিপে কিছুই হচ্ছে না।
+   * ⚠️ Without this field the refusals appeared nowhere. The server would turn
+   * it away with "out of stock — cannot order: Custom Chocolate Cake" or "COD
+   * not allowed with a crafted line", and the customer would just see the
+   * button doing nothing.
    */
   const [placeError, setPlaceError] = useState<string | null>(null);
 
@@ -112,23 +113,27 @@ export default function CheckoutView() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
-    ── delivery module-এর আসল মেনু · DEC-DLV-009 / DEC-DLV-010 ───────────────
-    মালিক: *"delivery module-এ যা edit বা change করা হয়, তা যেন auto পুরা
-    system-এ কাজ করে।"*
+    ── the delivery module's real menu · DEC-DLV-009 / DEC-DLV-010 ───────────
+    Owner (translated): *"whatever is edited or changed in the delivery module
+    should work automatically across the whole system."*
 
-    ⚠️ এতদিন এই তালিকা `_data/delivery.ts`-এ হাতে লেখা ছিল। admin-এ Same Day
-    ৳২০০ আর এখানে ৳৬০ — একই জিনিসের দুই দাম, আর গ্রাহক ভুলটাই দিত। মালিকের
-    বানানো 3-Hour Express এখানে ছিলই না।
+    ⚠️ This list was hand-written in `_data/delivery.ts` all this time. Same Day
+    was ৳200 in the admin and ৳60 here — one thing with two prices, and the
+    customer paid the wrong one. The 3-Hour Express the owner created was not
+    here at all.
 
-    ⚠️ zone বদলালে আবার পড়া হয়, কারণ দাম zone-ভিত্তিক। `stale` পাহারা দেয় —
-    উত্তর দেরিতে এলে সে যেন নতুন zone-এর দামের উপর পুরনো দাম না বসায়।
+    ⚠️ Re-read when the zone changes, because prices are per zone. `stale`
+    stands guard — so a late answer does not put an old price on top of the new
+    zone's.
   */
   const [liveMethods, setLiveMethods] = useState<LiveMethod[] | null>(null);
-  /*  DEC-DLV-011 — cart-এর slug-ও পাঠানো হয়: menu-তে শুধু সেই delivery আসে
-      যেটা cart-এর *প্রতিটা* product-এ টিক-দেওয়া। "multi product hole win
-      hobe se method je method-এ sobgula product delivery possible" — মালিক।
-      slug-এর join-করা string dependency, array নয় — array প্রতি render-এ
-      নতুন reference হয়ে অনবরত re-fetch করাত।  */
+  /*  DEC-DLV-011 — the cart's slugs are sent too: only deliveries ticked on
+      *every* product in the cart reach the menu. "multi product hole win hobe
+      se method je method-e sobgula product delivery possible" — the owner
+      ("with multiple products, the winning method is the one under which every
+      product can be delivered"). The dependency is the joined string, not the
+      array — an array is a new reference on every render and caused endless
+      re-fetching.  */
   const cartSlugKey = useMemo(
     () => [...new Set(items.map((i) => i.slug))].sort().join(","),
     [items],
@@ -145,21 +150,21 @@ export default function CheckoutView() {
   }, [zone, cartSlugKey]);
 
   /**
-   * `method` কি সত্যিকারের `DeliveryMethod` সারি, নাকি API-র উত্তর আসা পর্যন্ত
-   * বসানো একটা অস্থায়ী নাম?
+   * Is `method` a real `DeliveryMethod` row, or a placeholder name standing in
+   * until the API answers?
    *
-   * ⚠️ এই পার্থক্যটা না রাখলে server-কে `"scheduled"` জাতীয় শব্দ পাঠানো হয়,
-   * আর সে যথার্থভাবেই ৪০০ দেয় — cuid ছাড়া কোনো সারি নেই।
+   * ⚠️ Without this distinction a word like `"scheduled"` gets sent to the
+   * server, and it rightly returns a 400 — there is no row without a cuid.
    */
   const liveMethodPicked = Boolean(liveMethods && liveMethods.length > 0);
 
-  /* zone-এ যে method চলে না (courier ⇄ dhaka), সেটা বসে থাকতে পারে না */
+  /* a method that does not run in this zone (courier ⇄ dhaka) cannot stay selected */
   const method = useMemo(() => {
-    /*  API এখনো উত্তর দেয়নি → পুরনো তালিকা দিয়ে জায়গা ধরে রাখা হয়, যাতে
-        পর্দা খালি না দেখায়। উত্তর আসার সাথে সাথেই আসল দাম বসে যায়।  */
+    /*  The API has not answered yet → the old list holds the place so the
+        screen is not empty. The real prices drop in the moment it answers.  */
     const allowed = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-    /*  ⚠️ `Q4When`-এ ঠিক এই একই তিন ধাপ। দুই জায়গায় দুই রকম হলে পর্দায় এক
-        method আর দাম/রসিদে আরেকটা।  */
+    /*  ⚠️ `Q4When` does these exact same three steps. If the two differ, the
+        screen shows one method while the price/receipt says another.  */
     return allowed.find((m) => m.id === c.method) ?? allowed[0] ?? METHODS[1];
   }, [zone, c.method, liveMethods]);
 
@@ -239,9 +244,9 @@ export default function CheckoutView() {
 
   const totals = useMemo(
     () =>
-      /*  ⚠️ `method` পুরোটা পাঠানো হয়, শুধু id নয় — দামটা এখন delivery
-        module-এর, আর `quoteDelivery` id দেখে হাতে-লেখা তালিকায় খুঁজলে
-        আবার সেই ৳৬০-ই পেত।  */
+      /*  ⚠️ The whole `method` is passed, not just the id — the price belongs
+        to the delivery module now, and if `quoteDelivery` looked the id up in
+        the hand-written list it would find that ৳60 all over again.  */
     cart
       ? checkoutTotals({
           cart,
@@ -262,15 +267,16 @@ export default function CheckoutView() {
   );
 
   /*
-    ── অসমাপ্ত checkout ধরে রাখা · DEC-WA-004, DEC-WA-008 ────────────────────
-    মালিকের নির্দেশ ৬ আগস্ট: "customer যা-ই type করুক সেটা আমরা নিয়ে নেব",
-    আর ৯০ দিন ধরে তাঁদের গ্রাহকে পরিণত করার চেষ্টা চলবে।
+    ── HOLDING ON TO AN UNFINISHED CHECKOUT · DEC-WA-004, DEC-WA-008 ────────
+    The owner's instruction, 6 Aug (translated): "whatever the customer types,
+    we take it", and the effort to turn them into a customer runs for 90 days.
 
-    ⚠️ কার্ড/CVV/OTP-র কোনো ঘর এখানে নেই এবং কখনো থাকবেও না — টাকার পাতাটা
-    SSLCommerz-এর নিজের। server-এও একই ছাঁকনি বসানো, কারণ ব্রাউজার ঠিক
-    আচরণ করবে সেই ভরসায় নিরাপত্তা রাখা যায় না।
+    ⚠️ There is no card/CVV/OTP field here and there never will be — the money
+    page is SSLCommerz's own. The same sieve is on the server too, because
+    security cannot rest on trusting the browser to behave.
 
-    ⚠️ পাঠানো হয় থামার ১.৫ সেকেন্ড পর, আর একই লেখা দুবার নয় (hook-এর ভেতরে)।
+    ⚠️ Sent 1.5 seconds after typing stops, and never the same text twice
+    (handled inside the hook).
   */
   useCheckoutLead(
     cart && (c.senderPhone.trim() || c.senderName.trim())
@@ -279,8 +285,8 @@ export default function CheckoutView() {
           phone: normalizeBdPhone(c.senderPhone) ?? (c.senderPhone.trim() || undefined),
           email: c.senderEmail.trim() || undefined,
           stage: c.step >= 5 ? "PAYMENT" : c.step >= 3 ? "DELIVERY" : "DETAILS",
-          /*  যা টাইপ করা হয়েছে — staff ফোন করার সময় এগুলোই কাজে লাগে:
-              কার জন্য, কোথায়, কবে।  */
+          /*  Whatever was typed — this is what staff need when they call: who
+              it is for, where, and when.  */
           draft: {
             isGift: c.isGift,
             recipientName: c.recipientName?.trim() || undefined,
@@ -292,14 +298,16 @@ export default function CheckoutView() {
             methodLabel: method?.label,
             step: c.step,
           },
-          /*  ⚠️ দুই রকম ছবি, দুই কাজে — একটা দিয়ে অন্যটা হয় না।
+          /*  ⚠️ Two pictures for two jobs — neither can do the other's.
 
-              `summary` মানুষের পড়ার জন্য: staff ফোন করার সময় "উনি কী রেখে
-              গিয়েছিলেন" দেখবে। নাম-মাপ-রঙ, id নয়।
+              `summary` is for people to read: what staff see when they call to
+              ask "what did they leave behind". Names, sizes, colours — not
+              ids.
 
-              `items` যন্ত্রের জন্য: `/cart/{id}` পাতায় cart-টা হুবহু ফিরিয়ে
-              দিতে sizeId, variantId, addon — সব লাগে। শুধু `summary` রাখলে
-              বার্তার "Return to cart" বোতাম গ্রাহককে খালি cart-এ ফেলত।  */
+              `items` is for the machine: restoring the cart exactly on the
+              `/cart/{id}` page needs sizeId, variantId, addons — all of it.
+              Keeping only `summary` left the message's "Return to cart" button
+              dropping the customer into an empty cart.  */
           cart: {
             items: cart.lines.map((l) => l.item),
             summary: cart.lines.map((l) => ({
@@ -353,10 +361,10 @@ export default function CheckoutView() {
     [cart],
   );
 
-  /* একদম খালি cart — checkout-এর কিছুই করার নেই */
+  /* a completely empty cart — checkout has nothing to do */
   const cartEmpty = cartHydrated && items.length === 0 && !placing;
 
-  /* সব item এই zone-এ আটকে গেছে — কিছুই deliver হবে না */
+  /* every item is held in this zone — nothing will be delivered */
   const allHeld = Boolean(cart && cart.lines.length === 0 && cart.held.length > 0);
 
   useEffect(() => {
@@ -364,9 +372,9 @@ export default function CheckoutView() {
   }, [cartEmpty, router]);
 
   /*
-    User step 4/5-এ থাকা অবস্থায় All Bangladesh বাছলে ওই card লুকিয়ে যায়,
-    কিন্তু step রয়ে যায় 4/5 — তখন সব card বন্ধ, message-ও দেখা যায় না।
-    তাই allHeld হলে focus জোর করে Q3-এ ফিরিয়ে আনি।
+    If the user picks All Bangladesh while sitting on step 4/5, that card is
+    hidden but the step stays at 4/5 — and then every card is closed and the
+    message cannot be seen either. So when allHeld, focus is forced back to Q3.
   */
   useEffect(() => {
     if (allHeld && c.step > 3) c.openStep(3);
@@ -394,14 +402,14 @@ export default function CheckoutView() {
         values that decide what somebody is charged.  */
     if (!cart || !totals) return;
 
-    /* accordion লাফিয়ে পার হওয়া যায় — তাই সব step আবার যাচাই */
+    /* the accordion can be jumped past — so every step is checked again */
     const state = { ...useCheckoutStore.getState(), method: method.id };
 
-    /*  ⚠️ `leadDays` / `speeds` / `method` — তিনটাই পাঠানো হয়।
-        আগে কিছুই পাঠানো হতো না, তাই এই শেষ যাচাইটা leadDays ০ আর
-        "সব speed চলবে" ধরে নিত — picker যে তারিখটা ধূসর করে রেখেছিল, "Place
-        order" সেটাই পাশ করিয়ে দিত। আর `method` ছাড়া step 4 কখনো পাশই হতো না
-        (দেখুন `ValidateOpts.method`-এর নোট)।  */
+    /*  ⚠️ `leadDays` / `speeds` / `method` — all three are passed. None of them
+        used to be, so this final check assumed leadDays 0 and "every speed is
+        allowed" — and "Place order" waved through the very date the picker had
+        greyed out. Without `method`, step 4 could never pass at all (see the
+        note on `ValidateOpts.method`).  */
     const opts = { now: new Date(), leadDays, speeds, method };
 
     for (const n of [1, 2, 3, 4]) {
@@ -472,13 +480,15 @@ export default function CheckoutView() {
       deliveryNotes: c.deliveryNotes.trim() || undefined,
       date: c.date ?? undefined,
 
-      /*  MKT-D02 — এই order-টা কোন বিজ্ঞাপন/affiliate পাঠাল। first-touch,
-          ৩০ দিনের স্মৃতি; না থাকলে ঘরগুলো খালি যায়, আর সেটাই সত্যি।  */
+      /*  MKT-D02 — which advert/affiliate sent this order. First-touch, a
+          30-day memory; with none, the fields go empty, and that is the
+          truth.  */
       ...(useAttribution.getState().read() ?? {}),
 
-      /*  DEC-WA-004 — order হয়ে গেল, তাই এই ব্রাউজারের অসমাপ্ত সারিটা আর
-          "ছেড়ে যাওয়া" নয়। এটা না পাঠালে ১৫ মিনিট পর সদ্য order করা
-          গ্রাহকের কাছেই "আপনার cart রাখা আছে" চলে যেত।  */
+      /*  DEC-WA-004 — the order happened, so this browser's unfinished row is
+          no longer "abandoned". Without sending this, "your cart is waiting"
+          would go out 15 minutes later to the very customer who just
+          ordered.  */
       clientKey: clientKey() || undefined,
 
       /*  ⚠️ The number on the button, sent back to be checked against. If the
@@ -532,14 +542,14 @@ export default function CheckoutView() {
           totalPaisa: res.data.totalPaisa,
         },
         payment,
-        /*  ⚠️ `checkoutTotals` যে সারিতে দাম কষেছে, রসিদও ঠিক সেটাই লিখবে।  */
+        /*  ⚠️ The receipt writes exactly the row `checkoutTotals` priced.  */
         method,
         orderNo: res.data.orderNo,
       }),
     );
-    /*  প্রাপক খাতায় উঠলেন — পরের বার এক tap-এ ফিরে আসবেন ("Send again to").
-        ORDER সফল হওয়ার পরেই, আগে নয়: ব্যর্থ checkout-এর নাম খাতায় জমলে
-        তালিকাটা আন্দাজে ভরে যেত।  */
+    /*  The recipient goes into the address book — next time they come back in
+        one tap ("Send again to"). Only after the ORDER succeeds, never before:
+        filing names from failed checkouts would fill the list with guesses.  */
     if (c.isGift && c.recipientName.trim() && c.recipientPhone.trim()) {
       useRecipientBook.getState().remember({
         name: c.recipientName,
@@ -548,7 +558,7 @@ export default function CheckoutView() {
     }
 
     clearCart();
-    c.resetAfterOrder(); // নাম/ফোন/ঠিকানা থাকে, gift message + slot যায়
+    c.resetAfterOrder(); // name/phone/address stay; gift message + slot go
 
     /*
       ⚠️ THE ORDER EXISTS BEFORE THE MONEY DOES, AND THAT IS THE RIGHT WAY ROUND.
@@ -605,9 +615,10 @@ export default function CheckoutView() {
           />
 
           {/*
-            সব item এই zone-এ আটকে গেলে (deliverable ০) — When/Payment/Review
-            দেখানো অর্থহীন। Q3-এর ভেতরের message-ই যথেষ্ট। zone Dhaka করলে
-            allHeld false, বাকি step আবার ফিরে আসে।
+            When every item is held in this zone (0 deliverable), showing
+            When/Payment/Review is meaningless. The message inside Q3 is
+            enough. Switch the zone to Dhaka and allHeld goes false, bringing
+            the remaining steps back.
           */}
           {!allHeld && (
             <>
@@ -619,7 +630,7 @@ export default function CheckoutView() {
               />
               <Q5Payment items={cart.lines.map((l) => l.item)} />
 
-              {/* "Review order" চাপার পর — সব তথ্য এক পাতায়, প্রতিটাতে Edit */}
+              {/* after "Review order" is pressed — everything on one page, each with Edit */}
               {c.done.includes(5) && (
                 <CheckoutReview
                   cart={cart}

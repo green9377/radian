@@ -15,14 +15,15 @@ import { DELIVERY_FROM_PAISA } from "./delivery";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  CART RESOLVER — pure function, কোনো React নেই।
+  CART RESOLVER — a pure function, no React.
 
-  Cart store শুধু config রাখে (slug/size/bundle/addon/perso/qty)।
-  দাম, নাম, ছবি, zone — সব এখানে catalog থেকে জোড়া লাগে।
-  দাম বদলালে পরের render-এই ঠিক দাম দেখাবে, stale হবে না।
+  The cart store holds config only (slug/size/bundle/addon/perso/qty).
+  Price, name, photo, zone — all of it is joined on from the catalog here.
+  When a price changes, the very next render shows the right one; nothing goes
+  stale.
 
-  ⇄ SWAP HERE — getProductDetail() যেদিন fetch() হবে, এই function
-  async হবে। component-এর shape বদলাবে না।
+  ⇄ SWAP HERE — the day getProductDetail() becomes a fetch(), this function
+  becomes async. No component's shape changes.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -32,50 +33,52 @@ export interface ResolvedLine {
   product: Product;
   size: SizeOption;
   /**
-   * DEC-PRD-012 — কোন রঙ / ফ্লেভার / মাপ কেনা হচ্ছে। `null` = এই
-   * product-এর variant নেই, বা যেটা বাছা ছিল সেটা মালিক তুলে দিয়েছেন।
+   * DEC-PRD-012 — which colour / flavour / size is being bought. `null` = this
+   * product has no variants, or the one that was picked has been removed by
+   * the owner.
    */
   variant: PickedVariant | null;
   /**
-   * DEC-PRD-018 — তালিকা থেকে যা যা এই line-এ যোগ হয়েছে। খালি = কিছুই না,
-   * আর তখন ছাড়ও নেই (মালিকের নিয়ম)।
+   * DEC-PRD-018 — what was added to this line from the list. Empty = nothing,
+   * and then there is no discount either (the owner's rule).
    *
-   * ⚠️ যেগুলো মালিক তুলে দিয়েছেন সেগুলো এখানে থাকে না — মুছে ফেলা size-এর
-   * বেলায় যা হয়, তাই। দাম নড়ে, আর সেটাই সৎ সংকেত।
+   * ⚠️ Anything the owner has removed is not here — the same as with a deleted
+   * size. The price moves, and that is the honest signal.
    */
   bundles: BundleOption[];
   addons: AddonItem[];
-  /** size + bundle + Σ add-on — এক unit-এর দাম (integer paisa) */
+  /** size + bundle + Σ add-ons — the price of one unit (integer paisa) */
   unitPaisa: number;
   /** unitPaisa × qty */
   linePaisa: number;
-  /** zone conflict — Dhaka-only পণ্য কিন্তু zone = All Bangladesh */
+  /** zone conflict — a Dhaka-only product while zone = All Bangladesh */
   held: boolean;
-  /** size upgrade nudge — পরের বড় size, না থাকলে null */
+  /** size upgrade nudge — the next size up, null when there is none */
   nextSize: SizeOption | null;
 }
 
-/** Catalog থেকে product-টা উধাও (delete/rename)। চুপচাপ মুছি না — দেখাই। */
+/** The product is gone from the catalog (deleted/renamed). Not removed
+    silently — it is shown. */
 export interface MissingLine {
   item: CartItem;
 }
 
 export interface CartTotals {
-  /** deliverable line গুলোর যোগফল — এটাই checkout-এ যাবে */
+  /** the sum of the deliverable lines — this is what goes to checkout */
   activePaisa: number;
-  /** held line গুলোর যোগফল — subtotal-এ নেই, শুধু দেখানোর জন্য */
+  /** the sum of the held lines — not in the subtotal, shown only */
   heldPaisa: number;
   activeQty: number;
   heldQty: number;
-  /** সব line (held সহ) — Header badge আর "· N items" */
+  /** every line (held included) — the header badge and "· N items" */
   totalQty: number;
   deliveryFromPaisa: number;
 }
 
 export interface ResolvedCart {
-  /** এখন deliver করা যাবে */
+  /** deliverable right now */
   lines: ResolvedLine[];
-  /** zone conflict — cart-এ আছে, delete হয়নি, শুধু subtotal থেকে বাদ */
+  /** zone conflict — still in the cart, not deleted, just out of the subtotal */
   held: ResolvedLine[];
   missing: MissingLine[];
   totals: CartTotals;
@@ -142,18 +145,20 @@ export async function resolveCart(
     }
 
     /*
-      size/bundle না মিললে fallback — admin size delete করলে cart line
-      যেন crash না করে। দাম তখন default config-এর, আর UI-তে যা দেখাবে
-      সেটাই user দেবে। Ecommerce lock হলে API এটা 410 দিয়ে জানাবে।
+      A fallback when the size/bundle does not match — so a cart line does not
+      crash when the admin deletes a size. The price is then the default
+      config's, and whatever the UI shows is what the user pays. Once Ecommerce
+      is locked the API will report this with a 410.
     */
     const size = detail.sizes.find((s) => s.id === item.sizeId) ?? detail.sizes[0];
 
     /*
-      DEC-PRD-012 — cart-এ শুধু id থাকে, দাম-ছবি প্রতিবার নতুন করে আসে।
+      DEC-PRD-012 — the cart holds only the id; price and photo are fetched
+      fresh every time.
 
-      ⚠️ না মিললে `null`, আর তখন product-এর নিজের দামই চলে — ঠিক যেমন
-      মুছে ফেলা size-এর বেলায় হয়। মালিক একটা রঙ তুলে দিলে গ্রাহকের cart
-      যেন ভেঙে না পড়ে; দাম নড়ে, আর সেটাই সৎ সংকেত।
+      ⚠️ `null` on a miss, and then the product's own price governs — exactly
+      as with a deleted size. So a customer's cart does not fall apart when the
+      owner removes a colour; the price moves, and that is the honest signal.
     */
     const variant = (detail.variants ?? []).find((v) => v.id === item.variantId) ?? null;
     const bundles = item.bundleIds
@@ -167,17 +172,18 @@ export async function resolveCart(
       .map((k) => addonByKey.get(k))
       .filter((a): a is AddonItem => a !== undefined);
 
-    /*  variant-এর নিজের দাম থাকলে সেটাই base — PdpView-এর সাথে হুবহু একই
-        শর্ত, তাই page-এ যা দেখা গেছে cart-এও সেটাই বসে।  */
+    /*  When the variant has its own price, that is the base — the exact same
+        condition as PdpView, so what was seen on the page is what lands in the
+        cart.  */
     const variantPaisa =
       variant && variant.pricePaisa !== detail.product.pricePaisa ? variant.pricePaisa : null;
 
-    /*  DEC-PRD-018 — page-এ যা দেখানো হয়েছিল, cart-এও হুবহু তাই। হিসাবটা
-        `bundlePricing.ts`-এর একই function করে, তাই দুই জায়গায় দুই উত্তর
-        হওয়ার পথ নেই।
+    /*  DEC-PRD-018 — exactly what the page showed is what the cart shows. The
+        same function in `bundlePricing.ts` does the arithmetic, so there is no
+        route to two answers in two places.
 
-        ⚠️ add-on (card, ফিতে) ছাড়ের বাইরে থাকে — সেগুলো তালিকার জিনিস
-        নয়, আর মালিকের ছাড়টা তালিকার নিচে বসানো।  */
+        ⚠️ Add-ons (cards, ribbons) stay outside the discount — they are not
+        items on the list, and the owner's discount sits under the list.  */
     const unitPaisa =
       bundleTotals(variantPaisa ?? size.pricePaisa, detail.bundle, item.bundleIds).totalPaisa +
       addons.reduce((n, a) => n + a.pricePaisa, 0);
@@ -226,18 +232,18 @@ export async function resolveCart(
 }
 
 /* ─────────────────── CROSS-SELL ───────────────────
-   "A little something extra?" — এক tap, কোনো configuration নেই।
-   তাই শুধু সেই product যেগুলোর default config-ই যথেষ্ট: সস্তা,
-   personalisation লাগে না, আর current zone-এ deliver হয়।
+   "A little something extra?" — one tap, no configuration.
+   So only products whose default config is enough: cheap, needing no
+   personalisation, and deliverable in the current zone.
 */
 const XSELL_CATS: Product["cat"][] = ["chocolates", "balloons", "giftboxes"];
-const XSELL_MAX_PAISA = 120000; // ৳1,200-এর নিচে — impulse buy
+const XSELL_MAX_PAISA = 120000; // under ৳1,200 — an impulse buy
 
 export interface CrossSellItem {
   slug: string;
   name: string;
   bg: string;
-  /** default config-এ যা দাম পড়বে — যোগ করার পর ঠিক এটাই বসবে */
+  /** what it costs in the default config — exactly what lands after adding */
   pricePaisa: number;
   sizeId: string;
   bundleIds: string[];
@@ -285,9 +291,9 @@ export async function crossSellItems(
     .map((p, i) => {
       const d = details[i];
       if (!d) return null;
-      /*  default = প্রথম size, কোনো bundle নয় → দাম card-এর দামের সমান।
-          ⚠️ আগে এখানে "দাম শূন্য" bundle খোঁজা হতো, কারণ একটা bundle
-          বাছতেই হতো। এখন কিছু না বাছাই স্বাভাবিক অবস্থা।  */
+      /*  default = the first size and no bundle → the price equals the card's.
+          ⚠️ This used to hunt for a "zero price" bundle, because a bundle had
+          to be picked. Picking nothing is the normal state now.  */
       const size = d.sizes[0];
       return {
         slug: p.slug,

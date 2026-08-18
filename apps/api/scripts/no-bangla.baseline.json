@@ -255,7 +255,6 @@
   "apps/web/app/_data/payment.ts": 14,
   "apps/web/app/_data/policies.ts": 17,
   "apps/web/app/_data/productApi.ts": 60,
-  "apps/web/app/_data/productDetails.ts": 111,
   "apps/web/app/_data/products.ts": 8,
   "apps/web/app/_data/promo.ts": 22,
   "apps/web/app/_data/reminders.ts": 8,

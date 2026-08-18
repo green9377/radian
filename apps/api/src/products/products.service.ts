@@ -16,8 +16,9 @@ import { paidPaisa } from '../common/discount-window';
 
 const ENTITY = 'Product';
 
-// child সহ পূর্ণ product ফেরত
-// nested include soft-delete extension ধরে না — তাই প্রতিটা to-many-তে explicit filter
+// the full product, children included
+// a nested include does not pick up the soft-delete extension — hence an
+// explicit filter on every to-many
 const NOT_DELETED = { deletedAt: null };
 const FULL_INCLUDE = {
   category: true,
@@ -69,12 +70,12 @@ const FULL_INCLUDE = {
   specRows: { where: NOT_DELETED, orderBy: { sortOrder: 'asc' } },
   faqs: { where: NOT_DELETED, orderBy: { sortOrder: 'asc' } },
   trustBadges: { where: NOT_DELETED, orderBy: { sortOrder: 'asc' } },
-  /*  DEC-DLV-008 — কোন কোন delivery-তে যেতে পারে। editor এটা দিয়েই
-      chip-গুলো আবার টিক করে দেয়।  */
+  /*  DEC-DLV-008 — which deliveries it can travel on. This is what the editor
+      uses to tick the chips back on.  */
   deliveryTypes: { select: { typeId: true } },
-  /*  DEC-PRD-012 — রঙ / ফ্লেভার / মাপ, প্রতিটার নিজের ছবি-মজুদ-দাম নিয়ে।
-      master-এর নাম আর রঙও সাথে আসে, নাহলে editor আর storefront দুজনকেই
-      আলাদা করে সেটা খুঁজতে হতো।  */
+  /*  DEC-PRD-012 — colour / flavour / size, each with its own photo, stock and
+      price. The master's name and colour come along too, otherwise both the
+      editor and the storefront would have to go and find them separately.  */
   variants: {
     where: NOT_DELETED,
     orderBy: { sortOrder: 'asc' },
@@ -85,9 +86,9 @@ const FULL_INCLUDE = {
           attribute: { select: { id: true, name: true, displayMode: true } },
         },
       },
-      /*  DEC-PRD-015 — কোন Item এই রঙটার মজুদ রাখে। নাম আর code দুটোই
-          লাগে, কারণ editor বাছার পর সেটা লিখে দেখায় — id দেখিয়ে কারও
-          কাজ হয় না।  */
+      /*  DEC-PRD-015 — which Item holds this colour's stock. Both the name and
+          the code are needed, because the editor writes it out after picking —
+          showing someone an id helps nobody.  */
       item: { select: { id: true, sku: true, name: true } },
     },
   },
@@ -376,9 +377,10 @@ export class ProductsService {
               supplier: { select: { id: true, name: true, nickname: true } },
             },
           },
-          /*  DEC-PRD-014 — variant থাকলে মজুদ তাদের ঘরে। তালিকার প্রতিটা
-              সারি, Stock page আর Overview-এর "out of stock" গোনা — সবই
-              `stockQty` পড়ে, তাই সংখ্যাটা এখানেই ঠিক করে পাঠানো হয়।  */
+          /*  DEC-PRD-014 — when there are variants the stock lives in their
+              fields. Every row of the list, the Stock page and Overview's
+              "out of stock" count all read `stockQty`, so the number is
+              corrected here before it is sent.  */
           variants: {
             where: { deletedAt: null, isActive: true },
             select: { stockQty: true },
@@ -393,17 +395,20 @@ export class ProductsService {
 
     return {
       /*
-        DEC-PRD-014 — মালিক, ২ আগস্ট ২০২৬: *"variant থাকলে variant-এর
-        stock-ই চলবে, product-এর ঘরটা তখন যোগফল দেখাবে।"*
+        DEC-PRD-014 — Owner, 2 Aug 2026 (translated): *"when there are variants
+        the variants' stock governs, and the product's field then shows the
+        total."*
 
-        ⚠️ কলামটা বদলানো হয় না, শুধু **উত্তরটা** বদলে যায়। ঘরে হাতে লেখা
-        পুরনো সংখ্যাটা রয়ে যায় — মালিক variant-গুলো তুলে দিলে সেটাই আবার
-        চলবে। দুটো সংখ্যা রাখা আর দুটো সংখ্যা দেখানো এক কথা নয়।
+        ⚠️ The column is not changed, only the **answer** changes. The old
+        hand-typed number stays in the field — if the owner removes the
+        variants it governs again. Keeping two numbers and showing two numbers
+        are not the same thing.
       */
       items: items.map((p) =>
         this.withOffer(
-          /*  ⚠️ শুধু Manual-এ। TRACKED হলে গোনাটা Inventory-র, আর
-              variant-এর হাতে লেখা ঘরগুলো তখন পড়াই হয় না (DEC-PRD-015)।  */
+          /*  ⚠️ Manual only. Under TRACKED the count belongs to Inventory, and
+              the variants' hand-typed fields are not read at all
+              (DEC-PRD-015).  */
           p.stockMode === 'MANUAL' && p.variants.length > 0
             ? { ...p, stockQty: p.variants.reduce((n, v) => n + v.stockQty, 0) }
             : p,
@@ -445,9 +450,9 @@ export class ProductsService {
       select: { id: true },
     });
 
-    /*  DEC-DLV-008 — নতুন product-এর delivery সংযোগ। `create`-এর ভেতরে
-        nested করা হয়নি ইচ্ছাকৃতভাবে: update-ও ঠিক এই function-টাই ডাকে,
-        তাই নিয়মটা একবারই লেখা থাকে।  */
+    /*  DEC-DLV-008 — the new product's delivery links. Deliberately not nested
+        inside `create`: update calls this very same function, so the rule is
+        written once.  */
     await this.replaceDeliveryTypes(created.id, dto.deliveryTypeIds);
     await this.replaceVariants(created.id, dto.variants);
 
@@ -480,7 +485,7 @@ export class ProductsService {
     const existing = await this.prisma.db.product.findFirst({ where: { id } });
     if (!existing) throw new NotFoundException('Product not found');
 
-    // merged view দিয়ে money/advance নিয়ম যাচাই (partial patch হলেও)
+    // check the money/advance rules against the merged view (even on a partial patch)
     this.validateMoneyAndRules({ ...existing, ...dto } as CreateProductDto);
     await this.validateRefs(dto);
     if (dto.slug && dto.slug !== existing.slug) await this.ensureSlugFree(dto.slug);
@@ -530,7 +535,7 @@ export class ProductsService {
 
   /* ---------------- soft delete / restore ---------------- */
 
-  // DEC (core): Soft Delete Only — কখনো hard DELETE নয়।
+  // DEC (core): Soft Delete Only — never a hard DELETE.
   async remove(id: string, actorName = 'Admin') {
     const existing = await this.prisma.db.product.findFirst({ where: { id } });
     if (!existing) throw new NotFoundException('Product not found');
@@ -647,7 +652,7 @@ export class ProductsService {
   }
 
   async restore(id: string, actorName = 'Admin') {
-    // base client (extension ছাড়া) — deleted রেকর্ডও দেখা যায়
+    // the base client (without the extension) — deleted records are visible too
     const existing = await this.prisma.product.findFirst({
       where: { id, NOT: { deletedAt: null } },
     });
@@ -755,7 +760,7 @@ export class ProductsService {
     }
   }
 
-  // DEC (locked §2): টাকা=paisa integer · discount · advance override নিয়ম
+  // DEC (locked §2): money = integer paisa · discount · advance override rules
   private validateMoneyAndRules(dto: CreateProductDto) {
     const ints: [string, number | undefined][] = [
       ['costPaisa', dto.costPaisa],
@@ -790,15 +795,17 @@ export class ProductsService {
   }
 
   /*
-    DEC-PRD-032 — Publish-এর গেট। মালিক, ৬ আগস্ট ২০২৬:
+    DEC-PRD-032 — the Publish gate. Owner, 6 Aug 2026:
     "ami jodi product image na dei taw amr published hoy... ata biroktikor."
+    ("even if I give no product image it still gets published... this is
+    annoying.")
 
-    আগে `isPublished` ছিল শুধু একটা flag — সত্যি বলতে কিছুই আটকাত না, তাই
-    ছবি ছাড়া, দাম ০ রেখেও, কোনো delivery speed না টিকিয়েও একটা product
-    লাইভ চলে যেত (placeholder রঙিন বাক্স নিয়ে)। মালিক নিজে ঠিক করে দিলেন
-    publish আটকানোর ৪টা শর্ত — এখানে সেটাই lock করা হলো। Draft হিসেবে
-    save করতে এই মেথড কখনো বাধা দেয় না, শুধু `isPublished: true` হওয়ার
-    মুহূর্তেই যাচাই করে।
+    `isPublished` used to be just a flag — it truly stopped nothing, so a
+    product could go live with no photo, a price of 0, and not one delivery
+    speed ticked (carrying a placeholder coloured box). The owner himself set
+    the 4 conditions that block publishing — they are locked here. This method
+    never stands in the way of saving as a draft; it only checks at the moment
+    `isPublished: true` is set.
   */
   private async assertPublishReady(
     dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[]; variants?: ProductVariantInput[] },
@@ -862,8 +869,8 @@ export class ProductsService {
       );
     }
 
-    // `images` REPLACE-not-merge (see `replaceChildren`) — dto-তে থাকলে সেটাই
-    // চূড়ান্ত তালিকা, না থাকলে DB-তে যা আছে তা-ই টিকে থাকবে।
+    // `images` is REPLACE-not-merge (see `replaceChildren`) — if it is in the
+    // dto that is the final list; if not, whatever is in the DB survives.
     let imageCount: number;
     if (dto.images !== undefined) {
       imageCount = dto.images.length;
@@ -880,11 +887,11 @@ export class ProductsService {
   }
 
   /*
-    offer price = selling − discount (paisa)। দেখানোর জন্য, সংরক্ষিত নয়।
+    offer price = selling − discount (paisa). For display, not stored.
 
-    ⚠️ DEC-PRD-028 — মেয়াদ ফুরানো ছাড় এখানেও বসে না। নাহলে Overview-তে
-    margin 44% দেখাত অথচ দোকান পুরো দামে বিক্রি করত — মালিক ভুল সংখ্যার
-    উপর দাঁড়িয়ে দাম ঠিক করতেন।
+    ⚠️ DEC-PRD-028 — an expired discount is not applied here either. Otherwise
+    Overview would show a 44% margin while the shop sold at full price — and
+    the owner would set his prices standing on the wrong number.
   */
   private withOffer<
     T extends {
@@ -960,20 +967,22 @@ export class ProductsService {
       stockQty: dto.stockQty,
       showStock: dto.showStock,
       salesCount: dto.salesCount,
-      /*  DEC-PRD-028 — ছাড়ের মেয়াদ। ⚠️ খালি string নয়, `null` — খালি
-          string-কে Prisma অবৈধ তারিখ ধরে আর গোটা save ভাঙে।  */
+      /*  DEC-PRD-028 — the discount's expiry. ⚠️ `null`, not an empty string —
+          Prisma reads an empty string as an invalid date and the whole save
+          breaks.  */
       discountStartsAt: dto.discountStartsAt ? new Date(dto.discountStartsAt) : dto.discountStartsAt === null ? null : undefined,
       discountEndsAt: dto.discountEndsAt ? new Date(dto.discountEndsAt) : dto.discountEndsAt === null ? null : undefined,
-      /*  DEC-PRD-025/026/027 — নতুন ঘরগুলো। `undefined` হলে Prisma ছোঁয় না,
-          তাই পুরনো পর্দা থেকে আসা save-এ কিছু মুছে যায় না।  */
+      /*  DEC-PRD-025/026/027 — the new fields. Prisma leaves `undefined`
+          alone, so a save coming from an older screen erases nothing.  */
       salesSeedToday: dto.salesSeedToday,
       salesSeedWeek: dto.salesSeedWeek,
       salesSeedMonth: dto.salesSeedMonth,
       salesSeedAll: dto.salesSeedAll,
-      /*  DEC-PRD-025 — ঘড়িটা এখানেই নতুন করে শুরু হয়। মালিক ঢুকে save
-          করলেই "আজকের" সংখ্যা আজ থেকে গোনা শুরু। ⚠️ form সংখ্যার কথা না
-          বললে (`undefined`) সময়টাও ছোঁয়া হয় না — অন্য কারণে save করলে
-          মেয়াদ বেড়ে যাওয়া উচিত নয়।  */
+      /*  DEC-PRD-025 — the clock restarts right here. The moment the owner
+          goes in and saves, the "today" number starts counting from today.
+          ⚠️ If the form says nothing about the number (`undefined`) the time
+          is not touched either — saving for some other reason should not
+          extend the window.  */
       salesSeedAt:
         dto.salesSeedToday !== undefined ||
         dto.salesSeedWeek !== undefined ||
@@ -1018,8 +1027,8 @@ export class ProductsService {
     };
   }
 
-  // update: scalar + FK re-connect + tag set। child rows-এর পূর্ণ re-sync পরে
-  // (edit UI এলে) — এখন scalar/relation edit যথেষ্ট।
+  // update: scalar + FK re-connect + tag set. A full re-sync of child rows
+  // comes later (when the edit UI lands) — scalar/relation edits are enough now.
   /**
    * Swap a product's owned lists for the ones the editor just sent.
    *
@@ -1064,25 +1073,27 @@ export class ProductsService {
   }
 
   /**
-   * DEC-DLV-008 — কোন কোন delivery-তে এই product যেতে পারে।
+   * DEC-DLV-008 — which deliveries this product can travel on.
    *
-   * ⚠️ HARD DELETE, soft নয় — আর এটাই এখানে ঠিক। এই টেবিলে কোনো তথ্য নেই,
-   * শুধু দুটো id-র জোড়া। মুছে ফেলা জোড়া রেখে দেওয়ার মানে হতো একটা "মুছে
-   * ফেলা হয়েছে" চিহ্নওয়ালা সারি, যা কেউ কখনো পড়বে না। order-এর জন্য যা
-   * দরকার সেটা আগেই order-এ snapshot হয়ে বসে আছে (DEC-DLV-002)।
+   * ⚠️ HARD DELETE, not soft — and that is right here. This table holds no
+   * information, only a pair of ids. Keeping a deleted pair would mean a row
+   * marked "deleted" that nobody will ever read. What an order needs is
+   * already snapshotted onto the order itself (DEC-DLV-002).
    *
-   * ⚠️ `undefined` হলে কিছুই ছোঁয়া হয় না। form যে ঘরের কথা বলেনি, সেই ঘর
-   * মোছা যায় না — এই ভুলেই ১ আগস্ট product edit করলে ছবি হারিয়ে যাচ্ছিল।
+   * ⚠️ `undefined` touches nothing. A field the form did not mention cannot be
+   * erased — this is the mistake that was losing photos when a product was
+   * edited on 1 Aug.
    */
   /**
-   * DEC-PRD-012 — এই product-এর variant-গুলো।
+   * DEC-PRD-012 — this product's variants.
    *
-   * ⚠️ SOFT DELETE, hard নয় — order-এর line পুরনো variant-এর দিকে দেখাতে
-   * পারে, আর সেই সংযোগ ছিঁড়ে গেলে গতকালের রসিদে "কোন রঙ পাঠানো হয়েছিল"
-   * আর পড়া যেত না।
+   * ⚠️ SOFT DELETE, not hard — an order line may still point at an old
+   * variant, and breaking that link would make "which colour was sent" on
+   * yesterday's receipt unreadable.
    *
-   * ⚠️ `undefined` হলে কিছুই ছোঁয়া হয় না। যে ঘরের কথা form বলেনি সেটা
-   * মোছা যায় না — এই ভুলেই ১ আগস্ট product edit করলে ছবি হারাচ্ছিল।
+   * ⚠️ `undefined` touches nothing. A field the form did not mention cannot be
+   * erased — this is the mistake that was losing photos when a product was
+   * edited on 1 Aug.
    */
   private async replaceVariants(productId: string, rows: ProductVariantInput[] | undefined) {
     if (rows === undefined) return;
@@ -1136,11 +1147,12 @@ export class ProductsService {
       const data = {
         imageUrl: r.imageUrl?.trim() ? r.imageUrl : null,
         stockQty: r.stockQty ?? 0,
-        /*  DEC-PRD-015 — এই রঙের নিজের stockroom Item। খালি লেখা এলে
-            `null`, কারণ খালি string কোনো Item নয় আর FK সেটা মানবে না।  */
+        /*  DEC-PRD-015 — this colour's own stockroom Item. `null` when blank
+            text arrives, because an empty string is not an Item and the FK
+            will not accept it.  */
         itemId: r.itemId?.trim() ? r.itemId : null,
-        /*  খালি = product-এর মূল দাম। মালিকের নিয়ম: রঙ বদলালে দাম এক,
-            kg/flavour বদলালে আলাদা।  */
+        /*  Empty = the product's own price. The owner's rule: changing colour
+            keeps the price, changing kg/flavour does not.  */
         pricePaisa: r.pricePaisa ?? null,
         discountType: r.discountType ?? 'NONE',
         discountValue: r.discountValue ?? 0,
@@ -1148,9 +1160,9 @@ export class ProductsService {
         isActive: r.isActive ?? true,
         deletedAt: null,
       };
-      /*  একই মান আগে মুছে ফেলা থাকলে সেটাই ফিরিয়ে আনা হয়, নতুন সারি নয় —
-          `@@unique([productId, variantValueId])` তাই দাবি করে, আর তাতে
-          পুরনো order-এর সংযোগও অক্ষত থাকে।  */
+      /*  If the same value was deleted before it is brought back rather than
+          created afresh — `@@unique([productId, variantValueId])` demands it,
+          and it keeps old orders' links intact.  */
       await this.prisma.db.productVariant.upsert({
         where: { productId_variantValueId: { productId, variantValueId: r.variantValueId } },
         create: { productId, variantValueId: r.variantValueId, ...data },
@@ -1170,28 +1182,30 @@ export class ProductsService {
     }
 
     /*
-      ⚠️ DEC-PRD-033 — পুরনো তিনটা flag এখান থেকেই লেখা হয়।
+      ⚠️ DEC-PRD-033 — the three old flags are written from right here.
 
-      ৩ আগস্টের নিরীক্ষায় ধরা সবচেয়ে বড় ছেঁড়া তার: editor লিখত নতুন
-      টেবিলে (ProductDeliveryType), আর storefront-এর badge/filter পড়ত
-      পুরনো তিনটা কলাম (supportsExpress/SameDay/Midnight) — যেগুলো আর
-      **কেউ লিখত না**। মালিক Delivery tab-এ যা-ই বদলান, website-এর
-      "2 hrs" badge-এ তার কোনো ছাপই পড়ত না।
+      The biggest cut wire found in the 3 Aug audit: the editor wrote to the
+      new table (ProductDeliveryType) while the storefront's badge/filter read
+      the three old columns (supportsExpress/SameDay/Midnight) — which
+      **nobody wrote any more**. Whatever the owner changed on the Delivery
+      tab left no mark at all on the website's "2 hrs" badge.
 
-      ধাপ ৪-এ storefront নতুন টেবিল পড়া শিখলে এই অনুবাদটা মুছে যাবে।
-      ততদিন এক লেখার জায়গা থেকে দুটোই লেখা হয় — আলাদা হতে পারে না।
+      This translation disappears at step 4, when the storefront learns to read
+      the new table. Until then both are written from one place — they cannot
+      disagree.
 
-      অনুবাদের নিয়ম, DeliveryType.timing থেকে:
-        FROM_CONFIRM    → express   ("২ ঘণ্টায়")
+      The translation rule, from DeliveryType.timing:
+        FROM_CONFIRM    → express   ("within 2 hours")
         TODAY_SLOT      → same day
         PICK_DATE_FIXED → midnight
     */
     /*
-      ⚠️ শুধু সেই delivery গোনা হয় যেটা গ্রাহককে সত্যিই দেওয়া যায় — চালু,
-      মোছা নয়, আর অন্তত একটা zone-এ ভাড়া বসানো। ৩ আগস্টের test-এই ধরা:
-      product-এ "2-Hour Express"-এর একটা পুরনো link ছিল যার কোনো ভাড়া নেই —
-      editor সেটা লুকিয়ে সাবধানবাণী দেখায়, checkout কখনো দেয় না, অথচ badge
-      "২ ঘণ্টায়" বলে বসে ছিল। যে প্রতিশ্রুতি রাখা যায় না, badge-ও নয়।
+      ⚠️ Only a delivery that can really be offered to a customer counts —
+      active, not deleted, and with a fee set in at least one zone. Caught in
+      the 3 Aug test itself: a product had an old link to "2-Hour Express" with
+      no fee — the editor hides it behind a warning and checkout never offers
+      it, yet the badge sat there saying "within 2 hours". A promise that
+      cannot be kept is not a badge either.
     */
     const types = ids.length
       ? await this.prisma.db.deliveryType.findMany({
@@ -1285,20 +1299,22 @@ export class ProductsService {
       stockQty: dto.stockQty,
       showStock: dto.showStock,
       salesCount: dto.salesCount,
-      /*  DEC-PRD-028 — ছাড়ের মেয়াদ। ⚠️ খালি string নয়, `null` — খালি
-          string-কে Prisma অবৈধ তারিখ ধরে আর গোটা save ভাঙে।  */
+      /*  DEC-PRD-028 — the discount's expiry. ⚠️ `null`, not an empty string —
+          Prisma reads an empty string as an invalid date and the whole save
+          breaks.  */
       discountStartsAt: dto.discountStartsAt ? new Date(dto.discountStartsAt) : dto.discountStartsAt === null ? null : undefined,
       discountEndsAt: dto.discountEndsAt ? new Date(dto.discountEndsAt) : dto.discountEndsAt === null ? null : undefined,
-      /*  DEC-PRD-025/026/027 — নতুন ঘরগুলো। `undefined` হলে Prisma ছোঁয় না,
-          তাই পুরনো পর্দা থেকে আসা save-এ কিছু মুছে যায় না।  */
+      /*  DEC-PRD-025/026/027 — the new fields. Prisma leaves `undefined`
+          alone, so a save coming from an older screen erases nothing.  */
       salesSeedToday: dto.salesSeedToday,
       salesSeedWeek: dto.salesSeedWeek,
       salesSeedMonth: dto.salesSeedMonth,
       salesSeedAll: dto.salesSeedAll,
-      /*  DEC-PRD-025 — ঘড়িটা এখানেই নতুন করে শুরু হয়। মালিক ঢুকে save
-          করলেই "আজকের" সংখ্যা আজ থেকে গোনা শুরু। ⚠️ form সংখ্যার কথা না
-          বললে (`undefined`) সময়টাও ছোঁয়া হয় না — অন্য কারণে save করলে
-          মেয়াদ বেড়ে যাওয়া উচিত নয়।  */
+      /*  DEC-PRD-025 — the clock restarts right here. The moment the owner
+          goes in and saves, the "today" number starts counting from today.
+          ⚠️ If the form says nothing about the number (`undefined`) the time
+          is not touched either — saving for some other reason should not
+          extend the window.  */
       salesSeedAt:
         dto.salesSeedToday !== undefined ||
         dto.salesSeedWeek !== undefined ||

@@ -1,41 +1,46 @@
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- *  ছাড়ের মেয়াদ — DEC-PRD-028
+ *  THE DISCOUNT WINDOW — DEC-PRD-028
  *
- *  মালিকের নির্দেশ, ৩ আগস্ট ২০২৬:
+ *  The owner's instruction, 3 Aug 2026:
  *
  *  > "amra jodi nirdisto product a kono offer chalai like discount, tar
  *  >  timing dewar jayga nei — start date and end date. ja frontend and
  *  >  admin panel akoi sathe dekhabe ar kaj korbe."
+ *  > ("if we run an offer like a discount on a particular product, there is
+ *  >  nowhere to set its timing — start date and end date. Which the frontend
+ *  >  and admin panel should show and honour together.")
  *
- *  ⚠️ এই ফাইলটা কেন আছে
+ *  ⚠️ Why this file exists
  *
- *  ছাড়ের অঙ্কটা কোড জুড়ে **ছয় জায়গায়** আলাদা করে লেখা ছিল — storefront
- *  grid, product page, admin margin, order, POS, offers। তারিখের নিয়মটা
- *  যোগ করার দিন সেটাই ধরা পড়ল: page-এ ছাড় বন্ধ হলো, grid-এ চলতেই থাকল,
- *  আর order লাইনে পুরনো দামই বসল। গ্রাহক এক পাতায় ৳২,১৬০ দেখে অন্য পাতায়
- *  ৳২,৪০০ দিত।
+ *  The discount arithmetic was written out separately in **six places** —
+ *  storefront grid, product page, admin margin, order, POS, offers. The day
+ *  the date rule was added, that is what it exposed: the discount stopped on
+ *  the page, kept running in the grid, and the order line still carried the
+ *  old price. A customer saw ৳2,160 on one page and paid ৳2,400 on another.
  *
- *  তাই নিয়মটা এখন **একটাই জায়গায়**। নতুন কোথাও দাম বসাতে হলে এখান থেকে
- *  ডাকো — নিজের হাতে আরেকবার লিখো না।
+ *  So the rule now lives in **one place**. If a price has to be worked out
+ *  somewhere new, call it from here — do not write it out by hand again.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export interface DiscountWindow {
-  /** `null`/`undefined` = এখনই শুরু */
+  /** `null`/`undefined` = starts now */
   discountStartsAt?: Date | null;
-  /** `null`/`undefined` = শেষ নেই */
+  /** `null`/`undefined` = no end */
   discountEndsAt?: Date | null;
 }
 
 /**
- * ছাড়টা এই মুহূর্তে চলছে কি না।
+ * Whether the discount is running at this moment.
  *
- * ⚠️ শেষ তারিখটা **সহ**। মালিক "১০ আগস্ট পর্যন্ত" লিখলে ১০ তারিখ দিনটাও
- * ছাড়ে থাকে — দুপুরে হঠাৎ দাম বেড়ে যাওয়াটা তিনি বাগ বলতেন, আর ঠিকই
- * বলতেন। তাই শেষ তারিখকে ওই দিনের ২৩:৫৯:৫৯ ধরা হয়।
+ * ⚠️ The end date is **inclusive**. If the owner writes "until 10 August", the
+ * 10th is a discounted day too — he would have called a price jumping up at
+ * midday a bug, and he would have been right. So the end date is taken as
+ * 23:59:59 of that day.
  *
- * ⚠️ বাংলাদেশ সময় (UTC+6)। server UTC-তে চললেও দিনটা দোকানের দিন।
+ * ⚠️ Bangladesh time (UTC+6). Even when the server runs in UTC, the day is the
+ * shop's day.
  */
 export function discountLive(w: DiscountWindow, at: Date = new Date()): boolean {
   const now = at.getTime();
@@ -47,19 +52,22 @@ export function discountLive(w: DiscountWindow, at: Date = new Date()): boolean 
 }
 
 /**
- * DEC-PRD-042 (১০ আগস্ট ২০২৬) — মালিক এখন সময়ও বসাতে চান।
+ * DEC-PRD-042 (10 Aug 2026) — the owner now wants to set a time as well.
  *
- * আগের নিয়মটা পুরো দিন ধরত: শুরু = ওই দিনের ০০:০০, শেষ = ২৩:৫৯:৫৯。 ফলে
- * "রাত ৯টায় শেষ" বলার কোনো উপায় ছিল না — সময় পাঠালেও ফেলে দেওয়া হতো。
+ * The earlier rule always took the whole day: start = 00:00 of that day, end =
+ * 23:59:59. So there was no way to say "ends at 9 PM" — a time was thrown away
+ * even when sent.
  *
- * এখন: **মালিক সময় দিলে সেই সময়টাই**, না দিলে আগের আচরণই — শুরুর দিনের
- * শুরু, শেষ দিনের শেষ。 তাঁর ৩ আগস্টের রায় ("১০ তারিখ পর্যন্ত মানে ১০
- * তারিখ দিনটাও") তাই অক্ষত থাকল, আর মধ্যরাতের অফার এখন সম্ভব。
+ * Now: **if the owner gives a time, that time**; if not, the old behaviour —
+ * the start of the start day, the end of the end day. His 3 August ruling
+ * ("until the 10th includes the 10th") therefore stands untouched, and a
+ * midnight offer is now possible.
  *
- * ⚠️ "সময় দেওয়া হয়েছে" চেনার উপায় — বাংলাদেশ সময়ে মধ্যরাত কি না。 admin
- * তারিখ-মাত্র হলে ঠিক 00:00:00 BD পাঠায়; সময় বসালে অন্য কিছু。 সীমারেখার
- * ঠিক উপরের এক সেকেন্ড (রাত ১২টায় শেষ) তাই দিনের শেষ ধরা হবে — সেটাই
- * মালিকের বোঝানো জিনিস。
+ * ⚠️ How "a time was given" is detected — whether it is midnight in Bangladesh
+ * time. On a date-only value the admin sends exactly 00:00:00 BD; with a time
+ * set it sends something else. The one second just above the boundary (ending
+ * at 12 AM) is therefore treated as the end of the day — which is what the
+ * owner means by it.
  */
 function windowStartMs(d?: Date | null): number | null {
   if (!d) return null;
@@ -85,21 +93,21 @@ export function discountStartsMs(w: DiscountWindow): number | null {
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DAY_MS = 86_400_000;
 
-/** ওই তারিখের বাংলাদেশ-দিনের শুরু, epoch ms-এ */
+/** the start of that date's Bangladesh day, in epoch ms */
 function startOfBdDay(d: Date): number {
   return Math.floor((d.getTime() + BD_OFFSET_MS) / DAY_MS) * DAY_MS - BD_OFFSET_MS;
 }
-/** ওই তারিখের বাংলাদেশ-দিনের শেষ মুহূর্ত */
+/** the last moment of that date's Bangladesh day */
 function endOfBdDay(d: Date): number {
   return startOfBdDay(d) + DAY_MS - 1;
 }
 
 /**
- * গ্রাহক যা দেয়।
+ * What the customer pays.
  *
- * ⚠️ PERCENT basis point-এ: 1000 = 10%। FLAT paisa-তে।
- * ⚠️ মেয়াদের বাইরে হলে ছাড়ের সংখ্যাটা **মোছা হয় না** — শুধু বসে না।
- *    তারিখ বাড়ালেই আবার চলবে, কিছু আবার লিখতে হয় না।
+ * ⚠️ PERCENT is in basis points: 1000 = 10%. FLAT is in paisa.
+ * ⚠️ Outside the window the discount value is **not erased** — it simply does
+ *    not apply. Extend the date and it runs again; nothing has to be retyped.
  */
 export function paidPaisa(
   p: {

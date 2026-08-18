@@ -9,22 +9,25 @@ import { track } from "../_data/tracking";
   ═══════════════════════════════════════════════════════════════════
   CART STORE — Zustand + persist (localStorage: "radian-cart")
 
-  ── কী রাখা হয় ────────────────────────────────────────────────
-  শুধু CONFIG। দাম নয়।
+  ── WHAT IS KEPT ──────────────────────────────────────────────
+  CONFIG only. Not prices.
 
-  ⚠️ দাম কেন store করা হয় না:
-  Admin কাল দাম বদালে cart-এ পুরনো দাম বসে থাকবে, আর checkout-এ
-  হঠাৎ অন্য সংখ্যা দেখাবে। তাই cart শুধু "কোন product, কোন config"
-  মনে রাখে — দাম প্রতিবার _data/cart.ts → resolveCart() হিসাব করে।
+  ⚠️ Why prices are not stored:
+  If the admin changes a price tomorrow, the old price would sit in the cart
+  and checkout would suddenly show a different number. So the cart only
+  remembers "which product, which config" — the price is worked out every time
+  by _data/cart.ts → resolveCart().
 
-  ── variantSlug কেন নেই ───────────────────────────────────────
-  D16: variant (colour/flavour) = আলাদা product, নিজের slug।
-  তাই `slug`-ই variant। handbook-এর `variantSlug` field অপ্রয়োজনীয়।
+  ── WHY THERE IS NO variantSlug ───────────────────────────────
+  D16: a variant (colour/flavour) = a separate product with its own slug.
+  So the `slug` IS the variant. The handbook's `variantSlug` field is
+  unnecessary.
 
-  ── lineId ─────────────────────────────────────────────────────
+  ── lineId ────────────────────────────────────────────────────
   slug | sizeId | bundleId | sorted(addons) | persoText | persoImage
-  একই key = qty++। আলাদা perso text = আলাদা line — দুই mug-এ দুই নাম
-  merge হয়ে গেলে একজনের উপহারে আরেকজনের নাম যাবে।
+  Same key = qty++. Different perso text = a different line — merge two mugs
+  carrying two names and one person's gift goes out with the other's name on
+  it.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -34,43 +37,45 @@ export const MAX_QTY = 20;
 export interface CartItem {
   lineId: string;
   /**
-   * ⚠️ আগে এই লাইনে লেখা ছিল "variant-ও এই slug-ই (D16)" — পুরনো নকশায়
-   * প্রতিটা রঙ ছিল আলাদা product, তাই slug-ই রঙ বলে দিত। DEC-PRD-012-তে
-   * রঙগুলো এক product-এর ভেতরে এসেছে, তাই slug আর যথেষ্ট নয়:
-   * লাল আর গোলাপি এখন একই slug, আলাদা `variantId`।
+   * ⚠️ This line used to read "the variant is this slug too (D16)" — in the
+   * old design every colour was a separate product, so the slug told you the
+   * colour. Under DEC-PRD-012 the colours moved inside one product, so the
+   * slug is no longer enough: red and pink now share a slug and differ by
+   * `variantId`.
    */
   slug: string;
   /**
-   * DEC-PRD-012 — কোন রঙ / ফ্লেভার / মাপ। `undefined` = এই product-এর
-   * কোনো variant নেই।
+   * DEC-PRD-012 — which colour / flavour / size. `undefined` = this product
+   * has no variants.
    *
-   * ⚠️ `lineId`-তেও ঢোকে (নিচে) — নাহলে লাল আর গোলাপি এক line-এ মিশে
-   * যেত আর গ্রাহক দুটো লাল পেতেন।
+   * ⚠️ It goes into `lineId` too (below) — otherwise red and pink would merge
+   * into one line and the customer would receive two reds.
    */
   variantId?: string;
   sizeId: string;
   /**
-   * DEC-PRD-013 — যে যে bundle গ্রাহক নিয়েছেন। মালিক, ২ আগস্ট ২০২৬:
-   * *"customer একসাথে কয়েকটা bundle নিতে পারবে"*.
+   * DEC-PRD-013 — which bundles the customer took. Owner, 2 Aug 2026
+   * (translated): *"the customer will be able to take several bundles at
+   * once"*.
    *
-   * ⚠️ আগে এটা ছিল একটামাত্র `bundleId`, আর "কিছুই না" মানে ছিল `"none"`
-   * নামের একটা বানানো id। এখন খালি array-ই "কিছুই না" — বানানো id-র আর
-   * দরকার নেই, আর সেটাই ভালো: `"none"` কখনো কোনো সত্যিকারের সারি ছিল না,
-   * শুধু "কিছু বাছা হয়নি" বোঝাতে একটা শব্দ বসানো ছিল।
+   * ⚠️ This used to be a single `bundleId`, and "none" meant an invented id
+   * called `"none"`. An empty array is now "none" — the invented id is no
+   * longer needed, and that is better: `"none"` was never a real row, just a
+   * word put there to mean "nothing was picked".
    *
-   * ⚠️ সবসময় sorted — নইলে একই দুটো জিনিস দুই line হয়ে যাবে।
+   * ⚠️ Always sorted — otherwise two identical things become two lines.
    */
   bundleIds: string[];
-  /** সবসময় sorted — নইলে একই জিনিস দুই line হয়ে যাবে */
+  /** always sorted — otherwise the same thing becomes two lines */
   addonKeys: string[];
   persoText?: string;
-  /** এখন শুধু file name। Upload API এলে এখানে asset id বসবে। */
+  /** just a file name for now. When the upload API lands, an asset id goes here. */
   persoImage?: string;
   qty: number;
   addedAt: number;
 }
 
-/** PDP যা পাঠায় */
+/** what the PDP sends */
 export type NewCartItem = Omit<CartItem, "lineId" | "addedAt">;
 
 type Identity = Omit<CartItem, "lineId" | "addedAt" | "qty">;
@@ -91,7 +96,7 @@ function clampQty(q: number): number {
   return Math.max(MIN_QTY, Math.min(MAX_QTY, Math.round(q)));
 }
 
-/** একই lineId দুবার থাকলে qty জোড়া লাগাও */
+/** if the same lineId appears twice, add the quantities together */
 function mergeDupes(items: CartItem[]): CartItem[] {
   const out: CartItem[] = [];
   for (const it of items) {
@@ -103,9 +108,10 @@ function mergeDupes(items: CartItem[]): CartItem[] {
 }
 
 /*
-  Identity বদলে দেয় এমন edit (add-on সরানো, size upgrade) — lineId নতুন
-  করে বানাতে হবে। আর নতুন key যদি ইতিমধ্যে cart-এ থাকা কোনো line-এর সাথে
-  মিলে যায়, দুটো merge হবে (নইলে হুবহু একই দুই line পাশাপাশি বসবে)।
+  An edit that changes the identity (removing an add-on, upgrading a size)
+  needs a freshly built lineId. And if the new key matches a line already in
+  the cart, the two merge (otherwise two identical lines would sit side by
+  side).
 */
 function rekey(
   items: CartItem[],
@@ -132,12 +138,13 @@ interface RemovedLine {
 interface CartStore {
   items: CartItem[];
   /**
-   * ★ Coupon — শুধু CODE, discount নয় (D20-এর একই যুক্তি)।
-   * Cart-এ apply করলে checkout-এ কোডটা বসেই থাকবে; টাকার অঙ্ক প্রতিবার
-   * applyCoupon() হিসাব করবে, তাই subtotal বদলালে discount কখনো stale হবে না।
+   * ★ Coupon — the CODE only, never the discount (D20's reasoning again).
+   * Applying it in the cart leaves the code in place through checkout; the
+   * money is worked out by applyCoupon() every time, so the discount can never
+   * go stale when the subtotal changes.
    */
   couponCode: string | null;
-  /** Undo bar — remove করলে ৬ সেকেন্ড এখানে বসে থাকে */
+  /** Undo bar — a removed line sits here for 6 seconds */
   lastRemoved: RemovedLine | null;
 
   add: (item: NewCartItem) => void;
@@ -149,9 +156,9 @@ interface CartStore {
   restore: () => void;
   clearRemoved: () => void;
   clear: () => void;
-  /*  DEC-WA-004 — `/cart/{leadId}` পাতা রেখে যাওয়া basket ফিরিয়ে দেয়।
-      ⚠️ এটা `add` নয়, প্রতিস্থাপন — নাহলে পুরনো লিংকে দুবার ঢুকলে সব
-      জিনিস দুবার হয়ে যেত। পাতাটা আগে জিজ্ঞেস করে, তারপর ডাকে।  */
+  /*  DEC-WA-004 — the `/cart/{leadId}` page restores an abandoned basket.
+      ⚠️ This replaces, it does not `add` — otherwise opening an old link twice
+      would double everything. The page asks first, then calls.  */
   replaceAll: (items: CartItem[]) => void;
 }
 
@@ -235,13 +242,13 @@ export const useCartStore = create<CartStore>()(
       name: "radian-cart",
       version: 3,
       /*
-        DEC-PRD-013 — version 2-এ প্রতিটা line-এ একটামাত্র `bundleId` ছিল।
-        গ্রাহকের browser-এ সেই পুরনো cart এখনো বসে আছে, আর সেটা না বদলালে
-        `[...i.bundleIds]` লাইনে গোটা cart page সাদা হয়ে যেত।
+        DEC-PRD-013 — in version 2 each line had a single `bundleId`. That old
+        cart is still sitting in customers' browsers, and without migrating it
+        the `[...i.bundleIds]` line turned the whole cart page white.
 
-        ⚠️ `"none"` বাদ দেওয়া হয় — ওটা "কিছু বাছা হয়নি"-র জন্য বানানো
-        একটা শব্দ ছিল, সত্যিকারের কোনো bundle নয়। সেটা রেখে দিলে cart
-        একটা অস্তিত্বহীন bundle খুঁজত আর প্রতিবার না পেয়ে চুপ থাকত।
+        ⚠️ `"none"` is dropped — it was a word invented to mean "nothing was
+        picked", not a real bundle. Keeping it would have the cart looking for
+        a bundle that does not exist and silently failing every time.
       */
       migrate: (state, from) => {
         const s = state as { items?: (CartItem & { bundleId?: string })[] };
@@ -255,29 +262,30 @@ export const useCartStore = create<CartStore>()(
         }
         return state as never;
       },
-      // lastRemoved persist হবে না — refresh করলে undo bar ফিরে আসা উচিত নয়
+      // lastRemoved is not persisted — the undo bar should not come back on refresh
       partialize: (s) => ({ items: s.items, couponCode: s.couponCode }),
     },
   ),
 );
 
 /*
-  Hydration guard — useZoneStore-এর মতোই সমস্যা: zustand localStorage
-  পড়ে FIRST RENDER-এর পরে। guard ছাড়া server "0 item" render করবে,
-  client সাথে সাথে "3 items" — React hydration mismatch।
+  Hydration guard — the same problem as useZoneStore: zustand reads
+  localStorage AFTER the first render. Without the guard the server renders
+  "0 items" and the client immediately says "3 items" — a React hydration
+  mismatch.
 */
 export function useCartHydrated(): boolean {
   return useSyncExternalStore(
-    // subscribe — hydration শেষ হলে একবার ডাকে
+    // subscribe — called once when hydration finishes
     (onChange) => useCartStore.persist.onFinishHydration(onChange),
     // client snapshot
     () => useCartStore.persist.hasHydrated(),
-    // server snapshot — SSR-এ localStorage নেই, তাই সবসময় false
+    // server snapshot — there is no localStorage in SSR, so always false
     () => false,
   );
 }
 
-/** Header badge — hydrate না হওয়া পর্যন্ত 0 (badge লুকানো থাকে) */
+/** Header badge — 0 until hydrated (the badge stays hidden) */
 export function useCartCount(): number {
   const items = useCartStore((s) => s.items);
   const hydrated = useCartHydrated();

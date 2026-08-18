@@ -7,22 +7,25 @@ import { freeDeliveryOfferText } from "./promo";
   PDP config — Category template + per-product override.
 
   ── VARIANT MODEL (locked) ──────────────────────────────────────
-  PDP-তে তিনটা আলাদা স্তর, প্রতিটা আলাদা প্রশ্নের উত্তর দেয়:
+  Three separate layers on the PDP, each answering a different question:
 
-    1. COLOUR  → আলাদা product (নিজস্ব slug, ছবি, stock)।
-                 PDP-তে গোল swatch, click করলে sibling PDP-তে যায়।
-                 কারণ: প্রতিটা রঙের নিজের ছবি লাগে (মানুষ চোখে দেখে কেনে),
-                 আর সাদা গোলাপ শেষ হলে লাল গোলাপের বিক্রি থামা উচিত নয়।
-    2. SIZE    → একই product-এর দাম বদলায় (12/24/50 stems · 1/2/3 lb)।
-                 ছোট pill row — ছবি বদলায় না, শুধু দাম।
-    3. BUNDLE  → অন্য product যোগ হয় (+ Chocolates / + Cake)।
-                 Photo card — কারণ এখানে নতুন জিনিস দেখাতে হয়।
+    1. COLOUR  → a separate product (its own slug, photos, stock).
+                 A round swatch on the PDP; clicking it goes to the sibling
+                 PDP. Why: every colour needs its own photos (people buy with
+                 their eyes), and white roses running out should not stop red
+                 roses selling.
+    2. SIZE    → the same product at a different price (12/24/50 stems ·
+                 1/2/3 lb). A small pill row — the photos do not change, only
+                 the price.
+    3. BUNDLE  → another product is added (+ Chocolates / + Cake).
+                 A photo card — because here a new thing has to be shown.
 
-  দাম = (রঙ/মাপের দাম + বাছা bundle জিনিস) − তালিকার ছাড় + add-ons
-        হিসাবটা এক জায়গায়: `bundlePricing.ts` (DEC-PRD-018)
+  price = (colour/size price + chosen bundle items) − the list's discount
+          + add-ons
+        The maths lives in one place: `bundlePricing.ts` (DEC-PRD-018)
 
-  ⚠️ TEMPORARY HOME — Ecommerce module lock হলে getProductDetail() এর
-     ভেতরটা fetch() হবে। কোনো component-এ হাত পড়বে না। ⇄ SWAP HERE
+  ⚠️ TEMPORARY HOME — once the Ecommerce module is locked, the inside of
+     getProductDetail() becomes a fetch(). No component is touched. ⇄ SWAP HERE
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -30,7 +33,7 @@ export type IconName =
   | "bolt" | "sun" | "moon" | "truck" | "shield" | "star" | "leaf"
   | "sparkle" | "gift" | "store" | "clock" | "pen" | "check" | "chev"
   | "cart" | "heart" | "tag" | "play" | "upload" | "wa" | "search"
-  /* Checkout-এ যোগ হলো */
+  /* added for checkout */
   | "user" | "pin" | "camera" | "lock" | "phone" | "eye-off";
 
 /**
@@ -58,11 +61,12 @@ export const asIconName = (v: string | null | undefined): IconName =>
 export interface TrustItem {
   icon: IconName;
   /**
-   * DEC-PRD-023 — দোকানের নিজের আপলোড করা icon। ভরা থাকলে এটাই আঁকা হয়,
-   * `icon` তখন ছোঁয়াই হয় না।
+   * DEC-PRD-023 — an icon the shop uploaded itself. When this is filled it is
+   * what gets drawn, and `icon` is not touched at all.
    *
-   * ⚠️ মালিক, ২ আগস্ট: *"trust badge-এ তো আমি কোন icon কিছুই custom করে
-   * বানাতে পারছি না"* — আগে কেবল বিশটা built-in নামের একটা বাছা যেত।
+   * ⚠️ Owner, 2 Aug (translated): *"on the trust badge I can't make any custom
+   * icon at all"* — before this, only one of twenty built-in names could be
+   * picked.
    */
   iconUrl?: string | null;
   label: string;
@@ -70,17 +74,19 @@ export interface TrustItem {
 }
 
 /*
-  ১. VARIANT — একই জিনিস, একটা attribute আলাদা → আলাদা product।
-     Colour আর Flavour একই জিনিস: নিজস্ব ছবি, নিজস্ব stock, নিজস্ব SEO page।
-     পার্থক্য শুধু দেখানোয় — colour = রঙের swatch, flavour = ছবির pill.
-     ⚠️ Ecommerce module lock হলে এটা Product.variantGroupId FK হবে।
+  1. VARIANT — the same thing with one attribute different → a separate
+     product. Colour and Flavour are the same thing: own photos, own stock, own
+     SEO page. The only difference is in the showing — colour = a colour
+     swatch, flavour = a photo pill.
+     ⚠️ Once the Ecommerce module is locked this becomes a
+     Product.variantGroupId FK.
 */
 export type VariantKind = "colour" | "flavour";
 
 export interface VariantOption {
   slug: string;
   label: string;
-  /** colour হলে hex, flavour হলে gradient (ছবি না আসা পর্যন্ত) */
+  /** hex for colour, a gradient for flavour (until the photos arrive) */
   swatch: string;
   active: boolean;
 }
@@ -92,34 +98,36 @@ export interface VariantGroup {
 }
 
 /**
- * DEC-PRD-012 — এক page-এর ভেতরের একটা variant।
+ * DEC-PRD-012 — a variant that lives inside one page.
  *
- * ⚠️ উপরের `VariantGroup`-এর সাথে গুলিয়ে ফেলা চলবে না। ওটা পুরনো নকশা:
- * প্রতিটা রঙ আলাদা product, swatch-এ click করলে অন্য page। এখানে click
- * করলে **কোথাও যাওয়া হয় না** — একই page-এ ছবি, দাম আর মজুদ বদলায়।
+ * ⚠️ Not to be confused with `VariantGroup` above. That is the old design:
+ * every colour a separate product, clicking a swatch goes to another page.
+ * Clicking here goes **nowhere** — the photos, price and stock change on the
+ * same page.
  *
- * মালিক, ১ আগস্ট ২০২৬: *"যখন তার multi variant থাকবে তখন তা show করাব, আর
- * তা একটা product page-এ হবে। প্রতিটার আলাদা image আর stock।"*
+ * Owner, 1 Aug 2026 (translated): *"when it has multiple variants we'll show
+ * them, and it will be on one product page. Each with its own image and
+ * stock."*
  */
 export interface PickedVariant {
-  /** ProductVariant row-এর id — cart-এ এটাই যায় */
+  /** the ProductVariant row's id — this is what goes into the cart */
   id: string;
   label: string;
-  /** "Colour" / "Flavour" / "Weight" — শিরোনামে বসে */
+  /** "Colour" / "Flavour" / "Weight" — sits in the heading */
   attribute: string;
-  /** master কী দেখাতে বলেছে — SWATCH | PHOTO | TEXT */
+  /** what the master asked to show — SWATCH | PHOTO | TEXT */
   displayMode: string;
   swatch: string | null;
   imageUrl: string | null;
-  /** গ্রাহক যা দেবে — offer থাকলে সেটাই */
+  /** what the customer pays — the offer price when there is one */
   pricePaisa: number;
-  /** DEC-PRD-032 — offer চললে কাটা দামটা, নাহলে null */
+  /** DEC-PRD-032 — the struck-through price while an offer runs, else null */
   wasPaisa?: number | null;
-  /** ০ = এই রঙটা শেষ, বাকিগুলো চলছে */
+  /** 0 = this colour is out; the others carry on */
   stockQty: number;
 }
 
-/** ২. SIZE — একই product, দাম বদলায় */
+/** 2. SIZE — the same product at a different price */
 export interface SizeOption {
   id: string;
   label: string;
@@ -128,21 +136,23 @@ export interface SizeOption {
 }
 
 /**
- * ৩. BUNDLE — অন্য product যোগ হয়। DEC-PRD-018।
+ * 3. BUNDLE — another product is added. DEC-PRD-018.
  *
- * ⚠️ এটা তালিকার **একটা জিনিস**, একটা প্যাকেজ নয়। মালিক তালিকায় ৩-৪টা
- * রাখেন, গ্রাহক যা খুশি নেয়। ছাড়টা এখানে নেই — সেটা গোটা তালিকার একটাই,
- * আর সেটা `ProductDetail.bundle`-এ।
+ * ⚠️ This is **one item** on the list, not a package. The owner puts 3–4 on
+ * the list and the customer takes whichever they like. The discount is not
+ * here — there is a single one for the whole list, and it lives on
+ * `ProductDetail.bundle`.
  *
- * ⚠️ `addPaisa` আর নেই। ছিল "এটা নিলে কত বাড়বে", কিন্তু ছাড় বসে main
- * সহ মোট দামের উপর — তাই "কত বাড়বে" নির্ভর করে গ্রাহক আর কী কী নিয়েছেন
- * তার উপর। একটা ধ্রুব সংখ্যা রাখলে সেটা প্রায়ই মিথ্যা হতো।
+ * ⚠️ `addPaisa` is gone. It meant "how much taking this adds", but the
+ * discount applies to the total including the main item — so "how much it
+ * adds" depends on what else the customer took. A constant number would have
+ * been a lie most of the time.
  */
 export interface BundleOption {
-  /** যোগ হওয়া product-এর id — cart-এ এটাই যায় */
+  /** id of the product being added — this is what goes into the cart */
   id: string;
   label: string;
-  /** এটা একা কিনলে আজ যত পড়ত */
+  /** what this would cost today bought on its own */
   pricePaisa: number;
   bg: string;
   tag?: string;
@@ -182,7 +192,7 @@ export interface ProductDetail {
   product: Product;
   crumb: { catLabel: string; catSlug: string; subLabel: string; short: string };
   nature: { type: "fresh" | "artificial"; label: string };
-  /** DEC-PRD-031 — title-এর নিচের এক লাইন। মালিক কিছু না লিখলে line-টাই বসে না। */
+  /** DEC-PRD-031 — the one line under the title. Write nothing and no line appears. */
   shortDesc: string | null;
   /**
    * The green line above the price — "30–120 Min Delivery".
@@ -197,43 +207,49 @@ export interface ProductDetail {
   trust: TrustItem[];
   variant: VariantGroup | null;
   /**
-   * DEC-PRD-012 — এই product যে রঙ / ফ্লেভার / মাপে আসে।
+   * DEC-PRD-012 — the colours / flavours / sizes this product comes in.
    *
-   * খালি বা absent = এই product-এর কোনো variant নেই, আর তখন page-এ ওই
-   * অংশটাই আঁকা হয় না — মালিকের নিয়ম, "না থাকলে দেখাবই না"।
+   * Empty or absent = this product has no variants, and then that section is
+   * not drawn on the page at all — the owner's rule, "if there is none, don't
+   * show it at all".
    *
-   * ⚠️ optional, কারণ mock-এ এটা নেই। Absent আর খালি একই মানে বহন করে
-   * এখানে — দুটোই "দেখানোর কিছু নেই"।
+   * ⚠️ Optional because the mock does not have it. Absent and empty carry the
+   * same meaning here — both are "nothing to show".
    */
   variants?: PickedVariant[];
   sizes: SizeOption[];
   sizeLabel: string;
   bundles: BundleOption[];
   /**
-   * DEC-PRD-018 — গোটা তালিকার একটাই ছাড়। `null` = ছাড় নেই।
+   * DEC-PRD-018 — a single discount for the whole list. `null` = no discount.
    *
-   * ⚠️ ছাড়টা প্রতিটা card-এ নেই, তালিকার নিচে একটাই — মালিকের নিয়ম।
-   * এটা ছাড়া `bundles` শুধু নামের তালিকা, দাম হিসাব করা যায় না।
+   * ⚠️ The discount is not on each card, there is one under the list — the
+   * owner's rule. Without this, `bundles` is only a list of names and no price
+   * can be worked out.
    */
   bundle?: BundleList | null;
   /**
-   * DEC-PRD-020 — এটার বড় সংস্করণ। মালিক, ২ আগস্ট ২০২৬: *"upgrade
-   * product-এ click করলে price change হবে, কিন্তু অন্য page-এ যেন না নেয়।"*
+   * DEC-PRD-020 — bigger versions of this one. Owner, 2 Aug 2026 (translated):
+   * *"clicking an upgrade product should change the price, but it must not
+   * take you to another page."*
    *
-   * ⚠️ প্রতিটা একটা **সত্যিকারের product** — নিজের দাম, নিজের মজুদ, নিজের
-   * page। তাই বাছলে cart-এ ওরই slug যায়; page শুধু দাম আর ছবি বদলায়।
+   * ⚠️ Each one is a **real product** — its own price, its own stock, its own
+   * page. So picking one sends that product's slug to the cart; the page only
+   * changes the price and the photos.
    */
   upgrades?: { slug: string; name: string; pricePaisa: number; bg: string }[];
   /**
-   * DEC-PRD-024 — Search & sharing tab-এ মালিক যা লেখেন।
+   * DEC-PRD-024 — what the owner writes in the Search & sharing tab.
    *
-   * ⚠️ ২ আগস্ট ২০২৬ পর্যন্ত এই ছয়টা ঘর **কোথাও পৌঁছাত না**। Admin-এ লেখা
-   * যেত, API পাঠাতও, কিন্তু product page-এর `generateMetadata` সেগুলো
-   * পড়তই না — নিজে নাম আর একটা বাঁধা বাক্য দিয়ে title বানাত। মালিকের
-   * প্রশ্ন: *"এই page-এ কি Google-এর সাথে connect করা? যেভাবে লিখব সেভাবে
-   * Google-এ published হবে?"* — উত্তর ছিল না। এখন হ্যাঁ।
+   * ⚠️ Until 2 Aug 2026 these six fields **reached nowhere**. They could be
+   * typed in the admin, the API did send them, but the product page's
+   * `generateMetadata` never read them — it built the title itself from the
+   * name and one fixed sentence. The owner asked (translated): *"is this page
+   * connected to Google? Will it be published on Google the way I write it?"*
+   * — there was no answer. Now there is: yes.
    *
-   * খালি রাখলে নিচে fallback আছে, তাই কোনো ঘর বাধ্যতামূলক নয়।
+   * There are fallbacks below when these are left empty, so no field is
+   * required.
    */
   seo?: {
     title: string | null;
@@ -247,11 +263,13 @@ export interface ProductDetail {
   addonTabs: string[];
   perso: Perso | null;
   /**
-   * DEC-PRD-027 — "Want this customised?" সবুজ বাক্স। `null`/absent = দেখাবে না।
+   * DEC-PRD-027 — the green "Want this customised?" box. `null`/absent = not
+   * shown.
    *
-   * ⚠️ আগে এটা ছিল `custom` — category template-এর হাতে লেখা কপি, আর
-   * **সব** product-এ দেখাত। নম্বরটাও ছিল বানানো। এখন product-প্রতি switch,
-   * আর নম্বর Company settings থেকে।
+   * ⚠️ This used to be `custom` — hand-written copy on the category template,
+   * and it showed on **every** product. The phone number was invented too.
+   * Now it is a per-product switch, and the number comes from Company
+   * settings.
    */
   customise?: { title: string; sub: string; whatsapp: string | null } | null;
   spec: SpecRow[];
@@ -500,7 +518,7 @@ export const ADDON_TABS: { id: string; label: string; items: string[] }[] = [
   },
 ];
 
-/* ─────────────────── OFFERS (Marketing module locked নয় — static) ─────────────────── */
+/* ─────────────────── OFFERS (Marketing module not locked — static) ─────────────────── */
 export interface Offer {
   logo: string;
   color: string;
@@ -513,14 +531,15 @@ export const OFFERS: Offer[] = [
   { logo: "bKash", color: "#E2136E", text: "Assured cashback up to ৳300 paying with bKash", note: "T&C*" },
   { logo: "Nagad", color: "#F5811F", text: "Get up to ৳150 cashback on Nagad payment", note: "T&C*" },
   { logo: "RAD", color: "#470066", text: "Flat 15% off on orders above ৳1,499 — first-time customers", code: "NEW15" },
-  // ⚠️ সংখ্যা এখানে লিখো না — _data/promo.ts থেকে আসে, নইলে Cart-এর
-  // progress bar আর এই লাইন আলাদা সংখ্যা দেখাবে।
+  // ⚠️ Do not write the number here — it comes from _data/promo.ts, otherwise
+  // the cart's progress bar and this line will show different numbers.
   { logo: "🌙", color: "#CF43EA", text: freeDeliveryOfferText(), note: "Auto-applied" },
 ];
 
 /* ─────────────────── VARIANT GROUPS ───────────────────
-   Colour আর Flavour — একই মেকানিজম, একই admin screen পরে।
-   Admin-এ এটাই হবে: group বানাও → product গুলো ঢোকাও → label + swatch দাও।
+   Colour and Flavour — the same mechanism, and later the same admin screen.
+   In the admin it will be: create a group → put the products in → give each a
+   label + swatch.
 */
 const VARIANT_GROUPS: Record<
   string,
@@ -553,7 +572,7 @@ const VARIANT_GROUPS: Record<
       { slug: "golden-sunflower-cheer", label: "Golden", swatch: "#E9B923" },
     ],
   },
-  /* Flavour — colour-এর মতোই আলাদা product, শুধু pill-এ ছবি দেখায় */
+  /* Flavour — a separate product just like colour, it only shows a photo in the pill */
   cakeFlavour: {
     kind: "flavour",
     label: "Flavour",
@@ -595,7 +614,7 @@ export const CAT_META: Record<ProductCategory, { label: string; slug: string }> 
 
 const GREY = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
 
-/** ৫০ টাকার ঘরে round — display-only, Ecommerce lock হলে API দেবে */
+/** rounded to the nearest ৳50 — display-only; the API will give this once Ecommerce is locked */
 function round50(paisa: number): number {
   return Math.round(paisa / 5000) * 5000;
 }
@@ -635,17 +654,18 @@ const FRESH_TRUST = (p: Product): TrustItem[] => [
   { icon: "star", label: "4.9 on Google", sub: "412 real reviews" },
 ];
 
-/** সব category-তে bundle-এর গঠন এক — শুধু কী যোগ হচ্ছে সেটা বদলায় */
+/** the bundle shape is the same in every category — only what is added changes */
 function bundleSet(
   base: string,
   items: { id: string; label: string; add: number; bg: string; best?: boolean }[],
 ): BundleOption[] {
-  /*  ⚠️ `base` ("Just Flowers") আর তালিকায় বসে না — DEC-PRD-013-এ কিছুই
-      না বাছাই ফেরার পথ। নামটা signature-এ রয়ে গেছে যাতে প্রতিটা
-      category-র ডাকা জায়গা বদলাতে না হয়; ওটা কেবল পড়ার জন্য।  */
+  /*  ⚠️ `base` ("Just Flowers") no longer goes on the list — under DEC-PRD-013
+      picking nothing is the way back. The name stays in the signature so the
+      call site in every category does not have to change; it is read-only.  */
   void base;
-  /*  ⚠️ mock-এ ছাড় নেই — `add` সংখ্যাটাই এখন জিনিসটার নিজের দাম। Mock
-      শুধু নকশা দেখার জন্য; আসল দাম আর ছাড় API থেকে।  */
+  /*  ⚠️ The mock has no discount — the `add` number IS the item's own price
+      now. The mock is only for looking at the design; real prices and
+      discounts come from the API.  */
   return items.map((i) => ({
     id: i.id,
     label: i.label,
@@ -1147,52 +1167,53 @@ export function getProductDetail(slug: string): ProductDetail | null {
 }
 
 /*
-  ── দুটো invariant, এখানেই — component-এ নয় ──────────────────────────────
+  ── TWO INVARIANTS, RIGHT HERE — NOT IN A COMPONENT ──────────────────────
 
-  `PdpView` খোলে `useState(detail.sizes[0].id)` দিয়ে, আর `cart.ts` লেখে
-  `size.pricePaisa` — দুটোই ধরে নিয়েছে অন্তত একটা row আছে। TEMPLATES-এ
-  সবসময় ছিল, তাই কখনো ধরা পড়েনি। Database-এ size ছাড়া product **প্রথম
-  দিনেই** থাকবে (admin-এ Sizes card খালি রেখে save করলেই), আর তখন
-  `[0].id` = crash — খালি section নয়, **সাদা পর্দা**।
+  `PdpView` opens with `useState(detail.sizes[0].id)` and `cart.ts` reads
+  `size.pricePaisa` — both assume at least one row exists. In TEMPLATES there
+  always was one, so it was never caught. A product with no sizes will exist in
+  the database **on day one** (save the admin's Sizes card while it is empty),
+  and then `[0].id` = crash — not an empty section, a **white screen**.
 
-  ⚠️ EXPORTED, 1 Aug 2026 — এবং এই শব্দটাই আসল সংশোধন। প্রথমবার guard-টা
-  শুধু নিচের mock function-এ বসানো হয়েছিল, তাই database থেকে আসা পথে
-  কিছুই বদলায়নি। মালিক admin-এ size ছাড়া একটা product publish করলেন আর
-  তার page **"Something went wrong"** দেখাল — ঠিক যে জিনিসটা ঠেকানোর জন্য
-  এটা লেখা, সেটাই ঘটল, কারণ দুটো পথের একটাতে বসানো হয়েছিল।
+  ⚠️ EXPORTED, 1 Aug 2026 — and that word is the real fix. The first time, the
+  guard was placed only in the mock function below, so nothing changed on the
+  path coming from the database. The owner published a product with no sizes in
+  the admin and its page showed **"Something went wrong"** — the exact thing
+  this was written to prevent happened anyway, because it was placed on one of
+  the two paths.
 
-  Mock আর API — দুটোই এখন এর ভেতর দিয়ে যায়। Invariant একটাই, তাই বসানোর
-  জায়গাও একটাই হওয়া উচিত ছিল।
+  Mock and API both go through this now. There is one invariant, so there
+  should only ever have been one place to put it.
 
-  ঠিক করা হয়েছে seam-এ, component-এ নয়। দুটো কারণে:
+  Fixed at the seam, not in the component, for two reasons:
 
-  1. Component-এ `size?.pricePaisa ?? …` বসালে `ResolvedLine.size`-কে
-     nullable করতে হত, আর সেটা cart-এর প্রতিটা component-এ ছড়াত — money
-     page, যেটা এই pass-এর বাইরে।
-  2. API যখন বসবে তখনো ঠিক এই নিয়মটাই লাগবে। Component নয়, seam-ই এর
-     জায়গা — তাই আজ mock, কাল fetch, নিয়ম এক।
+  1. Writing `size?.pricePaisa ?? …` in the component would mean making
+     `ResolvedLine.size` nullable, and that would spread into every component
+     in the cart — the money page, which is outside this pass.
+  2. When the API lands it will need exactly this same rule. The seam is its
+     home, not the component — so mock today, fetch tomorrow, one rule.
 
-  Fallback দুটোই সত্য, বানানো নয়: size না থাকলে product-এর নিজের দামই
-  একমাত্র দাম, আর bundle না থাকলে "শুধু এই জিনিসটা" ছাড়া কিছু যোগ হয় না।
-  একটামাত্র option থাকলে UI সেটা লুকিয়ে দেয় (`PdpView`) — data থাকা আর
-  chooser দেখানো আলাদা প্রশ্ন।
+  Both fallbacks are true, not invented: with no size the product's own price
+  is the only price, and with no bundle nothing is added beyond "just this
+  item". When there is only one option the UI hides it (`PdpView`) — having the
+  data and showing a chooser are separate questions.
 */
 export function guard(d: ProductDetail): ProductDetail {
   if (d.sizes.length === 0) {
     d.sizes = [{ id: "std", label: "Standard", pricePaisa: d.product.pricePaisa }];
   }
   /*
-    ⚠️ খালি bundle তালিকা আর ভরাট করা হয় না — DEC-PRD-013, ২ আগস্ট ২০২৬।
+    ⚠️ An empty bundle list is no longer filled in — DEC-PRD-013, 2 Aug 2026.
 
-    আগে এখানে "Just this · No extra" নামে একটা card বসানো হতো, কারণ
-    card-গুলো ছিল "এর মধ্যে একটা বাছুন" আর একটা না বাছলে চলত না। এখন
-    কয়েকটা একসাথে বাছা যায়, তাই কিছুই না বাছাই স্বাভাবিক — আর খালি
-    তালিকা মানে PdpView পুরো অংশটাই আঁকে না।
+    A card called "Just this · No extra" used to be inserted here, because the
+    cards were "pick one of these" and not picking one was not allowed. Several
+    can now be picked at once, so picking nothing is the normal case — and an
+    empty list means PdpView does not draw the section at all.
   */
   return d;
 }
 
-/** Cross-sell — একই occasion, অন্য category */
+/** Cross-sell — same occasion, different category */
 function crossSellFor(p: Product): string[] {
   const occ = p.occ ?? [];
   return PRODUCTS.filter(

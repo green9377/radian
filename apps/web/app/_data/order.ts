@@ -20,18 +20,19 @@ import {
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  ORDER — cart + checkout → একটা জমাট record।
+  ORDER — cart + checkout → one frozen record.
 
-  ⚠️ এখানে দাম STORE হয় — আর সেটাই ঠিক।
-  D20 বলে cart-এ দাম রাখা যাবে না, কারণ cart জীবন্ত: admin দাম বদালে
-  cart-এর দামও বদলানো উচিত। Order উল্টো — order হলো **চুক্তি**। যে দামে
-  customer কিনেছে, সেই দামই চিরকাল থাকবে। কাল দাম বাড়লে পুরনো order-এর
-  রসিদ বদলে গেলে সেটা জালিয়াতি।
+  ⚠️ Prices ARE stored here — and that is correct.
+  D20 says a cart may not hold prices, because a cart is alive: if the admin
+  changes a price, the cart's price should change with it. An order is the
+  opposite — an order is a **contract**. The price the customer bought at is
+  the price forever. If tomorrow's price rise changed an old order's receipt,
+  that would be fraud.
 
-  তাই: cart = config (দাম নেই), order = snapshot (দাম আছে)।
+  So: cart = config (no prices), order = snapshot (prices).
 
-  ⇄ SWAP HERE — Ecommerce module lock হলে placeOrder() হবে
-  POST /orders, আর order id server দেবে। shape একই থাকবে।
+  ⇄ SWAP HERE — once the Ecommerce module is locked, placeOrder() becomes
+  POST /orders and the server gives the order id. The shape stays the same.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -40,20 +41,21 @@ export interface OrderLineSnapshot {
   name: string;
   bg: string;
   /**
-   * DEC-PRD-012 — কোন রঙ / ফ্লেভার / মাপ কেনা হয়েছিল। `null` = এই
-   * product-এর variant নেই।
+   * DEC-PRD-012 — which colour / flavour / size was bought. `null` = this
+   * product has no variants.
    *
-   * ⚠️ order = snapshot। মালিক কাল রঙটার নাম বদলালে বা তুলে দিলে পুরনো
-   * order-এ যা কেনা হয়েছিল সেটাই লেখা থাকবে — DEC-DLV-002-এর একই নিয়ম।
+   * ⚠️ order = snapshot. If the owner renames or removes the colour tomorrow,
+   * the old order still records what was actually bought — the same rule as
+   * DEC-DLV-002.
    */
   variantLabel: string | null;
   sizeLabel: string;
   /**
-   * DEC-PRD-013 — যে যে bundle নেওয়া হয়েছিল। খালি array = কিছুই না।
+   * DEC-PRD-013 — which bundles were taken. An empty array = none.
    *
-   * ⚠️ আগে একটামাত্র নাম ছিল (`bundleLabel`), কারণ একটার বেশি নেওয়াই
-   * যেত না। order = snapshot, তাই পুরনো order-এর নামগুলো যেমন ছিল তেমনই
-   * থাকে — মালিক আজ bundle-টা তুলে দিলেও।
+   * ⚠️ This used to be a single name (`bundleLabel`), because more than one
+   * could not be taken. order = snapshot, so an old order's names stay exactly
+   * as they were — even if the owner removes the bundle today.
    */
   bundleLabels: string[];
   addonLabels: string[];
@@ -64,15 +66,17 @@ export interface OrderLineSnapshot {
 }
 
 /* ─────────────────── STATUS + TIMELINE ───────────────────
-   Order = চুক্তি, কিন্তু জীবন্ত — placed → delivered পর্যন্ত এগোয়।
-   status = এখন কোথায়; timeline = কবে কোন ধাপে গেল (history/detail-এ দেখাই)।
+   An order is a contract, but a living one — it moves from placed → delivered.
+   status = where it is now; timeline = when it reached each step (shown on
+   history/detail).
 
-   ⚠️ এই lifecycle keys DeliveryTimeline-এর 7-stage-এর সাবসেট — যাতে
-   detail page-এ ঐ একই tracker reuse করা যায়। photo ধাপ দুটো informational,
-   তাই lifecycle status নয়।
+   ⚠️ These lifecycle keys are a subset of DeliveryTimeline's 7 stages — so the
+   detail page can reuse that same tracker. The two photo steps are
+   informational, so they are not lifecycle statuses.
 
-   ⇄ SWAP HERE — Ecommerce/Delivery module lock হলে status ও timeline
-   server (Delivery Management) থেকে আসবে; frontend শুধু render করবে।
+   ⇄ SWAP HERE — once the Ecommerce/Delivery module is locked, status and
+   timeline come from the server (Delivery Management); the frontend only
+   renders.
 */
 
 export type OrderStatus =
@@ -92,11 +96,11 @@ export interface OrderEvent {
 
 export interface Order {
   id: string; // RAD-XXXXX (Constitution)
-  /** UTC ms — display-এ Asia/Dhaka */
+  /** UTC ms — displayed in Asia/Dhaka */
   placedAt: number;
 
   status: OrderStatus;
-  /** সময়ানুক্রমে ঘটে যাওয়া ধাপ — সবচেয়ে পুরনো আগে */
+  /** the steps that happened, in time order — oldest first */
   timeline: OrderEvent[];
 
   sender: { name: string; phone: string; email: string };
@@ -123,7 +127,7 @@ export interface Order {
   couponCode: string | null;
   discountPaisa: number;
   deliveryPaisa: number;
-  /** promo-তে মাফ হওয়া delivery — রসিদে দেখানোর জন্য */
+  /** delivery waived by a promo — for showing on the receipt */
   deliveryWaivedPaisa: number;
   totalPaisa: number;
 
@@ -132,9 +136,9 @@ export interface Order {
 }
 
 /* ─────────────────── TOTALS ───────────────────
-   Checkout-এর প্রতিটা সংখ্যা এখান থেকে আসে — summary, sticky bar,
-   Place Order button, সবাই একই function ডাকে। দুই জায়গায় দুই যোগ
-   করলে একদিন ৳১ পার্থক্য হবে, আর trust শেষ।
+   Every number in checkout comes from here — the summary, the sticky bar and
+   the Place Order button all call the same function. Two sums in two places
+   will differ by ৳1 one day, and that is the end of trust.
 */
 
 export interface CheckoutTotals {
@@ -154,34 +158,36 @@ export function checkoutTotals(args: {
   method: MethodId;
   couponCode: string | null;
   /**
-   * DEC-DLV-009 — delivery module থেকে আসা আসল সারি, দাম সহ।
+   * DEC-DLV-009 — the real row from the delivery module, price included.
    *
-   * ⚠️ শুধু `method` (একটা id) দিয়ে দাম বের করা যেত না, কারণ id এখন
-   * database-এর সারির id — হাতে-লেখা তালিকায় সেটা খুঁজে পাওয়া যাবে না,
-   * আর না পেলে সে চুপচাপ প্রথম সারির দাম ধরে নিত। মালিক admin-এ ৳২০০
-   * লিখতেন, গ্রাহক ৳৬০ দিত, আর কেউ টের পেত না।
+   * ⚠️ The price could not be found from `method` (an id) alone, because the
+   * id is now a database row id — it will not be found in the hand-written
+   * list, and on a miss it silently took the first row's price. The owner
+   * would type ৳200 in the admin, the customer would pay ৳60, and nobody would
+   * notice.
    */
   methodOverride?: DeliveryMethod;
   /**
-   * offer engine যা বলেছে — `POST /shop/checkout/quote`-এর উত্তর।
+   * What the offer engine said — the answer from `POST /shop/checkout/quote`.
    *
-   * ⚠️ এখানে `applyCoupon()` চলত, `_data/promo.ts`-এর তিনটা লেখা কোডের
-   * বিরুদ্ধে। ৩ আগস্ট ২০২৬-এ browser-এ ধরা পড়ে: দুটো তোড়ার cart-এ এই পাতা
-   * দেখাচ্ছিল **"Coupon NEW15 − ৳540", মোট ৳3,210**, আর server বলছিল *"code
-   * NEW15 does not exist"* — আসল দাম **৳3,750**। ছাড়টা দোকান কোনোদিন দেয়নি,
-   * দেওয়ার কথাও ছিল না।
+   * ⚠️ `applyCoupon()` used to run here, against three codes written in
+   * `_data/promo.ts`. Caught in the browser on 3 Aug 2026: on a cart with two
+   * bouquets this page showed **"Coupon NEW15 − ৳540", total ৳3,210**, while
+   * the server said *"code NEW15 does not exist"* — the real price was
+   * **৳3,750**. The shop had never offered that discount and never meant to.
    *
-   * `null` = উত্তর এখনো আসেনি বা আসেনি-ই। তখন ছাড় **শূন্য**, আন্দাজ নয় —
-   * বেশি দাম দেখিয়ে কম নেওয়া যায়, উল্টোটা যায় না।
+   * `null` = the answer has not arrived, or never will. The discount is then
+   * **zero**, not a guess — showing a higher price and charging less is
+   * survivable, the other way round is not.
    */
   serverDiscount?: {
     discountPaisa: number;
     couponCode: string | null;
-    /** DEC-OFR — FREE_DELIVERY offer। শূন্য = কোনো ছাড় নেই, আর সেটাই ডিফল্ট। */
+    /** DEC-OFR — a FREE_DELIVERY offer. Zero = no waiver, and that is the default. */
     deliveryWaivedPaisa: number;
   } | null;
 }): CheckoutTotals {
-  // ⚠️ শুধু deliverable lines — held item order-এ যায় না (D21)
+  // ⚠️ deliverable lines only — a held item does not go on the order (D21)
   const subtotalPaisa = args.cart.totals.activePaisa;
 
   const discountPaisa = Math.min(
@@ -197,8 +203,8 @@ export function checkoutTotals(args: {
     method: args.methodOverride,
   });
 
-  /*  ছাড় কখনো delivery-র দামের চেয়ে বড় নয় — নইলে "FREE" লেখার পাশে
-      ঋণাত্মক টাকা বসত।  */
+  /*  The waiver is never larger than the delivery price — otherwise a negative
+      amount would sit next to the word "FREE".  */
   const deliveryWaivedPaisa = Math.min(
     Math.max(0, args.serverDiscount?.deliveryWaivedPaisa ?? 0),
     quote.grossPaisa,
@@ -221,11 +227,12 @@ export function checkoutTotals(args: {
 
 export function etaText(args: {
   /**
-   * DEC-DLV-009 — যে সারিটা বাছা হয়েছে, পুরোটা।
+   * DEC-DLV-009 — the whole row that was chosen.
    *
-   * ⚠️ আগে শুধু `MethodId` নিত আর `getMethod()` দিয়ে খুঁজত। live id cuid, তাই
-   * খোঁজ ব্যর্থ হয়ে চুপচাপ Same Day ধরত — **প্রতিটা order-এ ভুল ETA**, আর
-   * নিচের `method.id === "courier"` জাতীয় তুলনাগুলো কোনোদিন সত্যি হতো না।
+   * ⚠️ This used to take only a `MethodId` and look it up with `getMethod()`.
+   * A live id is a cuid, so the lookup failed and it silently assumed Same Day
+   * — **a wrong ETA on every order** — and comparisons below like
+   * `method.id === "courier"` could never be true.
    */
   method: DeliveryMethod;
   date: string | null;
@@ -241,8 +248,9 @@ export function etaText(args: {
   }
 
   if (isExpress(method)) {
-    /*  ঘণ্টার সংখ্যাটা delivery module-এর (`promiseMinutes`) — "2 hours" আর
-        হাতে লেখা নেই। মালিক 3-Hour Express বানালে এখানে ৩-ই লেখা হবে।  */
+    /*  The number of hours belongs to the delivery module (`promiseMinutes`) —
+        "2 hours" is no longer written by hand. If the owner creates a 3-Hour
+        Express, this prints 3.  */
     const live = method as Partial<LiveMethod>;
     const hrs = live.promiseMinutes ? Math.round(live.promiseMinutes / 60) : 2;
     return { out: "Within minutes", done: `Today, within ${hrs} hours` };
@@ -263,8 +271,8 @@ export function etaText(args: {
 function dayLabel(date: string | null, now: Date): string {
   if (!date) return "Soon";
 
-  /* ⚠️ toISOString() নয় — সেটা UTC। ঢাকায় সন্ধ্যা ৭টা মানে UTC-তে পরদিন
-     হতে পারে, আর "আজ" লেখা তখন "কাল" হয়ে যেত। toISODate() local। */
+  /* ⚠️ Not toISOString() — that is UTC. 7 PM in Dhaka can be the next day in
+     UTC, and "today" would then print as "tomorrow". toISODate() is local. */
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
@@ -298,7 +306,7 @@ function snapshot(line: ResolvedLine): OrderLineSnapshot {
   };
 }
 
-/** RAD-XXXXX — Constitution। Server এলে এই id backend দেবে। */
+/** RAD-XXXXX — Constitution. Once the server lands, the backend gives this id. */
 export function makeOrderId(): string {
   return "RAD-" + Math.floor(10000 + Math.random() * 90000);
 }
@@ -310,21 +318,23 @@ export function buildOrder(args: {
   totals: CheckoutTotals;
   payment: PaymentId;
   /**
-   * DEC-DLV-009 — যে সারিতে দাম নেওয়া হয়েছে, ঠিক সেটাই।
+   * DEC-DLV-009 — exactly the row the money was charged against.
    *
-   * ⚠️ আগে `getMethod(c.method)` দিয়ে খুঁজত আর না পেয়ে Same Day ধরত। ফল:
-   * `checkoutTotals()` (যেটা আসল সারি পায়) গ্রাহকের কাছ থেকে ৳২০০ নিত, আর
-   * রসিদে লেখা হতো *"Same Day"*। **যা নেওয়া হলো আর যা লেখা হলো — দুটো আলাদা।**
-   * অর্ডারের snapshot-ই চুক্তি, তাই এটা আন্দাজ করার জিনিস নয়।
+   * ⚠️ This used to look up `getMethod(c.method)` and fall back to Same Day on
+   * a miss. The result: `checkoutTotals()` (which gets the real row) charged
+   * the customer ৳200 while the receipt said *"Same Day"*. **What was charged
+   * and what was written were two different things.** The order's snapshot is
+   * the contract, so this is not something to guess at.
    */
   method: DeliveryMethod;
   /**
-   * server যে নম্বরটা দিয়েছে — `POST /shop/checkout`-এর `orderNo`।
+   * The number the server gave — `orderNo` from `POST /shop/checkout`.
    *
-   * ⚠️ না দিলে `makeOrderId()` **এখানেই একটা বানিয়ে ফেলে**, আর সেটা browser-এর
-   * নিজের বানানো — database-এ ওই নামে কিছু নেই। গ্রাহক success page থেকে
-   * নম্বরটা তুলে "Track Order"-এ বসাতেন আর কিছুই পেতেন না; support-কে বলা
-   * নম্বরটাও admin খুঁজে পেত না। রসিদের নম্বর দোকানের, browser-এর নয়।
+   * ⚠️ Without it, `makeOrderId()` **invents one right here**, and that one is
+   * the browser's own — nothing by that name exists in the database. The
+   * customer would copy the number off the success page into "Track Order" and
+   * find nothing; the admin could not find the number they quoted to support
+   * either. The number on a receipt belongs to the shop, not the browser.
    */
   orderNo?: string;
 }): Order {
@@ -339,11 +349,11 @@ export function buildOrder(args: {
     id: args.orderNo ?? makeOrderId(),
     placedAt: now,
 
-    /* সদ্য placed order — প্রথম ধাপে (order-success stage=1)। */
+    /* A freshly placed order — at the first step (order-success stage=1). */
     status: "placed",
     timeline: [{ status: "placed", at: now }],
 
-    /* Constitution: phone সবসময় +8801XXXXXXXXX ফরম্যাটে — বিদেশি হলে +<dial> */
+    /* Constitution: phone is always +8801XXXXXXXXX — +<dial> when foreign */
     sender: {
       name: c.senderName,
       phone: normalizePhone(c.senderDial, c.senderPhone) ?? `${c.senderDial}${c.senderPhone}`,
@@ -387,8 +397,8 @@ export function buildOrder(args: {
 }
 
 /* ─────────────────── STATUS META + STAGE MAP ───────────────────
-   একটাই source — chip রং, label, tracker stage সব এখান থেকে। দুই
-   জায়গায় দুই রকম status দেখালে trust শেষ।
+   One source — chip colour, label and tracker stage all come from here.
+   Showing a different status in two places is the end of trust.
 */
 
 export interface StatusMeta {
@@ -431,13 +441,14 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   },
 };
 
-/** true = order আর এগোবে না (terminal) */
+/** true = the order will not move any further (terminal) */
 export function isTerminal(status: OrderStatus): boolean {
   return status === "delivered" || status === "cancelled";
 }
 
-/* DeliveryTimeline-এর filtered stage-list-এ কয়টা ধাপ "done" —
-   status → সেই count। photo toggle অনুযায়ী list বদলায়, তাই এখানেই হিসাব। */
+/* How many steps are "done" in DeliveryTimeline's filtered stage list —
+   status → that count. The list changes with the photo toggle, so the sum
+   belongs here. */
 const STAGE_KEYS_ALL = [
   "placed",
   "confirmed",
@@ -458,8 +469,9 @@ const STATUS_STAGE_KEY: Record<Exclude<OrderStatus, "cancelled">, StageKey> = {
   delivered: "delivery-photo",
 };
 
-/* photo ধাপ ছাড়া version — explicit, যাতে filter-এর inferred type
-   predicate element type সংকুচিত না করে (TS 5.5+)। */
+/* The version without the photo steps — written out explicitly so that
+   filter's inferred type predicate does not narrow the element type
+   (TS 5.5+). */
 const STAGE_KEYS_NO_PHOTO: readonly StageKey[] = [
   "placed",
   "confirmed",

@@ -1136,7 +1136,7 @@ export class ProductDetailService {
         discountEndsAt: true,
         stockMode: true,
         stockQty: true,
-        /*  DEC-PRD-014 — মজুদ variant-এ থাকতে পারে।  */
+        /*  DEC-PRD-014 — the stock may live on the variants.  */
         variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
         images: {
           where: { deletedAt: null },
@@ -1165,17 +1165,19 @@ export class ProductDetailService {
           sellingPricePaisa: u.sellingPricePaisa,
           discountType: u.discountType as 'NONE' | 'FLAT' | 'PERCENT',
           discountValue: u.discountValue,
-          /*  DEC-PRD-028 — মেয়াদ ফুরানো ছাড় upgrade-এর দামেও বসে না।  */
+          /*  DEC-PRD-028 — an expired discount is not applied to an upgrade's
+              price either.  */
           discountStartsAt: u.discountStartsAt,
           discountEndsAt: u.discountEndsAt,
         }),
       }));
   }
 
-  /*  ⚠️ DEC-PRD-016-এর `combos()` এখান থেকে উঠে গেছে — DEC-PRD-018-এ
-      bundle নিজেই একটা তালিকা আর ছাড় তার নিচেই একটাই, তাই "ঠিক এই কটা
-      বাছলে এই দাম" নামের দ্বিতীয় স্তরটার আর কাজ নেই। টেবিল দুটো
-      database-এ আছে (কিছু মোছা হয় না), কেউ আর পড়ে না।  */
+  /*  ⚠️ DEC-PRD-016's `combos()` has been lifted out of here — under
+      DEC-PRD-018 a bundle is itself a list with a single discount beneath it,
+      so the second layer called "pick exactly these and pay this" has no job
+      left. The two tables are still in the database (nothing is deleted);
+      nobody reads them any more.  */
   private async bundles(productId: string, categoryId: string) {
     const rows = await this.prisma.db.bundle.findMany({
       where: {
@@ -1191,7 +1193,7 @@ export class ProductDetailService {
         discountValue: true,
         isBest: true,
         addsProduct: { select: BUNDLE_ADDS },
-        /*  DEC-PRD-017 — এক bundle-এ কয়েকটা product।  */
+        /*  DEC-PRD-017 — several products in one bundle.  */
         items: {
           orderBy: [{ sortOrder: 'asc' }],
           select: { addsProduct: { select: BUNDLE_ADDS } },
@@ -1207,9 +1209,9 @@ export class ProductDetailService {
       A card the shopper can see but not take is a promise the shop then has
       to withdraw by phone.
 
-      ⚠️ DEC-PRD-017-এ card-এ কয়েকটা জিনিস থাকতে পারে, তাই নিয়মটা
-      **যেকোনো একটা** না পাওয়া গেলেই card উধাও। অর্ধেক bundle পাঠানো মানে
-      গ্রাহক তিনটের দাম দেখে দুটো পাবেন।
+      ⚠️ Under DEC-PRD-017 a card may hold several items, so the rule is that
+      the card disappears if **any one** of them is unavailable. Shipping half
+      a bundle means the customer sees the price of three and receives two.
     */
     const sellable = (p: {
       isPublished: boolean;
@@ -1228,19 +1230,20 @@ export class ProductDetailService {
       );
 
     /*
-      DEC-PRD-018 — এক product = একটাই তালিকা, একটাই ছাড়।
+      DEC-PRD-018 — one product = one list, one discount.
 
-      ⚠️ কয়েকটা সারি থাকলে (পুরনো তথ্য, তখন এক সারি = এক জিনিস) সবগুলোর
-      জিনিস এক তালিকায় জোড়া লাগে আর ছাড় ধরা হয় প্রথম সারিরটা। মালিক
-      admin-এ তালিকাটা একবার save করলেই সারিগুলো গুটিয়ে একটাই থাকে।
+      ⚠️ When there are several rows (old data, from when one row = one item),
+      all their items are joined into one list and the discount is taken from
+      the first row. Once the owner saves the list in the admin even one time,
+      the rows are folded down to one.
     */
     if (list.length === 0) return null;
 
     const seen = new Set<string>();
     const items = list
       .flatMap((b) => (b.items.length > 0 ? b.items.map((i) => i.addsProduct) : [b.addsProduct]))
-      /*  একই জিনিস দুই সারিতে থাকলে একবারই — নাহলে গ্রাহক একই কেক দুবার
-          দেখতেন, আর দুবার দামও গুনতেন।  */
+      /*  The same item in two rows counts once — otherwise the customer would
+          see the same cake twice and be charged for it twice.  */
       .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       .filter(sellable)
       .map((p) => ({
@@ -1251,7 +1254,7 @@ export class ProductDetailService {
           sellingPricePaisa: p.sellingPricePaisa,
           discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
           discountValue: p.discountValue,
-          /*  DEC-PRD-028 — bundle-এর card-এও একই মেয়াদ।  */
+          /*  DEC-PRD-028 — the same expiry applies on a bundle's card too.  */
           discountStartsAt: p.discountStartsAt,
           discountEndsAt: p.discountEndsAt,
         }),
@@ -1260,10 +1263,11 @@ export class ProductDetailService {
     if (items.length === 0) return null;
 
     return {
-      /*  ⚠️ ছাড় বসানোর কাজটা page করে, এখানে নয় — আর সেটা ইচ্ছাকৃত।
-          মালিকের নিয়ম (DEC-PRD-018): ছাড় বসে **main সহ** মোট দামের উপর,
-          কিন্তু গ্রাহক কোনগুলো নেবেন সেটা এখানে জানা নেই। তাই কাঁচা
-          সংখ্যা যায়, আর হিসাবটা এক জায়গায়: `_data/bundlePricing.ts`.  */
+      /*  ⚠️ The page applies the discount, not this — and that is deliberate.
+          The owner's rule (DEC-PRD-018): the discount applies to the total
+          **including the main product**, but which ones the customer will take
+          is not known here. So the raw numbers go out and the arithmetic lives
+          in one place: `_data/bundlePricing.ts`.  */
       discountType: list[0].discountType as 'NONE' | 'FLAT' | 'PERCENT',
       discountValue: list[0].discountValue,
       items,
@@ -1307,13 +1311,13 @@ export class ProductDetailService {
     return (
       pick
         /*
-          ⚠️ নাম নেই এমন card পাঠানো হয় না — ২ আগস্ট ২০২৬-এ ধরা পড়েছে।
-          "Add a card" চেপে কিছু না লিখে চলে গেলে একটা খালি সারি থেকে যায়,
-          আর website সেটা একটা **খালি সাদা বাক্স** হিসেবে এঁকে দিত। দোকান
-          বুঝতেই পারত না কোথা থেকে এল।
+          ⚠️ A card with no title is not sent — caught on 2 Aug 2026. Pressing
+          "Add a card" and leaving without typing anything leaves an empty row
+          behind, and the website drew it as an **empty white box**. The shop
+          had no idea where it came from.
 
-          ⚠️ ভরাটগুলো ফেলে দেওয়া হয় না, শুধু খালিটা বাদ — তাই ভুল করে একটা
-          খালি card রেখে দিলেও বাকি দুটো ঠিকই দেখা যায়।
+          ⚠️ The filled ones are not thrown away, only the empty one is dropped
+          — so leaving one blank card by mistake still shows the other two.
         */
         .filter((r) => r.title.trim().length > 0)
         .map((r) => ({ icon: r.icon, title: r.title, text: r.text }))
@@ -1445,31 +1449,35 @@ export class ProductDetailService {
    * exact, never rounded up.
    */
   /**
-   * DEC-PRD-025 — মালিকের বসানো সংখ্যা + বাছা সময়ের সত্যিকারের বিক্রি।
+   * DEC-PRD-025 — the owner's seeded number plus the real sales in the chosen
+   * period.
    *
-   * মালিক, ২ আগস্ট ২০২৬: *"প্রথমে একটা fake sale account বসাব... তারপর real
-   * sell হলে সেই সংখ্যার সাথে add হবে। আমাদের stock-এর মতো।"*
+   * Owner, 2 Aug 2026 (translated): *"first I'll put in a fake sale count...
+   * then when real sales happen they'll add to that number. Like our stock."*
    *
-   * ⚠️ আগে এই function শুধু গত ৩০ দিনের সত্যিকারের order গুনত, আর ১০-এর কম
-   * হলে `null` — অর্থাৎ মালিকের লেখা সংখ্যাটা page-এ কোনোদিন উঠত না। তিনি
-   * সেটাই ধরেছেন।
+   * ⚠️ This function used to count only the real orders of the last 30 days,
+   * and return `null` below 10 — meaning the owner's own number never reached
+   * the page at all. He is the one who spotted it.
    *
-   * ⚠️ `salesSeed`, `salesCount` নয়। `salesCount` বিক্রি হলে বাড়ে, তাই ওটাকে
-   * শুরুর সংখ্যা ধরলে সপ্তাহের হিসাবে পুরনো বিক্রি দুবার গোনা হতো।
+   * ⚠️ `salesSeed`, not `salesCount`. `salesCount` grows with each sale, so
+   * treating it as the starting number would count old sales twice in the
+   * weekly figure.
    *
-   * ⚠️ ১০-এর নিচে লুকানোর নিয়মটা **শুধু তখনই** খাটে যখন মালিক নিজে কিছু
-   * বসাননি। "৩ orders this month" কেনার বিরুদ্ধে যুক্তি — কিন্তু সেটা
-   * আমাদের সিদ্ধান্ত, মালিকের সংখ্যা চাপা দেওয়ার অজুহাত নয়।
+   * ⚠️ The hide-below-10 rule applies **only** when the owner has set nothing
+   * himself. "3 orders this month" argues against buying — but that is our
+   * decision, not an excuse to bury the owner's number.
    */
   /**
-   * মালিকের বসানো সংখ্যাটা এখনো গোনা হবে কি না — DEC-PRD-025।
+   * Whether the owner's seeded number still counts — DEC-PRD-025.
    *
-   * ⚠️ TODAY মানে **আজকের দিন**, "গত ২৪ ঘণ্টা" নয়। মালিকের কথা *"daily এটা
-   * restart হওয়াই ভালো"* — রাত ১২টা মানে রাত ১২টা। ২৪ ঘণ্টা ধরলে রাত ৮টায়
-   * বসানো সংখ্যা পরদিন সকাল ৭টাতেও দেখাত, আর সেটাই তিনি থামাতে বলেছেন।
+   * ⚠️ TODAY means **today's date**, not "the last 24 hours". The owner's
+   * words: *"it's better if this restarts daily"* — midnight means midnight.
+   * On a 24-hour reading, a number seeded at 8 PM would still show at 7 AM the
+   * next morning, which is exactly what he asked to stop.
    *
-   * ⚠️ দিনটা **বাংলাদেশ সময়ে**। server অন্য দেশে থাকলে UTC-র মধ্যরাত ঢাকার
-   * সন্ধ্যা ৬টা — সংখ্যাটা দিনের মাঝখানে উধাও হয়ে যেত।
+   * ⚠️ The day is in **Bangladesh time**. If the server sits in another
+   * country, UTC midnight is 6 PM in Dhaka — the number would vanish in the
+   * middle of the day.
    */
   private seedStillCounts(
     window: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL',
@@ -1501,20 +1509,22 @@ export class ProductDetailService {
         : new Date(Date.now() - (window === 'TODAY' ? 1 : window === 'WEEK' ? 7 : 30) * DAY);
 
     /*
-      ⚠️ মালিকের সংখ্যাটার একটা মেয়াদ আছে — DEC-PRD-025, ২ আগস্ট ২০২৬:
-      *"always যদি মানুষ দেখে today 10 sale, তাহলে Google আর মানুষের কাছে
-      এটা fake হয়ে যাবে। daily এটা restart হওয়াই ভালো।"*
+      ⚠️ The owner's number has an expiry — DEC-PRD-025, 2 Aug 2026
+      (translated): *"if people always see 10 sales today, then to Google and
+      to people it becomes fake. It's better if this restarts daily."*
 
-      TODAY-র সংখ্যা কেবল সেই দিনটাতেই, WEEK ৭ দিন, MONTH ৩০ দিন। ALL-এর
-      কোনো মেয়াদ নেই — ওটা জমতে থাকা মোট, আর সেটাই মালিক চেয়েছেন।
+      A TODAY number counts only on that day, WEEK for 7 days, MONTH for 30.
+      ALL has no expiry — it is a running total, and that is what the owner
+      wanted.
 
-      ⚠️ সংখ্যাটা মুছে ফেলা হয় না, শুধু গোনা হয় না। মালিক ঢুকে আবার save
-      করলেই ঘড়িটা নতুন করে শুরু — তাঁর নিজের কথা: *"আবার আমাদের যদি দরকার
-      হয়, product-এ ঢুকে আমরা আবার সংখ্যা add করব।"*
+      ⚠️ The number is not deleted, it simply stops counting. The moment the
+      owner goes in and saves again, the clock restarts — in his own words:
+      *"if we need it again, we'll go into the product and add the number
+      again."*
 
-      ⚠️ `seedAt` না থাকলে (পুরনো সারি) সংখ্যাটা গোনা হয় না। জানা নেই কবে
-      বসানো হয়েছিল, আর অজানা তারিখের ভিত্তিতে "আজ ১০টা বিক্রি" বলা ঠিক
-      সেই মিথ্যাটাই যেটা মালিক থামাতে বলেছেন।
+      ⚠️ Without `seedAt` (an old row) the number does not count. We do not
+      know when it was seeded, and saying "10 sales today" on the strength of
+      an unknown date is precisely the lie the owner asked us to stop.
     */
     const seed = this.seedStillCounts(window, seedAt) ? rawSeed : 0;
 
@@ -1530,7 +1540,7 @@ export class ProductDetailService {
 
     const total = seed + real;
     if (total === 0) return null;
-    /*  মালিক কিছু বসাননি, আর সত্যিকারের বিক্রিও কম — তখন চুপ থাকাই ভালো।  */
+    /*  The owner set nothing and real sales are low — better to stay quiet.  */
     if (seed === 0 && real < 10) return null;
     return total;
   }

@@ -1,37 +1,40 @@
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  BUNDLE PRICING — DEC-PRD-018, মালিকের সিদ্ধান্ত ২ আগস্ট ২০২৬
+  BUNDLE PRICING — DEC-PRD-018, the owner's decision, 2 Aug 2026
 
-  > *"just main product নিলে কোনো discount নেই, আর সাথে extra কোনো bundle
-  >  থেকে product select করলেই সে discount পাবে — এটা আমার concept।"*
+  > *"taking just the main product gets no discount, and the moment they select
+  >  any extra product from a bundle they get the discount — that is my
+  >  concept."* (translated)
 
-  এক product-এ একটাই তালিকা, একটাই ছাড়। মালিক ৩-৪টা জিনিস রাখেন; গ্রাহক
-  তার থেকে যা খুশি নেয়, বাকিগুলো skip করে। একটাও নিলেই ছাড় বসে — **main
-  product সহ** মোট দামের উপর।
+  One product, one list, one discount. The owner puts 3–4 items on it; the
+  customer takes whichever they like and skips the rest. Taking even one
+  applies the discount — to the total **including the main product**.
 
-  ⚠️ আগে এখানে "কোন bundle-এ main গোনা হবে" নিয়ে একটা জটিল নিয়ম ছিল
-  (DEC-PRD-017)। সেটা এসেছিল আমার ভুল প্রশ্ন থেকে — আমি ধরে নিয়েছিলাম
-  bundle মানে আলাদা আলাদা প্যাকেজ। মালিক ধরিয়ে দিয়েছেন: একটাই তালিকা।
-  তাই নিয়মটাও উঠে গেছে।
+  ⚠️ There used to be a complicated rule here about "which bundle counts the
+  main" (DEC-PRD-017). It came from my asking the wrong question — I had
+  assumed a bundle meant separate packages. The owner put me right: it is one
+  list. So the rule is gone with it.
 
-  ⚠️ একটাই জায়গা, আর সেটাই এই ফাইলের কারণ। product page দাম দেখায়, cart
-  আবার হিসাব করে (দাম বদলাতে পারে বলে), checkout সেটা যোগ করে। তিন জায়গায়
-  তিনটে হিসাব লিখলে একদিন page বলত ৳5,310 আর cart বলত ৳5,900 — আর গ্রাহক
-  টাকা দেওয়ার ঠিক আগের মুহূর্তে সংখ্যাটা বদলে যেতে দেখতেন।
+  ⚠️ One place, and that is the reason this file exists. The product page shows
+  a price, the cart works it out again (because prices can change), checkout
+  adds it up. Three calculations in three places and one day the page says
+  ৳5,310 while the cart says ৳5,900 — with the customer watching the number
+  change at the very moment of paying.
 
-  ⚠️ ছাড় server-এ বসানো হয়নি কারণ গ্রাহক কোনগুলো নেবেন সেটা server জানে
-  না। কাঁচা সংখ্যা ওখান থেকে আসে, বসানোটা এখানে — একবার।
+  ⚠️ The discount is not applied on the server because the server does not know
+  which ones the customer will take. The raw numbers come from there; applying
+  them happens here, once.
   ═══════════════════════════════════════════════════════════════════════════
 */
 
 export type DiscountKind = "NONE" | "FLAT" | "PERCENT";
 
 export interface BundleItem {
-  /** যোগ হওয়া product-এর id — cart-এ এটাই যায়, নাম নয় */
+  /** id of the product being added — this is what goes to the cart, not the name */
   id: string;
   name: string;
   imageUrl: string | null;
-  /** এটার আজকের দাম, নিজের ছাড় বসানোর পর */
+  /** its price today, after its own discount */
   pricePaisa: number;
 }
 
@@ -43,10 +46,11 @@ export interface BundleList {
 }
 
 /**
- * ছাড় বসানো — Radian-এর সর্বত্র একই নিয়ম।
+ * Applying a discount — the same rule everywhere in Radian.
  *
- * ⚠️ PERCENT basis point-এ (1000 = 10%), আর ভাগটা শেষে একবার। 0.1 দিয়ে গুণ
- * করলে ৳1,299 একদিন ৳1,169.0999999999999 হয়ে বসে।
+ * ⚠️ PERCENT is in basis points (1000 = 10%), and the division happens once at
+ * the end. Multiply by 0.1 instead and ৳1,299 turns into
+ * ৳1,169.0999999999999 one day.
  */
 export function applyDiscount(paisa: number, type: DiscountKind, value: number): number {
   if (type === "FLAT") return Math.max(0, paisa - value);
@@ -55,18 +59,19 @@ export function applyDiscount(paisa: number, type: DiscountKind, value: number):
 }
 
 export interface BundleTotals {
-  /** main + বাছা জিনিস, ছাড় বসানোর পর — এক unit-এর দাম */
+  /** main + the picked items, after the discount — the price of one unit */
   totalPaisa: number;
-  /** ছাড় না থাকলে যা পড়ত */
+  /** what it would have cost with no discount */
   beforePaisa: number;
-  /** কত বাঁচল। ০ = ছাড়ই নেই, বা কিছুই বাছা হয়নি */
+  /** how much was saved. 0 = there is no discount, or nothing was picked */
   savePaisa: number;
 }
 
 /**
- * @param basePaisa গ্রাহক main product-এর জন্য যা দিচ্ছে — রঙ বা মাপ বাছার
- *   পরের দাম। ছাড় এর উপরেই বসে, তাই ২ কেজি কেক নিলে ছাড়ও বড় হয়।
- * @param pickedIds তালিকা থেকে যেগুলো নেওয়া হয়েছে, product id দিয়ে।
+ * @param basePaisa what the customer is paying for the main product — the
+ *   price after choosing a colour or size. The discount applies on top of
+ *   this, so taking a 2 kg cake makes the discount bigger too.
+ * @param pickedIds which ones were taken from the list, by product id.
  */
 export function bundleTotals(
   basePaisa: number,
@@ -77,9 +82,10 @@ export function bundleTotals(
   const beforePaisa = basePaisa + picked.reduce((n, i) => n + i.pricePaisa, 0);
 
   /*
-    ⚠️ কিছু না নিলে ছাড় নেই — মালিকের স্পষ্ট নিয়ম: *"just main product
-    নিলে কোনো discount নেই"*। এই শর্তটা না থাকলে ছাড়টা একা product-এর
-    দামের উপরেও বসে যেত, আর তখন তালিকাটা বানানোর মানেই থাকত না।
+    ⚠️ Take nothing, get no discount — the owner's explicit rule: *"taking
+    just the main product gets no discount"*. Without this condition the
+    discount would apply to the product's price on its own, and then there
+    would be no reason to build the list at all.
   */
   if (!list || picked.length === 0) {
     return { totalPaisa: basePaisa, beforePaisa, savePaisa: 0 };

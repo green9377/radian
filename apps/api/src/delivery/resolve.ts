@@ -1,27 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   কোন দামটা খাটবে — DEC-DLV-009
+   WHICH PRICE APPLIES — DEC-DLV-009
 
-   মালিক, ১ আগস্ট ২০২৬: *"এখানে বেশি নির্দিষ্টতাই জিতবে।"*
+   Owner, 1 Aug 2026 (translated): *"here the more specific one wins."*
 
-   একই নামের delivery-র দাম দুই জায়গায় বসানো থাকতে পারে:
+   The price for a delivery of the same name can be set in two places:
 
-       Same day · পুরো ঢাকা      · ৳১০০      ← সাধারণ নিয়ম
-       Same day · Dhanmondi      · ৳৮০       ← ওই এলাকার নিজের নিয়ম
+       Same day · all of Dhaka   · ৳100      ← the general rule
+       Same day · Dhanmondi      · ৳80       ← that area's own rule
 
-   Dhanmondi-র গ্রাহক ৳৮০ পাবেন। এলাকার সারি না থাকলে zone-এর সারি।
+   A customer in Dhanmondi gets ৳80. With no area row, the zone row applies.
 
-   ⚠️ কেন একটাই function, আর কেন এটা কোনো পর্দার ভেতরে নেই।
-   এই উত্তরটা অন্তত চার জায়গায় লাগবে — checkout-এর তালিকা, order-এর মোট
-   টাকা, admin-এর নতুন order form, আর POS। চারটা জায়গায় চারবার লিখলে একদিন
-   একটা জায়গা ভুলে যাবে যে এলাকা জিনিসটা আছে, আর গ্রাহককে ৳১০০ দেখিয়ে
-   ৳৮০ কাটা হবে — বা উল্টোটা। দামের হিসাব একবারই লেখা হয়।
+   ⚠️ Why this is one function, and why it does not live inside any screen.
+   This answer is needed in at least four places — checkout's list, an order's
+   total, the admin's new-order form, and POS. Written four times in four
+   places, one of them will one day forget that areas exist, and a customer
+   will be shown ৳100 and charged ৳80 — or the reverse. The price is worked out
+   once.
 
-   ⚠️ এটা "কোনটা দেখাব" ঠিক করে, "কত নেব" নয়। order তৈরি হওয়ার সময়
-   দাম আর নাম **snapshot** হয়ে order-এ বসে যায় (DEC-DLV-002)। তাই মালিক
-   কাল দাম বদালেও গতকালের receipt বদলায় না।
+   ⚠️ This decides "which one do we show", not "what do we charge". When an
+   order is created the price and name are **snapshotted** onto it
+   (DEC-DLV-002). So the owner changing a price tomorrow does not change
+   yesterday's receipt.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** যতটুকু জানলে দাম বাছা যায় — পুরো Prisma row লাগে না */
+/** just enough to choose a price — the whole Prisma row is not needed */
 export interface RateRow {
   id: string;
   typeId: string | null;
@@ -30,40 +32,42 @@ export interface RateRow {
 }
 
 /**
- * এক নামের জন্য যে সারিগুলো আছে, তার মধ্যে কোনটা খাটবে।
+ * Of the rows that exist for one name, which one applies.
  *
- * @param rows   একই `typeId`-র সব সারি (এলাকার + zone-এর)
- * @param areaId গ্রাহক যে এলাকায়। `null` = এলাকা জানা নেই।
+ * @param rows   every row for the same `typeId` (area rows + zone rows)
+ * @param areaId the area the customer is in. `null` = the area is not known.
  */
 export function pickRate<T extends RateRow>(rows: T[], areaId: string | null): T | null {
   if (rows.length === 0) return null;
 
-  /*  ১. ঠিক এই এলাকার সারি — সবচেয়ে নির্দিষ্ট, তাই সবার আগে।  */
+  /*  1. A row for exactly this area — the most specific, so it comes first.  */
   if (areaId) {
     const exact = rows.find((r) => r.areaId === areaId);
     if (exact) return exact;
   }
 
-  /*  ২. এলাকা ছাড়া সারি — পুরো zone-এর সাধারণ নিয়ম।  */
+  /*  2. A row with no area — the general rule for the whole zone.  */
   const zoneWide = rows.find((r) => r.areaId === null);
   if (zoneWide) return zoneWide;
 
-  /*  ৩. অন্য কোনো এলাকার সারি আছে, কিন্তু এই এলাকার নেই, আর সাধারণ নিয়মও
-      নেই। মানে দোকান বলেছে এই delivery শুধু ওই কয়েকটা এলাকায় চলে।
+  /*  3. Rows exist for other areas, but not for this one, and there is no
+      general rule either. That means the shop has said this delivery runs only
+      in those particular areas.
 
-      ⚠️ এখানে **null**, সবচেয়ে সস্তাটা নয়। অন্য এলাকার দাম ধার করে দেখানো
-      মানে এমন জায়গায় delivery-র প্রতিশ্রুতি দেওয়া যেখানে দোকান যায়ই না —
-      আর সেটা গ্রাহক জানবে অর্ডারের পরে, ফোনে।  */
+      ⚠️ **null** here, not the cheapest one. Borrowing another area's price to
+      display would promise delivery to a place the shop does not go — and the
+      customer would find out after ordering, by phone.  */
   return null;
 }
 
 /**
- * পুরো তালিকা — গ্রাহকের এলাকায় যে delivery-গুলো সত্যিই চলে, প্রতিটার
- * সঠিক দাম সহ।
+ * The whole list — the deliveries that genuinely run in the customer's area,
+ * each with its correct price.
  *
- * ⚠️ যে নামের কোনো সারি খাটে না, সেটা তালিকা থেকে **বাদ পড়ে**, ধূসর হয়ে
- * বসে থাকে না। ধূসর জিনিস মানুষ চাপে; যে delivery ওই ঠিকানায় যায়ই না তার
- * জন্য "কেন যাবে না" বোঝানোর কিছু নেই — সেটা শুধু নেই।
+ * ⚠️ A name with no applicable row **drops out** of the list; it does not sit
+ * there greyed out. People press greyed-out things; and for a delivery that
+ * does not go to that address there is no "why not" to explain — it simply is
+ * not there.
  */
 export function ratesForArea<T extends RateRow>(
   all: T[],
@@ -71,7 +75,7 @@ export function ratesForArea<T extends RateRow>(
 ): Map<string, T> {
   const byType = new Map<string, T[]>();
   for (const r of all) {
-    if (!r.typeId) continue; // পুরনো সারি, নামের সাথে যুক্ত নয়
+    if (!r.typeId) continue; // an old row, not linked to a name
     const list = byType.get(r.typeId);
     if (list) list.push(r);
     else byType.set(r.typeId, [r]);

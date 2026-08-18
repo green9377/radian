@@ -17,8 +17,8 @@ import {
   Written beside `categoryApi.ts`, which does the same job for the category
   page, and for the same reason: `productDetails.ts` said so itself —
 
-      ⇄ SWAP HERE — এই function-এর ভেতরটা fetch() হবে।
-      কোনো component-এ একটা লাইনও বদলাবে না।
+      ⇄ SWAP HERE — the inside of this function becomes a fetch().
+      Not one line changes in any component.
 
   Six components read `ProductDetail`. This file returns exactly that object,
   so none of them changes.
@@ -80,8 +80,8 @@ function deliveryTrust(a: ApiProductDetail) {
 export interface ApiProductDetail {
   slug: string;
   name: string;
-  /** DEC-PRD-031, ৬ আগস্ট — API সবসময় এটা পাঠাত, কিন্তু নিচের `guard()`-এ
-   *  কখনো read হতো না, তাই মালিক PDP-তে লেখাটা দেখতেই পেতেন না। */
+  /** DEC-PRD-031, 6 Aug — the API always sent this, but `guard()` below never
+   *  read it, so the owner could not see his own text on the PDP at all. */
   shortDesc: string | null;
   typeText: string | null;
   pricePaisa: number;
@@ -111,7 +111,7 @@ export interface ApiProductDetail {
   crumb: { catLabel: string; catSlug: string; subLabel: string | null; subSlug: string | null };
   colour: { label: string; swatch: string | null; imageUrl: string | null } | null;
   variant: { kind: "colour" | "flavour"; label: string; options: ApiVariantOption[] } | null;
-  /** DEC-PRD-012 — এক page-এর ভেতরের variant, প্রতিটার নিজের ছবি-দাম-মজুদ */
+  /** DEC-PRD-012 — variants inside one page, each with its own photo, price and stock */
   variants: {
     id: string;
     label: string;
@@ -120,38 +120,38 @@ export interface ApiProductDetail {
     swatch: string | null;
     imageUrl: string | null;
     pricePaisa: number;
-    /** DEC-PRD-032 — offer চললে কাটা দাম */
+    /** DEC-PRD-032 — the struck-through price while an offer runs */
     wasPaisa?: number | null;
     stockQty: number;
   }[];
   sizes: ApiSize[];
   sizeLabel: string;
-  /** DEC-PRD-018 — একটাই তালিকা, একটাই ছাড়। `null` = কিছু যোগ করার নেই। */
+  /** DEC-PRD-018 — one list, one discount. `null` = there is nothing to add. */
   bundle: {
     discountType: "NONE" | "FLAT" | "PERCENT";
     discountValue: number;
     items: { id: string; name: string; imageUrl: string | null; pricePaisa: number }[];
   } | null;
-  /** DEC-PRD-020 — এটার বড় সংস্করণ, প্রতিটা নিজেই আলাদা product */
+  /** DEC-PRD-020 — bigger versions of this one, each a separate product itself */
   upgrades: { slug: string; name: string; imageUrl: string | null; pricePaisa: number }[];
-  /** DEC-PRD-026 — গ্রাহক নিজের লেখা বা ছবি দিতে পারবে কি না */
+  /** DEC-PRD-026 — whether the customer may supply their own text or photo */
   perso: {
     title: string;
     text: { label: string; max: number | null; hint: string } | null;
     image: { label: string; hint: string } | null;
   } | null;
-  /** DEC-PRD-027 — "Want this customised?" বাক্স, নম্বর সহ */
+  /** DEC-PRD-027 — the "Want this customised?" box, phone number included */
   customise: { title: string; sub: string; whatsapp: string | null } | null;
   craft: { icon: string; title: string; text: string }[];
   cutoffMinutesLeft: { dhaka: number | null; nationwide: number | null };
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
   ordersThisMonth: number | null;
-  /** DEC-PRD-025 — উপরের সংখ্যাটা কোন সময়ের */
+  /** DEC-PRD-025 — which period the number above covers */
   salesWindow: "TODAY" | "WEEK" | "MONTH" | "ALL";
   crossSell: ShopProduct[];
   spec: { item: string; qty: string }[];
   faqs: { question: string; answer: string; scope: "product" | "category" }[];
-  /** DEC-PRD-023 — `iconUrl` ভরা থাকলে দোকানের নিজের ছবি */
+  /** DEC-PRD-023 — when `iconUrl` is filled, it is the shop's own image */
   trust: { icon: string | null; iconUrl?: string | null; label: string; sub: string | null }[];
   addonTabs: { id: string; label: string; items: { id: string; name: string; pricePaisa: number; imageUrl: string | null }[] }[];
   reviews: {
@@ -185,12 +185,13 @@ async function getJson<T>(path: string): Promise<T | null> {
   try {
     // `baseFor()`, not `API_BASE` — this page renders on the server, where
     // localhost:4000 is the web container itself. See the note in shop.ts.
-    // ৫ আগস্ট: `no-store` → ৬০ সেকেন্ড cache — কারণটা shop.ts-এর get()-এ।
-    // মজুদ/দামের চূড়ান্ত সত্য এমনিতেই checkout-এর server-side pricing।
-    /*  DEC-WEB-004, ৯ আগস্ট ২০২৬ — `tags` যোগ হলো। ৬০ সেকেন্ডটা এখন শুধু
-        **জাল**; আসল কাজটা করে admin-এর save: API তখন web-কে ডেকে এই tag-টা
-        অকেজো করে দেয়, আর পাতা সাথে সাথেই নতুন হয়। আগে মালিককে এক-দুই
-        মিনিট আর দু'বার reload অপেক্ষা করতে হতো।  */
+    // 5 Aug: `no-store` → a 60 second cache — the reasoning is in shop.ts's
+    // get(). The final truth on stock and price is checkout's server-side
+    // pricing anyway.
+    /*  DEC-WEB-004, 9 Aug 2026 — `tags` added. The 60 seconds is now only a
+        **net**; the real work is done by the admin's save: the API then calls
+        web to invalidate this tag, and the page is fresh immediately. The
+        owner used to wait a minute or two and reload twice.  */
     const res = await fetch(`${baseFor()}${path}`, {
       next: { revalidate: 60, tags: [SHOP_TAG] },
     });
@@ -219,7 +220,7 @@ const PLACEHOLDER = [
  * ⚠️ ONLY USED TO PICK THE COPY TEMPLATE, never to price or place anything. A
  * category the owner invents ("corporate-hampers") has no template of its own,
  * so it borrows the flower one and gets a size heading that reads "Bouquet
- * Size". That is the visible edge of audit §3গ — the templates belong in the
+ * Size". That is the visible edge of audit §3c — the templates belong in the
  * admin, on the category, and this line disappears when they get there.
  */
 function templateKey(catSlug: string): ProductCategory {
@@ -261,8 +262,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     badge: a.supportsMidnight ? "midnight" : a.zone === "dhaka" ? "express" : "courier",
     stars: "",
     meta: "",
-    /*  ৫ আগস্ট — আসল ছবি। এটা placeholder-এ আটকে ছিল বলে cart আর checkout
-        কখনোই product-এর ছবি দেখাত না, ছবি upload করা থাকলেও।  */
+    /*  5 Aug — the real photo. This was stuck on the placeholder, which is why
+        cart and checkout never showed a product's photo even when one had been
+        uploaded.  */
     bg: a.images[0] ? `url(${a.images[0]}) center/cover` : PLACEHOLDER[0],
     best: false,
     exp: a.supportsExpress,
@@ -290,10 +292,11 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
           wrong, only less specific.  */
       label: a.nature.label ?? t.nature(product).label,
     },
-    /*  DEC-PRD-031 — title-এর নিচের এক লাইন। "On cards only" ছিল কারণ এই
-        field আগে PDP-তে কোথাও পৌঁছাতই না, যদিও API সবসময় পাঠাত (মালিক,
-        ৬ আগস্ট: "ata dorkar bolei to rakhsi"). ফাঁকা string থাকলে line-টা
-        page-এই বসে না, বানানো কিছু দেখানো হয় না।  */
+    /*  DEC-PRD-031 — the one line under the title. It said "On cards only"
+        because this field reached nowhere on the PDP, even though the API
+        always sent it (owner, 6 Aug: "ata dorkar bolei to rakhsi" — "I keep it
+        precisely because it is needed"). An empty string means the line does
+        not appear on the page at all; nothing invented is shown.  */
     shortDesc: a.shortDesc?.trim() || null,
     /*  ⚠️ IT USED TO READ THE ZONE AND NOTHING ELSE:
 
@@ -352,16 +355,17 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       typed it, he meant it, and second-guessing his words is not this seam's
       job.
     */
-    /*  DEC-PRD-034, মালিক ৯ আগস্ট ২০২৬: *"trust badge, faq আর inside না
-        থাকলে নিজের মতো করে অটো কিছু দিয়ে দেয় — এটা কেন করছে?"*
+    /*  DEC-PRD-034, owner 9 Aug 2026 (translated): *"when there is no trust
+        badge, faq or inside, it puts something there automatically on its own
+        — why is it doing this?"*
 
-        ⚠️ template-এর বানানো badge-গুলো তুলে দেওয়া হলো। ওগুলো দোকানের
-        কথা নয়, কোডে লেখা কথা — আর "4.9 on Google · 412 real reviews"
-        সংখ্যাটা কোথাও থেকে আসত না। মালিক যা লেখেননি তা তাঁর দোকান
-        বলবে না। খালি থাকলে অংশটাই আঁকা হয় না।
+        ⚠️ The template's invented badges were removed. They were not the
+        shop's words but words written in code — and the "4.9 on Google · 412
+        real reviews" number came from nowhere at all. A shop does not say what
+        its owner did not write. When empty, the section is not drawn.
 
-        ⚠️ delivery badge-টা থাকল, কারণ সেটা বানানো নয় — product-এর নিজের
-        তিনটে tick-box পড়ে বলা হয়, আর সেটা সবসময় সত্য।  */
+        ⚠️ The delivery badge stayed, because it is not invented — it is read
+        off the product's own three tick-boxes, and so it is always true.  */
     trust:
       a.trust.length > 0
         ? a.trust.map((x) => ({
@@ -389,11 +393,12 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         }
       : null,
     /*
-      DEC-PRD-012 — সোজা পার হয়ে যায়, কারণ server ইতিমধ্যে হিসাব করে
-      পাঠিয়েছে: ছাড় বসানো দাম, আর ছবি না থাকলে master-এর ছবি।
+      DEC-PRD-012 — passed straight through, because the server has already
+      done the arithmetic: the discounted price, and the master's photo when
+      there is none of its own.
 
-      ⚠️ `?? []` দরকার — API পুরনো হলে (restart-এর আগে) field-টা আসে না,
-      আর তখন `.map` করতে গিয়ে পুরো page সাদা হয়ে যেত।
+      ⚠️ `?? []` is needed — on an older API (before a restart) the field does
+      not arrive, and `.map` on it turned the whole page white.
     */
     variants: a.variants ?? [],
     sizes: a.sizes.map((s) => ({
@@ -404,8 +409,8 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     })),
     sizeLabel: a.sizeLabel,
     /*
-      DEC-PRD-018 — একটাই তালিকা, একটাই ছাড়। card-গুলো তালিকার জিনিস, আর
-      ছাড়টা `bundle`-এ আলাদা করে যায়।
+      DEC-PRD-018 — one list, one discount. The cards are the list's items, and
+      the discount travels separately on `bundle`.
 
       `bg` is the tinted panel behind the card until the added product has a
       photo. The image itself, when there is one, comes through `imageUrl`.
@@ -416,14 +421,15 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       pricePaisa: i.pricePaisa,
       bg: i.imageUrl ? `url(${i.imageUrl}) center/cover` : PLACEHOLDER[n % PLACEHOLDER.length],
     })),
-    /*  ⚠️ `?? null` — API পুরনো হলে field-টা আসে না, আর তখন ছাড় বসানোর
-        চেষ্টায় page ভাঙত।  */
+    /*  ⚠️ `?? null` — on an older API the field does not arrive, and trying to
+        apply the discount broke the page.  */
     bundle: a.bundle ?? null,
-    /*  DEC-PRD-024 — Search & sharing-এর ছয়টা ঘর। `?? null` নয়, পুরো
-        object-টাই পাশ করা হয় — page নিজে সিদ্ধান্ত নেবে কোনটা খালি।  */
+    /*  DEC-PRD-024 — Search & sharing's six fields. Not `?? null`; the whole
+        object is passed through — the page decides for itself which are
+        empty.  */
     seo: a.seo,
-    /*  DEC-PRD-020 — বড় সংস্করণ। ছবিটা CSS হয়ে যায় এখানেই, কারণ page-এর
-        বাকি সব ছবি ওই আকারেই আঁকা হয়।  */
+    /*  DEC-PRD-020 — the bigger versions. The photo becomes CSS right here,
+        because every other image on the page is drawn in that same form.  */
     upgrades: (a.upgrades ?? []).map((u) => ({
       slug: u.slug,
       name: u.name,
@@ -453,14 +459,14 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       })),
     })),
     /*
-      DEC-PRD-026 — মালিক, ২ আগস্ট ২০২৬: *"customize product-এ কোথাও image
-      upload আর কোথাও text লেখার জায়গা দিতে হয় — সেটার configure করার
-      জায়গা পেলাম না।"*
+      DEC-PRD-026 — Owner, 2 Aug 2026 (translated): *"a customise product needs
+      somewhere to upload an image and somewhere to write text — I could not
+      find where to configure that."*
 
-      ⚠️ এই লাইনে আগে সোজা `perso: null` লেখা ছিল। মানে admin-এ ঘর থাকুক
-      বা না থাকুক, product page-এ ওই বাক্স **কখনো** আসত না। Cart, checkout
-      আর order আগে থেকেই লেখা আর ছবি বয়ে নিয়ে যেত — মাঝের একটামাত্র লাইন
-      পুরো জিনিসটা বন্ধ করে রেখেছিল।
+      ⚠️ This line used to read simply `perso: null`. Which meant that whether
+      or not the fields existed in the admin, that box **never** appeared on the
+      product page. Cart, checkout and order were already carrying the text and
+      the image — one line in the middle had the whole thing switched off.
     */
     perso: a.perso
       ? {
@@ -488,7 +494,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
           ],
         }
       : null,
-    /*  DEC-PRD-027 — বন্ধ থাকলে `null`, আর page বাক্সটাই আঁকে না।  */
+    /*  DEC-PRD-027 — `null` when switched off, and the page does not draw the box.  */
     customise: a.customise,
     spec: a.spec.map((r) => ({ item: r.item, qty: r.qty })),
     /*  DEC-PRD-034 — the template fallback is gone (owner, 9 Aug 2026).
@@ -523,14 +529,15 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       byStar: a.reviews.byStar ?? [0, 0, 0, 0, 0],
       items: a.reviews.items ?? [],
       /*
-        DEC-PRD-025 — মালিকের বসানো সংখ্যা + বাছা সময়ের সত্যিকারের order।
-        মালিক কিছু না বসালে ১০-এর নিচে API `null` পাঠায়, আর লাইনটাই ওঠে
-        না — ছোট সত্যি সংখ্যা product-এর বিরুদ্ধে যুক্তি হয়ে দাঁড়ায়।
+        DEC-PRD-025 — the owner's threshold plus the real orders in the chosen
+        period. If he sets nothing, the API sends `null` below 10 and the line
+        does not appear at all — a small true number argues against the
+        product.
 
-        ⚠️ শব্দটা এখন **সময়ের সাথে মেলে**। আগে এখানে "orders this month"
-        হাতে লেখা ছিল, তাই মালিক "Today" বাছলেও page মাসের কথা বলত —
-        সংখ্যা এক জায়গা থেকে আর শব্দ আরেক জায়গা থেকে এলে ঠিক এভাবেই
-        মিথ্যা জন্মায়।
+        ⚠️ The wording now **matches the period**. "orders this month" used to
+        be hand-written here, so the page talked about the month even when the
+        owner had chosen "Today" — a number from one place and a word from
+        another is exactly how a lie gets born.
       */
       live:
         a.ordersThisMonth === null

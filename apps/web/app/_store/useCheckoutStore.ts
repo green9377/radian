@@ -21,20 +21,23 @@ import type { PaymentId } from "../_data/payment";
   ═══════════════════════════════════════════════════════════════════
   CHECKOUT STORE — Zustand + persist ("radian-checkout")
 
-  ★ পাঁচ ধাপ (locked, 14 July — সোবুজ)
+  ★ Five steps (locked, 14 July — sobuj)
     1 Your Details → 2 Who's Receiving → 3 Where → 4 When → 5 Payment
 
-  "Where" আর "When" আলাদা: ঠিকানা লেখা আর সময় বাছা — দুটো আলাদা মাথার কাজ।
-  একসাথে রাখলে card লম্বা হয়ে যায় আর মানুষ slot না বেছেই নিচে নামে।
+  "Where" and "When" are separate: writing an address and choosing a time are
+  two different jobs for the mind. Together they make the card long, and people
+  scroll past without picking a slot.
 
-  ── কী persist হয় ────────────────────────────────────────────
-  ✅ নাম · ফোন · country code · ঠিকানা → Auth নেই, তাই এই localStorage-ই
-     আপাতত "saved address"। পরের অর্ডারে আবার লিখতে হবে না।
-  ❌ payment · step · date · slot → নয়। গতকালের slot আজ বসে থাকা মানে
-     ভুল তারিখে অর্ডার চলে যাওয়া।
+  ── WHAT IS PERSISTED ────────────────────────────────────────
+  ✅ name · phone · country code · address → there is no Auth, so this
+     localStorage is the "saved address" for now. No retyping on the next
+     order.
+  ❌ payment · step · date · slot → no. Yesterday's slot sitting there today
+     means an order going out on the wrong date.
 
-  ── দাম এখানে নেই ────────────────────────────────────────────
-  D20-এর মতোই। resolveCart() + quoteDelivery() + applyCoupon() হিসাব করে।
+  ── NO PRICES HERE ───────────────────────────────────────────
+  The same as D20. resolveCart() + quoteDelivery() + applyCoupon() do the
+  arithmetic.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -43,7 +46,7 @@ export const TOTAL_STEPS = 5;
 export interface CheckoutState {
   /* Q1 — Your details */
   senderName: string;
-  /** dial code — "+880" default। প্রবাসী customer-এর জন্য বাধ্যতামূলক */
+  /** dial code — "+880" by default. Required for customers living abroad */
   senderDial: string;
   senderPhone: string;
   senderEmail: string;
@@ -51,7 +54,7 @@ export interface CheckoutState {
   /* Q2 — Who's receiving + gift touches (D14) */
   isGift: boolean;
   recipientName: string;
-  /** সবসময় বাংলাদেশি নম্বর — country code লাগে না */
+  /** always a Bangladeshi number — no country code needed */
   recipientPhone: string;
   giftMessage: string;
   anonymousGift: boolean;
@@ -89,7 +92,7 @@ const EMPTY: CheckoutState = {
   senderPhone: "",
   senderEmail: "",
 
-  isGift: true, // Radian-এর বেশির ভাগ অর্ডারই উপহার
+  isGift: true, // most of Radian's orders are gifts
   recipientName: "",
   recipientPhone: "",
   giftMessage: "",
@@ -139,9 +142,10 @@ export const useCheckoutStore = create<CheckoutStore>()(
         })),
 
       /*
-        Order-এর পর: নাম-ফোন-ঠিকানা থাকে (পরের অর্ডার দ্রুত হবে), কিন্তু
-        gift message · slot · payment মুছে যায়। পুরনো বার্তা থেকে গেলে
-        পরের বার অন্য কারো উপহারে আগের কারো নাম চলে যেত।
+        After an order: name, phone and address stay (the next order is
+        quicker), but gift message · slot · payment are cleared. If an old
+        message survived, someone else's gift would go out next time carrying
+        the previous person's name.
       */
       resetAfterOrder: () =>
         set({
@@ -186,9 +190,10 @@ export function useCheckoutHydrated(): boolean {
 }
 
 /* ─────────────────── PHONE ───────────────────
-   Constitution: phone → +8801XXXXXXXXX।
-   Sender-এর নম্বর যেকোনো দেশের হতে পারে (প্রবাসী), তাই dial code আলাদা।
-   Receiver সবসময় বাংলাদেশে — তাই শুধু BD নিয়ম।
+   Constitution: phone → +8801XXXXXXXXX.
+   A sender's number may be from any country (they may live abroad), so the
+   dial code is separate. A receiver is always in Bangladesh — so the BD rule
+   only.
 */
 
 const BD_LOCAL = /^01[3-9]\d{8}$/;
@@ -202,7 +207,7 @@ export function normalizePhone(dial: string, raw: string): string | null {
     return BD_LOCAL.test(clean) ? dial + clean.slice(1) : null;
   }
 
-  // বিদেশি নম্বরে শুরুর 0 (trunk prefix) বাদ — +44 07... → +447...
+  // drop the leading 0 (trunk prefix) on a foreign number — +44 07... → +447...
   const local = clean.replace(/^0+/, "");
   return INTL_LOCAL.test(local) ? dial + local : null;
 }
@@ -229,16 +234,18 @@ export interface ValidateOpts {
   /** which fast options every item in the cart allows (intersection) */
   speeds?: CartSpeeds;
   /**
-   * DEC-DLV-009 — যে delivery সারিটা পর্দায় বাছা হয়েছে, পুরোটা।
+   * DEC-DLV-009 — the whole delivery row that was chosen on screen.
    *
-   * ⚠️ **step 4-এ বাধ্যতামূলক।** আগে এখানে `getMethod(s.method)` লেখা ছিল, আর
-   * `s.method` এখন database-এর সারির id — হাতে-লেখা তালিকায় সেটা কোনোদিন
-   * মেলে না। মেলেনি বলে চুপচাপ "Same Day" ধরে নিত, তারপর হাতে-লেখা `SLOTS`-এ
-   * live slot খুঁজে না পেয়ে বলত *"That slot is gone"*। ফল: **কেউ কোনোদিন
-   * step 4 পার হতে পারত না, একটা order-ও place হতো না।**
+   * ⚠️ **Required at step 4.** This used to read `getMethod(s.method)`, and
+   * `s.method` is now a database row id — which never matches anything in the
+   * hand-written list. On the miss it silently assumed "Same Day", then failed
+   * to find the live slot in the hand-written `SLOTS` and said *"That slot is
+   * gone"*. The result: **nobody could ever get past step 4, and not one order
+   * could be placed.**
    *
-   * না দিলে নিচে হাতে-লেখা তালিকায় খোঁজে (seed/demo), আর তাতেও না পেলে
-   * সোজাসুজি "Pick a delivery option." — নিঃশব্দে অন্য method ধরে নেওয়া নয়।
+   * Without it, the hand-written list below is searched (seed/demo), and on a
+   * miss there it says plainly "Pick a delivery option." — never silently
+   * assuming a different method.
    */
   method?: DeliveryMethod;
 }
@@ -307,9 +314,10 @@ export function validateStep(
       if (!s.slotId) {
         e.slotId = "Pick a time slot.";
       } else {
-        /*  ⚠️ এই method-এর **নিজের** slot-এ খোঁজে। `getSlot()` সবসময় হাতে-লেখা
-            `SLOTS`-এ খুঁজত, তাই delivery module-এর slot বাছলেই `null` — আর
-            তখন এই লাইনটাই checkout-কে চিরকালের জন্য আটকে দিত।  */
+        /*  ⚠️ Searches this method's **own** slots. `getSlot()` always searched
+            the hand-written `SLOTS`, so picking a slot from the delivery
+            module gave `null` — and this one line then blocked checkout
+            forever.  */
         const slot = findSlot(method, s.slotId);
         const isToday = method.todayOnly || s.date === toISO(now);
         if (!slot || !slotState(slot, isToday, now).ok)

@@ -25,3 +25,6 @@ _*.txt
 .DS_Store
 Thumbs.db
 CLAUDE.md
+
+# ship note - consumed by RADIAN_SHIP.bat, never committed
+_SHIP_MSG.txt
