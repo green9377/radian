@@ -17,6 +17,7 @@
 */
 
 import Link from "next/link";
+import Icon from "./Icon";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiBackups, ApiSession, ApiSettingsEntry,
@@ -233,6 +234,27 @@ export function BackupScreen() {
  *  All settings — a map, not a table
  * ================================================================== */
 
+/*  Owner modules wear the same hues their departments wear in the sidebar,
+    so this map and the nav read as one system.  */
+const OWNER_META: Record<string, { label: string; icon: string; grad: string; fg: string }> = {
+  pos: { label: "POS", icon: "register", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
+  returns: { label: "Returns", icon: "returnArrow", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
+  offers: { label: "Offers", icon: "tag", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
+  inventory: { label: "Inventory", icon: "warehouse", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
+  finance: { label: "Finance", icon: "wallet", grad: "linear-gradient(120deg,#b07818,#e9c46a)", fg: "#b07818" },
+  marketing: { label: "Marketing", icon: "megaphone", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
+  messaging: { label: "Messaging", icon: "mail", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
+  seo: { label: "SEO", icon: "search", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
+  tracking: { label: "Tracking", icon: "chart", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
+  intelligence: { label: "Intelligence", icon: "bolt", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
+  company: { label: "Company", icon: "store", grad: "linear-gradient(120deg,#8879a8,#b9aecf)", fg: "#8879a8" },
+};
+/* sidebar department order: today's work, sell, stock, money, growth, setup */
+const OWNER_ORDER = [
+  "pos", "returns", "offers", "inventory", "finance",
+  "marketing", "messaging", "seo", "tracking", "intelligence", "company",
+];
+
 export function SettingsMapScreen() {
   const [rows, setRows] = useState<ApiSettingsEntry[]>([]);
   const [err, setErr] = useState("");
@@ -245,52 +267,72 @@ export function SettingsMapScreen() {
     (acc[r.owner] ??= []).push(r);
     return acc;
   }, {});
+  const pos = (o: string) => { const i = OWNER_ORDER.indexOf(o); return i === -1 ? 999 : i; };
+  const owners = Object.keys(byOwner).sort((a, b) => pos(a) - pos(b));
+  const inUse = rows.filter((r) => r.exists).length;
 
   return (
     <div className={WRAP}>
-      <FinHeader
-        eyebrow="Administration" emoji="⚙" title="All settings"
-        sub="Every module's settings, reachable from one place"
-      />
+      <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden"
+        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        <div className="flex items-center gap-3 relative flex-wrap">
+          <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
+            style={{ background: "rgba(255,255,255,0.16)" }}>
+            <Icon name="gear" size={18} strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-white/70">Setup · Administration</div>
+            <h1 className="font-display text-[21px] text-white leading-tight m-0">All settings</h1>
+          </div>
+          {rows.length > 0 && (
+            <span className="ml-auto px-3 py-[7px] rounded-full text-[11px] font-bold text-white"
+              style={{ background: "rgba(255,255,255,0.18)" }}>
+              {rows.length} screens · {inUse} in use
+            </span>
+          )}
+        </div>
+      </div>
       <Flash ok="" err={err} />
 
-      <div className="mb-5">
-        <Card className="p-4 max-w-[760px]">
-          <p className="text-[12.5px] text-body leading-relaxed">
-            These are <strong>not</strong> gathered into one settings table, and
-            they will not be. The VAT rate is a Finance business rule; the POS
-            discount ceiling belongs to POS. Merging them would give every module
-            a reason to write to a table it does not own.
-          </p>
-          <p className="text-[12.5px] text-body-soft leading-relaxed mt-2">
-            What was missing was a way to find them. The old “Settings” row in the
-            sidebar had no link behind it at all.
-          </p>
-        </Card>
-      </div>
-
       <div className="space-y-4">
-        {Object.entries(byOwner).map(([owner, list]) => (
-          <Panel key={owner} emoji="▤" title={owner} sub={`${list.length} settings screen${list.length === 1 ? "" : "s"}`}>
-            <div className="p-4 grid gap-3 md:grid-cols-2">
-              {list.map((r) => (
-                <Link key={r.key} href={r.href} className="block">
-                  <Card className="p-4 h-full">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[13px] font-bold text-purple">{r.label}</span>
-                      {/*  Counted from the real row, so this cannot claim a module
-                           is set up when nobody has been near it.  */}
-                      <Chip tone={r.exists ? "emerald" : "slate"}>
-                        {r.exists ? "in use" : "untouched"}
-                      </Chip>
+        {owners.map((owner) => {
+          const meta = OWNER_META[owner] ?? {
+            label: owner.replace(/^./, (c) => c.toUpperCase()), icon: "gear",
+            grad: "linear-gradient(120deg,#8a2bb0,#cf43ea)", fg: "#7a2ea8",
+          };
+          const list = byOwner[owner];
+          return (
+            <div key={owner} className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+              style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
+              <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: meta.grad }}>
+                <span className="text-white"><Icon name={meta.icon} size={14} strokeWidth={2.3} /></span>
+                <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">{meta.label}</span>
+                <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{list.length}</span>
+              </div>
+              <div className="p-3.5 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                {list.map((r) => (
+                  <Link key={r.key} href={r.href}
+                    className="rounded-[13px] border bg-white p-3 transition-all hover:-translate-y-[1px]"
+                    style={{ borderColor: "#eee9f4", boxShadow: "0 1px 4px rgba(70,0,102,0.05)" }}>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0"
+                        style={{ background: meta.grad }}>
+                        <Icon name={meta.icon} size={12} strokeWidth={2.4} />
+                      </span>
+                      <span className="text-[13px] font-bold text-[#2d2838] flex-1 min-w-0 truncate">{r.label}</span>
+                      <span className="w-[8px] h-[8px] rounded-full shrink-0"
+                        title={r.exists ? "in use" : "untouched"}
+                        style={r.exists
+                          ? { background: "#22c08b" }
+                          : { background: "#fff", border: "2px solid #d8d0e4" }} />
                     </div>
-                    <p className="text-[12px] text-body leading-relaxed">{r.what}</p>
-                  </Card>
-                </Link>
-              ))}
+                    <p className="text-[11px] text-body-soft mt-1.5 mb-0 truncate">{r.what}</p>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </Panel>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
