@@ -42,6 +42,20 @@ import AccessPeople from "./AccessPeople";
 
 type Verdict = boolean | null;
 
+/*  Department colours — the SAME hues the sidebar wears, so the tree here and
+    the nav read as one system. bar = the sidebar accent; text = a darker cut
+    of it that stays readable on white.  */
+const DEPT: Record<string, { bar: string; text: string; soft: string }> = {
+  "Today's work":  { bar: "#f0a8b8", text: "#c25a72", soft: "#fdf1f4" },
+  "What you sell": { bar: "#e07be0", text: "#a021b8", soft: "#fbeffb" },
+  "Stock & buying":{ bar: "#5ec9a8", text: "#12a172", soft: "#eaf8f2" },
+  "Money":         { bar: "#e9c46a", text: "#b07818", soft: "#fdf6e7" },
+  "Growth":        { bar: "#7fb4f0", text: "#3b76c4", soft: "#eef5fd" },
+  "Setup":         { bar: "#b9aecf", text: "#7a6f96", soft: "#f4f1f8" },
+};
+const dept = (d: string) => DEPT[d] ?? DEPT["Setup"];
+const DEPT_ORDER = Object.keys(DEPT);
+
 function flatten(nodes: ApiAccessNode[]): ApiAccessNode[] {
   return nodes.flatMap((n) => [n, ...flatten(n.children)]);
 }
@@ -212,12 +226,23 @@ export default function AccessControl() {
 
   return (
     <div className={WRAP}>
-      <FinHeader
-        eyebrow="Administration"
-        title="Access control"
-        emoji="🔑"
-        sub={`${nodeCount} screens, ${positions.length} positions — one list, one place`}
-      />
+      <div className="rounded-[22px] px-6 py-5 mb-5 relative overflow-hidden"
+        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        <div className="absolute -right-10 -top-14 w-[220px] h-[220px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(circle,#fff,transparent 70%)" }} />
+        <div className="flex items-center gap-3.5 relative flex-wrap">
+          <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center text-white shrink-0"
+            style={{ background: "rgba(255,255,255,0.16)" }}>🔑</span>
+          <div>
+            <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/70">Setup · Administration</div>
+            <h1 className="font-display text-[24px] text-white leading-tight m-0">Access control</h1>
+          </div>
+          <div className="ml-auto flex items-center gap-2.5">
+            <span className="text-[12px] font-bold text-white bg-white/[0.16] px-3 py-1.5 rounded-full">{nodeCount} screens</span>
+            <span className="text-[12px] font-bold text-white bg-white/[0.16] px-3 py-1.5 rounded-full">{positions.length} positions</span>
+          </div>
+        </div>
+      </div>
       <Flash ok={ok} err={err} />
 
       {/*  ADM-D06. A new screen reaches nobody until it is decided — but it
@@ -246,9 +271,9 @@ export default function AccessControl() {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+      <div className="grid gap-5 lg:grid-cols-[264px_minmax(0,1fr)] xl:grid-cols-[264px_minmax(0,1fr)_320px] items-start">
         {/* ---------- positions ---------- */}
-        <Card className="p-4 h-fit">
+        <Card className="p-4 h-fit lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[13px] font-bold text-purple">Positions</h3>
             <button className={btnGhost} onClick={() => setAdding((a) => !a)}>
@@ -279,19 +304,28 @@ export default function AccessControl() {
                 <button
                   key={p.id}
                   onClick={() => setSelected(p.id)}
-                  className="w-full text-left rounded-xl px-3 py-2.5 border transition"
+                  className="w-full text-left rounded-[13px] px-3 py-2.5 border transition-all"
                   style={{
                     background: on ? TONE.brand.soft : "#fff",
-                    borderColor: on ? TONE.brand.ring : "#eceaf1",
+                    borderColor: on ? "#cf43ea" : "#eceaf1",
+                    boxShadow: on ? "0 2px 10px rgba(160,33,184,0.16)" : undefined,
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-body">{p.name}</span>
-                    {p.isOwner && <Chip tone="brand">everything</Chip>}
-                  </div>
-                  <div className="text-[11px] text-body-soft mt-0.5">
-                    {p.people} {p.people === 1 ? "person" : "people"}
-                    {!p.isOwner && ` · ${p.rules} own rules`}
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-[30px] h-[30px] rounded-[10px] grid place-items-center text-[13px] font-bold text-white shrink-0"
+                      style={{ background: p.isOwner ? "linear-gradient(135deg,#b76e79,#e0a8a0)" : "linear-gradient(135deg,#8a2bb0,#cf43ea)" }}>
+                      {p.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-semibold text-body truncate">{p.name}</span>
+                        {p.isOwner && <Chip tone="brand">everything</Chip>}
+                      </div>
+                      <div className="text-[11px] text-body-soft mt-0.5">
+                        {p.people} {p.people === 1 ? "person" : "people"}
+                        {!p.isOwner && ` · ${p.rules} own rules`}
+                      </div>
+                    </div>
                   </div>
                 </button>
               );
@@ -338,15 +372,29 @@ export default function AccessControl() {
               <Empty title="Pick a position on the left" />
             </div>
           ) : (
-            <div className="p-3 space-y-1">
-              {tree.map((mod) => {
+            <div className="p-3 space-y-3">
+              {DEPT_ORDER.filter((d) => tree.some((m) => m.domain === d)).map((domain) => {
+              const c = dept(domain);
+              const mods = tree.filter((m) => m.domain === domain);
+              const openCount = mods.filter((m) => effective(m.key).allowed).length;
+              return (
+              <div key={domain}>
+                <div className="flex items-center gap-2 px-1 pb-1.5">
+                  <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: c.bar }} />
+                  <span className="text-[11px] font-extrabold tracking-[0.12em] uppercase" style={{ color: c.text }}>{domain}</span>
+                  <span className="text-[10.5px] font-bold ml-auto px-2 py-0.5 rounded-full"
+                    style={{ background: c.soft, color: c.text }}>{openCount}/{mods.length} open</span>
+                </div>
+                <div className="space-y-1">
+              {mods.map((mod) => {
                 const eff = effective(mod.key);
                 const isOpen = open.has(mod.key);
                 return (
-                  <div key={mod.key} className="rounded-xl border border-[#f0edf5] overflow-hidden">
+                  <div key={mod.key} className="rounded-xl border overflow-hidden"
+                    style={{ borderColor: eff.allowed ? `${c.bar}66` : "#f0edf5", borderLeft: `3px solid ${eff.allowed ? c.bar : "#e5e0ee"}` }}>
                     <div
                       className="flex items-center gap-2 px-3 py-2.5"
-                      style={{ background: eff.allowed ? "#fbf7fd" : "#fafafa" }}
+                      style={{ background: eff.allowed ? c.soft : "#fafafa" }}
                     >
                       <button
                         className="text-[11px] w-5 text-body-soft"
@@ -355,11 +403,9 @@ export default function AccessControl() {
                       >
                         {mod.children.length ? (isOpen ? "▾" : "▸") : "·"}
                       </button>
-                      <span className="text-[13px] font-semibold text-body flex-1">
+                      <span className="text-[13px] font-semibold flex-1"
+                        style={{ color: eff.allowed ? "#3f3a4a" : "#9a93a8" }}>
                         {mod.label}
-                        <span className="text-[11px] text-body-soft font-normal ml-2">
-                          {mod.domain}
-                        </span>
                       </span>
                       <TriState
                         value={mod.key in rules ? rules[mod.key] : null}
@@ -388,13 +434,17 @@ export default function AccessControl() {
                   </div>
                 );
               })}
+                </div>
+              </div>
+              );
+              })}
             </div>
           )}
         </Panel>
 
         {/*  The people column (§9). This is where an account is created — by
              email, with no password, because they choose their own.  */}
-        <div className="xl:block">
+        <div className="xl:block xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
           <AccessPeople
             positions={positions}
             selectedPositionId={selected}
@@ -551,11 +601,14 @@ function TriState({
             key={String(o.v)}
             disabled={disabled}
             onClick={() => onChange(o.v)}
-            className="text-[10.5px] px-2 py-1 font-semibold transition disabled:opacity-40"
+            className="text-[10.5px] px-2.5 py-1 font-bold transition disabled:opacity-40"
             style={{
-              background: on ? TONE[o.tone].soft : "#fff",
-              color: on ? TONE[o.tone].text : "#a9a3b5",
-              boxShadow: on ? `inset 0 0 0 1px ${TONE[o.tone].ring}` : undefined,
+              background: on
+                ? (o.v === true ? "linear-gradient(135deg,#12a172,#5ec9a8)"
+                  : o.v === false ? "linear-gradient(135deg,#c0392b,#e87a6e)"
+                  : "#eceaf1")
+                : "#fff",
+              color: on ? (o.v === null ? "#6b6478" : "#fff") : "#a9a3b5",
             }}
             title={
               o.v === null
