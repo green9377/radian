@@ -53,6 +53,51 @@ node apps/api/scripts/comments-only.mjs --staged    ← যা staged আছে 
 node apps/api/scripts/comments-only.mjs --staged && git commit ...
 ```
 
+### 🚨 নতুন কথোপকথন — এই অংশটুকু পড়লেই যথেষ্ট
+
+মালিক বলবেন **"বাংলা সরানোর কাজ চালাও"**। তখন যা করতে হবে:
+
+**ধাপ ১ — কত বাকি দেখে নাও (কখনো আন্দাজ কোরো না):**
+```
+node apps/api/scripts/no-bangla.selftest.mjs
+node -e "const b=require('./apps/api/scripts/no-bangla.baseline.json');const e=Object.entries(b).filter(x=>!x[0].endsWith('.md')).sort((a,c)=>c[1]-a[1]);console.log(e.slice(0,8))"
+```
+দ্বিতীয় কমান্ডটা **সবচেয়ে বেশি বাংলা আছে এমন কোড ফাইল** দেখায় — ওটাই ধরতে হবে।
+
+**ধাপ ২ — অনুবাদ করো।** ফাইলের বাংলা লাইনগুলো `grep -nP` দিয়ে বের করে,
+আশপাশ পড়ে, তারপর Edit দিয়ে ইংরেজি বসাও।
+
+**ধাপ ৩ — প্রতিবার commit-এর আগে (`&&` দিয়ে, `;` দিয়ে নয়):**
+```
+node apps/api/scripts/comments-only.mjs <file> && \
+node apps/api/scripts/no-bangla.selftest.mjs --update-baseline && \
+git add -A && git commit -q -m "..." && git push -q origin main
+```
+
+### ⛔ চারটে ভুল যেগুলো করা যাবে না
+
+1. **যন্ত্রে/দ্রুত অনুবাদ নয়।** প্রতিটা মন্তব্য পড়ে, **কেন** লেখা হয়েছিল
+   বুঝে, তারপর ইংরেজিতে লিখতে হবে。 এই মন্তব্যগুলোই প্রকল্পের স্মৃতি —
+   "টরন্টো থেকে দেখলে cut-off ৯ ঘণ্টা দূরে দেখাত", "টেবিল ছিল, admin ছিল,
+   পর্দা ছিল না"。 বাক্য অনুবাদ করলে কারণটা হারায়, আর তখন মন্তব্য রাখারই
+   মানে থাকে না。
+2. **মন্তব্যের বাইরে একটা অক্ষরও নয়।** `comments-only.mjs` **CODE** বললে
+   commit করা যাবে না — কোন লাইনটা বদলেছে সেটা ও নিজেই বলে দেয়。
+3. **তিনটে ফাইলে বাংলা থাকবেই** — scanner-এর ALLOW তালিকায় কারণসহ:
+   `inbox/ai-agent.ts` (গ্রাহক বাংলায় লিখলে AI বাংলায় উত্তর দেয়) ·
+   `FinanceMushak.tsx` (NBR মূসক ৬.৩ — আইনে বাংলা বাধ্যতামূলক) ·
+   `ZonesAvailability.tsx` (বাংলা zone-নাম চেনার regex)。 এগুলো মন্তব্য নয়,
+   **চালু জিনিস** — সরালে ফিচার ভাঙে, একটায় আইন ভাঙে。
+4. **commit-এ `-c user.email=...` দিয়ে override নয়।** repo-র নিজের পরিচয়
+   (`green9377`) ব্যবহার করতে হবে, নইলে **Vercel চুপচাপ deployment
+   BLOCKED করে দেয়** (§৫-এর ফাঁদ তালিকা দেখো)。
+
+### ✅ যা ইতিমধ্যে শেষ
+
+`apps/api/prisma/schema.prisma` (৭৩৩ → ০) ·
+`apps/web/app/_components/Pdp/PdpView.tsx` (২০৯ → ০) ·
+`apps/api/src/shop/product-detail.ts` (১৯৪ → ৫৬, চলছে)
+
 ### ▶️ পরের বার এখান থেকে শুরু
 
 ক্রম **ঝুঁকি অনুযায়ী** — আগে কোড, পরে ডকুমেন্ট:
