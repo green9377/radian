@@ -22,21 +22,23 @@ import { BundleCards, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./P
 import { bundleTotals } from "../../_data/bundlePricing";
 
 /*
-  PDP — gallery + buy panel. একটাই client component,
-  কারণ upgrade / add-on / qty সব একটাই price state ছোঁয়।
+  PDP - gallery plus buy panel. One client component, because upgrade, add-on
+  and qty all touch the same price state.
 
   Layout (FlowerAura pattern):
-   - Thumbnail বাঁ পাশে vertical → main image বড় থাকে, trust icon-ও একই স্ক্রিনে ধরে।
-   - Delivery slot, gift message, anonymous gift — সব CHECKOUT-এ। PDP-তে নয়।
+   - Thumbnails run vertically down the left, so the main image stays large and
+     the trust icons still fit on the same screen.
+   - Delivery slot, gift message and anonymous gift all live in CHECKOUT, never
+     on the PDP.
 */
 
 const FALLBACK_BG = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
 
 /**
- * এই সংখ্যা বা তার নিচে নামলে "কম বাকি" হিসেবে দেখানো হয়।
+ * At or below this number, stock is shown as "only a few left".
  *
- * ৫ — admin-এর নিজের Low-stock তালিকাও এই একই সংখ্যা ব্যবহার করে, তাই
- * দোকান যেটাকে "কম" বলে আর ক্রেতা যেটা দেখে, দুটো এক থাকে।
+ * 5 - the admin's own Low-stock list uses this same number, so what the shop
+ * calls low and what the buyer sees stay the same thing.
  */
 const LOW_STOCK = 5;
 
@@ -46,25 +48,29 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const { product } = detail;
 
   /*
-    DEC-PRD-012 — রঙ / ফ্লেভার / মাপ, সব এই page-এ। Click করলে কোথাও
-    যাওয়া হয় না, শুধু ছবি-দাম-মজুদ বদলায়।
+    DEC-PRD-012 - colour, flavour and size all live on this page. Clicking one
+    navigates nowhere; only the image, price and stock change.
 
-    ⚠️ শুরুতে **কিছুই বাছা থাকে না** — DEC-PRD-031, মালিক ৮ আগস্ট ২০২৬।
-    আগে প্রথম মজুদ-থাকা variant আপনিই বাছা হয়ে যেত, আর তার ছবি মূল
-    ছবিটাকে সরিয়ে দিত — product-এর নিজের ছবি গ্রাহক কোনোদিন দেখতই না,
-    মালিক ঠিক সেটাই ধরলেন। এখন page খোলে product-এর নিজের ছবি আর দাম
-    নিয়ে; রঙ/stem বাছলে তবেই দুটো বদলায়।
+    NOTHING IS SELECTED AT FIRST - DEC-PRD-031, owner, 8 August 2026.
+    The first in-stock variant used to be selected automatically, and its photo
+    displaced the main one - so the customer never saw the product's own
+    picture at all, which is exactly what the owner spotted. Now the page opens
+    on the product's own photo and price; choosing a colour or stem count is
+    what changes them.
   */
   const vList = detail.variants ?? [];
   /*
-    DEC-PRD-036 — মালিক, ৯ আগস্ট ২০২৬: *"prothome je price show hoy, amar
+    DEC-PRD-036 - the owner, 9 August 2026: *"prothome je price show hoy, amar
     bujhar upay nei ota kon variant-er. je price show hok se variant-e click
-    thakle eta clear hobe."*
+    thakle eta clear hobe."* (When a price is shown first, I have no way of
+    knowing which variant it belongs to. Whichever price is shown, that
+    variant should be clicked, and then it is clear.)
 
-    তাই "from ৳50" যে রঙের দাম, page খোলে **সেই রঙটা বাছা অবস্থায়** — দাম
-    আর বাছাই একই কথা বলে। এটা শুধু তখনই, যখন সব variant নিজের দামে চলে
-    (priceFrom); product-এর নিজের দাম থাকলে আগের নিয়ম — কিছু বাছা থাকে না,
-    মূল ছবি আর মূল দাম (৮ আগস্টের সিদ্ধান্ত অটুট)।
+    So the page opens WITH THAT COLOUR SELECTED - the one whose price the
+    "from ৳50" refers to - and the price and the selection say the same thing.
+    This applies only when every variant carries its own price (priceFrom); if
+    the product has a price of its own, the old rule stands: nothing selected,
+    main photo, main price (the 8 August decision is untouched).
   */
   const cheapestId =
     detail.priceFrom && vList.length > 0
@@ -73,27 +79,30 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const [variantId, setVariantId] = useState(cheapestId);
 
   /*
-    DEC-PRD-020 — বড় সংস্করণ। মালিক, ২ আগস্ট ২০২৬: *"upgrade product-এ
-    click করলে price change হবে, কিন্তু অন্য page-এ যেন না নেয়।"*
+    DEC-PRD-020 - the larger version. The owner, 2 August 2026: *"clicking an
+    upgrade product should change the price, but it must not take me to
+    another page."*
 
-    ⚠️ `null` = এই product-টাই, যেটা page-এ খোলা আছে। কোনো upgrade বাছলে
-    দাম আর ছবি বদলায়, কিন্তু URL এক থাকে — গ্রাহক যেখানে ছিল সেখানেই।
+    `null` means this product, the one the page is open on. Choosing an upgrade
+    changes the price and the photo while the URL stays put - the customer
+    stays where they were.
   */
   const upList = detail.upgrades ?? [];
   const [upgradeSlug, setUpgradeSlug] = useState<string | null>(null);
   const upgrade = upList.find((u) => u.slug === upgradeSlug) ?? null;
 
-  /* তিন স্তর: colour = sibling product (link), size + bundle = এখানে */
+  /* Three layers: colour is a sibling product (a link), size and bundle are here */
   const [sizeId, setSizeId] = useState(detail.sizes[0].id);
   /*
-    DEC-PRD-018 — মালিক, ২ আগস্ট ২০২৬: *"just main product নিলে কোনো
-    discount নেই, আর সাথে extra কোনো bundle থেকে product select করলেই সে
-    discount পাবে"*. তালিকা থেকে যা খুশি নেওয়া যায়, তাই একটা id নয়,
-    একটা তালিকা।
+    DEC-PRD-018 - the owner, 2 August 2026: *"taking just the main product
+    gets no discount; the discount comes as soon as an extra product is
+    selected from a bundle"*. Any number may be taken from the list, so this
+    is a list of ids rather than one id.
 
-    ⚠️ শুরুতে কিছুই বাছা থাকে না। আগে এখানে "Most loved" card-টা আগে থেকে
-    বাছা থাকত — অর্থাৎ page খোলামাত্র Buy Now-এর সংখ্যায় এমন একটা জিনিসের
-    দাম বসে যেত যা গ্রাহক চাননি। এখন যোগ করলে তবেই দাম বাড়ে।
+    Nothing is selected at the start. The "Most loved" card used to be
+    pre-selected - meaning the Buy Now figure included, from the moment the
+    page opened, the price of something the customer never asked for. Now the
+    price only rises once they add something.
   */
   const [bundleIds, setBundleIds] = useState<string[]>([]);
   const [tabIdx, setTabIdx] = useState(0);
@@ -105,7 +114,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const [zoom, setZoom] = useState(false);
   const [clock, setClock] = useState<string | null>(null);
 
-  /* personalisation — cart-এ যেতে হলে state-এ ধরতে হয় (আগে uncontrolled ছিল) */
+  /* Personalisation - it has to be held in state to reach the cart (it used
+     to be uncontrolled) */
   const [persoText, setPersoText] = useState("");
   const [persoImage, setPersoImage] = useState("");
 
@@ -114,30 +124,38 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const variant = vList.find((v) => v.id === variantId) ?? null;
 
   /*
-    বাছা variant-এর ছবি প্রথম ঘরে বসে — thumbnail আর বড় ছবি দুটোতেই।
+    The selected variant's photo takes the first slot, in both the thumbnails
+    and the large image.
 
-    ⚠️ যোগ করা হয় না, **বদলে দেওয়া** হয়। যোগ করলে প্রতিবার রঙ বদলালে
-    থাম্বনেইলের সংখ্যা বাড়ত আর `media`-র index সরে যেত, তাই লাল বাছার পর
-    ২ নম্বর ছবিতে click করলে ৩ নম্বরটা খুলত।
+    It REPLACES rather than appends. Appending would have grown the thumbnail
+    count every time the colour changed and shifted `media`'s index, so after
+    picking red, clicking photo 2 opened photo 3.
   */
-  /*  ⚠️ upgrade বাছা থাকলে তার ছবিটাই প্রথম ঘরে — মালিকের নিয়মে দাম আর
-      ছবি দুটোই বদলায়। রঙের ছবির চেয়ে upgrade আগে, কারণ upgrade বাছলে
-      রঙের বাছাই এমনিতেই মুছে যায় (নিচে) — ওটা অন্য product-এর রঙ।  */
+  /*  When an upgrade is selected its photo takes the first slot - the owner's
+      rule is that the price and the photo both change. Upgrade wins over the
+      variant photo, because selecting an upgrade clears the colour selection
+      anyway (below): that colour belongs to a different product.  */
   /*
-    ═══ GALLERY — DEC-PRD-036, মালিক ৯ আগস্ট ২০২৬ ═══════════════════════════
+    ═══ GALLERY - DEC-PRD-036, owner 9 August 2026 ═════════════════════════
 
-    *"variant-এর image just click korar pore ase — egula gallery-teo thakbe.
+    *"variant-er image just click korar pore ase - egula gallery-teo thakbe.
     customer colour select korle gallery theke se colour-er image asbe, abar
     gallery theke je variant-er image dekhbe, pash theke se variant-e auto
-    move hobe."*
+    move hobe."* (A variant's image only appears after a click - these should
+    be in the gallery too. When the customer selects a colour, that colour's
+    image should come up from the gallery, and when they view a variant's
+    image in the gallery, the selection beside it should move to that variant
+    automatically.)
 
-    তাই তালিকাটা এখন **স্থির**: আগে product-এর নিজের সব ছবি, তারপর প্রতিটা
-    রঙের ছবি — সবসময়, বাছাই যা-ই হোক। ঘর নড়ে না বলে index-ও নড়ে না।
+    So the list is now FIXED: all of the product's own photos first, then every
+    colour's photo - always, whatever is selected. The slots do not move, so
+    the indexes do not move either.
 
-    দুই দিকের বাঁধন:
-      রঙ বাছা      → বড় ছবি সেই রঙের ঘরে চলে যায় (নিচের effect)
-      রঙের ছবি ছোঁয়া → সেই রঙটাই বেছে যায় (openMedia)
-    Product-এর নিজের ছবি দেখলে বাছাই বদলায় না — রঙ ধরে রেখেই ঘোরা যায়।
+    Bound both ways:
+      pick a colour        -> the large image jumps to that colour's slot (effect below)
+      open a colour's photo -> that colour becomes selected (openMedia)
+    Viewing the product's own photos changes nothing - you can browse them with
+    a colour still held.
   */
   const variantSlots = upgrade ? [] : vList.filter((v) => v.imageUrl);
   const gallery = upgrade
@@ -150,9 +168,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     if (!upgrade && slot >= 0 && variantSlots[slot]) setVariantId(variantSlots[slot].id);
   };
 
-  /*  রঙ বদলালে বড় ছবিটা তার ঘরে যায়; ছবি-ছাড়া রঙ (বা বাছাই তুলে নিলে)
-      প্রথম ছবিতে ফেরে — নাহলে ৪ নম্বর ছবি খোলা অবস্থায় রঙ বদলালে নতুন
-      ছবিটা কেউ দেখতেই পেত না।  */
+  /*  Changing the colour moves the large image to its slot; a colour with no
+      photo (or clearing the selection) returns to the first image - otherwise,
+      changing colour while photo 4 was open meant nobody ever saw the new
+      one.  */
   useEffect(() => {
     if (upgrade) return;
     const slot = variant?.imageUrl ? variantSlots.findIndex((v) => v.id === variant.id) : -1;
@@ -160,11 +179,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   }, [variantId]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
-    ⚠️ upgrade বাছলে রঙ আর bundle-এর বাছাই মুছে যায়, আর সেটা ইচ্ছাকৃত।
-    Upgrade একটা **আলাদা product** — তার নিজের রঙ, নিজের মজুদ, নিজের
-    bundle তালিকা আছে, আর সেগুলো এই page-এ আসেনি। পুরনো বাছাই ধরে রাখলে
-    cart-এ ৫০টা গোলাপের সাথে ২৪টার লাল রঙ জুড়ে যেত — এমন একটা জিনিস
-    যা কোথাও নেই।
+    Selecting an upgrade clears the colour and bundle selections, deliberately.
+    An upgrade is A DIFFERENT PRODUCT - it has its own colours, its own stock
+    and its own bundle list, and none of those were loaded onto this page.
+    Keeping the old selections would have put "50 roses in the red of the
+    24-stem one" into the cart - a thing that exists nowhere.
   */
   useEffect(() => {
     if (!upgradeSlug) return;
