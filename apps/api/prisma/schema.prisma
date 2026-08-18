@@ -5257,8 +5257,8 @@ model Position {
   deletedAt DateTime?
 }
 
-/// পদের ছাঁচ। শুধু ব্যতিক্রম লেখা থাকে — সারি না থাকা মানে "উপরের module যা
-/// বলে তাই" (ADM-D04, §৫-এর ধাপ ৩ ও ৪)।
+/// The position's template. Only the exceptions are written down - no row
+/// means "whatever the module above says" (ADM-D04, §5 steps 3 and 4).
 model PositionAccess {
   positionId String
   nodeKey    String
@@ -5271,8 +5271,8 @@ model PositionAccess {
   @@index([nodeKey])
 }
 
-/// এক ব্যক্তির জন্য আলাদা নিয়ম, ছাঁচের উপরে (ADM-D04, §৫-এর ধাপ ২)।
-/// "রফিক ডেলিভারির লোক, কিন্তু ওকে স্টকটাও দেখতে দাও" — এক সারি।
+/// A rule for one person, sitting on top of the template (ADM-D04, §5 step 2).
+/// "Rafiq is on delivery, but let him see stock too" - one row.
 model UserAccessOverride {
   userId  String
   nodeKey String
@@ -5285,64 +5285,67 @@ model UserAccessOverride {
   @@index([nodeKey])
 }
 
-/// কোম্পানি নিজে কে। ADM-D08 (৩০ জুলাই ২০২৬)।
+/// Who the company itself is. ADM-D08 (30 July 2026).
 ///
-/// কেন এটা আলাদা টেবিল: পরিচয়ের ছ'টা ঘর আজ `FinanceSetting`-এ বসে আছে, কারণ
-/// Mushak ৬.৩-এর জন্য ওগুলো দরকার হয়েছিল আর তখন সেটাই সহজ ছিল। কিন্তু
-/// **কোম্পানির নাম-ঠিকানা Finance-এর সম্পত্তি নয়** — ওটা কোম্পানির। ট্রেড
-/// লাইসেন্স, লোগো বা যোগাযোগের ফোন Finance-এ রাখার কোনো যুক্তি নেই, আর ওখানে
-/// রাখলে পরের যে module-ই এগুলো চায় তাকে Finance-এর ভেতরে হাত দিতে হয়।
-/// One Data One Owner: এই সারিটাই এখন উৎস।
+/// Why a separate table: six identity fields were sitting in `FinanceSetting`,
+/// because Mushak 6.3 needed them and that was the easy place at the time. But
+/// THE COMPANY'S NAME AND ADDRESS ARE NOT FINANCE'S PROPERTY - they are the
+/// company's. There is no reason for a trade licence, a logo or a contact
+/// phone to live in Finance, and keeping them there means every future module
+/// that wants them has to reach inside Finance. One Data One Owner: this row
+/// is the source now.
 ///
-/// ⚠️ পুরনো ঘরগুলো FinanceSetting-এ **রেখে দেওয়া হয়েছে**, এক release-এর জন্য।
-/// Mushak ৬.৩ সম্পূর্ণ ও পরীক্ষিত, আর একটা সরকারি কাগজ ছাপার কোড এক দিনে দুই
-/// জায়গা বদলানো ঠিক নয়। Mushak এখন আগে এখানে দেখে, খালি পেলে Finance-এ ফিরে
-/// যায় (finance-mushak.service.ts)। দুটো মিলে যাওয়ার পর পুরনোগুলো যাবে।
+/// The old fields were LEFT IN PLACE on FinanceSetting for one release.
+/// Mushak 6.3 is finished and tested, and the code that prints a government
+/// document should not change in two places on the same day. Mushak now looks
+/// here first and falls back to Finance when it finds nothing
+/// (finance-mushak.service.ts). Once the two agree, the old fields go.
 model CompanySetting {
   id String @id @default("singleton")
 
-  /* ---- নাম ---- */
-  /// VAT সার্টিফিকেটে যেভাবে লেখা — Mushak ৬.৩-এ এটাই ছাপা হয়
+  /* ---- Names ---- */
+  /// Exactly as written on the VAT certificate - this is what Mushak 6.3 prints
   legalName String?
-  /// গ্রাহক যে নামে চেনে ("Radian")। কাগজে নয়, পর্দায়।
+  /// The name customers know ("Radian"). For screens, not for paperwork.
   tradeName String?
 
-  /* ---- সরকারি নম্বর ---- */
-  bin                String? // ১৩ সংখ্যার BIN — Mushak ৬.৩ এটার জন্যই আটকে ছিল
+  /* ---- Government numbers ---- */
+  bin                String? // the 13-digit BIN - Mushak 6.3 was blocked on this
   tin                String?
   tradeLicenceNo     String?
-  /// মেয়াদ শেষের তারিখ। একটা মেয়াদোত্তীর্ণ লাইসেন্স নিয়ে ব্যবসা চলে না, আর
-  /// তারিখটা কোথাও লেখা না থাকলে কেউ মনে রাখে না।
+  /// The expiry date. A business cannot run on an expired licence, and if the
+  /// date is not written down somewhere nobody remembers it.
   tradeLicenceExpiry DateTime?
-  vatCircle          String? // circle / division / commissionerate লাইন
+  vatCircle          String? // the circle / division / commissionerate line
 
-  /* ---- ঠিকানা ---- */
-  /// VAT-এ নিবন্ধিত ঠিকানা — Mushak ৬.৩-এ এটাই যায়
+  /* ---- Addresses ---- */
+  /// The address registered for VAT - this is what goes on Mushak 6.3
   registeredAddress String?
-  /// দোকান যেখানে, যদি আলাদা হয়। খালি থাকলে নিবন্ধিত ঠিকানাই ধরা হবে।
+  /// Where the shop actually is, if that differs. Blank falls back to the
+  /// registered address.
   operatingAddress  String?
   city              String?
   postcode          String?
   country           String  @default("Bangladesh")
 
-  /* ---- যোগাযোগ ---- */
-  /// কাগজে ও রসিদে যেটা ছাপা হবে — ব্যক্তিগত নম্বর নয়
+  /* ---- Contact ---- */
+  /// What gets printed on paperwork and receipts - never a personal number
   publicPhone String?
   publicEmail String?
   website     String?
   logoUrl     String?
 
-  /* ---- যিনি সই করেন ---- */
+  /* ---- Who signs ---- */
   signatoryName        String?
   signatoryDesignation String?
 
-  /* ---- দোকানের সামনের চেহারা (31 Jul 2026) ----
+  /* ---- The shop front (31 Jul 2026) ----
      Added for the storefront's "Visit the shop" card. They sit here rather than
-     in StorefrontSetting because they are facts about the company — the same
-     kind as publicPhone and logoUrl directly above — not presentation choices. */
+     in StorefrontSetting because they are facts about the company - the same
+     kind as publicPhone and logoUrl directly above - not presentation choices. */
   /// the Google Maps link the "Get directions" button opens
   mapUrl        String? @db.Text
-  /// often the same number as publicPhone, sometimes not — the card offers both
+  /// often the same number as publicPhone, sometimes not - the card offers both
   whatsappPhone String?
   /// photograph of the shop front
   shopImageUrl  String? @db.Text
