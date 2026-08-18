@@ -2094,24 +2094,26 @@ enum Relationship {
   other
 }
 
-// Dhaka vs rest-of-Bangladesh — delivery speed/matrix drive করে (Order-ও reuse করবে)
+// Dhaka vs the rest of Bangladesh - drives the delivery speed matrix (Order
+// reuses this enum too)
 enum DeliveryZone {
   DHAKA
   BANGLADESH
   COUNTER // POS walk-in / take-away — no delivery (DEC-POS-001)
 }
 
-/// recurring occasion (MM-DD) → reminder। recipient-owned
+/// A recurring occasion (MM-DD) that becomes a reminder. Owned by the recipient.
 model RecipientOccasion {
   id          String       @id @default(cuid())
   recipientId String
   recipient   Recipient    @relation(fields: [recipientId], references: [id])
   type        OccasionType
   date        String // "MM-DD" — recurring; marketing matches on this, never on the year
-  /// DEC-CUS-010 — গ্রাহক সাল বললে রাখি, না বললে নয়。 "১০ম বিবাহবার্ষিকী" বলার
-  /// জন্য。 `date` ইচ্ছাকৃতভাবে MM-DD-ই থাকল — occasion list ওটাই পড়ে。
+  /// DEC-CUS-010 - kept when the customer gives a year, not otherwise. It is
+  /// what lets us say "10th anniversary". `date` deliberately stays MM-DD,
+  /// because that is what the occasion list reads.
   year        Int?
-  label       String? // custom হলে
+  label       String? // when the type is CUSTOM
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?
@@ -2126,7 +2128,7 @@ enum OccasionType {
 }
 
 // ============================================================
-// SALES MODULE — Online Sales Order (POS = আলাদা module)
+// SALES MODULE - the online Sales Order (POS is a module of its own)
 // Source: RADIAN_ADMIN_PROGRESS.md §4 (locked Sales decisions)
 // ============================================================
 
@@ -2143,16 +2145,18 @@ model Channel {
   deletedAt DateTime?
 }
 
-/// Online Sales Order। দুই status track (Sales-owned + Delivery-owned) — One Data One Owner।
+/// Online Sales Order. Two status tracks, one owned by Sales and one by
+/// Delivery - One Data One Owner.
 model Order {
   id       String   @id @default(cuid())
-  orderNo  String   @unique // "RAD-58217" — মানুষের রসিদ নম্বর
+  orderNo  String   @unique // "RAD-58217" - the receipt number a human reads
   placedAt DateTime @default(now())
 
   channelId String
   channel   Channel @relation(fields: [channelId], references: [id])
 
-  // FK → Customer; sender = frozen রসিদ snapshot (contract) (DEC-SAL-002)
+  // FK to Customer; the sender fields are a frozen receipt snapshot, and that
+  // snapshot is the contract (DEC-SAL-002)
   customerId  String
   customer    Customer @relation(fields: [customerId], references: [id])
   senderName  String
@@ -2170,16 +2174,16 @@ model Order {
   isGift              Boolean @default(false)
   recipientName       String?
   recipientPhone      String?
-  recipientCustomerId String? // soft link (recipient known customer হলে); snapshot-ই contract
+  recipientCustomerId String? // soft link when the recipient is a known customer; the snapshot is still the contract
   giftMessage         String?
   anonymousGift       Boolean @default(false)
   photoUpdates        Boolean @default(true)
 
-  // দুই status track (DEC-SAL-003)
+  // The two status tracks (DEC-SAL-003)
   salesStatus    SalesStatus    @default(placed) // Sales-owned
   deliveryStatus DeliveryStatus @default(unassigned) // Delivery-owned
 
-  // delivery info (Delivery execute করে; Sales শুধু reference)
+  // Delivery info - Delivery executes it, Sales only references it
   zone          DeliveryZone
   address       String
   deliveryNotes String?
@@ -2209,7 +2213,7 @@ model Order {
   // courier hand-off — Delivery executes; Sales records the reference so staff
   // can track a parcel without leaving the order (nationwide courier orders)
   courierName        String?
-  courierConsignment String? // courier-এর consignment / parcel id
+  courierConsignment String? // the courier's own consignment / parcel id
   courierTrackingUrl String?
   courierAssignedAt  DateTime?
 
@@ -2220,23 +2224,23 @@ model Order {
   duePaisa      Int           @default(0)
   refundPaisa   Int           @default(0)
 
-  // money — সব paisa
+  // Money - everything in paisa
   subtotalPaisa       Int     @default(0)
-  couponCode          String? // applied code snapshot; owner = Pricing module (পরে)
+  couponCode          String? // snapshot of the applied code; owned by the Pricing module (later)
   discountPaisa       Int     @default(0)
   deliveryPaisa       Int     @default(0)
   deliveryWaivedPaisa Int     @default(0)
-  adjustmentPaisa     Int     @default(0) // order-level adjustment (edit / POS round-off, audited — DEC-POS-015)
-  vatPaisa            Int     @default(0) // POS VAT amount (DEC-POS-016); base = subtotal − discount ± adjustment
-  taxRateBps          Int     @default(0) // VAT rate snapshot in basis points (750 = 7.5%) — no float
+  adjustmentPaisa     Int     @default(0) // order-level adjustment (edit / POS round-off, audited - DEC-POS-015)
+  vatPaisa            Int     @default(0) // POS VAT amount (DEC-POS-016); base = subtotal - discount +/- adjustment
+  taxRateBps          Int     @default(0) // VAT rate snapshot in basis points (750 = 7.5%) - no float
   totalPaisa          Int     @default(0)
 
   internalNote String?
 
-  // Finance (DEC-FIN-024) — set once the revenue entry is posted; editing or
+  // Finance (DEC-FIN-024) - set once the revenue entry is posted; editing or
   // soft-deleting a stamped order MUST raise an adjusting entry (FIN-RULE-022).
   financePostedAt DateTime?
-  /// buyer BIN for a Mushak 6.3 VAT challan (corporate gifting) — DEC-FIN-020
+  /// buyer BIN for a Mushak 6.3 VAT challan (corporate gifting) - DEC-FIN-020
   buyerBin        String?
 
   // MKT-D02 — raw capture of HOW the order arrived. These are Sales facts, like
@@ -2247,26 +2251,26 @@ model Order {
   utmCampaign String?
   refCode     String? // affiliate code as typed/carried (snapshot)
 
-  /// MKT-D21 — loyalty points spent on THIS order, and what they were worth.
+  /// MKT-D21 - loyalty points spent on THIS order, and what they were worth.
   /// A Sales fact, like refCode above: Sales records what settled the bill,
   /// Marketing owns the points ledger behind it. Points are a TENDER, not a
-  /// discount — the invoice keeps its full value and VAT is unaffected, which
+  /// discount - the invoice keeps its full value and VAT is unaffected, which
   /// matters because VAT is the government's money either way.
   pointsUsed  Int @default(0)
   pointsPaisa Int @default(0)
 
-  attribution  OrderAttribution? // MKT — Marketing owns that row, Order only references
+  attribution  OrderAttribution? // MKT - Marketing owns that row, Order only references it
   affiliateCommissions AffiliateCommission[]
 
   lines        OrderLine[]
   transactions PaymentTransaction[]
   photos       OrderPhoto[]
-  returns      SalesReturn[] // DEC-RTN-001 — Returns module owns these, Order only references
-  redemptions  OfferRedemption[] // DEC-OFR — Offers module owns these, Order only references
-  paySessions  PaymentSession[] // storefront online payment attempts (gateway ↔ order)
-  messages     OrderMessage[] // এই order নিয়ে গ্রাহককে কী কী পাঠানো হলো
-  checkoutLeads CheckoutLead[] // যে অসমাপ্ত checkout থেকে এই order এসেছে
-  reviewInvites ReviewInvite[] // DEC-WEB-008 — delivered হলে review-এর ডাক
+  returns      SalesReturn[] // DEC-RTN-001 - Returns owns these, Order only references
+  redemptions  OfferRedemption[] // DEC-OFR - Offers owns these, Order only references
+  paySessions  PaymentSession[] // storefront online payment attempts (gateway to order)
+  messages     OrderMessage[] // what was sent to the customer about this order
+  checkoutLeads CheckoutLead[] // the abandoned checkout this order came from
+  reviewInvites ReviewInvite[] // DEC-WEB-008 - the review invitation once delivered
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
