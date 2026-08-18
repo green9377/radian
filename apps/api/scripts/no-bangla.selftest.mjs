@@ -2,20 +2,40 @@
   NO BANGLA IN THE PRODUCT — the tripwire.
 
       node apps/api/scripts/no-bangla.selftest.mjs
+      node apps/api/scripts/no-bangla.selftest.mjs --update-baseline
 
   The owner's locked rule (6 Aug 2026): nothing the product prints may be in
   Bengali — screen text, error messages, API responses. He has had to repeat
   it more than once, which means remembering is not working. This script is
-  the replacement for remembering: it scans every source file, strips the
-  comments (internal notes are chat, not product), and FAILS THE BUILD if a
-  Bengali character survives in actual code — a string literal, JSX text, an
-  error message.
+  the replacement for remembering.
+
+  ── TWO CHECKS, AND THEY ARE NOT THE SAME ──────────────────────────────────
+
+  CHECK 1 — PRINTED Bengali. Strips comments, then fails on any Bengali left
+  in real code: a string literal, JSX text, an error message. This has always
+  been here and it passes today.
+
+  CHECK 2 — THE RATCHET (17 Aug 2026, owner). The rule got stricter: no
+  Bengali ANYWHERE in the project, comments included. There were 13,260 such
+  lines across 397 files on the day he asked, so failing the build outright
+  would have failed it for weeks and taught everyone to skip the check —
+  which is how a tripwire becomes decoration.
+
+  So instead: today's counts are frozen into a baseline, and the build fails
+  if any file GAINS Bengali or a new file brings some in. The old lines can
+  be cleared at whatever pace suits; nothing new can arrive while that
+  happens. Every translated file lowers the number, and the count only ever
+  goes down.
+
+  After translating, run --update-baseline and commit the smaller file. When
+  it reaches zero, check 2 has become "no Bengali at all" and the baseline
+  file can go.
 
   Wired into BUILD_CHECK.bat and RUN_TESTS.bat, so it runs before every push
   and every test round. A rule the machine enforces does not need repeating.
 */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,15 +105,81 @@ for (const dir of SCAN_DIRS) {
 }
 
 console.log(`\nNO-BANGLA CHECK — ${scanned} source files scanned\n`);
+
+let failed = false;
+
 if (hits.length === 0) {
-  console.log('  \x1b[32mPASS\x1b[0m  no Bengali in any code, string or screen text\n');
-  process.exit(0);
+  console.log('  \x1b[32mPASS\x1b[0m  check 1 - no Bengali in any string, JSX text or error message');
+} else {
+  failed = true;
+  console.log(`  \x1b[31mFAIL\x1b[0m  check 1 - Bengali in CODE (these would PRINT to a customer):\n`);
+  for (const h of hits.slice(0, 25)) {
+    console.log(`    ${h.file}:${h.line}`);
+    console.log(`      ${h.text}`);
+  }
+  if (hits.length > 25) console.log(`    ...and ${hits.length - 25} more`);
 }
-console.log(`  \x1b[31mFAIL\x1b[0m  Bengali found in CODE (comments are ignored — these will print):\n`);
-for (const h of hits.slice(0, 25)) {
-  console.log(`    ${h.file}:${h.line}`);
-  console.log(`      ${h.text}`);
+
+/* ─────────────────── CHECK 2 — THE RATCHET ───────────────────
+   Comments count now. Scans the WHOLE repo, not just the three app
+   directories, because a .md document and a .bat banner are part of the
+   project too. Counts LINES containing Bengali, per file. */
+
+const RATCHET_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.css', '.prisma', '.md', '.bat', '.json', '.yml', '.yaml']);
+const RATCHET_SKIP = new Set(['node_modules', '.next', 'dist', '.git', 'build', 'coverage']);
+const BASELINE = join(ROOT, 'apps', 'api', 'scripts', 'no-bangla.baseline.json');
+
+function* walkAll(dir) {
+  for (const name of readdirSync(dir)) {
+    if (RATCHET_SKIP.has(name)) continue;
+    const full = join(dir, name);
+    let st;
+    try { st = statSync(full); } catch { continue; }
+    if (st.isDirectory()) yield* walkAll(full);
+    else if (RATCHET_EXTS.has(extname(name))) yield full;
+  }
 }
-if (hits.length > 25) console.log(`    ...and ${hits.length - 25} more`);
-console.log('\n  The owner\'s rule: nothing the product prints is in Bengali. Fix before pushing.\n');
-process.exit(1);
+
+const counts = {};
+for (const file of walkAll(ROOT)) {
+  const rel = file.slice(ROOT.length + 1).replace(/\\/g, '/');
+  if (rel === 'apps/api/scripts/no-bangla.baseline.json') continue;
+  let n = 0;
+  for (const line of readFileSync(file, 'utf8').split('\n')) if (BANGLA.test(line)) n++;
+  if (n > 0) counts[rel] = n;
+}
+const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+if (process.argv.includes('--update-baseline')) {
+  writeFileSync(BASELINE, JSON.stringify(counts, null, 2) + '\n', 'utf8');
+  console.log(`\n  baseline updated - ${Object.keys(counts).length} files, ${total} lines\n`);
+  process.exit(failed ? 1 : 0);
+}
+
+if (!existsSync(BASELINE)) {
+  console.log('\n  \x1b[33mSKIP\x1b[0m  check 2 - no baseline yet. Run with --update-baseline once.\n');
+  process.exit(failed ? 1 : 0);
+}
+
+const base = JSON.parse(readFileSync(BASELINE, 'utf8'));
+const baseTotal = Object.values(base).reduce((a, b) => a + b, 0);
+const worse = [];
+for (const [rel, n] of Object.entries(counts)) {
+  const was = base[rel] ?? 0;
+  if (n > was) worse.push(`${rel}  ${was} -> ${n}`);
+}
+
+if (worse.length) {
+  failed = true;
+  console.log(`\n  \x1b[31mFAIL\x1b[0m  check 2 - new Bengali arrived. The rule is: nothing new, ever.\n`);
+  for (const w of worse.slice(0, 25)) console.log(`    ${w}`);
+  if (worse.length > 25) console.log(`    ...and ${worse.length - 25} more`);
+  console.log('\n  Write it in English. Bengali belongs in the chat with the owner, not in a file.');
+} else {
+  const done = baseTotal - total;
+  console.log(`  \x1b[32mPASS\x1b[0m  check 2 - nothing new. ${total} old lines left in ${Object.keys(counts).length} files` +
+    (done > 0 ? `  (${done} cleared since the baseline - run --update-baseline)` : ''));
+}
+
+console.log('');
+process.exit(failed ? 1 : 0);
