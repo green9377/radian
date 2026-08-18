@@ -1975,15 +1975,15 @@ model VariantValue {
   attributeId String
   attribute   VariantAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   label       String // "Red" | "Chocolate Fudge" | "Large"
-  swatch      String? // hex বা gradient (colour/flavour হলে)
-  imageUrl    String? @db.Text // PHOTO displayMode — flavour/pattern-এর ছবি
+  swatch      String? // hex or gradient (for colour/flavour)
+  imageUrl    String? @db.Text // PHOTO displayMode - a flavour or pattern picture
   sortOrder   Int              @default(0)
   isActive    Boolean          @default(true)
 
   /// D-CAT-01 — every product that IS this colour. See Product.variantValueId.
   products Product[]
 
-  /// DEC-PRD-012 — এক product-এর ভেতরে এই মানটা যতবার ব্যবহার হয়েছে
+  /// DEC-PRD-012 - every use of this value inside a product
   productVariants ProductVariant[]
 
   @@unique([attributeId, label])
@@ -2008,13 +2008,14 @@ model Customer {
   phone            String         @unique // +<country><number>; login identity
   email            String?
   whatsappVerified Boolean        @default(false)
-  country          String         @default("Bangladesh") // residence; ≠ Bangladesh হলে NRB
+  country          String         @default("Bangladesh") // residence; anything else means NRB
   ownAddressLine   String?
   joinedAt         DateTime       @default(now())
   status           CustomerStatus @default(ACTIVE) // block ≠ delete (DEC-CUS-003)
   note             String?
   avatarBg         String?
-  /// DEC-CUS-009 — ছবি থাকলে ছবি, না থাকলে নামের আদ্যাক্ষর (মালিক, ১০ আগস্ট)
+  /// DEC-CUS-009 - the photo when there is one, otherwise the name's initial
+  /// (owner, 10 August)
   imageUrl         String?
 
   segments   Segment[]
@@ -2034,7 +2035,8 @@ model Customer {
   reviews          Review[] @relation("CustomerReviews") // DEC-WEB-006
   reviewInvites    ReviewInvite[] @relation("CustomerReviewInvites")
 
-  // ---- OWNED BY SALES (read-only mirror; Customer module কখনো লেখে না) (DEC-CUS-004) ----
+  // ---- OWNED BY SALES (read-only mirror; the Customer module never writes
+  // these) (DEC-CUS-004) ----
   ordersCount  Int       @default(0)
   ltvPaisa     BigInt    @default(0) // cumulative lifetime value — BigInt (future-safe)
   lastOrderAt  DateTime?
@@ -2052,15 +2054,16 @@ enum CustomerStatus {
   BLOCKED
 }
 
-/// Recipient book — customer-owned sub-entity (আলাদা Customer নয়) (DEC-CUS-005)
+/// Recipient book - a sub-entity owned by the customer, not a Customer of its
+/// own (DEC-CUS-005)
 model Recipient {
   id           String       @id @default(cuid())
   customerId   String
   customer     Customer     @relation(fields: [customerId], references: [id])
   name         String
-  phone        String // any country — যাকে contact করা হবে
+  phone        String // any country - whoever will be contacted
   relationship Relationship
-  zone         DeliveryZone // delivery zone — speed drive করে
+  zone         DeliveryZone // delivery zone - this is what drives the speed
   addressLine  String
   note         String?
   isFavorite   Boolean      @default(false)
