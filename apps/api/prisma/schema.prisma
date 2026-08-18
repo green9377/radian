@@ -1806,7 +1806,8 @@ model AddOn {
   deletedAt         DateTime?
 }
 
-/// নামের সেট — "Birthday add-ons"। একবার বানাও, rule দিয়ে বারবার বসাও।
+/// A named set - "Birthday add-ons". Build it once, apply it again and again
+/// through rules.
 model AddOnGroup {
   id             String           @id @default(cuid())
   name           String
@@ -1819,7 +1820,7 @@ model AddOnGroup {
   deletedAt DateTime?
 }
 
-/// join — একটা add-on অনেক group-এ থাকতে পারে (locked: many-to-many)
+/// Join table - one add-on may sit in many groups (locked: many-to-many)
 model AddOnGroupItem {
   id        String     @id @default(cuid())
   groupId   String
@@ -1832,13 +1833,15 @@ model AddOnGroupItem {
   @@index([addOnId])
 }
 
-/// product-এ হাতে না বসিয়ে নিয়ম লেখো: "occasion = birthday → Birthday add-ons"।
-/// values = OR তালিকা। একটা product একাধিক rule-এ পড়লে সব group-ই বসে (union),
-/// product page-এ আলাদা tab হয়, একই add-on দুইবার দেখায় না।
+/// Write a rule instead of pinning add-ons to products by hand:
+/// "occasion = birthday -> Birthday add-ons".
+/// `values` is an OR list. When a product matches several rules every group
+/// applies (a union), each becoming its own tab on the product page, and the
+/// same add-on never appears twice.
 model AddOnRule {
   id        String        @id @default(cuid())
   field     AddOnRuleField
-  values    String[] // Postgres text[] — যেকোনো একটা মিললেই হবে
+  values    String[] // Postgres text[] - matching any one of them is enough
   groupId   String
   group     AddOnGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   isActive  Boolean       @default(true)
@@ -1854,20 +1857,22 @@ enum AddOnRuleField {
   OCCASION
   ZONE
   PRODUCT_TYPE
-  /// DEC-PRD-040 — দামের সীমা। `values` = ["min","max"] পয়সায়; খালি = সীমা নেই।
-  /// "৳3,000-এর উপরের bouquet-এ premium add-on দেখাও" — নিয়মে লেখা যায়।
+  /// DEC-PRD-040 - a price band. `values` = ["min","max"] in paisa; empty
+  /// means no bound. Lets you write "show premium add-ons on bouquets over
+  /// ৳3,000" as a rule.
   PRICE_RANGE
-  /// DEC-PRD-040 — নির্দিষ্ট product। `values` = product id-র তালিকা।
-  /// category-র সবার জন্য নয়, হাতে বাছা কয়েকটার জন্য।
+  /// DEC-PRD-040 - specific products. `values` = a list of product ids.
+  /// For a hand-picked few rather than everything in a category.
   PRODUCT
 }
 
-/// variant template master — Colour / Flavour / Size / Weight।
-/// product upload-এর সময় শুধু select করা হয়, প্রতিবার নতুন করে লেখা লাগে না।
+/// Variant template master - Colour / Flavour / Size / Weight.
+/// Chosen from a list while uploading a product, so nothing has to be typed
+/// out again each time.
 model VariantAttribute {
   id          String         @id @default(cuid())
   name        String         @unique // "Colour" | "Flavour" | "Size"
-  displayMode String         @default("SWATCH") // SWATCH | PHOTO | TEXT — কীভাবে দেখাবে
+  displayMode String         @default("SWATCH") // SWATCH | PHOTO | TEXT - how it renders
   sortOrder   Int            @default(0)
   isActive    Boolean        @default(true)
   values    VariantValue[]
@@ -1876,78 +1881,83 @@ model VariantAttribute {
   deletedAt DateTime?
 }
 
-/// ── এক product, অনেক variant · DEC-PRD-012, মালিকের সিদ্ধান্ত ১ আগস্ট ২০২৬
+/// ── One product, many variants · DEC-PRD-012, owner's ruling 1 Aug 2026 ──
 ///
-/// > *"একটা product যদি কোনো variant না থাকে তখন সেখানে আমি কিছুই choose করব
-/// > না। যখন তার multi variant থাকবে তখন তা show করাব — আর তা একটা product
-/// > page-এ হবে। প্রতিটার আলাদা image আর stock থাকবে।"*
+/// > *"If a product has no variant then I choose nothing there. When it has
+/// > multiple variants I will show them - and that happens on one product
+/// > page. Each will have its own image and stock."*
 ///
-/// ⚠️ এটা আগের নকশা বদলে দেয়। আগে ছিল: **প্রতিটা রঙ = আলাদা product**, আর
-/// `VariantGroup` দিয়ে তারা বাঁধা থাকত; product page-এ swatch চাপলে অন্য
-/// page-এ চলে যেত। সেই নকশার কারণ ছিল ভালো (প্রতি রঙের নিজের stock, নিজের
-/// Google page), কিন্তু **জোড়া লাগানোর কোনো পর্দা কখনো বানানো হয়নি** — তাই
-/// swatch বাস্তবে কোনোদিন দেখাই যায়নি, আর মালিক ঠিক সেটাই ধরেছেন।
+/// This reversed the earlier design. Before, EACH COLOUR WAS ITS OWN PRODUCT,
+/// tied together by `VariantGroup`; tapping a swatch took you to a different
+/// page. The reasoning was sound (own stock, own Google page per colour), but
+/// THE SCREEN THAT TIED THEM TOGETHER WAS NEVER BUILT - so no swatch ever
+/// actually appeared, and that is exactly what the owner noticed.
 ///
-/// এখন এক page, তার ভেতরে সব রঙ। মালিক জেনেই বেছেছেন যে Google-এ তিনটার
-/// বদলে একটা page যাবে।
+/// Now it is one page with every colour inside it. He chose this knowing it
+/// means one page goes to Google instead of three.
 model ProductVariant {
   id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  /// কোন মান — Variants & options master থেকে (লাল / চকলেট / ২ কেজি)
+  /// Which value - from the Variants & options master (Red / Chocolate / 2 kg)
   variantValueId String
   variantValue   VariantValue @relation(fields: [variantValueId], references: [id])
 
-  /// এই variant-এর নিজের ছবি। খালি হলে product-এর মূল ছবিই থাকে।
+  /// This variant's own photo. Blank leaves the product's main photo in place.
   imageUrl String? @db.Text
 
-  /// এই variant-এর নিজের মজুদ — মালিকের স্পষ্ট দাবি। সাদা শেষ হলে লাল
-  /// বিক্রি চলতে থাকবে, একই page হলেও।
+  /// This variant's own stock - the owner asked for it explicitly. When white
+  /// runs out, red keeps selling, even though they share a page.
   ///
-  /// ⚠️ এটা **হাতে গোনার** ঘর (Manual)। product-টা Inventory-র সাথে বাঁধা
-  /// থাকলে (`Product.stockMode = TRACKED`) এই সংখ্যা পড়া হয় না — তখন
-  /// নিচের `itemId` যেটা দেখায় সেই Item-এর গোনাই আসল।
+  /// This is the MANUAL box. If the product is tied to Inventory
+  /// (`Product.stockMode = TRACKED`) this number is not read at all - the
+  /// count on the Item that `itemId` below points at is the real one.
   stockQty Int @default(0)
 
-  /// ── DEC-PRD-015 · কোন Item এই রঙটার মজুদ রাখে ─────────────────────────
-  /// মালিক, ২ আগস্ট ২০২৬: *"inventory থেকে যদি আনা লাগে তাহলে stock and
-  /// lead time-এ আমরা যেভাবে inventory থেকে product ডেকেছি সেভাবে ডাকবে"*
+  /// ── DEC-PRD-015 · which Item holds this colour's stock ─────────────────
+  /// The owner, 2 August 2026: *"if it has to come from inventory then it
+  /// should be pulled the same way we pulled the product from inventory for
+  /// stock and lead time"*
   ///
-  /// stockroom-এ লাল গোলাপ আর গোলাপি গোলাপ আলাদা জিনিস, আলাদা গোনা হয় —
-  /// তাই প্রতিটা variant নিজের Item-এর দিকে দেখায়।
+  /// In the stockroom a red rose and a pink rose are different things,
+  /// counted separately - so each variant points at its own Item.
   ///
-  /// ⚠️ id দিয়ে, SKU লেখা দিয়ে নয় — DEC-ITM-021। `null` = এই রঙের নিজের
-  /// Item বাছা হয়নি, তখন product-এর নিজের Item-ই ধরা হয়, যাতে ফাঁক না থাকে।
+  /// By id, never by matching SKU text - DEC-ITM-021. `null` means no Item
+  /// was chosen for this colour, and then the product's own Item is used, so
+  /// there is never a gap.
   itemId String?
   item   Item?   @relation(fields: [itemId], references: [id])
 
-  /// ── দাম, আর কেন এটা nullable · মালিকের কথা ─────────────────────────────
-  /// > *"same product just color change হলে দাম same থাকবে, আবার kg change
-  /// > হলে বা flavour change হলে আলাদা হবে — এটা depend করে product-wise।"*
+  /// ── The price, and why it is nullable · in the owner's words ───────────
+  /// > *"For the same product, if only the colour changes the price stays the
+  /// > same; if the kg changes or the flavour changes it differs - it depends
+  /// > product by product."*
   ///
-  /// তাই দাম **ঐচ্ছিক**। `null` = product-এর মূল দামই চলবে। প্রতিটা রঙে
-  /// একই সংখ্যা লিখে রাখলে একদিন একটা বদলাতে ভুলে যাওয়া হতো, আর দুটো দাম
-  /// পাশাপাশি বসে থাকত।
+  /// So the price is OPTIONAL. `null` means the product's own price applies.
+  /// Writing the same number onto every colour would have meant forgetting
+  /// one of them some day, leaving two prices sitting side by side.
   pricePaisa Int?
 
-  /// ── DEC-PRD-032 rev · variant-এর নিজের ছাড় ─────────────────────────────
-  /// মালিক, ৯ আগস্ট ২০২৬: *"variant-এর pricing-এ discount বা flat discount
-  /// দেওয়ার ঘর কাজ করে না"* — তিনি product-এর মতোই **% বা Flat** চেয়েছেন,
-  /// শুধু "শেষ দাম" লেখার ঘর নয়। তাই এখানে হুবহু product-এর ছাঁচ:
-  /// PERCENT = basis point (1000 = ১০%), FLAT = পয়সা।
+  /// ── DEC-PRD-032 rev · the variant's own discount ───────────────────────
+  /// The owner, 9 August 2026: *"the box for giving a discount or a flat
+  /// discount in variant pricing does not work"* - he wanted % or Flat just
+  /// as a product has, not merely a box for the final price. So this is the
+  /// product's shape exactly: PERCENT = basis points (1000 = 10%),
+  /// FLAT = paisa.
   ///
-  /// ⚠️ product-এর নিজের ছাড় এর উপর **বসে না** (DEC-PRD-031, মালিক ৯ আগস্ট
-  /// আবার নিশ্চিত করেছেন)। variant নিজের দাম বললে সে-ই চূড়ান্ত, আর ছাড়
-  /// দিতে হলে সেটাও এখানেই লিখতে হবে — দুই জায়গার অঙ্ক একসাথে বসলে
-  /// ৳1,500-এ ৳1,300 দেখানোর মতো গোলমাল ফিরে আসত।
+  /// The product's own discount does NOT stack on top of this (DEC-PRD-031,
+  /// which he confirmed again on 9 August). If a variant states its price,
+  /// that is final, and any discount has to be written here too - two sets of
+  /// arithmetic landing together is how "৳1,300 on a ৳1,500 item" came back.
   discountType  DiscountType @default(NONE)
   discountValue Int          @default(0)
 
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
-  /// Sales references (One Data One Owner) — কোন রঙ কত বিক্রি হলো এখান থেকেই
+  /// Sales references (One Data One Owner) - how much each colour sold
+  /// is read from here
   orderLines OrderLine[]
 
   createdAt DateTime  @default(now())
