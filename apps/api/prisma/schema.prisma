@@ -1,18 +1,19 @@
 // Radian Business OS — Prisma schema
 // Stack (locked): PostgreSQL + Prisma 6.x
 //
-// Build order (locked build_sequence): Product → Customer → Sales।
-// এই ফাইলে এখন Foundation + Product module। Customer/Sales পরের ধাপে যোগ হবে।
+// Build order (locked build_sequence): Product -> Customer -> Sales.
+// This file started as Foundation + Product; the rest were added in that order.
 //
-// প্রতিটি business model-এ constitution-বাধ্যতামূলক field:
+// Every business model carries these four, by constitution:
 //   id        String   @id @default(cuid())
 //   createdAt DateTime @default(now())
 //   updatedAt DateTime @updatedAt
-//   deletedAt DateTime?          // soft-delete only — কখনো hard delete নয়
+//   deletedAt DateTime?          // soft delete only - never a hard delete
 //
-// DEC tag নোট: নিচের DEC-PRD-NNN আইডিগুলো provisional — code↔decision traceability-র
-// জন্য বসানো। এগুলো architecture project-এর Decision Log-এ formally register করতে হবে
-// (radian-development-context skill: "mandatory sync rule")। DEC-MOD-003 = আসল locked id.
+// On the DEC tags: the DEC-PRD-NNN ids below are provisional, put here for
+// code-to-decision traceability. They still have to be registered formally in
+// the architecture project's Decision Log (radian-development-context skill,
+// "mandatory sync rule"). DEC-MOD-003 is the real locked id.
 
 generator client {
   provider      = "prisma-client-js"
@@ -27,19 +28,19 @@ datasource db {
 }
 
 // ============================================================
-// FOUNDATION — cross-cutting (Product/Customer/Sales সবাই share করে)
-// One Data One Owner-এর technical base। এই দুটো log append-only:
-// soft-delete extension এদের বাদ দেয় (denylist), তাই deletedAt নেই।
+// FOUNDATION - cross-cutting, shared by Product, Customer and Sales alike.
+// The technical base of One Data One Owner. Both logs below are append-only:
+// the soft-delete extension skips them (denylist), so there is no deletedAt.
 // ============================================================
 
-/// মেশিন-audit: কে, কখন, কোন field কী→কী বদলাল (field-level)।
-/// polymorphic (entityType+entityId) — সব module এক table share করে।
+/// Machine audit: who, when, which field, from what to what (field level).
+/// Polymorphic (entityType + entityId) - every module shares this one table.
 model AuditLog {
   id         String      @id @default(cuid())
   entityType String // "Product" | "Customer" | "Order" ...
   entityId   String
   action     AuditAction
-  actorId    String? // Employee.id (পরে); এখন staff-এর নাম actorName-এ
+  actorId    String? // Employee.id (later); for now the staff name lives in actorName
   actorName  String
   changes    Json? // { field: { from, to } }
   createdAt  DateTime    @default(now())
@@ -52,15 +53,17 @@ enum AuditAction {
   UPDATE
   DELETE
   RESTORE
-  /// দেখা হয়েছে, বদলানো হয়নি। ৬ আগস্ট ২০২৬ — Integrations-এ সংরক্ষিত চাবি
-  /// পুরোটা দেখার সুযোগ দেওয়া হলো (মালিকের সিদ্ধান্ত)। কে কখন কোন চাবি
-  /// দেখল সেটাও ইতিহাসে থাকা দরকার। UPDATE দিয়ে চালালে খাতায় "কী বদলাল"
-  /// কলামটা চিরকাল ফাঁকা থাকত — তখন ওই সারিগুলোর মানে কেউ বুঝত না।
+  /// Looked at, not changed. 6 Aug 2026 - the owner decided a stored key in
+  /// Integrations may be revealed in full. Who revealed which key, and when,
+  /// belongs in the history too. Recording it as UPDATE would have left the
+  /// "what changed" column empty forever, and nobody would later know what
+  /// those rows meant.
   READ
 }
 
-/// মানুষের পড়ার timeline/activity feed — orders.ts-এর `timeline` এখান থেকে আসবে।
-/// Unified Timeline (core principle) — Product/Customer/Order প্রতিটার নিজস্ব feed।
+/// The human-readable timeline / activity feed - the `timeline` in orders.ts
+/// reads from here. Unified Timeline (core principle): Product, Customer and
+/// Order each get their own feed out of this one table.
 model ActivityEvent {
   id         String       @id @default(cuid())
   entityType String
@@ -87,13 +90,14 @@ enum ActivityKind {
 // Source: RADIAN_ADMIN_PROGRESS.md §2 (locked Product decisions)
 // ============================================================
 
-/// admin-configurable category, ২ স্তর — parent (flowers) → child (roses)।
-/// "সবকিছু admin-configurable" — তাই enum নয়, table (DEC-PRD-001)।
+/// Admin-configurable category, two levels - parent (flowers) -> child (roses).
+/// "Everything is admin-configurable", so a table rather than an enum
+/// (DEC-PRD-001).
 model Category {
   id        String     @id @default(cuid())
   slug      String     @unique
   name      String
-  parentId  String? // null = top-level; সেট থাকলে sub-category
+  parentId  String? // null = top-level; set means it is a sub-category
   parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryTree")
   sortOrder Int        @default(0)
@@ -133,8 +137,9 @@ model Category {
   /// to a plain "Size".
   sizeLabel String?
 
-  /// এই category-র বানানো জিনিস কোন দলের সময় খায়। Product-এ আলাদা করে
-  /// জিজ্ঞেস করা হয় না — সে শুধু দেখায় কোন দলে পড়ছে (মালিক, 1 Aug 2026)।
+  /// Which capacity group the work for this category eats into. A Product is
+  /// never asked separately; it only displays the group it falls into
+  /// (owner, 1 Aug 2026).
   capacityGroupId String?
   capacityGroup   CapacityGroup? @relation(fields: [capacityGroupId], references: [id])
 
@@ -142,8 +147,8 @@ model Category {
   faqs      CategoryFaq[] // D-CAT-03 — this category's own questions
   bundles   Bundle[] // the "+ Chocolates" cards every product here offers
   craft     CraftPoint[] // the three "why us" cards, inherited by its products
-  /// DEC-PRD-023 — এই category-র product page-এ যে trust badge আর
-  /// "What's inside" সারি দেখাবে। একবার লেখা, সব product পায়।
+  /// DEC-PRD-023 - the trust badges and "What's inside" rows shown on every
+  /// product page in this category. Written once, inherited by every product.
   trustBadges CategoryTrustBadge[]
   specRows    CategorySpec[]
   offers    Offer[] // DEC-OFR — CATEGORY-shape offers reference (never own) this
