@@ -4,24 +4,20 @@
   COMPANY SETTINGS — who the company itself is. ADM-D08.
   RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md, 30 Jul 2026
 
-  This screen is why Mushak 6.3 has been sitting finished and unusable. The
-  challan is a government form; it needs a real BIN, a registered name and an
-  address, and there was nowhere in the panel to type them.
+  Every field carries a tiny destination tag — Website / Mushak challan /
+  Reminder only / On file only — read off the real consumers in code
+  (shop.ts brand()/shopCard(), finance-mushak.service.ts), not guessed.
 
-  Redesigned 19 Aug 2026 (owner): every field now carries a small tag saying
-  WHERE it appears — Website (customers see it), Mushak challan (prints on the
-  government form), Reminder only (the system watches the date), or On file
-  only (saved, nothing shows it yet). The tags are read off the actual
-  consumers in code, not guessed: shop.ts brand()/shopCard() for the website,
-  finance-mushak.service.ts for the challan.
+  19 Aug 2026, owner: "sob text remove kre clean vabe design kro" — all
+  helper prose is gone. What a field needs is said by its placeholder
+  (visible only while the box is empty), never by a paragraph under it.
 
-  ⚠️ Anything already typed into Finance was copied across by the migration,
-  and the challan still falls back to the old columns per field. So this screen
+  ⚠️ Fields already typed into Finance were copied across by the migration,
+  and the challan still falls back to the old columns per field — this screen
   cannot make a working challan stop working, only start one.
 
-  There is a Save button here, unlike Access control, and the difference is
-  deliberate: this is a form somebody fills in and submits, not 166 independent
-  ticks. A half-typed BIN should not be saved on every keystroke.
+  A Save button, unlike Access control's per-click saves, because this is a
+  form: a half-typed BIN should not be saved on every keystroke.
 */
 
 import { useEffect, useState } from "react";
@@ -36,8 +32,6 @@ type Form = Partial<ApiCompany>;
 
 const GRAD_HERO = "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)";
 
-/*  Where a field ends up. One pill per destination, same colours everywhere:
-    the legend at the top and the tag beside the field are the same object.  */
 type TagKind = "web" | "challan" | "watch" | "file";
 const TAGS: Record<TagKind, { label: string; bg: string; fg: string }> = {
   web: { label: "Website", bg: "#fbe9f6", fg: "#c2359f" },
@@ -49,7 +43,7 @@ const TAGS: Record<TagKind, { label: string; bg: string; fg: string }> = {
 function Tag({ kind }: { kind: TagKind }) {
   const t = TAGS[kind];
   return (
-    <span className="text-[9px] font-bold uppercase tracking-[0.07em] px-1.5 py-[2px] rounded-[5px] align-middle"
+    <span className="text-[9px] font-bold uppercase tracking-[0.07em] px-1.5 py-[2px] rounded-[5px]"
       style={{ background: t.bg, color: t.fg }}>
       {t.label}
     </span>
@@ -64,7 +58,6 @@ export default function CompanySettings() {
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
-  /** the logo upload is the one field on this screen that is not typed */
   const [logoBusy, setLogoBusy] = useState(false);
 
   const load = () =>
@@ -75,8 +68,7 @@ export default function CompanySettings() {
 
   useEffect(() => { void load(); }, []);
 
-  /*  Closing the tab mid-form should cost a warning, not the work. Access
-      control saves per click so it needs none of this; a form does.  */
+  /* closing the tab mid-form costs a warning, not the work */
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault(); };
     window.addEventListener("beforeunload", warn);
@@ -108,7 +100,7 @@ export default function CompanySettings() {
     return (
       <div className={WRAP}>
         <div className="rounded-[20px] px-5 py-6" style={{ background: GRAD_HERO }}>
-          <div className="text-[13px] text-white/80">Loading company settings…</div>
+          <div className="text-[13px] text-white/80">Loading…</div>
         </div>
       </div>
     );
@@ -118,7 +110,7 @@ export default function CompanySettings() {
 
   return (
     <div className={WRAP}>
-      {/* ── hero: name of the room, challan status, save ─────────────── */}
+      {/* ── hero: room name, challan status, save ────────────────────── */}
       <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden" style={{ background: GRAD_HERO }}>
         <div className="flex items-center gap-3 relative flex-wrap">
           <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
@@ -153,49 +145,27 @@ export default function CompanySettings() {
 
       <Flash ok={ok} err={err} />
 
-      {/* ── the key: what the tags on every field mean ────────────────── */}
-      <div className="rounded-[14px] bg-white border border-[#e9e2f2] px-4 py-2.5 mb-4 flex items-center gap-x-4 gap-y-1.5 flex-wrap">
-        <span className="text-[11px] font-bold text-body-soft uppercase tracking-[0.08em]">Where each field appears</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-body-soft"><Tag kind="web" /> customers see it</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-body-soft"><Tag kind="challan" /> prints on the government form</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-body-soft"><Tag kind="watch" /> the system watches the date</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-body-soft"><Tag kind="file" /> saved, nothing shows it yet</span>
-      </div>
-
-      {/*  This page's own status, not a system notice: the missing fields live
-          right below, so naming them here is wayfinding, not shouting.  */}
       {ready && !ready.ready && (
-        <div className="rounded-[14px] px-4 py-3 mb-4 flex items-start gap-2.5 flex-wrap"
+        <div className="rounded-[14px] px-4 py-2.5 mb-4 flex items-center gap-2 flex-wrap"
           style={{ background: "#fdf3e2", border: "1px solid #f0dcae" }}>
-          <span className="text-[12px] font-bold" style={{ color: "#b07818" }}>
-            Mushak 6.3 refuses to print until these are filled:
+          <span className="text-[10.5px] font-bold uppercase tracking-[0.08em]" style={{ color: "#b07818" }}>
+            Challan needs
           </span>
-          <span className="flex flex-wrap gap-1.5">
-            {ready.missing.map((m) => <Chip key={m} tone="amber">{m}</Chip>)}
-          </span>
-        </div>
-      )}
-      {ready?.ready && (
-        <div className="rounded-[14px] px-4 py-2.5 mb-4 text-[12px] font-bold"
-          style={{ background: "#e7f7f0", border: "1px solid #bfe8d6", color: "#0e9767" }}>
-          Everything the Mushak 6.3 challan needs is filled in — Finance can print it.
+          {ready.missing.map((m) => <Chip key={m} tone="amber">{m}</Chip>)}
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── name & brand ──────────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#8a2bb0,#cf43ea)" icon="gem" title="Name & brand"
-          note="what the shop is called">
-          <Field
-            label="Registered name" tags={["challan"]}
-            hint="Exactly as on the VAT certificate — this is what prints on the challan"
-            value={form.legalName} onChange={set("legalName")}
-          />
-          <Field
-            label="Trading name" tags={["web"]}
-            hint="What customers call you — the website header, footer and shop card show this"
-            value={form.tradeName} onChange={set("tradeName")}
-          />
+        <Section grad="linear-gradient(120deg,#8a2bb0,#cf43ea)" icon="gem" title="Name & brand">
+          <Field label="Registered name" tags={["challan"]} placeholder="As on the VAT certificate"
+            value={form.legalName} onChange={set("legalName")} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Trading name" tags={["web"]} placeholder="e.g. Radian"
+              value={form.tradeName} onChange={set("tradeName")} />
+            <Field label="Website address" tags={["file"]} placeholder="https://…"
+              value={form.website} onChange={set("website")} />
+          </div>
 
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -227,110 +197,73 @@ export default function CompanySettings() {
                 <button onClick={() => set("logoUrl")("")} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>
               )}
             </div>
-            {/*  The header sits on white and the footer on dark purple, so one
-                file has to work on both — worth saying before he uploads a
-                logo drawn for a white page.  */}
-            <p className="text-[11px] text-body-soft mt-1.5 leading-relaxed">
-              Website header and footer. The header is white and the footer dark purple — a
-              transparent background with a mid-tone mark works on both. About 400 × 120, PNG, WebP or SVG.
-            </p>
+            <p className="text-[10.5px] text-body-soft mt-1.5">Transparent PNG / WebP / SVG · about 400 × 120</p>
           </div>
-
-          <Field
-            label="Website address" tags={["file"]}
-            hint="Kept on record — no document or page prints this yet"
-            value={form.website} onChange={set("website")}
-          />
         </Section>
 
         {/* ── government numbers ────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#b07818,#d9a53a)" icon="shield" title="Government numbers"
-          note="checked before they are saved">
-          <Field
-            label="BIN" tags={["challan"]}
-            hint="9 to 13 digits. Mushak 6.3 was waiting on this one field."
-            value={form.bin} onChange={set("bin")}
-          />
-          <Field
-            label="VAT circle" tags={["challan"]}
-            hint="Circle / division / commissionerate, as one line"
-            value={form.vatCircle} onChange={set("vatCircle")}
-          />
-          <Field label="TIN" tags={["file"]} hint="9 to 15 digits — kept on record, nothing prints it yet"
-            value={form.tin} onChange={set("tin")} />
-          <Field label="Trade licence number" tags={["watch"]}
-            value={form.tradeLicenceNo} onChange={set("tradeLicenceNo")} />
-          <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-[11.5px] font-semibold text-body-soft">Trade licence expiry</span>
-              <Tag kind="watch" />
+        <Section grad="linear-gradient(120deg,#b07818,#d9a53a)" icon="shield" title="Government numbers">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="BIN" tags={["challan"]} placeholder="9 to 13 digits"
+              value={form.bin} onChange={set("bin")} />
+            <Field label="TIN" tags={["file"]} placeholder="9 to 15 digits"
+              value={form.tin} onChange={set("tin")} />
+          </div>
+          <Field label="VAT circle" tags={["challan"]} placeholder="Circle / division / commissionerate"
+            value={form.vatCircle} onChange={set("vatCircle")} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Trade licence" tags={["watch"]}
+              value={form.tradeLicenceNo} onChange={set("tradeLicenceNo")} />
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-[11.5px] font-semibold text-body-soft">Expiry</span>
+                <Tag kind="watch" />
+              </div>
+              <input
+                className={input}
+                type="date"
+                value={form.tradeLicenceExpiry ? String(form.tradeLicenceExpiry).slice(0, 10) : ""}
+                onChange={(e) => set("tradeLicenceExpiry")(e.target.value)}
+              />
+              {licence && licence.daysLeft <= 60 && (
+                <p className="text-[11px] font-bold mt-1"
+                  style={{ color: licence.daysLeft < 0 ? "#c0392b" : "#b07818" }}>
+                  {licence.daysLeft < 0
+                    ? `Expired ${Math.abs(licence.daysLeft)} days ago`
+                    : `Runs out in ${licence.daysLeft} days`}
+                </p>
+              )}
             </div>
-            <input
-              className={input}
-              type="date"
-              value={form.tradeLicenceExpiry ? String(form.tradeLicenceExpiry).slice(0, 10) : ""}
-              onChange={(e) => set("tradeLicenceExpiry")(e.target.value)}
-            />
-            {/*  The licence countdown lives HERE, beside the date it is about —
-                not as a banner on top of the page (the bell already carries it). */}
-            {licence && licence.daysLeft <= 60 ? (
-              <p className="text-[11.5px] font-bold mt-1"
-                style={{ color: licence.daysLeft < 0 ? "#c0392b" : "#b07818" }}>
-                {licence.daysLeft < 0
-                  ? `Expired ${Math.abs(licence.daysLeft)} days ago — the shop is trading without a licence`
-                  : `Runs out in ${licence.daysLeft} days`}
-              </p>
-            ) : (
-              <p className="text-[11px] text-body-soft mt-1">You will be warned 60 days before it runs out.</p>
-            )}
           </div>
         </Section>
 
         {/* ── address ───────────────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#3b76c4,#6ba3e8)" icon="pin" title="Address"
-          note="the registered one goes on the challan">
-          <Field
-            label="Registered address" tags={["challan"]}
-            hint="As on the VAT certificate. Also shown on the website if the shop address below is blank."
-            value={form.registeredAddress} onChange={set("registeredAddress")}
-          />
-          <Field
-            label="Shop address" tags={["web"]}
-            hint="The website's Visit-the-shop card shows this — blank means same as registered"
-            value={form.operatingAddress} onChange={set("operatingAddress")}
-          />
-          <div className="grid grid-cols-2 gap-3">
+        <Section grad="linear-gradient(120deg,#3b76c4,#6ba3e8)" icon="pin" title="Address">
+          <Field label="Registered address" tags={["challan"]} placeholder="As on the VAT certificate"
+            value={form.registeredAddress} onChange={set("registeredAddress")} />
+          <Field label="Shop address" tags={["web"]} placeholder="Blank = same as registered"
+            value={form.operatingAddress} onChange={set("operatingAddress")} />
+          <div className="grid grid-cols-3 gap-3">
             <Field label="City" tags={["web"]} value={form.city} onChange={set("city")} />
             <Field label="Postcode" tags={["web"]} value={form.postcode} onChange={set("postcode")} />
+            <Field label="Country" tags={["file"]} value={form.country} onChange={set("country")} />
           </div>
-          <Field label="Country" tags={["file"]} value={form.country} onChange={set("country")} />
         </Section>
 
         {/* ── contact & signatory ───────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#b76e79,#e0a8a0)" icon="phone" title="Contact & signatory"
-          note="who answers, and who signs">
-          <Field
-            label="Public phone" tags={["web"]}
-            hint="On the website's shop card, and the WhatsApp button on product pages falls back to it"
-            value={form.publicPhone} onChange={set("publicPhone")}
-          />
-          <Field label="Public email" tags={["file"]}
-            hint="Kept on record — no page or document prints it yet"
-            value={form.publicEmail} onChange={set("publicEmail")} />
-          <Field
-            label="Who signs the challan" tags={["challan"]}
-            hint="Required before Mushak 6.3 will print"
-            value={form.signatoryName} onChange={set("signatoryName")}
-          />
-          <Field
-            label="Their designation" tags={["challan"]} value={form.signatoryDesignation}
-            onChange={set("signatoryDesignation")}
-          />
-          <p className="text-[11px] text-body-soft leading-relaxed border-t border-[#f3eef7] pt-3">
-            The WhatsApp number, map link and shop photo on the website&apos;s
-            Visit-the-shop card are edited on <b>Website → Visit the shop</b> —
-            same record, different room.
-          </p>
+        <Section grad="linear-gradient(120deg,#b76e79,#e0a8a0)" icon="phone" title="Contact & signatory">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Public phone" tags={["web"]} placeholder="01…"
+              value={form.publicPhone} onChange={set("publicPhone")} />
+            <Field label="Public email" tags={["file"]}
+              value={form.publicEmail} onChange={set("publicEmail")} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Signs the challan" tags={["challan"]}
+              value={form.signatoryName} onChange={set("signatoryName")} />
+            <Field label="Designation" tags={["challan"]}
+              value={form.signatoryDesignation} onChange={set("signatoryDesignation")} />
+          </div>
         </Section>
       </div>
 
@@ -350,18 +283,15 @@ export default function CompanySettings() {
   );
 }
 
-/*  One card per topic: gradient header bar in its own hue, white body.
-    Same shape the sessions list and the activity views wear.  */
-function Section({ grad, icon, title, note, children }: {
-  grad: string; icon: string; title: string; note: string; children: React.ReactNode;
+function Section({ grad, icon, title, children }: {
+  grad: string; icon: string; title: string; children: React.ReactNode;
 }) {
   return (
     <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden self-start"
       style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
       <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: grad }}>
         <span className="text-white"><Icon name={icon} size={14} strokeWidth={2.3} /></span>
-        <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">{title}</span>
-        <span className="text-[10.5px] text-white/80">{note}</span>
+        <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white">{title}</span>
       </div>
       <div className="p-4 space-y-3.5">{children}</div>
     </div>
@@ -369,9 +299,9 @@ function Section({ grad, icon, title, note, children }: {
 }
 
 function Field({
-  label, hint, tags, value, onChange,
+  label, tags, placeholder, value, onChange,
 }: {
-  label: string; hint?: string; tags?: TagKind[];
+  label: string; tags?: TagKind[]; placeholder?: string;
   value: string | null | undefined;
   onChange: (v: string) => void;
 }) {
@@ -384,13 +314,12 @@ function Field({
       <input
         className={input}
         value={value ?? ""}
+        placeholder={placeholder}
         /*  ⚠️ Chrome ignores autoComplete="off" — only "new-password" is obeyed.
-            On 29 July it filled the saved shop password into three key boxes.
-            A BIN box offered somebody's password is the same class of bug.  */
+            On 29 July it filled the saved shop password into three key boxes.  */
         autoComplete="new-password"
         onChange={(e) => onChange(e.target.value)}
       />
-      {hint && <p className="text-[11px] text-body-soft mt-1 leading-relaxed">{hint}</p>}
     </div>
   );
 }
