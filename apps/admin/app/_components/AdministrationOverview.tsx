@@ -157,17 +157,6 @@ export default function AdministrationOverview() {
         </div>
       )}
 
-      {(undecided?.length ?? 0) > 0 && (
-        <div className="mb-5">
-          <Banner
-            tone="rose" emoji="⚠"
-            title={`${undecided!.length} new screens reach nobody yet`}
-            right={<Link href="/administration/access" className="text-[12.5px] font-bold text-white px-3.5 py-2 rounded-[10px]" style={{ background: B.rose.grad }}>Decide now</Link>}
-          >
-            A new screen is handed to no one until you say so — safe, but these are waiting.
-          </Banner>
-        </div>
-      )}
 
       {/* ── row 1 · four numbers, four brand hues ────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-4">

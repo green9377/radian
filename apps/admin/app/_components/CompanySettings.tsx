@@ -25,7 +25,7 @@ import {
   ApiCompany, ApiCompanyReadiness,
   getCompany, getCompanyReadiness, saveCompany, uploadImage,
 } from "../_data/api";
-import { Chip, Flash, WRAP, input } from "./FinanceUI";
+import { Flash, WRAP, input } from "./FinanceUI";
 import Icon from "./Icon";
 
 type Form = Partial<ApiCompany>;
@@ -144,16 +144,6 @@ export default function CompanySettings() {
       </div>
 
       <Flash ok={ok} err={err} />
-
-      {ready && !ready.ready && (
-        <div className="rounded-[14px] px-4 py-2.5 mb-4 flex items-center gap-2 flex-wrap"
-          style={{ background: "#fdf3e2", border: "1px solid #f0dcae" }}>
-          <span className="text-[10.5px] font-bold uppercase tracking-[0.08em]" style={{ color: "#b07818" }}>
-            Challan needs
-          </span>
-          {ready.missing.map((m) => <Chip key={m} tone="amber">{m}</Chip>)}
-        </div>
-      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── name & brand ──────────────────────────────────────────── */}

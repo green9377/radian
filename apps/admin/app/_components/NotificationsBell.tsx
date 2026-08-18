@@ -16,6 +16,8 @@
     · invites still waiting to be accepted    → People & access
     · trade licence running out (< 60 days)   → Company
     · company papers missing for Mushak       → Company
+    · checkout cannot take money / sandbox on → Integrations
+    · new screens no template reaches yet     → Access templates
 
   OWNER only — every source endpoint is OWNER-gated, and these are owner
   worries. Anyone else sees no bell at all.
@@ -24,7 +26,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getBackups, getCompanyReadiness, getWouldBlock, listPeople,
+  getBackups, getCompanyReadiness, getIntegrations, getUndecidedNodes,
+  getWouldBlock, listPeople,
 } from "../_data/api";
 import { useAuth } from "./AuthGate";
 import Icon from "./Icon";
@@ -91,6 +94,35 @@ export default function NotificationsBell() {
             title: `${waiting.length} invite${waiting.length === 1 ? "" : "s"} not yet accepted`,
             body: waiting.map((p) => p.name).slice(0, 3).join(", ") + (waiting.length > 3 ? "…" : ""),
             href: "/settings/people",
+          });
+      }),
+      soft(async () => {
+        const d = await getIntegrations();
+        const pay = d.groups.find((g) => g.kind === "PAYMENT")?.services ?? [];
+        const sandboxOn = pay.filter((p) => p.isEnabled && !p.isLive);
+        if (!pay.some((p) => p.isEnabled))
+          out.push({
+            id: "pay-off", tone: "rose", icon: "cash",
+            title: "Checkout cannot take money",
+            body: "No payment gateway is switched on - the website shows a total and then takes nothing.",
+            href: "/administration/integrations",
+          });
+        else if (sandboxOn.length)
+          out.push({
+            id: "pay-sandbox", tone: "amber", icon: "cash",
+            title: `${sandboxOn.map((p) => p.label).join(", ")} is ON but in sandbox`,
+            body: "Payments look successful and no money arrives.",
+            href: "/administration/integrations",
+          });
+      }),
+      soft(async () => {
+        const u = await getUndecidedNodes();
+        if (u.length)
+          out.push({
+            id: "undecided", tone: "sky", icon: "layers",
+            title: `${u.length} new screen${u.length === 1 ? "" : "s"} reach nobody yet`,
+            body: "A new screen is handed to no one until you decide.",
+            href: "/administration/access",
           });
       }),
       soft(async () => {

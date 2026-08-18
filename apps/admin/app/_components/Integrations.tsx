@@ -140,9 +140,6 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
   const flash = (m: string) => { setOk(m); setErr(""); setTimeout(() => setOk(""), 4000); };
 
   const groups = (data?.groups ?? []).filter((g) => !only || g.kind === only);
-  const payment = data?.groups.find((g) => g.kind === "PAYMENT")?.services ?? [];
-  const live = payment.filter((p) => p.isEnabled && p.isLive);
-  const sandboxOn = payment.filter((p) => p.isEnabled && !p.isLive);
   const heading = only ? groups[0]?.label ?? "Integrations" : "Integrations & keys";
 
   return (
@@ -157,35 +154,6 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
         }
       />
       <Flash ok={ok} err={err} />
-
-      {/*  The most consequential fact in the whole module: can the website take
-           money, and is it real money. Shown on the full page and on payment.  */}
-      {data && (!only || only === "PAYMENT") && (
-        <div className="mb-5 space-y-3">
-          {live.length === 0 && sandboxOn.length === 0 && (
-            <Banner tone="amber" emoji="⚠" title="Checkout cannot take money">
-              No payment gateway is switched on. The website can show a cart and
-              a total, and then take nothing.
-            </Banner>
-          )}
-          {sandboxOn.length > 0 && (
-            <Banner
-              tone="rose" emoji="⚠"
-              title={`${sandboxOn.map((p) => p.label).join(", ")} is ON but in SANDBOX`}
-            >
-              Sandbox accepts payments that never arrive. To a customer it looks
-              exactly like a successful order — and to you it looks like a paid
-              order with no money behind it.
-            </Banner>
-          )}
-          {live.length > 0 && (
-            <Banner tone="emerald" emoji="✓"
-                    title={`Taking real payments via ${live.map((p) => p.label).join(", ")}`}>
-              Live keys are in use. Real money moves through this.
-            </Banner>
-          )}
-        </div>
-      )}
 
       {/*
         On a single-group page the header above already names the group, so
