@@ -3668,7 +3668,8 @@ model StockIssueLine {
   @@index([issueId])
 }
 
-/// DEC-INV-009 — count session: ledger snapshot vs counted, গরমিল in qty + taka,
+/// DEC-INV-009 - a count session: ledger snapshot vs counted, the discrepancy
+/// in both qty and taka,
 /// Apply posts one ADJUSTMENT per differing line. Immutable after Apply (INV-RULE-011).
 model Stocktake {
   id          String    @id @default(cuid())
@@ -3717,8 +3718,8 @@ model ItemExpiryLot {
 /// DEC-INV-003 / 011 — single row, admin-configurable (never hardcoded).
 model InventorySetting {
   id                        String              @id @default("singleton")
-  defaultSaleWarehouseId    String? // seeded → দোকান (SHOP)
-  defaultReceiveWarehouseId String? // seeded → স্টোররুম (STORE)
+  defaultSaleWarehouseId    String? // seeded to the shop floor (SHOP)
+  defaultReceiveWarehouseId String? // seeded to the storeroom (STORE)
   allowPerOrderWarehouse    Boolean             @default(false)
   negativeStockPolicy       NegativeStockPolicy @default(ALLOW_WARN)
 
@@ -4032,9 +4033,10 @@ model ProductDeliveryType {
 /// DEC-DLV-002 / P3 — zone × method × fee × cut-off master, admin-configurable.
 /// Order keeps label/fee SNAPSHOTS; this is the menu, not the receipt.
 ///
-/// ⚠️ DEC-DLV-008-এর পর এই টেবিলের মানে বদলেছে: এটা এখন **দাম**, নাম নয়।
-/// একটা সারি = "এই ধরনের delivery, এই এলাকায়, এত টাকায়, এই slot-গুলো নিয়ে"।
-/// নামটা `type`-এ। `label` এখনো আছে পুরনো order আর পুরনো পর্দার জন্য।
+/// Since DEC-DLV-008 this table means something different: it is now the
+/// PRICE, not the name. One row = "this kind of delivery, in this area, for
+/// this much, with these slots". The name lives on `type`. `label` survives
+/// for old orders and old screens.
 model DeliveryMethod {
   id         String             @id @default(cuid())
   label      String // "2-Hour Express", "Same Day", "Midnight", "Nationwide Courier"
@@ -4059,23 +4061,24 @@ model DeliveryMethod {
   /// this default differs from Category's.
   isFeatured Boolean            @default(true)
 
-  /// ── কোন এলাকার দাম · DEC-DLV-007 ────────────────────────────────────────
-  /// null = পুরো zone-এর জন্য একই নিয়ম। এলাকা বসালে সেই এলাকার নিজের দাম।
+  /// ── Which area this price is for · DEC-DLV-007 ─────────────────────────
+  /// null = one rule for the whole zone. Set an area and that area gets its
+  /// own price.
   ///
-  /// এটাই locked decision যেটা চেয়েছিল: *"Delivery Type–Zone availability =
-  /// fully admin-configurable matrix table (not a hardcoded Dhaka/non-Dhaka
-  /// boolean)"*। প্রতিটা সারি ওই ছকের একটা ঘর — এই এলাকায় এই ধরনের delivery
-  /// চলে কি না, আর চললে কত।
+  /// This is the locked decision asking for *"Delivery Type-Zone availability
+  /// = fully admin-configurable matrix table (not a hardcoded Dhaka/non-Dhaka
+  /// boolean)"*. Each row is one cell of that matrix: does this kind of
+  /// delivery run in this area, and if so for how much.
   ///
-  /// ⚠️ null-ই ডিফল্ট, ইচ্ছাকৃতভাবে। দোকান যদি ঢাকার সব জায়গায় একই দাম নেয়
-  /// — আর বেশিরভাগ দোকান তাই নেয় — তাহলে একটাই সারি, আর checkout-এ গ্রাহককে
-  /// এলাকা জিজ্ঞেস করার দরকারই পড়ে না।
+  /// null is the default deliberately. If the shop charges the same
+  /// everywhere in Dhaka - and most shops do - that is one row, and checkout
+  /// never has to ask the customer which area they are in.
   areaId String?
   area   DeliveryArea? @relation(fields: [areaId], references: [id])
 
-  /// ── কোন নামের দাম · DEC-DLV-008 ─────────────────────────────────────────
-  /// null = পুরনো সারি, যেটা নিজের `label` নিয়ে একা দাঁড়িয়ে আছে। নতুন সব
-  /// সারিতে এটা থাকবে, আর তখনই product-এর সাথে সংযোগ কাজ করে।
+  /// ── Which name this price belongs to · DEC-DLV-008 ─────────────────────
+  /// null = an old row still standing on its own `label`. Every new row
+  /// carries this, and only then does the link to a product work.
   typeId String?
   type   DeliveryType? @relation(fields: [typeId], references: [id])
 
@@ -4100,22 +4103,23 @@ model DeliverySlot {
   sortOrder      Int            @default(0)
   isActive       Boolean        @default(true)
 
-  /// ── স্লটের নিজের সময় আর শেষ-অর্ডারের ঘড়ি · DEC-DLV-007 ───────────────
-  /// দিনের শুরু থেকে মিনিট, ২৪ ঘণ্টার হিসাবে। 9am = 540, 12pm = 720।
+  /// ── The slot's own hours and its cut-off clock · DEC-DLV-007 ───────────
+  /// Minutes from the start of the day, on a 24-hour clock.
+  /// 9am = 540, 12pm = 720.
   ///
-  /// ⚠️ মিনিট, "9am - 12pm" লেখা নয়। লেখা দিয়ে হিসাব করা যায় না — আর
-  /// checkout-কে হিসাব করতেই হবে: এখন কি এই স্লট ধরা যায়, নাকি সময় পেরিয়ে
-  /// গেছে। লেখাটা মিনিট থেকে বানানো যায়, উল্টোটা যায় না।
+  /// Minutes, not the text "9am - 12pm". You cannot do arithmetic on text,
+  /// and checkout has to: can this slot still be taken, or has the time gone?
+  /// The text can be built from the minutes; the reverse is not true.
   startMin Int?
   endMin   Int?
 
-  /// এই স্লটের জন্য শেষ কখন order নেওয়া যাবে — "08:00"। null = স্লট শুরুর
-  /// আগ পর্যন্ত।
+  /// The last moment an order may be taken for this slot - "08:00".
+  /// null = right up until the slot begins.
   ///
-  /// ⚠️ স্লটে, method-এ নয়। `DeliveryMethod.cutoffTime` পুরো ধরনের জন্য একটা
-  /// সময় দেয়, কিন্তু মালিকের পর্দায় সকালের স্লট বন্ধ হয় ৮টায় আর সন্ধ্যারটা
-  /// ৩টায় — একই দিনে, একই ধরনের delivery-তে। একটা সংখ্যা দিয়ে তিনটা ভিন্ন
-  /// সত্য বলা যায় না।
+  /// On the slot, not the method. `DeliveryMethod.cutoffTime` gives one time
+  /// for the whole kind, but on the owner's screen the morning slot closes at
+  /// 8 and the evening one at 3 - same day, same kind of delivery. One number
+  /// cannot tell three different truths.
   cutoffTime String?
 
   orders Order[] // FK reference; slotLabel snapshot stays on the order
@@ -4337,8 +4341,8 @@ model PosDiscountRule {
 // ============================================================
 // PRICING & OFFERS MODULE — RADIAN_OFFERS_MODULE_ARCHITECTURE.md
 // (locked 23 Jul 2026, DEC-OFR-001…009). One owner for every discount promise.
-// Order keeps only the applied snapshot (couponCode + discountPaisa) — rules
-// live HERE. POS excluded (negotiable price, locked §5খ).
+// Order keeps only the applied snapshot (couponCode + discountPaisa) - the
+// rules live HERE. POS is excluded (negotiable price, locked §5b).
 // ============================================================
 
 /// DEC-OFR-001 — v1 Core 6. Bundle/Tiered/Free-gift/BOGO/Corporate deferred;
@@ -4410,7 +4414,7 @@ model Offer {
   // stacking + presentation (DEC-OFR-002/007)
   combinable    Boolean  @default(false)
   priority      Int      @default(0) // higher wins ties between automatics
-  scarcity      Boolean  @default(false) // cosmetic counter — NEVER real stock (locked §5খ)
+  scarcity      Boolean  @default(false) // cosmetic counter - NEVER real stock (locked §5b)
   bonusLines    String[] // Hormozi bonus stack — plain text v1
   guaranteeText String?
 
