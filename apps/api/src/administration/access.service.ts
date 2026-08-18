@@ -78,12 +78,19 @@ export class AccessService implements OnModuleInit {
 
     const roles: LegacyRole[] = ['OWNER', 'MANAGER', 'STAFF'];
     for (const role of roles) {
+      /*  Only OWNER is locked (owner's ruling, 18 Aug 2026). The starters used
+          to be sealed as a bridge-era caution, but the real safety lives in
+          removePosition: a template somebody still holds cannot be deleted.
+          A starter the owner does not want is just a template like any other. */
       const position = await this.prisma.db.position.create({
         data: {
           name: role,
           isOwner: role === 'OWNER',
-          isLocked: true,
-          note: 'Carried over from the original three roles — rename it freely, it cannot be deleted',
+          isLocked: role === 'OWNER',
+          note:
+            role === 'OWNER'
+              ? 'The last door into your own system — rename it freely, it cannot be deleted'
+              : 'Carried over from the original three roles — rename or delete it freely',
         },
       });
 
