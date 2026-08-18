@@ -316,17 +316,18 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     : 0;
 
   /*
-    Order cut-off countdown।
+    Order cut-off countdown.
 
-    ⚠️ আগে এটা ছিল `cut.setHours(18, 0, 0, 0)` — component নিজেই ৬টা বাজে
-    ধরে নিত। দুটো ভুল একসাথে: (১) কোনো delivery mode-এর আসল cut-off ৬টা না
-    হলে ঘড়িটা মিথ্যা বলত, (২) হিসাবটা হত **দর্শকের ঘড়িতে**, তাই টরন্টো
-    থেকে কেউ দেখলে ঢাকার cut-off ৯ ঘণ্টা দূরে দেখাত।
+    This used to be `cut.setHours(18, 0, 0, 0)` - the component assuming 6pm by
+    itself. Two faults at once: (1) if a delivery mode's real cut-off was not
+    6pm the clock lied, and (2) the arithmetic ran ON THE VIEWER'S CLOCK, so
+    somebody watching from Toronto saw Dhaka's cut-off nine hours away.
 
-    এখন server বাংলাদেশ সময়ে কত মিনিট বাকি সেটা পাঠায়; browser শুধু গোনে।
-    আজকের মতো সব cut-off পেরিয়ে গেলে `null` — তখন ঘড়িই দেখানো হয় না,
-    কাল সকালের জন্য নতুন করে গোনা শুরু হয় না। শেষ হয়ে যাওয়া প্রতিশ্রুতি
-    ফিরিয়ে নেওয়াই সৎ, নতুন করে দেওয়া নয়।
+    The server now sends how many minutes remain in Bangladesh time and the
+    browser only counts down. Once every cut-off for the day has passed it is
+    `null` - no clock is shown, and it does not quietly restart counting for
+    tomorrow morning. Withdrawing a promise that has expired is honest;
+    issuing a fresh one is not.
   */
   const minutesLeft =
     zone === "bangladesh"
@@ -338,8 +339,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       setClock(null);
       return;
     }
-    /*  Server-এর মিনিট + page খোলার পর কত সময় গেল। প্রতি second-এ নতুন
-        request নয়, আবার ঘড়িটা জমেও থাকে না।  */
+    /*  The server's minutes plus however long the page has been open. No
+        request every second, and the clock never freezes either.  */
     const endsAt = Date.now() + minutesLeft * 60_000;
     const tick = () => {
       const s = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
@@ -356,20 +357,24 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   }, [minutesLeft]);
 
   /*
-    Cart-এ শুধু CONFIG যায় — দাম নয়। দাম cart page-এ resolveCart()
-    আবার হিসাব করবে (দাম বদলালে stale হয়ে যেত)।
-    variant = আলাদা product (D16), তাই product.slug-ই variant।
+    Only the CONFIG goes to the cart, never the price. The cart page recomputes
+    it with resolveCart() (a stored price would go stale the moment one
+    changed). A variant is a separate product (D16), so product.slug IS the
+    variant.
   */
-  /** এই মুহূর্তের config — addToCart আর buyNow দুটোই একই জিনিস cart-এ পাঠায় */
+  /** The configuration right now - addToCart and buyNow send the cart the same
+      thing */
   function currentLine() {
     return {
-      /*  DEC-PRD-020 — upgrade বাছা থাকলে cart-এ **ওরই** slug যায়, কারণ
-          সেটাই সত্যিকারের product যা গ্রাহক কিনছেন। page বদলায়নি, কিন্তু
-          জিনিসটা বদলেছে — আর cart-কে সত্যিটাই জানতে হয়, নাহলে দোকানে
-          ২৪টা গোলাপের order যেত আর গ্রাহক ৫০টার দাম দিতেন।  */
+      /*  DEC-PRD-020 - with an upgrade selected, ITS slug goes to the cart,
+          because that is the product the customer is actually buying. The page
+          did not change but the thing did, and the cart has to know the truth -
+          otherwise the shop received an order for 24 roses while the customer
+          paid for 50.  */
       slug: upgrade ? upgrade.slug : product.slug,
-      /*  DEC-PRD-012 — কোন রঙটা কেনা হচ্ছে। খালি = এই product-এর variant
-          নেই। দাম এখানে যায় না; cart নিজে আবার হিসাব করে।  */
+      /*  DEC-PRD-012 - which colour is being bought. Empty means this product
+          has no variants. No price travels here; the cart works it out
+          again.  */
       variantId: variant?.id,
       sizeId: size.id,
       bundleIds,
@@ -384,12 +389,13 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       and the guards below). Absent `availability` means the mock is feeding
       this component, and the mock has no stock to run out of. */
   /*
-    DEC-PRD-012 — কোনো একটা রঙ শেষ মানে product শেষ নয়।
+    DEC-PRD-012 - one colour running out does not mean the product has.
 
-    ⚠️ variant-এর মজুদ তখনই দরজা বন্ধ করে যখন **অন্তত একটায়** মজুদ আছে।
-    সবগুলো শূন্য হলে ধরে নেওয়া হয় মালিক এখনো ঘরগুলো ভরেননি, আর তখন
-    product-এর নিজের হিসাবই চলে। নাহলে ৩০টা গোলাপ দোকানে থাকা অবস্থায়
-    শুধু variant-এর ঘর খালি বলে গোটা page "Sold out" দেখাত।
+    Variant stock only closes the door when AT LEAST ONE variant has stock. If
+    every one is zero we assume the owner has not filled those boxes in yet,
+    and the product's own count governs. Otherwise a page would have read
+    "Sold out" with 30 roses standing in the shop, purely because the variant
+    boxes were empty.
   */
   const anyVariantStock = vList.some((v) => v.stockQty > 0);
   const variantOut = anyVariantStock && !!variant && variant.stockQty === 0;
