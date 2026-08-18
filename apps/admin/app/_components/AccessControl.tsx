@@ -222,6 +222,23 @@ export default function AccessControl() {
       </div>
       <Flash ok={ok} err={err} />
 
+      {/*  The three words, explained once, on the screen itself — the owner
+          should never need to remember what a button means.  */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 px-1 text-[11.5px] font-semibold">
+        <span className="flex items-center gap-1.5">
+          <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "#12a172" }} />
+          <span className="text-[#453f52]">Allow — you said open</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "#5b5370" }} />
+          <span className="text-[#453f52]">Auto — no rule of its own, follows its module</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "#d94838" }} />
+          <span className="text-[#453f52]">Block — you said shut</span>
+        </span>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-[236px_minmax(0,1fr)] items-start">
         {/* ── templates rail ─────────────────────────────────────────── */}
         <div className="lg:sticky lg:top-4 space-y-2">
@@ -452,7 +469,7 @@ function TriState({
     on: string; onText: string; offBg: string; offText: string;
   }[] = [
     { v: true,  label: "Allow",   on: "linear-gradient(135deg,#0e9767,#22c08b)", onText: "#fff",    offBg: "#e9f9f1", offText: "#0e9767" },
-    { v: null,  label: "Inherit", on: "#5b5370",                                  onText: "#fff",    offBg: "#f3f0f8", offText: "#6f677f" },
+    { v: null,  label: "Auto", on: "#5b5370",                                  onText: "#fff",    offBg: "#f3f0f8", offText: "#6f677f" },
     { v: false, label: "Block",   on: "linear-gradient(135deg,#c62f20,#e8604f)",  onText: "#fff",    offBg: "#fdeeec", offText: "#c62f20" },
   ];
   return (
@@ -473,7 +490,7 @@ function TriState({
             }}
             title={
               o.v === null
-                ? `Follows the module above — currently ${effective ? "open" : "closed"}`
+                ? `No rule of its own — it follows the module above (right now: ${effective ? "open" : "closed"})`
                 : undefined
             }
           >
