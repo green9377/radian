@@ -2660,7 +2660,7 @@ model OrderPhoto {
   orderId    String
   order      Order          @relation(fields: [orderId], references: [id])
   kind       OrderPhotoKind // PREP | DELIVERY
-  url        String? // Cloudinary পরে
+  url        String? // Cloudinary came later
   bg         String? // gradient stand-in
   caption    String?
   capturedBy String?
@@ -3060,8 +3060,8 @@ model Item {
   components ItemComponent[] @relation("ItemRecipe") // what THIS item is made of
   usedIn     ItemComponent[] @relation("ItemUsedIn") // recipes THIS item appears in
   products   Product[] // DEC-ITM-002 — many Products may share one Item
-  productVariants ProductVariant[] // DEC-PRD-015 — এক রঙ, এক Item
-  addOns     AddOn[] // DEC-PRD-039 — একটা add-on-এর মজুদ যে Item রাখে
+  productVariants ProductVariant[] // DEC-PRD-015 - one colour, one Item
+  addOns     AddOn[] // DEC-PRD-039 - the Item that holds an add-on's stock
   purchaseLines PurchaseLine[] // DEC-PUR-009 — purchase history of this item
 
   // ---- Inventory module back-relations (DEC-INV-001…015). Item still owns NO quantity;
@@ -3516,7 +3516,7 @@ model SupplierAdjustment {
 
 /// DEC-INV-002 — all reasons exist from day 1; SALE_RETURN is enum-only until
 /// the Returns & Refunds module ships. GIFT is separate from ADJUSTMENT so the
-/// monthly "কত টাকার মাল ফ্রি গেল" report exists.
+/// monthly "how much stock went out free" report can exist.
 /// DEC-ASM-007 — ASSEMBLY (build: components OUT + finished IN) and UNBUILD
 /// (dismantle: finished OUT + components IN) added by the Assembly module.
 /// Enum ADDITION is a non-breaking migration; flagged to the architecture project.
@@ -3551,7 +3551,7 @@ enum NegativeStockPolicy {
 model Warehouse {
   id       String  @id @default(cuid())
   code     String  @unique // SHOP · STORE
-  name     String // English — UI rule: চ্যাটে বাংলা, UI/data English
+  name     String // English - nothing stored or displayed is ever in Bengali
   address  String?
   isActive Boolean @default(true)
 
@@ -3599,7 +3599,7 @@ model InventoryMovement {
   groupId    String? // joins transfer OUT+IN, stocktake batch (DEC-INV-004/009)
   reversesId String? @unique
   note       String?
-  actor      String? // এখন সবাই সব পারবে — কে করল সেটাই যথেষ্ট (Q11 ruling)
+  actor      String? // everyone may do everything for now - who did it is enough (Q11 ruling)
 
   createdAt DateTime @default(now())
 
@@ -3643,7 +3643,7 @@ model StockIssue {
   issueNo         String    @unique // WST-000001 / GFT-000001
   kind            IssueKind
   warehouseId     String
-  reason          String? // পচা / ভাঙা / শুকিয়ে যাওয়া / marketing / সম্পর্ক …
+  reason          String? // rotted / broken / dried out / marketing / goodwill ...
   note            String?
   totalValuePaisa Int       @default(0)
   status          String    @default("POSTED") // POSTED | REVERSED
