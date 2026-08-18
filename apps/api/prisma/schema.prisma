@@ -1148,88 +1148,92 @@ model Product {
   // (locked §4, part of the DEC-MOD-003 family)
   salesCount Int @default(0)
 
-  /// ── DEC-PRD-025 · বিক্রির সংখ্যা কীভাবে দেখাবে ─────────────────────────
-  /// মালিক, ২ আগস্ট ২০২৬:
-  /// > *"আমরা এখানে প্রথমে একটা fake sale account বসাব — like 50, 100, 1000।
-  /// >  সে সংখ্যা যাই হোক, তারপর real sell হলে সেই সংখ্যার সাথে add হবে —
-  /// >  50 বসালাম, একটা sell হলো, auto 51 হয়ে যাবে। আমাদের stock-এর মতো,
-  /// >  এটা তুমি ভুলে গেছ। আর আমাদের এখানে just last month আছে, এটা
-  /// >  customize-এর option নেই — today sell, week sell, month and all time।"*
+  /// ── DEC-PRD-025 · how the sales figure is displayed ────────────────────
+  /// The owner, 2 August 2026:
+  /// > *"First we put a fake sale count here - like 50, 100, 1000. Whatever
+  /// >  that number is, real sales then add to it: I set 50, one sale
+  /// >  happens, it becomes 51 automatically. Same as our stock - you forgot
+  /// >  this one. And here we only have last month, there is no option to
+  /// >  customise it: today sell, week sell, month and all time."*
   ///
-  /// ⚠️ কেন নতুন কলাম, `salesCount` থাকতে। `salesCount` হলো **চলমান মোট** —
-  /// order delivered হলে সেটায় যোগ হয়। তাই ওটাকে একই সাথে "শুরুর সংখ্যা"
-  /// ধরলে সপ্তাহের হিসাবে পুরনো বিক্রি দুবার গোনা হতো। `salesSeed` কখনো
-  /// বদলায় না — মালিক যা লিখেছেন, ঠিক তাই।
+  /// Why a new column when `salesCount` exists: `salesCount` is the RUNNING
+  /// total - a delivered order adds to it. Treating it as the starting number
+  /// too would have counted old sales twice in the weekly figure.
+  /// `salesSeed` never moves; it is exactly what the owner typed.
   ///
-  /// ⚠️ **চারটে আলাদা ঘর** — মালিকের বাছাই, ২ আগস্ট ২০২৬। প্রশ্নটা ছিল:
-  /// *"ধরো আমি দিলাম today sale ১০টা, সেভাবে week আর month-এ দিলাম। তাহলে
-  /// today, week আর month শেষ হলে সে সংখ্যার কী হবে?"*
+  /// FOUR SEPARATE BOXES, the owner's choice, 2 August 2026. His question was:
+  /// *"Say I set today's sale to 10, and set the week and the month the same
+  /// way. Then when today, the week and the month end, what happens to those
+  /// numbers?"*
   ///
-  /// একটাই ঘর রাখলে "আজ ১০" আর "এ মাসে ২০০" একসাথে বলা যেত না — মাসের
-  /// সংখ্যাটা আজকের দিনেও বসে যেত। এখন যে সময়টা বাছা, তার নিজের সংখ্যাটাই
-  /// চলে।
+  /// With a single box there was no way to say "10 today" and "200 this
+  /// month" at once - the monthly number would land on today as well. Now
+  /// whichever window is chosen carries its own figure.
   ///
-  /// দেখানো সংখ্যা = ওই সময়ের seed + ওই সময়ের ভেতরের **সত্যিকারের** order।
-  /// সময় ফুরালে (রাত ১২টা, সপ্তাহ, মাস) সত্যিকারের অংশটা শূন্য থেকে আবার
-  /// শুরু হয়; seed-টা বসে থাকে — ওটা মালিকের বেছে নেওয়া মেঝে।
+  /// Displayed number = that window's seed + the REAL orders inside that
+  /// window. When the window rolls over (midnight, week, month) the real part
+  /// starts again from zero; the seed stays - it is the floor the owner chose.
   salesSeedToday Int @default(0)
   salesSeedWeek  Int @default(0)
   salesSeedMonth Int @default(0)
   salesSeedAll   Int @default(0)
 
-  /// ⚠️ কখন সংখ্যাগুলো বসানো হয়েছিল — আর এটাই "প্রতিদিন নতুন করে শুরু"
-  /// হওয়ার চাবি। মালিক, ২ আগস্ট ২০২৬:
-  /// > *"today, week and month-এ ০ হোক, আমি এটাই চাই। all time তো carry
-  /// >  করবে, সমস্যা নেই। কিন্তু always যদি মানুষ দেখে today 10 sale, তাহলে
-  /// >  Google আর মানুষের কাছে এটা fake হয়ে যাবে। daily এটা restart হওয়াই
-  /// >  ভালো। আবার আমাদের যদি দরকার হয়, product-এ ঢুকে আবার সংখ্যা add করব।"*
+  /// When those numbers were set - and this is the key to "starts fresh each
+  /// day". The owner, 2 August 2026:
+  /// > *"Let today, week and month go to 0, that is what I want. All time
+  /// >  carries over, no problem. But if people always see today 10 sale,
+  /// >  then to Google and to people it becomes fake. Better that it restarts
+  /// >  daily. And if we need it again, I will go into the product and add
+  /// >  the number again."*
   ///
-  /// তাই TODAY-র সংখ্যা কেবল **সেই দিনটাতেই** চলে, WEEK ৭ দিন, MONTH ৩০ দিন।
-  /// সময় পেরোলে সংখ্যাটা মুছে ফেলা হয় না — শুধু গোনা হয় না। মালিক আবার
-  /// চাইলে ঢুকে save করলেই ঘড়িটা নতুন করে শুরু।
+  /// So a TODAY figure only counts on that day, WEEK for 7 days, MONTH for
+  /// 30. Once the window passes the number is not erased - it simply stops
+  /// counting. The owner reopens the product, saves, and the clock restarts.
   ///
-  /// ⚠️ কোনো background job নেই, আর সেটাই ইচ্ছাকৃত। রাত ১২টায় চলা একটা
-  /// cron মানে একটা জিনিস যা চুপচাপ বন্ধ হয়ে যেতে পারে আর কেউ টের পায় না।
-  /// পড়ার সময় তারিখ মিলিয়ে নেওয়া কখনো "চলতে ভুলে যায়" না।
+  /// There is no background job, deliberately. A cron at midnight is a thing
+  /// that can quietly stop running with nobody noticing. Comparing the date
+  /// at read time never forgets to run.
   salesSeedAt DateTime?
-  /// কোন ঘরটা এখন চলবে। `MONTH` = আগের আচরণ, তাই সেটাই default।
+  /// Which box is in force. `MONTH` was the old behaviour, so it is default.
   salesWindow SalesWindow @default(MONTH)
 
-  /// ── DEC-PRD-026 · গ্রাহক এই product-এ নিজের কিছু দিতে পারবে কি না ──────
-  /// মালিক, ২ আগস্ট ২০২৬: *"আমাদের customize product-এ কোথাও image upload
-  /// আর কোথাও text লেখার জায়গা product page-এ দিতে হয় — সেটার configure
-  /// করার জায়গা পেলাম না।"*
+  /// ── DEC-PRD-026 · whether a customer may add their own to this product ─
+  /// The owner, 2 August 2026: *"On our customise products the product page
+  /// has to offer an image upload in some places and a text box in others -
+  /// I could not find where to configure that."*
   ///
-  /// ⚠️ পেলেন না, কারণ ছিলই না। আরও খারাপ: storefront-এর seam-এ সোজা
-  /// `perso: null` লেখা ছিল, তাই কোনো product-এ বাক্সটা **কখনো** আসেনি।
-  /// Cart, checkout আর order আগে থেকেই `persoText`/`persoImage` বয়ে নিয়ে
-  /// যেত — শুধু মাঝের অংশটা কেউ বানায়নি।
+  /// He could not find it because it did not exist. Worse: the storefront
+  /// seam had a literal `perso: null`, so the box never appeared on ANY
+  /// product. Cart, checkout and order had been carrying
+  /// `persoText`/`persoImage` all along - only the middle was never built.
   ///
-  /// দুটো আলাদা switch, কারণ mug-এ নাম লাগে আর photo-frame-এ ছবি — দুটো
-  /// একসাথে দরকার হয় কদাচিৎ, কিন্তু হয়।
+  /// Two separate switches, because a mug wants a name and a photo frame
+  /// wants a picture. Needing both at once is rare, but it happens.
   persoTitle      String?
-  /// নাম/বার্তা লেখার ঘর
+  /// the box for a name or a message
   persoText       Boolean @default(false)
   persoTextLabel  String?
-  /// সর্বোচ্চ কত অক্ষর। `null` = সীমা নেই।
+  /// Maximum characters. `null` = no limit.
   persoTextMax    Int?
   persoTextHint   String?
-  /// ছবি দেওয়ার ঘর
+  /// the box for an image
   persoImage      Boolean @default(false)
   persoImageLabel String?
   persoImageHint  String?
 
-  /// ── DEC-PRD-027 · "Want this customised?" সবুজ বাক্স ───────────────────
-  /// মালিক: *"আমরা কোন কোন product-এ customize করতে দিব, যা দিলে পাশে
-  /// WhatsApp show করবে — তা customize করার option... সেটাও কোথাও দেখতে
-  /// পেলাম না।"*
+  /// ── DEC-PRD-027 · the green "Want this customised?" box ────────────────
+  /// The owner: *"Which products we allow customising on - the ones that then
+  /// show WhatsApp beside it - the option to configure that... I could not
+  /// find that anywhere either."*
   ///
-  /// ⚠️ বাক্সটা এতদিন **সব** product-এ দেখাত, লেখা আসত category-র হাতে লেখা
-  /// template থেকে, আর নম্বরটা ছিল `wa.me/8801000000000` — আমার বসানো একটা
-  /// বানানো নম্বর। কেউ চাপলে কোথাও যেত না।
+  /// The box used to appear on EVERY product, its wording came from a
+  /// hand-written category template, and the number was
+  /// `wa.me/8801000000000` - an invented number I had put there. Tapping it
+  /// went nowhere.
   ///
-  /// এখন প্রতি product-এ switch, আর নম্বর আসে Company settings-এর
-  /// `publicPhone` থেকে — দুই জায়গায় দুটো নম্বর রাখার মানে নেই।
+  /// Now it is a per-product switch, and the number comes from Company
+  /// settings `publicPhone` - there is no sense keeping two numbers in two
+  /// places.
   customiseOn    Boolean @default(false)
   customiseTitle String?
   customiseSub   String?
@@ -1244,12 +1248,13 @@ model Product {
   itemId String?
   item   Item?   @relation(fields: [itemId], references: [id])
 
-  // made-to-order lead time — CRAFTED পণ্যে "কত দিন লাগবে" (DEC-PRD-006)
+  // Made-to-order lead time - "how many days" on a CRAFTED product (DEC-PRD-006)
   leadTimeDays Int? // null = same-day / readymade
 
-  // upgrade link — এই product কি অন্য একটা product-এর বড় version?
-  // Upgrade = নিজের full price/cost/discount সহ আলাদা product; base + extra নয়।
-  // storefront-এ এটা option হিসেবে দেখায়, নিজের page-এ যায় না (locked)।
+  // Upgrade link - is this product a larger version of another one?
+  // An upgrade is a separate product with its own full price, cost and
+  // discount; it is not a base plus an extra. The storefront shows it as an
+  // option and never as a page of its own (locked).
   upgradeOfProductId String?
   upgradeOf          Product?  @relation("ProductUpgrade", fields: [upgradeOfProductId], references: [id])
   upgrades           Product[] @relation("ProductUpgrade")
@@ -1283,14 +1288,15 @@ model Product {
   // ONE VALUE, NOT MANY — owner, 31 Jul. A multi-colour bouquet is given the
   // master's own "Mixed" value. So a red-and-white bouquet does NOT appear
   // under Red; it appears under Mixed, and that is the intended behaviour
-  // ("Red মানে ঠিক Red"). Recorded because it will look like a bug later.
+  // ("Red means exactly Red"). Recorded because it will look like a bug later.
   //
   // The two strings above are read from this once every product is backfilled,
-  // then dropped — the same retirement `sku` → `Item.sku` is going through.
+  // then dropped - the same retirement `sku` -> `Item.sku` is going through.
   variantValueId String?
   variantValue   VariantValue? @relation(fields: [variantValueId], references: [id])
 
-  // delivery-speed flags — ⚠️ পরে Delivery module derive করবে; এখন Product mirror (locked §2)
+  // Delivery-speed flags - the Delivery module derives these later; for now
+  // Product mirrors them (locked §2)
   supportsExpress  Boolean @default(false)
   supportsSameDay  Boolean @default(false)
   supportsMidnight Boolean @default(false)
@@ -1322,9 +1328,9 @@ model Product {
   trustBadges ProductTrustBadge[]
   /// this product's own bundle list, when it overrides its category's
   bundles     Bundle[]            @relation("BundleOnProduct")
-  /// DEC-PRD-017 — যেসব bundle-এ এই product যোগ হয়
+  /// DEC-PRD-017 - the bundles this product is added into
   bundleItems BundleItem[]        @relation("BundleItemProduct")
-  /// DEC-PRD-016 — এই product-এর combo দামগুলো
+  /// DEC-PRD-016 - this product's combo prices
   bundleCombos BundleCombo[]
   /// likewise for the craft cards
   craft       CraftPoint[]
@@ -1381,31 +1387,31 @@ enum StockMode {
   TRACKED
 }
 
-/// মজুদ শূন্য হলে listing কী করবে। DEC-PDP-09।
+/// What the listing does when stock hits zero. DEC-PDP-09.
 enum SoldOutMode {
-  /// বিক্রি বন্ধ। "Out of stock", cart button নিষ্ক্রিয়।
+  /// Selling stops. "Out of stock", the cart button is disabled.
   STOCK_OUT
-  /// অর্ডার নেওয়া যাবে, তবে গ্রাহক জানে জিনিসটা এখন হাতে নেই।
-  /// টাকার নিয়ম আলাদা কিছু নয় — product-এর নিজের `advanceRequired`ই চলে।
+  /// Orders are accepted, but the customer knows it is not in hand today.
+  /// No special money rule - the product's own `advanceRequired` applies.
   PRE_ORDER
 }
 
-/// কত দিনের বিক্রি গোনা হবে — DEC-PRD-025।
+/// How many days of sales are counted - DEC-PRD-025.
 ///
-/// ⚠️ এটা শুধু **দেখানোর** সিদ্ধান্ত। `salesCount` (sorting-এর জন্য) আর
-/// order-এর হিসাব এতে বদলায় না।
+/// This is a DISPLAY decision only. It changes neither `salesCount` (used for
+/// sorting) nor anything in the order ledger.
 enum SalesWindow {
-  /// আজকের
+  /// today's
   TODAY
-  /// গত ৭ দিন
+  /// the last 7 days
   WEEK
-  /// গত ৩০ দিন — আগের আচরণ
+  /// the last 30 days - the old behaviour
   MONTH
-  /// দোকান খোলার পর থেকে সব
+  /// everything since the shop opened
   ALL
 }
 
-/// product gallery ছবি (Cloudinary url পরে)
+/// Product gallery image (Cloudinary urls came later)
 model ProductImage {
   id        String    @id @default(cuid())
   productId String
@@ -1419,7 +1425,7 @@ model ProductImage {
   @@index([productId])
 }
 
-/// SIZE — একই product, শুধু দাম বদলায় (locked §2 variant model)
+/// SIZE - the same product, only the price changes (locked §2 variant model)
 model ProductSize {
   id         String    @id @default(cuid())
   productId  String
@@ -1435,7 +1441,8 @@ model ProductSize {
   @@index([productId])
 }
 
-/// what's-inside / spec row — Product owns (BOM নয়, শুধু structured display)
+/// What's-inside / spec row - owned by Product. Not a BOM, just a structured
+/// way to display the contents.
 model ProductSpec {
   id        String    @id @default(cuid())
   productId String
@@ -1470,10 +1477,10 @@ model ProductTrustBadge {
   id        String    @id @default(cuid())
   productId String
   product   Product   @relation(fields: [productId], references: [id])
-  icon      String // Icon.tsx নাম
-  /// DEC-PRD-023 — নিজের আপলোড করা icon। `icon`-এর জায়গা নেয় যখন ভরা থাকে।
-  /// category-র badge-এ যেটা পারা যায়, product-এর নিজেরটাতেও পারা উচিত —
-  /// নাহলে override করতে গেলেই ছবিটা হারিয়ে যেত।
+  icon      String // a name from Icon.tsx
+  /// DEC-PRD-023 - an uploaded icon. Takes the place of `icon` when filled.
+  /// Whatever a category badge can do, a product's own badge should do too -
+  /// otherwise overriding one would have lost the picture.
   iconUrl   String?   @db.Text
   label     String
   sub       String?
