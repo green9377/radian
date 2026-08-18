@@ -6405,7 +6405,8 @@ enum ReferralState {
 // CONTENT / CMS — CMS-D01
 //
 // The storefront's about, FAQ, journal and policy pages are hand-written
-// TypeScript files today, each carrying a "⇄ SWAP HERE — CMS এলে fetch() হবে"
+// TypeScript files today, each carrying a "SWAP HERE - becomes a fetch() once
+// the CMS exists"
 // note left by whoever built them. This is that swap.
 //
 // It is not decoration. **A shop cannot legally take money without privacy,
@@ -6849,7 +6850,7 @@ enum KpiName {
 }
 
 /// Singleton. ⚠️ No deletedAt — MUST be listed in NO_SOFT_DELETE, or every
-/// call 500s on a column that does not exist (kickoff §4-চ; caught five times).
+/// call 500s on a column that does not exist (kickoff §4f; caught five times).
 model IntelligenceSetting {
   id String @id @default("singleton")
 
