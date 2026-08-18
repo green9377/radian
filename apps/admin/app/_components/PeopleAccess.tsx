@@ -235,7 +235,12 @@ export default function PeopleAccess() {
                       <Chip tone="brand">OWNER — everything</Chip>
                     ) : positions.length ? (
                       <select
-                        className={`${input} text-[12px] py-1 max-w-[190px]`}
+                        className="appearance-none text-[12.5px] font-bold rounded-[10px] pl-3 pr-8 py-[7px] max-w-[190px] cursor-pointer transition-colors disabled:opacity-50"
+                        style={{
+                          color: positionOf[u.id] ? "#7a2ea8" : "#8f87a0",
+                          background: `${positionOf[u.id] ? "#f5eafb" : "#f6f3fa"} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a2ea8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center`,
+                          border: "1.5px solid " + (positionOf[u.id] ? "#d9b8ec" : "#e4ddef"),
+                        }}
                         value={positionOf[u.id] ?? ""}
                         disabled={assigning === u.id}
                         onChange={(x) => void assign(u, x.target.value || null)}

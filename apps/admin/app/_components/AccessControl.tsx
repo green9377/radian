@@ -327,18 +327,40 @@ export default function AccessControl() {
                           className="flex items-center gap-2.5 pr-3 py-[9px] border-b border-[#f3eff8] hover:bg-[#fbf9fd] transition-colors"
                           style={{ paddingLeft: 13, borderLeft: `3px solid ${eff.allowed ? c.text : "transparent"}` }}>
                           <button
-                            className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+                            className="flex items-center gap-2 min-w-0 flex-1 text-left"
                             onClick={() => mod.children.length && toggleOpen(mod.key)}>
-                            <span className="text-[14px] font-bold truncate"
-                              style={{ color: eff.allowed ? "#2d2838" : "#8f87a0" }}>
+                            {mod.children.length > 0 ? (
+                              <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center shrink-0 transition-colors"
+                                style={{ background: isOpen ? c.text : "#f0ebf7" }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                  stroke={isOpen ? "#fff" : c.text} strokeWidth="3.2"
+                                  strokeLinecap="round" strokeLinejoin="round"
+                                  className={"transition-transform " + (isOpen ? "rotate-90" : "")}>
+                                  <path d="M9 6l6 6-6 6" />
+                                </svg>
+                              </span>
+                            ) : (
+                              <span className="w-[22px] grid place-items-center shrink-0">
+                                <span className="w-[7px] h-[7px] rounded-full"
+                                  style={{ background: eff.allowed ? c.text : "#d7d0e2" }} />
+                              </span>
+                            )}
+                            <span className="text-[14px] font-bold truncate text-[#2d2838]">
                               {mod.label}
                             </span>
                             {mod.children.length > 0 && (
                               <span className="text-[10px] font-bold px-1.5 py-[1px] rounded-full shrink-0"
-                                style={{ background: "#f0ebf7", color: "#7a6f96" }}>
-                                {mod.children.length}{isOpen ? " ▾" : " ▸"}
+                                style={{ background: "#f0ebf7", color: "#6f6584" }}>
+                                {mod.children.length}
                               </span>
                             )}
+                            <span className="text-[10px] font-bold px-1.5 py-[1px] rounded-full shrink-0"
+                              style={{
+                                background: eff.allowed ? "#eafaf3" : "#f4f1f8",
+                                color: eff.allowed ? "#12a172" : "#9a91ac",
+                              }}>
+                              {eff.allowed ? "open" : "closed"}
+                            </span>
                           </button>
                           <TriState
                             value={mod.key in rules ? rules[mod.key] : null}
@@ -392,15 +414,13 @@ function ScreenRow({
         className="flex items-center gap-2 pr-3 py-[6px] border-b border-[#f1edf6] last:border-0"
         style={{ paddingLeft: 34 + depth * 18 }}
       >
-        <span className="w-[6px] h-[6px] rounded-full shrink-0"
-          style={{ background: eff.allowed ? accent : "#cfc8dc" }} />
-        <span className="text-[12.5px] font-semibold flex-1 truncate"
-          style={{ color: eff.allowed ? "#453f52" : "#8f87a0" }}>
+        <span className="w-[7px] h-[7px] rounded-full shrink-0"
+          style={{ background: eff.allowed ? accent : "#d7d0e2" }} />
+        <span className="text-[13px] font-semibold flex-1 truncate text-[#453f52]">
           {node.label}
-          {!explicit && (
-            <span className="text-[10px] font-medium ml-1.5" style={{ color: "#a89fb8" }}>
-              {eff.allowed ? "· open" : "· closed"}
-            </span>
+          {explicit && (
+            <span className="text-[9.5px] font-bold ml-1.5 px-1.5 py-[1px] rounded-full align-middle"
+              style={{ background: "#f0ebf7", color: "#7a6f96" }}>own rule</span>
           )}
         </span>
         <TriState
@@ -427,26 +447,29 @@ function TriState({
   disabled: boolean;
   onChange: (v: Verdict) => void;
 }) {
-  const opts: { v: Verdict; label: string; on: string; onText: string }[] = [
-    { v: true, label: "Allow", on: "#12a172", onText: "#fff" },
-    { v: null, label: "Inherit", on: "#e8e3f0", onText: "#554d66" },
-    { v: false, label: "Block", on: "#d94838", onText: "#fff" },
+  const opts: {
+    v: Verdict; label: string;
+    on: string; onText: string; offBg: string; offText: string;
+  }[] = [
+    { v: true,  label: "Allow",   on: "linear-gradient(135deg,#0e9767,#22c08b)", onText: "#fff",    offBg: "#e9f9f1", offText: "#0e9767" },
+    { v: null,  label: "Inherit", on: "#5b5370",                                  onText: "#fff",    offBg: "#f3f0f8", offText: "#6f677f" },
+    { v: false, label: "Block",   on: "linear-gradient(135deg,#c62f20,#e8604f)",  onText: "#fff",    offBg: "#fdeeec", offText: "#c62f20" },
   ];
   return (
-    <div className="flex rounded-[8px] overflow-hidden shrink-0"
-      style={{ border: "1.5px solid #d9d2e6" }}>
-      {opts.map((o, i) => {
+    <div className="flex rounded-[9px] overflow-hidden shrink-0 gap-[3px] p-[3px]"
+      style={{ background: "#eee9f4" }}>
+      {opts.map((o) => {
         const on = value === o.v;
         return (
           <button
             key={String(o.v)}
             disabled={disabled}
             onClick={() => onChange(o.v)}
-            className="text-[11px] px-2.5 py-[5px] font-bold transition-colors disabled:opacity-40"
+            className="text-[11px] px-2.5 py-[4px] font-bold rounded-[6px] transition-all disabled:opacity-40"
             style={{
-              background: on ? o.on : "#fff",
-              color: on ? o.onText : "#6f677f",
-              borderLeft: i > 0 ? "1px solid #e6e0ee" : undefined,
+              background: on ? o.on : o.offBg,
+              color: on ? o.onText : o.offText,
+              boxShadow: on ? "0 1px 4px rgba(40,20,55,0.25)" : undefined,
             }}
             title={
               o.v === null
