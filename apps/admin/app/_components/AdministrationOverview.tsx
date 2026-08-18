@@ -54,11 +54,10 @@ type Hue = keyof typeof B;
 const DOORS: { label: string; href: string; icon: string; hue: Hue }[] = [
   { label: "Access control", href: "/administration/access", icon: "shield", hue: "purple" },
   { label: "People & accounts", href: "/settings/people", icon: "users", hue: "orchid" },
-  { label: "Activity & audit", href: "/settings/audit", icon: "search", hue: "lavender" },
+  { label: "Activity & sessions", href: "/settings/audit", icon: "search", hue: "lavender" },
   { label: "Company", href: "/administration/company", icon: "store", hue: "rosegold" },
   { label: "All settings", href: "/administration/settings", icon: "gear", hue: "pink" },
   { label: "Backups", href: "/administration/backup", icon: "download", hue: "emerald" },
-  { label: "Sessions", href: "/administration/sessions", icon: "eye", hue: "lavender" },
   { label: "Integrations", href: "/administration/integrations", icon: "bolt", hue: "purple" },
 ];
 
@@ -185,7 +184,7 @@ export default function AdministrationOverview() {
             <LegendDot color={B.amber.text}>{noPin.length} no PIN</LegendDot>
             <LegendDot color="#d8d2e2">{pendingInvites.length} invited</LegendDot>
           </>} />
-        <VizTile hue="orchid" icon="eye" label="Signed in now" href="/administration/sessions"
+        <VizTile hue="orchid" icon="eye" label="Signed in now" href="/settings/audit?tab=sessions"
           viz={
             <div className="flex items-center h-[86px]">
               <div className="flex -space-x-2.5">
@@ -231,8 +230,8 @@ export default function AdministrationOverview() {
 
       {/* ── row 2 · access health (purple) + company (rose gold) ─────── */}
       <div className="grid gap-4 lg:grid-cols-2 mb-4">
-        <Section hue="purple" icon="shield" title="Access — what the silent guard saw"
-          sub="It blocks nobody yet; it writes down who it WOULD have refused">
+        <Section hue="purple" icon="shield" title="Access — what the guard refused"
+          sub="Enforcing since 18 Aug — a template that does not open a module is refused at the door">
           <div className="flex items-start gap-4 mb-3">
             <div className="shrink-0 text-center">
               <Gauge pct={decidedPct ?? 0} size={132} color={B.purple.text}
@@ -240,7 +239,7 @@ export default function AdministrationOverview() {
             </div>
             <div className="grid gap-2.5 flex-1 min-w-0">
               <MiniStat hue={guard ? (guard.rows.length ? "amber" : "emerald") : "lavender"}
-                value={guard ? String(guard.rows.length) : "—"} label="would have been refused" />
+                value={guard ? String(guard.rows.length) : "—"} label="requests refused" />
               <MiniStat hue={guard ? (guard.unjudged.length ? "rose" : "emerald") : "lavender"}
                 value={guard ? String(guard.unjudged.length) : "—"} label="routes the guard cannot judge" />
             </div>
@@ -351,7 +350,7 @@ export default function AdministrationOverview() {
         </Section>
 
         <Section hue="lavender" icon="eye" title="Signed in right now"
-          sub="Every open session; sign any of them out from the Sessions screen">
+          sub="Every open session; sign any of them out from the Activity page">
           <div className="space-y-1.5">
             {sessions == null && <span className="text-[12.5px] text-body-soft">—</span>}
             {sessions?.length === 0 && <span className="text-[12.5px] text-body-soft">Nobody is signed in.</span>}

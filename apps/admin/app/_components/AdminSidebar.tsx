@@ -609,11 +609,10 @@ const GROUPS: Group[] = [
               progress. They move to /administration/* when there is something
               better to move them to.  */
           { label: "People & accounts", href: "/settings/people" },
-          { label: "Activity & audit", href: "/settings/audit" },
+          { label: "Activity & sessions", href: "/settings/audit" },
           { label: "Company settings", href: "/administration/company" },
           { label: "All settings", href: "/administration/settings" },
           { label: "Backup & restore", href: "/administration/backup" },
-          { label: "Signed in now", href: "/administration/sessions" },
           /*  ADM-D09 — EVERY outside service lives here, on the owner's
               instruction (30 Jul): Facebook, WhatsApp, Google, Meta, all of it.
               Grouped rather than one flat list, and payment sits at the top

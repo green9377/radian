@@ -1,25 +1,32 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import type { Request } from 'express';
 import { AccessService } from './access.service';
 import { REGISTRY } from './registry.def';
 
 /**
- * AccessGuard — §৭ ধাপ ২, the SILENT stage. It blocks nobody.
+ * AccessGuard — §৭ stage 3: ENFORCING, by the owner's order, 18 Aug 2026.
  *
- * Why a stage that does nothing. 346 of the API's 419 routes have no role check
- * at all. Switching them on together and seeing what breaks means the thing
- * that breaks is the shop, with a customer standing at the counter. So this
- * runs the real verdict against real traffic and only WRITES DOWN who it would
- * have turned away. When that list stops filling up, enforcement is safe — and
- * not one day earlier.
+ * The silent stage ended the day it proved its point. An account invited
+ * with no template signed in and every unguarded module worked (the rajib
+ * incident) — "amn joto futa thakbe sob khuje ber kre futa off krba." So
+ * the guard now refuses: a request into a module the template does not open
+ * gets 403, in plain words.
+ *
+ * What made the flip safe, in order:
+ *   · drift check green — every API prefix is judged, aliased or exempt,
+ *     so nothing is waved through unexamined
+ *   · effectiveFor answers all-false for a template-less account (the
+ *     legacy bridge is retired) and all-true for OWNER
+ *   · invites require a template, so no new account is born undecided
  *
  * Module level only, on purpose. The node comes from the first path segment:
- * `GET /finance/pnl` asks about `finance`. That needs no annotation on 419
- * routes, so there is nothing to forget to add. Screen-level checks come later
- * and only where they earn their keep.
+ * `GET /finance/pnl` asks about `finance`. Screen-level checks come later
+ * and only where they earn their keep. The @Roles decorators stay as a
+ * second, independent wall until they are retired deliberately.
  *
- * ⚠️ It is a CanActivate that always returns true. That is not an oversight,
- * and the day it starts refusing must be a deliberate, separate change.
+ * The report survives: what used to be "would block" is now the log of what
+ * WAS blocked, on the same screen. Unmapped prefixes still pass — but the
+ * drift check fails the build if one appears, so that state cannot persist.
  */
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -129,10 +136,17 @@ export class AccessGuard implements CanActivate {
         node,
       });
       this.logger.warn(
-        `WOULD BLOCK ${actor.name} → ${req.method} ${path} (node "${first}")`,
+        `BLOCKED ${actor.name} → ${req.method} ${path} (node "${node}")`,
+      );
+      throw new ForbiddenException(
+        'Your access template does not open this part of the system — ask the owner',
       );
     } catch (e) {
-      // a guard that can fail closed on its own bug would be the worst outcome
+      if (e instanceof ForbiddenException) throw e;
+      /*  The guard's OWN failure (a DB hiccup, a bug here) still fails open,
+          with a loud error — locking the whole shop out because the lock
+          itself broke would be the worse outcome, and the @Roles wall and
+          module-level checks still stand underneath.  */
       this.logger.error(`access guard error — ${(e as Error).message}`);
     }
     return true;

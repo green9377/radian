@@ -31,7 +31,7 @@ import {
  *  Signed in now
  * ================================================================== */
 
-export function SessionsScreen() {
+export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const [rows, setRows] = useState<ApiSession[]>([]);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -66,11 +66,13 @@ export function SessionsScreen() {
   }
 
   return (
-    <div className={WRAP}>
-      <FinHeader
-        eyebrow="Administration" emoji="◍" title="Signed in now"
-        sub={`${rows.length} live session${rows.length === 1 ? "" : "s"} — a session lasts 7 days`}
-      />
+    <div className={embedded ? "" : WRAP}>
+      {!embedded && (
+        <FinHeader
+          eyebrow="Administration" emoji="◍" title="Signed in now"
+          sub={`${rows.length} live session${rows.length === 1 ? "" : "s"} — a session lasts 7 days`}
+        />
+      )}
       <Flash ok={ok} err={err} />
 
       <Panel emoji="▤" title="Live sessions" sub="One row per device that is signed in">

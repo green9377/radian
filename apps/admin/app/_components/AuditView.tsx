@@ -93,7 +93,7 @@ function Changes({ changes }: { changes: Record<string, unknown> | null }) {
   );
 }
 
-export function AuditView() {
+export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
   const [tab, setTab] = useState<"MONEY" | "ALL" | "ACTIVITY" | "BACKUPS">("MONEY");
   const [stats, setStats] = useState<ApiAuditStats | null>(null);
   const [facets, setFacets] = useState<ApiAuditFacets | null>(null);
@@ -173,14 +173,16 @@ export function AuditView() {
   useEffect(() => { setPage(1); }, [tab, entityType, actor, action, search, from, to]);
 
   return (
-    <div className={WRAP}>
-      <FinHeader
-        eyebrow="Administration"
-        title="Activity & audit"
-        sub="Who did what, and when. Search for a record, or click any row to see everything that ever happened to it. Nothing on this page can be edited or deleted, on purpose."
-        emoji="🕰"
-        tone="slate"
-      />
+    <div className={embedded ? "" : WRAP}>
+      {!embedded && (
+        <FinHeader
+          eyebrow="Administration"
+          title="Activity & audit"
+          sub="Who did what, and when. Search for a record, or click any row to see everything that ever happened to it. Nothing on this page can be edited or deleted, on purpose."
+          emoji="🕰"
+          tone="slate"
+        />
+      )}
       <Flash ok="" err={err} />
 
       {stats?.backupStale && (

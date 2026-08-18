@@ -1,7 +1,7 @@
-import { SessionsScreen } from "../../_components/AdminSystem";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Signed in now — Radian Admin" };
-
+/* Sessions merged into the Activity page (owner, 18 Aug 2026). The address
+   survives for bookmarks and old links; the screen lives at /settings/audit. */
 export default function Page() {
-  return <SessionsScreen />;
+  redirect("/settings/audit?tab=sessions");
 }
