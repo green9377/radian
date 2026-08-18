@@ -6653,36 +6653,38 @@ model MessagingSetting {
   testEmail String?
   testPhone String?
 
-  /* ---- হারানো order ফেরানো (DEC-WA-002…008, ৬ আগস্ট ২০২৬) ----
-     ⚠️ প্রতিটা সংখ্যা এখানে, কোডে নয়। "১৫ মিনিট" বা "২৪ ঘণ্টা" ব্যবসার
-     সিদ্ধান্ত — বদলাতে deploy লাগবে না (ঘরের নিয়ম ৭)। */
+  /* ---- Recovering lost orders (DEC-WA-002 to 008, 6 August 2026) ----
+     Every number lives here, not in the code. "15 minutes" and "24 hours" are
+     business decisions - changing one must not need a deploy (house rule 7). */
 
-  /// মাস্টার সুইচ। বন্ধ থাকলে নিচের কিছুই ঘটে না।
+  /// Master switch. With this off, nothing below happens.
   recoveryEnabled Boolean @default(false)
 
-  /// পেমেন্ট ফেল/বাতিল হলে বার্তা (DEC-WA-002)
+  /// Message when a payment fails or is cancelled (DEC-WA-002)
   paymentFailedEnabled Boolean @default(true)
-  /// প্রথমটার কত ঘণ্টা পর দ্বিতীয়বার। 0 = দ্বিতীয়বার নেই।
+  /// How many hours after the first before the second. 0 = no second one.
   paymentFailedRetryHours Int @default(24)
 
-  /// checkout ছেড়ে যাওয়া (DEC-WA-004) — ⚠️ Meta-র চোখে MARKETING template,
-  /// তাই পাঠানোর আগে opt-out তালিকা মানা বাধ্যতামূলক
+  /// Abandoned checkout (DEC-WA-004) - Meta counts this as a MARKETING
+  /// template, so the opt-out list MUST be honoured before sending
   abandonedEnabled Boolean @default(true)
-  /// কত মিনিট চুপ থাকলে "ছেড়ে গেছে" ধরা হবে
+  /// How many minutes of silence before it counts as abandoned
   abandonedAfterMinutes Int @default(15)
 
-  /// অসমাপ্ত checkout-এর তথ্য কতদিন রাখা হবে, তারপর নিজে থেকে মুছবে
-  /// (DEC-WA-008)। যাঁরা কিছু কেনেননি তাঁদের নম্বর — চিরকাল রাখার জিনিস নয়।
+  /// How long an unfinished checkout is kept before it deletes itself
+  /// (DEC-WA-008). These are the phone numbers of people who bought nothing -
+  /// not something to keep forever.
   leadRetentionDays Int @default(90)
 
-  /// ⚠️ Demo-তে **বন্ধ**, Real-এ চালু (DEC-WA-007)। ফ্রি Postgres-এ নিয়মিত
-  /// জেগে ওঠা query মাসিক compute কোটা কয়েক দিনে শেষ করে দেয় — `/health`
-  /// কেন DB ছোঁয় না, ঠিক একই কারণ। Demo-তে হাতে চালানোর বোতাম আছে।
+  /// OFF on demo, on in real (DEC-WA-007). On free Postgres a query that wakes
+  /// the database on a schedule burns the monthly compute quota in days - the
+  /// same reason `/health` never touches the DB. Demo has a button to run it
+  /// by hand.
   sweeperEnabled     Boolean @default(false)
   sweeperEveryMinutes Int    @default(5)
 
-  /// বার্তায় গ্রাহক যে নম্বরে ফোন করবেন (DEC-WA-003)। খালি থাকলে
-  /// CompanySetting-এর নম্বর।
+  /// The number the customer is told to call in the message (DEC-WA-003).
+  /// Blank falls back to CompanySetting's number.
   supportPhone String?
 
   updatedAt DateTime @updatedAt
@@ -6871,11 +6873,11 @@ model IntelligenceSetting {
 // ============================================================================
 //  INBOX — RADIAN_INBOX_MODULE_ARCHITECTURE.md (draft 5 Aug 2026)
 //
-//  সব channel-এর গ্রাহক-কথোপকথন এক inbox-এ (DEC-INB-001…006)। Phase 1 =
-//  WEB_CHAT শুধু; Messenger/Instagram/WhatsApp/SMS পরে একই টেবিলে নামবে —
-//  connector যোগ হয়, schema বদলায় না।
+//  Every channel's customer conversations in one inbox (DEC-INB-001 to 006).
+//  Phase 1 is WEB_CHAT only; Messenger, Instagram, WhatsApp and SMS land in
+//  this same table later - a connector is added, the schema does not change.
 //
-//  One Data One Owner: Customer/Order এখানে কপি হয় না — FK আর read।
+//  One Data One Owner: Customer and Order are never copied here - FK and read.
 // ============================================================================
 
 enum InboxChannel {
@@ -6905,7 +6907,7 @@ enum MessageAuthor {
 }
 
 enum EscalationReason {
-  MONEY_TOPIC // DEC-INB-001 — টাকার প্রসঙ্গ AI কখনো নিজে সামলায় না
+  MONEY_TOPIC // DEC-INB-001 - the AI never handles a money topic on its own
   LOW_CONFIDENCE
   CUSTOMER_ASKED_HUMAN
   ANGRY_CUSTOMER
@@ -6913,25 +6915,27 @@ enum EscalationReason {
   MANUAL
 }
 
-/// এক গ্রাহকের এক channel-এর এক thread (INB-RULE-006)।
+/// One thread, for one customer, on one channel (INB-RULE-006).
 model Conversation {
   id      String             @id @default(cuid())
   channel InboxChannel       @default(WEB_CHAT)
   status  ConversationStatus @default(OPEN)
 
-  /// INB-RULE-007 — ফোন/ইমেইল মিললে FK বসে; গ্রাহকের তথ্য কপি হয় না।
+  /// INB-RULE-007 - when the phone or email matches, the FK is set; the
+  /// customer's details are never copied.
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 
-  /// DEC-INB-006 — guest পরিচয়। skip করলে দুটোই null, chat তবু চলে।
+  /// DEC-INB-006 - the guest's identity. Skip it and both stay null; the chat
+  /// still works.
   guestName  String?
   guestPhone String?
 
-  /// WEB_CHAT-এর ব্রাউজার-secret: এই key যার হাতে, thread টা তার।
-  /// অন্য channel-এ external identity (PSID/ফোন) এই কাজটা করে।
+  /// WEB_CHAT's browser secret: whoever holds this key owns the thread.
+  /// On other channels the external identity (PSID/phone) does that job.
   clientKey String @unique @default(cuid())
 
-  /// অন্য channel-এর নিজের পরিচয় (Messenger PSID, WhatsApp নম্বর) — Phase 3.
+  /// Another channel's own identity (Messenger PSID, WhatsApp number) - Phase 3.
   /// A partial unique index (migration 20260807090000) allows only ONE live
   /// thread per (channel, externalIdentity). Prisma cannot express partial
   /// indexes, so it lives in SQL — do not add @@unique here, it would also
@@ -6944,7 +6948,8 @@ model Conversation {
   adReferralSourceId String?
   adReferralHeadline String?
 
-  /// DEC-INB-004 — staff লিখলেই false; আবার চালু per-thread, হাতে।
+  /// DEC-INB-004 - goes false the moment staff type; turning it back on is
+  /// per thread and by hand.
   aiEnabled Boolean @default(true)
 
   assigneeId String?
@@ -6952,7 +6957,7 @@ model Conversation {
 
   lastMessageAt  DateTime  @default(now())
   escalatedAt    DateTime?
-  /// staff-এর unread গোনা — badge। staff thread খুললে 0।
+  /// The staff unread count behind the badge. Opening the thread sets it to 0.
   unreadForStaff Int       @default(0)
 
   messages    Message[]
@@ -6968,7 +6973,7 @@ model Conversation {
   @@index([channel, externalIdentity])
 }
 
-/// এক কথোপকথনের এক বার্তা — যেদিকেই যাক।
+/// One message in one conversation, whichever way it went.
 model Message {
   id             String       @id @default(cuid())
   conversationId String
@@ -6976,16 +6981,17 @@ model Message {
 
   direction  MessageDirection
   authorType MessageAuthor
-  /// authorType=STAFF হলে কে — audit-এর অর্ধেক এখানেই।
+  /// Who, when authorType=STAFF - half the audit trail is this field.
   authorUserId String?
   authorUser   AppUser? @relation("MessageAuthor", fields: [authorUserId], references: [id])
 
   body String
 
-  /// channel-এর নিজের message id — webhook duplicate ঠেকায় (Phase 3)।
+  /// The channel's own message id - stops duplicate webhooks (Phase 3).
   externalMessageId String? @unique
 
-  /// authorType=AI হলে: confidence, ব্যবহৃত tool, escalation কারণ (Phase 2)।
+  /// When authorType=AI: confidence, the tools used, the escalation reason
+  /// (Phase 2).
   aiMeta Json?
 
   readByStaffAt DateTime?
@@ -6996,9 +7002,9 @@ model Message {
   @@index([conversationId, createdAt])
 }
 
-/// AI (বা নিয়ম) মানুষ ডেকেছে — এমন প্রতিটা মুহূর্তের স্থায়ী রেকর্ড।
-/// Append-only log (AuditLog-এর মতো) — deletedAt নেই, ইচ্ছাকৃত: রিপোর্টের
-/// "AI কোথায় আটকায়" প্রশ্নের উত্তর এই ইতিহাসেই।
+/// A permanent record of every moment the AI (or a rule) called for a human.
+/// An append-only log like AuditLog - no deletedAt, deliberately: the report
+/// answering "where does the AI get stuck" is built from this history.
 model EscalationEvent {
   id             String       @id @default(cuid())
   conversationId String
@@ -7006,7 +7012,7 @@ model EscalationEvent {
 
   reason EscalationReason
 
-  /// কাদের খবর দেওয়া হলো — AppUser id-র তালিকা (INB-RULE-005)।
+  /// Who was notified - a list of AppUser ids (INB-RULE-005).
   notifiedUserIds Json @default("[]")
 
   acknowledgedById String?
@@ -7019,36 +7025,39 @@ model EscalationEvent {
   @@index([createdAt])
 }
 
-/// Singleton। ⚠️ deletedAt নেই — IntelligenceSetting-এর মতোই; soft-delete
-/// extension এখন DERIVED বলে আলাদা তালিকায় নাম লেখাতে হয় না।
+/// Singleton. No deletedAt, exactly like IntelligenceSetting - the
+/// soft-delete extension now treats it as DERIVED, so it no longer has to be
+/// named in a separate list.
 model InboxSetting {
   id String @id @default("singleton")
 
-  /// Phase 2-র kill-switch। Phase 1-এ AI নেই, তাই false-ই সত্যি।
+  /// The Phase 2 kill switch. There is no AI in Phase 1, so false is the truth.
   aiGloballyEnabled Boolean @default(false)
-  /// DEC-INB-004 — নতুন thread-এ AI-র প্রাথমিক অবস্থা।
+  /// DEC-INB-004 - the AI's starting state on a new thread.
   aiDefaultForNew   Boolean @default(true)
 
-  /// মালিকের রায় (৫ আগস্ট): দুই provider-এর জন্য বানানো, আপাতত Anthropic।
-  /// "ANTHROPIC" | "OPENAI" — key env-এ (ANTHROPIC_API_KEY / OPENAI_API_KEY),
-  /// DB-তে কখনো নয়।
+  /// The owner's ruling (5 August): built for two providers, Anthropic for
+  /// now. "ANTHROPIC" | "OPENAI" - the key lives in env
+  /// (ANTHROPIC_API_KEY / OPENAI_API_KEY) and never in the database.
   aiProvider String @default("ANTHROPIC")
   aiModel    String @default("claude-haiku-4-5-20251001")
 
-  /// DEC-INB-003 — escalation কার কাছে যায়; খালি = সব OWNER (INB-RULE-005)।
+  /// DEC-INB-003 - who an escalation goes to; empty = every OWNER
+  /// (INB-RULE-005).
   escalationAssigneeIds Json @default("[]")
 
-  /// INB-RULE-008 — মিনিটে, মধ্যরাত থেকে। 540=9:00, 1320=22:00।
+  /// INB-RULE-008 - in minutes from midnight. 540 = 9:00, 1320 = 22:00.
   supportOpenMin  Int    @default(540)
   supportCloseMin Int    @default(1320)
   offHoursMessage String @default("We are closed right now — we will reply in the morning, usually by 9 AM.")
 
-  /// INB-RULE-006 — এত দিনের পুরনো RESOLVED thread নতুন করে খোলে না।
+  /// INB-RULE-006 - a RESOLVED thread older than this does not reopen.
   reopenWindowDays Int @default(30)
 
-  /// DEC-INB-008 rev (৫ আগস্ট) — উপস্থিতি-ভিত্তিক জানালা, সেকেন্ডে।
-  /// Staff inbox-এ ACTIVE থাকলে AI এই ক'সেকেন্ড তাকে আগে সুযোগ দেয়;
-  /// কেউ active না থাকলে AI সাথে সাথে উত্তর দেয় — গ্রাহক অপেক্ষা করে না।
+  /// DEC-INB-008 rev (5 August) - a presence-based window, in seconds.
+  /// While staff are ACTIVE in the inbox the AI gives them this many seconds
+  /// first; if nobody is active the AI answers immediately, so the customer
+  /// never waits.
   staffGraceSec Int @default(30)
 
   webChatEnabled Boolean @default(true)
