@@ -1024,9 +1024,9 @@ export class ProductDetailService {
       /*  DEC-PRD-023 - the same ladder. Badges with no label are dropped, just
           as craft points are: press "Add a badge", write nothing, walk away,
           and an empty box would appear on the website.  */
-      /*  ⚠️ generic-টা হাতে লেখা: product-এর `icon` কলামটা NOT NULL আর
-          category-রটা nullable, তাই TypeScript নিজে থেকে একটাই আকার
-          বেছে নিতে পারে না।  */
+      /*  The generic is written out by hand: the product's `icon` column is
+          NOT NULL while the category's is nullable, so TypeScript cannot pick
+          one shape for both on its own.  */
       trust: pickList<{
         icon: string | null;
         iconUrl: string | null;
@@ -1110,16 +1110,17 @@ export class ProductDetailService {
    *
    * The owner's discount is applied on top of whatever that product is already
    * selling for — so a chocolate at 10% off, bundled at ৳50 off, is ৳50 below
-   * its own sale price. That is what "একসাথে নিলে ছাড়" means to a shopper
+   * its own sale price. That is what "a discount for taking them together"
+   * means to a shopper
    * looking at both pages, and the alternative (ignoring the product's own
    * discount) would show the bundle costing MORE than buying it separately.
    */
   /**
-   * DEC-PRD-020 — এই product-এর বড় সংস্করণগুলো।
+   * DEC-PRD-020 - the larger versions of this product.
    *
-   * ⚠️ শুধু বিক্রয়যোগ্যগুলো। একটা upgrade যদি draft হয় বা শেষ হয়ে যায়,
-   * সেটা দেখানোর মানে হতো "৫০টা গোলাপ নিন" বলে তারপর ফোন করে ফিরিয়ে
-   * নেওয়া — bundle card-এর সাথে হুবহু একই নিয়ম, একই কারণে।
+   * Sellable ones only. Showing an upgrade that is a draft or has sold out
+   * would mean offering "take 50 roses" and then phoning to take it back -
+   * exactly the rule the bundle cards follow, for exactly the same reason.
    */
   private async upgrades(productId: string) {
     const rows = await this.prisma.db.product.findMany({
