@@ -3973,27 +3973,29 @@ model DeliveryType {
   sortOrder Int                @default(0)
   isActive  Boolean            @default(true)
 
-  /// এই delivery কোন ছাঁচের। checkout এটাই পড়ে ঠিক করতে — তারিখ চাইব?
-  /// slot চাইব? নাকি শুধু ঘড়ি চালাব?
+  /// Which shape this delivery is. Checkout reads it to decide whether to ask
+  /// for a date, ask for a slot, or simply start the clock.
   timing DeliveryTiming @default(TODAY_SLOT)
 
-  /// `FROM_CONFIRM` হলে কত মিনিটের প্রতিশ্রুতি। ২ ঘণ্টা = 120, ৩ ঘণ্টা = 180।
-  /// নাম "3 Hours" করলে এটা **নিজে থেকে বদলায় না** — মালিক এখানে ১৮০ লেখেন।
-  /// দুটোই তাঁর হাতে, আর কোনো আন্দাজ নেই।
+  /// For `FROM_CONFIRM`, how many minutes are promised. 2 hours = 120,
+  /// 3 hours = 180. Renaming it "3 Hours" does NOT change this by itself -
+  /// the owner types 180 here. Both are in his hands, and nothing is guessed.
   promiseMinutes Int?
 
-  /// ── এই delivery দিনের কোন সময়টায় নেওয়া যাবে · মালিকের নির্দেশ ──────────
+  /// ── The hours of the day this delivery may be taken · owner's instruction
   ///
-  /// > *"২ ঘণ্টার delivery দোকান off/on পর্যন্ত কাজ করবে, তারও একটা সীমা
-  /// > থাকবে — like ১০টা থেকে ৯টা পর্যন্ত। এমন না হলে বিপদ হবে, কারণ দোকান
-  /// > অনেক সময় ১২টা পর্যন্ত খোলা থাকবে, আবার সকাল ৬টায়ও খুলতে পারি।"*
+  /// > *"2-hour delivery works while the shop is on/off, but it should have a
+  /// > limit too - like from 10 to 9. Without that there will be trouble,
+  /// > because sometimes the shop stays open till 12, and we might open at 6
+  /// > in the morning."*
   ///
-  /// ⚠️ Shop hours-এর সাথে মেলানো হয়নি ইচ্ছাকৃতভাবে, আর কারণটা মালিকের
-  /// কথাতেই আছে: **দোকান খোলা থাকা আর delivery চলা এক জিনিস নয়।** রাত
-  /// ১১টায় দোকান খোলা থাকতে পারে, কিন্তু তখন "২ ঘণ্টায়" মানে রাত ১টা —
-  /// যে প্রতিশ্রুতি কেউ রাখতে পারবে না। প্রতিটা delivery-র নিজের জানালা।
+  /// Deliberately NOT tied to shop hours, and his own words say why: THE SHOP
+  /// BEING OPEN AND A DELIVERY BEING POSSIBLE ARE NOT THE SAME THING. The
+  /// shop can be open at 11pm, but "within 2 hours" then means 1am - a
+  /// promise nobody can keep. Every delivery keeps its own window.
   ///
-  /// দিনের শুরু থেকে মিনিট। ১০টা = 600, রাত ৯টা = 1260। null = সীমা নেই।
+  /// Minutes from the start of the day. 10am = 600, 9pm = 1260.
+  /// null = no limit.
   openFromMin Int?
   openToMin   Int?
 
@@ -4008,12 +4010,13 @@ model DeliveryType {
   @@index([isActive])
 }
 
-/// কোন product কোন delivery-তে যেতে পারে। DEC-DLV-008।
+/// Which products can go out on which delivery. DEC-DLV-008.
 ///
-/// ⚠️ এটা `Product.supportsExpress / supportsSameDay / supportsMidnight`
-/// তিনটা boolean-এর জায়গা নেয়। ওই তিনটা ছিল hardcoded — মালিক নতুন একটা
-/// ধরন বানালে (ধরুন "৪ ঘণ্টায়") product-এ সেটা দেখানোর কোনো উপায়ই ছিল না,
-/// কারণ চতুর্থ কোনো column ছিল না। এখন যতগুলো ধরন, ততগুলো সারি।
+/// This replaces the three booleans
+/// `Product.supportsExpress / supportsSameDay / supportsMidnight`. Those were
+/// hardcoded: the day the owner created a new kind (say "within 4 hours")
+/// there was no way to offer it on a product at all, because there was no
+/// fourth column. Now there are as many rows as there are kinds.
 model ProductDeliveryType {
   productId String
   product   Product      @relation(fields: [productId], references: [id])
