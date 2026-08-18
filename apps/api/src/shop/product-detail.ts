@@ -57,7 +57,7 @@ import { bareImageUrl } from '../common/image-url';
   there. `costPaisa` has no such exception — that one really is never.
 
   WHAT IS NOT HERE YET, and why — see `RADIAN_PRODUCT_PAGE_AUDIT.md` §1:
-    personalisation           — half of it belongs to OrderLine (§3ক, deferred
+    personalisation           - half of it belongs to OrderLine (§3a, deferred
                                 with the Ecommerce lock)
   The storefront keeps rendering its own copy for those three until they are
   decided. They are not silently dropped; they are just not coming from here.
@@ -77,12 +77,13 @@ import { bareImageUrl } from '../common/image-url';
   a 10% discount into a 1000% one and prices everything at zero.
 */
 /*
-  ⚠️ অঙ্কটা এখন `common/discount-window.ts`-এ, একটাই জায়গায়। এখানে শুধু
-  পুরনো নামটা রেখে দেওয়া হলো, কারণ এই ফাইলে ডজনখানেক জায়গা থেকে ডাকা হয়
-  আর প্রতিটা বদলানোর মানে হতো একটা বাদ পড়া।
+  The arithmetic now lives in `common/discount-window.ts`, in one place. Only
+  the old name is re-exported here, because a dozen call sites in this file use
+  it and renaming every one of them means missing one.
 
-  কেন সরল: grid `offerPaisa()` ডাকত, page ডাকত `paidPaisa()` — তারিখের
-  নিয়ম যোগ করার দিন page-এ ছাড় বন্ধ হলো আর grid-এ চলতেই থাকল।
+  Why it moved: the grid called `offerPaisa()` and the page called
+  `paidPaisa()` - so the day the date rules were added, the discount stopped on
+  the page and carried on running on the grid.
 */
 export { paidPaisa };
 
@@ -124,8 +125,9 @@ export function mrpOrNull(p: {
   sellingPricePaisa: number;
   discountType: 'NONE' | 'FLAT' | 'PERCENT';
   discountValue: number;
-  /*  DEC-PRD-028 — কাটা দামটাও মেয়াদ শেষে উঠে যায়। নাহলে offer ফুরানোর
-      পরেও page-এ কাটা দাগ আর "20% OFF" বসে থাকত, অথচ দাম পুরোটাই।  */
+  /*  DEC-PRD-028 - the struck-through price expires with the window too.
+      Otherwise the strike and "20% OFF" would sit on the page after the offer
+      ended, while the price charged was the full one.  */
   discountStartsAt?: Date | null;
   discountEndsAt?: Date | null;
 }): number | null {
@@ -156,15 +158,16 @@ const LIVE = { deletedAt: null, isPublished: true } as const;
 /** child rows: the soft-delete extension does NOT reach nested relations */
 const LIVE_ROW = { deletedAt: null } as const;
 
-/*  DEC-PRD-017 — bundle-এর ভেতরের একটা জিনিস সম্পর্কে যা যা জানা দরকার।
-    একবার লেখা, দুই জায়গায় পড়া (পুরনো একক কলাম আর নতুন `items`) — যাতে
-    দুটো পথ কখনো আলাদা কথা না বলে।  */
+/*  DEC-PRD-017 - everything worth knowing about one thing inside a bundle.
+    Written once, read from two places (the old single column and the new
+    `items`), so the two paths can never say different things.  */
 /**
- * DEC-PRD-023 — প্রথম যে তালিকায় কিছু আছে, সেটাই পুরোটা।
+ * DEC-PRD-023 - the first list that has anything in it is the whole answer.
  *
- * ⚠️ মেশানো হয় না। product-এর "24 sticks" আর category-র "12 sticks" একসাথে
- * দেখালে page নিজেই নিজের সাথে দ্বিমত করত। bundle আর craft-ও ঠিক এভাবেই
- * কাজ করে — এই page-এ উত্তরাধিকারের **একটাই** ধারণা থাকা দরকার।
+ * Lists are never merged. Showing the product's "24 sticks" together with the
+ * category's "12 sticks" would have the page disagreeing with itself. Bundles
+ * and craft points work exactly the same way - this page needs ONE idea of
+ * inheritance, not several.
  */
 function pickList<T>(...lists: (readonly T[] | undefined)[]): T[] {
   for (const l of lists) if (l && l.length > 0) return [...l];
@@ -172,23 +175,24 @@ function pickList<T>(...lists: (readonly T[] | undefined)[]): T[] {
 }
 
 const BUNDLE_ADDS = {
-  /*  ⚠️ id লাগে — cart-এ কোন জিনিসটা নেওয়া হয়েছে সেটা এই id দিয়েই যায়,
-      নাম দিয়ে নয়। মালিক নাম বদলালে cart-এর line ছিঁড়ে যেত।  */
+  /*  The id is required - what was taken travels to the cart as this id, never
+      as a name. Renaming a product would otherwise snap the cart line.  */
   id: true,
   name: true,
   sellingPricePaisa: true,
   discountType: true,
   discountValue: true,
-  /*  DEC-PRD-028 — ছাড়ের মেয়াদ, নাহলে bundle-এর card-এ ফুরিয়ে যাওয়া
-      ছাড়ের দাম বসে থাকত।  */
+  /*  DEC-PRD-028 - the discount window, or an expired discount's price would
+      sit on the bundle card forever.  */
   discountStartsAt: true,
   discountEndsAt: true,
   isPublished: true,
   deletedAt: true,
   stockMode: true,
   stockQty: true,
-  /*  DEC-PRD-014 — মজুদ variant-এ থাকতে পারে। এটা না আনলে ১০টা লাল গোলাপ
-      থাকা সত্ত্বেও card-টা "out of stock" ধরে লুকিয়ে যেত।  */
+  /*  DEC-PRD-014 - the stock may live on the variants. Without fetching this,
+      the card counted itself "out of stock" and hid, with ten red roses in
+      the shop.  */
   variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
   images: {
     where: { deletedAt: null },
@@ -197,14 +201,15 @@ const BUNDLE_ADDS = {
     select: { url: true },
   },
   /*
-    ⚠️ `as const` ছিল এখানে, আর সেটাই API-কে compile হতে দেয়নি (৩ আগস্ট
-    ২০২৬)। `as const` ভেতরের array-গুলোকে `readonly` করে দেয়, আর Prisma-র
-    `orderBy` একটা **mutable** array চায় — তাই সাতটা type error, আর API
-    পুরনো build নিয়ে চলতে থাকে চুপচাপ।
+    There used to be an `as const` here, and it was what stopped the API
+    compiling (3 August 2026). `as const` makes the inner arrays `readonly`,
+    and Prisma's `orderBy` wants a MUTABLE array - so seven type errors, while
+    the API carried on quietly serving the previous build.
 
-    ⚠️ শিক্ষাটা লিখে রাখছি: `radian_apply.bat` চালানোর পর সবকিছু আগের মতো
-    দেখালে ধরে নেওয়া যায় না যে নতুন code চলছে — build ভেঙে গেলে পুরনোটাই
-    চলতে থাকে। `_api_log.txt` দেখাই একমাত্র নিশ্চিত উপায়।
+    The lesson, written down: after running `radian_apply.bat`, everything
+    looking unchanged does NOT mean the new code is running - when the build
+    breaks, the old one keeps running. Reading `_api_log.txt` is the only way
+    to be sure.
   */
 };
 
