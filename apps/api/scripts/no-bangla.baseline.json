@@ -104,7 +104,7 @@
   "apps/admin/app/purchases/[id]/page.tsx": 1,
   "apps/admin/next.config.ts": 7,
   "apps/api/SETUP.md": 33,
-  "apps/api/prisma/schema.prisma": 267,
+  "apps/api/prisma/schema.prisma": 222,
   "apps/api/scripts/checkup.mjs": 52,
   "apps/api/scripts/discount-window.selftest.mjs": 3,
   "apps/api/scripts/pre-deploy-check.mjs": 33,

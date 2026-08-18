@@ -3873,34 +3873,34 @@ enum DeliveryMethodKind {
   COURIER // third-party parcel (nationwide)
 }
 
-/// ── এলাকা · DEC-DLV-007, মালিকের নির্দেশ ১ আগস্ট ২০২৬ ──────────────────────
+/// ── Areas · DEC-DLV-007, owner's instruction 1 August 2026 ────────────────
 ///
-/// > *"আমাদের delivery module-এ প্রতিটা জিনিসের জন্য আলাদা নিয়ম আছে, charge
-/// > আছে। Product upload page-এ শুধু নামগুলা আসবে, আর কাজ করবে delivery
-/// > module-এর নিয়ম অনুযায়ী।"*
+/// > *"In our delivery module every item has its own rule and its own charge.
+/// > The product upload page should only list the names, and the behaviour
+/// > should follow the delivery module's rules."*
 ///
-/// দুই স্তরের গাছ, ঠিক যেমন admin-এর Zones · types · slots পর্দায় দেখা যায়:
-///   parentId = null  → মূল zone  (Dhaka City, Nationwide)
-///   parentId ≠ null  → তার ভেতরের এলাকা (Dhanmondi, Gulshan, Uttara)
+/// A two-level tree, exactly as the admin's Zones / types / slots screen shows:
+///   parentId = null  -> a top-level zone  (Dhaka City, Nationwide)
+///   parentId set     -> an area inside it (Dhanmondi, Gulshan, Uttara)
 ///
-/// ⚠️ পর্দাটা ছিল, টেবিলটা ছিল না। `ZonesAvailability` পুরোটাই browser-এর
-/// ভেতরে `DEMO_ZONE_TREE` নিয়ে বসে ছিল — মালিক charge বদলে refresh দিলেই
-/// সব মুছে যেত, আর database কখনো জানতই না। যে পর্দা save করে না, সেটা
-/// পর্দা নয়, ছবি।
+/// The screen existed; the table did not. `ZonesAvailability` sat entirely
+/// inside the browser holding a `DEMO_ZONE_TREE` - the owner would change a
+/// charge, refresh, and lose everything, with the database never having heard
+/// about it. A screen that does not save is not a screen, it is a picture.
 ///
-/// ⚠️ `DeliveryZone` enum-টা রয়ে গেছে, আর সেটাই ঠিক। ওটা বলে *কোন ধরনের*
-/// জায়গা (ঢাকা / দেশজুড়ে / কাউন্টার) — order-এর snapshot-এ ওটাই লেখা থাকে।
-/// এই টেবিল বলে *কোন* জায়গা। দুটো আলাদা প্রশ্ন।
+/// The `DeliveryZone` enum survives, and rightly. It says WHAT KIND of place
+/// (Dhaka / nationwide / counter) and that is what an order's snapshot
+/// records. This table says WHICH place. Two different questions.
 model DeliveryArea {
   id       String         @id @default(cuid())
   name     String
-  /// null = এটাই মূল zone। নাহলে যে zone-এর ভেতরে।
+  /// null means this IS a top-level zone. Otherwise, the zone it sits inside.
   parentId String?
   parent   DeliveryArea?  @relation("AreaTree", fields: [parentId], references: [id])
   children DeliveryArea[] @relation("AreaTree")
 
-  /// মূল zone-এর ধরন। শিশু সারিও একই মান বহন করে, যাতে "ঢাকার সব এলাকা"
-  /// জানতে গাছ বেয়ে উঠতে না হয়।
+  /// The top-level zone's kind. Child rows carry the same value, so answering
+  /// "every area in Dhaka" does not mean climbing the tree.
   zone      DeliveryZone
   sortOrder Int          @default(0)
   isActive  Boolean      @default(true)
@@ -3915,48 +3915,53 @@ model DeliveryArea {
   @@index([zone])
 }
 
-/// ── delivery-র নাম · DEC-DLV-008, মালিকের নির্দেশ ১ আগস্ট ২০২৬ ─────────────
+/// ── Delivery names · DEC-DLV-008, owner's instruction 1 August 2026 ───────
 ///
-/// > *"delivery module-এ যা edit বা change করা হয়, তা যেন auto পুরা system-এ
-/// > কাজ করে — frontend, product upload page, আর যেখানে দরকার সব জায়গায়।"*
+/// > *"Whatever is edited or changed in the delivery module should work
+/// > automatically across the whole system - frontend, product upload page,
+/// > and everywhere else it is needed."*
 ///
-/// "Same day", "2-hour express" — শুধু নামগুলো, দোকানজুড়ে একবার।
-/// Product upload page এই টেবিলটাই দেখাবে, আর কিছু না।
+/// "Same day", "2-hour express" - just the names, once for the whole shop.
+/// The product upload page shows this table and nothing else.
 ///
-/// ⚠️ কেন আলাদা টেবিল, `DeliveryMethod.label` দিয়ে কাজ চলত না কেন।
-/// Dhanmondi-র "Same day" আর Gulshan-এর "Same day" দুটো আলাদা সারি, কারণ
-/// দাম আলাদা। Product যদি লেখার সাথে মিলিয়ে যুক্ত হতো, তাহলে মালিক একদিন
-/// "Same day" → "Same-day" করলেই **সব product-এর সংযোগ নীরবে ছিঁড়ে যেত**,
-/// আর কোথাও কোনো error দেখা যেত না — শুধু গ্রাহক দ্রুত delivery-র ঘরটা আর
-/// দেখতে পেত না। নাম বদলানো যায় এমন জিনিসের উপর ভিত্তি করে সংযোগ বানানো
-/// হয় না; সংযোগ হয় id-র উপর, আর নাম তার একটা মাত্র ঘর।
+/// Why a separate table, and why `DeliveryMethod.label` would not have done.
+/// Dhanmondi's "Same day" and Gulshan's "Same day" are two different rows,
+/// because the price differs. Had a Product been linked by matching the text,
+/// then the day the owner changed "Same day" to "Same-day" EVERY PRODUCT'S
+/// LINK WOULD HAVE SNAPPED SILENTLY - no error anywhere, just customers no
+/// longer offered fast delivery. You do not build a link on something whose
+/// name can change; the link is on the id, and the name is merely one of its
+/// fields.
 ///
-/// ⚠️ `kind` এখানেও আছে আর `DeliveryMethod`-এও — ইচ্ছাকৃত নয়, ক্রমান্বয়ে
-/// সরানো হচ্ছে। ধরনটা নামের সাথেই যায় (courier একটা courier, যে এলাকাতেই
-/// হোক), তাই শেষ পর্যন্ত এটাই থাকবে।
-/// একটা delivery **কীভাবে চলে** — DEC-DLV-010, মালিকের সিদ্ধান্ত ১ আগস্ট ২০২৬
+/// `kind` appears both here and on `DeliveryMethod`. That is not deliberate;
+/// it is being moved gradually. The kind belongs with the name (a courier is
+/// a courier whatever the area), so this is the copy that will remain.
+/// How a delivery RUNS - DEC-DLV-010, owner's ruling 1 August 2026
 ///
-/// ⚠️ কেন এটা নাম থেকে আন্দাজ করা যায় না। মালিকের প্রশ্ন ছিল: *"type-এ যখন
-/// 2 hours লিখতাসি, system কীভাবে time-টা calculate করবে? নাম বদলে 3 hours
-/// করলে?"* — উত্তর: করতে পারবে না, আর চেষ্টাও করা উচিত নয়। নাম পড়ে "2" বের
-/// করলে "3 hours" ঘটনাক্রমে কাজ করত, কিন্তু "দ্রুত ডেলিভারি" লিখলেই চুপচাপ
-/// ভেঙে পড়ত। সংখ্যা থাকে নিজের ঘরে, নাম থাকে নামের ঘরে।
+/// Why this cannot be inferred from the name. The owner asked: *"when I type
+/// 2 hours in the type, how will the system calculate the time? And if I
+/// rename it to 3 hours?"* The answer is that it cannot, and should not try.
+/// Reading a "2" out of the name would have worked by accident for "3 hours"
+/// and broken silently the moment somebody wrote "fast delivery". The number
+/// lives in its own field and the name lives in the name field.
 enum DeliveryTiming {
-  /// "২ ঘণ্টায়" — ঘড়ি **order confirm হওয়ার পর** থেকে চলে (মালিকের পুরনো
-  /// নিয়ম, capacity module-ও ঠিক এভাবেই সময় কাটে)। `promiseMinutes` লাগে।
-  /// তারিখ নেই, slot নেই।
+  /// "Within 2 hours" - the clock runs FROM ORDER CONFIRMATION (the owner's
+  /// long-standing rule, and exactly how the capacity module spends time
+  /// too). Needs `promiseMinutes`. No date, no slot.
   FROM_CONFIRM
 
-  /// "আজকের মধ্যে, এই সময়টায়" — Same Day। slot লাগে, তারিখ নেই।
+  /// "Today, in this window" - Same Day. Needs a slot, no date.
   TODAY_SLOT
 
-  /// "যেদিন চান, যে সময়টায়" — Schedule It। তারিখ + slot দুটোই।
+  /// "The day you choose, in the window you choose" - Schedule It. Both a
+  /// date and a slot.
   PICK_DATE_SLOT
 
-  /// "যেদিন চান, সময় আমাদের" — Midnight Surprise। তারিখ আছে, slot নেই।
+  /// "The day you choose, the time is ours" - Midnight Surprise. A date, no
+  /// slot.
   PICK_DATE_FIXED
 
-  /// "১–৩ দিন" — Nationwide Courier। তারিখও নয়, slot-ও নয়, শুধু একটা কথা।
+  /// "1-3 days" - Nationwide Courier. Neither date nor slot, just a promise.
   LEAD_DAYS
 }
 
