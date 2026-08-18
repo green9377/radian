@@ -860,17 +860,17 @@ export class ProductDetailService {
       stockQty:
         p.showStock && availability.state !== 'OUT_OF_STOCK'
           ? (p.displayQty ??
-            /*  ⚠️ TRACKED হলে variant-এর হাতে লেখা সংখ্যাটা পড়া হয় না —
-                DEC-PRD-015-এ তখন গোনাটা Inventory-র। যোগ করে দেখালে
-                website একটা সংখ্যা বলত যা কেউ রাখেই না।  */
+            /*  When TRACKED, a variant's hand-typed number is not read -
+                DEC-PRD-015 puts the count in Inventory. Summing them anyway
+                would have the website quoting a number nobody keeps.  */
             (p.stockMode === 'MANUAL' && p.variants.length > 0
               ? p.variants.reduce((n, v) => n + variantCount(v), 0)
               : p.stockQty))
           : null,
       /*  DEC-PDP-09. The gate reads the REAL count — never `displayQty`. A
           made-up figure must not be able to open or close a till (owner,
-          1 Aug). DEC-PRD-014 — variant থাকলে তাদের মজুদই দরজা খোলে বা
-          বন্ধ করে; হিসাবটা `availabilityOf`-এর ভেতরে।  */
+          1 Aug). DEC-PRD-014 - with variants, it is their stock that opens or
+          closes the door; the arithmetic lives inside `availabilityOf`.  */
       availability,
       videoId: p.videoId,
       images: p.images.map((i) => i.url),
@@ -910,14 +910,15 @@ export class ProductDetailService {
           }
         : null,
       /*
-        DEC-PRD-012 — এক page, সব variant।
+        DEC-PRD-012 - one page, every variant.
 
-        ⚠️ দাম — DEC-PRD-031, মালিক ৮ আগস্ট ২০২৬: variant-এর **নিজের দাম
-        থাকলে সেটাই চূড়ান্ত** — product-এর ছাড় তার উপর বসে না। আগে
-        `paidPaisa()` দুটোতেই চলত, ফলে ৳2,400-এর সাপেক্ষে ঠিক করা FLAT
-        ৳200 ছাড় ৳1,500-এর variant-এও বসে ৳1,300 দেখাত — মালিক ধরলেন,
-        "আমি তো variant-এ কোনো discount দিইনি।" নিজের দাম না থাকলে
-        product-এর (ছাড়সহ) দামই চলে। Checkout এই তালিকা থেকেই দাম নেয়,
+        On price - DEC-PRD-031, the owner, 8 August 2026: WHEN A VARIANT HAS
+        ITS OWN PRICE THAT PRICE IS FINAL, and the product's discount does not
+        stack on it. `paidPaisa()` used to run on both, so a FLAT ৳200 discount
+        set against ৳2,400 also landed on a ৳1,500 variant and showed ৳1,300 -
+        which the owner caught: "but I never gave the variant a discount."
+        With no price of its own, the product's price (discount included)
+        applies. Checkout reads its prices from this same list,
         তাই নিয়মটা এক জায়গাতেই থাকে।
 
         ⚠️ ছবি: variant-এর নিজের ছবি → না থাকলে master-এর ছবি → না থাকলে
