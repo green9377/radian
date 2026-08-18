@@ -1007,12 +1007,12 @@ export class ProductDetailService {
       ordersThisMonth,
       salesWindow: p.salesWindow,
       /*
-        DEC-PRD-023 — product-এর নিজের → category-র → parent-এর।
+        DEC-PRD-023 - the product's own, then the category's, then the parent's.
 
-        ⚠️ প্রথম যেটায় কিছু আছে সেটাই পুরোটা নেয়, **মেশানো হয় না** —
-        bundle আর craft-এর হুবহু একই নিয়ম। মেশালে category-র "24 sticks"
-        আর product-এর "50 sticks" পাশাপাশি বসত, আর গ্রাহক কোনটা বিশ্বাস
-        করবেন সেটা page-টাই বলতে পারত না।
+        The first list with anything in it is taken whole; THEY ARE NEVER
+        MERGED - exactly the rule bundles and craft points follow. Merging
+        would sit the category's "24 sticks" beside the product's "50 sticks",
+        and the page itself could not tell the customer which to believe.
       */
       spec: pickList(p.specRows, p.category.specRows, p.category.parent?.specRows),
       /*  The product's own answers come first: "does this bouquet last a week"
@@ -1021,9 +1021,9 @@ export class ProductDetailService {
         ...p.faqs.map((f) => ({ ...f, scope: 'product' as const })),
         ...catFaqs.map((f) => ({ ...f, scope: 'category' as const })),
       ],
-      /*  DEC-PRD-023 — একই সিঁড়ি। ⚠️ নাম নেই এমন badge বাদ, ঠিক craft-এর
-          মতো: "Add a badge" চেপে কিছু না লিখে চলে গেলে website-এ একটা
-          খালি বাক্স উঠত।  */
+      /*  DEC-PRD-023 - the same ladder. Badges with no label are dropped, just
+          as craft points are: press "Add a badge", write nothing, walk away,
+          and an empty box would appear on the website.  */
       /*  ⚠️ generic-টা হাতে লেখা: product-এর `icon` কলামটা NOT NULL আর
           category-রটা nullable, তাই TypeScript নিজে থেকে একটাই আকার
           বেছে নিতে পারে না।  */
