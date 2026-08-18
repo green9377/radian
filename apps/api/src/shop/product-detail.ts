@@ -290,32 +290,35 @@ export interface ShopProductDetail {
     options: { slug: string; label: string; swatch: string | null; imageUrl: string | null; active: boolean }[];
   } | null;
   /**
-   * DEC-PRD-012 — এই product-এর রঙ / ফ্লেভার / মাপ, এক page-এই।
+   * DEC-PRD-012 - this product's colours, flavours and sizes, all on one page.
    *
-   * ⚠️ `variant` (উপরে) এর জায়গা নেয় না — ওটা পুরনো নকশার, যেখানে প্রতিটা
-   * রঙ ছিল আলাদা product আর swatch অন্য page-এ নিয়ে যেত। সেই নকশার জোড়া
-   * লাগানোর পর্দা কখনো বানানো হয়নি, তাই `variant` বাস্তবে সবসময় `null`।
-   * এটাই এখন আসল উত্তর।
+   * This does not replace `variant` above - that belongs to the old design,
+   * where each colour was a separate product and a swatch took you to another
+   * page. The screen that tied that design together was never built, so
+   * `variant` is in practice always `null`. This is the real answer now.
    *
-   * খালি array = এই product-এর কোনো variant নেই, আর page-এ ওই অংশটাই
-   * দেখা যায় না — মালিকের নিয়ম।
+   * An empty array means this product has no variants, and then that section
+   * does not appear on the page at all - the owner's rule.
    */
   variants: {
     id: string;
     label: string;
-    /** কোন তালিকার মান — "Colour" / "Flavour"। শিরোনামে বসে। */
+    /** Which master list the value came from - "Colour" / "Flavour". Used as
+     *  the heading. */
     attribute: string;
-    /** master কী দেখাতে বলেছে — SWATCH | PHOTO | TEXT */
+    /** What the master says to render - SWATCH | PHOTO | TEXT */
     displayMode: string;
     swatch: string | null;
-    /** এই variant-এর নিজের ছবি, নাহলে master-এর ছবি, নাহলে null */
+    /** This variant's own photo, else the master's, else null */
     imageUrl: string | null;
-    /** যা গ্রাহক দেবে — offer, নাহলে নিজের দাম, নাহলে product-এর দাম */
+    /** What the customer pays - the offer, else its own price, else the
+     *  product's */
     pricePaisa: number;
-    /** DEC-PRD-032 — offer চললে কাটা দামটা (variant-এর regular), নাহলে null */
+    /** DEC-PRD-032 - the struck-through price while an offer runs (the
+     *  variant's regular price), else null */
     wasPaisa: number | null;
-    /** নিজের মজুদ। ০ = এই রঙটা শেষ, কিন্তু বাকিগুলো চলছে।
-     *  Item-এ বাঁধা variant-এ এটা Inventory-র লাইভ গোনা। */
+    /** Its own stock. 0 means this colour is gone while the others sell on.
+     *  On a variant tied to an Item this is Inventory's live count. */
     stockQty: number;
   }[];
   sizes: { id: string; label: string; sub: string | null; pricePaisa: number }[];
@@ -344,10 +347,12 @@ export interface ShopProductDetail {
    */
   ordersThisMonth: number | null;
   /**
-   * DEC-PRD-025 — উপরের সংখ্যাটা কোন সময়ের। লেখাটা page বানায়, কারণ
-   * শব্দ page-এর কাজ; কিন্তু **কোন সময়** সেটা মালিকের সিদ্ধান্ত।
+   * DEC-PRD-025 - which window the number above covers. The page writes the
+   * wording, because words are the page's job; but WHICH WINDOW is the
+   * owner's decision.
    *
-   * ⚠️ এটা না পাঠালে page "this month" লিখেই যেত — মালিক "Today" বাছলেও।
+   * Without sending this the page kept writing "this month" even when the
+   * owner had chosen "Today".
    * এক জায়গায় সংখ্যা আর অন্য জায়গায় হাতে লেখা শব্দ, ঠিক এভাবেই মিথ্যা
    * জন্মায়।
    */
