@@ -758,12 +758,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           ) : (
             <>
               {/*
-                ─── ০. UPGRADE — এটার বড় সংস্করণ ───
-                DEC-PRD-020। মালিক: *"upgrade product-এ click করলে price
-                change হবে, কিন্তু অন্য page-এ যেন না নেয়।"*
+                ─── 0. UPGRADE - the larger version of this ───
+                DEC-PRD-020. The owner: *"clicking an upgrade product should
+                change the price, but it must not take me to another page."*
 
-                সবার উপরে, কারণ এটাই সবচেয়ে বড় সিদ্ধান্ত — কোন জিনিসটা
-                কেনা হচ্ছে। রঙ বা bundle তার পরের প্রশ্ন।
+                First of all, because it is the biggest decision on the page -
+                which thing is being bought. Colour and bundle come after that.
               */}
               {upList.length > 0 && (
                 <UpgradeRow
@@ -775,32 +775,36 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 />
               )}
 
-              {/* ─── ১. VARIANT — colour বা flavour, sibling product ─── */}
-              {/*  ⚠️ upgrade বাছা থাকলে রঙ দেখানো হয় না — ওগুলো এই
-                  product-এর রঙ, আর কেনা হচ্ছে অন্যটা।  */}
+              {/* ─── 1. VARIANT - colour or flavour, a sibling product ─── */}
+              {/*  With an upgrade selected the colours are hidden - those are
+                  THIS product's colours, and a different one is being
+                  bought.  */}
               {!upgrade && vList.length > 0 && (
                 <VariantPicker
                   variants={vList}
                   activeId={variantId}
                   basePaisa={product.pricePaisa}
-                  /*  admin-এর "show stock" switch — সেটা বন্ধ থাকলে
-                      `stockLeft` আসেই না, আর তখন রঙের পাশেও কিছু লেখা হয় না।  */
+                  /*  The admin's "show stock" switch - with it off, `stockLeft`
+                      never arrives, and then nothing is written beside the
+                      colours either.  */
                   showStock={detail.stockLeft !== null && detail.stockLeft !== undefined}
-                  /*  ⚠️ বাছা রঙে আবার ছোঁয়া = বাছাই তুলে নেওয়া — মূল
-                      product-এর ছবি আর দামে ফেরা। আগে ফেরার পথই ছিল না,
-                      reload দিতে হতো (মালিক, ৮ আগস্ট)।  */
+                  /*  Tapping the selected colour again clears the selection and
+                      returns to the product's own photo and price. There used
+                      to be no way back at all - you had to reload (owner,
+                      8 August).  */
                   onPick={(id) => setVariantId((cur) => (cur === id ? "" : id))}
                 />
               )}
               {detail.variant && <VariantRow group={detail.variant} />}
 
               {/*
-                ─── ২. SIZE — একই product, দাম বদলায় ───
-                একটামাত্র option হলে এটা chooser নয়, শুধু একটা লেবেল — এবং
-                "Standard" ছাড়া কিছু নেই দেখলে customer ভাবে বাকিটা load
-                হয়নি। দাম উপরে আছেই, তাই row-টা লুকিয়ে দেওয়াই সৎ।
-                (`getProductDetail`-এর guard নিশ্চিত করে অন্তত একটা থাকবে —
-                এটা crash-এর guard নয়, presentation-এর সিদ্ধান্ত।)
+                ─── 2. SIZE - the same product, a different price ───
+                With only one option this is not a chooser, it is a label - and
+                a customer seeing nothing but "Standard" assumes the rest failed
+                to load. The price is already above, so hiding the row is the
+                honest thing. (The guard in `getProductDetail` guarantees at
+                least one exists - this is a presentation decision, not a
+                crash guard.)
               */}
               {detail.sizes.length > 1 && (
                 <SizeRow
@@ -811,7 +815,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 />
               )}
 
-              {/* ─── ৩. BUNDLE — অন্য product যোগ হয় ─── */}
+              {/* ─── 3. BUNDLE - another product gets added ─── */}
               {detail.bundles.length > 0 && (
                 <BundleCards
                   bundles={detail.bundles}
@@ -828,10 +832,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               )}
 
               {/*
-                ─── OFFERS — upgrade আর add-on এর মাঝখানে ───
-                কিছু চলমান না থাকলে পুরো strip উঠে যায়। "Offers Available ·
-                0 running" লেখা বাক্স খোলার মতো কিছু না থাকা সত্ত্বেও ক্লিক
-                টানে — যা পাওয়া যাবে না তার প্রতিশ্রুতি।
+                ─── OFFERS - between the upgrades and the add-ons ───
+                With nothing running the whole strip disappears. A box reading
+                "Offers Available · 0 running" invites a click with nothing
+                behind it - a promise of something that cannot be had.
               */}
               {offers.length > 0 && (
               <details className="mt-6 border-[1.5px] border-lavender-deep rounded-[18px] overflow-hidden group">
@@ -875,10 +879,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
               {/*
                 ─── ADD-ONS IN TABS ───
-                কোনো tab না থাকলে পুরো section উঠে যায়। খালি grid-এর উপরে
-                "Make It Extra Special" শিরোনাম দাঁড়িয়ে থাকলে সেটা ভাঙা
-                page-এর মতো দেখায় — homepage-এর category rail-এ ঠিক এই
-                নিয়মই নেওয়া হয়েছিল (৩০ জুলাই)।
+                With no tabs the whole section disappears. A "Make It Extra
+                Special" heading standing over an empty grid reads as a broken
+                page - the same rule the homepage's category rail took
+                (30 July).
               */}
               {tabs.length > 0 && (
               <section className="mt-7">
@@ -933,7 +937,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               </section>
               )}
 
-              {/* ─── PERSONALISATION — শুধু যেখানে দরকার ─── */}
+              {/* ─── PERSONALISATION - only where it is wanted ─── */}
               {detail.perso && (
                 <section className="mt-7">
                   <BlkTitle title={detail.perso.title} hint="required" />
@@ -969,8 +973,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                               <span className="text-[12px] text-body-soft">{f.hint}</span>
                             </span>
                             {/*
-                              এখন শুধু file NAME রাখা হয় — cart/checkout-এ দেখানোর জন্য।
-                              ⇄ SWAP HERE: upload API এলে এখানে asset id বসবে।
+                              For now only the file NAME is kept, so the cart
+                              and checkout have something to show.
+                              SWAP HERE: an asset id goes here once the upload
+                              API exists.
                             */}
                             <input
                               type="file"
@@ -989,17 +995,18 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               )}
 
               {/*
-                ─── COUNTDOWN — এখন CTA-র ঠিক উপরে ───
+                ─── COUNTDOWN - now directly above the CTA ───
 
-                ⚠️ ঘড়ি না থাকলে পুরো বাক্সটাই ওঠে। আগে `--:--:--` লেখা
-                হলুদ বাক্সটা দাঁড়িয়ে থাকত — আর তার পাশে "at their door by
-                6:00 PM today" বলে **একটা প্রতিশ্রুতি**, যেটার পেছনে কোনো
-                সময় নেই। আজকের cut-off পেরিয়ে গেলে বা ওই zone-এ কোনো
-                cut-off বসানো না থাকলে চুপ থাকাই সৎ।
+                With no clock the whole box goes. The amber box used to stand
+                there reading `--:--:--`, and beside it A PROMISE - "at their
+                door by 6:00 PM today" - with no time behind it. Once today's
+                cut-off has passed, or when that zone has no cut-off set at
+                all, staying quiet is the honest answer.
 
-                ⚠️ "6:00 PM" এখনো লেখা আছে — server যে মিনিট পাঠায় সেটা
-                সঠিক, কিন্তু এই বাক্যের ঘণ্টাটা নয়। Delivery module-এর
-                label থেকে আনতে হবে; আলাদা কাজ, লিখে রাখা হলো।
+                "6:00 PM" is still hardcoded in that sentence. The minutes the
+                server sends are correct; the hour in this wording is not. It
+                needs to come from the Delivery module's label - a separate
+                job, written down here so it is not forgotten.
               */}
               {clock && (
               <div className="flex items-center gap-3 bg-[#FFF7E8] border-[1.5px] border-[#F2D9A8] rounded-[18px] px-4 py-3 mt-7">
@@ -1029,8 +1036,9 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               )}
 
               {/*
-                DEC-PDP-09 — মালিক, ১ আগস্ট ২০২৬: "stock 0 হলে order দেওয়া
-                যাবে না। হয় stock out আসবে, বা pre-order আসবে।"
+                DEC-PDP-09 - the owner, 1 August 2026: "at stock 0 no order may
+                be placed. Either it says stock out, or it becomes a
+                pre-order."
 
                 ⚠️ THE SERVER DECIDED THIS, not the browser. `detail.stockLeft`
                 is sitting right here and it would be one line to test it — but
@@ -1041,9 +1049,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 a page that says sold out can never sit above a button that
                 still takes money.
               */}
-              {/*  ⚠️ backHref ছিল `/${catSlug}` — অমন কোনো route নেই。 category
-                  পাতা `/categories/<slug>`-এ থাকে (breadcrumb নিজেই তাই লেখে)。
-                  তাই "See what else we have" চাপলে ৪০৪ ছাড়া কিছু হতো না。   */}
+              {/*  backHref used to be `/${catSlug}` - no such route exists. The
+                  category page lives at `/categories/<slug>` (the breadcrumb
+                  writes it that way itself). So "See what else we have" led
+                  nowhere but a 404.  */}
               {soldOut ? (
                 <SoldOut
                   backHref={`/categories/${detail.crumb.catSlug}`}
@@ -1064,15 +1073,17 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           )}
 
           {/*
-            customization enquiry — order channel নয়।  DEC-PRD-027
+            A customisation enquiry - not an order channel. DEC-PRD-027
 
-            ⚠️ আগে এই বাক্সটা **সব** product-এ দেখাত, লেখা আসত category-র
-            template থেকে, আর নম্বর ছিল `wa.me/8801000000000` — একটা বানানো
-            নম্বর, যাতে চাপলে কোথাও যেত না। মালিক দুটোই ধরেছেন।
+            This box used to appear on EVERY product, its wording came from a
+            category template, and the number was `wa.me/8801000000000` - an
+            invented number that went nowhere when tapped. The owner caught
+            both.
 
-            এখন: product-এ switch অন থাকলে তবেই, লেখা তাঁর, নম্বর Company
-            settings-এর। নম্বর না থাকলে বোতামটাই আঁকা হয় না — ভুয়া জায়গায়
-            পাঠানোর চেয়ে চুপ থাকা ভালো।
+            Now: only when the switch is on for that product, the wording is
+            his, and the number comes from Company settings. With no number the
+            button is not drawn at all - silence beats sending somebody to a
+            place that does not exist.
           */}
           {detail.customise && (
             <div className="mt-5 bg-[#E8F9EE] border-[1.5px] border-[#C4EED4] rounded-[18px] px-5 py-4 flex items-center gap-3.5 flex-wrap">
