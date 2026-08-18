@@ -6,6 +6,61 @@
 
 ---
 
+## 🔤 প্রকল্প থেকে বাংলা সরানো (চলমান, ১৭ আগস্ট শুরু)
+
+**মালিকের নির্দেশ:** প্রকল্পের কোথাও বাংলা থাকবে না — **মন্তব্যেও নয়**,
+ডকুমেন্টেও নয়。 আর ভবিষ্যতে যেন কেউ নতুন করে না লেখে。
+
+### ✅ যেটা শেষ — এবং এটাই আসল রক্ষাকবচ
+
+`no-bangla.selftest.mjs`-এ **রেশন কাটা (ratchet)** বসানো হয়েছে。 আজকের গণনা
+`no-bangla.baseline.json`-এ হিমায়িত; কোনো ফাইলে বাংলা **বাড়লেই build ফেল**。
+দু'দিকেই পরীক্ষা করা — বাংলা যোগ করলে exit 1, সরালে exit 0。
+**তাই নতুন বাংলা আর কখনো ঢুকতে পারবে না, পুরনোটা যত ধীরেই সরুক।**
+
+### 📊 কত বাকি — আন্দাজ নয়, সংখ্যা
+
+```
+node apps/api/scripts/no-bangla.selftest.mjs        ← কত বাকি বলে দেয়
+node apps/api/scripts/no-bangla.selftest.mjs --update-baseline   ← অনুবাদের পরে
+```
+
+| | শুরুতে | এখন |
+|---|---|---|
+| মোট | ১২,৭৬৭ লাইন / ৩১৮ ফাইল | **১২,৫০১** |
+| `schema.prisma` | ৭৩৩ | **৪৫০** |
+
+ভাগ: **~৮,০৬০ লাইন `RADIAN_*.md` ডকুমেন্টে** (build ছোঁয় না) ·
+**~৪,৭০০ কোডের মন্তব্যে**。
+
+### 🔒 প্রতিটা commit-এ যে যাচাইটা চালাতে হবে
+
+মন্তব্য বাদ দিয়ে ফাইলটা আগের মতোই আছে কিনা — schema-র জন্য:
+
+```
+strip() { sed -e 's://.*::' -e 's/[[:space:]]*$//' -e '/^$/d' "$1"; }
+git show HEAD:apps/api/prisma/schema.prisma > /tmp/old
+diff <(strip /tmp/old) <(strip apps/api/prisma/schema.prisma) && echo SAFE
+```
+
+"SAFE" না এলে কোনো field/relation/index ছোঁয়া হয়েছে — **commit করা যাবে না**。
+
+### ▶️ পরের বার এখান থেকে শুরু
+
+ক্রম **ঝুঁকি অনুযায়ী** — আগে কোড, পরে ডকুমেন্ট:
+
+1. `apps/api/prisma/schema.prisma` — **৪৫০ বাকি** (চলছে)
+2. `apps/web/app/_components/Pdp/PdpView.tsx` (২০৯) · `apps/api/src/shop/product-detail.ts` (২০১)
+3. `apps/admin/app/_data/api.ts` (১১৩) · `apps/api/src/shop/checkout.ts` (৯৫) · `products.service.ts` (৯৪)
+4. বাকি কোড ফাইল
+5. সবার শেষে `RADIAN_*.md` + `CLAUDE.md`
+
+**তিনটে ফাইলে বাংলা থাকবেই** — ওগুলো মন্তব্য নয়, চালু জিনিস, scanner-এর
+ALLOW তালিকায় কারণসহ: chat-AI-এর বাংলা উত্তর · NBR মূসক ৬.৩ form (আইন) ·
+বাংলা zone-নাম চেনার regex。
+
+---
+
 ## 🧭 Admin panel নতুন করে সাজানো (১৭ আগস্ট) — DEC-NAV-001, DEC-RTN-016
 
 **অবস্থা: কোড লেখা ও যন্ত্রে যাচাই শেষ। commit করা হয়নি — মালিকের চোখে দেখা বাকি।**
