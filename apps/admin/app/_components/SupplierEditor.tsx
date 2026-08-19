@@ -271,7 +271,11 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
             )}
           </div>
 
-          {/* ---------------- order notifications (DEC-SUP-003) ---------------- */}
+          {/* ---------------- order notifications (DEC-SUP-003) ----------------
+              VENDOR-only (owner, 19 Aug): a plain supplier never receives an
+              order message, so the card only shows on the vendor face — or the
+              moment the dual-role tick makes this supplier a vendor too. */}
+          {(isVendorForm || dualRole) && (
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: isVendorForm ? 2 : 3 }}>
             <b className="text-[13.5px] text-purple block mb-3">Order notifications</b>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
@@ -309,6 +313,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
               </Field>
             </div>
           </div>
+          )}
 
           {/* ---------------- notes / status ---------------- */}
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4" style={{ order: 4 }}>

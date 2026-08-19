@@ -296,6 +296,15 @@ export function QuickSelect({
                 {busy ? "Creating…" : `${createLabel} “${q.trim()}”`}
               </button>
             )}
+            {/* the create path was invisible until you typed — the owner looked for a
+                "create" option and found none (19 Aug). Now the door shows itself. */}
+            {!!onCreate && !canCreate && (
+              <div className="w-full px-3 py-2.5 text-[12.5px] font-medium border-t border-lavender-deep flex items-center gap-2"
+                style={{ background: ACCENT_BG, color: ACCENT, opacity: 0.75 }}>
+                <Icon name="plus" size={13} />
+                New? Type the name above — it is created on the spot.
+              </div>
+            )}
           </div>
         </>
       )}
