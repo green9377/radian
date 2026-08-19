@@ -115,23 +115,25 @@ export function TimeSelect({ value, onChange, allowEmpty }: {
 
   // arbitrary stored minutes (e.g. :10) stay pickable — the list adopts them
   const minutes = Array.from(new Set([0, 15, 30, 45, ...(mm != null ? [mm] : [])])).sort((a, b) => a - b);
-  const sel = "ipt !px-2 text-[13px] font-medium";
+  // one calm pill, three quiet selects inside — not three loose boxes
+  const inner = "bg-transparent outline-none cursor-pointer text-[13.5px] font-semibold text-purple text-center py-2 disabled:opacity-40";
 
   return (
-    <div className="flex items-center gap-1.5">
-      <select className={sel} style={{ minHeight: 36, width: 62 }}
+    <div className="inline-flex items-center border-[1.5px] border-[#d8c6ee] rounded-[12px] bg-white overflow-hidden hover:border-[#c6a9e8] transition-colors">
+      <select className={inner + " pl-3 pr-1"}
         value={h12 ?? ""}
         onChange={(e) => commit(e.target.value === "" ? null : Number(e.target.value), mm, pm)}>
         {allowEmpty && <option value="">—</option>}
         {!allowEmpty && h12 == null && <option value="" disabled>—</option>}
         {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => <option key={h} value={h}>{h}</option>)}
       </select>
-      <select className={sel} style={{ minHeight: 36, width: 62 }} disabled={h12 == null}
+      <select className={inner + " px-1"} disabled={h12 == null}
         value={mm ?? 0}
         onChange={(e) => commit(h12, Number(e.target.value), pm)}>
         {minutes.map((m) => <option key={m} value={m}>:{String(m).padStart(2, "0")}</option>)}
       </select>
-      <select className={sel} style={{ minHeight: 36, width: 64 }} disabled={h12 == null}
+      <span className="w-px self-stretch my-2 bg-lavender-deep" />
+      <select className={inner + " pl-1.5 pr-3"} disabled={h12 == null}
         value={pm ? "PM" : "AM"}
         onChange={(e) => commit(h12, mm, e.target.value === "PM")}>
         <option value="AM">AM</option>

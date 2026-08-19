@@ -1088,7 +1088,9 @@ export class DeliveryService {
       isActive: dto.isActive ?? (t.isActive as boolean),
     };
     const updated = await this.slotTemplates.update({ where: { id }, data });
-    // the fan-out: one master, edited once, every connection follows
+    // the fan-out: one master, edited once, every connection follows.
+    // capacityPerDay is NOT fanned out — capacity belongs to the connection,
+    // set per zone in Setup (owner, 19 Aug).
     await this.prisma.db.deliverySlot.updateMany({
       where: { deletedAt: null, ...({ templateId: id } as object) },
       data: {
@@ -1096,7 +1098,6 @@ export class DeliveryService {
         startMin: data.startMin as number | null,
         endMin: data.endMin as number | null,
         cutoffTime: data.cutoffTime as string | null,
-        capacityPerDay: data.capacityPerDay as number | null,
       },
     });
     return updated;

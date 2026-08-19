@@ -10,7 +10,7 @@ import {
   listDeliveryAreas, createDeliveryArea, updateDeliveryArea, deleteDeliveryArea,
   listDeliveryTypes, createDeliveryType, updateDeliveryType, deleteDeliveryType,
   listDeliveryMethods, createDeliveryMethod, updateDeliveryMethod, deleteDeliveryMethod,
-  addDeliverySlot, deleteDeliverySlot,
+  addDeliverySlot, updateDeliverySlot, deleteDeliverySlot,
   listSlotTemplates, createSlotTemplate, updateSlotTemplate, deleteSlotTemplate,
   TIMING_META,
   type ApiDeliveryArea, type ApiDeliveryType, type ApiDeliveryMethod, type ApiSlotTemplate,
@@ -129,15 +129,22 @@ export function DeliveryMasters() {
 const M_ROW = "grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_90px_70px_80px] items-center gap-2 px-4";
 
 type TypeDraft = {
-  id: string | null; name: string; zone: "DHAKA" | "BANGLADESH";
+  id: string | null; name: string;
   timing: DeliveryTiming; minutes: string; fromMin: number | null; toMin: number | null;
 };
+
+/*  The owner never made "Inside Dhaka / Nationwide" — that pair is the system's
+    own reach switch (products and checkout split on it), NOT his zone list. It
+    confused the dialog, so it left: the shape decides it. Courier lead-time =
+    nationwide; everything a rider runs = inside Dhaka. (owner's question, 19 Aug) */
+const reachOf = (timing: DeliveryTiming): "DHAKA" | "BANGLADESH" =>
+  timing === "LEAD_DAYS" ? "BANGLADESH" : "DHAKA";
 
 function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: () => Promise<unknown>) => Promise<boolean>; busy: boolean }) {
   const [dlg, setDlg] = useState<TypeDraft | null>(null);
 
   const dup = !!dlg && !!dlg.name.trim() &&
-    types.some((t) => t.id !== dlg.id && t.name.trim().toLowerCase() === dlg.name.trim().toLowerCase() && t.zone === dlg.zone);
+    types.some((t) => t.id !== dlg.id && t.name.trim().toLowerCase() === dlg.name.trim().toLowerCase());
 
   const detail = (t: ApiDeliveryType) => {
     const meta = t.timing ? TIMING_META[t.timing] : null;
@@ -152,7 +159,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
     const meta = TIMING_META[dlg.timing];
     const body = {
       name: dlg.name.trim(),
-      zone: dlg.zone,
+      zone: reachOf(dlg.timing),
       kind: dlg.timing === "LEAD_DAYS" ? "COURIER" : "RIDER",
       timing: dlg.timing,
       promiseMinutes: meta.needsMinutes ? Number(dlg.minutes) || null : null,
@@ -169,7 +176,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setDlg({ id: null, name: "", zone: "DHAKA", timing: "TODAY_SLOT", minutes: "120", fromMin: 600, toMin: 1260 })}
+        <button onClick={() => setDlg({ id: null, name: "", timing: "TODAY_SLOT", minutes: "120", fromMin: 600, toMin: 1260 })}
           className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2" style={{ background: ACCENT }}>
           <Icon name="plus" size={15} /> Add method
         </button>
@@ -192,7 +199,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
             </span>
             <span className="flex items-center justify-end gap-1">
               <IconBtn name="edit" title="Edit" onClick={() => setDlg({
-                id: t.id, name: t.name, zone: t.zone,
+                id: t.id, name: t.name,
                 timing: t.timing ?? "TODAY_SLOT",
                 minutes: t.promiseMinutes != null ? String(t.promiseMinutes) : "120",
                 fromMin: t.openFromMin ?? 600, toMin: t.openToMin ?? 1260,
@@ -213,30 +220,26 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
           <Field label="Name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. 2-Hour Express"
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })} />
-            {dup && <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">That method already exists in this zone.</span>}
+            {dup && <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">That method already exists.</span>}
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Serves" required>
-              <select className="ipt w-full" value={dlg.zone} onChange={(e) => setDlg({ ...dlg, zone: e.target.value as "DHAKA" | "BANGLADESH" })}>
-                <option value="DHAKA">Inside Dhaka</option>
-                <option value="BANGLADESH">Nationwide</option>
-              </select>
-            </Field>
-            <Field label="How it works" required>
-              <select className="ipt w-full" value={dlg.timing} onChange={(e) => setDlg({ ...dlg, timing: e.target.value as DeliveryTiming })}>
-                {(Object.keys(TIMING_META) as DeliveryTiming[]).map((k) => (
-                  <option key={k} value={k}>{TIMING_META[k].label}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
+          <Field label="How it works" required>
+            <select className="ipt w-full" value={dlg.timing} onChange={(e) => setDlg({ ...dlg, timing: e.target.value as DeliveryTiming })}>
+              {(Object.keys(TIMING_META) as DeliveryTiming[]).map((k) => (
+                <option key={k} value={k}>{TIMING_META[k].label}</option>
+              ))}
+            </select>
+          </Field>
           {TIMING_META[dlg.timing].needsMinutes && (
-            <Field label="Promise (minutes)">
-              <div className="flex items-center gap-2">
-                <input className="ipt w-[110px]" inputMode="numeric" value={dlg.minutes}
-                  onChange={(e) => setDlg({ ...dlg, minutes: e.target.value.replace(/[^0-9]/g, "") })} />
+            <Field label="Promise">
+              <div className="flex items-center gap-2.5">
+                <div className="inline-flex items-center border-[1.5px] border-[#d8c6ee] rounded-[12px] bg-white overflow-hidden">
+                  <input className="outline-none text-[13.5px] font-semibold text-purple text-center py-2 pl-3" style={{ width: 70 }}
+                    inputMode="numeric" value={dlg.minutes}
+                    onChange={(e) => setDlg({ ...dlg, minutes: e.target.value.replace(/[^0-9]/g, "") })} />
+                  <span className="text-[12.5px] font-medium text-body-soft pr-3">min</span>
+                </div>
                 {Number(dlg.minutes) > 0 && (
-                  <span className="text-[12.5px] font-medium text-body">= {(Number(dlg.minutes) / 60).toFixed(Number(dlg.minutes) % 60 ? 1 : 0)} hours</span>
+                  <span className="text-[13px] font-semibold" style={{ color: ACCENT }}>= {(Number(dlg.minutes) / 60).toFixed(Number(dlg.minutes) % 60 ? 1 : 0)} hours</span>
                 )}
               </div>
             </Field>
@@ -259,11 +262,13 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
 
 /* ---------------- Time slots (DeliverySlotTemplate master) ---------------- */
 
-const S_ROW = "grid grid-cols-[minmax(0,1fr)_170px_110px_90px_90px_70px_80px] items-center gap-2 px-4";
+/* no capacity here — capacity belongs to the CONNECTION, set in Setup per
+   zone (owner, 19 Aug): Dhanmondi's evening and Uttara's evening may differ */
+const S_ROW = "grid grid-cols-[minmax(0,1fr)_180px_120px_100px_70px_80px] items-center gap-2 px-4";
 
 type SlotDraft = {
   id: string | null; label: string;
-  fromMin: number | null; toMin: number | null; cutMin: number | null; capacity: string;
+  fromMin: number | null; toMin: number | null; cutMin: number | null;
 };
 
 function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run: (fn: () => Promise<unknown>) => Promise<boolean>; busy: boolean }) {
@@ -278,7 +283,6 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
       label: dlg.label.trim(),
       startMin: dlg.fromMin, endMin: dlg.toMin,
       cutoffTime: minToCut(dlg.cutMin),
-      capacityPerDay: dlg.capacity === "" ? null : Number(dlg.capacity) || null,
     };
     const ok = await run(async () => {
       if (dlg.id) await updateSlotTemplate(dlg.id, body);
@@ -290,19 +294,18 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setDlg({ id: null, label: "", fromMin: 600, toMin: 780, cutMin: null, capacity: "40" })}
+        <button onClick={() => setDlg({ id: null, label: "", fromMin: 600, toMin: 780, cutMin: null })}
           className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2" style={{ background: ACCENT }}>
           <Icon name="plus" size={15} /> Add time slot
         </button>
       </div>
 
-      <DataTable head={<div className={S_ROW + " py-2.5"}><span>Slot</span><span>Window</span><span>Last order</span><span>Capacity</span><span>Used in</span><span className="text-center">Live</span><span className="text-right">Action</span></div>}>
+      <DataTable head={<div className={S_ROW + " py-2.5"}><span>Slot</span><span>Window</span><span>Last order</span><span>Used in</span><span className="text-center">Live</span><span className="text-right">Action</span></div>}>
         {templates.map((t) => (
           <div key={t.id} className={S_ROW + " py-2.5 hover:bg-lavender/15"}>
             <span className="text-[13.5px] font-semibold text-purple truncate">{t.label}</span>
             <span className="text-[12.5px] font-medium text-body">{windowText(t.startMin, t.endMin)}</span>
             <span className="text-[12.5px] font-medium text-body">{cutToMin(t.cutoffTime) != null ? fmtMin(cutToMin(t.cutoffTime)!) : "—"}</span>
-            <span className="text-[12.5px] font-medium text-body">{t.capacityPerDay ?? "∞"}/day</span>
             <span className="text-[12.5px] font-medium text-body">{t.usedCount ?? 0} place{(t.usedCount ?? 0) === 1 ? "" : "s"}</span>
             <span className="flex justify-center">
               <Switch small on={t.isActive} onClick={() => void run(() => updateSlotTemplate(t.id, { isActive: !t.isActive }))} />
@@ -311,7 +314,7 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
               <IconBtn name="edit" title="Edit" onClick={() => setDlg({
                 id: t.id, label: t.label,
                 fromMin: t.startMin ?? null, toMin: t.endMin ?? null,
-                cutMin: cutToMin(t.cutoffTime), capacity: t.capacityPerDay != null ? String(t.capacityPerDay) : "",
+                cutMin: cutToMin(t.cutoffTime),
               })} />
               <IconBtn name="trash" danger title="Delete" onClick={() => {
                 if (!confirm(`Delete the "${t.label}" slot?`)) return;
@@ -338,15 +341,9 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
               <TimeSelect value={dlg.toMin} onChange={(m) => setDlg({ ...dlg, toMin: m })} />
             </Field>
           </div>
-          <div className="grid grid-cols-[1fr_120px] gap-3 items-end">
-            <Field label="Last order at">
-              <TimeSelect allowEmpty value={dlg.cutMin} onChange={(m) => setDlg({ ...dlg, cutMin: m })} />
-            </Field>
-            <Field label="Capacity / day">
-              <input className="ipt w-full" inputMode="numeric" placeholder="∞"
-                value={dlg.capacity} onChange={(e) => setDlg({ ...dlg, capacity: e.target.value.replace(/[^0-9]/g, "") })} />
-            </Field>
-          </div>
+          <Field label="Last order at">
+            <TimeSelect allowEmpty value={dlg.cutMin} onChange={(m) => setDlg({ ...dlg, cutMin: m })} />
+          </Field>
         </Modal>
       )}
     </>
@@ -443,6 +440,11 @@ export function DeliveryConnections() {
   const [busy, setBusy] = useState(false);
   const [addDlg, setAddDlg] = useState<{ typeId: string; price: string } | null>(null);
   const [priceDlg, setPriceDlg] = useState<{ id: string; price: string; eta: string; lead: boolean } | null>(null);
+  /* attaching or editing a slot connection — capacity lives HERE, per zone */
+  const [slotDlg, setSlotDlg] = useState<{
+    mode: "attach" | "edit"; methodId: string; label: string; capacity: string;
+    templateId?: string; slotId?: string;
+  } | null>(null);
 
   async function reload() {
     try {
@@ -504,6 +506,24 @@ export function DeliveryConnections() {
     if (ok) setPriceDlg(null);
   }
 
+  async function saveSlotDlg() {
+    if (!slotDlg) return;
+    const cap = slotDlg.capacity === "" ? null : Number(slotDlg.capacity) || null;
+    const ok = await run(async () => {
+      if (slotDlg.mode === "attach") {
+        const t = templates.find((x) => x.id === slotDlg.templateId);
+        if (!t) return;
+        await addDeliverySlot(slotDlg.methodId, {
+          label: t.label, startMin: t.startMin ?? null, endMin: t.endMin ?? null,
+          cutoffTime: t.cutoffTime ?? null, capacityPerDay: cap, templateId: t.id,
+        });
+      } else if (slotDlg.slotId) {
+        await updateDeliverySlot(slotDlg.slotId, { capacityPerDay: cap });
+      }
+    });
+    if (ok) setSlotDlg(null);
+  }
+
   return (
     <div className={WRAP}>
       {err && <ErrLine text={err} onClose={() => setErr("")} />}
@@ -545,33 +565,42 @@ export function DeliveryConnections() {
             <div className="font-display text-[19px] text-purple">Pick a zone on the left</div>
           </div>
         ) : (
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-5">
+          <div>
             <div className="flex items-center gap-3 flex-wrap mb-4">
-              <h2 className="font-display text-[19px] text-purple m-0 flex-1">{zone.name}</h2>
+              <span className="w-9 h-9 rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="pin" size={17} /></span>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-display text-[20px] text-purple m-0 leading-tight truncate">{zone.name}</h2>
+                <span className="text-[11.5px] font-semibold text-body-soft">{connections.length} method{connections.length === 1 ? "" : "s"} connected</span>
+              </div>
               <button onClick={() => setAddDlg({ typeId: connectable[0]?.id ?? "", price: "80" })}
                 disabled={connectable.length === 0}
-                className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px] inline-flex items-center gap-1.5 disabled:opacity-40"
+                className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 disabled:opacity-40"
                 style={{ background: ACCENT }}>
-                <Icon name="plus" size={14} /> Connect a method
+                <Icon name="plus" size={15} /> Connect a method
               </button>
             </div>
 
-            <div className="divide-y divide-lavender-deep border border-lavender-deep rounded-[12px] overflow-hidden">
+            <div className="space-y-3">
               {connections.map((m) => {
                 const t = typeOf(m);
                 const meta = t?.timing ? TIMING_META[t.timing] : null;
-                const lead = t?.timing === "LEAD_DAYS";
+                const lead = t?.timing === "LEAD_DAYS" || (!t && m.kind === "COURIER");
                 const freeTemplates = templates.filter((s) =>
                   s.isActive && !m.slots.some((x) => x.templateId === s.id));
                 return (
-                  <div key={m.id} className="px-4 py-3">
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                  <div key={m.id} className={"bg-white border rounded-[16px] shadow-soft px-4 py-3.5 transition-colors " + (m.isActive ? "border-lavender-deep" : "border-lavender-deep opacity-60")}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="w-9 h-9 rounded-[11px] grid place-items-center text-white shrink-0"
+                        style={{ background: lead ? "#2563a8" : "#cf43ea" }}>
+                        <Icon name={lead ? "truck" : "bolt"} size={16} />
+                      </span>
                       <span className="min-w-0 flex-1">
-                        <span className="text-[13.5px] font-semibold text-purple block truncate">{t?.name ?? m.label}</span>
-                        <span className="text-[11.5px] text-body-soft">{meta?.label ?? ""}</span>
+                        <span className="text-[14px] font-semibold text-purple block truncate">{t?.name ?? m.label}</span>
+                        <span className="text-[11.5px] font-medium text-body-soft">{meta?.label ?? (lead ? "Courier" : "Rider")}</span>
                       </span>
                       <button onClick={() => setPriceDlg({ id: m.id, price: String(Math.round(m.feePaisa / 100)), eta: m.etaLabel ?? "", lead })}
-                        className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border border-lavender-deep text-purple hover:border-orchid">
+                        className="text-[13.5px] font-bold px-3.5 py-1.5 rounded-full"
+                        style={{ background: "#f5eafb", color: ACCENT }} title="Change the charge">
                         {formatTaka(m.feePaisa)}{lead && m.etaLabel ? ` · ${m.etaLabel}` : ""}
                       </button>
                       <Switch small on={m.isActive} onClick={() => void run(() => updateDeliveryMethod(m.id, { isActive: !m.isActive }))} />
@@ -581,33 +610,36 @@ export function DeliveryConnections() {
                       }} />
                     </div>
 
-                    {/* legacy rows without a linked type may still carry slots — show them */}
-                    {(meta?.needsSlots || m.slots.length > 0) && (
-                      <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                    {/* slots ride the connection; unknown legacy types show the row too */}
+                    {!lead && (
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pl-12">
                         {m.slots.map((s) => (
-                          <span key={s.id} className="inline-flex items-center gap-1.5 bg-lavender text-purple text-[12px] font-medium px-2.5 py-1 rounded-[9px]">
-                            {s.label} · {windowText(s.startMin, s.endMin)}
+                          <span key={s.id} className="inline-flex items-center gap-1.5 bg-lavender text-purple text-[12px] font-semibold pl-2.5 pr-1.5 py-1.5 rounded-[10px]">
+                            <button onClick={() => setSlotDlg({ mode: "edit", methodId: m.id, slotId: s.id, label: s.label, capacity: s.capacityPerDay != null ? String(s.capacityPerDay) : "" })}
+                              className="hover:underline" title="Capacity for this zone">
+                              {s.label} · {windowText(s.startMin, s.endMin)}
+                              {s.capacityPerDay != null && <span className="text-body-soft font-medium"> · {s.capacityPerDay}/day</span>}
+                            </button>
                             <button onClick={() => void run(() => deleteDeliverySlot(s.id))}
-                              className="text-body-soft hover:text-[#c0392b] font-bold" title="Disconnect slot">×</button>
+                              className="w-[18px] h-[18px] grid place-items-center rounded-full text-body-soft hover:text-white hover:bg-[#c0392b] font-bold leading-none" title="Disconnect slot">×</button>
                           </span>
                         ))}
                         {freeTemplates.length > 0 && (
-                          <select className="ipt !px-2 text-[12px]" style={{ minHeight: 30, width: "auto" }} value=""
+                          <select className="text-[12px] font-semibold rounded-[10px] border-[1.5px] border-dashed border-orchid-mid text-orchid bg-white px-2 py-1.5 outline-none cursor-pointer" value=""
                             onChange={(e) => {
                               const s = templates.find((x) => x.id === e.target.value);
                               if (!s) return;
-                              void run(() => addDeliverySlot(m.id, {
-                                label: s.label, startMin: s.startMin ?? null, endMin: s.endMin ?? null,
-                                cutoffTime: s.cutoffTime ?? null, capacityPerDay: s.capacityPerDay ?? null,
-                                templateId: s.id,
-                              }));
+                              setSlotDlg({ mode: "attach", methodId: m.id, templateId: s.id, label: s.label, capacity: "" });
+                              e.target.value = "";
                             }}>
-                            <option value="">+ slot…</option>
+                            <option value="">+ Add slot</option>
                             {freeTemplates.map((s) => <option key={s.id} value={s.id}>{s.label} · {windowText(s.startMin, s.endMin)}</option>)}
                           </select>
                         )}
                         {m.slots.length === 0 && freeTemplates.length === 0 && (
-                          <span className="text-[12px] font-medium text-[#b45309]">No slots made yet — add them on Methods &amp; slots</span>
+                          <Link href="/delivery/zones" className="text-[12px] font-semibold underline" style={{ color: "#b45309" }}>
+                            No slots made yet — make them on Methods &amp; slots →
+                          </Link>
                         )}
                       </div>
                     )}
@@ -615,7 +647,7 @@ export function DeliveryConnections() {
                 );
               })}
               {connections.length === 0 && (
-                <div className="text-center py-10 text-[13.5px] text-purple font-semibold">
+                <div className="bg-white border border-dashed border-lavender-deep rounded-[16px] shadow-soft text-center py-12 text-[13.5px] text-purple font-semibold">
                   Nothing connected here yet — press Connect a method
                 </div>
               )}
@@ -634,6 +666,18 @@ export function DeliveryConnections() {
           <Field label="Charge (৳)" required>
             <input className="ipt w-[140px]" inputMode="numeric" value={addDlg.price}
               onChange={(e) => setAddDlg({ ...addDlg, price: e.target.value.replace(/[^0-9]/g, "") })} />
+          </Field>
+        </Modal>
+      )}
+
+      {slotDlg && (
+        <Modal title={slotDlg.mode === "attach" ? `Connect "${slotDlg.label}"` : `"${slotDlg.label}" in this zone`}
+          onClose={() => setSlotDlg(null)} onSave={saveSlotDlg} canSave busy={busy}>
+          <Field label="Capacity / day — for this zone only">
+            <input autoFocus className="ipt" style={{ width: 140 }} inputMode="numeric" placeholder="unlimited"
+              value={slotDlg.capacity}
+              onChange={(e) => setSlotDlg({ ...slotDlg, capacity: e.target.value.replace(/[^0-9]/g, "") })}
+              onKeyDown={(e) => { if (e.key === "Enter") saveSlotDlg(); }} />
           </Field>
         </Modal>
       )}
