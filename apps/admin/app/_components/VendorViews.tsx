@@ -79,7 +79,6 @@ export function VendorBoard() {
       <ItemPageHead
         eyebrow="Master Data · Suppliers · Vendors"
         title="Fulfillment vendors"
-        blurb="Their products, your orders — cake-type partners you source from per order, no stock held. Auto-notify on order arrives with Automation (F11); today the order message is one click on the vendor page."
         right={<NewVendorBtn />}
       />
       {failed && <DemoBar what="the vendor board (API offline?)" onRetry={load} />}
@@ -109,8 +108,8 @@ export function VendorBoard() {
       {loading && <p className="text-[13px] text-body-soft">Loading…</p>}
       {!loading && filtered.length === 0 && (
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-8 text-center">
-          <p className="text-[13px] text-body-soft m-0">
-            No vendors yet. The cake company goes here — <Link className="underline font-medium" style={{ color: ACCENT }} href="/suppliers/vendors/new">add the first one →</Link>
+          <p className="text-[13.5px] font-semibold text-purple m-0">
+            No vendors yet — <Link className="underline" style={{ color: ACCENT }} href="/suppliers/vendors/new">add the first one →</Link>
           </p>
         </div>
       )}
@@ -151,10 +150,6 @@ export function VendorBoard() {
         ))}
       </div>
 
-      <p className="text-[12.5px] text-body-soft mt-4">
-        Same money engine as suppliers — pay from the vendor page, oldest due first, excess parks as credit (DEC-SUP-006).
-        Stock-skip selling & auto-notify: PENDING F11.
-      </p>
     </div>
   );
 }

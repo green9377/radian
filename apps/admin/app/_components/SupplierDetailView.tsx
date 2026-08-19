@@ -190,10 +190,8 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
           {tab === "items" && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
               {s.items.length === 0 && (
-                <p className="text-[13px] text-body-soft m-0">
-                  {isVendor
-                    ? <>No products point at this vendor yet — set “Supplier” on the item (Items → edit → Category &amp; labels), then list it as a Product.</>
-                    : <>No items point at this supplier yet — set “Supplier” on an item (Items → edit → Category &amp; labels).</>}
+                <p className="text-[13px] font-medium text-body m-0">
+                  Nothing yet — set “Supplier” on an item to link it here.
                 </p>
               )}
               {s.items.length > 0 && (
@@ -237,11 +235,6 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                   </Link>
                 );
               })}
-              {isVendor && s.items.length > 0 && (
-                <p className="text-[12px] text-body-soft mt-3 mb-0">
-                  Vendor price lives on the Item (its cost field) — change it there and every margin here follows.
-                </p>
-              )}
             </div>
           )}
 
@@ -489,8 +482,7 @@ function AdjustModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: ()
   return (
     <Modal title="Adjustment entry" onClose={onClose}>
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
-      <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-        History never gets edited (SUP-R04) — a signed entry fixes the figure and says why.
+      <p className="text-[12.5px] font-medium text-body mt-0 mb-3">
         Minus = due goes down, plus = due goes up.
       </p>
       <div className="flex gap-2 items-start">
@@ -549,9 +541,8 @@ function OrderMessageModal({ s, onClose }: { s: ApiSupplierDetail; onClose: () =
 
   return (
     <Modal title={`Message ${s.nickname || s.name}`} onClose={onClose}>
-      <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-        Product info only — the customer's name, phone and address <b>never</b> go to a vendor (SUP-R07).
-        Auto-send on order arrives with the Automation module (F11).
+      <p className="text-[12.5px] font-medium text-body mt-0 mb-3">
+        Product info only — customer details <b>never</b> go to a vendor (SUP-R07).
       </p>
       <Field label="Product">
         {s.items.length > 0 ? (

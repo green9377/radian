@@ -1698,10 +1698,7 @@ export function VariantAttributes() {
         </div>
       )}
 
-      <PageHead eyebrow="Product Management · catalog" title="Variants & options" demo={demo}>
-        Build each list once. Every option can hold a colour, a photo and a
-        name — the button on the right picks which one the site shows.
-      </PageHead>
+      <PageHead eyebrow="Product Management · catalog" title="Variants & options" demo={demo} />
 
       {/*
         ⚠️ The whole screen was rebuilt on 1 Aug 2026. Owner: "so much text, the

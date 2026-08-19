@@ -164,9 +164,6 @@ export function SuppliersOverview() {
         ))}
       </div>
 
-      <p className="text-[12.5px] text-body-soft mt-3">
-        Corrections never edit history — use an Adjustment entry on the supplier page (SUP-R04). Money never comes back as cash: returns cut due or park as credit (DEC-PUR-006).
-      </p>
     </div>
   );
 }
