@@ -12,7 +12,7 @@ import {
   deleteEmployee, getEmployee, getEmployeeTimeline, getEmployeeLedger, getEmployeePayslips,
   getEmployeeMonth, listAppUsers, listEmployeeRoles, createEmployeeRole, updateEmployeeRole,
   deleteEmployeeRole, employeeTrash, restoreEmployee, listEmployeeDocuments, addEmployeeDocument,
-  deleteEmployeeDocument, getEmployeeDocument, hrDemoStatus, hrDemoSeed, hrDemoClear,
+  deleteEmployeeDocument, getEmployeeDocument,
   formatTaka, initials, ago,
   type ApiEmployee, type ApiEmployeeStats, type ApiAppUser, type PayType,
   type EmployeeStatus, type ActivityEvent, type ApiEmployeeLedgerRow,
@@ -86,53 +86,10 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string | null; s
   );
 }
 
-/* ================================================================= DEMO BAR */
-
-function HrDemoBar({ onChanged }: { onChanged: () => void }) {
-  const [seeded, setSeeded] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => { void hrDemoStatus().then((s) => setSeeded(s.isSeeded)).catch(() => setSeeded(null)); }, []);
-  if (seeded === null) return null;
-
-  const run = async (fn: () => Promise<{ message: string }>) => {
-    setBusy(true);
-    try {
-      const r = await fn();
-      setMsg(r.message);
-      const s = await hrDemoStatus();
-      setSeeded(s.isSeeded);
-      onChanged();
-    } catch (e) { setMsg(e instanceof Error ? e.message : "Could not do that"); }
-    finally { setBusy(false); }
-  };
-
-  return (
-    <Banner
-      tone={seeded ? "sky" : "slate"}
-      emoji={seeded ? "🧪" : "💡"}
-      title={seeded ? "Practice data is switched on" : "Want to try it with sample staff first?"}
-      right={
-        seeded ? (
-          <button className={btnGhost} disabled={busy}
-            onClick={() => { if (confirm("Remove all practice staff, their attendance and their practice advances?")) void run(hrDemoClear); }}>
-            {busy ? "Working…" : "Remove practice data"}
-          </button>
-        ) : (
-          <button className={btnPrimary} style={btnPrimaryStyle} disabled={busy} onClick={() => void run(hrDemoSeed)}>
-            {busy ? "Working…" : "Load practice staff"}
-          </button>
-        )
-      }
-    >
-      {msg ||
-        (seeded
-          ? "Five made-up staff, a full month of attendance and two advances. Remove it whenever you like — your real records are untouched."
-          : "Five made-up staff on all three pay types, a whole month of attendance already filled in, and two advances outstanding — so you can walk Attendance and Payroll end to end before entering a single real person.")}
-    </Banner>
-  );
-}
+/*  The HR practice-data bar (load/remove five sample staff) was removed on the
+    owner's order, 19 Aug 2026: no button anywhere may pour sample data into a
+    live database. The /hr/demo endpoints still exist server-side; retire them
+    in the HR phase.  */
 
 /* ==================================================================== LIST */
 
@@ -192,7 +149,6 @@ export function EmployeeListView() {
         }
       />
       <Flash ok="" err={err} />
-      <HrDemoBar onChanged={() => void load()} />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Kpi label="On the payroll" value={String(stats?.active ?? 0)} emoji="👤" tone="brand"

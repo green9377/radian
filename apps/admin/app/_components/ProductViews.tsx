@@ -40,7 +40,6 @@ import {
 
 import {
   DEMO_PRODUCTS,
-  DEMO_UPGRADES,
   DEMO_ADDONS,
   type AddonStat,
   DEMO_ADDON_GROUPS,
@@ -1990,16 +1989,13 @@ export function UpgradeProducts() {
   const [tab, setTab] = useState<"setup" | "perf">("setup");
   const [days, setDays] = useState(30);
 
-  /* demo fallback keeps the old sample behaviour so the screen is never dead */
+  /*  The sample-upgrades fallback (DEMO_UPGRADES shown when the API was down)
+      was removed on the owner's order, 19 Aug: sample data never appears as if
+      it were real. Offline now means an honest empty screen.  */
   useEffect(() => {
     if (!items.length) return;
     setBase((b) => b || items[0].id);
-    if (demo) {
-      setDemoUps((prev) =>
-        prev.length ? prev : DEMO_UPGRADES.map((u, i) => ({ ...u, baseProductId: items[Math.min(i, items.length - 1)].id })),
-      );
-    }
-  }, [items, demo]);
+  }, [items]);
 
   // real mode: the upgrades ARE the products whose upgradeOfProductId is set
   const ups: DemoUpgrade[] = demo

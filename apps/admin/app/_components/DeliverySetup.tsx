@@ -3,14 +3,16 @@
 import { useState } from "react";
 import Icon from "./Icon";
 import { TONE, type Tone } from "./OrderViews";
-import { CouriersMaster, OffersRules } from "./DeliveryConfig";
+import { OffersRules } from "./DeliveryConfig";
 import { DeliveryConnections } from "./ZonesAvailability";
 
-/* Delivery > Setup — three tabs. The first CONNECTS the masters made on
-   Methods & slots (DEC-DLV-018); nothing is created there. */
+/* Delivery > Setup — two tabs. Zone setup CONNECTS the masters made on
+   Methods & slots (DEC-DLV-018); nothing is created there.
+   Couriers & riders left (owner, 19 Aug): couriers are managed in
+   Administration -> Courier & delivery, riders on /delivery/riders —
+   a third door here only repeated them. */
 const TABS: { key: string; label: string; icon: string; tone: Tone }[] = [
   { key: "zones", label: "Zone setup", icon: "pin", tone: "purple" },
-  { key: "fleet", label: "Couriers & riders", icon: "truck", tone: "blue" },
   { key: "rules", label: "Blackout & rules", icon: "shield", tone: "green" },
 ];
 
@@ -31,7 +33,6 @@ export function DeliverySetup() {
         })}
       </div>
       {tab === "zones" && <DeliveryConnections />}
-      {tab === "fleet" && <CouriersMaster />}
       {tab === "rules" && <OffersRules />}
     </div>
   );

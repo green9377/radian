@@ -2246,15 +2246,6 @@ export async function loadUnitsSafe(): Promise<{ items: ApiUnit[]; isDemo: boole
   }
 }
 
-/** POST the starter set into an empty real DB.
- *
- *  Two things this has to get right, both learned the hard way:
- *  1. A unit must exist before anything can point at it, and the set has a two-level
- *     chain (Bunch -> Lily Stick -> Papri), so order is resolved by dependency in
- *     passes — not "bases first", which only worked by luck of array order.
- *  2. If a unit already exists the POST fails and is skipped — but its id must still be
- *     recorded, or its children get created with no base and the chain silently breaks.
- *     So existing rows are read into the map up front. */
 /* Everything still pointing at a unit — so "3 items are using this" is clickable and
    the admin can actually move them, instead of hunting for them by hand. */
 export interface UnitUsage {

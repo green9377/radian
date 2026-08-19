@@ -16,8 +16,23 @@ unless the owner says so.
 |---|---|---|
 | 0 | Baseline sweep + demo DB cleaned to config-only | done (18 Aug) |
 | 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
-| 2 | Masters — the vocabulary (units, item types/categories, variant lists, supplier types, channels, zones) | **NEXT** |
-| 3–10 | Purchase/Inventory → Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
+| 2 | Masters — units, categories, colours/sizes, variants, supplier types, channels, delivery masters+setup | **CLOSED 19 Aug** |
+| 3 | Purchase / Inventory | **NEXT — direction written: `RADIAN_PHASE3_DIRECTION.md` (start the new chat from it)** |
+| 4–10 | Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
+
+Phase 2 closed with (all owner-tested and revised, live on demo):
+- every master rebuilt clean: no page prose, no field hints, inline dialog
+  errors with live duplicate checks, darker text tokens (second pass)
+- every sample-data pour deleted: "Add the usual X" buttons, the variants
+  fake catalogue, the HR practice-staff bar, the Upgrades offline fallback
+- DEC-SUP-010 dual-role suppliers (one row, both workspaces) + migration
+- channel master finally feeds the New-order form; storefront books under
+  `website`
+- DEC-DLV-018 delivery: masters made once (methods / slot templates /
+  zones), Setup only connects (price + per-zone slot capacity), TimeSelect
+  dropdowns everywhere, circle verified live on /shop/delivery-options
+- leftovers parked in the direction file §4 (hr/demo endpoints, product
+  demo fallbacks, banner-to-bell moves — each in its own phase)
 
 Phase 1 closed with, all verified live on demo and owner-tested:
 - template workshop (Access) + People & accounts with exactly two doors;
