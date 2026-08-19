@@ -15,7 +15,7 @@ import {
   Architecture: RADIAN_INVENTORY_MODULE_ARCHITECTURE.md (locked 22 Jul 2026).
 
   Reports answer the owner's own question behind DEC-PUR-005/DEC-INV-005:
-  "কত টাকার মাল damage হলো" — wastage & gift money per day, and what the
+  "how much money was damaged" — wastage & gift money per day, and what the
   shelf is worth right now at AVCO.
 */
 
@@ -60,7 +60,6 @@ export function InvReportsView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Reports"
-        blurb="The money answers: what rots, what goes out free, and what the shelf is worth right now — all at AVCO cost, all from the ledger."
         right={
           <span className="flex gap-2">
             {RANGES.map((r) => (
@@ -180,7 +179,7 @@ export function InvSettingsView() {
     setSettings(s.settings);
     setWhs(w.rows);
     setIsDemo(s.isDemo || w.isDemo);
-    /*  "কোথায় কী আছে" পাশেই দেখানো — নইলে কোন গুদাম বাছব সেটা অনুমান।  */
+    /*  Show what each warehouse holds right beside the pick — otherwise choosing one is a guess. */
     try {
       const st = await loadInvStockSafe();
       const tally: Record<string, number> = {};
@@ -196,13 +195,6 @@ export function InvSettingsView() {
 
   async function save(patch: Parameters<typeof patchInvSettings>[0]) {
     if (!settings) return;
-    // Demo mode (API down): change locally so the owner can PREVIEW the choice,
-    // but say plainly it is not saved — a red revert here just read as "broken".
-    if (isDemo) {
-      setSettings({ ...settings, ...patch } as InvSettings);
-      setOk("Preview only — the API is not running, so this is NOT saved. Run radian_inventory_migrate.bat / START_RADIAN.bat first.");
-      return;
-    }
     setBusy(true); setErr(""); setOk("");
     const prev = settings;
     setSettings({ ...settings, ...patch } as InvSettings); // optimistic
@@ -267,7 +259,6 @@ export function InvSettingsView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Settings"
-        blurb="How stock moves in and out."
       />
       {isDemo && <DemoBar what="sample settings" onRetry={load} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -332,9 +323,9 @@ export function InvSettingsView() {
           </div>
 
           <p className="text-[12px] text-body-soft mt-3 mb-0">
-            Every change is audited. To add, rename or close a store, go to{" "}
+            Stores are added, renamed or closed on{" "}
             <a href="/inventory/warehouses" className="underline font-medium" style={{ color: ACCENT }}>
-              Inventory → Warehouses
+              Warehouses
             </a>.
           </p>
         </div>

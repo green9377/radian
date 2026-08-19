@@ -86,7 +86,6 @@ export function PurchasesOverview() {
       <ItemPageHead
         eyebrow="Commerce · Purchases"
         title="Purchases"
-        blurb="Everything Radian buys — market-morning flowers and supplier orders in ONE book. Stock does not move from here yet: that arrives with Inventory (DEC-PUR-002)."
         right={<NewBtn />}
       />
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
@@ -128,7 +127,7 @@ export function PurchasesOverview() {
             <b className="text-[14px] text-purple">Dues to clear</b>
             <Link href="/purchases/list?status=due" className="text-[12.5px] font-medium underline" style={{ color: ACCENT }}>See all →</Link>
           </div>
-          {dues.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing owed. 🎉</p>}
+          {dues.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing owed.</p>}
           {dues.map((p) => (
             <Link key={p.id} href={`/purchases/${p.id}`} className="flex items-center justify-between gap-3 py-2 border-b border-lavender-deep/60 last:border-0 hover:bg-lavender/20 rounded-[8px] px-2 -mx-2">
               <span className="text-[13px] text-body min-w-0 truncate">{p.supplierName} <span className="text-body-soft">· {p.purchaseNo}</span></span>
@@ -196,8 +195,8 @@ export function PurchaseListView() {
     if (s && TABS.some((t) => t.id === s)) setTab(s);
   }, []);
 
-  // the supplier shelf, straight from the loaded rows — free text today (DEC-PUR-003),
-  // becomes the Supplier master when that module lands
+  // the supplier shelf, straight from the loaded rows' snapshot names — the
+  // Supplier master exists (DEC-SUP-007) but this filter only needs the book itself
   const suppliers = useMemo(() => {
     const m = new Map<string, number>();
     for (const p of rows) m.set(p.supplierName, (m.get(p.supplierName) ?? 0) + 1);
@@ -232,7 +231,6 @@ export function PurchaseListView() {
       <ItemPageHead
         eyebrow="Commerce · Purchases"
         title="All purchases"
-        blurb="One book for every buy — a cash market run and a supplier order are the same row, only their steps differ (DEC-PUR-001)."
         right={<NewBtn />}
       />
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
@@ -316,7 +314,7 @@ export function PurchaseListView() {
       </DataTable>
 
       <p className="text-[12.5px] text-body-soft mt-3">
-        Showing {filtered.length} of {rows.length} · Stock does <b>not</b> move from this screen.
+        Showing {filtered.length} of {rows.length}
       </p>
     </div>
   );

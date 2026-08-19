@@ -12,10 +12,11 @@ import {
 
 /*
   Purchase reports — the three questions the owner actually asks:
-    1. "মাসে কত টাকার কেনা হলো?"        → monthly bars
-    2. "কোথায় কত বাকি?"                → supplier due board (indicative until the
-                                          Supplier module — free-text names, DEC-PUR-003)
-    3. "এই item-টা কবে কত দামে কিনেছি?" → per-item price history + current average
+    1. "How much did we buy this month?"        → monthly bars
+    2. "Who is owed what?"                      → supplier due board (groups by the
+                                                   snapshot name; suppliers are a
+                                                   master now, DEC-SUP-007)
+    3. "When did we buy this item, at what price?" → per-item price history + average
   Numbers aggregate over the loaded book (server caps at 500 most recent) — same
   D1 lesson as Sales: when the book outgrows this, move the maths server-side.
 */
@@ -47,7 +48,7 @@ export default function PurchaseReportsView() {
   }
   useEffect(() => { load(); }, []);
 
-  // ---- price history for the picked item (demo: derived from the sample book)
+  // ---- price history for the picked item (endpoint down: derived from the loaded book)
   useEffect(() => {
     if (!histItem) { setHist(null); return; }
     (async () => {
@@ -115,7 +116,6 @@ export default function PurchaseReportsView() {
       <ItemPageHead
         eyebrow="Commerce · Purchases"
         title="Reports"
-        blurb="Month by month buying, who is owed what, and every price you have ever paid for an item. Supplier totals are indicative until the Supplier module exists (free-text names, DEC-PUR-003)."
       />
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
 

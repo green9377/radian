@@ -146,8 +146,7 @@ export function ItemPicker({
 
         {/* foot */}
         {single ? null : (
-        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-lavender-deep bg-white">
-          <span className="text-[12.5px] text-body-soft">Tap a card to add — tap again for one more. Qty is editable on the bill too.</span>
+        <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-lavender-deep bg-white">
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">Cancel</button>
             <button disabled={count === 0}
@@ -309,7 +308,6 @@ export default function PurchaseNewView() {
       <ItemPageHead
         eyebrow="Commerce · Purchases"
         title="New purchase"
-        blurb="One screen, done — like the Direct Bill you already know. “Add items” opens your item shelf; flip on “Advance order” only when money goes out before the goods arrive."
       />
       {isDemo && <DemoBar what="sample items in the picker (saving needs the API)" onRetry={() => location.reload()} />}
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
@@ -337,10 +335,10 @@ export default function PurchaseNewView() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
               {/* DEC-SUP-007 — pick from the Supplier master; type a new name to create
                   him on the spot. supplierName is stored as the snapshot text. */}
-              <Field label="Supplier" required hint="Pick from your suppliers — or type a new name and create him right here.">
+              <Field label="Supplier" required>
                 <QuickSelect
                   value={supplierId}
-                  placeholder="Kamal Mama, DCC, Shahbagh bazar…"
+                  placeholder="Pick a supplier — or type a new name to create one"
                   onChange={setSupplierId}
                   onCreate={quickCreateSupplier}
                   createLabel="Create supplier"
@@ -359,8 +357,8 @@ export default function PurchaseNewView() {
               <Field label="Date" required>
                 <input type="date" className="ipt w-full" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
               </Field>
-              <Field label="Supplier receipt no" hint="Their chalan / memo number, if any">
-                <input className="ipt w-full" placeholder="KM-4471" value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)} />
+              <Field label="Supplier receipt no">
+                <input className="ipt w-full" placeholder="Their chalan / memo no — KM-4471" value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)} />
               </Field>
             </div>
             <Field label="Notes">
@@ -390,7 +388,6 @@ export default function PurchaseNewView() {
                   <button type="button" className="text-[13px] text-body-soft underline" onClick={() => setAttachment(null)}>remove</button>
                 </>
               )}
-              <span className="text-[11.5px] text-body-soft ml-auto">Purchase no: <b>auto</b> (PUR-000001…)</span>
             </div>
           </div>
 
@@ -454,7 +451,7 @@ export default function PurchaseNewView() {
                 value={discountTk} onChange={(e) => setDiscountTk(e.target.value)} />
             </div>
             {/* Biznify-style ± dropdown (owner, 22 Jul rev-2: "drop down kre daw").
-                Custom, not a native <select> (§১৩.৩). */}
+                Custom, not a native <select> (conventions sec 13.3). */}
             <div className="flex justify-between items-center text-[13px] py-1 gap-2">
               <span className="text-body-soft" title="Round figure: 39,920 → 39,900 = − 20">Adjustment</span>
               <span className="flex items-center gap-1.5">
@@ -501,14 +498,9 @@ export default function PurchaseNewView() {
                 <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#b45309]" />
                 Advance order — goods arrive later
               </label>
-              {advance && (
-                <p className="text-[12px] rounded-[9px] px-3 py-2 mb-3" style={{ background: "#fff4e6", color: "#8a5209" }}>
-                  Saved as <b>Advance paid</b>. When the goods arrive, open it and press <b>Receive</b>. The advance below is required.
-                </p>
-              )}
               <Field label={advance ? "Advance paid now" : "Paid now"} required={advance}
-                hint={pay < grand && pay > 0 ? `Due will be ${formatTaka(grand - pay)}` : pay === 0 ? "Leave 0 → whole amount stays due" : "Fully paid"}>
-                {/* no native select (§১৩.৩) — method chips */}
+                hint={pay < grand && pay > 0 ? `Due will be ${formatTaka(grand - pay)}` : undefined}>
+                {/* no native select (conventions sec 13.3) — method chips */}
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {PAY_METHODS.map((m) => (
                     <button key={m.id} type="button" onClick={() => setPayMethod(m.id)}
@@ -533,10 +525,6 @@ export default function PurchaseNewView() {
             </button>
           </div>
 
-          <div className="rounded-[14px] border px-4 py-3 text-[12px] text-body leading-relaxed" style={{ background: ACCENT_BG, borderColor: "#e3d0f2" }}>
-            <b className="text-purple block mb-1">Stock does not move here.</b>
-            Receiving updates the item's <b>average cost</b> and every recipe that uses it.
-          </div>
         </div>
       </div>
 

@@ -20,7 +20,8 @@ import {
   · Return        PUR-R08 / DEC-PUR-006 — qty ≤ received − already returned;
                   money never comes back as cash: due is cut first, excess = credit
   · Cancel        PUR-R06 — only before anything was received
-  · No stock move DEC-PUR-002 — Inventory's job, later
+  · Stock         posts on receive (DEC-INV-016 auto-warehouse); a failed post
+                  surfaces as the stockGap card + repost button (DEC-PUR-010)
 */
 
 const tkToPaisa = (v: string): number => {
@@ -45,6 +46,9 @@ export default function PurchaseDetailView({ id }: { id: string }) {
   const [returnReason, setReturnReason] = useState("");
   const [returnQty, setReturnQty] = useState<Record<string, string>>({});
   const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [costJump, setCostJump] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
 
   async function load() {
     setLoading(true);
@@ -55,23 +59,10 @@ export default function PurchaseDetailView({ id }: { id: string }) {
       // D9 lesson — API is newest-first; a story reads oldest-first
       try { setEvents((await getPurchaseTimeline(id)).slice().reverse()); } catch { setEvents([]); }
     } catch {
-      const { DEMO_PURCHASES } = await import("../_data/purchaseDemo");
-      const demo = DEMO_PURCHASES.find((d) => d.id === id) ?? DEMO_PURCHASES[0] ?? null;
-      setP(demo);
+      // API unreachable or the purchase does not exist — no fake record, ever
+      setP(null);
       setIsDemo(true);
-      // demo timeline — reconstructed from the record itself, so the card still teaches
-      if (demo) {
-        const ev: ActivityEvent[] = [
-          { id: "e1", kind: "general", label: `Purchase ${demo.purchaseNo} recorded — ${demo.supplierName}`, actorName: "Admin", note: null, createdAt: demo.purchaseDate },
-          ...demo.payments.map((x, i) => ({
-            id: `ep${i}`, kind: "payment", label: `Paid ${formatTaka(x.amountPaisa)} (${x.method})`, actorName: "Admin", note: x.note ?? null, createdAt: x.paidAt,
-          })),
-          ...demo.returns.map((r, i) => ({
-            id: `er${i}`, kind: "general", label: `Return ${r.returnNo}: ${formatTaka(r.totalPaisa)}`, actorName: "Admin", note: r.reason ?? null, createdAt: r.returnDate,
-          })),
-        ].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-        setEvents(ev);
-      }
+      setEvents([]);
     } finally { setLoading(false); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
@@ -81,15 +72,12 @@ export default function PurchaseDetailView({ id }: { id: string }) {
   };
 
   async function act(fn: () => Promise<ApiPurchase>, done: string) {
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setCostJump(null);
     try { setP(await fn()); setOk(done); await refreshEvents(); }
     catch (e) {
       if (isCostJumpRefusal(e)) {
-        const m = msg(e, "Price far from current cost.").replace(/^COST_JUMP:/, "");
-        if (confirm(`⚠ ${m}\n\nSave anyway?`)) {
-          try { setP(await receivePurchase(id, { confirmCost: true })); setOk(done); await refreshEvents(); }
-          catch (e2) { setErr(msg(e2, "Failed.")); }
-        }
+        // same in-page confirm card as the New-purchase form — no native confirm()
+        setCostJump(msg(e, "The price is far from the current cost.").replace(/^COST_JUMP:/, ""));
       } else setErr(msg(e, "That did not work."));
     }
     finally { setBusy(false); }
@@ -98,6 +86,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
   if (loading) return <div className={WRAP}><p className="text-[13px] text-body-soft">Loading…</p></div>;
   if (!p) return (
     <div className={WRAP}>
+      {isDemo && <DemoBar what="this purchase" onRetry={load} />}
       <p className="text-[13px] text-body-soft">Purchase not found. <Link href="/purchases/list" className="underline">Back to the list</Link></p>
     </div>
   );
@@ -133,6 +122,23 @@ export default function PurchaseDetailView({ id }: { id: string }) {
       {isDemo && <DemoBar what="a sample purchase (actions need the API)" onRetry={load} />}
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
+
+      {costJump && (
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Price looks unusual</b>
+          <p className="text-[13px] text-body m-0 mb-3">{costJump}</p>
+          <div className="flex gap-2">
+            <button onClick={() => setCostJump(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
+              Never mind
+            </button>
+            <button disabled={busy}
+              onClick={() => act(() => receivePurchase(id, { confirmCost: true }), "Goods received — stock posted, average cost updated.")}
+              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "#b45309" }}>
+              The price is right — receive anyway
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* DEC-PUR-010 — goods received, stock never moved. Loud, on the purchase
           itself, with the repair one press away. The receive hook is fail-soft on
@@ -257,7 +263,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
               <img src={p.attachmentUrl} alt="receipt" className="max-h-[320px] rounded-[10px] border border-lavender-deep" />
             </div>
           )}
-          {p.notes && <p className="text-[13px] text-body-soft">📝 {p.notes}</p>}
+          {p.notes && <p className="text-[13px] text-body-soft">Note · {p.notes}</p>}
         </div>
 
         {/* ---------------- money + actions rail ---------------- */}
@@ -282,7 +288,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
 
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 space-y-2">
             {outstanding && (
-              <button disabled={busy} onClick={() => act(() => receivePurchase(id), "Goods received. Average cost updated.")}
+              <button disabled={busy} onClick={() => act(() => receivePurchase(id), "Goods received — stock posted, average cost updated.")}
                 className="w-full text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: "#0e7a3d" }}>
                 <Icon name="check" size={13} /> Receive everything outstanding
               </button>
@@ -296,11 +302,8 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             {(p.status === "ORDERED" || p.status === "ADVANCE_PAID") && !p.lines.some((l) => l.receivedQtyMilli > 0) && (
               <button disabled={busy}
                 onClick={() => {
-                  const note = p.paidPaisa > 0
-                    ? prompt("An advance was paid — how was it resolved? (required)") ?? ""
-                    : "";
-                  if (p.paidPaisa > 0 && !note.trim()) return;
-                  act(() => cancelPurchase(id, note || undefined), "Purchase cancelled.");
+                  if (p.paidPaisa > 0) { setCancelNote(""); setCancelOpen(true); }
+                  else act(() => cancelPurchase(id), "Purchase cancelled.");
                 }}
                 className="w-full border border-[#e0a1a1] bg-white text-[#c0392b] text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]">
                 Cancel this order
@@ -309,12 +312,23 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             <Link href="/purchases/list" className="block text-center text-[12.5px] text-body-soft underline pt-1">← All purchases</Link>
           </div>
 
-          <div className="rounded-[14px] border px-4 py-3 text-[12px] text-body leading-relaxed" style={{ background: "#f7f1fb", borderColor: "#e3d0f2" }}>
-            <b className="text-purple block mb-1">Why no stock button?</b>
-            Stock's only owner is Inventory (DEC-PUR-002 / DEC-ITM-005). When it ships, receives here will post stock automatically — nothing on this page will change.
-          </div>
         </div>
       </div>
+
+      {/* ---------------- cancel modal (advance was paid — note required) ---------------- */}
+      {cancelOpen && (
+        <Modal title="Cancel this order" onClose={() => setCancelOpen(false)}
+          canSave={cancelNote.trim().length > 0} busy={busy} saveLabel="Cancel the order"
+          onSave={async () => {
+            await act(() => cancelPurchase(id, cancelNote.trim()), "Purchase cancelled.");
+            setCancelOpen(false);
+          }}>
+          <Field label={`An advance of ${formatTaka(p.paidPaisa)} was paid — how was it resolved?`} required>
+            <input className="ipt w-full" placeholder="Refunded in cash, kept as credit…" autoFocus
+              value={cancelNote} onChange={(e) => setCancelNote(e.target.value)} />
+          </Field>
+        </Modal>
+      )}
 
       {/* ---------------- add payment modal ---------------- */}
       {payOpen && (
@@ -354,9 +368,6 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             await act(() => createPurchaseReturn({ purchaseId: id, reason: returnReason.trim() || undefined, lines }), "Return recorded.");
             setReturnOpen(false);
           }}>
-          <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-            Money never comes back as cash (DEC-PUR-006) — the due is cut first, anything beyond it becomes <b>credit</b> for the next purchase from {p.supplierName}.
-          </p>
           {p.lines.map((l) => {
             const max = l.receivedQtyMilli - alreadyReturned(l.id);
             if (max <= 0) return null;

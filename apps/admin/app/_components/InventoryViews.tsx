@@ -77,7 +77,6 @@ export function InventoryOverview() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Inventory"
-        blurb="Every stem in and out — one immutable ledger, money at AVCO. Wastage and gifts are counted in taka, not guesses (DEC-INV-005)."
         right={
           <Link href="/inventory/stock"
             className="text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] inline-flex items-center gap-2"
@@ -169,9 +168,6 @@ export function InventoryOverview() {
         ))}
       </div>
 
-      <p className="text-[12.5px] text-body-soft">
-        Run <code>radian_inventory_migrate.bat</code> once — then start with Opening stock; every entry lands in the ledger instantly.
-      </p>
     </div>
   );
 }
@@ -231,7 +227,6 @@ export function InvStockBoard() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Stock board"
-        blurb="Every item, per warehouse, and what it is worth at AVCO. A MAKE_TO_ORDER bouquet never shows stock — it shows how many can be built (DEC-INV-010)."
         right={
           <span className="flex gap-2">
             <Link href="/inventory/transfer"
@@ -363,7 +358,6 @@ export function InvMovementsView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Movements"
-        blurb="Every stock in and out — who, when, why, how much, worth what. Rows are never edited or deleted; mistakes get a reversing entry (DEC-INV-012)."
       />
       {isDemo && <DemoBar what="sample movements" onRetry={() => load()} />}
 

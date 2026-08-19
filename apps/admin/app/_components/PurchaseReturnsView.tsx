@@ -26,12 +26,8 @@ export default function PurchaseReturnsView() {
       setRows(await listPurchaseReturns());
       setIsDemo(false);
     } catch {
-      const { DEMO_PURCHASES } = await import("../_data/purchaseDemo");
-      setRows(
-        DEMO_PURCHASES.flatMap((p) =>
-          p.returns.map((r) => ({ ...r, purchase: { id: p.id, purchaseNo: p.purchaseNo, supplierName: p.supplierName } })),
-        ),
-      );
+      // API unreachable — honest empty screen, no sample rows
+      setRows([]);
       setIsDemo(true);
     } finally { setLoading(false); }
   }
@@ -45,7 +41,6 @@ export default function PurchaseReturnsView() {
       <ItemPageHead
         eyebrow="Commerce · Purchases"
         title="Returns to suppliers"
-        blurb="Money never comes back as cash — the purchase's due is cut first, anything beyond it becomes credit for the next buy (DEC-PUR-006). To create one, open the purchase and press “Return goods”."
       />
       {isDemo && <DemoBar what="sample returns" onRetry={load} />}
 
@@ -65,7 +60,7 @@ export default function PurchaseReturnsView() {
       }>
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
         {!loading && rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No returns yet — that is a good thing.</div>
+          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No returns yet. A return is created from its purchase — open one and press “Return goods”.</div>
         )}
         {rows.map((r) => (
           <div key={r.id} className={ROW}>

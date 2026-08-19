@@ -20,7 +20,6 @@ import {
   Biznify-audit shape (owner, 22 Jul): plain entry form on top, history right below
   on the SAME page — the pattern his staff already know. One save posts the ledger
   movements atomically through InventoryService (INV-RULE-001).
-  UI text is ENGLISH ONLY (locked rule: চ্যাটে বাংলা, UI/code English).
 */
 
 const WASTAGE_REASONS = ["Rotten", "Dried out", "Broken", "Expired", "Damaged in transit", "Other"];
@@ -103,9 +102,9 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, ha
   /*  ⚠️ column order must match the cells below, and BOTH extras can be on at
       once (Opening stock shows expiry AND value) — the old chain picked only
       one and silently dropped the other's header.                            */
-  /*  ⚠️ grid-cols-[…] হাতে জোড়া দেওয়া যাবে না — Tailwind build-এর সময় class
-      খোঁজে, runtime-এ বানানো নাম bundle-এ থাকেই না (Stock board-এ একবার
-      ঠকেছি)। তাই মাপটা inline style-এ।                                      */
+  /*  grid-cols-[…] cannot be stitched together at runtime — Tailwind collects
+      class names at build time, so a generated name never reaches the bundle
+      (got burned once on the Stock board). Hence the inline style.          */
   const cols = "grid gap-2.5 items-center";
   const grid = {
     gridTemplateColumns: [
@@ -179,10 +178,10 @@ function validLines(lines: Line[]): { itemId: string; qtyMilli: number; expiryDa
 }
 
 /* ── one shape for every action screen (10 Aug 2026) ──────────────────────
-   মালিক: *"3 vag ar ak vag design pore ache"* — প্রতিটা action পাতা ছিল
-   ৭৬০px-এর একটা card, ১৯০০px পর্দার এক-তৃতীয়াংশ。 এখন সবগুলো একই ছাঁচে:
-   বাঁয়ে কাজের শীট, ডানে চলতি হিসাব + বোতাম。 তিনটে পাতা আলাদা করে সাজালে
-   তিন রকম হয়ে যেত — তাই খোলসটা এক জায়গায়。                              */
+   Owner: "3 vag ar ak vag design pore ache" — each action page was a single
+   760px card on a 1900px screen. Now they share one mould: work sheet on the
+   left, running totals + button on the right. Styling three pages separately
+   would have drifted into three designs — so the shell lives here once.    */
 
 function ActionShell({ sheet, panel }: { sheet: React.ReactNode; panel: React.ReactNode }) {
   return (
@@ -256,8 +255,8 @@ export function InvOpeningView() {
   useEffect(() => { if (!warehouseId && whs.length) setWarehouseId(whs[0].id); }, [whs, warehouseId]);
 
   useEffect(() => {
-    /*  একটা stock সারি তৈরি হয় কেবল প্রথম movement-এর পর — তাই সারিটার থাকা
-        মানেই "এই গুদামে এই মাল ইতিমধ্যে চলছে"。 নতুন endpoint লাগে না。      */
+    /*  A stock row only exists after the first movement — so the row existing
+        means "this item already moves in this warehouse". No new endpoint.  */
     (async () => {
       try {
         const st = await loadInvStockSafe();
@@ -268,9 +267,10 @@ export function InvOpeningView() {
     })();
   }, []);
 
-  /*  DEC-INV-012 — একবার চলা মাল আর "opening" হয় না, API না বলে দেয়。 আগে
-      সেটা বাছাই করা যেত আর save-এর সময় ভুল ধরা পড়ত。 এখন তালিকাতেই আসে না —
-      নিশ্চিত ভুলটা করার সুযোগই থাকল না。 নিয়ম বদলায়নি, শুধু আগে ঠেকানো。   */
+  /*  DEC-INV-012 — an item that has already moved cannot be "opened" again;
+      the API refuses. It used to be pickable and fail on save. Now it never
+      enters the list — the guaranteed mistake cannot be made. Same rule,
+      caught earlier.                                                        */
   const openable = useMemo(
     () => options.filter((o) => !(warehouseId && touched.get(o.id)?.has(warehouseId))),
     [options, touched, warehouseId],
@@ -304,7 +304,6 @@ export function InvOpeningView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Opening stock"
-        blurb="Count what is on the shelf and write it down. This is where the ledger starts (DEC-INV-006)."
       />
       {isDemo && <DemoBar what="warehouses" onRetry={reload} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -319,9 +318,6 @@ export function InvOpeningView() {
             </SheetBar>
             <div className="px-4 py-3">
               <LinesEditor lines={lines} setLines={setLines} options={openable} byId={byId} showExpiry showValue />
-              <p className="text-[12px] text-body-soft mt-2 mb-0">
-                Qty in the item&apos;s own unit — e.g. 120 stems, 2.5 kg
-              </p>
             </div>
             <SheetNote value={note} onChange={setNote} placeholder="e.g. First count, 10 Aug morning" />
           </>
@@ -375,7 +371,7 @@ export function InvTransferView() {
   }
   useEffect(() => { loadHistory(); }, []);
 
-  /*  কোন গুদামে কী আছে — না দেখিয়ে transfer লেখানো মানে অন্ধভাবে মাল সরানো।  */
+  /*  Show what each warehouse holds — writing a transfer without it is moving goods blind. */
   const [stock, setStock] = useState<InvStockRow[]>([]);
   useEffect(() => {
     (async () => { try { setStock((await loadInvStockSafe()).rows); } catch { setStock([]); } })();
@@ -411,7 +407,6 @@ export function InvTransferView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Transfer"
-        blurb="Move stock between warehouses in ONE step — no send/receive handshake, both rooms are in the same building (DEC-INV-004)."
       />
       {isDemo && <DemoBar what="warehouses" onRetry={reload} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -552,7 +547,6 @@ export function InvIssueView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Wastage & Gift"
-        blurb="Flowers rot, gifts go out free — both cost money, so both are counted in taka at AVCO cost (DEC-INV-005). Enter any time; no forced day-end routine."
       />
       {isDemo && <DemoBar what="warehouses" onRetry={reload} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -594,9 +588,6 @@ export function InvIssueView() {
 
             <div className="px-4 py-3">
               <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} showValue />
-              <p className="text-[12px] text-body-soft mt-2 mb-0">
-                Money is computed at each item&apos;s AVCO cost — you never type a price here.
-              </p>
             </div>
             <SheetNote value={note} onChange={setNote}
               placeholder={kind === "WASTAGE" ? "e.g. Morning sorting" : "e.g. Sent to client office"} />
@@ -826,7 +817,6 @@ export function InvStocktakeView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Stocktake"
-        blurb="Count the shelf, type what you found — the mismatch shows itself in qty AND taka, and one Apply posts every adjustment, linked to the session (DEC-INV-009). Applied sessions are immutable."
       />
       {isDemo && <DemoBar what="warehouses" onRetry={reload} />}
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -847,10 +837,6 @@ export function InvStocktakeView() {
                 style={{ background: ACCENT }}>
                 {busy ? "Loading…" : "Start counting"}
               </button>
-              <PanelHint bg="#f7f1fb" tone="#5c4a6b">
-                Every countable item in that store opens with its ledger figure beside it.
-                Leave a row blank if you did not count it — blank is not zero.
-              </PanelHint>
             </>
           }
         />
@@ -914,11 +900,7 @@ export function InvStocktakeView() {
               tone: totalDiffPaisa === 0 ? "#5c4a6b" : totalDiffPaisa > 0 ? "#0e7a3d" : "#c0392b",
             },
           ]} />
-          <SaveBtn onClick={save} busy={busy} disabled={filled.length === 0} label="Save session" full />
-          <PanelHint bg="#f7f1fb" tone="#5c4a6b">
-            Saving keeps this as a draft. Nothing moves in the ledger until you press
-            Apply on the session below — and an applied session can never be edited.
-          </PanelHint>
+          <SaveBtn onClick={save} busy={busy} disabled={filled.length === 0} label="Save as draft" full />
         </div>
         </div>
       )}

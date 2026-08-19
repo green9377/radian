@@ -78,7 +78,6 @@ export default function WarehousesView() {
       <ItemPageHead
         eyebrow="Operations · Inventory"
         title="Warehouses"
-        blurb="Every place Radian keeps stock. Goods land in one, sales leave from another, and Transfer moves between them. A store holding goods cannot be closed — move the goods out first."
         right={
           <button onClick={() => { setDraft(blank); setAddOpen(true); }}
             className="text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] inline-flex items-center gap-2"
@@ -99,8 +98,7 @@ export default function WarehousesView() {
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
         {!loading && rows.length === 0 && (
           <div className="px-4 py-8 text-center text-[13px] text-body-soft">
-            No warehouse yet. Make one before receiving goods — or just record a purchase,
-            and the shop will make its own.
+            No warehouse yet — the first received purchase creates one automatically.
           </div>
         )}
         {rows.map((w) => (
@@ -145,8 +143,8 @@ export default function WarehousesView() {
       </DataTable>
 
       <p className="text-[12.5px] text-body-soft mt-3">
-        Which store sales leave from, and which one purchases land in, is set on{" "}
-        <a href="/inventory/settings" className="underline font-medium" style={{ color: ACCENT }}>Inventory → Settings</a>.
+        Which store sales leave from, and which one purchases land in — set on{" "}
+        <a href="/inventory/settings" className="underline font-medium" style={{ color: ACCENT }}>Settings</a>.
       </p>
 
       {/* ---------------- new ---------------- */}
@@ -158,15 +156,15 @@ export default function WarehousesView() {
             async () => { await createInvWarehouse({ ...draft, address: draft.address || undefined }); setAddOpen(false); },
             `${draft.name.trim()} created.`,
           )}>
-          <Field label="Name" required hint="What you call it out loud — Shop, Storeroom, Uttara branch">
+          <Field label="Name" required>
             <input className="ipt" value={draft.name} autoFocus
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Storeroom" />
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Shop, Storeroom, Uttara branch…" />
           </Field>
-          <Field label="Short code" required hint="Set once and never changed — it appears in stock records. Letters, numbers, underscore.">
+          <Field label="Short code" required>
             <input className="ipt" value={draft.code}
-              onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="STORE" />
+              onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="STORE — set once, never changes" />
           </Field>
-          <Field label="Address" hint="Optional — helps staff know which place this is">
+          <Field label="Address">
             <input className="ipt" value={draft.address}
               onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Shantinagar, Dhaka" />
           </Field>
