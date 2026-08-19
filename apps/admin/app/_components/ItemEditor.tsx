@@ -201,7 +201,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           });
           setSkuTouched(true);
         } else {
-          setDraft((d) => ({ ...d, unitId: refs.units[0]?.id ?? "" }));
+          // default to the first LIVE unit — hidden ones are not offered (19 Aug)
+          setDraft((d) => ({ ...d, unitId: refs.units.find((u) => u.isActive)?.id ?? "" }));
         }
       } catch (e) {
         setErr(msg(e, "Could not load this item."));
@@ -597,7 +598,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     </div>
                   ) : (
                     <select className="ipt w-full" value={draft.unitId} onChange={(e) => set("unitId", e.target.value)}>
-                      {units.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.shortCode})</option>)}
+                      {/* hidden units are not offered for NEW picks, but an item already
+                          on one keeps it visible — records never lose their unit (19 Aug) */}
+                      {units.filter((u) => u.isActive || u.id === draft.unitId)
+                        .map((u) => <option key={u.id} value={u.id}>{u.name} ({u.shortCode})</option>)}
                     </select>
                   )}
                 </Row>

@@ -44,7 +44,7 @@ const ACCENT_BG = "#e7f5f1";
 const BASE_BG = "#eef2ff";
 const BASE_FG = "#4f46e5";
 
-/* read-only list columns — CSS grid, never flex (§১০.৫ ফাঁদ) */
+/* read-only list columns — CSS grid, never flex (truncate+flex overflow trap) */
 const ROW =
   "grid grid-cols-1 md:grid-cols-[34px_minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,1fr)_104px_46px_92px] items-center gap-3";
 
@@ -52,6 +52,22 @@ const ROW =
 const GENERIC = ["stick", "bunch", "box", "set", "pair", "bundle", "packet", "pack"];
 function looksGeneric(name: string): boolean {
   return GENERIC.includes(name.trim().toLowerCase());
+}
+
+/** would `baseId` sitting under `id` create a loop? (mirrors the API guard) */
+function makesCycle(units: ApiUnit[], id: string, baseId: string): boolean {
+  if (!baseId || !id) return false;
+  if (id === baseId) return true;
+  const byId = new Map(units.map((u) => [u.id, u]));
+  let cur = byId.get(baseId);
+  let depth = 0;
+  while (cur && depth < 10) {
+    if (cur.id === id) return true;
+    if (!cur.baseUnitId) return false;
+    cur = byId.get(cur.baseUnitId);
+    depth++;
+  }
+  return false;
 }
 
 type DialogState =
@@ -107,34 +123,14 @@ export default function UnitsView() {
     setUnits((p) => p.map((u) => (u.id === id ? { ...u, ...patch } : u)));
   }
 
-  /** would `baseId` sitting under `id` create a loop? (mirrors the API guard) */
-  function makesCycle(id: string, baseId: string): boolean {
-    if (!baseId || !id) return false;
-    if (id === baseId) return true;
-    const byId = new Map(units.map((u) => [u.id, u]));
-    let cur = byId.get(baseId);
-    let depth = 0;
-    while (cur && depth < 10) {
-      if (cur.id === id) return true;
-      if (!cur.baseUnitId) return false;
-      cur = byId.get(cur.baseUnitId);
-      depth++;
-    }
-    return false;
-  }
-
   async function handleSave(v: DialogValue) {
     const editing = dialog?.mode === "edit" ? dialog.unit : null;
     const name = v.name.trim();
     const code = unitCode(v.shortCode || name);
-    if (!name) { setErr("Give the unit a name."); return; }
-    if (!code) { setErr("Short code needs at least one letter or number."); return; }
-    if (units.some((u) => u.id !== editing?.id && u.name.toLowerCase() === name.toLowerCase())) {
-      setErr(`A unit called “${name}” already exists.`); return;
-    }
-    if (units.some((u) => u.id !== editing?.id && u.shortCode === code)) {
-      setErr(`Short code “${code}” is already in use.`); return;
-    }
+
+    // Field-level validation (empty/duplicate name, bad code, loop, bad quantity)
+    // happens INSIDE the dialog, next to the field it belongs to (owner, 19 Aug) —
+    // by the time we get here the values are clean. Only the API can still refuse.
 
     // "breaks into" is typed free-hand — match an existing unit, or create it as a base
     const typed = v.baseName.trim();
@@ -148,12 +144,6 @@ export default function UnitsView() {
       else createdBaseName = typed;
     }
     const qty = typed ? v.baseQty : 1;
-    if (typed && (!Number.isInteger(qty) || qty < 1)) {
-      setErr("“How many” must be a whole number of 1 or more."); return;
-    }
-    if (editing && baseUnitId && makesCycle(editing.id, baseUnitId)) {
-      setErr(`That would make a loop — “${editing.name}” is already somewhere below “${typed}”.`); return;
-    }
 
     // changing a live conversion re-reads existing stock — warn before it happens
     if (editing) {
@@ -254,9 +244,6 @@ export default function UnitsView() {
   }
 
 
-  const emptyReal = !loading && !isDemo && units.length === 0;
-  const genericCount = units.filter((u) => looksGeneric(u.name)).length;
-
   return (
     <div className={WRAP}>
       <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
@@ -265,11 +252,8 @@ export default function UnitsView() {
             <span className="w-[9px] h-[9px] -rotate-45" style={{ borderRadius: "50% 50% 50% 0", background: `linear-gradient(150deg,${ACCENT},#cf43ea)` }} />
             Items · units
           </div>
+          {/* prose trimmed on the owner's call (19 Aug) — the screen explains itself */}
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Units</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[780px]">
-            The measures everything is counted in — and what each one breaks down into. Set “1 Kg = 1,000 gram”
-            or “1 Lily Stick = 4 papri” once here, and buying, selling and stock all agree for good.
-          </p>
         </div>
         <button onClick={() => setDialog({ mode: "create" })} className="text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5 shrink-0" style={{ background: ACCENT }}>
           <Icon name="plus" size={16} /> Add unit
@@ -308,33 +292,13 @@ export default function UnitsView() {
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}><Icon name={k.icon} size={13} /></span>
             <div className="font-display text-[23px] leading-none mt-2.5" style={{ color: k.c }}>{k.v}</div>
-            <div className="text-[11px] font-medium text-body mt-1.5">{k.l}</div>
+            <div className="text-[11.5px] font-semibold text-body mt-1.5">{k.l}</div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-[14px] border px-4 py-3 mb-3 text-[12.5px] grid grid-cols-[auto_1fr] gap-3 items-start" style={{ background: ACCENT_BG, borderColor: "#bfe3d9" }}>
-        <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0 mt-0.5" style={{ background: ACCENT }}><Icon name="bolt" size={14} /></span>
-        <div>
-          <div className="font-semibold text-[13px]" style={{ color: "#0b6b57" }}>Name it specifically — the conversion depends on it</div>
-          <p className="m-0 mt-0.5 text-body leading-relaxed">
-            Write <b>“Lily Stick”</b>, not just “Stick”. A gypsy stick is 2 papri, not 4, so one generic “Stick”
-            row would be wrong for half your flowers. Adding a new flower? Use <b>Duplicate</b> on a similar unit
-            and just change the name and the number. The <i>quantity</i> never goes in the name —
-            “Bunch of 12” is wrong; name it <b>Lily Bunch</b> and put 12 in “how many”.
-          </p>
-        </div>
-      </div>
-
-      {genericCount > 0 && (
-        <div className="rounded-[14px] border px-4 py-2.5 mb-6 text-[12.5px]" style={{ background: "#fff4e6", borderColor: "#fce4c4", color: "#b45309" }}>
-          <b>{genericCount} unit{genericCount === 1 ? " has" : "s have"} a generic name</b> (marked below).
-          If two flowers ever break down differently, that row will be wrong for one of them — rename it now
-          while nothing depends on it.
-        </div>
-      )}
-
-
+      {/* the naming guidance ("Lily Stick", not "Stick") now lives ONLY where it acts:
+          the row badge and the dialog's inline warning. No page-level prose (19 Aug). */}
       <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-lavender-deep flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
@@ -344,7 +308,7 @@ export default function UnitsView() {
           <span className="text-[13px] text-body-soft shrink-0">{filtered.length} of {units.length}</span>
         </div>
 
-        <div className={ROW + " px-4 py-2 bg-lavender/40 border-b border-lavender-deep text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft hidden md:grid"}>
+        <div className={ROW + " px-4 py-2 bg-lavender/40 border-b border-lavender-deep text-[11.5px] font-bold tracking-[0.06em] uppercase text-body hidden md:grid"}>
           <span>Sort</span>
           <span>Unit</span>
           <span>Breaks into</span>
@@ -443,7 +407,7 @@ function UnitRow({
 
       <button onClick={onEdit} className="min-w-0 text-left group">
         <span className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[14px] font-medium text-purple truncate group-hover:text-orchid">{unit.name}</span>
+          <span className="text-[14.5px] font-semibold text-purple truncate group-hover:text-orchid">{unit.name}</span>
           {generic && !isBase && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fff4e6] text-[#b45309]" title="A bare measure word — “Lily Stick” is safer, because a gypsy stick is a different number.">
               generic name
@@ -456,8 +420,8 @@ function UnitRow({
 
       <span className="text-[13px] min-w-0 truncate">
         {isBase ? <span className="text-body-soft">—</span> : (
-          <span className="text-body">
-            <b className="font-medium text-purple">{(unit.baseQty ?? 1).toLocaleString()}</b> {unit.baseUnit?.name ?? "—"}
+          <span className="text-body font-medium">
+            <b className="font-semibold text-purple">{(unit.baseQty ?? 1).toLocaleString()}</b> {unit.baseUnit?.name ?? "—"}
           </span>
         )}
       </span>
@@ -475,7 +439,7 @@ function UnitRow({
           </span>
         ) : (
           <>
-            <span className="font-medium" style={{ color: ACCENT }}>
+            <span className="text-[13px] font-semibold" style={{ color: ACCENT }}>
               1 = {resolved.rootFactor.toLocaleString()} {resolved.rootUnitCode}
             </span>
             {(resolved.chainDepth ?? 0) > 1 && (
@@ -485,7 +449,7 @@ function UnitRow({
         )}
       </div>
 
-      <div className="text-[11.5px] min-w-0">
+      <div className="text-[12.5px] font-medium min-w-0">
         {usedTotal > 0 ? (
           <button onClick={onUsage} className="text-left hover:underline" style={{ color: ACCENT }} title="See and move what uses this unit">
             {(c?.items ?? 0) > 0 && <span className="block">{c?.items} item{c?.items === 1 ? "" : "s"}</span>}
@@ -693,6 +657,8 @@ function UnitDialog({
   const [codeTouched, setCodeTouched] = useState(!!editing);
   const [baseName, setBaseName] = useState(source?.baseUnit?.name ?? "");
   const [qty, setQty] = useState(String(source?.baseQty ?? 1));
+  // shown only after a Save attempt — typing never scolds an unfinished field
+  const [tried, setTried] = useState(false);
 
   const effCode = codeTouched ? code : unitCode(name);
   const typed = baseName.trim();
@@ -705,6 +671,33 @@ function UnitDialog({
     ? `1 ${name || "unit"} = ${n.toLocaleString()} ${match?.shortCode ?? unitCode(typed)}`
     : null;
   const generic = looksGeneric(name);
+
+  /* Every problem is reported ON the field it belongs to, inside this dialog —
+     never in the page banner behind the overlay (owner, 19 Aug). Duplicates are
+     live (you see it as you type); "required" only appears after a Save attempt. */
+  const nm = name.trim();
+  const dupName = !!nm && units.some((u) => u.id !== editing?.id && u.name.toLowerCase() === nm.toLowerCase());
+  const dupCode = !!effCode && units.some((u) => u.id !== editing?.id && u.shortCode === unitCode(effCode));
+  const nameErr = dupName ? `“${nm}” already exists — pick a different name.`
+    : tried && !nm ? "Give the unit a name." : null;
+  const codeErr = dupCode ? `“${unitCode(effCode)}” is taken by another unit.`
+    : tried && !unitCode(effCode || nm) ? "Needs at least one letter or number." : null;
+  const baseErr = editing && match && makesCycle(units, editing.id, match.id)
+    ? `That would make a loop — “${editing.name}” is already below “${typed}”.` : null;
+  const qtyErr = typed && tried && (!Number.isInteger(n) || n < 1)
+    ? "Whole number, 1 or more." : null;
+  const blocked = !!(nameErr || codeErr || baseErr || qtyErr);
+
+  function trySave() {
+    setTried(true);
+    if (!nm || !unitCode(effCode || nm) || dupName || dupCode || baseErr) return;
+    if (typed && (!Number.isInteger(n) || n < 1)) return;
+    onSave({ name: nm, shortCode: effCode, baseName, baseQty: n || 1 });
+  }
+
+  const iptCls = (bad: boolean) => "ipt w-full mt-1" + (bad ? " !border-[#e0a1a1]" : "");
+  const FieldErr = ({ text }: { text: string | null }) =>
+    text ? <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">{text}</span> : null;
 
   const title =
     mode === "edit" ? `Edit “${editing?.name}”`
@@ -731,28 +724,28 @@ function UnitDialog({
 
         <div className="p-5 space-y-4">
           <label className="block">
-            <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Unit name</span>
+            <span className="text-[11.5px] font-bold tracking-[0.06em] uppercase text-body">Unit name</span>
             <input
-              autoFocus className="ipt w-full mt-1" placeholder="e.g. Lily Stick"
+              autoFocus className={iptCls(!!nameErr)} placeholder="e.g. Lily Stick"
               value={name}
               onChange={(e) => { setName(e.target.value); if (!codeTouched) setCode(unitCode(e.target.value)); }}
             />
-            <span className="text-[13px] text-body-soft mt-1 inline-block">Be specific — “Lily Stick”, not “Stick”.</span>
+            <FieldErr text={nameErr} />
           </label>
 
           <label className="block">
-            <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Short code</span>
+            <span className="text-[11.5px] font-bold tracking-[0.06em] uppercase text-body">Short code</span>
             <input
-              className="ipt w-full mt-1 font-mono text-[13px]" placeholder="lilystick"
+              className={iptCls(!!codeErr) + " font-mono text-[13px]"} placeholder="lilystick"
               value={effCode}
               onChange={(e) => { setCodeTouched(true); setCode(e.target.value); }}
             />
-            <span className="text-[13px] text-body-soft mt-1 inline-block">Customers see “৳1,200 / {effCode || "stick"}”.</span>
+            <FieldErr text={codeErr} />
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px] gap-3">
             <div className="block">
-              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Breaks into</span>
+              <span className="text-[11.5px] font-bold tracking-[0.06em] uppercase text-body">Breaks into</span>
               <UnitPicker
                 units={units}
                 excludeId={editing?.id}
@@ -760,13 +753,15 @@ function UnitDialog({
                 onChange={setBaseName}
                 placeholder="Type or pick — e.g. Papri"
               />
+              <FieldErr text={baseErr} />
             </div>
             <label className="block">
-              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">How many</span>
+              <span className="text-[11.5px] font-bold tracking-[0.06em] uppercase text-body">How many</span>
               <input
-                className="ipt w-full mt-1 text-center" type="number" min={1} step={1}
+                className={iptCls(!!qtyErr) + " text-center"} type="number" min={1} step={1}
                 value={qty} disabled={!typed} onChange={(e) => setQty(e.target.value)}
               />
+              <FieldErr text={qtyErr} />
             </label>
           </div>
 
@@ -775,15 +770,14 @@ function UnitDialog({
           </div>
 
           {generic && typed && (
-            <div className="rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
-              <b>“{name}”</b> is a bare measure word. If another flower ever breaks down differently, this row
-              will be wrong for one of them — “{name === "Stick" ? "Lily Stick" : `Lily ${name}`}” is safer.
+            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+              “{name}” alone is risky — put the flower in front: <b>“Lily {name}”</b>.
             </div>
           )}
 
           {willCreateBase && (
-            <div className="rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
-              <b>“{typed}”</b> does not exist yet — it will be created as a new base unit (nothing smaller).
+            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+              <b>“{typed}”</b> is new — it will be created as a base unit.
             </div>
           )}
         </div>
@@ -791,8 +785,8 @@ function UnitDialog({
         <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-end gap-2.5 rounded-b-[18px] bg-white">
           <button onClick={onCancel} className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
           <button
-            onClick={() => onSave({ name, shortCode: effCode, baseName, baseQty: n || 1 })}
-            disabled={!name.trim()}
+            onClick={trySave}
+            disabled={!name.trim() || blocked}
             className="text-white text-[13.5px] font-semibold px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 disabled:opacity-50"
             style={{ background: ACCENT }}
           >

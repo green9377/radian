@@ -419,7 +419,9 @@ export default function PurchaseNewView() {
                     value={l.unitId}
                     placeholder={l.item.unit?.name ?? "Unit"}
                     allowClear={false}
-                    options={units.map((u) => ({ id: u.id, label: u.name }))}
+                    options={units
+                      .filter((u) => u.isActive || u.id === l.unitId) // hidden units: no NEW picks (19 Aug)
+                      .map((u) => ({ id: u.id, label: u.name }))}
                     onChange={(id) => patchLine(l.key, { unitId: id })}
                   />
                   <input className="ipt w-full" placeholder="0" inputMode="decimal"

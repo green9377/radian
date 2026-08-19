@@ -16,7 +16,6 @@ import {
   listCategories,
   listTags,
   listBrands,
-  listUnits,
   listProducts,
   getVariantAttributes,
   getAddOns,
@@ -45,7 +44,6 @@ import {
   type InvItemStock,
   type ApiCategory,
   type ApiBrand,
-  type ApiUnit,
   type ApiTag,
   type ApiProduct,
   type ApiVariantAttribute,
@@ -1272,7 +1270,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [apiTags, setApiTags] = useState<ApiTag[]>([]);
   const [apiBrands, setApiBrands] = useState<ApiBrand[]>([]);
   const [brandId, setBrandId] = useState<string>("");
-  const [apiUnits, setApiUnits] = useState<ApiUnit[]>([]);
+  // apiUnits state removed 19 Aug — the selling-unit dropdown went on 6 Aug (owner),
+  // so the unit list was fetched on every open and never read.
   const [unitId, setUnitId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -1391,7 +1390,6 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       .catch(() => {});
     listTags().then(setApiTags).catch(() => {});
     listBrands().then(setApiBrands).catch(() => {});
-    listUnits().then(setApiUnits).catch(() => {});
     getVariantAttributes().then(setVAttrs).catch(() => {});
     getAddOns().then(setAddonBundle).catch(() => {});
     listProducts().then((r) => setAllProducts(r.items)).catch(() => {});
