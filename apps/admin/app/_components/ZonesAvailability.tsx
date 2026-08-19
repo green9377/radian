@@ -610,37 +610,40 @@ export function DeliveryConnections() {
                       }} />
                     </div>
 
-                    {/* slots ride the connection; unknown legacy types show the row too */}
-                    {!lead && (
-                      <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pl-12">
+                    {/*  Slots appear ONLY where the shape asks for them — a
+                        from-confirm ("3 hours") method runs on the clock, so no
+                        slot row (owner's catch, 19 Aug). A legacy row that
+                        already carries slots still shows them so they can be
+                        removed.  */}
+                    {((meta ? meta.needsSlots : false) || m.slots.length > 0) && (
+                      <div className="mt-3 md:ml-12 border border-lavender-deep rounded-[12px] overflow-hidden">
                         {m.slots.map((s) => (
-                          <span key={s.id} className="inline-flex items-center gap-1.5 bg-lavender text-purple text-[12px] font-semibold pl-2.5 pr-1.5 py-1.5 rounded-[10px]">
-                            <button onClick={() => setSlotDlg({ mode: "edit", methodId: m.id, slotId: s.id, label: s.label, capacity: s.capacityPerDay != null ? String(s.capacityPerDay) : "" })}
-                              className="hover:underline" title="Capacity for this zone">
-                              {s.label} · {windowText(s.startMin, s.endMin)}
-                              {s.capacityPerDay != null && <span className="text-body-soft font-medium"> · {s.capacityPerDay}/day</span>}
-                            </button>
-                            <button onClick={() => void run(() => deleteDeliverySlot(s.id))}
-                              className="w-[18px] h-[18px] grid place-items-center rounded-full text-body-soft hover:text-white hover:bg-[#c0392b] font-bold leading-none" title="Disconnect slot">×</button>
-                          </span>
+                          <div key={s.id} className="flex items-center gap-2.5 px-3 py-2 border-b border-lavender-deep last:border-b-0">
+                            <span className="w-6 h-6 rounded-[7px] grid place-items-center shrink-0 bg-lavender text-purple"><Icon name="clock" size={12} /></span>
+                            <span className="text-[12.5px] font-semibold text-purple shrink-0">{s.label}</span>
+                            <span className="text-[12px] font-medium text-body min-w-0 truncate">{windowText(s.startMin, s.endMin)}</span>
+                            <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                              style={s.capacityPerDay != null ? { background: "#e7f5f1", color: "#0b6b57" } : { background: "#f1eef4", color: "#8a7b96" }}>
+                              {s.capacityPerDay != null ? `${s.capacityPerDay}/day` : "unlimited"}
+                            </span>
+                            <IconBtn name="edit" title="Capacity for this zone"
+                              onClick={() => setSlotDlg({ mode: "edit", methodId: m.id, slotId: s.id, label: s.label, capacity: s.capacityPerDay != null ? String(s.capacityPerDay) : "" })} />
+                            <IconBtn name="trash" danger title="Disconnect slot"
+                              onClick={() => void run(() => deleteDeliverySlot(s.id))} />
+                          </div>
                         ))}
-                        {freeTemplates.length > 0 && (
-                          <select className="text-[12px] font-semibold rounded-[10px] border-[1.5px] border-dashed border-orchid-mid text-orchid bg-white px-2 py-1.5 outline-none cursor-pointer" value=""
-                            onChange={(e) => {
-                              const s = templates.find((x) => x.id === e.target.value);
-                              if (!s) return;
-                              setSlotDlg({ mode: "attach", methodId: m.id, templateId: s.id, label: s.label, capacity: "" });
-                              e.target.value = "";
-                            }}>
-                            <option value="">+ Add slot</option>
-                            {freeTemplates.map((s) => <option key={s.id} value={s.id}>{s.label} · {windowText(s.startMin, s.endMin)}</option>)}
-                          </select>
-                        )}
-                        {m.slots.length === 0 && freeTemplates.length === 0 && (
-                          <Link href="/delivery/zones" className="text-[12px] font-semibold underline" style={{ color: "#b45309" }}>
+                        {freeTemplates.length > 0 ? (
+                          <button
+                            onClick={() => setSlotDlg({ mode: "attach", methodId: m.id, templateId: freeTemplates[0].id, label: "", capacity: "" })}
+                            className="w-full text-left px-3 py-2 text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-lavender/40"
+                            style={{ color: ACCENT, background: m.slots.length ? "#fff" : "#faf7fc" }}>
+                            <Icon name="plus" size={13} /> Add slot
+                          </button>
+                        ) : m.slots.length === 0 ? (
+                          <Link href="/delivery/zones" className="block px-3 py-2 text-[12.5px] font-semibold underline" style={{ color: "#b45309" }}>
                             No slots made yet — make them on Methods &amp; slots →
                           </Link>
-                        )}
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -670,17 +673,30 @@ export function DeliveryConnections() {
         </Modal>
       )}
 
-      {slotDlg && (
-        <Modal title={slotDlg.mode === "attach" ? `Connect "${slotDlg.label}"` : `"${slotDlg.label}" in this zone`}
-          onClose={() => setSlotDlg(null)} onSave={saveSlotDlg} canSave busy={busy}>
-          <Field label="Capacity / day — for this zone only">
-            <input autoFocus className="ipt" style={{ width: 140 }} inputMode="numeric" placeholder="unlimited"
-              value={slotDlg.capacity}
-              onChange={(e) => setSlotDlg({ ...slotDlg, capacity: e.target.value.replace(/[^0-9]/g, "") })}
-              onKeyDown={(e) => { if (e.key === "Enter") saveSlotDlg(); }} />
-          </Field>
-        </Modal>
-      )}
+      {slotDlg && (() => {
+        const dm = methods.find((m) => m.id === slotDlg.methodId);
+        const free = dm ? templates.filter((s) => s.isActive && !dm.slots.some((x) => x.templateId === s.id)) : [];
+        return (
+          <Modal title={slotDlg.mode === "attach" ? "Add a slot" : `"${slotDlg.label}" in this zone`}
+            onClose={() => setSlotDlg(null)} onSave={saveSlotDlg}
+            canSave={slotDlg.mode === "edit" || !!slotDlg.templateId} busy={busy}>
+            {slotDlg.mode === "attach" && (
+              <Field label="Slot" required>
+                <select className="ipt w-full" value={slotDlg.templateId ?? ""}
+                  onChange={(e) => setSlotDlg({ ...slotDlg, templateId: e.target.value })}>
+                  {free.map((s) => <option key={s.id} value={s.id}>{s.label} · {windowText(s.startMin, s.endMin)}</option>)}
+                </select>
+              </Field>
+            )}
+            <Field label="Capacity / day — for this zone only">
+              <input autoFocus={slotDlg.mode === "edit"} className="ipt" style={{ width: 140 }} inputMode="numeric" placeholder="unlimited"
+                value={slotDlg.capacity}
+                onChange={(e) => setSlotDlg({ ...slotDlg, capacity: e.target.value.replace(/[^0-9]/g, "") })}
+                onKeyDown={(e) => { if (e.key === "Enter") saveSlotDlg(); }} />
+            </Field>
+          </Modal>
+        );
+      })()}
 
       {priceDlg && (
         <Modal title="Charge" onClose={() => setPriceDlg(null)} onSave={savePrice} canSave busy={busy}>
