@@ -8,6 +8,7 @@ import {
   ITEM_TYPE_META,
   type ApiItemTypeRow, type ItemType,
 } from "../_data/api";
+import { TypeKindFields, deriveBehaviour } from "./ItemEditor";
 
 /*
   Item TYPES master — DEC-ITM-017. The five system rows are the anchors the stock and
@@ -19,7 +20,11 @@ import {
 
 const ROW = "grid grid-cols-[minmax(160px,1fr)_150px_90px_90px_110px] items-center gap-3 px-4 py-3";
 
-type Dlg = { id: string | null; name: string; behaviour: ItemType; colour: string | null; isSystem: boolean };
+type Dlg = {
+  id: string | null; name: string; behaviour: ItemType; colour: string | null; isSystem: boolean;
+  // create only — the owner's model (20 Aug): its own kind, or works like an existing one
+  kind: "own" | "like"; counted: boolean; recipe: boolean;
+};
 
 const SWATCHES = ["#0e8f74", "#8b21c9", "#b5642f", "#8a6d1f", "#2563a8", "#c0392b", "#cf43ea", "#470066"];
 
@@ -52,9 +57,10 @@ export default function ItemTypesView() {
     if (!name) { setDlgErr("Give the type a name."); return; }
     if (dupOf(name, dlg.id)) { setDlgErr(`"${name}" already exists.`); return; }
     setBusy(true); setDlgErr(null);
+    const behaviour = dlg.kind === "own" ? deriveBehaviour(dlg.counted, dlg.recipe) : dlg.behaviour;
     try {
       if (dlg.id) await updateItemType(dlg.id, { name, behaviour: dlg.isSystem ? undefined : dlg.behaviour, colour: dlg.colour });
-      else await createItemType({ name, behaviour: dlg.behaviour, colour: dlg.colour });
+      else await createItemType({ name, behaviour, colour: dlg.colour ?? ITEM_TYPE_META[behaviour].colour });
       setOk(dlg.id ? "Saved." : `"${name}" added.`);
       setDlg(null);
       await load();
@@ -87,7 +93,7 @@ export default function ItemTypesView() {
         eyebrow="master data · items"
         title="Item types"
         right={
-          <button onClick={() => { setDlgErr(null); setDlg({ id: null, name: "", behaviour: "RAW", colour: null, isSystem: false }); }}
+          <button onClick={() => { setDlgErr(null); setDlg({ id: null, name: "", behaviour: "RAW", colour: null, isSystem: false, kind: "own", counted: true, recipe: false }); }}
             className="text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] inline-flex items-center gap-2"
             style={{ background: ACCENT }}>
             <Icon name="plus" size={13} /> New type
@@ -125,7 +131,7 @@ export default function ItemTypesView() {
                   : <StatusPill active={t.isActive ?? true} onClick={() => toggleActive(t)} />}
               </span>
               <span className="flex gap-2 justify-self-end">
-                <button onClick={() => { setDlgErr(null); setDlg({ id: t.id, name: t.name, behaviour: t.behaviour, colour: t.colour ?? null, isSystem: t.isSystem }); }}
+                <button onClick={() => { setDlgErr(null); setDlg({ id: t.id, name: t.name, behaviour: t.behaviour, colour: t.colour ?? null, isSystem: t.isSystem, kind: "like", counted: true, recipe: false }); }}
                   className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border border-lavender-deep text-purple hover:border-orchid">
                   Edit
                 </button>
@@ -155,29 +161,38 @@ export default function ItemTypesView() {
               <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{dlg.name.trim()}&rdquo; already exists.</p>
             )}
           </Field>
-          <Field label="Behaves like" required>
-            {dlg.isSystem ? (
-              <p className="text-[12.5px] text-body-soft m-0">
-                {ITEM_TYPE_META[dlg.behaviour].label} — a built-in type&apos;s behaviour cannot change.
-              </p>
-            ) : (
-              <div className="flex gap-1.5 flex-wrap">
-                {(Object.keys(ITEM_TYPE_META) as ItemType[]).map((b) => {
-                  const m = ITEM_TYPE_META[b];
-                  const on = dlg.behaviour === b;
-                  return (
-                    <button key={b} type="button" onClick={() => setDlg({ ...dlg, behaviour: b })} title={m.blurb}
-                      className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
-                      style={on
-                        ? { background: m.colour, borderColor: m.colour, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </Field>
+          {dlg.id === null ? (
+            <TypeKindFields
+              kind={dlg.kind} setKind={(k) => setDlg({ ...dlg, kind: k })}
+              counted={dlg.counted} setCounted={(v) => setDlg({ ...dlg, counted: v })}
+              recipe={dlg.recipe} setRecipe={(v) => setDlg({ ...dlg, recipe: v })}
+              behaviour={dlg.behaviour} setBehaviour={(b) => setDlg({ ...dlg, behaviour: b })}
+            />
+          ) : (
+            <Field label="Behaves like" required>
+              {dlg.isSystem ? (
+                <p className="text-[12.5px] text-body-soft m-0">
+                  {ITEM_TYPE_META[dlg.behaviour].label} — a built-in type&apos;s behaviour cannot change.
+                </p>
+              ) : (
+                <div className="flex gap-1.5 flex-wrap">
+                  {(Object.keys(ITEM_TYPE_META) as ItemType[]).map((b) => {
+                    const m = ITEM_TYPE_META[b];
+                    const on = dlg.behaviour === b;
+                    return (
+                      <button key={b} type="button" onClick={() => setDlg({ ...dlg, behaviour: b })} title={m.blurb}
+                        className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
+                        style={on
+                          ? { background: m.colour, borderColor: m.colour, color: "#fff" }
+                          : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </Field>
+          )}
           <Field label="Colour">
             <div className="flex gap-2 flex-wrap items-center">
               {SWATCHES.map((c) => (

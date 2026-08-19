@@ -44,10 +44,10 @@ type Section = "basics" | "photo" | "classify" | "behaviour" | "price" | "stock"
 
 const SECTIONS: { key: Section; label: string; icon: string }[] = [
   { key: "basics", label: "Basics", icon: "edit" },
-  { key: "photo", label: "Photo", icon: "photo" },
-  // renamed on request: "Group & labels" said nothing. This is the category plus the
-  // colour/size labels, so the name now says exactly that.
+  // classify sits BEFORE photo (owner, 20 Aug): pick the variants first, then the
+  // Photo tab knows exactly how many pictures it has to ask for.
   { key: "classify", label: "Category & labels", icon: "grid" },
+  { key: "photo", label: "Photo", icon: "photo" },
   { key: "behaviour", label: "How it is used", icon: "shield" },
   { key: "price", label: "Price & cost", icon: "cash" },
   { key: "stock", label: "Stock & alerts", icon: "box" },
@@ -216,6 +216,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   /* ---------------- derived ---------------- */
 
   const meta = ITEM_TYPE_META[draft.itemType];
+  // two-step category (owner, 20 Aug): pick the main category, THEN its sub-categories appear
+  const selCat = groups.find((g) => g.id === draft.itemCategoryId) ?? null;
+  const rootCatId = selCat ? (selCat.parentId ?? selCat.id) : "";
+  const subCats = groups.filter((g) => g.parentId === rootCatId);
   // Colour panel first, then the size types A–Z — sizes read as one group (owner, 20 Aug)
   const orderedAttrs = useMemo(() => {
     const isColour = (n: string) => /colou?r/i.test(n);
@@ -546,7 +550,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 className="w-full text-left text-[13.5px] font-semibold px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 mb-0.5 disabled:opacity-35"
                 style={on ? { background: ACCENT, color: "#fff" } : { color: "#5b4166" }}>
                 <Icon name={s.icon} size={14} />
-                {s.key === "photo" && variantMode ? "Group photo" : s.label}
+                {s.key === "photo" && variantMode ? "Photos" : s.label}
               </button>
             );
           })}
@@ -645,27 +649,67 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               (sobuj, 21 Jul: "photo ar ase pashe ato text purai jogra khichuri lagche"). */}
           {section === "photo" && (
             <Sect
-              title={isNew && mode === "variants" ? "Group photo" : "Photo"}
+              title={isNew && mode === "variants" ? "Photos" : "Photo"}
               hint={isNew && mode === "variants"
-                ? "One picture for the whole family. Every variant starts with it; you can override any single one under Category & labels."
+                ? "One photo per variant. The group photo is the fallback for any variant you leave blank."
                 : "The stockroom shot — one clear photo on a plain background. The marketing gallery belongs to the Product, not here. Saved at 256px so the list stays fast."}
             >
-              <PhotoDrop
-                item={{ sku: effectiveSku, name: draft.name, imageUrl: draft.imageUrl }}
-                onImage={(u) => set("imageUrl", u)}
-                onErr={setErr}
-              />
-
-              {/* In variant mode this tab holds ONE photo and nothing else. Per-variant
-                  pictures only make sense after the variants exist, so they live next to
-                  the generated list rather than being offered here too early. */}
-              {isNew && mode === "variants" && (
-                <button type="button" onClick={() => setSection("classify")}
-                  className="text-[13px] font-semibold underline self-start" style={{ color: ACCENT }}>
-                  {variantPreview.length > 0
-                    ? `Give any of the ${variantPreview.length} variants its own photo →`
-                    : "Pick the variants first, then each one can have its own photo →"}
-                </button>
+              {isNew && mode === "variants" ? (
+                variantPreview.length === 0 ? (
+                  /* variants first — then this tab knows how many pictures to ask for */
+                  <button type="button" onClick={() => setSection("classify")}
+                    className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] inline-flex items-center gap-2 self-start"
+                    style={{ background: ACCENT }}>
+                    Pick the variants first <Icon name="chevronDown" size={13} />
+                  </button>
+                ) : (
+                  <>
+                    <Row label="Group photo — the fallback">
+                      <PhotoDrop
+                        item={{ sku: effectiveSku, name: draft.name, imageUrl: draft.imageUrl }}
+                        onImage={(u) => set("imageUrl", u)}
+                        onErr={setErr}
+                      />
+                    </Row>
+                    <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c7e6" }}>
+                      <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
+                        <span className="text-[13.5px] font-bold text-white">
+                          {variantPreview.length} photo{variantPreview.length === 1 ? "" : "s"} — one per variant
+                        </span>
+                      </div>
+                      <div className="max-h-[340px] overflow-y-auto divide-y divide-lavender-deep">
+                        {variantPreview.map((v) => {
+                          const k = comboKey(v.valueIds);
+                          return (
+                            <div key={v.sku} className="px-3.5 py-2.5 grid grid-cols-[46px_minmax(0,1fr)_auto] gap-3 items-center">
+                              <VariantPhoto
+                                name={v.name}
+                                url={vImages[k] ?? draft.imageUrl}
+                                own={!!vImages[k]}
+                                onPick={(u) => setVImages((p) => ({ ...p, [k]: u }))}
+                                onErr={setErr}
+                              />
+                              <div className="min-w-0">
+                                <div className="text-[13.5px] font-semibold text-purple truncate">{v.name}</div>
+                                <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
+                              </div>
+                              <span className="text-[12px] font-semibold shrink-0"
+                                style={{ color: vImages[k] ? "#0e7a3d" : "#8b7a95" }}>
+                                {vImages[k] ? "own photo" : "uses group photo"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )
+              ) : (
+                <PhotoDrop
+                  item={{ sku: effectiveSku, name: draft.name, imageUrl: draft.imageUrl }}
+                  onImage={(u) => set("imageUrl", u)}
+                  onErr={setErr}
+                />
               )}
             </Sect>
           )}
@@ -673,30 +717,43 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {section === "classify" && (
             <Sect title="Category & labels" hint="Where it sits in the stockroom, and which colour or size it is.">
               <Pair>
-              <Row label="Item category" hint="Your stockroom tree, e.g. Fresh Flowers → Roses. Creating one here can sit at the root or under a parent.">
+              {/* main first, sub only after — the flat "Parent › Child" list read as a mess (owner, 20 Aug) */}
+              <Row label="Item category" hint="Your stockroom tree, e.g. Fresh Flowers → Roses. Pick the main category; its sub-categories appear next.">
                 <QuickSelect
-                  value={draft.itemCategoryId}
+                  value={rootCatId}
                   placeholder="— no category —"
                   onChange={(id) => set("itemCategoryId", id)}
                   createLabel="Create category"
                   options={groups
+                    .filter((g) => !g.parentId)
                     .slice()
-                    .sort((a, b) => {
-                      const pa = a.parentId ? groups.find((g) => g.id === a.parentId)?.name ?? "" : a.name;
-                      const pb = b.parentId ? groups.find((g) => g.id === b.parentId)?.name ?? "" : b.name;
-                      return pa.localeCompare(pb) || (a.parentId ? 1 : -1);
-                    })
-                    .map((g) => ({
-                      id: g.id,
-                      label: g.parentId ? `${groups.find((x) => x.id === g.parentId)?.name ?? "?"} › ${g.name}` : g.name,
-                    }))}
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((g) => ({ id: g.id, label: g.name }))}
                   onCreate={async (label) => {
-                    // sub-categories too — a dialog asks where it sits (owner, 20 Aug)
                     setCatDlg({ name: label, parentId: "" });
                     return null;
                   }}
                 />
               </Row>
+
+              {rootCatId && (
+                <Row label="Sub-category">
+                  <QuickSelect
+                    value={selCat && selCat.parentId ? selCat.id : ""}
+                    placeholder={subCats.length ? "— whole category —" : "— none yet, type to create —"}
+                    onChange={(id) => set("itemCategoryId", id || rootCatId)}
+                    createLabel="Create sub-category"
+                    options={subCats
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((g) => ({ id: g.id, label: g.name }))}
+                    onCreate={async (label) => {
+                      setCatDlg({ name: label, parentId: rootCatId });
+                      return null;
+                    }}
+                  />
+                </Row>
+              )}
 
               <Row label="Brand" hint="Mostly gifts carry a brand; flowers usually don't.">
                 <QuickSelect
@@ -814,7 +871,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         })}
                       </div>
 
-                      {/* STEP TWO — appears only once step one produced something */}
+                      {/* STEP TWO — appears only once step one produced something.
+                          Photos are NOT here: the Photos tab asks for them, one per
+                          variant, after this list exists (owner, 20 Aug). */}
                       {variantPreview.length > 0 && (
                         <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c0ea" }}>
                           <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
@@ -825,32 +884,23 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                             <span className="text-[13.5px] font-bold text-white">
                               item{variantPreview.length === 1 ? "" : "s"} will be created
                             </span>
-                            <span className="ml-auto text-[12px] text-white/80">tap a tile for its own photo</span>
                           </div>
 
                           <div className="max-h-[300px] overflow-y-auto divide-y divide-lavender-deep">
-                            {variantPreview.map((v) => {
-                              const k = comboKey(v.valueIds);
-                              return (
-                                <div key={v.sku} className="px-3.5 py-2.5 grid grid-cols-[46px_minmax(0,1fr)] gap-3 items-center">
-                                  <VariantPhoto
-                                    name={v.name}
-                                    url={vImages[k] ?? draft.imageUrl}
-                                    own={!!vImages[k]}
-                                    onPick={(u) => setVImages((p) => ({ ...p, [k]: u }))}
-                                    onErr={setErr}
-                                  />
-                                  <div className="min-w-0">
-                                    <div className="text-[13.5px] font-semibold text-purple truncate">{v.name}</div>
-                                    <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                            {variantPreview.map((v) => (
+                              <div key={v.sku} className="px-3.5 py-2.5 min-w-0">
+                                <div className="text-[13.5px] font-semibold text-purple truncate">{v.name}</div>
+                                <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
+                              </div>
+                            ))}
                           </div>
 
-                          <div className="px-4 py-2.5 text-[12.5px] text-body-soft border-t border-lavender-deep">
-                            Tiles without their own picture use the group photo.
+                          <div className="px-4 py-2.5 border-t border-lavender-deep">
+                            <button type="button" onClick={() => setSection("photo")}
+                              className="text-white text-[13px] font-semibold px-4 py-2 rounded-[10px] inline-flex items-center gap-2"
+                              style={{ background: ACCENT }}>
+                              Next: photos <Icon name="chevronDown" size={13} />
+                            </button>
                           </div>
                         </div>
                       )}
@@ -944,6 +994,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               what any of them meant or whether it was on. Now each is a labelled switch
               row with its consequence spelled out in six words (sobuj, 21 Jul: "buja onk
               ar jonno muskil hoye jabe"). */}
+          {/* Returnable / perishable / discount ceiling left this form (owner, 20 Aug):
+              an item is a list entry — those rules will be asked where they are used
+              (Returns, Inventory expiry, Orders/POS). The columns stay in the schema. */}
           {section === "behaviour" && (
             <Sect title="How it is used" hint="Set what this item can be used for.">
               <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
@@ -953,21 +1006,11 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <SwitchRow on={draft.isSaleable} onClick={() => set("isSaleable", !draft.isSaleable)}
                   icon="cash" tone="#8b21c9"
                   title="We sell it" sub="Can sit behind a Product or be sold at the counter" />
-                <SwitchRow on={draft.isReturnable} onClick={() => set("isReturnable", !draft.isReturnable)}
-                  icon="undo" tone="#2563a8"
-                  title="It can come back" sub="Returns may accept it" />
-                <SwitchRow on={draft.isPerishable} onClick={() => set("isPerishable", !draft.isPerishable)}
-                  icon="clock" tone="#c0392b"
-                  title="It perishes" sub="Fresh flowers, cake — has a shelf life" />
               </div>
 
               <Pair>
                 <Row label="Weight (grams)" hint="Couriers charge by weight — needed for shipping quotes.">
                   <input className="ipt w-full" inputMode="numeric" placeholder="e.g. 250" value={draft.weightGram} onChange={(e) => set("weightGram", e.target.value)} />
-                </Row>
-                <Row label="Shelf life (days)" hint="Only used when “it perishes” is on.">
-                  <input className="ipt w-full" inputMode="numeric" placeholder="e.g. 4" value={draft.shelfLifeDays}
-                    onChange={(e) => set("shelfLifeDays", e.target.value)} disabled={!draft.isPerishable} />
                 </Row>
               </Pair>
             </Sect>
@@ -1064,11 +1107,6 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 </div>
               </div>
 
-              <Row label="Biggest discount allowed" hint="Discount ceiling. Empty = no limit, 0 = no discount.">
-                <div className="max-w-[220px]">
-                  <PercentInput value={draft.maxDiscountPercent} onChange={(v) => set("maxDiscountPercent", v)} placeholder="no limit" />
-                </div>
-              </Row>
             </Sect>
           )}
 
@@ -1192,7 +1230,6 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {draft.isPurchasable && <Pill text="bought" />}
                 {draft.isSaleable && <Pill text="sold" />}
-                {draft.isPerishable && <Pill text="perishable" tone="#c0392b" bg="#fdecea" />}
                 {!draft.isStockTracked && <Pill text="not stocked" tone="#2563a8" bg="#e8f0fa" />}
               </div>
             </div>
@@ -1499,50 +1536,53 @@ function PhotoDrop({
 /* --------------------------------------------------------- new item type (DEC-ITM-017) */
 
 /**
- * "+ New type" — a house dialog, not a panel wedged between the chips (owner, 20 Aug:
- * a type is its own entity). The owner names it, then picks which of the five it
- * behaves like — that is what the stock, cost and recipe rules read. Renaming and
- * deleting live on the Item types master (/items/types).
+ * "+ New type" — the owner's model (20 Aug): a new type is either ITS OWN KIND (two
+ * plain questions decide how the system treats it) or it WORKS LIKE an existing one.
+ * Either way the answer is stored as one of the five rule-behaviours (DEC-ITM-017),
+ * because that is what the stock, cost and recipe rules read.
  */
-function NewTypeButton({
-  existing, onCreate,
+export function TypeKindFields({
+  kind, setKind, counted, setCounted, recipe, setRecipe, behaviour, setBehaviour,
 }: {
-  existing: ApiItemTypeRow[];
-  onCreate: (name: string, behaviour: ItemType, colour: string) => Promise<void>;
+  kind: "own" | "like"; setKind: (k: "own" | "like") => void;
+  counted: boolean; setCounted: (v: boolean) => void;
+  recipe: boolean; setRecipe: (v: boolean) => void;
+  behaviour: ItemType; setBehaviour: (b: ItemType) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [behaviour, setBehaviour] = useState<ItemType>("RAW");
-  const [busy, setBusy] = useState(false);
-
-  const dup = existing.some((t) => t.name.trim().toLowerCase() === name.trim().toLowerCase());
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => { setName(""); setBehaviour("RAW"); setOpen(true); }}
-        className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
-        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
-        <Icon name="plus" size={13} /> New type
-      </button>
-    );
-  }
-
   return (
-    <Modal title="New item type" onClose={() => setOpen(false)}
-      canSave={!!name.trim() && !dup} busy={busy} saveLabel="Add type"
-      onSave={async () => {
-        setBusy(true);
-        await onCreate(name.trim(), behaviour, ITEM_TYPE_META[behaviour].colour);
-        setBusy(false); setOpen(false);
-      }}>
-      <Field label="Name" required>
-        <input className="ipt w-full" autoFocus placeholder="Dry Flower, Imported Chocolate…"
-          value={name} onChange={(e) => setName(e.target.value)} />
-        {name.trim() && dup && (
-          <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
-        )}
-      </Field>
-      <Field label="Behaves like" required>
+    <Field label="What kind is it?" required>
+      <div className="inline-flex rounded-full overflow-hidden border-2 mb-3" style={{ borderColor: ACCENT }}>
+        {([
+          { k: "own" as const, label: "Its own kind" },
+          { k: "like" as const, label: "Works like an existing type" },
+        ]).map((o, i) => (
+          <button key={o.k} type="button" onClick={() => setKind(o.k)}
+            className="text-[12.5px] font-semibold px-4 py-1.5"
+            style={{
+              background: kind === o.k ? ACCENT : "#fff",
+              color: kind === o.k ? "#fff" : ACCENT,
+              borderLeft: i ? "1px solid #e2d2ec" : undefined,
+            }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      {kind === "own" ? (
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2.5 text-[13px] text-body cursor-pointer">
+            <input type="checkbox" checked={counted} onChange={(e) => setCounted(e.target.checked)}
+              className="w-4 h-4" style={{ accentColor: ACCENT }} />
+            Counted in stock — it sits on a shelf and runs out
+          </label>
+          <label className={"flex items-center gap-2.5 text-[13px] cursor-pointer " + (counted ? "text-body" : "text-body-soft")}>
+            <input type="checkbox" checked={counted && recipe} disabled={!counted}
+              onChange={(e) => setRecipe(e.target.checked)}
+              className="w-4 h-4" style={{ accentColor: ACCENT }} />
+            Built from a recipe — assembled out of other items
+          </label>
+        </div>
+      ) : (
         <div className="flex gap-1.5 flex-wrap">
           {(Object.keys(ITEM_TYPE_META) as ItemType[]).map((t) => {
             const m = ITEM_TYPE_META[t];
@@ -1558,7 +1598,66 @@ function NewTypeButton({
             );
           })}
         </div>
+      )}
+    </Field>
+  );
+}
+
+/** "its own kind" answers → the rule-behaviour the server stores */
+export function deriveBehaviour(counted: boolean, recipe: boolean): ItemType {
+  if (!counted) return "SERVICE";
+  return recipe ? "FINISHED" : "RAW";
+}
+
+function NewTypeButton({
+  existing, onCreate,
+}: {
+  existing: ApiItemTypeRow[];
+  onCreate: (name: string, behaviour: ItemType, colour: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<"own" | "like">("own");
+  const [counted, setCounted] = useState(true);
+  const [recipe, setRecipe] = useState(false);
+  const [behaviour, setBehaviour] = useState<ItemType>("RAW");
+  const [busy, setBusy] = useState(false);
+
+  const dup = existing.some((t) => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+  const finalBehaviour = kind === "own" ? deriveBehaviour(counted, recipe) : behaviour;
+
+  if (!open) {
+    return (
+      <button type="button"
+        onClick={() => { setName(""); setKind("own"); setCounted(true); setRecipe(false); setBehaviour("RAW"); setOpen(true); }}
+        className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
+        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
+        <Icon name="plus" size={13} /> New type
+      </button>
+    );
+  }
+
+  return (
+    <Modal title="New item type" onClose={() => setOpen(false)}
+      canSave={!!name.trim() && !dup} busy={busy} saveLabel="Add type"
+      onSave={async () => {
+        setBusy(true);
+        await onCreate(name.trim(), finalBehaviour, ITEM_TYPE_META[finalBehaviour].colour);
+        setBusy(false); setOpen(false);
+      }}>
+      <Field label="Name" required>
+        <input className="ipt w-full" autoFocus placeholder="Dry Flower, Imported Chocolate…"
+          value={name} onChange={(e) => setName(e.target.value)} />
+        {name.trim() && dup && (
+          <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
+        )}
       </Field>
+      <TypeKindFields
+        kind={kind} setKind={setKind}
+        counted={counted} setCounted={setCounted}
+        recipe={recipe} setRecipe={setRecipe}
+        behaviour={behaviour} setBehaviour={setBehaviour}
+      />
     </Modal>
   );
 }

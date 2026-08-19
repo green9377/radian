@@ -193,11 +193,39 @@ export default function ItemListView() {
     return rows.slice().sort(by[sort]);
   }, [items, tab, kind, query, category, brand, colour, status, flags, sort]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  /* ---------------- family grouping (owner, 20 Aug) ----------------
+     A variant family is ONE row — the base name with a "N variants" pill.
+     Clicking it unfolds the members; they never sit in the list as strangers. */
+  type DisplayRow =
+    | { kind: "single"; item: ApiItem }
+    | { kind: "family"; fkey: string; base: string; members: ApiItem[] };
+
+  const display = useMemo<DisplayRow[]>(() => {
+    const out: DisplayRow[] = [];
+    const seen = new Set<string>();
+    for (const i of filtered) {
+      if (!i.familyKey) { out.push({ kind: "single", item: i }); continue; }
+      if (seen.has(i.familyKey)) continue;
+      seen.add(i.familyKey);
+      out.push({
+        kind: "family",
+        fkey: i.familyKey,
+        base: i.name.split(" — ")[0],
+        members: filtered.filter((x) => x.familyKey === i.familyKey),
+      });
+    }
+    return out;
+  }, [filtered]);
+
+  const [openFams, setOpenFams] = useState<Set<string>>(new Set());
+  const toggleFam = (k: string) =>
+    setOpenFams((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; });
+
+  const pages = Math.max(1, Math.ceil(display.length / pageSize));
   const current = Math.min(page, pages);
-  const shown = filtered.slice((current - 1) * pageSize, current * pageSize);
-  const from = filtered.length === 0 ? 0 : (current - 1) * pageSize + 1;
-  const to = Math.min(current * pageSize, filtered.length);
+  const shown = display.slice((current - 1) * pageSize, current * pageSize);
+  const from = display.length === 0 ? 0 : (current - 1) * pageSize + 1;
+  const to = Math.min(current * pageSize, display.length);
 
   const anyFilter =
     !!query || tab !== "ALL" || kind !== "ALL" || !!category || !!brand || !!colour || status !== "all" || flags.size > 0;
@@ -210,9 +238,10 @@ export default function ItemListView() {
   }, [items]);
 
   const kindCounts = useMemo(() => ({
-    ALL: items.length,
+    ALL: items.filter((i) => !isVariant(i)).length + new Set(items.filter(isVariant).map((i) => i.familyKey)).size,
     SINGLE: items.filter((i) => !isVariant(i)).length,
-    VARIANT: items.filter(isVariant).length,
+    // families, not members — ten colours of one rose is ONE row (owner, 20 Aug)
+    VARIANT: new Set(items.filter(isVariant).map((i) => i.familyKey)).size,
   }), [items]);
 
   function clearAll() {
@@ -564,7 +593,131 @@ export default function ItemListView() {
 
         {/* ---- rows ---- */}
         <div className="divide-y divide-lavender-deep">
-          {shown.map((i) => {
+          {shown.map((row) => {
+            /* ---- one family = one row; click unfolds the members ---- */
+            if (row.kind === "family") {
+              const first = row.members[0];
+              const fm = ITEM_TYPE_META[first.itemType];
+              const open = openFams.has(row.fkey);
+              const costs = row.members.map((x) => x.effectiveCostPaisa).filter((c) => c > 0);
+              const lo = costs.length ? Math.min(...costs) : 0;
+              const hi = costs.length ? Math.max(...costs) : 0;
+              const activeN = row.members.filter((x) => x.isActive).length;
+              const face = row.members.find((x) => x.imageUrl) ?? first;
+              return (
+                <div key={row.fkey} style={{ borderLeft: `4px solid ${fm.colour}` }}>
+                  <div onClick={() => toggleFam(row.fkey)}
+                    className={ROW + " px-4 py-2.5 hover:bg-lavender/30 transition-colors cursor-pointer"}>
+                    <ItemThumb item={{ sku: first.sku, name: row.base, imageUrl: face.imageUrl }} />
+                    <div className="min-w-0">
+                      <span className="text-[14px] font-semibold text-purple block truncate">
+                        {row.base}
+                        <span className="text-[10.5px] font-bold ml-2 px-1.5 py-0.5 rounded-full align-middle"
+                          style={{ background: "#f9e9fd", color: "#8b21c9" }}>
+                          {row.members.length} VARIANTS
+                        </span>
+                      </span>
+                      <div className="text-[12px] text-body-soft mt-0.5">
+                        {open ? "click to fold" : "click to see the variants"}
+                      </div>
+                    </div>
+                    <span className="text-[13px] text-body truncate">
+                      {first.itemCategory?.name ?? <span className="text-body-soft">—</span>}
+                    </span>
+                    <span className="text-[12px] font-bold px-2 py-1 rounded-full justify-self-start"
+                      style={{ background: fm.bg, color: fm.colour }}>{fm.short}</span>
+                    <span className="text-[13px] text-body truncate">{first.brand?.name ?? <span className="text-body-soft">—</span>}</span>
+                    <span className="text-[13px] text-body-soft">×{row.members.length}</span>
+                    <span className="text-[13px] text-body-soft">—</span>
+                    <span className="text-[13.5px] font-semibold text-body">
+                      {hi > 0
+                        ? (lo === hi ? formatTaka(lo) : `${formatTaka(lo)}–${formatTaka(hi)}`)
+                        : <span className="text-body-soft font-normal">—</span>}
+                    </span>
+                    <span className="text-[13px] text-body-soft">—</span>
+                    <span className="text-[12px] font-semibold px-2 py-1 rounded-full justify-self-start"
+                      style={activeN > 0
+                        ? { background: "#e7f5f1", color: "#0e8f74" }
+                        : { background: "#f1eef4", color: "#7b6b88" }}>
+                      {activeN}/{row.members.length} active
+                    </span>
+                    <span className="flex items-center justify-end text-body-soft">
+                      <Icon name="chevronDown" size={15}
+                        style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .15s" }} />
+                    </span>
+                  </div>
+                  {open && (
+                    <div className="divide-y divide-lavender-deep" style={{ background: "#faf7fd" }}>
+                      {row.members.map((v) => renderItem(v))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return renderItem(row.item);
+          })}
+
+          {!loading && shown.length === 0 && (
+            <div className="text-center py-14 px-4">
+              <div className="w-[48px] h-[48px] rounded-[14px] grid place-items-center text-white mx-auto mb-3" style={{ background: ACCENT }}>
+                <Icon name="box" size={23} />
+              </div>
+              <div className="text-[15px] text-purple font-semibold">
+                {anyFilter ? "Nothing matches those filters" : "No items yet"}
+              </div>
+              <p className="text-[13px] text-body-soft m-0 mt-1">
+                {anyFilter ? "Loosen a filter and try again." : "Start with the things you buy — rose stems, ribbon, boxes."}
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                {anyFilter ? (
+                  <button onClick={clearAll} className="text-white text-[13px] font-semibold px-4 py-2 rounded-[10px]" style={{ background: ACCENT }}>
+                    Clear all filters
+                  </button>
+                ) : (
+                  <Link href="/items/new" className="inline-flex items-center gap-2 text-white text-[13px] font-semibold px-4 py-2 rounded-[10px]" style={{ background: ACCENT }}>
+                    <Icon name="plus" size={14} /> New item
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ---- page numbers, at the foot (sobuj, 21 Jul: "numbering ta page ar niche
+             thakbe"). Not sticky on purpose — you reach it by finishing the rows. ---- */}
+        {pages > 1 && (
+          <div className="px-4 py-3 border-t border-lavender-deep bg-lavender/25 flex items-center gap-3 flex-wrap">
+            <span className="text-[13px] text-body">
+              Showing <b className="text-purple">{from}</b>–<b className="text-purple">{to}</b> of{" "}
+              <b className="text-purple">{display.length}</b>
+            </span>
+            <div className="ml-auto flex items-center gap-1">
+              <PageBtn label="First" onClick={() => setPage(1)} disabled={current === 1} />
+              <PageBtn label="‹" onClick={() => setPage(current - 1)} disabled={current === 1} />
+              {Array.from({ length: pages }, (_, k) => k + 1)
+                .filter((n) => n === 1 || n === pages || Math.abs(n - current) <= 1)
+                .map((n, idx, arr) => (
+                  <span key={n} className="flex items-center gap-1">
+                    {idx > 0 && arr[idx - 1] !== n - 1 && <span className="text-body-soft px-1">…</span>}
+                    <button onClick={() => setPage(n)}
+                      className="text-[13px] font-semibold min-w-[32px] h-[32px] rounded-[8px] border"
+                      style={n === current
+                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                        : { background: "#fff", borderColor: "#efe4f7", color: "#470066" }}>
+                      {n}
+                    </button>
+                  </span>
+                ))}
+              <PageBtn label="›" onClick={() => setPage(current + 1)} disabled={current === pages} />
+              <PageBtn label="Last" onClick={() => setPage(pages)} disabled={current === pages} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  function renderItem(i: ApiItem) {
             const m = ITEM_TYPE_META[i.itemType];
             const stock = itemStockLabel(i, invMap?.get(i.id) ?? null);
             const { colour: col, size } = labelsOf(i);
@@ -650,69 +803,7 @@ export default function ItemListView() {
                 </div>
               </div>
             );
-          })}
-
-          {!loading && shown.length === 0 && (
-            <div className="text-center py-14 px-4">
-              <div className="w-[48px] h-[48px] rounded-[14px] grid place-items-center text-white mx-auto mb-3" style={{ background: ACCENT }}>
-                <Icon name="box" size={23} />
-              </div>
-              <div className="text-[15px] text-purple font-semibold">
-                {anyFilter ? "Nothing matches those filters" : "No items yet"}
-              </div>
-              <p className="text-[13px] text-body-soft m-0 mt-1">
-                {anyFilter ? "Loosen a filter and try again." : "Start with the things you buy — rose stems, ribbon, boxes."}
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                {anyFilter ? (
-                  <button onClick={clearAll} className="text-white text-[13px] font-semibold px-4 py-2 rounded-[10px]" style={{ background: ACCENT }}>
-                    Clear all filters
-                  </button>
-                ) : (
-                  <>
-                    <Link href="/items/new" className="inline-flex items-center gap-2 text-white text-[13px] font-semibold px-4 py-2 rounded-[10px]" style={{ background: ACCENT }}>
-                      <Icon name="plus" size={14} /> New item
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ---- page numbers, at the foot (sobuj, 21 Jul: "numbering ta page ar niche
-             thakbe"). Not sticky on purpose — you reach it by finishing the rows. ---- */}
-        {pages > 1 && (
-          <div className="px-4 py-3 border-t border-lavender-deep bg-lavender/25 flex items-center gap-3 flex-wrap">
-            <span className="text-[13px] text-body">
-              Showing <b className="text-purple">{from}</b>–<b className="text-purple">{to}</b> of{" "}
-              <b className="text-purple">{filtered.length}</b>
-            </span>
-            <div className="ml-auto flex items-center gap-1">
-              <PageBtn label="First" onClick={() => setPage(1)} disabled={current === 1} />
-              <PageBtn label="‹" onClick={() => setPage(current - 1)} disabled={current === 1} />
-              {Array.from({ length: pages }, (_, k) => k + 1)
-                .filter((n) => n === 1 || n === pages || Math.abs(n - current) <= 1)
-                .map((n, idx, arr) => (
-                  <span key={n} className="flex items-center gap-1">
-                    {idx > 0 && arr[idx - 1] !== n - 1 && <span className="text-body-soft px-1">…</span>}
-                    <button onClick={() => setPage(n)}
-                      className="text-[13px] font-semibold min-w-[32px] h-[32px] rounded-[8px] border"
-                      style={n === current
-                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#efe4f7", color: "#470066" }}>
-                      {n}
-                    </button>
-                  </span>
-                ))}
-              <PageBtn label="›" onClick={() => setPage(current + 1)} disabled={current === pages} />
-              <PageBtn label="Last" onClick={() => setPage(pages)} disabled={current === pages} />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  }
 }
 
 function PageBtn({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
