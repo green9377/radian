@@ -5,10 +5,10 @@ import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
-import { WRAP, ACCENT, msg, ErrBar, OkBar, DemoBar, ItemThumb, StatusPill } from "./ItemUI";
+import { WRAP, ACCENT, msg, ErrBar, OkBar, DemoBar, ItemThumb, StatusPill, Modal } from "./ItemUI";
 import {
   loadItemsSafe, updateItem, deleteItem, linkedProductCount, generateItemsFromProducts,
-  listInvStock,
+  listInvStock, uploadItemImage,
   formatTaka, itemStockLabel, ITEM_TYPE_META,
   type ApiItem, type InvStockRow, type ItemType,
 } from "../_data/api";
@@ -221,6 +221,22 @@ export default function ItemListView() {
   const toggleFam = (k: string) =>
     setOpenFams((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
+  /* family photos AFTER creation (owner, 20 Aug: "variant create korar por
+     image upload er option nai") — one dialog, one slot per variant, saved
+     straight onto each item. */
+  const [photosFam, setPhotosFam] = useState<{ base: string; fkey: string } | null>(null);
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
+
+  async function setMemberPhoto(v: ApiItem, file: File | null, clear = false) {
+    setPhotoBusyId(v.id); setErr(null);
+    try {
+      const url = clear ? null : await uploadItemImage(file!, "items");
+      await updateItem(v.id, { imageUrl: url });
+      setItems((p) => p.map((x) => (x.id === v.id ? { ...x, imageUrl: url } : x)));
+    } catch (e) { setErr(msg(e, "Could not save that photo.")); }
+    finally { setPhotoBusyId(null); }
+  }
+
   const pages = Math.max(1, Math.ceil(display.length / pageSize));
   const current = Math.min(page, pages);
   const shown = display.slice((current - 1) * pageSize, current * pageSize);
@@ -429,6 +445,45 @@ export default function ItemListView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* family photos — one slot per variant, saved straight onto each item */}
+      {photosFam && (
+        <Modal title={`Photos — ${photosFam.base}`} onClose={() => setPhotosFam(null)}
+          canSave busy={false} saveLabel="Done" onSave={() => setPhotosFam(null)}>
+          {items.filter((i) => i.familyKey === photosFam.fkey).map((v) => (
+            <div key={v.id} className="flex items-center gap-3 py-2.5 border-b border-lavender-deep/60 last:border-0">
+              <label className="relative w-[46px] h-[46px] rounded-[11px] overflow-hidden cursor-pointer grid place-items-center shrink-0"
+                style={{ background: v.imageUrl ? "#fff" : "#f0e8f6", boxShadow: "inset 0 0 0 1px #e2d2ec" }}
+                title={v.imageUrl ? "Click to replace" : "Click to add a photo"}>
+                {photoBusyId === v.id
+                  ? <span className="text-[11px] text-body-soft">…</span>
+                  : v.imageUrl
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={v.imageUrl} alt="" className="w-full h-full object-cover" />
+                    : <Icon name="photo" size={17} className="text-body-soft" />}
+                <input type="file" accept="image/*" className="hidden" disabled={photoBusyId !== null}
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setMemberPhoto(v, f); }} />
+                <span className="absolute -bottom-0.5 -right-0.5 w-[16px] h-[16px] rounded-full grid place-items-center text-white pointer-events-none"
+                  style={{ background: ACCENT }}>
+                  <Icon name="plus" size={9} />
+                </span>
+              </label>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold text-purple truncate">{v.name}</div>
+                <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
+              </div>
+              {v.imageUrl ? (
+                <button onClick={() => setMemberPhoto(v, null, true)} disabled={photoBusyId !== null}
+                  className="text-[12px] font-medium underline text-body-soft hover:text-[#c0392b] shrink-0">
+                  remove
+                </button>
+              ) : (
+                <span className="text-[12px] text-body-soft shrink-0">no photo</span>
+              )}
+            </div>
+          ))}
+        </Modal>
       )}
 
       {/* overflow-CLIP, not overflow-hidden: `hidden` makes this a scroll container and
@@ -641,7 +696,11 @@ export default function ItemListView() {
                         : { background: "#f1eef4", color: "#7b6b88" }}>
                       {activeN}/{row.members.length} active
                     </span>
-                    <span className="flex items-center justify-end text-body-soft">
+                    <span className="flex items-center justify-end gap-1 text-body-soft">
+                      <button onClick={(e) => { e.stopPropagation(); setPhotosFam({ base: row.base, fkey: row.fkey }); }}
+                        className="px-1 py-1 hover:text-purple" title="Photos — one per variant">
+                        <Icon name="photo" size={15} />
+                      </button>
                       <Icon name="chevronDown" size={15}
                         style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .15s" }} />
                     </span>
