@@ -1274,6 +1274,8 @@ export interface ApiChannel {
   id: string;
   slug: string;
   name: string;
+  /** off = hidden from the New-order dropdown; history keeps the name */
+  isActive?: boolean;
 }
 export interface ApiOrder {
   id: string;
@@ -3792,6 +3794,8 @@ export interface ApiSupplier {
   notifyMode: NotifyMode;
   leadTimeHours: number | null;
   notes: string | null;
+  /** DEC-SUP-010 — true: shows in BOTH the Suppliers and Vendors workspaces */
+  dualRole?: boolean;
   status: SupplierStatus;
   openingDuePaisa: number;
   openingAsOf: string | null;
@@ -3843,7 +3847,7 @@ export interface SupplierStats {
   totalDuePaisa: number;
   totalCreditPaisa: number;
   dueCount: number;
-  board: { id: string; name: string; nickname: string | null; typeName: string; isFulfillment: boolean; status: SupplierStatus; duePaisa: number; creditPaisa: number }[];
+  board: { id: string; name: string; nickname: string | null; typeName: string; isFulfillment: boolean; dualRole?: boolean; status: SupplierStatus; duePaisa: number; creditPaisa: number }[];
   unlinkedNameCount: number;
 }
 
@@ -3864,6 +3868,8 @@ export interface SupplierSaveBody {
   notifyMode?: NotifyMode;
   leadTimeHours?: number;
   notes?: string;
+  /** DEC-SUP-010 — one tick, both workspaces */
+  dualRole?: boolean;
   status?: SupplierStatus;
   openingDuePaisa?: number;
   openingAsOf?: string;

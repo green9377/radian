@@ -67,8 +67,9 @@ export function SuppliersOverview() {
 
   // DEC-SUP-009 — this page is the PRODUCT-supplier book; vendors have their own
   // workspace at /suppliers/vendors. One table underneath, two faces on top.
-  const supplierRows = useMemo(() => (stats ? stats.board.filter((b) => !b.isFulfillment) : []), [stats]);
-  const vendorRows = useMemo(() => (stats ? stats.board.filter((b) => b.isFulfillment) : []), [stats]);
+  // DEC-SUP-010 — a dual-role party stands in BOTH books.
+  const supplierRows = useMemo(() => (stats ? stats.board.filter((b) => !b.isFulfillment || b.dualRole) : []), [stats]);
+  const vendorRows = useMemo(() => (stats ? stats.board.filter((b) => b.isFulfillment || b.dualRole) : []), [stats]);
   const board = useMemo(
     () => (dueOnly ? supplierRows.filter((b) => b.duePaisa > 0) : supplierRows),
     [supplierRows, dueOnly],
@@ -79,7 +80,6 @@ export function SuppliersOverview() {
       <ItemPageHead
         eyebrow="Master Data · Suppliers"
         title="Suppliers"
-        blurb="The buying book — wholesale flower & goods suppliers you stock from. Fulfillment vendors (cake — sourced per order) live in their own workspace (DEC-SUP-009)."
         right={<NewBtn />}
       />
       {failed && <DemoBar what="the supplier book (API offline?)" onRetry={load} />}
@@ -202,8 +202,9 @@ export function SupplierListView() {
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
-    // DEC-SUP-009 — vendors live in /suppliers/vendors, not in this book
-    let r = rows.filter((s) => !s.type?.isFulfillment);
+    // DEC-SUP-009 — vendors live in /suppliers/vendors, not in this book;
+    // DEC-SUP-010 — unless dual-role, then they stand in both
+    let r = rows.filter((s) => !s.type?.isFulfillment || s.dualRole);
     if (status !== "ALL") r = r.filter((s) => s.status === status);
     if (typeId) r = r.filter((s) => s.typeId === typeId);
     if (dueOnly) r = r.filter((s) => s.duePaisa > 0);
@@ -229,7 +230,6 @@ export function SupplierListView() {
       <ItemPageHead
         eyebrow="Master Data · Suppliers"
         title="All suppliers"
-        blurb="Product suppliers you stock from. Fulfillment vendors have their own workspace — Suppliers → Vendors (DEC-SUP-009)."
         right={<NewBtn />}
       />
       {failed && <DemoBar what="the supplier book (API offline?)" onRetry={load} />}
@@ -315,7 +315,7 @@ export function SupplierListView() {
       </DataTable>
 
       <p className="text-[12.5px] text-body-soft mt-3">
-        Showing {filtered.length} of {rows.filter((s) => !s.type?.isFulfillment).length} · Inactive suppliers keep their history — nothing is ever hard-deleted (SUP-R02).
+        Showing {filtered.length} of {rows.filter((s) => !s.type?.isFulfillment || s.dualRole).length}
       </p>
     </div>
   );

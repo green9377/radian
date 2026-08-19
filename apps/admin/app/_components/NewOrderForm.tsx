@@ -48,8 +48,9 @@ const METHODS = [
   { id: "courier", label: "Nationwide Courier", zone: "bangladesh", feePaisa: 12000, slots: false, date: false },
 ] as const;
 const SLOTS = ["10 AM – 1 PM", "3 PM – 6 PM", "6 PM – 9 PM"];
-/* channel dropdown — fixed options, with "Custom…" last so admin can name their own.
-   ⇄ SWAP HERE: a Channel master (admin add/remove) supplies this list. */
+/* channel dropdown — fed by the Channel master (Orders → Sales channels);
+   this static list is ONLY the offline fallback. Fixed 19 Aug — the master
+   existed but this form never read it, so switching a channel off did nothing. */
 const CHANNELS = ["Phone", "WhatsApp", "Call", "Shop", "Facebook", "Instagram"];
 
 const isCrafted = (p?: ApiProduct) => p?.productType === "CRAFTED";
@@ -81,6 +82,13 @@ export default function NewOrderForm() {
   }, []);
 
   const [channelSel, setChannelSel] = useState("Phone");
+  const activeChannelNames = apiChannels.filter((c) => c.isActive !== false).map((c) => c.name);
+  // if the master loads and the current pick is not a live channel, move to the first live one
+  useEffect(() => {
+    if (channelSel === "__custom" || activeChannelNames.length === 0) return;
+    if (!activeChannelNames.includes(channelSel)) setChannelSel(activeChannelNames[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiChannels]);
   const [customChannel, setCustomChannel] = useState("");
   const channel = channelSel === "__custom" ? customChannel.trim() || "Custom" : channelSel;
 
@@ -121,7 +129,7 @@ export default function NewOrderForm() {
   const methods = allMethods.filter((m) => m.zone === zone);
   const [method, setMethod] = useState(allMethods[0]?.id ?? "express");
   const activeMethod = allMethods.find((m) => m.id === method) ?? methods[0] ?? allMethods[0];
-  // API config এলে বাছা method zone-এ না থাকলে প্রথমটায় ফেরত
+  // when API config arrives, fall back to the first method if the picked one is not in the zone
   useEffect(() => {
     if (methods.length && !methods.some((m) => m.id === method)) setMethod(methods[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -307,7 +315,8 @@ export default function NewOrderForm() {
               <div>
                 <label className={labelCls}>Channel</label>
                 <select className="ipt h-[44px]" value={channelSel} onChange={(e) => setChannelSel(e.target.value)}>
-                  {CHANNELS.map((c) => (<option key={c} value={c}>{c}</option>))}
+                  {/* live channels from the master; switched-off ones stay out */}
+                  {(activeChannelNames.length ? activeChannelNames : CHANNELS).map((c) => (<option key={c} value={c}>{c}</option>))}
                   <option value="__custom">Custom…</option>
                 </select>
                 {channelSel === "__custom" && (

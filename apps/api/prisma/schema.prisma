@@ -3399,6 +3399,11 @@ model Supplier {
   typeId   String
   type     SupplierType @relation(fields: [typeId], references: [id])
 
+  /// DEC-SUP-010 (owner, 19 Aug 2026) — one tick makes the same party live in
+  /// BOTH workspaces: a supplier can also fulfil per-order (vendor), a vendor
+  /// can also be bought from into stock. One row, one ledger — never two rows.
+  dualRole Boolean @default(false)
+
   /// duplicate-warn, never block (SUP-R01) — one phone can serve two market stalls
   phone         String?
   contactPerson String?

@@ -243,7 +243,7 @@ const GROUPS: Group[] = [
           { label: "Reviews", href: "/storefront/reviews" },
           { label: "Journal", href: "/storefront/journal" },
           /*  Terms, Refund Policy, Privacy, FAQ — the storefront reads these
-              from the Content module (৪ আগস্ট); this is where they are written.
+              from the Content module (4 Aug); this is where they are written.
               bKash/SSLCommerz merchant review asks to SEE these pages live.  */
           { label: "Pages & FAQs", href: "/storefront/pages" },
           { label: "Visit the shop", href: "/storefront/hours" },
@@ -318,8 +318,9 @@ const GROUPS: Group[] = [
         roles: ["OWNER", "MANAGER"],
         subs: [
           { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
+          // "New supplier" left the nav (owner, 19 Aug) — the button on All
+          // suppliers/Overview is the door, same as Vendors. Route unchanged.
           { label: "All suppliers", href: "/suppliers/list" },
-          { label: "New supplier", href: "/suppliers/new" },
           // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
           // same Supplier table underneath, their own face on top
           { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
@@ -488,9 +489,10 @@ const GROUPS: Group[] = [
             match: (p) => p.startsWith("/marketing/messaging"),
           },
           {
-            // DEC-WA-002…008 — পেমেন্ট ফেল আর অসমাপ্ত checkout। Marketing-এ
-            // রাখা হলো কারণ এটা ফেরানোর কাজ, বিক্রির হিসাব নয় — আর
-            // checkout_abandoned template Meta-র চোখে Marketing।
+            // DEC-WA-002…008 — failed payments and unfinished checkouts. Kept
+            // under Marketing because this is win-back work, not sales
+            // accounting — and Meta classes the checkout_abandoned template
+            // as Marketing.
             label: "Recover lost orders", href: "/marketing/recovery",
             match: (p) => p.startsWith("/marketing/recovery"),
           },

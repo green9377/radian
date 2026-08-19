@@ -48,7 +48,8 @@ export function VendorBoard() {
     setLoading(true);
     try {
       const r = await listSuppliers({ status: "ALL" });
-      setRows(r.filter((s) => s.type?.isFulfillment)); // DEC-SUP-009
+      // DEC-SUP-009 board; DEC-SUP-010 — dual-role suppliers stand here too
+      setRows(r.filter((s) => s.type?.isFulfillment || s.dualRole));
       setFailed(false);
     } catch { setFailed(true); }
     finally { setLoading(false); }

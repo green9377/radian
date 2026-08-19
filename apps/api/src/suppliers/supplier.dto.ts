@@ -29,6 +29,8 @@ export interface SupplierCreateDto {
   notifyMode?: 'MANUAL' | 'AUTO';
   leadTimeHours?: number;
   notes?: string;
+  /** DEC-SUP-010 — one tick, both workspaces (supplier AND vendor) */
+  dualRole?: boolean;
   // DEC-SUP-005 — optional opening due
   openingDuePaisa?: number;
   openingAsOf?: string;

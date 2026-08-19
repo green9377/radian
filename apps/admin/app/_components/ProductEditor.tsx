@@ -1400,7 +1400,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         meant Radian stops holding stock and they make the order — which
         isn't what that supplier is set up for. Filtered to fulfillment-type
         suppliers only, same rule Suppliers → Vendors itself uses.  */
-    listSuppliers().then((rows) => setVendors(rows.filter((v) => v.type?.isFulfillment))).catch(() => {});
+    // DEC-SUP-010 — dual-role suppliers count as vendors here too
+    listSuppliers().then((rows) => setVendors(rows.filter((v) => v.type?.isFulfillment || v.dualRole))).catch(() => {});
     /*  DEC-DLV-008 — names come from the delivery module, fetched fresh.
         ⚠️ `rateCount > 0` — a name with no price set in any zone is not
         shown here. If it were, the owner could tick it, it would save, and

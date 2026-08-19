@@ -304,6 +304,7 @@ export class SuppliersService {
       nickname: string | null;
       typeName: string;
       isFulfillment: boolean; // DEC-SUP-009 — the UI splits the workspaces on this
+      dualRole: boolean; // DEC-SUP-010 — true → BOTH workspaces
       status: string;
       duePaisa: number;
       creditPaisa: number;
@@ -318,6 +319,8 @@ export class SuppliersService {
         nickname: s.nickname,
         typeName: s.type.name,
         isFulfillment: s.type.isFulfillment,
+        // DEC-SUP-010 — read via cast until the local client is regenerated
+        dualRole: (s as unknown as { dualRole?: boolean }).dualRole ?? false,
         status: s.status,
         duePaisa: b.duePaisa,
         creditPaisa: b.creditPaisa,
@@ -571,6 +574,9 @@ export class SuppliersService {
         notifyMode: (dto.notifyMode as NotifyMode) ?? 'MANUAL',
         leadTimeHours: dto.leadTimeHours ?? null,
         notes: dto.notes?.trim() || null,
+        // DEC-SUP-010 — cast until the local Prisma client is regenerated on the
+        // host (BUILD_CHECK.bat); the column is live via the migration
+        ...({ dualRole: dto.dualRole ?? false } as Record<string, boolean>),
         openingDuePaisa: opening,
         openingAsOf: dto.openingAsOf ? new Date(dto.openingAsOf) : opening > 0 ? new Date() : null,
         openingNote: dto.openingNote?.trim() || null,
@@ -651,6 +657,8 @@ export class SuppliersService {
         ...(dto.notifyMode ? { notifyMode: dto.notifyMode as NotifyMode } : {}),
         ...(dto.leadTimeHours !== undefined ? { leadTimeHours: dto.leadTimeHours ?? null } : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
+        // DEC-SUP-010 — cast until the local Prisma client is regenerated (see create)
+        ...(dto.dualRole !== undefined ? ({ dualRole: dto.dualRole } as Record<string, boolean>) : {}),
         ...(dto.status ? { status: dto.status as SupplierStatus } : {}),
         ...openingData,
       },

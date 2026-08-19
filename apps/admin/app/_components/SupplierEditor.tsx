@@ -50,6 +50,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
   const [notifyMode, setNotifyMode] = useState<NotifyMode>("MANUAL");
   const [leadTimeHours, setLeadTimeHours] = useState("");
   const [notes, setNotes] = useState("");
+  const [dualRole, setDualRole] = useState(false); // DEC-SUP-010
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [openingTk, setOpeningTk] = useState("");
   const [openingAsOf, setOpeningAsOf] = useState(() => new Date().toISOString().slice(0, 10));
@@ -73,6 +74,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
           setNotifyMode(s.notifyMode);
           setLeadTimeHours(s.leadTimeHours?.toString() ?? "");
           setNotes(s.notes ?? ""); setStatus(s.status);
+          setDualRole(s.dualRole ?? false);
         } else if (t.length) {
           // DEC-SUP-009 — the door you came in through picks the behaviour
           const preferred = vendorMode
@@ -113,6 +115,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
       notifyMode,
       leadTimeHours: leadTimeHours === "" ? undefined : Math.max(0, Math.round(Number(leadTimeHours) || 0)),
       notes: notes.trim() || undefined,
+      dualRole,
       ...(isNew || !openingLocked
         ? tkToPaisa(openingTk) > 0
           ? {
@@ -155,11 +158,6 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
       <ItemPageHead
         eyebrow={isVendorForm ? "Master Data · Suppliers · Vendors" : "Master Data · Suppliers"}
         title={isNew ? (isVendorForm ? "New vendor" : "New supplier") : `Edit — ${loaded?.name ?? ""}`}
-        blurb={isNew
-          ? isVendorForm
-            ? "A fulfillment partner — his products go on your website, orders are sourced from him per order (DEC-SUP-009). Notify phone + lead time are the fields that matter most here."
-            : "Only a name and a type are required — everything else can come later (SUP-R01). Old-ledger due goes in the Opening due box, once."
-          : "Profile changes only — money moves on the supplier page, never here."}
       />
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
 
@@ -199,13 +197,13 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                 <Field label="Name" required>
                   <input className="ipt w-full" placeholder="Kamal Uddin, Cake Factory BD…" value={name} onChange={(e) => setName(e.target.value)} />
                 </Field>
-                <Field label="Nickname" hint="What you actually call him — searchable.">
+                <Field label="Nickname">
                   <input className="ipt w-full" placeholder="Kamal Mama" value={nickname} onChange={(e) => setNickname(e.target.value)} />
                 </Field>
-                <Field label="Type" required hint="Product Supplier = buy → stock. Fulfillment Vendor = his product, sourced per order (cake).">
+                <Field label="Type" required>
                   <QuickSelect
                     value={typeId}
-                    placeholder="Pick a type"
+                    placeholder="Pick or type to create"
                     onChange={setTypeId}
                     allowClear={false}
                     options={types.map((t) => ({ id: t.id, label: t.name }))}
@@ -217,11 +215,16 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       } catch (e) { setErr(msg(e, "Could not create that type.")); return null; }
                     }}
                   />
+                  {/* DEC-SUP-010 — one tick, both workspaces */}
+                  <label className="flex items-center gap-2 text-[12.5px] font-medium text-body cursor-pointer select-none mt-2">
+                    <input type="checkbox" checked={dualRole} onChange={(e) => setDualRole(e.target.checked)} />
+                    {isVendorForm ? "Also a supplier — shows in All suppliers too" : "Also a vendor — shows in Vendors too"}
+                  </label>
                 </Field>
                 <Field label="Phone">
                   <input className="ipt w-full" placeholder="01…" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </Field>
-                <Field label="Contact person" hint="Owner + manager different people? Name the one you call.">
+                <Field label="Contact person">
                   <input className="ipt w-full" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
                 </Field>
                 <Field label="Market / area">
@@ -238,10 +241,10 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: isVendorForm ? 3 : 2 }}>
             <b className="text-[13.5px] text-purple block mb-3">Money</b>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-              <Field label="Payment terms" hint="A reminder, not a rule — 'bKash per order', 'settle month-end'.">
-                <input className="ipt w-full" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+              <Field label="Payment terms">
+                <input className="ipt w-full" placeholder="bKash per order, settle month-end…" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
               </Field>
-              <Field label="Payout info" hint="bKash/Nagad/bank no — at hand when you send money.">
+              <Field label="Payout info">
                 <input className="ipt w-full" placeholder="bKash 01…" value={payoutInfo} onChange={(e) => setPayoutInfo(e.target.value)} />
               </Field>
             </div>
@@ -255,8 +258,8 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4">
-                <Field label="Opening due (tk)" hint="Old-ledger due. Blank = 0.">
-                  <input className="ipt w-full" placeholder="0" inputMode="decimal" value={openingTk} onChange={(e) => setOpeningTk(e.target.value)} />
+                <Field label="Opening due (tk)">
+                  <input className="ipt w-full" placeholder="Old-ledger due, blank = 0" inputMode="decimal" value={openingTk} onChange={(e) => setOpeningTk(e.target.value)} />
                 </Field>
                 <Field label="As of">
                   <input type="date" className="ipt w-full" value={openingAsOf} onChange={(e) => setOpeningAsOf(e.target.value)} />
@@ -270,18 +273,13 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
           {/* ---------------- order notifications (DEC-SUP-003) ---------------- */}
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5" style={{ order: isVendorForm ? 2 : 3 }}>
-            <b className="text-[13.5px] text-purple block mb-1">Order notifications</b>
-            <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-              For fulfillment vendors: when his product is ordered, a message goes with the product,
-              qty and ready-by time — <b>never any customer information</b> (SUP-R07). Auto-send arrives
-              with the Automation module; today it is one manual click on the supplier page.
-            </p>
+            <b className="text-[13.5px] text-purple block mb-3">Order notifications</b>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-              <Field label="Notify phone" hint="Where order messages go — may differ from the main phone.">
-                <input className="ipt w-full" placeholder="01…" value={notifyPhone} onChange={(e) => setNotifyPhone(e.target.value)} />
+              <Field label="Notify phone">
+                <input className="ipt w-full" placeholder="Where order messages go — 01…" value={notifyPhone} onChange={(e) => setNotifyPhone(e.target.value)} />
               </Field>
-              <Field label="Lead time (hours)" hint="Cake needs 4h notice → ready-by time works itself out.">
-                <input className="ipt w-full" placeholder="4" inputMode="numeric" value={leadTimeHours} onChange={(e) => setLeadTimeHours(e.target.value)} />
+              <Field label="Lead time (hours)">
+                <input className="ipt w-full" placeholder="Cake needs 4h notice" inputMode="numeric" value={leadTimeHours} onChange={(e) => setLeadTimeHours(e.target.value)} />
               </Field>
               <Field label="Channel">
                 <div className="flex gap-2">
@@ -296,7 +294,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                   ))}
                 </div>
               </Field>
-              <Field label="Mode" hint="Manual for now.">
+              <Field label="Mode">
                 <div className="flex gap-2">
                   {(["MANUAL", "AUTO"] as const).map((m) => (
                     <button key={m} type="button" onClick={() => setNotifyMode(m)}
@@ -319,7 +317,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                 value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
             {!isNew && (
-              <Field label="Status" hint="Inactive = hidden from pickers; history stays (SUP-R02).">
+              <Field label="Status">
                 <div className="flex gap-2">
                   {(["ACTIVE", "INACTIVE"] as const).map((s) => (
                     <button key={s} type="button" onClick={() => setStatus(s)}
@@ -338,10 +336,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
         {/* ---------------- side rail ---------------- */}
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 xl:sticky xl:top-4">
-          <b className="text-[13.5px] text-purple block mb-2">{isNew ? "Ready?" : "Save changes"}</b>
-          <p className="text-[12.5px] text-body-soft mt-0 mb-4">
-            Required: <b>name</b> + <b>type</b>. Everything else is optional — fill it when you know it.
-          </p>
+          <b className="text-[13.5px] text-purple block mb-3">{isNew ? "Ready?" : "Save changes"}</b>
           <button onClick={() => save(false)} disabled={busy}
             className="w-full text-white text-[13.5px] font-semibold px-4 py-3 rounded-[12px] disabled:opacity-60"
             style={{ background: ACCENT }}>

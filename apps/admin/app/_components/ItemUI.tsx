@@ -41,7 +41,7 @@ export function msg(e: unknown, fallback: string): string {
 
 export function ItemPageHead({
   eyebrow, title, blurb, right,
-}: { eyebrow: string; title: string; blurb: string; right?: React.ReactNode }) {
+}: { eyebrow: string; title: string; blurb?: string; right?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
       <div>
@@ -50,7 +50,7 @@ export function ItemPageHead({
           {eyebrow}
         </div>
         <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">{title}</h1>
-        <p className="text-body-soft text-[13.5px] m-0 max-w-[800px]">{blurb}</p>
+        {blurb && <p className="text-body-soft text-[13.5px] m-0 max-w-[800px]">{blurb}</p>}
       </div>
       {right && <div className="flex items-center gap-2 shrink-0">{right}</div>}
     </div>

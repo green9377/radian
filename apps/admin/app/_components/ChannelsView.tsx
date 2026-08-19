@@ -1,53 +1,52 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  WRAP, FinHeader, Card, Table, Th, Td, Chip, Empty, Flash, Banner,
-  btnPrimary, btnPrimaryStyle, btnGhost, input, Lbl,
-} from "./FinanceUI";
+import Icon from "./Icon";
+import { WRAP, ACCENT, ItemPageHead, ErrBar, Modal, Field, DataTable } from "./ItemUI";
 import {
   listChannelRows, createChannel, updateChannelRow, deleteChannel,
   type ApiChannelRow,
 } from "../_data/api";
 
 /*
-  SALES CHANNELS — where an order came in through.
+  SALES CHANNELS — where an order came in through. Owned by Sales (DEC-SAL-001);
+  Marketing only reads it. A channel with orders behind it is switched OFF, never
+  deleted — deleting would orphan history.
 
-  Owned by Sales (DEC-SAL-001), not by Marketing. Marketing reads it to answer
-  "how did this order reach us"; it never writes here.
-
-  The API has existed since the Sales module. There was simply never a screen,
-  which is why foodpanda and Sugary — where the shop already sells — had
-  nowhere to be recorded. Every marketplace added from now on goes here first;
-  otherwise those orders land under whatever channel a staff member guesses,
-  and the sales split quietly stops meaning anything.
-
-  A channel with orders behind it is switched OFF, never deleted — the same
-  reasoning as an archived campaign. Deleting it would orphan history.
+  Redesigned 19 Aug (owner): house master style, add via dialog, no prose. The
+  active list FEEDS the New-order form's channel dropdown; the storefront books
+  every web order under the `website` channel by slug.
 */
+
+const ROW = "grid grid-cols-[minmax(0,1fr)_120px_80px_80px_150px] items-center gap-2 px-4";
 
 const slugify = (v: string) =>
   v.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export function ChannelsView() {
   const [rows, setRows] = useState<ApiChannelRow[]>([]);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
+  const [dlg, setDlg] = useState<{ name: string; slug: string } | null>(null);
 
   const load = useCallback(async () => {
     try { setRows(await listChannelRows()); } catch (e) { setErr((e as Error).message); }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const dup = !!dlg && !!dlg.name.trim() && rows.some(
+    (r) => r.name.toLowerCase() === dlg.name.trim().toLowerCase() ||
+      r.slug === (dlg.slug.trim() || slugify(dlg.name)),
+  );
+
   const add = async () => {
+    if (!dlg || !dlg.name.trim() || dup) return;
     setBusy(true); setErr(""); setOk("");
     try {
-      const c = await createChannel({ name: name.trim(), slug: slug.trim() || slugify(name) });
+      const c = await createChannel({ name: dlg.name.trim(), slug: dlg.slug.trim() || slugify(dlg.name) });
       setOk(`${c.name} added`);
-      setName(""); setSlug("");
+      setDlg(null);
       await load();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
@@ -60,7 +59,7 @@ export function ChannelsView() {
   const remove = async (c: ApiChannelRow) => {
     const used = c._count?.orders ?? 0;
     if (used > 0) {
-      setErr(`${c.name} has ${used} order(s) behind it — switch it off instead, or that history loses its home`);
+      setErr(`${c.name} has ${used} order(s) behind it — switch it off instead.`);
       return;
     }
     if (!confirm(`Remove ${c.name}?`)) return;
@@ -68,83 +67,76 @@ export function ChannelsView() {
     catch (e) { setErr((e as Error).message); }
   };
 
-  const missing = ["foodpanda", "sugary"].filter(
-    (m) => !rows.some((r) => r.slug.includes(m) || r.name.toLowerCase().includes(m)),
-  );
-
   return (
     <div className={WRAP}>
-      <FinHeader
-        eyebrow="Orders"
+      <ItemPageHead
+        eyebrow="Orders · channels"
         title="Sales channels"
-        sub="Every way an order can reach the shop — the website, Facebook, a phone call, the counter, a marketplace. Marketing reads this to answer where business comes from, so a missing channel is a hole in every report that follows."
-        emoji="🔀"
-        tone="sky"
+        right={
+          <button onClick={() => setDlg({ name: "", slug: "" })}
+            className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2"
+            style={{ background: ACCENT }}>
+            <Icon name="plus" size={15} /> Add channel
+          </button>
+        }
       />
-      <Flash ok={ok} err={err} />
-
-      {missing.length > 0 && (
-        <Banner tone="amber" emoji="⚠" title={`${missing.join(" and ")} ${missing.length > 1 ? "are" : "is"} not in this list`}>
-          The shop already sells there and staff enter those orders by hand — but with no channel
-          for them, they are landing under whatever somebody picked. Add them below and the sales
-          split starts telling the truth.
-        </Banner>
+      {err && <ErrBar text={err} onClose={() => setErr("")} />}
+      {ok && (
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>{ok}</div>
       )}
 
-      <Card className="p-5 mb-5">
-        <div className="grid md:grid-cols-[1.4fr_1fr_auto] gap-4 items-end">
-          <div>
-            <Lbl>Channel name</Lbl>
-            <input className={input} value={name} placeholder="foodpanda"
-              onChange={(e) => setName(e.target.value)} />
+      <DataTable
+        head={<div className={ROW + " py-2.5"}><span>Channel</span><span>Code</span><span>Orders</span><span>State</span><span className="text-right">Action</span></div>}
+      >
+        {rows.map((c) => (
+          <div key={c.id} className={ROW + " py-2.5 hover:bg-lavender/15"}>
+            <span className="text-[13.5px] font-semibold text-purple truncate">{c.name}</span>
+            <span className="text-[12.5px] font-mono text-body-soft truncate">{c.slug}</span>
+            <span className="text-[12.5px] font-medium text-body">{c._count?.orders ?? 0}</span>
+            <span>
+              {c.isActive
+                ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>on</span>
+                : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#f1eef4", color: "#8a7b96" }}>off</span>}
+            </span>
+            <span className="flex items-center justify-end gap-1">
+              <button onClick={() => void toggle(c)}
+                className="text-[12px] font-medium px-2.5 py-1 rounded-[8px] border border-lavender-deep text-purple hover:border-orchid">
+                {c.isActive ? "Switch off" : "Switch on"}
+              </button>
+              <button onClick={() => void remove(c)}
+                className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Remove"><Icon name="trash" size={15} /></button>
+            </span>
           </div>
-          <div>
-            <Lbl>Short code <span className="font-normal">(blank = made from the name)</span></Lbl>
-            <input className={input} value={slug} placeholder={slugify(name) || "foodpanda"}
-              onChange={(e) => setSlug(e.target.value)} />
-          </div>
-          <button className={btnPrimary} style={btnPrimaryStyle} onClick={add}
-            disabled={busy || !name.trim()}>
-            {busy ? "Adding…" : "Add channel"}
-          </button>
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden">
-        {rows.length === 0 ? (
-          <Empty emoji="🔀" title="No channels yet"
-            sub="Add at least the website, phone and counter — every order has to come from somewhere." />
-        ) : (
-          <Table head={<><Th>Channel</Th><Th>Code</Th><Th right>Orders</Th><Th>State</Th><Th right></Th></>}>
-            {rows.map((c) => (
-              <tr key={c.id}>
-                <Td><span className="font-semibold text-purple">{c.name}</span></Td>
-                <Td><code className="text-[12px] text-body-soft">{c.slug}</code></Td>
-                <Td right>{c._count?.orders ?? 0}</Td>
-                <Td>
-                  {c.isActive
-                    ? <Chip tone="emerald">on</Chip>
-                    : <Chip tone="slate">off</Chip>}
-                </Td>
-                <Td right>
-                  <div className="flex gap-1.5 justify-end">
-                    <button className={btnGhost} onClick={() => void toggle(c)}>
-                      {c.isActive ? "Switch off" : "Switch on"}
-                    </button>
-                    <button className={btnGhost} onClick={() => void remove(c)}>Remove</button>
-                  </div>
-                </Td>
-              </tr>
-            ))}
-          </Table>
+        ))}
+        {rows.length === 0 && (
+          <div className="text-center py-12 text-[13.5px] text-purple font-semibold">No channels yet — press Add channel</div>
         )}
-      </Card>
+      </DataTable>
 
-      <p className="text-[12px] text-body-soft mt-3 max-w-[760px]">
-        Switching a channel off hides it from the order form but keeps every past order it carries.
-        A channel with orders behind it cannot be removed at all — deleting it would leave that
-        history with nowhere to belong.
-      </p>
+      {dlg && (
+        <Modal
+          title="Add channel"
+          onClose={() => setDlg(null)}
+          onSave={add}
+          canSave={!!dlg.name.trim() && !dup}
+          busy={busy}
+        >
+          <Field label="Channel name" required>
+            <input autoFocus className="ipt w-full" placeholder="e.g. foodpanda"
+              value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter" && dlg.name.trim() && !dup) add(); }} />
+            {dup && (
+              <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">
+                That channel already exists.
+              </span>
+            )}
+          </Field>
+          <Field label="Short code">
+            <input className="ipt w-full font-mono text-[13px]" placeholder={slugify(dlg.name) || "made from the name"}
+              value={dlg.slug} onChange={(e) => setDlg({ ...dlg, slug: e.target.value })} />
+          </Field>
+        </Modal>
+      )}
     </div>
   );
 }
