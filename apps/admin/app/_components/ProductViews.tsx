@@ -1533,6 +1533,38 @@ const DISPLAY_LABEL: Record<VDisplay, string> = {
  * not even upload an image without changing mode). Both failed for the same
  * reason: STORAGE and DISPLAY are not the same thing.
  */
+const ACCENT_PV = "#cf43ea"; // orchid — the page's action colour
+
+/** row grid per mode — each mode carries ONLY its own columns (owner, 19 Aug) */
+const vRowCls = (d: VDisplay) =>
+  "grid items-center gap-2.5 px-3 " +
+  (d === "SWATCH"
+    ? "grid-cols-[52px_minmax(0,1fr)_140px_54px_36px]"
+    : d === "PHOTO"
+      ? "grid-cols-[52px_minmax(0,1fr)_54px_36px]"
+      : "grid-cols-[minmax(0,1fr)_54px_36px]");
+
+/** hex code box — free typing, commits only a valid #rrggbb (or empty = clear) */
+function HexBox({ value, onCommit }: { value: string; onCommit: (hex: string) => void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => { setV(value); }, [value]);
+  const ok = v.trim() === "" || /^#[0-9a-fA-F]{6}$/.test(v.trim());
+  return (
+    <input
+      className={"ipt w-full font-mono text-[12.5px]" + (ok ? "" : " !border-[#e0a1a1]")}
+      style={{ minHeight: 34 }}
+      placeholder="#e0203c"
+      value={v}
+      onChange={(e) => {
+        const t = e.target.value;
+        setV(t);
+        if (t.trim() === "") onCommit("");
+        else if (/^#[0-9a-fA-F]{6}$/.test(t.trim())) onCommit(t.trim().toLowerCase());
+      }}
+    />
+  );
+}
+
 const DISPLAY_HINT: Record<VDisplay, string> = {
   SWATCH: "Frontend shows the colour dot.",
   PHOTO: "Frontend shows the photo — category cards use this.",
@@ -1580,12 +1612,11 @@ export function VariantAttributes() {
   const [attrs, setAttrs] = useState<VAttribute[]>([]);
   const [demo, setDemo] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newDisplay, setNewDisplay] = useState<VDisplay>("SWATCH");
+  // a new list is born TEXT (the neutral face) — its mode is flipped on the right
+  const newDisplay: VDisplay = "TEXT";
   const [draft, setDraft] = useState<Record<string, string>>({});
   /** which list is open (picked from the left column) */
   const [selId, setSelId] = useState<string | null>(null);
-  /** which option is being edited right now. null = all read-only. */
-  const [editVal, setEditVal] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -1721,7 +1752,7 @@ export function VariantAttributes() {
             return (
               <button
                 key={a.id}
-                onClick={() => { setSelId(a.id); setEditVal(null); }}
+                onClick={() => setSelId(a.id)}
                 className={`w-full flex items-center gap-2.5 rounded-[11px] px-3 py-2.5 mb-1 text-left transition-colors ${
                   on ? "bg-purple text-white" : "hover:bg-lavender/70"
                 }`}
@@ -1745,7 +1776,8 @@ export function VariantAttributes() {
             );
           })}
 
-          {/*  new list — at the bottom, small. Not the main thing while working.  */}
+          {/*  new list — at the bottom, small. Just a name: the mode is picked on
+              the right AFTER opening it (owner, 19 Aug — no mode buttons here).  */}
           <div className="border-t border-lavender-deep mt-2 pt-2.5 px-1">
             <input
               className="ipt h-[38px] text-[13px]"
@@ -1754,20 +1786,6 @@ export function VariantAttributes() {
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addAttr()}
             />
-            <div className="flex gap-1 mt-2">
-              {(["SWATCH", "PHOTO", "TEXT"] as const).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setNewDisplay(d)}
-                  title={DISPLAY_HINT[d]}
-                  className={`flex-1 text-[11.5px] font-semibold py-1.5 rounded-[8px] transition-colors ${
-                    newDisplay === d ? "bg-purple text-white" : "bg-lavender text-body-soft hover:text-purple"
-                  }`}
-                >
-                  {DISPLAY_LABEL[d]}
-                </button>
-              ))}
-            </div>
             <button
               onClick={addAttr}
               disabled={!newName.trim()}
@@ -1818,175 +1836,113 @@ export function VariantAttributes() {
                 <Icon name="trash" size={15} />
               </button>
             </div>
-            <p className="text-[12.5px] text-body-soft mt-0 mb-4">{DISPLAY_HINT[open.display]}</p>
-
             {/*
-              ── the options, in their own faces ──
-              ⚠️ An option is no longer one input box each. A colour shows as
-              colour, a photo as photo. Edit opens only on click — so most of
-              the time this screen is for LOOKING, not filling.
+              ── the options, as calm ROWS (owner, 19 Aug) ──
+              Each mode shows ONLY its own fields: Colour = swatch + picker +
+              code box · Photo = thumb + upload · Text = just the name. What is
+              STORED never changes — flip the mode back and nothing is lost.
+              Same pattern the approved Colours master page uses.
             */}
-            <div className="flex flex-wrap gap-2.5">
-              {open.values.map((val) => {
-                const editing = editVal === val.id;
-                return (
-                  <div
-                    key={val.id}
-                    className={`rounded-[14px] border transition-colors ${
-                      editing ? "border-orchid bg-orchid-soft/40" : "border-lavender-deep bg-white hover:border-orchid-mid"
-                    } ${val.active ? "" : "opacity-45"}`}
-                    style={{ width: open.display === "TEXT" ? 150 : 116 }}
-                  >
-                    <button
-                      onClick={() => setEditVal(editing ? null : val.id)}
-                      className="w-full p-2.5 text-left"
-                    >
-                      {/*
-                        The tile shows what the FRONTEND will show — per mode.
-                        The edit below keeps all three fields, so nothing
-                        uploaded is ever lost.
-                      */}
-                      {open.display === "SWATCH" && (
-                        <span
-                          className="block w-full h-[54px] rounded-[10px] border border-lavender-deep"
-                          style={{ background: val.hex || "#f2edf7" }}
-                        />
-                      )}
-                      {open.display === "PHOTO" && (
-                        <span
-                          className="block w-full h-[54px] rounded-[10px] border border-lavender-deep bg-cover bg-center grid place-items-center text-body-soft"
-                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "#f7f2fb" }}
-                        >
-                          {!val.imageUrl && <Icon name="photo" size={16} />}
-                        </span>
-                      )}
-                      {open.display === "TEXT" && (val.hex || val.imageUrl) && (
-                        /*  Text mode does not show the colour/photo, but it says
-                            they exist — or the owner will think they were wiped.  */
-                        <span className="flex items-center gap-1.5 mb-1">
-                          {val.hex && (
-                            <span className="w-3 h-3 rounded-full border border-lavender-deep" style={{ background: val.hex }} />
-                          )}
-                          {val.imageUrl && (
-                            <span className="w-3 h-3 rounded-[3px] bg-cover bg-center border border-lavender-deep" style={{ backgroundImage: `url(${val.imageUrl})` }} />
-                          )}
-                          <span className="text-[10px] text-body-soft">saved</span>
-                        </span>
-                      )}
-                      <span className="block text-[13px] font-semibold text-purple mt-2 truncate">
-                        {val.label || "Untitled"}
-                      </span>
-                      {!val.active && (
-                        <span className="block text-[11px] text-body-soft">hidden</span>
-                      )}
-                    </button>
+            <div className="border border-lavender-deep rounded-[12px] overflow-hidden">
+              <div className={vRowCls(open.display) + " py-2 bg-lavender/40 border-b border-lavender-deep text-[11.5px] font-bold tracking-[0.06em] uppercase text-body hidden md:grid"}>
+                {open.display === "SWATCH" && <><span>Colour</span><span>Name</span><span>Code</span><span className="text-center">On</span><span /></>}
+                {open.display === "PHOTO" && <><span>Photo</span><span>Name</span><span className="text-center">On</span><span /></>}
+                {open.display === "TEXT" && <><span>Name</span><span className="text-center">On</span><span /></>}
+              </div>
 
-                    {editing && (
-                      <div className="border-t border-lavender-deep p-2.5 flex flex-col gap-2">
-                        <input
-                          className="ipt"
-                          style={{ minHeight: 32, paddingTop: 2, paddingBottom: 2 }}
+              <div className="divide-y divide-lavender-deep">
+                {open.values.map((val) => (
+                  <div key={val.id} className={vRowCls(open.display) + " py-2 " + (val.active ? "hover:bg-lavender/15" : "bg-[#faf7fc] opacity-70")}>
+                    {open.display === "SWATCH" && (
+                      <>
+                        <label className="relative w-[52px] h-[34px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden"
+                          title="Pick a colour"
+                          style={{ background: val.hex || "repeating-linear-gradient(45deg,#f3eef7,#f3eef7 5px,#e6dcee 5px,#e6dcee 10px)" }}>
+                          <input type="color" className="absolute inset-0 opacity-0 cursor-pointer"
+                            value={/^#[0-9a-fA-F]{6}$/.test(val.hex ?? "") ? val.hex : "#cccccc"}
+                            onChange={(e) => setValue(open.id, val.id, { hex: e.target.value })} />
+                        </label>
+                        <input className="ipt w-full" style={{ minHeight: 36 }}
                           value={val.label}
-                          onChange={(e) => setValue(open.id, val.id, { label: e.target.value })}
-                        />
-                        {/*
-                          ⚠️ Always all three — owner: "colour, image, text all
-                          stay; I show whichever I want on the frontend." Mode
-                          only picks what is SHOWN, never what may be KEPT — so
-                          even a Size list can hold colours: useless today,
-                          ready the day the mode flips, nothing retyped.
-                        */}
-                        <div className="flex gap-1.5">
-                          <label
-                            title="Colour"
-                            className="relative flex-1 h-[30px] rounded-[8px] border border-lavender-deep cursor-pointer overflow-hidden grid place-items-center"
-                            style={val.hex ? { background: val.hex } : undefined}
-                          >
-                            <input
-                              type="color"
-                              value={val.hex ?? "#cccccc"}
-                              onChange={(e) => setValue(open.id, val.id, { hex: e.target.value })}
-                              className="absolute inset-0 opacity-0 cursor-pointer"
-                            />
-                            {!val.hex && <span className="text-[10.5px] text-body-soft">Colour</span>}
-                          </label>
+                          onChange={(e) => setValue(open.id, val.id, { label: e.target.value })} />
+                        <HexBox value={val.hex ?? ""} onCommit={(h) => setValue(open.id, val.id, { hex: h || undefined })} />
+                      </>
+                    )}
 
-                          <label
-                            title="Photo"
-                            className="relative flex-1 h-[30px] rounded-[8px] border border-lavender-deep cursor-pointer overflow-hidden grid place-items-center bg-cover bg-center"
-                            style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : undefined}
-                          >
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp,image/avif"
-                              className="hidden"
-                              disabled={img.busyId === val.id}
-                              onChange={(e) => {
-                                const f = e.target.files?.[0];
-                                e.target.value = "";
-                                /*  no shape enforcement — 1:1 is a product-photo
-                                    rule only. The 1 MB cap covers every image.  */
-                                void img.pickUrl(val.id, f, (url) => setValue(open.id, val.id, { imageUrl: url }));
-                              }}
-                            />
-                            {img.busyId === val.id ? (
-                              <span className="text-[10px] font-bold">…</span>
-                            ) : !val.imageUrl ? (
-                              <span className="text-[10.5px] text-body-soft">Photo</span>
-                            ) : null}
-                          </label>
-
+                    {open.display === "PHOTO" && (
+                      <>
+                        <label className="relative w-[52px] h-[38px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden bg-cover bg-center grid place-items-center text-body-soft"
+                          title={val.imageUrl ? "Replace the photo" : "Upload a photo"}
+                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "#f7f2fb" }}>
+                          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
+                            disabled={img.busyId === val.id}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              e.target.value = "";
+                              /* no shape enforcement — 1:1 is a product-photo rule only; 1 MB cap on all */
+                              void img.pickUrl(val.id, f, (url) => setValue(open.id, val.id, { imageUrl: url }));
+                            }} />
+                          {img.busyId === val.id
+                            ? <span className="text-[10px] font-bold">…</span>
+                            : !val.imageUrl && <Icon name="photo" size={15} />}
+                        </label>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <input className="ipt w-full" style={{ minHeight: 36 }}
+                            value={val.label}
+                            onChange={(e) => setValue(open.id, val.id, { label: e.target.value })} />
                           {val.imageUrl && (
-                            <button
-                              title="Remove photo"
+                            <button title="Remove photo"
                               onClick={() => setValue(open.id, val.id, { imageUrl: "" })}
-                              className="w-[28px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
-                            >
+                              className="shrink-0 w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]">
                               ×
                             </button>
                           )}
                         </div>
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={() => setValue(open.id, val.id, { active: !val.active })}
-                            className={`flex-1 text-[11.5px] font-bold py-1.5 rounded-[8px] ${
-                              val.active ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"
-                            }`}
-                          >
-                            {val.active ? "ON" : "OFF"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setAttrs((x) =>
-                                x.map((y) => {
-                                  if (y.id !== open.id) return y;
-                                  const values = y.values.filter((z) => z.id !== val.id);
-                                  persistValues(open.id, values);
-                                  return { ...y, values };
-                                }),
-                              );
-                              setEditVal(null);
-                            }}
-                            className="w-[34px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
-                          >
-                            <Icon name="trash" size={13} />
-                          </button>
-                        </div>
-                      </div>
+                      </>
                     )}
-                  </div>
-                );
-              })}
 
-              {/*  new option — an empty tile of the same size, so the row keeps its rhythm  */}
-              <div
-                className="rounded-[14px] border-[1.5px] border-dashed border-orchid-mid bg-orchid-soft/30 p-2.5 flex flex-col justify-center"
-                style={{ width: open.display === "TEXT" ? 150 : 116 }}
-              >
+                    {open.display === "TEXT" && (
+                      <input className="ipt w-full" style={{ minHeight: 36 }}
+                        value={val.label}
+                        onChange={(e) => setValue(open.id, val.id, { label: e.target.value })} />
+                    )}
+
+                    <div className="flex justify-center">
+                      <button onClick={() => setValue(open.id, val.id, { active: !val.active })}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                        style={val.active ? { background: "#e8f7ef", color: "#0e7a3d" } : { background: "#f1eef4", color: "#8a7b96" }}>
+                        {val.active ? "on" : "off"}
+                      </button>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setAttrs((x) =>
+                          x.map((y) => {
+                            if (y.id !== open.id) return y;
+                            const values = y.values.filter((z) => z.id !== val.id);
+                            persistValues(open.id, values);
+                            return { ...y, values };
+                          }),
+                        )
+                      }
+                      className="justify-self-end w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
+                      title="Delete"
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                {open.values.length === 0 && (
+                  <div className="text-center py-8 text-[13.5px] text-purple font-semibold">No options yet — add the first one below</div>
+                )}
+              </div>
+
+              {/* add — one box, Enter or the button */}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-t border-lavender-deep bg-orchid-soft/25">
                 <input
-                  className="ipt text-[13px]"
-                  style={{ minHeight: 34, paddingTop: 2, paddingBottom: 2 }}
-                  placeholder={open.display === "SWATCH" ? "Ivory…" : open.display === "PHOTO" ? "Mango…" : "2 lb…"}
+                  className="ipt flex-1" style={{ minHeight: 36 }}
+                  placeholder={open.display === "SWATCH" ? "New colour — Ivory…" : open.display === "PHOTO" ? "New option — Mango…" : "New option — 2 lb…"}
                   value={draft[open.id] ?? ""}
                   onChange={(e) => setDraft((d) => ({ ...d, [open.id]: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && addValue(open.id)}
@@ -1994,7 +1950,8 @@ export function VariantAttributes() {
                 <button
                   onClick={() => addValue(open.id)}
                   disabled={!(draft[open.id] ?? "").trim()}
-                  className="mt-2 text-[12px] font-semibold text-orchid disabled:opacity-40 inline-flex items-center justify-center gap-1"
+                  className="text-white text-[12.5px] font-semibold px-4 py-2 rounded-[9px] disabled:opacity-40 inline-flex items-center gap-1.5"
+                  style={{ background: ACCENT_PV }}
                 >
                   <Icon name="plus" size={13} /> Add
                 </button>
