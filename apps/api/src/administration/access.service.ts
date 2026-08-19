@@ -118,15 +118,25 @@ export class AccessService implements OnModuleInit {
   async positions() {
     const list = await this.prisma.db.position.findMany({
       orderBy: [{ isOwner: 'desc' }, { name: 'asc' }],
-      include: { _count: { select: { users: true, access: true } } },
+      include: { _count: { select: { access: true } } },
     });
+    /*  ⚠️ Relation _count sees SOFT-DELETED accounts too — a removed person
+        kept pinning their template forever, and the people chip lied (owner
+        hit both on 19 Aug: emptied a template on People & accounts, delete
+        still refused). Count the living by hand, explicitly.  */
+    const live = await this.prisma.appUser.groupBy({
+      by: ['positionId'],
+      where: { deletedAt: null, positionId: { not: null } },
+      _count: { _all: true },
+    });
+    const liveOf = new Map(live.map((r) => [r.positionId, r._count._all]));
     return list.map((p) => ({
       id: p.id,
       name: p.name,
       note: p.note,
       isOwner: p.isOwner,
       isLocked: p.isLocked,
-      people: p._count.users,
+      people: liveOf.get(p.id) ?? 0,
       rules: p._count.access,
     }));
   }
@@ -210,10 +220,7 @@ export class AccessService implements OnModuleInit {
    * Move them first, then delete.
    */
   async removePosition(id: string, actorName: string) {
-    const p = await this.prisma.db.position.findUnique({
-      where: { id },
-      include: { _count: { select: { users: true } } },
-    });
+    const p = await this.prisma.db.position.findUnique({ where: { id } });
     if (!p) throw new NotFoundException('That position does not exist');
     if (p.isOwner)
       throw new BadRequestException(
@@ -223,9 +230,14 @@ export class AccessService implements OnModuleInit {
       throw new BadRequestException(
         `"${p.name}" is one of the starting positions — it can be renamed, not removed`,
       );
-    if (p._count.users > 0)
+    /*  Living holders only — a soft-deleted account keeps its positionId for
+        the audit trail, but a dead account must not pin a template.  */
+    const holders = await this.prisma.appUser.count({
+      where: { positionId: id, deletedAt: null },
+    });
+    if (holders > 0)
       throw new BadRequestException(
-        `${p._count.users} still hold this position — move them elsewhere first`,
+        `${holders} still hold this position — move them elsewhere first`,
       );
 
     await this.prisma.db.position.update({
