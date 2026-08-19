@@ -24,7 +24,7 @@ type Sub = { label: string; href: string; match?: (p: string) => boolean; subs?:
 /** who may even SEE this entry. Missing = everybody signed in.
     The server enforces the same rule — this only stops staff from
     clicking into a wall. */
-type Role = "OWNER" | "MANAGER" | "STAFF";
+export type Role = "OWNER" | "MANAGER" | "STAFF";
 type Item = { label: string; href?: string; icon: string; subs?: Sub[]; roles?: Role[] };
 /*  accent + emblem — each department wears its own colour (owner, 18 Aug 2026:
     the six groups looked identical, so entering the panel read as one long
@@ -677,6 +677,44 @@ const subKey = (sb: Sub, parentKey: string, parentHref?: string) =>
   parentHref && sb.href.split("?")[0] === parentHref.split("?")[0]
     ? `${parentKey}.overview`
     : slugOf(sb.href);
+
+/*  ROUTE GATE LOOKUP (19 Aug 2026) — which registry key answers for a path.
+
+    The sidebar hides rows, but a pasted URL used to render the whole screen
+    with every fetch failing 403 underneath (owner found it testing rajib).
+    AccessGate in the layout asks THIS function the same question the sidebar
+    asks, built from the SAME lists, so the two can never disagree. Exact row
+    match wins (longest href first); otherwise the deepest row whose href is
+    a prefix — a detail page is judged as its module, exactly like the API
+    guard judges /orders/RAD-1 as "orders". No row at all returns null and
+    the page is left to the server, which still refuses the data.  */
+export function nodeForPath(path: string): { key: string; roles?: Role[] } | null {
+  const p = path.split("?")[0].replace(/\/+$/, "") || "/";
+  type Hit = { base: string; key: string; roles?: Role[]; exact: boolean };
+  const hits: Hit[] = [];
+  const addSub = (sb: Sub, parentKey: string, parentHref: string | undefined, roles?: Role[]) => {
+    const base = sb.href.split("?")[0];
+    const key = subKey(sb, parentKey, parentHref);
+    const r = sb.roles ?? roles;
+    if (sb.match?.(p) || base === p) hits.push({ base, key, roles: r, exact: true });
+    else if (p.startsWith(base + "/")) hits.push({ base, key: parentKey, roles: r, exact: false });
+    sb.subs?.forEach((x) => addSub(x, parentKey, parentHref, r));
+  };
+  for (const g of GROUPS) {
+    for (const it of g.items) {
+      const mk = moduleKey(it);
+      if (it.href) {
+        const base = it.href.split("?")[0];
+        if (base === p) hits.push({ base, key: mk, roles: it.roles, exact: true });
+        else if (p.startsWith(base + "/")) hits.push({ base, key: mk, roles: it.roles, exact: false });
+      }
+      it.subs?.forEach((sb) => addSub(sb, mk, it.href, it.roles));
+    }
+  }
+  if (!hits.length) return null;
+  hits.sort((a, b) => (Number(b.exact) - Number(a.exact)) || (b.base.length - a.base.length));
+  return { key: hits[0].key, roles: hits[0].roles };
+}
 
 export default function AdminSidebar() {
   const { me, signOut } = useAuth();

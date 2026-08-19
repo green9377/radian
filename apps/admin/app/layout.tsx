@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { Fraunces, Jost } from "next/font/google";
 import "./globals.css";
 import AdminSidebar from "./_components/AdminSidebar";
+import AccessGate from "./_components/AccessGate";
 import { AuthGate } from "./_components/AuthGate";
 
 /*
-  Radian Admin — standalone app (:3001)。 পুরোটাই admin, তাই root layout-ই shell:
-  বাঁয়ে sidebar, ডানে page। storefront chrome নেই। same brand token (globals.css)।
+  Radian Admin — standalone app (:3001). All of it is admin, so the root
+  layout IS the shell: sidebar on the left, the page on the right. No
+  storefront chrome. Same brand tokens (globals.css).
 */
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -40,7 +42,12 @@ export default function RootLayout({
         <AuthGate>
           <div className="min-h-screen flex bg-lavender text-body">
             <AdminSidebar />
-            <div className="flex-1 min-w-0">{children}</div>
+            <div className="flex-1 min-w-0">
+              {/*  a pasted URL must meet the same door the menu shows —
+                  AccessGate renders a closed-door card instead of a screen
+                  full of 403s (owner, 19 Aug 2026)  */}
+              <AccessGate>{children}</AccessGate>
+            </div>
           </div>
         </AuthGate>
       </body>

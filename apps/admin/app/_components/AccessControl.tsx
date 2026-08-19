@@ -107,6 +107,18 @@ export default function AccessControl() {
         if (at in rules) return { allowed: rules[at] };
         at = parentOf.get(at) ?? null;
       }
+      /*  THE LIFT — mirrors effectiveFor (19 Aug 2026): a module left on
+          Auto counts as open when any row inside it is explicitly allowed,
+          otherwise this page would show "closed" for a module whose one
+          allowed screen the menu is about to show.  */
+      for (const [k, v] of Object.entries(rules)) {
+        if (!v) continue;
+        let up = parentOf.get(k) ?? null;
+        while (up) {
+          if (up === key) return { allowed: true };
+          up = parentOf.get(up) ?? null;
+        }
+      }
       return { allowed: false };
     },
     [rules, parentOf],

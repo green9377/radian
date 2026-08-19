@@ -12,22 +12,23 @@ import { REGISTRY } from './registry.def';
 type LegacyRole = 'OWNER' | 'MANAGER' | 'STAFF';
 
 /**
- * AccessService — "এই মানুষ এই পর্দাটা পাবে কি না" এর একমাত্র উত্তরদাতা।
+ * AccessService — the ONE answerer of "may this person reach this screen".
  *
- * সিদ্ধান্তের ক্রম (architecture §৫)। node থেকে উপরে হাঁটা হয়, আর **প্রথম যেটা
- * উত্তর দেয় সেটাই চূড়ান্ত**:
+ * Decision order (architecture §5). The walk goes from the node upward, and
+ * **the first thing that answers is final**:
  *
- *   ১. পদ কি OWNER?                    → হ্যাঁ হলে সব। শেষ।
- *   প্রতিটা স্তরে, নিচ থেকে উপরে:
- *     ২. এই ব্যক্তির আলাদা নিয়ম?        → থাকলে সেটাই
- *     ৩. পদের ছাঁচে লেখা আছে?           → থাকলে সেটাই
- *   ৪. উপরে উঠতে উঠতে কিছুই না পেলে     → না (ADM-D06)
+ *   1. Is the position OWNER?              → then everything. Done.
+ *   At every level, bottom to top:
+ *     2. A personal rule for this user?    → that wins
+ *     3. A rule written on the template?   → that wins
+ *   4. Nothing found all the way up        → no (ADM-D06)
  *
- * দুটো নিয়ম এই ক্রম থেকে আপনা থেকেই বেরোয়, আর দুটোই যা আশা করা যায় তাই:
- *   • **নির্দিষ্ট জিনিস অস্পষ্টকে হারায়** — finance.pnl-এ টিক finance-এর টিককে
- *     হারাবে, কারণ সে নিচে, তাই আগে পড়া হয়।
- *   • **একই স্তরে ব্যক্তি পদকে হারায়** — "রফিক ডেলিভারির লোক, কিন্তু ওকে
- *     স্টকটাও দেখতে দাও" এক সারিতে হয়ে যায়, আর বাকি ডেলিভারির লোকেরা অক্ষত থাকে।
+ * Two rules fall out of this order by themselves, both the expected ones:
+ *   • **specific beats vague** — a tick on finance.pnl beats the tick on
+ *     finance, because it sits lower and is read first.
+ *   • **person beats position at the same level** — "Rafiq is a delivery
+ *     man, but let him see stock too" is one row, and every other delivery
+ *     man is untouched.
  */
 @Injectable()
 export class AccessService implements OnModuleInit {
@@ -47,24 +48,24 @@ export class AccessService implements OnModuleInit {
   }
 
   /* ------------------------------------------------------------------ *
-   *  শুরুর তিনটে পদ
+   *  The starter positions
    * ------------------------------------------------------------------ */
 
   /**
-   * ADM-D02 — প্রথম দিন কারও কিছু বদলাবে না।
+   * ADM-D02 — nothing changes for anybody on day one.
    *
-   * তিনটে পদ বানানো হয় আজকের AppRole enum-এর হুবহু নকল হিসেবে, আর টিকগুলো
-   * সাইডবারে আজ যা লেখা আছে ঠিক সেখান থেকেই আসে (legacyRoles)। এর মানে
-   * পর্দা চালু হওয়ার দিন কেউ নতুন কিছু পায় না, কেউ কিছু হারায় না —
-   * তারপর মালিক ধীরে ধীরে নিজের মতো সাজাবেন।
+   * Three positions are created as exact copies of the old AppRole enum, and
+   * the ticks come from what the sidebar literally said that day
+   * (legacyRoles). So the day this screen went live nobody gained anything
+   * and nobody lost anything — the owner reshapes them at his own pace.
    *
-   * ⚠️ শুধু MODULE স্তরে আর যেখানে সাইডবারে সত্যিই নিয়ম লেখা আছে সেখানে সারি
-   * বসে — ১৫৯টায় নয়। বাকিরা উত্তরাধিকারে পায়। ১৫৯টা সারি বসালে "শুধু
-   * ব্যতিক্রম রাখা"র পুরো কথাটাই মিথ্যে হয়ে যেত, আর প্রতিটা নতুন পর্দা
-   * ৩ × ১টা সারির ঋণ নিয়ে জন্মাত।
+   * ⚠️ Rows are written only at MODULE level and where the sidebar really
+   * had a rule — not for all 159 screens. The rest inherit. Writing 159
+   * rows would make "store only the exceptions" a lie, and every new screen
+   * would be born owing 3 × 1 rows.
    *
-   * একবারই চলে। পদ থাকলে হাত দেয় না — নইলে প্রতিবার API চালু হলে মালিকের
-   * নিজের হাতে করা টিক মুছে যেত।
+   * Runs once. If positions exist it does not touch them — otherwise every
+   * API restart would erase the owner's own hand-made ticks.
    */
   private async seedStarterPositions(): Promise<void> {
     const already = await this.prisma.db.position.count();
@@ -94,7 +95,7 @@ export class AccessService implements OnModuleInit {
         },
       });
 
-      // OWNER-এর কোনো সারি লাগে না — isOwner সব খুলে দেয় (ADM-RULE-004)
+      // OWNER needs no rows — isOwner opens everything (ADM-RULE-004)
       if (role === 'OWNER') continue;
 
       const rows = REGISTRY.filter(
@@ -111,7 +112,7 @@ export class AccessService implements OnModuleInit {
   }
 
   /* ------------------------------------------------------------------ *
-   *  পদ
+   *  Positions
    * ------------------------------------------------------------------ */
 
   async positions() {
@@ -203,9 +204,10 @@ export class AccessService implements OnModuleInit {
   }
 
   /**
-   * ADM-RULE-004 — OWNER পদ মোছা যায় না।
-   * আর কেউ ওই পদে থাকলে অন্য পদগুলোও মোছা যায় না: মুছে দিলে তাদের positionId
-   * NULL হয়ে যেত আর তারা নীরবে সব অ্যাক্সেস হারাত। আগে সরাতে হবে, তারপর মুছতে।
+   * ADM-RULE-004 — the OWNER position cannot be deleted.
+   * A position somebody still holds cannot be deleted either: deleting it
+   * would NULL their positionId and they would silently lose all access.
+   * Move them first, then delete.
    */
   async removePosition(id: string, actorName: string) {
     const p = await this.prisma.db.position.findUnique({
@@ -241,10 +243,10 @@ export class AccessService implements OnModuleInit {
   }
 
   /* ------------------------------------------------------------------ *
-   *  টিক
+   *  Ticks
    * ------------------------------------------------------------------ */
 
-  /** একটা পদের সব সিদ্ধান্ত — { nodeKey: allowed } */
+  /** every decision a position holds — { nodeKey: allowed } */
   async positionAccess(positionId: string) {
     const rows = await this.prisma.positionAccess.findMany({
       where: { positionId },
@@ -253,8 +255,8 @@ export class AccessService implements OnModuleInit {
   }
 
   /**
-   * একটা node-এ সিদ্ধান্ত বসানো বা তুলে নেওয়া।
-   * allowed = null মানে "সারিটা মুছে দাও" — অর্থাৎ উপরের যা বলে তাই (উত্তরাধিকার)।
+   * Write a decision on a node, or take it back.
+   * allowed = null means "delete the row" — i.e. whatever the parent says.
    */
   async setPositionAccess(
     positionId: string,
@@ -299,12 +301,12 @@ export class AccessService implements OnModuleInit {
   }
 
   /* ------------------------------------------------------------------ *
-   *  হিসাব
+   *  The verdict
    * ------------------------------------------------------------------ */
 
   /**
-   * একজন মানুষের জন্য প্রতিটা node-এর চূড়ান্ত উত্তর — { key: boolean }।
-   * সাইডবার এটা পড়ে, আর §৭-এর ধাপ ৩-এ পাহারাও এটাই পড়বে।
+   * The final answer for every node, for one person — { key: boolean }.
+   * The sidebar reads this, and the guard (§7 stage 3) reads the same.
    */
   async effectiveFor(userId: string): Promise<Record<string, boolean>> {
     const user = await this.prisma.db.appUser.findUnique({
@@ -317,7 +319,7 @@ export class AccessService implements OnModuleInit {
       where: { retiredAt: null },
     });
 
-    // ধাপ ১ — OWNER সব পায়
+    // step 1 — OWNER gets everything
     if (user.position?.isOwner || (!user.positionId && user.role === 'OWNER')) {
       return Object.fromEntries(nodes.map((n) => [n.key, true]));
     }
@@ -354,14 +356,38 @@ export class AccessService implements OnModuleInit {
       let at: string | null | undefined = n.key;
       let verdict: boolean | null = null;
       while (at && verdict === null) {
-        // ধাপ ২ — একই স্তরে ব্যক্তি পদকে হারায়
+        // step 2 — at the same level, person beats position
         if (overrides.has(at)) verdict = overrides.get(at)!;
-        // ধাপ ৩
+        // step 3 — then the template speaks
         else if (positionRules.has(at)) verdict = positionRules.get(at)!;
         else at = parentOf.get(at) ?? null;
       }
-      // ধাপ ৪ — কিছুই না পেলে না
+      // step 4 — nothing found anywhere up the chain: no
       out[n.key] = verdict ?? false;
+    }
+
+    /*  THE LIFT — owner's catch, 19 Aug 2026: he allowed ONE screen inside a
+        module, left the module itself on Auto, and the module vanished — the
+        menu hides a module whose key answers false, and the API guard judges
+        by the module key, so the one allowed screen was unreachable both
+        ways. A module left on AUTO therefore counts as open when anything
+        inside it is explicitly allowed. An explicit BLOCK on the module is
+        untouched — "Block: you said shut" keeps meaning exactly that. The
+        module's other screens are unaffected: they still inherit nothing and
+        stay closed (step 4).  */
+    const explicitAllow: string[] = [];
+    for (const [k, v] of overrides) if (v) explicitAllow.push(k);
+    for (const [k, v] of positionRules)
+      if (v && !overrides.has(k)) explicitAllow.push(k);
+
+    for (const n of nodes) {
+      if (n.kind !== 'MODULE' || out[n.key]) continue;
+      if (overrides.has(n.key) || positionRules.has(n.key)) continue;
+      for (const k of explicitAllow) {
+        let at = parentOf.get(k) ?? null;
+        while (at && at !== n.key) at = parentOf.get(at) ?? null;
+        if (at === n.key) { out[n.key] = true; break; }
+      }
     }
     return out;
   }
