@@ -16,6 +16,7 @@ import type {
   TypeWriteDto,
   MethodWriteDto,
   SlotWriteDto,
+  SlotTemplateWriteDto,
   RiderWriteDto,
   CourierWriteDto,
   AssignDto,
@@ -217,6 +218,30 @@ export class DeliveryController {
   @Delete('slots/:slotId')
   removeSlot(@Param('slotId') slotId: string) {
     return this.delivery.removeSlot(slotId);
+  }
+
+  /* ---- slot masters · DEC-DLV-018 (made once, connected in Setup) ---- */
+  @Get('slot-templates')
+  slotTemplates() {
+    return this.delivery.listSlotTemplates();
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Post('slot-templates')
+  createSlotTemplate(@Body() dto: SlotTemplateWriteDto) {
+    return this.delivery.createSlotTemplate(dto);
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Patch('slot-templates/:id')
+  updateSlotTemplate(@Param('id') id: string, @Body() dto: SlotTemplateWriteDto) {
+    return this.delivery.updateSlotTemplate(id, dto);
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Delete('slot-templates/:id')
+  removeSlotTemplate(@Param('id') id: string) {
+    return this.delivery.removeSlotTemplate(id);
   }
 
   /* ---- settling a carrier (DEC-DLV-016/017) ---- */

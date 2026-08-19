@@ -4,11 +4,12 @@ import { useState } from "react";
 import Icon from "./Icon";
 import { TONE, type Tone } from "./OrderViews";
 import { CouriersMaster, OffersRules } from "./DeliveryConfig";
-import { ZonesAvailability } from "./ZonesAvailability";
+import { DeliveryConnections } from "./ZonesAvailability";
 
-/* Delivery > Setup — three tabs; each tab brings its own titled section. */
+/* Delivery > Setup — three tabs. The first CONNECTS the masters made on
+   Methods & slots (DEC-DLV-018); nothing is created there. */
 const TABS: { key: string; label: string; icon: string; tone: Tone }[] = [
-  { key: "zones", label: "Zones · types · slots", icon: "pin", tone: "purple" },
+  { key: "zones", label: "Zone setup", icon: "pin", tone: "purple" },
   { key: "fleet", label: "Couriers & riders", icon: "truck", tone: "blue" },
   { key: "rules", label: "Blackout & rules", icon: "shield", tone: "green" },
 ];
@@ -29,7 +30,7 @@ export function DeliverySetup() {
           );
         })}
       </div>
-      {tab === "zones" && <ZonesAvailability />}
+      {tab === "zones" && <DeliveryConnections />}
       {tab === "fleet" && <CouriersMaster />}
       {tab === "rules" && <OffersRules />}
     </div>

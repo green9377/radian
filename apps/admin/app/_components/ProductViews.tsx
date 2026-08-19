@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Switch as DSwitch } from "./DeliveryUI";
 import {
   listProducts,
   updateProduct,
@@ -1535,14 +1536,15 @@ const DISPLAY_LABEL: Record<VDisplay, string> = {
  */
 const ACCENT_PV = "#cf43ea"; // orchid — the page's action colour
 
-/** row grid per mode — each mode carries ONLY its own columns (owner, 19 Aug) */
+/** row grid per mode — each mode carries ONLY its own columns (owner, 19 Aug).
+    The name column is capped: a full-width input looked like a form, not a list. */
 const vRowCls = (d: VDisplay) =>
   "grid items-center gap-2.5 px-3 " +
   (d === "SWATCH"
-    ? "grid-cols-[52px_minmax(0,1fr)_140px_54px_36px]"
+    ? "grid-cols-[52px_minmax(160px,300px)_140px_54px_36px]"
     : d === "PHOTO"
-      ? "grid-cols-[52px_minmax(0,1fr)_54px_36px]"
-      : "grid-cols-[minmax(0,1fr)_54px_36px]");
+      ? "grid-cols-[52px_minmax(160px,300px)_54px_36px]"
+      : "grid-cols-[minmax(160px,340px)_54px_36px]");
 
 /** hex code box — free typing, commits only a valid #rrggbb (or empty = clear) */
 function HexBox({ value, onCommit }: { value: string; onCommit: (hex: string) => void }) {
@@ -1908,11 +1910,7 @@ export function VariantAttributes() {
                     )}
 
                     <div className="flex justify-center">
-                      <button onClick={() => setValue(open.id, val.id, { active: !val.active })}
-                        className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                        style={val.active ? { background: "#e8f7ef", color: "#0e7a3d" } : { background: "#f1eef4", color: "#8a7b96" }}>
-                        {val.active ? "on" : "off"}
-                      </button>
+                      <DSwitch on={val.active} onClick={() => setValue(open.id, val.id, { active: !val.active })} small />
                     </div>
                     <button
                       onClick={() =>

@@ -24,6 +24,7 @@ import type {
   TypeWriteDto,
   MethodWriteDto,
   SlotWriteDto,
+  SlotTemplateWriteDto,
   RiderWriteDto,
   CourierWriteDto,
   AssignDto,
@@ -75,21 +76,22 @@ export class DeliveryService {
   }
 
   /*
-    ⚠️ SEEDING RESURRECTED WHAT THE OWNER DELETED — ১ আগস্ট ২০২৬।
+    ⚠️ SEEDING RESURRECTED WHAT THE OWNER DELETED — 1 Aug 2026.
 
-    মালিক Dhaka City-র নিচের delivery-গুলো মুছে নিজের মতো বানাতে গিয়েছিলেন,
-    আর মুছে দেওয়া নামগুলো ফিরে এসেছিল। কারণটা এক লাইনের:
+    The owner deleted the deliveries under Dhaka City to build his own, and
+    the deleted names came back. The cause was one line:
 
         const count = await this.prisma.db.deliveryMethod.count();
         if (count > 0) return;
 
-    `prisma.db` হলো soft-delete করা client — সে মুছে ফেলা সারি **গোনে না**।
-    তাই সব মুছে ফেলার পর count শূন্য, আর "খালি টেবিল" ভেবে seed আবার চারটা
-    সারি বসিয়ে দিত। দোকান কখনোই নিজের delivery তালিকা খালি করতে পারত না।
+    `prisma.db` is the soft-delete-aware client — it does NOT count deleted
+    rows. So after deleting everything the count was zero, and the seed,
+    thinking "empty table", planted its four rows again. The shop could never
+    truly empty its own delivery list.
 
-    এখন গোনা হয় **raw client** দিয়ে, যেটা মুছে ফেলা সারিও দেখে। মানে seed
-    জীবনে একবারই চলে — একদম নতুন database-এ। মালিক সব মুছে ফেললে টেবিল
-    খালিই থাকে, কারণ সেটাই তিনি চেয়েছেন।
+    The count now uses the RAW client, which sees deleted rows too. So the
+    seed runs exactly once in a lifetime — on a brand-new database. If the
+    owner empties the table, it stays empty, because that is what he asked.
   */
   private async seedMethodsIfEmpty() {
     const count = await this.prisma.deliveryMethod.count();
@@ -113,7 +115,7 @@ export class DeliveryService {
   }
 
   private async seedCouriersIfEmpty() {
-    /* raw client — মুছে ফেলা সারিও গোনে, নাহলে seed আবার ফিরিয়ে আনে */
+    /* raw client — counts deleted rows too, or the seed brings them back */
     const count = await this.prisma.courierService.count();
     if (count > 0) return;
     const seed = [
@@ -724,14 +726,15 @@ export class DeliveryService {
   }
 
   /* ================= areas (DEC-DLV-007) =================
-     মালিক, ১ আগস্ট ২০২৬: delivery module-এর নিয়ম অনুযায়ীই সব চলবে।
+     Owner, 1 Aug 2026: everything runs by the delivery module's own rules.
 
-     ⚠️ পর্দাটা আগে থেকেই ছিল — Zones · types · slots — কিন্তু সেটা
-     `DEMO_ZONE_TREE` নিয়ে browser-এর ভেতরে বসে ছিল। মালিক charge বদলে
-     refresh দিলেই সব মুছে যেত। যে পর্দা save করে না, সেটা পর্দা নয়, ছবি।
+     ⚠️ The screen existed before — Zones · types · slots — but it sat in the
+     browser with `DEMO_ZONE_TREE`. The owner changed a charge, refreshed, and
+     it was gone. A screen that does not save is not a screen, it is a picture.
 
-     গাছটা দুই স্তরের: parentId = null হলে মূল zone, নাহলে তার ভেতরের এলাকা।
-     একই টেবিলে, কারণ দুটোই একই জিনিস — একটা জায়গা, যার ভেতরে delivery যায়। */
+     The tree is two levels: parentId = null is a main zone, otherwise an area
+     inside one. One table, because both are the same thing — a place
+     deliveries go into. */
 
   async areas() {
     await this.seedZonesIfEmpty();
@@ -752,7 +755,7 @@ export class DeliveryService {
    * before anybody configures anything.
    */
   private async seedZonesIfEmpty() {
-    /* raw client — মুছে ফেলা সারিও গোনে, নাহলে seed আবার ফিরিয়ে আনে */
+    /* raw client — counts deleted rows too, or the seed brings them back */
     const count = await this.prisma.deliveryArea.count();
     if (count > 0) return;
     await this.prisma.db.deliveryArea.createMany({
@@ -766,9 +769,9 @@ export class DeliveryService {
   async createArea(dto: AreaWriteDto) {
     if (!dto.name?.trim()) throw new BadRequestException('name is required');
 
-    /*  একটা এলাকা তার zone নিজে ঠিক করে না — যার ভেতরে বসছে তার থেকেই পায়।
-        নাহলে একদিন Dhanmondi "BANGLADESH" zone-এ বসে থাকবে আর কেউ বুঝবে না
-        কেন ঢাকার তালিকায় সেটা নেই।  */
+    /*  An area does not pick its own zone — it inherits from whatever it sits
+        inside. Otherwise one day Dhanmondi ends up in the "BANGLADESH" zone
+        and nobody understands why it is missing from the Dhaka list.  */
     let zone = dto.zone as DeliveryZone | undefined;
     if (dto.parentId) {
       const parent = await this.prisma.db.deliveryArea.findFirst({
@@ -827,20 +830,21 @@ export class DeliveryService {
   }
 
   /* ================= types — the NAMES (DEC-DLV-008) =================
-     মালিক: *"delivery module-এ যা edit বা change করা হয়, তা যেন auto পুরা
-     system-এ কাজ করে।"* Product upload page এই তালিকাটাই দেখাবে — আর
-     কিছু না। নাম বদলালে সেখানেও বদলাবে, কারণ সংযোগটা id-র, লেখার নয়। */
+     Owner: "whatever is edited in the delivery module must work automatically
+     across the whole system." The product upload page shows THIS list and
+     nothing else. Rename here and it renames there — the link is by id, not
+     by text. */
 
   async types() {
     const rows = await this.prisma.db.deliveryType.findMany({
       where: { deletedAt: null },
       orderBy: [{ zone: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
       include: {
-        /*  ⚠️ কয়টা জায়গায় এর দাম বসানো আছে — আর এটা ছাড়া product page
-            মিথ্যা বলে। নাম থাকলেও যদি কোনো এলাকায় দাম না থাকে, তাহলে
-            checkout ওই delivery কখনোই দেখাবে না (DEC-DLV-009: দাম না
-            থাকলে `null`)। অথচ product-এ টিক দেওয়া যেত, আর মালিক ভাবতেন
-            কাজ করছে। একটা টিক যা কিছুই করে না, সেটা bug।  */
+        /*  ⚠️ how many places carry its price — and without this the product
+            page lies. A name with no price in any area is never shown by
+            checkout (DEC-DLV-009: no price = null), yet it could be ticked on
+            a product and the owner would think it works. A tick that does
+            nothing is a bug.  */
         _count: { select: { rates: { where: { deletedAt: null } } } },
       },
     });
@@ -868,9 +872,10 @@ export class DeliveryService {
     const t = await this.prisma.db.deliveryType.findFirst({ where: { id, deletedAt: null } });
     if (!t) throw new NotFoundException('delivery type not found');
 
-    /*  ⚠️ নাম বদলালে দামের সারিগুলোর `label`-ও সাথে বদলায়। ওই লেখাটা পুরনো
-        পর্দা আর order form এখনো পড়ে, আর দুই জায়গায় দুই নাম থাকলে মালিক
-        ভাববেন কোনটা আসল। order-এর snapshot ছোঁয়া হয় না — সেটা রসিদ।  */
+    /*  ⚠️ Renaming also renames the price rows' `label` — the old screens and
+        the order form still read that text, and two names in two places would
+        leave the owner guessing which is real. Order snapshots are never
+        touched — those are receipts.  */
     const renamed = dto.name?.trim() && dto.name.trim() !== t.name;
     const updated = await this.prisma.db.deliveryType.update({
       where: { id },
@@ -880,8 +885,9 @@ export class DeliveryService {
         sortOrder: dto.sortOrder ?? t.sortOrder,
         isActive: dto.isActive ?? t.isActive,
         timing: (dto.timing ?? t.timing) as DeliveryTiming,
-        /*  `undefined` = form বলেনি, আগেরটাই থাক। `null` = মালিক মুছে
-            দিয়েছেন। দুটো আলাদা রাখতেই হবে, নাহলে জানালা তোলা যায় না।  */
+        /*  `undefined` = the form said nothing, keep the old. `null` = the
+            owner cleared it. The two must stay apart, or a window can never
+            be removed.  */
         promiseMinutes: dto.promiseMinutes === undefined ? t.promiseMinutes : dto.promiseMinutes,
         openFromMin: dto.openFromMin === undefined ? t.openFromMin : dto.openFromMin,
         openToMin: dto.openToMin === undefined ? t.openToMin : dto.openToMin,
@@ -897,10 +903,10 @@ export class DeliveryService {
   }
 
   /**
-   * ⚠️ নাম মুছলে তার দামগুলোও যায়, কিন্তু product-এর সংযোগ **আপনাআপনি**
-   * মুছে যায় (`ON DELETE CASCADE`-এর মতো আচরণ, এখানে হাতে)। নাহলে product
-   * এমন একটা delivery-র দিকে দেখিয়ে থাকত যেটা আর নেই, আর checkout প্রতিবার
-   * একটা খালি জায়গা খুঁজত।
+   * ⚠️ Deleting a name takes its prices with it, and the product links are
+   * removed too (CASCADE-like behaviour, done by hand here). Otherwise a
+   * product would keep pointing at a delivery that no longer exists, and
+   * checkout would keep looking for an empty space.
    */
   async removeType(id: string) {
     const now = new Date();
@@ -991,6 +997,8 @@ export class DeliveryService {
         startMin: dto.startMin ?? null,
         endMin: dto.endMin ?? null,
         cutoffTime: dto.cutoffTime ?? null,
+        // DEC-DLV-018 — cast until the local client is regenerated on the host
+        ...({ templateId: dto.templateId ?? null } as object),
       },
     });
   }
@@ -1015,6 +1023,95 @@ export class DeliveryService {
   async removeSlot(slotId: string) {
     await this.prisma.db.deliverySlot.update({ where: { id: slotId }, data: { deletedAt: new Date() } });
     return { id: slotId, deleted: true };
+  }
+
+  /* ================= slot masters · DEC-DLV-018 =================
+     Made once here; Setup connects them to a zone-method, which copies the
+     master into a DeliverySlot row (checkout reads those, unchanged) and
+     remembers templateId. Editing a master fans out to its connections.
+     The db cast is temporary: the local Prisma client is regenerated on the
+     host (BUILD_CHECK.bat); the table itself is live via the migration. */
+
+  private get slotTemplates() {
+    return (this.prisma.db as unknown as {
+      deliverySlotTemplate: {
+        findMany: (a: unknown) => Promise<Record<string, unknown>[]>;
+        findFirst: (a: unknown) => Promise<Record<string, unknown> | null>;
+        create: (a: unknown) => Promise<Record<string, unknown>>;
+        update: (a: unknown) => Promise<Record<string, unknown>>;
+      };
+    }).deliverySlotTemplate;
+  }
+
+  async listSlotTemplates() {
+    const rows = await this.slotTemplates.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+    // usage count = live connections, so the screen can say "used in N places"
+    const links = await this.prisma.db.deliverySlot.groupBy({
+      by: ['templateId'],
+      where: { deletedAt: null, templateId: { not: null } },
+      _count: { _all: true },
+    } as never);
+    const byId = new Map(
+      (links as unknown as { templateId: string; _count: { _all: number } }[]).map((l) => [l.templateId, l._count._all]),
+    );
+    return rows.map((r) => ({ ...r, usedCount: byId.get(r.id as string) ?? 0 }));
+  }
+
+  async createSlotTemplate(dto: SlotTemplateWriteDto) {
+    if (!dto.label?.trim()) throw new BadRequestException('label is required');
+    return this.slotTemplates.create({
+      data: {
+        label: dto.label.trim(),
+        startMin: dto.startMin ?? null,
+        endMin: dto.endMin ?? null,
+        cutoffTime: dto.cutoffTime ?? null,
+        capacityPerDay: dto.capacityPerDay ?? null,
+        sortOrder: dto.sortOrder ?? 0,
+        isActive: dto.isActive ?? true,
+      },
+    });
+  }
+
+  async updateSlotTemplate(id: string, dto: SlotTemplateWriteDto) {
+    const t = await this.slotTemplates.findFirst({ where: { id, deletedAt: null } });
+    if (!t) throw new NotFoundException('slot not found');
+    const data = {
+      label: dto.label?.trim() || (t.label as string),
+      startMin: dto.startMin === undefined ? t.startMin : dto.startMin,
+      endMin: dto.endMin === undefined ? t.endMin : dto.endMin,
+      cutoffTime: dto.cutoffTime === undefined ? t.cutoffTime : dto.cutoffTime,
+      capacityPerDay: dto.capacityPerDay === undefined ? t.capacityPerDay : dto.capacityPerDay,
+      sortOrder: dto.sortOrder ?? (t.sortOrder as number),
+      isActive: dto.isActive ?? (t.isActive as boolean),
+    };
+    const updated = await this.slotTemplates.update({ where: { id }, data });
+    // the fan-out: one master, edited once, every connection follows
+    await this.prisma.db.deliverySlot.updateMany({
+      where: { deletedAt: null, ...({ templateId: id } as object) },
+      data: {
+        label: data.label,
+        startMin: data.startMin as number | null,
+        endMin: data.endMin as number | null,
+        cutoffTime: data.cutoffTime as string | null,
+        capacityPerDay: data.capacityPerDay as number | null,
+      },
+    });
+    return updated;
+  }
+
+  async removeSlotTemplate(id: string) {
+    const linked = await this.prisma.db.deliverySlot.count({
+      where: { deletedAt: null, ...({ templateId: id } as object) },
+    });
+    if (linked > 0)
+      throw new BadRequestException(
+        `This slot is connected in ${linked} place(s) — disconnect it in Setup first`,
+      );
+    await this.slotTemplates.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { id, deleted: true };
   }
 
   /** DLV-R05 — slot load for a given date; capacity warns, never blocks. */

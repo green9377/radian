@@ -4127,6 +4127,12 @@ model DeliverySlot {
   /// cannot tell three different truths.
   cutoffTime String?
 
+  /// DEC-DLV-018 — which slot MASTER this connection came from. The master is
+  /// edited once; edits fan out to every connected row. Checkout keeps reading
+  /// this row's own fields, so nothing downstream changed.
+  templateId String?
+  template   DeliverySlotTemplate? @relation(fields: [templateId], references: [id])
+
   orders Order[] // FK reference; slotLabel snapshot stays on the order
 
   createdAt DateTime  @default(now())
@@ -4134,6 +4140,27 @@ model DeliverySlot {
   deletedAt DateTime?
 
   @@index([methodId])
+  @@index([templateId])
+}
+
+/// DEC-DLV-018 (owner, 19 Aug 2026) — "method, zone and time slot are each
+/// made ONCE; Setup only connects them." This is the slot master. Connecting
+/// a slot to a zone-method in Setup creates a DeliverySlot row from it.
+model DeliverySlotTemplate {
+  id             String  @id @default(cuid())
+  label          String
+  startMin       Int?
+  endMin         Int?
+  cutoffTime     String?
+  capacityPerDay Int?
+  sortOrder      Int     @default(0)
+  isActive       Boolean @default(true)
+
+  slots DeliverySlot[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 /// DEC-DLV-004 — own master now; Employee module ADOPTS this later

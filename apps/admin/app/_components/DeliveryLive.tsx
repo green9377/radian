@@ -15,25 +15,18 @@ import {
   ApiAssignment,
   ApiBoardOrder,
   ApiCourierService,
-  ApiDeliveryMethod,
   ApiRider,
-  addDeliverySlot,
   addOrderPhoto,
   assignmentAction,
   bulkAssign,
   createAssignment,
   createRider,
   orderAction,
-  deleteDeliveryMethod,
-  deleteDeliverySlot,
   deleteRider,
   deliveryBoard,
-  createDeliveryMethod,
   listCourierServices,
-  listDeliveryMethods,
   listOrders,
   listRiders,
-  updateDeliveryMethod,
   updateDeliverySlot,
   updateRider,
   getOrder,
@@ -755,138 +748,11 @@ export function RidersLive() {
     The board still assigns to couriers exactly as before — it reads the same
     table through /delivery/couriers, which never moved.  */
 
-/* ================= METHODS & SLOTS (P3 master) ================= */
-export function MethodsLive() {
-  const [rows, setRows] = useState<ApiDeliveryMethod[] | null>(null);
-  const [demo, setDemo] = useState(false);
-  const [editing, setEditing] = useState<Partial<ApiDeliveryMethod> | null>(null);
-  const [newSlot, setNewSlot] = useState<Record<string, string>>({});
-
-  const load = useCallback(async () => {
-    try { setRows(await listDeliveryMethods()); setDemo(false); } catch { setRows([]); setDemo(true); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-
-  const save = async () => {
-    if (!editing?.label?.trim()) { alert("label is required"); return; }
-    const body = {
-      label: editing.label, zone: editing.zone ?? "DHAKA", kind: editing.kind ?? "RIDER",
-      feePaisa: editing.feePaisa ?? 0, cutoffTime: editing.cutoffTime ?? null, etaLabel: editing.etaLabel ?? null,
-      isActive: editing.isActive ?? true,
-    };
-    try {
-      if (editing.id) await updateDeliveryMethod(editing.id, body);
-      else await createDeliveryMethod(body);
-      setEditing(null);
-      await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
-  };
-
-  return (
-    <div className={WRAP}>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <PageHead eyebrow="Delivery · zones & methods" title="Methods & slots">
-          Your delivery options — zone, fee and time slots. The order form uses these.
-        </PageHead>
-        <div className="flex items-center gap-3">
-          {demo && <DemoBadge />}
-          <button onClick={() => setEditing({ zone: "DHAKA", kind: "RIDER", isActive: true })} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft"><Icon name="plus" size={16} /> Add method</button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {(rows ?? []).map((m) => (
-          <div key={m.id} className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-display text-[16px] text-purple">{m.label} {!m.isActive && <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2 py-0.5 rounded-full ml-1">Off</span>}</div>
-                <div className="text-[12.5px] text-body-soft mt-0.5">
-                  {m.zone === "DHAKA" ? "Inside Dhaka" : "Nationwide"} · {m.kind === "RIDER" ? "own rider" : "courier"} · {formatTaka(m.feePaisa)}
-                  {m.cutoffTime ? ` · order by ${m.cutoffTime}` : ""}{m.etaLabel ? ` · ${m.etaLabel}` : ""}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setEditing(m)} className="text-[13px] font-medium text-orchid hover:text-purple">Edit</button>
-                <button onClick={async () => { if (confirm(`Remove "${m.label}"? Existing orders keep their snapshot.`)) { await deleteDeliveryMethod(m.id); await load(); } }} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c]">Remove</button>
-              </div>
-            </div>
-            <div className="mt-3 border-t border-lavender-deep pt-3">
-              <Guide>Time slots {m.slots.length === 0 && "(none — method has no slot choice)"}</Guide>
-              <div className="flex gap-2 flex-wrap">
-                {m.slots.map((s) => (
-                  <span key={s.id} className="inline-flex items-center gap-2 bg-lavender text-purple text-[12.5px] font-medium px-3 py-1.5 rounded-[10px]">
-                    {s.label}{s.capacityPerDay ? <span className="text-body-soft font-normal">· cap {s.capacityPerDay}/day</span> : null}
-                    <button onClick={async () => { await deleteDeliverySlot(s.id); await load(); }} className="text-body-soft hover:text-[#b91c1c] font-bold">×</button>
-                  </span>
-                ))}
-                <span className="inline-flex items-center gap-1.5">
-                  <input
-                    className="ipt h-[34px] max-w-[140px] text-[12.5px]"
-                    placeholder="10:00–13:00"
-                    value={newSlot[m.id] ?? ""}
-                    onChange={(e) => setNewSlot({ ...newSlot, [m.id]: e.target.value })}
-                  />
-                  <button
-                    onClick={async () => {
-                      const label = (newSlot[m.id] ?? "").trim();
-                      if (!label) return;
-                      await addDeliverySlot(m.id, { label });
-                      setNewSlot({ ...newSlot, [m.id]: "" });
-                      await load();
-                    }}
-                    className="border-[1.5px] border-dashed border-lavender-deep hover:border-orchid text-body-soft hover:text-purple text-[12.5px] font-semibold px-3 py-1.5 rounded-[10px]"
-                  >＋ Add</button>
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
-        {rows !== null && rows.length === 0 && (
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-10 text-center text-body-soft lg:col-span-2">No methods yet — first API call seeds the storefront defaults.</div>
-        )}
-      </div>
-
-      {editing && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setEditing(null))}>
-          <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[440px]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-[18px] text-purple m-0 mb-4">{editing.id ? "Edit method" : "Add method"}</h3>
-            <Guide>Label *</Guide>
-            <input className="ipt mb-3" value={editing.label ?? ""} onChange={(e) => setEditing({ ...editing, label: e.target.value })} placeholder="2-Hour Express" />
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Guide>Zone</Guide>
-                <select className="ipt" value={editing.zone ?? "DHAKA"} onChange={(e) => setEditing({ ...editing, zone: e.target.value as "DHAKA" | "BANGLADESH" })}>
-                  <option value="DHAKA">Inside Dhaka</option><option value="BANGLADESH">Nationwide</option>
-                </select>
-              </div>
-              <div><Guide>Carried by</Guide>
-                <select className="ipt" value={editing.kind ?? "RIDER"} onChange={(e) => setEditing({ ...editing, kind: e.target.value as "RIDER" | "COURIER" })}>
-                  <option value="RIDER">Own rider</option><option value="COURIER">Courier</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div><Guide>Fee (৳)</Guide>
-                <input className="ipt" value={editing.feePaisa != null ? String(Math.round(editing.feePaisa / 100)) : ""} onChange={(e) => setEditing({ ...editing, feePaisa: Math.round((Number(e.target.value) || 0) * 100) })} />
-              </div>
-              <div><Guide>Order-by cut-off</Guide>
-                <input className="ipt" value={editing.cutoffTime ?? ""} onChange={(e) => setEditing({ ...editing, cutoffTime: e.target.value })} placeholder="20:00" />
-              </div>
-            </div>
-            <Guide>ETA label</Guide>
-            <input className="ipt mb-4" value={editing.etaLabel ?? ""} onChange={(e) => setEditing({ ...editing, etaLabel: e.target.value })} placeholder="within 2 hours" />
-            <label className="flex items-center gap-2 text-[13px] text-body mb-4">
-              <input type="checkbox" checked={editing.isActive ?? true} onChange={(e) => setEditing({ ...editing, isActive: e.target.checked })} /> Active (shows in the order form)
-            </label>
-            <div className="flex gap-2.5">
-              <button onClick={save} className="flex-1 bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium py-2.5 rounded-[11px]">Save</button>
-              <button onClick={() => setEditing(null)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+/*  METHODS & SLOTS LEFT THIS FILE — 19 Aug 2026 (DEC-DLV-018).
+    The masters (methods, time slots, zones) live in ZonesAvailability's
+    DeliveryMasters at /delivery/zones; connecting them to zones happens in
+    DeliveryConnections at /delivery/setup. This screen was the second,
+    diverging method-creation form — one form, one home now.  */
 
 /* ================= PROOF PHOTOS (P4) ================= */
 export function ProofLive() {

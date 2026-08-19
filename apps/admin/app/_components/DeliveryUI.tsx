@@ -94,6 +94,53 @@ export function Switch({ on, onClick, small }: { on: boolean; onClick: () => voi
   );
 }
 
+/** hour · minute · AM/PM as dropdowns — nobody types a time (owner, 19 Aug).
+    Value is minutes from midnight (9am = 540); null = not set. */
+export function TimeSelect({ value, onChange, allowEmpty }: {
+  value: number | null;
+  onChange: (min: number | null) => void;
+  allowEmpty?: boolean;
+}) {
+  const h24 = value != null ? Math.floor(value / 60) : null;
+  const mm = value != null ? value % 60 : null;
+  const h12 = h24 != null ? ((h24 + 11) % 12) + 1 : null;
+  const pm = h24 != null ? h24 >= 12 : false;
+
+  const commit = (h: number | null, m: number | null, isPm: boolean) => {
+    if (h == null) { onChange(null); return; }
+    let hh = h % 12;
+    if (isPm) hh += 12;
+    onChange(hh * 60 + (m ?? 0));
+  };
+
+  // arbitrary stored minutes (e.g. :10) stay pickable — the list adopts them
+  const minutes = Array.from(new Set([0, 15, 30, 45, ...(mm != null ? [mm] : [])])).sort((a, b) => a - b);
+  const sel = "ipt !px-2 text-[13px] font-medium";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <select className={sel} style={{ minHeight: 36, width: 62 }}
+        value={h12 ?? ""}
+        onChange={(e) => commit(e.target.value === "" ? null : Number(e.target.value), mm, pm)}>
+        {allowEmpty && <option value="">—</option>}
+        {!allowEmpty && h12 == null && <option value="" disabled>—</option>}
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <select className={sel} style={{ minHeight: 36, width: 62 }} disabled={h12 == null}
+        value={mm ?? 0}
+        onChange={(e) => commit(h12, Number(e.target.value), pm)}>
+        {minutes.map((m) => <option key={m} value={m}>:{String(m).padStart(2, "0")}</option>)}
+      </select>
+      <select className={sel} style={{ minHeight: 36, width: 64 }} disabled={h12 == null}
+        value={pm ? "PM" : "AM"}
+        onChange={(e) => commit(h12, mm, e.target.value === "PM")}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
 /** empty right-pane placeholder ("select or add") */
 export function EditorEmpty({ icon, title, desc, onAdd, addLabel }: { icon: string; title: string; desc: string; onAdd: () => void; addLabel: string }) {
   return (

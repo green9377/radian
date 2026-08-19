@@ -37,6 +37,19 @@ export interface SlotWriteDto {
   endMin?: number | null;
   /** "08:00" — this slot's own last-order time. null = until it starts. */
   cutoffTime?: string | null;
+  /** DEC-DLV-018 — which slot master this connection was made from */
+  templateId?: string | null;
+}
+
+/** DEC-DLV-018 — a slot MASTER: made once, connected to zone-methods in Setup */
+export interface SlotTemplateWriteDto {
+  label?: string;
+  startMin?: number | null;
+  endMin?: number | null;
+  cutoffTime?: string | null;
+  capacityPerDay?: number | null;
+  sortOrder?: number;
+  isActive?: boolean;
 }
 
 /** DEC-DLV-008 — a delivery NAME, shop-wide. Product upload shows these. */
@@ -46,16 +59,16 @@ export interface TypeWriteDto {
   kind?: 'RIDER' | 'COURIER';
   sortOrder?: number;
   isActive?: boolean;
-  /** DEC-DLV-010 — এই delivery কোন ছাঁচের */
+  /** DEC-DLV-010 — which shape this delivery follows */
   timing?:
     | 'FROM_CONFIRM'
     | 'TODAY_SLOT'
     | 'PICK_DATE_SLOT'
     | 'PICK_DATE_FIXED'
     | 'LEAD_DAYS';
-  /** FROM_CONFIRM হলে কত মিনিটের প্রতিশ্রুতি। ২ ঘণ্টা = 120। */
+  /** for FROM_CONFIRM: the promise in minutes. 2 hours = 120. */
   promiseMinutes?: number | null;
-  /** দিনের কোন সময়টায় এই delivery নেওয়া যাবে। মিনিটে, ১০টা = 600। */
+  /** which part of the day this delivery can be taken. Minutes, 10am = 600. */
   openFromMin?: number | null;
   openToMin?: number | null;
 }

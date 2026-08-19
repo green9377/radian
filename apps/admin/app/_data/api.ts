@@ -4379,7 +4379,30 @@ export interface ApiDeliverySlot {
   startMin?: number | null;
   endMin?: number | null;
   cutoffTime?: string | null;
+  /** DEC-DLV-018 — which slot master this connection was made from */
+  templateId?: string | null;
 }
+
+/** DEC-DLV-018 — a slot MASTER: made once, connected to zone-methods in Setup */
+export interface ApiSlotTemplate {
+  id: string;
+  label: string;
+  startMin?: number | null;
+  endMin?: number | null;
+  cutoffTime?: string | null;
+  capacityPerDay?: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  /** live connections — how many zone-methods carry this slot right now */
+  usedCount?: number;
+}
+export const listSlotTemplates = () => j<ApiSlotTemplate[]>(`/delivery/slot-templates`);
+export const createSlotTemplate = (b: Partial<ApiSlotTemplate>) =>
+  j<ApiSlotTemplate>(`/delivery/slot-templates`, { method: "POST", body: JSON.stringify(b) });
+export const updateSlotTemplate = (id: string, b: Partial<ApiSlotTemplate>) =>
+  j<ApiSlotTemplate>(`/delivery/slot-templates/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deleteSlotTemplate = (id: string) =>
+  j<{ id: string; deleted: boolean }>(`/delivery/slot-templates/${id}`, { method: "DELETE" });
 export interface ApiDeliveryMethod {
   id: string; label: string; zone: "DHAKA" | "BANGLADESH"; kind: "RIDER" | "COURIER";
   feePaisa: number; cutoffTime?: string | null; etaLabel?: string | null;

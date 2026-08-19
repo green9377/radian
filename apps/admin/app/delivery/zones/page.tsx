@@ -1,6 +1,7 @@
-import { MethodsLive } from "../../_components/DeliveryLive";
+import { DeliveryMasters } from "../../_components/ZonesAvailability";
 
-/* /delivery/zones — zone × method × slot master (LIVE, P3 done). */
+/* /delivery/zones — the delivery MASTERS: methods, time slots, zones.
+   Each is made once here; /delivery/setup connects them (DEC-DLV-018). */
 export default function MethodsPage() {
-  return <MethodsLive />;
+  return <DeliveryMasters />;
 }
