@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
 import {
-  WRAP, ACCENT, msg, ErrBar, OkBar, ItemThumb, QuickSelect,
+  WRAP, ACCENT, msg, ErrBar, OkBar, ItemThumb, QuickSelect, Modal, Field,
 } from "./ItemUI";
 import {
   getItem, createItem, updateItem, deleteItem, listItems, loadItemFormRefs, generateItemVariants,
@@ -138,6 +138,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   const [types, setTypes] = useState<ApiItemTypeRow[]>(FALLBACK_ITEM_TYPES);
 
   const [section, setSection] = useState<Section>("basics");
+  // create-category dialog (name + optional parent) — opened from the picker's create row
+  const [catDlg, setCatDlg] = useState<{ name: string; parentId: string } | null>(null);
+  const [catBusy, setCatBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -213,6 +216,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   /* ---------------- derived ---------------- */
 
   const meta = ITEM_TYPE_META[draft.itemType];
+  // Colour panel first, then the size types A–Z — sizes read as one group (owner, 20 Aug)
+  const orderedAttrs = useMemo(() => {
+    const isColour = (n: string) => /colou?r/i.test(n);
+    return attrs.slice().sort((a, b) =>
+      Number(isColour(b.name)) - Number(isColour(a.name)) || a.name.localeCompare(b.name));
+  }, [attrs]);
   const autoSku = useMemo(
     () => draft.name.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40),
     [draft.name],
@@ -554,7 +563,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               {/* DEC-ITM-017 — the owner's own list, plus a "+ New type" that opens a
                   small dialog. He can name it anything; he just has to say which of the
                   five it behaves like, because that is what the stock and cost rules read. */}
-              <Row label="Type" required hint="Pick a type, or add your own with “+ New type”.">
+              <Row label="Type" required hint="Pick a type, or add your own with “+ New type”. Rename or delete types on Items → Item types.">
                 <div className="flex gap-1.5 flex-wrap items-center">
                   {types.filter((t) => t.isActive !== false).map((t) => {
                     const tone = t.colour ?? ITEM_TYPE_META[t.behaviour].colour;
@@ -575,6 +584,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     );
                   })}
                   <NewTypeButton
+                    existing={types}
                     onCreate={async (name, behaviour, colour) => {
                       try {
                         const created = await createItemType({ name, behaviour, colour });
@@ -602,7 +612,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   )}
                 </Row>
 
-                <Row label="SKU" hint="One code used everywhere — orders, packing slips, stock.">
+                <Row label="SKU" required hint="One code used everywhere — orders, packing slips, stock. Auto-built from the name unless you type your own.">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                     <input className="ipt w-full font-mono" placeholder={autoSku || "auto"} value={skuTouched ? draft.sku : autoSku}
                       onChange={(e) => { setSkuTouched(true); set("sku", e.target.value.toUpperCase()); }} />
@@ -663,7 +673,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {section === "classify" && (
             <Sect title="Category & labels" hint="Where it sits in the stockroom, and which colour or size it is.">
               <Pair>
-              <Row label="Item category" hint="Your stockroom tree, e.g. Fresh Flowers → Roses.">
+              <Row label="Item category" hint="Your stockroom tree, e.g. Fresh Flowers → Roses. Creating one here can sit at the root or under a parent.">
                 <QuickSelect
                   value={draft.itemCategoryId}
                   placeholder="— no category —"
@@ -681,11 +691,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                       label: g.parentId ? `${groups.find((x) => x.id === g.parentId)?.name ?? "?"} › ${g.name}` : g.name,
                     }))}
                   onCreate={async (label) => {
-                    try {
-                      const created = await createItemCategory({ name: label });
-                      setGroups((p) => [...p, created]);
-                      return created.id;
-                    } catch (e) { setErr(msg(e, "Could not create that category.")); return null; }
+                    // sub-categories too — a dialog asks where it sits (owner, 20 Aug)
+                    setCatDlg({ name: label, parentId: "" });
+                    return null;
                   }}
                 />
               </Row>
@@ -739,7 +747,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {attrs.map((a) => {
+                        {orderedAttrs.map((a) => {
                           const picked = vGroups[a.id] ?? [];
                           const isColour = /colou?r/i.test(a.name);
                           /* read the CURRENT list out of the updater, not out of the
@@ -756,7 +764,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                               <div className="px-3.5 py-2.5 flex items-center gap-2 border-b"
                                 style={{ background: picked.length ? "#f5eafb" : "#faf6fd", borderColor: "#e8dcf0" }}>
                                 <Icon name={isColour ? "sparkle" : "grid"} size={13} />
-                                <span className="text-[13px] font-bold text-purple">{a.name}</span>
+                                <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                                 <span className="ml-auto text-[12px] font-semibold"
                                   style={{ color: picked.length ? ACCENT : "#8b7a95" }}>
                                   {picked.length ? `${picked.length} picked` : "none"}
@@ -859,7 +867,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   <Row label="Colour & size"><AttrStarter onDone={reloadRefs} onErr={setErr} /></Row>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {attrs.map((a) => {
+                    {orderedAttrs.map((a) => {
                       const isColour = /colou?r/i.test(a.name);
                       const chosen = a.values.find((v) => draft.attributeValueIds.includes(v.id));
                       /* same rule as the variant panel: derive from the live draft inside
@@ -874,7 +882,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
                           <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                             <Icon name={isColour ? "sparkle" : "grid"} size={13} />
-                            <span className="text-[13px] font-bold text-purple">{a.name}</span>
+                            <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                             <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "#8b7a95" }}>
                               {chosen?.label ?? "not set"}
                             </span>
@@ -1195,6 +1203,36 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
         </div>
       </div>
 
+      {/* ---- create category (name + optional parent) ---- */}
+      {catDlg && (
+        <Modal title="New item category" onClose={() => setCatDlg(null)}
+          canSave={!!catDlg.name.trim()} busy={catBusy} saveLabel="Create"
+          onSave={async () => {
+            setCatBusy(true);
+            try {
+              const created = await createItemCategory({ name: catDlg.name.trim(), parentId: catDlg.parentId || null });
+              setGroups((p) => [...p, created]);
+              set("itemCategoryId", created.id);
+              setCatDlg(null);
+            } catch (e) { setErr(msg(e, "Could not create that category.")); }
+            finally { setCatBusy(false); }
+          }}>
+          <Field label="Name" required>
+            <input className="ipt w-full" autoFocus value={catDlg.name}
+              onChange={(e) => setCatDlg({ ...catDlg, name: e.target.value })} />
+          </Field>
+          <Field label="Sits under">
+            <select className="ipt w-full" value={catDlg.parentId}
+              onChange={(e) => setCatDlg({ ...catDlg, parentId: e.target.value })}>
+              <option value="">Root — a top-level category</option>
+              {groups.filter((g) => !g.parentId).map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </Field>
+        </Modal>
+      )}
+
       {/* ---- delete confirm (house dialog) ---- */}
       {delOpen && item && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4" style={{ background: "rgba(44,15,61,.42)" }}>
@@ -1461,22 +1499,27 @@ function PhotoDrop({
 /* --------------------------------------------------------- new item type (DEC-ITM-017) */
 
 /**
- * "+ New type" — the owner names it, then picks which of the five it behaves like.
- * That second question is not bureaucracy: it is what tells the system whether the
- * thing is counted in stock, whether it can carry a recipe, and whether it can be
- * bought. Without it a custom type would be a word with no consequences.
+ * "+ New type" — a house dialog, not a panel wedged between the chips (owner, 20 Aug:
+ * a type is its own entity). The owner names it, then picks which of the five it
+ * behaves like — that is what the stock, cost and recipe rules read. Renaming and
+ * deleting live on the Item types master (/items/types).
  */
 function NewTypeButton({
-  onCreate,
-}: { onCreate: (name: string, behaviour: ItemType, colour: string) => Promise<void> }) {
+  existing, onCreate,
+}: {
+  existing: ApiItemTypeRow[];
+  onCreate: (name: string, behaviour: ItemType, colour: string) => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [behaviour, setBehaviour] = useState<ItemType>("RAW");
   const [busy, setBusy] = useState(false);
 
+  const dup = existing.some((t) => t.name.trim().toLowerCase() === name.trim().toLowerCase());
+
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)}
+      <button type="button" onClick={() => { setName(""); setBehaviour("RAW"); setOpen(true); }}
         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
         style={{ borderColor: "#d9c7e6", color: ACCENT }}>
         <Icon name="plus" size={13} /> New type
@@ -1485,36 +1528,21 @@ function NewTypeButton({
   }
 
   return (
-    <div className="w-full rounded-[14px] border p-4 mt-1" style={{ borderColor: "#d9c7e6", background: "#faf6fd" }}>
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
-        <div>
-          <label className="block text-[12.5px] font-bold text-purple mb-1.5">Type name</label>
-          <input className="ipt w-full" autoFocus placeholder="e.g. Dry Flower" value={name}
-            onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="flex gap-2">
-          <button type="button" disabled={!name.trim() || busy}
-            onClick={async () => {
-              setBusy(true);
-              await onCreate(name.trim(), behaviour, ITEM_TYPE_META[behaviour].colour);
-              setBusy(false); setOpen(false); setName("");
-            }}
-            className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] disabled:opacity-50"
-            style={{ background: ACCENT }}>
-            {busy ? "Adding…" : "Add"}
-          </button>
-          <button type="button" onClick={() => { setOpen(false); setName(""); }}
-            className="border border-lavender-deep bg-white text-purple text-[13px] font-semibold px-4 py-2.5 rounded-[10px]">
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <label className="flex items-center gap-1.5 text-[12.5px] font-bold text-purple mb-1.5">
-          Behaves like
-          <Info text="This is what the stock, cost and recipe rules read. The name above is yours; this says how the system should treat it." />
-        </label>
+    <Modal title="New item type" onClose={() => setOpen(false)}
+      canSave={!!name.trim() && !dup} busy={busy} saveLabel="Add type"
+      onSave={async () => {
+        setBusy(true);
+        await onCreate(name.trim(), behaviour, ITEM_TYPE_META[behaviour].colour);
+        setBusy(false); setOpen(false);
+      }}>
+      <Field label="Name" required>
+        <input className="ipt w-full" autoFocus placeholder="Dry Flower, Imported Chocolate…"
+          value={name} onChange={(e) => setName(e.target.value)} />
+        {name.trim() && dup && (
+          <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
+        )}
+      </Field>
+      <Field label="Behaves like" required>
         <div className="flex gap-1.5 flex-wrap">
           {(Object.keys(ITEM_TYPE_META) as ItemType[]).map((t) => {
             const m = ITEM_TYPE_META[t];
@@ -1530,8 +1558,8 @@ function NewTypeButton({
             );
           })}
         </div>
-      </div>
-    </div>
+      </Field>
+    </Modal>
   );
 }
 
@@ -1806,10 +1834,16 @@ function VariantPhoto({
         <input type="file" accept="image/*" className="hidden"
           onChange={(e) => { take(e.target.files?.[0]); e.currentTarget.value = ""; }} />
       </label>
-      {own && (
+      {own ? (
         <button type="button" onClick={() => onPick(null)} title="Use the group photo instead"
           className="absolute -top-1.5 -right-1.5 w-[17px] h-[17px] rounded-full text-white text-[11px] leading-none grid place-items-center"
           style={{ background: ACCENT }}>×</button>
+      ) : (
+        /* a visible door — the owner could not tell the tile was clickable (20 Aug) */
+        <span className="absolute -bottom-1 -right-1 w-[17px] h-[17px] rounded-full grid place-items-center text-white pointer-events-none"
+          style={{ background: ACCENT }}>
+          <Icon name="plus" size={10} />
+        </span>
       )}
     </span>
   );
