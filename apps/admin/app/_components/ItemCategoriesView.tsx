@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Icon from "./Icon";
 import { WRAP, ACCENT, msg, ErrBar, OkBar, Modal, Field, StatusPill, OfflineBox, DataTable } from "./ItemUI";
 import {
@@ -100,25 +99,8 @@ export default function ItemCategoriesView() {
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
   }
 
-  /** the usual five, one click — for a brand-new shop */
-  async function quickStart() {
-    setBusy(true); setErr(null);
-    try {
-      for (const [top, kids] of [
-        ["Fresh Flowers", ["Roses", "Lilies", "Fillers"]],
-        ["Artificial Flowers", []],
-        ["Packaging", ["Wrapping", "Ribbon", "Boxes"]],
-        ["Gift Items", ["Chocolate", "Soft Toys"]],
-        ["Workshop Supplies", []],
-      ] as [string, string[]][]) {
-        const parent = await createItemCategory({ name: top });
-        for (const k of kids) { try { await createItemCategory({ name: k, parentId: parent.id }); } catch { /* dupe */ } }
-      }
-      setOk("Categories created.");
-      await load();
-    } catch (e) { setErr(msg(e, "Could not create them.")); }
-    finally { setBusy(false); }
-  }
+  // The one-click "usual five" starter was removed on the owner's order (19 Aug):
+  // no button anywhere may pour prepared data into a live database.
 
   return (
     <div className={WRAP}>
@@ -179,17 +161,7 @@ export default function ItemCategoriesView() {
 
         {!loading && rows.length === 0 && (
           <div className="text-center py-12 px-4">
-            <div className="text-[14px] text-purple font-medium">{query ? "Nothing matches" : "No categories yet"}</div>
-            {!query && !offline && (
-              <>
-                <p className="text-[13px] text-body-soft m-0 mt-1 mb-3">Press Add New, or drop in the usual five.</p>
-                <button onClick={quickStart} disabled={busy}
-                  className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-60"
-                  style={{ background: ACCENT }}>
-                  <Icon name="download" size={14} /> {busy ? "Creating…" : "Add the usual five"}
-                </button>
-              </>
-            )}
+            <div className="text-[14px] text-purple font-semibold">{query ? "Nothing matches" : "No categories yet — press Add New"}</div>
           </div>
         )}
       </DataTable>
@@ -203,7 +175,7 @@ export default function ItemCategoriesView() {
           canSave={!!dlg.name.trim()}
           busy={busy}
         >
-          <Field label="Under" hint="Leave as Root for a main category.">
+          <Field label="Under">
             <select className="ipt w-full" value={dlg.parentId} onChange={(e) => setDlg({ ...dlg, parentId: e.target.value })}>
               <option value="">Root</option>
               {tops.filter((t) => t.id !== dlg.id).map((t) => (
@@ -220,10 +192,6 @@ export default function ItemCategoriesView() {
         </Modal>
       )}
 
-      <p className="text-[13px] text-body-soft mt-3">
-        This is your stockroom&rsquo;s own list. The website&rsquo;s categories are separate —
-        <Link href="/categories" className="underline text-purple ml-1">Categories</Link>.
-      </p>
     </div>
   );
 }

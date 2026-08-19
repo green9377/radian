@@ -87,19 +87,18 @@ function useCssImage() {
   }
 
   /**
-   * ফেরত আসে **সোজা URL** — CSS নয়।
+   * Returns a PLAIN URL — not CSS.
    *
-   * ⚠️ `pick()` (উপরে) ফেরত দেয় `url(…) center/cover`, কারণ সেটা background
-   * হিসেবে বসে। কিন্তু variant-এর ছবি database-এ **URL** হিসেবে থাকতে হবে,
-   * নাহলে category page বা Google feed সেটা ছবি হিসেবে পড়তে পারবে না —
-   * CSS একটা style, ঠিকানা নয়। এই দুটো গুলিয়ে ফেলার কারণেই variant-এর
-   * ছবি এতদিন রঙের কলামে গিয়ে বসত।
+   * ⚠️ `pick()` (above) returns `url(…) center/cover` because it goes into a
+   * background style. But a variant's image must live in the database as a URL,
+   * or the category page and the Google feed cannot read it as an image — CSS is
+   * a style, not an address. Mixing those two up is exactly why variant images
+   * used to end up in the colour column.
    *
-   * ⚠️ আকার জোর করে বর্গাকার করা হয় **না** — মালিকের সংশোধন, ১ আগস্ট ২০২৬:
-   * *"আমি just product image-এ বলসি ১/১ হবে, আর বাকিগুলা হচ্ছে তার
-   * requirement-এ যা দরকার সে অনুযায়ী হবে।"* DEC-PDP-11 শুধু product
-   * photo-র নিয়ম। ১ MB-র সীমা (DEC-PDP-12) সব ছবিতেই খাটে, আর সেটা
-   * `uploadItemImage` নিজেই সামলায়।
+   * ⚠️ The shape is NOT forced square — owner's correction, 1 Aug 2026: "I only
+   * said 1:1 for the product image; the rest are whatever their requirement
+   * needs." DEC-PDP-11 is a product-photo rule only. The 1 MB cap (DEC-PDP-12)
+   * applies to every image, and `uploadItemImage` enforces it itself.
    */
   async function pickUrl(id: string, file: File | undefined, apply: (url: string) => void) {
     if (!file) return;
@@ -1481,18 +1480,20 @@ type VDisplay = "SWATCH" | "PHOTO" | "TEXT";
 interface VValue {
   id: string;
   label: string;
-  /** রঙের বিন্দু — product page-এর pill-এ এটাই দেখা যায় */
+  /** the colour dot — this is what the product page's pill shows */
   hex?: string;
   /**
-   * ছবি — category page-এর card-এ এটাই দেখা যায়।
+   * The image — this is what the category page's card shows.
    *
-   * ⚠️ আগে ছবিটা `hex`-এর ভেতরেই ঢোকানো হতো, `url(…) center/cover` লেখা
-   * হিসেবে, আর সেটা database-এ `swatch` কলামে চলে যেত। ফল: একটা মানের
-   * **হয় রঙ, নয় ছবি** — দুটো একসাথে নয়। কিন্তু মালিকের দরকার ঠিক দুটোই:
-   * *"product page-এ সব size আকারে দেখাব, আর ছবি দিয়ে দেখাতে চাইলে
-   * category page-এ দেখাব।"* একই মান, দুই জায়গায় দুই চেহারা — তাই দুই ঘর।
+   * ⚠️ The image used to be stuffed INSIDE `hex` as `url(…) center/cover` text,
+   * which went into the database's `swatch` column. Result: a value had either
+   * a colour or an image — never both. But the owner needs exactly both:
+   * "on the product page I show every size as a shape; when I want to show it
+   * with a photo, that goes on the category page." One value, two faces in two
+   * places — hence two fields.
    *
-   * `imageUrl` কলামটা database-এ প্রথম দিন থেকেই ছিল, কেউ কখনো ভরেনি।
+   * The `imageUrl` column existed in the database from day one; nobody ever
+   * filled it.
    */
   imageUrl?: string;
   active: boolean;
@@ -1504,11 +1505,11 @@ interface VAttribute {
   values: VValue[];
 }
 /**
- * Category page কোন চেহারায় দেখাবে।
+ * Which face the category page leads with.
  *
- * ⚠️ এটা আর ঠিক করে না **কী সংরক্ষণ হবে** — প্রতিটা মানের এখন রঙ আর ছবি
- * দুটোই থাকে। এটা শুধু বলে category page-এর card কোনটা আগে দেখাবে।
- * Product page সবসময় pill-ই দেখায়, ছাঁচ যাই হোক — মালিকের নিয়ম।
+ * ⚠️ This no longer decides WHAT is stored — every value now keeps both a
+ * colour and an image. It only says which one the category card shows first.
+ * The product page always shows the pill, whatever the mode — owner's rule.
  */
 const DISPLAY_LABEL: Record<VDisplay, string> = {
   SWATCH: "Colour",
@@ -1517,20 +1518,20 @@ const DISPLAY_LABEL: Record<VDisplay, string> = {
 };
 
 /**
- * এই list-এর মানগুলো **frontend-এ কোন চেহারায় দেখা যাবে**।
+ * How this list's values APPEAR on the frontend.
  *
- * ⚠️ এটা ঠিক করে না **কী ভরা যাবে** — মালিকের চূড়ান্ত কথা, ১ আগস্ট ২০২৬:
- * *"color, image, text — তিনটাই থাকবে। যখন যেটা frontend-এ দেখাতে চাইব
- * সেটাই দেখাব।"*
+ * ⚠️ It does not decide what can be filled in — owner's final word, 1 Aug 2026:
+ * "colour, image, text — all three stay. Whichever I want on the frontend at
+ * the time is the one I show."
  *
- * তাই প্রতিটা option-এ তিনটা ঘরই সবসময় থাকে — রঙ, ছবি, নাম। এই বোতামটা
- * শুধু **একটা switch**: আজ রঙ দেখাব, কাল ছবি। ছবি একবার তুলে রাখলে সেটা
- * বসেই থাকে, mode ফেরালেই আবার দেখা যায় — কিছু হারায় না।
+ * So every option always keeps all three fields — colour, image, name. This
+ * button is only a SWITCH: show colour today, photo tomorrow. An uploaded
+ * image stays put; flip the mode back and it reappears — nothing is lost.
  *
- * ⚠️ আমি এর আগে দুবার ভুল করেছি এখানে। প্রথমে ছবিটা রঙের কলামে ঢুকিয়েছি
- * (তখন দুটো একসাথে রাখাই যেত না), তারপর mode দিয়ে ঘর লুকিয়েছি (তখন ছবি
- * তুলতেই পারতেন না যদি না mode বদলাতেন)। দুটোই ভুল ছিল একই কারণে:
- * **সংরক্ষণ আর প্রদর্শন এক জিনিস নয়।**
+ * ⚠️ I got this wrong twice before. First I put the image in the colour column
+ * (then the two could not coexist), then I hid fields by mode (then you could
+ * not even upload an image without changing mode). Both failed for the same
+ * reason: STORAGE and DISPLAY are not the same thing.
  */
 const DISPLAY_HINT: Record<VDisplay, string> = {
   SWATCH: "Frontend shows the colour dot.",
@@ -1544,52 +1545,8 @@ const v = (label: string, hex?: string): VValue => ({
   active: true,
 });
 
-const SEED_ATTRIBUTES: VAttribute[] = [
-  {
-    id: "colour",
-    name: "Colour",
-    display: "SWATCH",
-    values: [
-      v("Red", "#C4172B"),
-      v("Pink", "#E8A0C0"),
-      v("Deep Red", "#7A0C2E"),
-      v("White", "#F4F1EC"),
-      v("Yellow", "#E9B93A"),
-      v("Purple", "#8A45B8"),
-      v("Mixed", "#C7263C"),
-    ],
-  },
-  {
-    id: "flavour",
-    name: "Flavour",
-    display: "PHOTO",
-    values: [
-      v("Chocolate"),
-      v("Red Velvet"),
-      v("Vanilla"),
-      v("Fresh Fruit"),
-      v("Black Forest"),
-    ],
-  },
-  {
-    id: "size",
-    name: "Size",
-    display: "TEXT",
-    values: [v("Standard"), v("Large"), v("Grand")],
-  },
-  {
-    id: "weight",
-    name: "Weight",
-    display: "TEXT",
-    values: [v("1 lb"), v("1.5 lb"), v("2 lb"), v("3 lb")],
-  },
-  {
-    id: "stems",
-    name: "Stem count",
-    display: "TEXT",
-    values: [v("12 stems"), v("24 stems"), v("50 stems"), v("100 stems")],
-  },
-];
+// SEED_ATTRIBUTES (a fake starter catalogue shown when the API was down) was
+// removed on the owner's order, 19 Aug: sample data must never appear anywhere.
 
 function fromApiAttr(a: ApiVariantAttribute): VAttribute {
   return {
@@ -1610,10 +1567,10 @@ const toApiValues = (values: VValue[]) =>
   values.map((val, i) => ({
     label: val.label,
     swatch: val.hex ?? null,
-    /*  ⚠️ এই লাইনটা ছিল না — তাই ছবি কোনোদিন save হয়নি। API প্রথম দিন
-        থেকেই `imageUrl` নিত, পর্দা কখনো পাঠায়নি।  */
-    /*  খালি লেখা মানে "মুছে দাও" — `?? null` ফাঁকা string-কে ফাঁকা string
-        হিসেবেই পাঠাত, আর তখন ছবি সরানো যেত না।  */
+    /*  ⚠️ This line was missing — so images never saved. The API accepted
+        `imageUrl` from day one; the screen just never sent it.  */
+    /*  Empty text means "remove it" — `?? null` used to pass an empty string
+        through as-is, and then an image could never be taken off.  */
     imageUrl: val.imageUrl?.trim() ? val.imageUrl : null,
     sortOrder: i,
     isActive: val.active,
@@ -1622,13 +1579,12 @@ const toApiValues = (values: VValue[]) =>
 export function VariantAttributes() {
   const [attrs, setAttrs] = useState<VAttribute[]>([]);
   const [demo, setDemo] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDisplay, setNewDisplay] = useState<VDisplay>("SWATCH");
   const [draft, setDraft] = useState<Record<string, string>>({});
-  /** কোন list খোলা আছে (বাঁ পাশের তালিকা থেকে) */
+  /** which list is open (picked from the left column) */
   const [selId, setSelId] = useState<string | null>(null);
-  /** কোন option-টা এই মুহূর্তে edit-এ আছে। null = সবগুলো শুধু দেখার। */
+  /** which option is being edited right now. null = all read-only. */
   const [editVal, setEditVal] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1641,7 +1597,9 @@ export function VariantAttributes() {
         setDemo(false);
       } catch {
         if (!alive) return;
-        setAttrs(SEED_ATTRIBUTES);
+        // API unreachable: show NOTHING, not a made-up catalogue (owner, 19 Aug —
+        // no screen may present sample data as if it were real)
+        setAttrs([]);
         setDemo(true);
       }
     })();
@@ -1665,14 +1623,15 @@ export function VariantAttributes() {
         const next = { ...x, ...patch };
         if (!demo && id.length >= 20 && (patch.name !== undefined || patch.display !== undefined)) {
           /*
-            ⚠️ খালি নাম কখনো save হয় না — ১ আগস্ট ২০২৬-এ ঠিক এটাই ঘটেছিল।
-            "Colour" list-টার নাম মুছে খালি হয়ে গিয়েছিল, আর তার সাতটা রঙ
-            নিয়ে সে database-এ নামহীন বসে ছিল। নামহীন list কোথাও খুঁজে
-            পাওয়া যায় না, অথচ product-গুলো তখনো তার মানগুলোর দিকেই দেখাচ্ছিল।
+            ⚠️ An empty name is never saved — exactly this happened on 1 Aug
+            2026. The "Colour" list's name got wiped to blank and it sat in the
+            database nameless with its seven colours. A nameless list can be
+            found nowhere, yet the products still pointed at its values.
 
-            প্রতিটা keystroke-এ save হয় বলে একবার select-all + delete-ই
-            যথেষ্ট ছিল। ফাঁকা নাম টাইপ করতে দেওয়া হয় (নাহলে মোছা যেত না),
-            শুধু পাঠানো হয় না — মালিক নতুন নাম লিখলেই সেটা যায়।
+            Because every keystroke saved, one select-all + delete was enough.
+            Typing a blank name is still allowed (otherwise you could not clear
+            it) — it just is not sent; the moment the owner types a new name,
+            that goes through.
           */
           if (next.name.trim()) {
             updateVariantAttribute(id, { name: next.name.trim(), displayMode: next.display }).catch(() => {});
@@ -1727,7 +1686,7 @@ export function VariantAttributes() {
 
   const totalValues = attrs.reduce((s, a) => s + a.values.length, 0);
 
-  /*  কোন list খোলা আছে। প্রথমবার প্রথমটাই।  */
+  /*  which list is open — the first one on first load  */
   const openId = selId ?? attrs[0]?.id ?? null;
   const open = attrs.find((x) => x.id === openId) ?? null;
 
@@ -1745,27 +1704,20 @@ export function VariantAttributes() {
       </PageHead>
 
       {/*
-        ═══════════════════════════════════════════════════════════════════════
-        ⚠️ পুরো পর্দাটা নতুন করে বানানো — ১ আগস্ট ২০২৬।
+        ⚠️ The whole screen was rebuilt on 1 Aug 2026. Owner: "so much text, the
+        whole page is plain white, it scrambles my head — I want an easier
+        UI/UX so working here is not boring."
 
-        মালিক: *"এত text, পুরা page একদম white. কেমন জানি মাথা গুলিয়ে যায়।
-        এটার আরও easy UI/UX চাই — যাতে কাজ করতে এসে কারো কাছে boring না
-        লাগে।"*
-
-        যা ভুল ছিল, আর সেটা text-এর পরিমাণ নয় — **গঠন**। ছয়টা list একটার
-        নিচে আরেকটা, প্রতিটার প্রতিটা option একটা করে সাদা input box, আর সব
-        সবসময় "লেখার" অবস্থায়। পর্দার কোথাও **দেখার** মতো কিছু ছিল না, শুধু
-        ভরার মতো ঘর। তাই এতগুলো সাদা বাক্স মাথা ধরিয়ে দিত।
-
-        এখন Delivery module-এর মতোই দুই ভাগ — বাঁয়ে তালিকা, ডানে কাজ।
-        একবারে একটা list, আর তার option-গুলো তাদের **নিজের চেহারায়**:
-        রঙ হলে বড় রঙের গোল, ছবি হলে ছবির টালি, লেখা হলে ছোট pill।
-        সবসময় edit নয় — চাপলে তবেই edit খোলে।
-        ═══════════════════════════════════════════════════════════════════════
+        What was wrong was STRUCTURE, not the amount of text: six lists stacked,
+        every option a white input box, everything permanently in "writing"
+        state. Nothing on the screen was for LOOKING at. Now it is split like
+        the Delivery module — list on the left, work on the right. One list at
+        a time, and its options appear in their own faces: a big colour dot, a
+        photo tile, or a small text pill. Edit opens only on click.
       */}
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
 
-        {/* ── বাঁ পাশ: কোন list ── */}
+        {/* ── left: which list ── */}
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-2.5">
           {attrs.map((a) => {
             const on = a.id === openId;
@@ -1796,7 +1748,7 @@ export function VariantAttributes() {
             );
           })}
 
-          {/*  নতুন list — নিচে, ছোট করে। কাজের সময় এটা প্রধান জিনিস নয়।  */}
+          {/*  new list — at the bottom, small. Not the main thing while working.  */}
           <div className="border-t border-lavender-deep mt-2 pt-2.5 px-1">
             <input
               className="ipt h-[38px] text-[13px]"
@@ -1829,7 +1781,7 @@ export function VariantAttributes() {
           </div>
         </div>
 
-        {/* ── ডান পাশ: সেই list-এর option ── */}
+        {/* ── right: that list's options ── */}
         {!open ? (
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-16 text-center">
             <div className="font-display text-[19px] text-purple mb-1">No lists yet</div>
@@ -1872,10 +1824,10 @@ export function VariantAttributes() {
             <p className="text-[12.5px] text-body-soft mt-0 mb-4">{DISPLAY_HINT[open.display]}</p>
 
             {/*
-              ── option-গুলো, নিজের চেহারায় ──────────────────────────────────
-              ⚠️ প্রতিটা option আর একটা করে input box নয়। রঙ হলে রঙই দেখা
-              যায়, ছবি হলে ছবি। চাপলে তবেই edit খোলে — তাই পর্দাটা বেশিরভাগ
-              সময় **দেখার** জিনিস, ভরার নয়।
+              ── the options, in their own faces ──
+              ⚠️ An option is no longer one input box each. A colour shows as
+              colour, a photo as photo. Edit opens only on click — so most of
+              the time this screen is for LOOKING, not filling.
             */}
             <div className="flex flex-wrap gap-2.5">
               {open.values.map((val) => {
@@ -1893,9 +1845,9 @@ export function VariantAttributes() {
                       className="w-full p-2.5 text-left"
                     >
                       {/*
-                        টালিটা **frontend যা দেখাবে** তাই দেখায় — mode অনুযায়ী।
-                        কিন্তু নিচের edit-এ তিনটা ঘরই থাকে, তাই যা তোলা আছে
-                        তা কখনো হারায় না।
+                        The tile shows what the FRONTEND will show — per mode.
+                        The edit below keeps all three fields, so nothing
+                        uploaded is ever lost.
                       */}
                       {open.display === "SWATCH" && (
                         <span
@@ -1912,8 +1864,8 @@ export function VariantAttributes() {
                         </span>
                       )}
                       {open.display === "TEXT" && (val.hex || val.imageUrl) && (
-                        /*  Text mode-এ রঙ/ছবি দেখানো হয় না, কিন্তু আছে কিনা
-                            বলা হয় — নাহলে মালিক ভাববেন মুছে গেছে।  */
+                        /*  Text mode does not show the colour/photo, but it says
+                            they exist — or the owner will think they were wiped.  */
                         <span className="flex items-center gap-1.5 mb-1">
                           {val.hex && (
                             <span className="w-3 h-3 rounded-full border border-lavender-deep" style={{ background: val.hex }} />
@@ -1941,12 +1893,11 @@ export function VariantAttributes() {
                           onChange={(e) => setValue(open.id, val.id, { label: e.target.value })}
                         />
                         {/*
-                          ⚠️ তিনটাই সবসময় — মালিক: *"color, image, text তিনটাই
-                          থাকবে। যখন যেটা frontend-এ দেখাতে চাইব সেটাই দেখাব।"*
-
-                          mode শুধু বলে **কোনটা দেখাব**, কোনটা **রাখা যাবে** তা
-                          নয়। তাই Size list-এও রঙ বসানো যায় — আজ না লাগলেও কাল
-                          mode বদলালেই কাজে লাগবে, আর কিছু আবার টাইপ করতে হবে না।
+                          ⚠️ Always all three — owner: "colour, image, text all
+                          stay; I show whichever I want on the frontend." Mode
+                          only picks what is SHOWN, never what may be KEPT — so
+                          even a Size list can hold colours: useless today,
+                          ready the day the mode flips, nothing retyped.
                         */}
                         <div className="flex gap-1.5">
                           <label
@@ -1976,8 +1927,8 @@ export function VariantAttributes() {
                               onChange={(e) => {
                                 const f = e.target.files?.[0];
                                 e.target.value = "";
-                                /*  আকার নিয়ে জোর নেই — ১:১ শুধু product
-                                    photo-র নিয়ম। ১ MB-র সীমা সব ছবিতে।  */
+                                /*  no shape enforcement — 1:1 is a product-photo
+                                    rule only. The 1 MB cap covers every image.  */
                                 void img.pickUrl(val.id, f, (url) => setValue(open.id, val.id, { imageUrl: url }));
                               }}
                             />
@@ -2030,7 +1981,7 @@ export function VariantAttributes() {
                 );
               })}
 
-              {/*  নতুন option — একই আকারের একটা খালি টালি, তাই সারিটা ভাঙে না  */}
+              {/*  new option — an empty tile of the same size, so the row keeps its rhythm  */}
               <div
                 className="rounded-[14px] border-[1.5px] border-dashed border-orchid-mid bg-orchid-soft/30 p-2.5 flex flex-col justify-center"
                 style={{ width: open.display === "TEXT" ? 150 : 116 }}
@@ -3008,7 +2959,6 @@ export function AddonsView() {
     } catch { /* keep silent — badge covers offline */ }
   }
 
-  const [seeding, setSeeding] = useState(false);
 
   /* deleting must not leave orphans: an add-on leaves every group it sits in,
      and a group takes its rules with it. The API mirrors this server-side. */

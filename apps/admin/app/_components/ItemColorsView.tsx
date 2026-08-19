@@ -118,19 +118,9 @@ export default function ItemColorsView() {
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
   }
 
-  /** put the whole usual palette in at once */
-  async function addAll() {
-    setBusy(true); setErr(null);
-    try {
-      const id = await ensureAttr();
-      for (const c of PRESET) {
-        try { await addItemAttrValue(id, { label: c.label, swatch: c.hex }); } catch { /* dupe */ }
-      }
-      setOk("Colours added.");
-      await load();
-    } catch (e) { setErr(msg(e, "Could not add them.")); }
-    finally { setBusy(false); }
-  }
+  // The one-click "usual colours" bulk-insert was removed on the owner's order
+  // (19 Aug): no button anywhere may pour prepared data into a live database.
+  // PRESET stays — in the dialog it only fills the form, it writes nothing.
 
   return (
     <div className={WRAP}>
@@ -184,17 +174,7 @@ export default function ItemColorsView() {
 
         {!loading && colours.length === 0 && (
           <div className="text-center py-12 px-4">
-            <div className="text-[14px] text-purple font-medium">{query ? "Nothing matches" : "No colours yet"}</div>
-            {!query && !offline && (
-              <>
-                <p className="text-[13px] text-body-soft m-0 mt-1 mb-3">Add them one at a time, or drop in the usual 18.</p>
-                <button onClick={addAll} disabled={busy}
-                  className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-60"
-                  style={{ background: ACCENT }}>
-                  <Icon name="download" size={14} /> {busy ? "Adding…" : "Add the usual colours"}
-                </button>
-              </>
-            )}
+            <div className="text-[14px] text-purple font-semibold">{query ? "Nothing matches" : "No colours yet — press Add New"}</div>
           </div>
         )}
       </DataTable>
@@ -217,7 +197,7 @@ export default function ItemColorsView() {
                   onKeyDown={(e) => { if (e.key === "Enter" && dlg.label.trim()) save(); }} />
               </Field>
 
-              <Field label="Colour code" hint="Paste a code like #f9c2d4, or use the picker. Leave it blank for “no colour”.">
+              <Field label="Colour code">
                 <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-center">
                   <input type="color" className="w-[42px] h-[38px] rounded-[9px] border border-lavender-deep bg-white p-1 cursor-pointer"
                     value={isHex(dlg.hex) ? dlg.hex : "#ffffff"}
@@ -255,9 +235,6 @@ export default function ItemColorsView() {
         </Modal>
       )}
 
-      <p className="text-[13px] text-body-soft mt-3">
-        Used on <b>New item → An item with variants</b>: type &ldquo;Rose&rdquo;, tick Red / Yellow / White, get three items at once.
-      </p>
     </div>
   );
 }

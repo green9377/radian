@@ -111,25 +111,8 @@ export default function ItemSizesView() {
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
   }
 
-  /** the size types a flower & gift shop actually uses */
-  async function quickStart() {
-    setBusy(true); setErr(null);
-    const seed: [string, string[]][] = [
-      ["Size", ["Small", "Medium", "Large", "Extra Large"]],
-      ["Flower Vase", ['6"', '8"', '10"', '12"']],
-      ["Ribbon", ["half inch", "1 inch", "2 inch", "1 Feet", "2 Feet"]],
-      ["Gift Box", ["Small", "Medium", "Large", "Heart shape"]],
-    ];
-    try {
-      for (const [name, values] of seed) {
-        const a = await createItemAttribute(name);
-        for (const v of values) { try { await addItemAttrValue(a.id, { label: v }); } catch { /* dupe */ } }
-      }
-      setOk("Size types added.");
-      await load();
-    } catch (e) { setErr(msg(e, "Could not add them.")); }
-    finally { setBusy(false); }
-  }
+  // The one-click "usual four" starter was removed on the owner's order (19 Aug):
+  // no button anywhere may pour prepared data into a live database.
 
   return (
     <div className={WRAP}>
@@ -186,17 +169,7 @@ export default function ItemSizesView() {
 
         {!loading && rows.length === 0 && (
           <div className="text-center py-12 px-4">
-            <div className="text-[14px] text-purple font-medium">{query ? "Nothing matches" : "No size types yet"}</div>
-            {!query && !offline && (
-              <>
-                <p className="text-[13px] text-body-soft m-0 mt-1 mb-3">Add one, or drop in the usual four.</p>
-                <button onClick={quickStart} disabled={busy}
-                  className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-60"
-                  style={{ background: ACCENT }}>
-                  <Icon name="download" size={14} /> {busy ? "Adding…" : "Add the usual four"}
-                </button>
-              </>
-            )}
+            <div className="text-[14px] text-purple font-semibold">{query ? "Nothing matches" : "No size types yet — press Add New"}</div>
           </div>
         )}
       </DataTable>
@@ -210,7 +183,7 @@ export default function ItemSizesView() {
           canSave={!!dlg.name.trim()}
           busy={busy}
         >
-          <Field label="Size type name" required hint="What is being measured — Flower Vase, Ribbon, Gift Box.">
+          <Field label="Size type name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. Flower Vase"
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })} />
           </Field>
@@ -242,9 +215,6 @@ export default function ItemSizesView() {
             </div>
           </div>
 
-          <p className="text-[13px] text-body-soft m-0 mt-2.5">
-            Press Enter in a box to open the next one. Empty boxes are ignored.
-          </p>
         </Modal>
       )}
     </div>
