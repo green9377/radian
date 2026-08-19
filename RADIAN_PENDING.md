@@ -1,10 +1,47 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _সর্বশেষ: ১৭ আগস্ট ২০২৬。_
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 19 Aug 2026._
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
 
 ---
+
+## 🧪 MODULE-BY-MODULE TESTING — the campaign board (19 Aug 2026)
+
+Owner tests hands-on, one phase at a time; Claude does ALL the work and
+ships to demo; nothing outside the current phase's pages gets touched
+unless the owner says so.
+
+| Phase | Scope | State |
+|---|---|---|
+| 0 | Baseline sweep + demo DB cleaned to config-only | done (18 Aug) |
+| 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
+| 2 | Masters — the vocabulary (units, item types/categories, variant lists, supplier types, channels, zones) | **NEXT** |
+| 3–10 | Purchase/Inventory → Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
+
+Phase 1 closed with, all verified live on demo and owner-tested:
+- template workshop (Access) + People & accounts with exactly two doors;
+  invites REQUIRE a template; one-time links point at the real panel
+- guard ENFORCING (stage 3); the rajib hole closed at both layers; 25
+  unjudged API prefixes aliased, and the drift check now scans every .ts
+  file (52 prefixes, 0 uncovered)
+- THE LIFT: a module on Auto opens when a screen inside it is allowed;
+  AccessGate: a pasted URL meets a closed-door card, not a page of 403s
+- ONE notification bell (OWNER) carries every state notice; pages carry
+  none (backup, guard refusals, invites, licence, papers, payment
+  sandbox/off, undecided screens)
+- redesigned in the house style: Overview, Access, People, Activity &
+  sessions (merged, history as modal), Company (destination tags),
+  All settings (coloured map), Backup
+
+Deferred on purpose (do in their own phase, or when the owner asks):
+- ADM-D10 second half: auto-deactivate access when employment ends
+- state banners on Finance/Marketing/HR pages move to the bell in their
+  own phases (each needs its bell watch wired and checked)
+- test leftovers in demo DB: accounts Test Manager / Test Staff / aa,
+  templates "ass" / "gdfgdf" — owner may delete via the UI anytime
+- PIN test rides Phase 9 (Finance) — the lock is Administration's, the
+  buttons that demand it are Finance's
 
 ## 🔤 প্রকল্প থেকে বাংলা সরানো (চলমান, ১৭ আগস্ট শুরু)
 
