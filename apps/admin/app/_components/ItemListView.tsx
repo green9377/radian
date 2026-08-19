@@ -277,9 +277,12 @@ export default function ItemListView() {
     } finally { setDelBusy(false); }
   }
 
+  // house dialog, not window.confirm() (Phase 2 ruling)
+  const [genOpen, setGenOpen] = useState(false);
+
   async function runGenerator() {
-    if (isDemo) { setErr("Start the API (:4000) first — the generator writes to the real database."); return; }
-    if (!confirm("Create one item for every product that does not have one yet?\n\nExisting codes are carried over. Nothing is deleted and no stock is touched.")) return;
+    if (isDemo) { setErr("The API is not reachable — the generator writes to the real database."); return; }
+    setGenOpen(false);
     setBusy(true); setErr(null); setOk(null);
     try { const r = await generateItemsFromProducts(); setOk(r.message); await load(); }
     catch (e) { setErr(msg(e, "Generator failed.")); }
@@ -297,7 +300,7 @@ export default function ItemListView() {
           <h1 className="font-display text-[28px] text-purple mt-1 mb-0 leading-tight">All items</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={runGenerator} disabled={busy}
+          <button onClick={() => setGenOpen(true)} disabled={busy}
             className="border border-lavender-deep bg-white text-purple text-[13.5px] font-semibold px-4 py-2.5 rounded-[11px] hover:border-orchid inline-flex items-center gap-2 disabled:opacity-50"
             title="Create one item for every product that does not have one yet">
             <Icon name="bolt" size={14} /> From products
@@ -312,6 +315,36 @@ export default function ItemListView() {
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
       {isDemo && <DemoBar what="a sample Radian shop" onRetry={load} />}
+
+      {/* the generator's confirm — a dialog, not window.confirm() */}
+      {genOpen && (
+        <div className="fixed inset-0 z-[100] grid place-items-center p-4"
+          style={{ background: "rgba(44,15,61,.42)" }}
+          {...backdropClose(() => setGenOpen(false))}>
+          <div className="bg-white rounded-[18px] shadow-lift w-[460px] max-w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-lavender-deep">
+              <div className="text-[15px] font-bold text-purple">Create items from products?</div>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[13px] text-body m-0">
+                One item is created for every product that does not have one yet. Existing codes
+                are carried over — nothing is deleted and no stock is touched.
+              </p>
+            </div>
+            <div className="px-5 py-3.5 flex items-center gap-2 justify-end border-t border-lavender-deep bg-lavender/25">
+              <button onClick={() => setGenOpen(false)}
+                className="border border-lavender-deep bg-white text-purple text-[13px] font-semibold px-4 py-2.5 rounded-[10px]">
+                Cancel
+              </button>
+              <button onClick={runGenerator}
+                className="text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>
+                Create the items
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ITM-R07 — one dialog, and it always has a way forward in it */}
       {confirming && (
@@ -425,9 +458,6 @@ export default function ItemListView() {
                 );
               })}
             </div>
-            {kind === "VARIANT" && (
-              <span className="text-[12.5px] text-body-soft">Items that carry a colour or size label.</span>
-            )}
           </div>
         </div>
 

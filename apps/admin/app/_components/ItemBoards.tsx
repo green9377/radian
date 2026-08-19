@@ -76,7 +76,6 @@ export function ItemTrashView() {
       <ItemPageHead
         eyebrow="master data · items"
         title="Trash"
-        blurb="Deleted items wait here. Restore one and it comes back exactly as it was — or destroy it for good, if nothing else depends on it."
         right={<Link href="/items/list" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">All items</Link>}
       />
 
@@ -84,18 +83,6 @@ export function ItemTrashView() {
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
       {isDemo && <DemoBar what="an empty trash" onRetry={load} />}
       {loading && <div className="text-[13px] text-body-soft mb-4">Loading…</div>}
-
-      <div className="rounded-[14px] border px-4 py-3 mb-5 text-[12.5px] grid grid-cols-[auto_1fr] gap-3 items-start" style={{ background: "#f7f1fb", borderColor: "#efe4f7" }}>
-        <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0 mt-0.5" style={{ background: ACCENT }}><Icon name="shield" size={14} /></span>
-        <div>
-          <div className="font-semibold text-[13px]" style={{ color: "#470066" }}>Deleting hides. Destroying is forever.</div>
-          <p className="m-0 mt-0.5 text-body leading-relaxed">
-            Everything here can come back exactly as it was — cost, photo, labels and all. <b>Destroy for good</b>
-            removes the row from the database, with no undo, and is refused for anything that has ever been sold:
-            an order line naming an item that no longer exists turns last month&apos;s report into blanks.
-          </p>
-        </div>
-      </div>
 
       <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-lavender-deep flex items-center gap-3 flex-wrap">

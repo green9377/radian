@@ -17,7 +17,7 @@ unless the owner says so.
 | 0 | Baseline sweep + demo DB cleaned to config-only | done (18 Aug) |
 | 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
 | 2 | Masters — units, categories, colours/sizes, variants, supplier types, channels, delivery masters+setup | **CLOSED 19 Aug** |
-| 3 | Purchase / Inventory | **IN PROGRESS (19 Aug)** — direction: `RADIAN_PHASE3_DIRECTION.md` |
+| 3 | Items → Purchase → Inventory | **IN PROGRESS (19 Aug)** — owner's correction: purchases need items, so Items pages (new/list/editor/recipes/costs/trash) are tested FIRST; direction: `RADIAN_PHASE3_DIRECTION.md` |
 | 4–10 | Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
 
 Phase 2 closed with (all owner-tested and revised, live on demo):

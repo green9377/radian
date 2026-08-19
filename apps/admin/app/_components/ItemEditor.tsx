@@ -367,11 +367,13 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
     try { setItem(await getItem(itemId)); } catch { /* keep what we have */ }
   }
   /**
-   * ITM-R07 from inside the item. Kept deliberately small — the list has the full
-   * dialog; here the two outcomes are a plain confirm and a plain unlink-confirm,
-   * because you are already looking at the thing and its "Where it is used" panel.
+   * ITM-R07 from inside the item — same rules as the list: a recipe dependency
+   * blocks, a product link is offered as an unlink. House dialog, never
+   * window.confirm() (Phase 2 ruling).
    */
-  async function removeThis() {
+  const [delOpen, setDelOpen] = useState(false);
+
+  function removeThis() {
     if (!item) return;
     const used = item._count?.usedIn ?? 0;
     if (used) {
@@ -381,17 +383,15 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
       );
       return;
     }
-    const linked = item._count?.products ?? 0;
-    const ask = linked
-      ? `Delete “${item.name}”?\n\n${linked} product${linked === 1 ? " is" : "s are"} linked to it. ` +
-        `${linked === 1 ? "It" : "They"} will be unlinked — name, price and photos are untouched.\n\n` +
-        `The item moves to the trash and can be restored.`
-      : `Delete “${item.name}”?\n\nIt moves to the trash — hidden, not destroyed.`;
-    if (!confirm(ask)) return;
+    setDelOpen(true);
+  }
 
+  async function doDelete() {
+    if (!item) return;
+    const linked = item._count?.products ?? 0;
     setSaving(true); setErr(null);
     try { await deleteItem(item.id, linked > 0); router.push("/items/list"); }
-    catch (e) { setErr(msg(e, "Could not delete this item.")); setSaving(false); }
+    catch (e) { setErr(msg(e, "Could not delete this item.")); setSaving(false); setDelOpen(false); }
   }
 
   async function setCostMode(m: "AUTO" | "MANUAL") {
@@ -460,10 +460,6 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           ))}
         </div>
 
-        <p className="text-[12.5px] text-body-soft mt-5 max-w-[860px]">
-          Not sure? Pick <b>single</b> — you can always add more items later. Variants only exist to save you
-          filling the same form three times.
-        </p>
       </div>
     );
   }
@@ -1198,6 +1194,39 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {!isNew && item && <HistoryPanel itemId={item.id} />}
         </div>
       </div>
+
+      {/* ---- delete confirm (house dialog) ---- */}
+      {delOpen && item && (
+        <div className="fixed inset-0 z-[100] grid place-items-center p-4" style={{ background: "rgba(44,15,61,.42)" }}>
+          <div className="bg-white rounded-[18px] shadow-lift w-[460px] max-w-full overflow-hidden">
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-lavender-deep">
+              <ItemThumb item={item} size={40} />
+              <div className="min-w-0">
+                <div className="text-[15px] font-bold text-purple truncate">Delete “{item.name}”?</div>
+                <div className="text-[12.5px] font-mono text-body-soft">{item.sku}</div>
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-[13px] text-body m-0">
+                {(item._count?.products ?? 0) > 0
+                  ? `${item._count!.products} linked product${item._count!.products === 1 ? " keeps" : "s keep"} name, price and photos — only the link is removed. The item moves to the trash and can be restored.`
+                  : "It moves to the trash — hidden, not destroyed. Restore it whenever you like."}
+              </p>
+            </div>
+            <div className="px-5 py-3.5 flex items-center gap-2 justify-end border-t border-lavender-deep bg-lavender/25">
+              <button onClick={() => setDelOpen(false)} disabled={saving}
+                className="border border-lavender-deep bg-white text-purple text-[13px] font-semibold px-4 py-2.5 rounded-[10px]">
+                Cancel
+              </button>
+              <button onClick={doDelete} disabled={saving}
+                className="text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] disabled:opacity-50"
+                style={{ background: ACCENT }}>
+                {saving ? "Working…" : (item._count?.products ?? 0) > 0 ? `Unlink ${item._count!.products} and delete` : "Move to trash"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
