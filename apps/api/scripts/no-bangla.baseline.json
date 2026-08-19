@@ -84,7 +84,6 @@
   "apps/admin/app/_components/ReportsCentre.tsx": 1,
   "apps/admin/app/_components/SpecialDateField.tsx": 7,
   "apps/admin/app/_components/ZonesAvailability.tsx": 102,
-  "apps/admin/app/_data/api.ts": 108,
   "apps/admin/app/_data/customers.ts": 1,
   "apps/admin/app/_data/orders.ts": 1,
   "apps/admin/app/_data/productDetails.ts": 29,

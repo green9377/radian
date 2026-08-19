@@ -8,7 +8,7 @@ import {
   demoSegmentList,
 } from "./demoStore";
 
-// ⇄ SWAP HERE base — Radian API (:4000) client। mock (_data/*) ধীরে ধীরে এখান থেকে replace হবে।
+// ⇄ SWAP HERE base — Radian API (:4000) client. The mocks (_data/*) are replaced from here piece by piece.
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -24,9 +24,9 @@ export interface ApiTag {
   name: string;
   type?: "OCCASION" | "RECIPIENT" | null; // LEGACY — tags are grouped now (see ApiTagNode/tag-groups)
   /**
-   * DEC-PRD-022 — কোন group-এর tag। `/tags` বরাবরই এটা পাঠাত, শুধু এই
-   * type-এ লেখা ছিল না — তাই product editor group ধরে সাজাতে পারত না আর
-   * চিপগুলো হাতে লেখা তালিকা থেকে আঁকা হতো।
+   * DEC-PRD-022 — which group this tag belongs to. `/tags` always sent it;
+   * it was simply missing from this type — so the product editor could not
+   * arrange by group and the chips were drawn from a hand-written list.
    */
   group?: { id: string; name: string } | null;
   groupId?: string | null;
@@ -35,11 +35,12 @@ export interface ApiTag {
 }
 /*  storefront base — "View on site" opens the real product page there.
 
-    ৫ আগস্ট, মালিক ধরলেন: demo admin থেকে View চাপলে localhost:3000-এ নিয়ে
-    যাচ্ছিল — env fallback-টা ছিল লোকাল dev-এর, আর NEXT_PUBLIC_WEB_URL demo
-    admin-এ বসানো হয়নি। Render-এর env-form যেমন চুপচাপ save হারায় (CORS-এর
-    রাতের শিক্ষা), env-এর একার ভরসায় আর থাকা নয়: env থাকলে সেটাই; নইলে
-    ব্রাউজার যদি localhost-এ চলে তবে লোকাল দোকান, নয়তো demo-র দোকান।  */
+    5 Aug, the owner caught it: View from the demo admin led to
+    localhost:3000 — the env fallback was local dev's, and
+    NEXT_PUBLIC_WEB_URL was never set on the demo admin. Render's env form
+    silently loses saves (the CORS night's lesson), so env alone is never
+    trusted again: use env if set; otherwise if the browser runs on
+    localhost use the local shop, else the demo shop.  */
 const WEB_FALLBACK =
   typeof window !== "undefined" && window.location.hostname !== "localhost"
     ? "https://radian-web-tan.vercel.app"
@@ -50,19 +51,19 @@ export const storefrontUrl = (slug: string) => `${WEB_BASE}/products/${slug}`;
     whichever domain is live (demo today, radianbd.com later) shows itself */
 export const WEB_HOST = WEB_BASE.replace(/^https?:\/\//, "");
 
-/** DEC-PRD-012 — এক product-এর একটা variant */
+/** DEC-PRD-012 — one variant of one product */
 export interface ApiProductVariant {
   id: string;
   variantValueId: string;
-  /** নিজের ছবি। খালি = product-এর মূল ছবি। */
+  /** its own image. Empty = the product's main image. */
   imageUrl?: string | null;
   stockQty: number;
-  /** DEC-PRD-015 — এই রঙের নিজের stockroom Item। null = product-এরটাই। */
+  /** DEC-PRD-015 — this colour's own stockroom Item. null = the product's. */
   itemId?: string | null;
   item?: { id: string; sku: string; name: string } | null;
-  /** ঐচ্ছিক। null = product-এর মূল দাম (মালিকের নিয়ম: রঙে এক দাম)। */
+  /** optional. null = the product's base price (owner's rule: one price per colour). */
   pricePaisa?: number | null;
-  /** DEC-PRD-032 — এই variant-এর নিজের ছাড়। PERCENT = basis point, FLAT = পয়সা। */
+  /** DEC-PRD-032 — this variant's own discount. PERCENT = basis points, FLAT = paisa. */
   discountType?: "NONE" | "FLAT" | "PERCENT";
   discountValue?: number;
   sortOrder: number;
@@ -89,22 +90,22 @@ export interface ApiProduct {
   stockQty: number;
   showStock: boolean;
   /**
-   * DEC-DLV-008 — কোন delivery-গুলোতে এই product যেতে পারে।
-   * API `deliveryTypes: [{ typeId }]` পাঠায়; editor শুধু id-গুলো চায়।
+   * DEC-DLV-008 — which deliveries this product may ride on.
+   * The API sends `deliveryTypes: [{ typeId }]`; the editor only wants the ids.
    */
   deliveryTypes?: { typeId: string }[];
-  /** DEC-PRD-012 — রঙ / ফ্লেভার / মাপ, প্রতিটার নিজের ছবি-মজুদ-দাম নিয়ে */
+  /** DEC-PRD-012 — colour / flavour / size, each with its own image, stock and price */
   variants?: ApiProductVariant[];
-  /** DEC-PRD-028 — ছাড়ের শুরু আর শেষ (ISO datetime, null = সীমা নেই) */
+  /** DEC-PRD-028 — discount start and end (ISO datetime, null = no bound) */
   discountStartsAt?: string | null;
   discountEndsAt?: string | null;
-  /** DEC-PRD-025 — প্রতি সময়ের নিজের শুরুর সংখ্যা, আর কোনটা এখন চলবে */
+  /** DEC-PRD-025 — each window's own starting number, and which one runs now */
   salesSeedToday?: number;
   salesSeedWeek?: number;
   salesSeedMonth?: number;
   salesSeedAll?: number;
   salesWindow?: "TODAY" | "WEEK" | "MONTH" | "ALL";
-  /** DEC-PRD-026 — গ্রাহক নিজের লেখা বা ছবি দিতে পারবে কি না */
+  /** DEC-PRD-026 — whether the customer may add their own text or photo */
   persoTitle?: string | null;
   persoText?: boolean;
   persoTextLabel?: string | null;
@@ -113,7 +114,7 @@ export interface ApiProduct {
   persoImage?: boolean;
   persoImageLabel?: string | null;
   persoImageHint?: string | null;
-  /** DEC-PRD-027 — "Want this customised?" বাক্স */
+  /** DEC-PRD-027 — the "Want this customised?" box */
   customiseOn?: boolean;
   customiseTitle?: string | null;
   customiseSub?: string | null;
@@ -122,7 +123,7 @@ export interface ApiProduct {
   /** ISO datetime, PRE_ORDER only. null = the owner promised no date. */
   preorderDate?: string | null;
   salesCount: number;
-  /** তালিকা "newest first" এটা দিয়েই সাজায় (৫ আগস্ট) */
+  /** the list sorts "newest first" by this (5 Aug) */
   createdAt?: string;
   productType: "READYMADE" | "CRAFTED";
   zone: "DHAKA" | "NATIONWIDE";
@@ -173,9 +174,9 @@ export interface ApiProduct {
   nationwideMsg?: string | null;
   advanceRequired?: boolean;
   /*
-    ⚠️ ৩ আগস্টের নিরীক্ষায় ধরা: advanceRequired ছিল, বাকি তিনটে ছিল না —
-    ফলে "PARTIAL 30%" বাঁচানো যেত কিন্তু ফেরত পড়া যেত না। মালিক product
-    আবার খুললে FULL দেখাত, আর পরের save চুপচাপ FULL-ই লিখে দিত।
+    ⚠️ Caught in the 3 Aug audit: advanceRequired existed, the other three did
+    not — so "PARTIAL 30%" could be saved but never read back. Reopening the
+    product showed FULL, and the next save quietly wrote FULL for real.
   */
   advanceType?: "FULL" | "PARTIAL" | null;
   advancePercent?: number | null;
@@ -228,7 +229,7 @@ export interface ApiProduct {
   sizes?: { id: string; label: string; sub?: string | null; pricePaisa: number }[];
   specRows?: { id: string; item: string; qty: string }[];
   faqs?: { id: string; question: string; answer: string }[];
-  /*  DEC-PRD-030 — `iconUrl` ভরা থাকলে `icon` উপেক্ষিত।  */
+  /*  DEC-PRD-030 — when `iconUrl` is filled, `icon` is ignored.  */
   trustBadges?: { id: string; icon: string; iconUrl?: string | null; label: string; sub?: string | null }[];
 }
 export interface Paged<T> {
@@ -804,10 +805,10 @@ export const updateJournalPost = (id: string, b: JournalWrite) =>
 export const deleteJournalPost = (id: string) =>
   j<unknown>(`/content/posts/${id}`, { method: "DELETE" });
 
-/* ---- pages & FAQs (৪ আগস্ট ২০২৬) --------------------------------------------
-   storefront-এর /terms, /refund-policy, /privacy-policy, /faq এখন এই দুই
-   টেবিল থেকেই আঁকে — এগুলোই সেই লেখার দরজা। bKash/SSLCommerz merchant
-   review এই পাতাগুলো live দেখতে চায়। */
+/* ---- pages & FAQs (4 Aug 2026) --------------------------------------------
+   The storefront's /terms, /refund-policy, /privacy-policy and /faq now draw
+   from these two tables — this is the writing door for them. bKash/SSLCommerz
+   merchant review wants these pages live. */
 export interface ApiContentPage {
   id: string;
   slug: string;
@@ -1606,12 +1607,12 @@ export interface ApiBundle {
   id: string;
   categoryId: string | null;
   productId: string | null;
-  /** ⚠️ পুরনো — DEC-PRD-017-এর পর `items` পড়তে হয় */
+  /** ⚠️ legacy — read `items` instead since DEC-PRD-017 */
   addsProductId: string;
   addsName: string;
   addsSlug: string;
   addsImageUrl: string | null;
-  /** DEC-PRD-017 — এই bundle-এ যা যা আছে */
+  /** DEC-PRD-017 — everything this bundle contains */
   items: {
     id: string;
     name: string;
@@ -1627,19 +1628,19 @@ export interface ApiBundle {
   sortOrder: number;
   isBest: boolean;
   isActive: boolean;
-  /** main product-এর আজকের দাম, ছাড় বসানোর পর। category-স্তরে 0। */
+  /** the main product's price today, after its discount. 0 at category level. */
   basePaisa: number;
-  /** এই bundle-এর জিনিসগুলো আলাদা কিনলে যত */
+  /** what this bundle's items cost bought separately */
   itemsPaisa: number;
-  /** ছাড়ের আগে সব মিলিয়ে (main সহ) */
+  /** everything together (main included), before the discount */
   beforePaisa: number;
-  /** ছাড়ের পরে সব মিলিয়ে — গ্রাহক যা দেবে */
+  /** everything together after the discount — what the customer pays */
   afterPaisa: number;
   savePaisa: number;
-  /** ⚠️ পুরনো নাম — `itemsPaisa` আর `addPaisa` এখন একই তথ্য বহন করে */
+  /** ⚠️ legacy names — `itemsPaisa` and `addPaisa` now carry the same figure */
   alonePaisa: number;
   addPaisa: number;
-  /** active সারি যা তবু website-এ আসবে না, আর কেন */
+  /** an active row that still will not show on the website, and why */
   hiddenReason: "draft" | "out-of-stock" | null;
 }
 
@@ -1651,17 +1652,17 @@ export const getBundles = (owner: { categoryId?: string; productId?: string }) =
     )}`,
   );
 /**
- * DEC-PRD-018 — এক product = একটাই bundle তালিকা, একটাই ছাড়।
+ * DEC-PRD-018 — one product = one bundle list, one discount.
  *
- * মালিক, ২ আগস্ট ২০২৬: *"just main product নিলে কোনো discount নেই, আর সাথে
- * extra কোনো bundle থেকে product select করলেই সে discount পাবে।"*
+ * Owner, 2 Aug 2026: "the main product alone gets no discount; pick any extra
+ * product from the bundle and the discount applies."
  *
- * ⚠️ অঙ্কগুলো server-এ হয়, browser-এ নয়। মালিক এই সংখ্যা দেখেই ছাড় ঠিক
- * করেন — এখানে আলাদা হিসাব থাকলে তিনি যেটা দেখে সিদ্ধান্ত নিতেন সেটাই
- * ভুলটা হতো।
+ * ⚠️ The arithmetic happens on the server, never in the browser. The owner
+ * sets his discount looking at these numbers — a second calculation here
+ * would be the very number he mistakenly trusts.
  */
 export interface ApiBundleList {
-  /** `null` = এখনো কোনো তালিকা নেই */
+  /** `null` = no list exists yet */
   id: string | null;
   label: string | null;
   discountType: "NONE" | "FLAT" | "PERCENT";
@@ -1676,13 +1677,13 @@ export interface ApiBundleList {
     costPaisa?: number;
     hiddenReason: "draft" | "out-of-stock" | null;
   }[];
-  /** main product-এর আজকের দাম। category-স্তরে 0। */
+  /** the main product's price today. 0 at category level. */
   basePaisa: number;
-  /** সবগুলো নিলে জিনিসগুলোর দাম */
+  /** the items' price if all are taken */
   itemsPaisa: number;
-  /** সবগুলো নিলে, ছাড়ের আগে */
+  /** all taken, before the discount */
   beforePaisa: number;
-  /** সবগুলো নিলে, ছাড়ের পরে */
+  /** all taken, after the discount */
   afterPaisa: number;
   savePaisa: number;
 }
@@ -1704,8 +1705,8 @@ export const saveBundleList = (b: {
 }) => j<ApiBundleList>(`/bundles/list`, { method: "POST", body: JSON.stringify(b) });
 
 /**
- * ⚠️ অব্যবহৃত — DEC-PRD-016-এর combo DEC-PRD-018-এ উঠে গেছে। টেবিল দুটো
- * database-এ আছে (কিছু মোছা হয় না), কেউ আর পড়ে না।
+ * ⚠️ Unused — DEC-PRD-016's combos folded into DEC-PRD-018. The two tables
+ * remain in the database (nothing is deleted); nobody reads them anymore.
  */
 export interface ApiBundleCombo {
   id: string;
@@ -1715,9 +1716,9 @@ export interface ApiBundleCombo {
   pricePaisa: number;
   sortOrder: number;
   isActive: boolean;
-  /** আজ আলাদা আলাদা নিলে যত পড়ত */
+  /** what it would cost today bought separately */
   normalPaisa: number;
-  /** ঋণাত্মক = combo-টা স্বাভাবিকের চেয়ে দামি */
+  /** negative = the combo costs MORE than normal */
   savePaisa: number;
   names: string[];
 }
@@ -1759,18 +1760,19 @@ export interface ApiCraftPoint {
 }
 
 /* ============================================================
-   DEC-PRD-023 — product page-এর trust badge আর "What's inside",
-   category-তে একবার লেখা।
+   DEC-PRD-023 — the product page's trust badges and "What's inside",
+   written once per category.
 
-   ⚠️ `TrustBadge` (Storefront → Trust) আলাদা জিনিস — ওটা homepage-এর
-   strip, গোটা সাইটের, zone ধরে। এটা product page-এর, category ধরে।
+   ⚠️ `TrustBadge` (Storefront → Trust) is a different thing — that one is
+   the homepage strip, site-wide, by zone. This one is the product page's,
+   by category.
    ============================================================ */
 export interface ApiCategoryTrustBadge {
   id: string;
   categoryId: string;
-  /** built-in নাম — নিজের ছবি বসলে `null` */
+  /** a built-in icon name — `null` once an uploaded image takes over */
   icon: string | null;
-  /** নিজের আপলোড করা ছবি — ভরা থাকলে এটাই দেখায় */
+  /** an uploaded image — when filled, this is what shows */
   iconUrl: string | null;
   label: string;
   sub: string | null;
@@ -1890,9 +1892,9 @@ export const setCapacityCategories = (id: string, categoryIds: string[]) =>
    ============================================================ */
 export interface ApiVariantValue {
   id: string; label: string;
-  /** রঙের বিন্দু — product page-এর pill */
+  /** the colour dot — the product page's pill */
   swatch: string | null;
-  /** ছবি — category page-এর card। একই মানের দ্বিতীয় চেহারা, বিকল্প নয়। */
+  /** the image — the category page's card. A second face of the same value, not an alternative. */
   imageUrl?: string | null;
   sortOrder: number; isActive: boolean;
 }
@@ -3877,14 +3879,14 @@ export interface SupplierSaveBody {
 }
 
 /* ─────────────────── delivery: the NAMES · DEC-DLV-008 ───────────────────
-   মালিক, ১ আগস্ট ২০২৬: *"delivery module-এ যা edit বা change করা হয়, তা
-   যেন auto পুরা system-এ কাজ করে — frontend, product upload page, আর
-   যেখানে দরকার সব জায়গায়।"*
+   Owner, 1 Aug 2026: "whatever is edited or changed in the delivery module
+   must work automatically across the whole system — frontend, product upload
+   page, everywhere it is needed."
 
-   ⚠️ Product upload page এই তালিকাটাই দেখাবে, আর কিছু না। আগে ওখানে
-   `DHAKA_SPEEDS` / `NATION_SPEEDS` নামে দুটো লেখা তালিকা বসানো ছিল — মালিক
-   delivery module-এ নতুন একটা ধরন বানালে সেটা product-এ কোনোদিনই দেখা যেত
-   না, কারণ কোড ওই তিনটা নাম ছাড়া আর কিছু জানত না। */
+   ⚠️ The product upload page shows THIS list and nothing else. It used to
+   carry two written-out lists named `DHAKA_SPEEDS` / `NATION_SPEEDS` — a new
+   delivery type made in the module would never appear on a product, because
+   the code knew only those three names. */
 export type DeliveryTiming =
   | "FROM_CONFIRM"
   | "TODAY_SLOT"
@@ -3899,25 +3901,25 @@ export interface ApiDeliveryType {
   kind: "RIDER" | "COURIER";
   sortOrder: number;
   isActive: boolean;
-  /** DEC-DLV-010 — এই delivery কোন ছাঁচের */
+  /** DEC-DLV-010 — which shape this delivery follows */
   timing?: DeliveryTiming;
-  /** FROM_CONFIRM হলে কত মিনিটের প্রতিশ্রুতি (২ ঘণ্টা = 120) */
+  /** for FROM_CONFIRM: the promise in minutes (2 hours = 120) */
   promiseMinutes?: number | null;
-  /** দিনের কোন সময়টায় নেওয়া যাবে — মিনিটে, ১০টা = 600 */
+  /** which part of the day it can be taken — minutes, 10am = 600 */
   openFromMin?: number | null;
   openToMin?: number | null;
   /**
-   * কয়টা এলাকায় এর দাম বসানো আছে। **০ মানে এই delivery কেনা যায় না** —
-   * নাম আছে, দাম নেই, তাই checkout কখনো দেখাবে না (DEC-DLV-009)।
+   * how many zones carry a price for it. **0 means it cannot be bought** —
+   * a name with no price, so checkout never shows it (DEC-DLV-009).
    */
   rateCount?: number;
 }
 
 /**
- * পর্দায় কী লেখা থাকবে, আর কোন ঘরগুলো দেখাতে হবে।
+ * What the screen says, and which fields it must show.
  *
- * ⚠️ এই তালিকাটাই একমাত্র জায়গা যেখানে ছাঁচগুলোর কথা লেখা। নতুন ছাঁচ যোগ
- * হলে এখানে আর enum-এ — দুই জায়গায়, একই commit-এ।
+ * ⚠️ This list is the only place the shapes are described. A new shape goes
+ * here AND in the enum — two places, one commit.
  */
 export const TIMING_META: Record<
   DeliveryTiming,
@@ -3939,12 +3941,12 @@ export const TIMING_META: Record<
     needsMinutes: false, needsWindow: false, needsSlots: true, picksDate: true,
   },
   PICK_DATE_FIXED: {
-    /*  ⚠️ "No time slots" লেখা ছিল, আর সেটা ভুল ছিল — মালিক ধরেছেন: *"midnight
-        surprise-এ তুমি বলতাসো কোনো time slot লাগবে না। তাহলে কীভাবে ঠিক করব
-        আমার midnight কয়টা থেকে কয়টা পর্যন্ত?"* — ঠিক প্রশ্ন। সময়টা তো কোথাও
-        লিখতেই হবে, আর slot-এর ঘরগুলোই (সময় + cut-off + capacity) হুবহু সেটাই
-        চায়। তাই এখানে **একটাই** slot — দোকান লেখে, customer বাছে না, কারণ
-        বাছার মতো দ্বিতীয় কিছু নেই।  */
+    /*  ⚠️ It used to say "No time slots", and that was wrong — the owner
+        caught it: "for midnight surprise you say no slot is needed — then how
+        do I set what hours MY midnight runs?" Fair question. The window must
+        be written somewhere, and the slot fields (time + cut-off + capacity)
+        ask exactly that. So ONE slot here — the shop writes it, the customer
+        never picks, because there is no second choice to pick.  */
     label: "Customer picks the date, you set the time",
     hint: "Like Midnight Surprise. Add ONE time slot — that is your delivery window (e.g. 12:00 AM – 12:30 AM) and its cut-off (order by 6 PM for tonight). The customer never chooses it.",
     needsMinutes: false, needsWindow: false, needsSlots: true, picksDate: true,
@@ -4372,8 +4374,8 @@ export const OFFER_LIVESTATE_META: Record<ApiOfferLiveState, { label: string; bg
 
 export interface ApiDeliverySlot {
   id: string; label: string; capacityPerDay?: number | null; sortOrder: number; isActive: boolean;
-  /*  DEC-DLV-007 — স্লটের নিজের সময়, মিনিটে (9am = 540), আর নিজের
-      শেষ-অর্ডারের ঘড়ি ("08:00")।  */
+  /*  DEC-DLV-007 — the slot's own window in minutes (9am = 540), and its
+      own last-order clock ("08:00").  */
   startMin?: number | null;
   endMin?: number | null;
   cutoffTime?: string | null;
@@ -4382,10 +4384,10 @@ export interface ApiDeliveryMethod {
   id: string; label: string; zone: "DHAKA" | "BANGLADESH"; kind: "RIDER" | "COURIER";
   feePaisa: number; cutoffTime?: string | null; etaLabel?: string | null;
   sortOrder: number; isActive: boolean; slots: ApiDeliverySlot[];
-  /*  DEC-DLV-007 — কোন এলাকার দাম। null = পুরো zone-এ একই।  */
+  /*  DEC-DLV-007 — which area this price is for. null = same across the zone.  */
   areaId?: string | null;
   area?: { id: string; name: string; parentId: string | null } | null;
-  /*  DEC-DLV-008 — কোন নামের দাম।  */
+  /*  DEC-DLV-008 — which named delivery this price belongs to.  */
   typeId?: string | null;
   type?: { id: string; name: string; kind: "RIDER" | "COURIER" } | null;
 }
@@ -4463,8 +4465,8 @@ export const createCourierService = (b: Record<string, unknown>) => j<ApiCourier
 export const updateCourierService = (id: string, b: Record<string, unknown>) => j<ApiCourierService>(`/delivery/couriers/${id}`, { method: "PATCH", body: JSON.stringify(b) });
 export const deleteCourierService = (id: string) => j(`/delivery/couriers/${id}`, { method: "DELETE" });
 /* ── areas & names · DEC-DLV-007 / DEC-DLV-008 ────────────────────────────
-   মালিক: *"delivery module-এ যা edit বা change করা হয়, তা যেন auto পুরা
-   system-এ কাজ করে।"* এই চারটা endpoint-ই সেই একটাই উৎস। */
+   Owner: "whatever is edited in the delivery module must work automatically
+   across the whole system." These four endpoints are that single source. */
 export interface ApiDeliveryArea {
   id: string;
   name: string;
@@ -5971,20 +5973,20 @@ export const saveWaTemplate = (b: Record<string, unknown>) =>
 export const deleteWaTemplate = (id: string) =>
   j<{ id: string; deleted: boolean }>(`/marketing/whatsapp/templates/${id}`, { method: "DELETE" });
 
-/*  একটা সংরক্ষিত চাবি পুরোটা দেখা (মালিকের সিদ্ধান্ত ৬ আগস্ট)।
-    ⚠️ পাতা খোলার সময় নয় — চোখে চাপলে তখনই, একটা করে। OWNER-only, প্রতিবার
-    audit-এ ওঠে। overview() এখনো mask করা মানই পাঠায়, সেটা বদলায়নি।  */
+/*  Reveal one stored key in full (owner's decision, 6 Aug).
+    ⚠️ Never on page load — only on the eye click, one at a time. OWNER-only,
+    audited every time. overview() still sends masked values; that is unchanged.  */
 export const revealIntegrationField = (kind: string, provider: string, field: string) =>
   j<{ field: string; value: string | null }>(
     `/administration/integrations/${kind}/${provider}/reveal/${field}`);
 
-/*  মালিকের এক-click যাচাই। endpoint ২ আগস্ট থেকে API-তে ছিল, admin-এ বোতাম
-    ছিল না — তাই "চাবি বসালাম, কাজ করছে কি না জানি না" অবস্থা।
-    Meta-র pre-approved `hello_world` যায়, তাই নিজেদের template approve
-    হওয়ার আগেই চাবি ঠিক কিনা প্রমাণ পাওয়া যায়।
-      sent:true                → চাবি ঠিক, বার্তা গেছে
-      sent:false configured:true → চাবি আছে, Meta ফিরিয়েছে (কারণ API log-এ)
-      configured:false          → চাবিই বসানো হয়নি                        */
+/*  The owner's one-click check. The endpoint existed since 2 Aug; the admin
+    had no button — so it was "I put the key in, no idea if it works". It
+    sends Meta's pre-approved `hello_world`, proving the key before our own
+    templates are approved.
+      sent:true                  → key works, message went
+      sent:false configured:true → key present, Meta refused (reason in API log)
+      configured:false           → no key was ever set                     */
 export const waTestSend = (to: string) =>
   j<{ sent: boolean; configured: boolean }>(
     "/marketing/whatsapp/test-send", { method: "POST", body: JSON.stringify({ to }) });
@@ -6633,7 +6635,7 @@ export function getSettingsMap(): Promise<ApiSettingsEntry[]> {
 
 export interface ApiIntegrationField {
   key: string; label: string; hint?: string; secret: boolean;
-  /** ফাঁকা থাকলেও service চালু করা যায় — যেমন WhatsApp-এর webhook চাবি দুটো */
+  /** the service can turn on with this empty — e.g. WhatsApp's two webhook keys */
   optional?: boolean;
   /** secrets come back MASKED ("••••3f8a") — never the real value */
   value: string | null;
@@ -6689,8 +6691,8 @@ export function getPaymentReadiness(): Promise<{
 }
 
 /* ==================== INBOX — unified customer conversations (Phase 1) ==================== */
-/*  RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-001…006।
-    Phase 1 = WEB_CHAT, মানুষ উত্তর দেয়; AI Phase 2-তে এই একই দরজা দিয়ে ঢুকবে। */
+/*  RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-001…006.
+    Phase 1 = WEB_CHAT with humans answering; the AI enters through this same door in Phase 2. */
 
 export interface ApiInboxListItem {
   id: string;
@@ -6778,9 +6780,9 @@ export const getInboxSettings = () => j<ApiInboxSetting>("/inbox/settings");
 export const updateInboxSettings = (dto: Partial<ApiInboxSetting>) =>
   j<ApiInboxSetting>("/inbox/settings", { method: "PATCH", body: JSON.stringify(dto) });
 
-/* ─────────── হারানো order ফেরানো · DEC-WA-002…008 ───────────
-   বার্তার হিসাব, অসমাপ্ত checkout, আর নিয়মগুলো। বিস্তারিত
-   RADIAN_WHATSAPP_SETUP.md-এ। */
+/* ─────────── recovering lost orders · DEC-WA-002…008 ───────────
+   Message accounting, unfinished checkouts, and the rules. Details in
+   RADIAN_WHATSAPP_SETUP.md. */
 
 export interface ApiRecoverySettings {
   recoveryEnabled: boolean;
@@ -6802,8 +6804,8 @@ export interface ApiCheckoutLead {
   email: string | null;
   draft: Record<string, unknown> | null;
   stage: "CART" | "DETAILS" | "DELIVERY" | "PAYMENT";
-  /*  দুই রকম ছবি: `summary` মানুষের পড়ার জন্য (staff ফোন করবে),
-      `items` cart ফিরিয়ে দেওয়ার জন্য (`/cart/{id}` পাতা)।  */
+  /*  two pictures of one cart: `summary` for human eyes (staff will call),
+      `items` for restoring the cart (the `/cart/{id}` page).  */
   cart: {
     items?: unknown[];
     summary?: { name?: string; slug?: string; qty?: number; size?: string; variant?: string }[];
@@ -6844,12 +6846,12 @@ export const listCheckoutLeads = (status?: string) =>
 export const orderMessagesFor = (orderId: string) =>
   j<ApiOrderMessage[]>(`/messaging/order/${orderId}`);
 
-/** Demo-তে sweeper বন্ধ (DEC-WA-007), তাই যাচাই করার একমাত্র উপায় এটাই */
+/** The sweeper is off on demo (DEC-WA-007), so this is the only way to verify */
 export const runRecoverySweep = () =>
   j<Record<string, unknown>>("/messaging/sweep", { method: "POST" });
 
-/* Meta-র template — জমা দেওয়া আর অবস্থা দেখা।
-   ⚠️ approve করে Meta, আমরা নয়। এই দুটো শুধু জমা দেয় আর খবর আনে। */
+/* Meta's templates — submitting and watching status.
+   ⚠️ Meta approves, not us. These two only submit and fetch news. */
 export interface ApiTemplateResult {
   name: string;
   ok: boolean;
