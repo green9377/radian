@@ -41,6 +41,19 @@ export interface SlotWriteDto {
   templateId?: string | null;
 }
 
+/** DEC-DLV-019 — one paused day. No typeId = every delivery pauses that day. */
+export interface BlackoutWriteDto {
+  date: string; // YYYY-MM-DD
+  reason?: string | null;
+  typeId?: string | null;
+}
+
+/** DEC-DLV-020 — the enforced rule switches (photo gates) */
+export interface DeliverySettingsDto {
+  requirePrepPhoto?: boolean;
+  requireDeliveryPhoto?: boolean;
+}
+
 /** DEC-DLV-018 — a slot MASTER: made once, connected to zone-methods in Setup */
 export interface SlotTemplateWriteDto {
   label?: string;

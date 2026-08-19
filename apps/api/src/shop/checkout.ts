@@ -458,6 +458,24 @@ export class CheckoutService {
         `"${method.label}" is not offered for ${zone === DeliveryZone.DHAKA ? 'Dhaka' : 'nationwide'} delivery`,
       );
 
+    /*  DEC-DLV-019 — a blackout refuses at the door. The delivery DATE is what
+        is checked; no-date shapes (2-hour, same-day) deliver today, so today
+        is their date. Cast until the local Prisma client is regenerated.  */
+    const targetDate = date || new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const paused = await (this.prisma.db as unknown as {
+      deliveryBlackout: { findFirst: (a: unknown) => Promise<{ reason: string | null } | null> };
+    }).deliveryBlackout.findFirst({
+      where: {
+        deletedAt: null,
+        date: targetDate,
+        OR: [{ typeId: null }, { typeId: method.typeId ?? '__none__' }],
+      },
+    });
+    if (paused)
+      throw new BadRequestException(
+        `Delivery is paused on ${targetDate}${paused.reason ? ` (${paused.reason})` : ''} — please pick another date.`,
+      );
+
     /*  DEC-DLV-011 — the owner's rule, 5 Aug: *"multi product thake cart …
         win hobe se method, je method win hole sobgula product delivery
         possible. order kon vag hobe na."* ("if the cart has multiple products,

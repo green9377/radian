@@ -12,6 +12,9 @@ import {
   listDeliveryMethods, createDeliveryMethod, updateDeliveryMethod, deleteDeliveryMethod,
   addDeliverySlot, updateDeliverySlot, deleteDeliverySlot,
   listSlotTemplates, createSlotTemplate, updateSlotTemplate, deleteSlotTemplate,
+  listDeliveryBlackouts, createDeliveryBlackout, deleteDeliveryBlackout,
+  getDeliverySettings, updateDeliverySettings,
+  type ApiDeliveryBlackout, type ApiDeliverySettings,
   TIMING_META,
   type ApiDeliveryArea, type ApiDeliveryType, type ApiDeliveryMethod, type ApiSlotTemplate,
   type DeliveryTiming,
@@ -710,6 +713,140 @@ export function DeliveryConnections() {
                 onChange={(e) => setPriceDlg({ ...priceDlg, eta: e.target.value })} />
             </Field>
           )}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════ BLACKOUT & RULES — /delivery/setup tab ═══════════════════
+   Real since 19 Aug (DEC-DLV-019/020) — this tab was a mock with fake dates
+   and switches that saved nothing. Paused days refuse at checkout's door and
+   close the no-date shapes for the day; the two photo gates are enforced in
+   the board's out/delivered actions. */
+
+const fmtDay = (d: string) => {
+  const dt = new Date(d + "T00:00:00");
+  return Number.isNaN(dt.getTime())
+    ? d
+    : dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
+export function BlackoutRules() {
+  const [blackouts, setBlackouts] = useState<ApiDeliveryBlackout[]>([]);
+  const [types, setTypes] = useState<ApiDeliveryType[]>([]);
+  const [settings, setSettings] = useState<ApiDeliverySettings | null>(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [dlg, setDlg] = useState<{ date: string; reason: string; typeId: string } | null>(null);
+
+  async function reload() {
+    try {
+      const [b, t, s] = await Promise.all([
+        listDeliveryBlackouts(), listDeliveryTypes(), getDeliverySettings(),
+      ]);
+      setBlackouts(b); setTypes(t); setSettings(s);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Could not load."); }
+  }
+  useEffect(() => { void reload(); }, []);
+
+  async function run(fn: () => Promise<unknown>) {
+    setBusy(true); setErr("");
+    try { await fn(); await reload(); return true; }
+    catch (e) { setErr(e instanceof Error ? e.message : "Could not save."); return false; }
+    finally { setBusy(false); }
+  }
+
+  async function addBlackout() {
+    if (!dlg?.date) return;
+    const ok = await run(() => createDeliveryBlackout({
+      date: dlg.date, reason: dlg.reason.trim() || null, typeId: dlg.typeId || null,
+    }));
+    if (ok) setDlg(null);
+  }
+
+  const flip = (key: keyof ApiDeliverySettings) => {
+    if (!settings) return;
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next); // optimistic — the switch answers the finger
+    updateDeliverySettings({ [key]: next[key] }).catch(() => { void reload(); });
+  };
+
+  const today = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  return (
+    <div className={WRAP}>
+      {err && <ErrLine text={err} onClose={() => setErr("")} />}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+        {/* ── paused days ── */}
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-lavender-deep">
+            <span className="w-8 h-8 rounded-[10px] grid place-items-center text-white shrink-0" style={{ background: "#c0392b" }}><Icon name="shield" size={15} /></span>
+            <span className="text-[14.5px] font-semibold text-purple flex-1">Paused days</span>
+            <button onClick={() => setDlg({ date: today, reason: "", typeId: "" })}
+              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px] inline-flex items-center gap-1.5"
+              style={{ background: ACCENT }}>
+              <Icon name="plus" size={14} /> Pause a day
+            </button>
+          </div>
+          <div className="divide-y divide-lavender-deep">
+            {blackouts.map((b) => (
+              <div key={b.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-lavender/15">
+                <span className="text-[13.5px] font-semibold text-purple w-[120px] shrink-0">{fmtDay(b.date)}</span>
+                <span className="text-[12.5px] font-medium text-body min-w-0 flex-1 truncate">{b.reason ?? ""}</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                  style={b.typeId ? { background: "#eef2ff", color: "#4f46e5" } : { background: "#fdecea", color: "#b42318" }}>
+                  {b.type?.name ?? "Every delivery"}
+                </span>
+                <IconBtn name="trash" danger title="Remove"
+                  onClick={() => { if (confirm(`Resume delivery on ${fmtDay(b.date)}?`)) void run(() => deleteDeliveryBlackout(b.id)); }} />
+              </div>
+            ))}
+            {blackouts.length === 0 && (
+              <div className="text-center py-10 text-[13.5px] text-purple font-semibold">No paused days — press Pause a day</div>
+            )}
+          </div>
+        </div>
+
+        {/* ── the enforced rules ── */}
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-lavender-deep">
+            <span className="w-8 h-8 rounded-[10px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}><Icon name="check" size={15} /></span>
+            <span className="text-[14.5px] font-semibold text-purple">Rules</span>
+          </div>
+          <div className="divide-y divide-lavender-deep">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="text-[13px] font-medium text-body flex-1">Prep photo before out-for-delivery</span>
+              <Switch small on={!!settings?.requirePrepPhoto} onClick={() => flip("requirePrepPhoto")} />
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="text-[13px] font-medium text-body flex-1">Hand-over photo before delivered</span>
+              <Switch small on={!!settings?.requireDeliveryPhoto} onClick={() => flip("requireDeliveryPhoto")} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {dlg && (
+        <Modal title="Pause a day" onClose={() => setDlg(null)} onSave={addBlackout} canSave={!!dlg.date} busy={busy}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Date" required>
+              <input type="date" className="ipt w-full" min={today} value={dlg.date}
+                onChange={(e) => setDlg({ ...dlg, date: e.target.value })} />
+            </Field>
+            <Field label="Which delivery" required>
+              <select className="ipt w-full" value={dlg.typeId} onChange={(e) => setDlg({ ...dlg, typeId: e.target.value })}>
+                <option value="">Every delivery</option>
+                {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="Reason">
+            <input className="ipt w-full" placeholder="e.g. Eid rush"
+              value={dlg.reason} onChange={(e) => setDlg({ ...dlg, reason: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter" && dlg.date) addBlackout(); }} />
+          </Field>
         </Modal>
       )}
     </div>

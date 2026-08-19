@@ -1620,22 +1620,22 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 155
   },
   {
-    "key": "delivery.riders",
-    "parentKey": "delivery-setup",
-    "kind": "SCREEN",
-    "label": "Riders",
-    "domain": "Setup",
-    "href": "/delivery/riders",
-    "legacyRoles": null,
-    "sortOrder": 156
-  },
-  {
     "key": "delivery.setup",
     "parentKey": "delivery-setup",
     "kind": "SCREEN",
     "label": "Setup",
     "domain": "Setup",
     "href": "/delivery/setup",
+    "legacyRoles": null,
+    "sortOrder": 156
+  },
+  {
+    "key": "delivery.riders",
+    "parentKey": "delivery-setup",
+    "kind": "SCREEN",
+    "label": "Riders",
+    "domain": "Setup",
+    "href": "/delivery/riders",
     "legacyRoles": null,
     "sortOrder": 157
   },

@@ -17,6 +17,8 @@ import type {
   MethodWriteDto,
   SlotWriteDto,
   SlotTemplateWriteDto,
+  BlackoutWriteDto,
+  DeliverySettingsDto,
   RiderWriteDto,
   CourierWriteDto,
   AssignDto,
@@ -218,6 +220,35 @@ export class DeliveryController {
   @Delete('slots/:slotId')
   removeSlot(@Param('slotId') slotId: string) {
     return this.delivery.removeSlot(slotId);
+  }
+
+  /* ---- blackouts & rules · DEC-DLV-019/020 ---- */
+  @Get('blackouts')
+  blackouts() {
+    return this.delivery.blackouts();
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Post('blackouts')
+  createBlackout(@Body() dto: BlackoutWriteDto) {
+    return this.delivery.createBlackout(dto);
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Delete('blackouts/:id')
+  removeBlackout(@Param('id') id: string) {
+    return this.delivery.removeBlackout(id);
+  }
+
+  @Get('settings')
+  deliverySettings() {
+    return this.delivery.deliverySettings();
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Patch('settings')
+  updateDeliverySettings(@Body() dto: DeliverySettingsDto) {
+    return this.delivery.updateDeliverySettings(dto);
   }
 
   /* ---- slot masters · DEC-DLV-018 (made once, connected in Setup) ---- */

@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Icon from "./Icon";
 import { TONE, type Tone } from "./OrderViews";
-import { OffersRules } from "./DeliveryConfig";
-import { DeliveryConnections } from "./ZonesAvailability";
+import { DeliveryConnections, BlackoutRules } from "./ZonesAvailability";
 
 /* Delivery > Setup — two tabs. Zone setup CONNECTS the masters made on
    Methods & slots (DEC-DLV-018); nothing is created there.
@@ -33,7 +32,7 @@ export function DeliverySetup() {
         })}
       </div>
       {tab === "zones" && <DeliveryConnections />}
-      {tab === "rules" && <OffersRules />}
+      {tab === "rules" && <BlackoutRules />}
     </div>
   );
 }

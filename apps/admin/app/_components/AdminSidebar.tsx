@@ -560,9 +560,10 @@ const GROUPS: Group[] = [
       {
         label: "Delivery setup", icon: "truck",
         subs: [
+          // order = the work order (owner, 19 Aug): make masters, then connect, then riders
           { label: "Methods & slots", href: "/delivery/zones" },
-          { label: "Riders", href: "/delivery/riders" },
           { label: "Setup", href: "/delivery/setup" },
+          { label: "Riders", href: "/delivery/riders" },
         ],
       },
       /*  Returns' setup half (DEC-RTN-016) — reasons, approval rules and

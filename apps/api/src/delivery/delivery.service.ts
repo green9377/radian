@@ -25,6 +25,8 @@ import type {
   MethodWriteDto,
   SlotWriteDto,
   SlotTemplateWriteDto,
+  BlackoutWriteDto,
+  DeliverySettingsDto,
   RiderWriteDto,
   CourierWriteDto,
   AssignDto,
@@ -381,6 +383,15 @@ export class DeliveryService {
     if (action === 'out') {
       if (a.status !== AssignmentStatus.ASSIGNED)
         throw new BadRequestException(`cannot go out from ${a.status}`);
+      // DEC-DLV-020 — the prep-photo gate, when the owner switched it on
+      const rules = await this.deliverySettings();
+      if (rules.requirePrepPhoto) {
+        const prep = await this.prisma.db.orderPhoto.count({
+          where: { orderId: a.orderId, kind: 'PREP', deletedAt: null },
+        });
+        if (prep === 0)
+          throw new BadRequestException('A prep photo is required before going out — add one on the order');
+      }
       let trackingUrl = a.trackingUrl;
       let consignmentNo = a.consignmentNo;
       if (dto.consignmentNo) {
@@ -400,6 +411,15 @@ export class DeliveryService {
     if (action === 'delivered') {
       if (a.status !== AssignmentStatus.OUT_FOR_DELIVERY)
         throw new BadRequestException(`cannot deliver from ${a.status}`);
+      // DEC-DLV-020 — the hand-over photo gate, when the owner switched it on
+      const rules = await this.deliverySettings();
+      if (rules.requireDeliveryPhoto) {
+        const proof = await this.prisma.db.orderPhoto.count({
+          where: { orderId: a.orderId, kind: 'DELIVERY', deletedAt: null },
+        });
+        if (proof === 0)
+          throw new BadRequestException('A delivery photo is required before marking delivered — add one on the order');
+      }
       await this.orders.delivered(a.orderId, actorName); // COD collect + LTV mirror live there
       return this.prisma.db.deliveryAssignment.update({
         where: { id },
@@ -1101,6 +1121,84 @@ export class DeliveryService {
       },
     });
     return updated;
+  }
+
+  /* ================= blackouts & rules · DEC-DLV-019/020 =================
+     The Blackout & rules tab used to be a mock — fake dates, switches that
+     saved nothing. Real now. The db casts are temporary until the local
+     Prisma client is regenerated on the host (the tables are live). */
+
+  private get blackoutTable() {
+    return (this.prisma.db as unknown as {
+      deliveryBlackout: {
+        findMany: (a: unknown) => Promise<Record<string, unknown>[]>;
+        findFirst: (a: unknown) => Promise<Record<string, unknown> | null>;
+        create: (a: unknown) => Promise<Record<string, unknown>>;
+        update: (a: unknown) => Promise<Record<string, unknown>>;
+      };
+    }).deliveryBlackout;
+  }
+
+  private get settingTable() {
+    return (this.prisma.db as unknown as {
+      deliverySetting: {
+        findFirst: (a: unknown) => Promise<Record<string, unknown> | null>;
+        create: (a: unknown) => Promise<Record<string, unknown>>;
+        update: (a: unknown) => Promise<Record<string, unknown>>;
+      };
+    }).deliverySetting;
+  }
+
+  async blackouts() {
+    return this.blackoutTable.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ date: 'asc' }],
+      include: { type: { select: { id: true, name: true } } },
+    });
+  }
+
+  async createBlackout(dto: BlackoutWriteDto) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dto.date ?? ''))
+      throw new BadRequestException('date must be YYYY-MM-DD');
+    if (dto.typeId) {
+      const t = await this.prisma.db.deliveryType.findFirst({
+        where: { id: dto.typeId, deletedAt: null },
+      });
+      if (!t) throw new NotFoundException('delivery method not found');
+    }
+    const dup = await this.blackoutTable.findFirst({
+      where: { deletedAt: null, date: dto.date, typeId: dto.typeId ?? null },
+    });
+    if (dup) throw new BadRequestException('that day is already paused');
+    return this.blackoutTable.create({
+      data: { date: dto.date, reason: dto.reason?.trim() || null, typeId: dto.typeId ?? null },
+    });
+  }
+
+  async removeBlackout(id: string) {
+    await this.blackoutTable.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { id, deleted: true };
+  }
+
+  /** one row, born on first read — the photo gates default OFF */
+  async deliverySettings(): Promise<{ requirePrepPhoto: boolean; requireDeliveryPhoto: boolean }> {
+    const row = (await this.settingTable.findFirst({})) ?? (await this.settingTable.create({ data: {} }));
+    return {
+      requirePrepPhoto: !!row.requirePrepPhoto,
+      requireDeliveryPhoto: !!row.requireDeliveryPhoto,
+    };
+  }
+
+  async updateDeliverySettings(dto: DeliverySettingsDto) {
+    const row = (await this.settingTable.findFirst({})) ?? (await this.settingTable.create({ data: {} }));
+    await this.settingTable.update({
+      where: { id: row.id },
+      data: {
+        ...(dto.requirePrepPhoto !== undefined ? { requirePrepPhoto: dto.requirePrepPhoto } : {}),
+        ...(dto.requireDeliveryPhoto !== undefined ? { requireDeliveryPhoto: dto.requireDeliveryPhoto } : {}),
+      },
+    });
+    return this.deliverySettings();
   }
 
   async removeSlotTemplate(id: string) {

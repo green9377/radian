@@ -469,42 +469,6 @@ export function DeliveryAnalyticsView() {
   );
 }
 
-/* ══════════════════════ OFFERS & RULES (Setup tab) ══════════════════════ */
-export function OffersRules() {
-  const [s, setS] = useState<DeliverySettings>(() => ({ ...DEMO_SETTINGS }));
-  const set = (k: keyof DeliverySettings, v: boolean | number | string) => setS((p) => ({ ...p, [k]: v }));
-  return (
-    <div className={WRAP}>
-      <Header eyebrow="Operations · Delivery · Setup" title="Blackout & rules"
-        desc="Dates when delivery is paused, and the rules Delivery runs by." />
-      <DemoBadge text="Delivery-owned settings only. Free-delivery offers live in Pricing & Offers — Delivery just provides the charge and checkout waives it." />
-      <div className="grid md:grid-cols-2 gap-5">
-        <Panel title="Blackout dates" icon="shield" tone="rose" count={DEMO_BLACKOUTS.length} hint="hard stop — nothing books">
-          {DEMO_BLACKOUTS.map((b) => (
-            <div key={b.date} className="flex items-center gap-2 border-t border-lavender-deep first:border-t-0 px-4 py-2.5 text-[12.5px]">
-              <span className="font-medium text-purple">{b.date}</span><span className="text-body">{b.reason}</span>
-              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full" style={{ background: TONE.rose.bg, color: TONE.rose.text }}>{b.scope}</span>
-            </div>
-          ))}
-          <div className="px-4 py-2.5"><button className="text-[12.5px] font-medium inline-flex items-center gap-1.5 text-purple"><Icon name="plus" size={13} /> Add blackout date</button></div>
-        </Panel>
-        <Panel title="Assignment & proof" icon="check" tone="purple">
-          <div className="p-4 space-y-3">
-            <ToggleField label="Auto-assign riders" hint="suggest the freest rider by zone and load" on={s.autoAssign} onToggle={() => set("autoAssign", !s.autoAssign)} />
-            <ToggleField label="Require prep photo" hint="cannot send out without a prep photo" on={s.requirePrepPhoto} onToggle={() => set("requirePrepPhoto", !s.requirePrepPhoto)} />
-            <ToggleField label="Require delivery photo" hint="cannot mark delivered without a hand-over photo" on={s.requireDeliveryPhoto} onToggle={() => set("requireDeliveryPhoto", !s.requireDeliveryPhoto)} />
-          </div>
-        </Panel>
-        <Panel title="Attempts & returns" icon="box" tone="amber">
-          <div className="p-4 grid grid-cols-2 gap-3">
-            <Field label="Max attempts"><input className="ipt" type="number" value={s.maxAttempts} onChange={(e) => set("maxAttempts", Number(e.target.value))} /></Field>
-            <Field label="RTO after attempts"><input className="ipt" type="number" value={s.rtoAfterAttempts} onChange={(e) => set("rtoAfterAttempts", Number(e.target.value))} /></Field>
-          </div>
-        </Panel>
-        <Panel title="Charge vs offer — the boundary" icon="tag" tone="green">
-          <div className="p-4 text-[13px] text-body-soft leading-relaxed">Delivery owns the <b>charge</b> (Zones · types · slots). A <b>free-delivery offer</b> is created in <b>Pricing &amp; Offers</b>; at checkout it waives the delivery charge and the order stores the waived amount. Delivery needs no offer screen — One Data One Owner.</div>
-        </Panel>
-      </div>
-    </div>
-  );
-}
+/*  OFFERS & RULES left this file on 19 Aug 2026 — it was a mock (fake
+    blackout dates, switches that saved nothing). The real Blackout & rules
+    tab lives in ZonesAvailability (BlackoutRules, DEC-DLV-019/020).  */

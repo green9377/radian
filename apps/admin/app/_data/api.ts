@@ -4387,6 +4387,29 @@ export interface ApiSlotTemplate {
   /** live connections — how many zone-methods carry this slot right now */
   usedCount?: number;
 }
+/** DEC-DLV-019 — one paused day. No typeId = every delivery pauses that day. */
+export interface ApiDeliveryBlackout {
+  id: string;
+  date: string; // YYYY-MM-DD
+  reason: string | null;
+  typeId: string | null;
+  type?: { id: string; name: string } | null;
+}
+export const listDeliveryBlackouts = () => j<ApiDeliveryBlackout[]>(`/delivery/blackouts`);
+export const createDeliveryBlackout = (b: { date: string; reason?: string | null; typeId?: string | null }) =>
+  j<ApiDeliveryBlackout>(`/delivery/blackouts`, { method: "POST", body: JSON.stringify(b) });
+export const deleteDeliveryBlackout = (id: string) =>
+  j<{ id: string; deleted: boolean }>(`/delivery/blackouts/${id}`, { method: "DELETE" });
+
+/** DEC-DLV-020 — the enforced rule switches (photo gates) */
+export interface ApiDeliverySettings {
+  requirePrepPhoto: boolean;
+  requireDeliveryPhoto: boolean;
+}
+export const getDeliverySettings = () => j<ApiDeliverySettings>(`/delivery/settings`);
+export const updateDeliverySettings = (b: Partial<ApiDeliverySettings>) =>
+  j<ApiDeliverySettings>(`/delivery/settings`, { method: "PATCH", body: JSON.stringify(b) });
+
 export const listSlotTemplates = () => j<ApiSlotTemplate[]>(`/delivery/slot-templates`);
 export const createSlotTemplate = (b: Partial<ApiSlotTemplate>) =>
   j<ApiSlotTemplate>(`/delivery/slot-templates`, { method: "POST", body: JSON.stringify(b) });

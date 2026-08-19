@@ -4005,8 +4005,9 @@ model DeliveryType {
   openFromMin Int?
   openToMin   Int?
 
-  rates    DeliveryMethod[]
-  products ProductDeliveryType[]
+  rates     DeliveryMethod[]
+  products  ProductDeliveryType[]
+  blackouts DeliveryBlackout[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -4141,6 +4142,38 @@ model DeliverySlot {
 
   @@index([methodId])
   @@index([templateId])
+}
+
+/// DEC-DLV-019 (owner, 19 Aug 2026) — a date when delivery is paused. A row
+/// with no typeId pauses EVERY delivery that day; with a typeId only that
+/// method. Checkout refuses at the door; today's blackout also closes the
+/// no-date shapes (2-hour, same-day) for the day.
+model DeliveryBlackout {
+  id     String  @id @default(cuid())
+  /// YYYY-MM-DD — same shape Order.date uses
+  date   String
+  reason String?
+  typeId String?
+  type   DeliveryType? @relation(fields: [typeId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([date])
+}
+
+/// DEC-DLV-020 (owner, 19 Aug 2026) — delivery's rule switches, one row.
+/// ONLY rules something actually enforces live here: the two photo gates are
+/// checked in assignmentAction. Auto-assign and attempts/RTO arrive with the
+/// board work in the Orders/Delivery phase — a switch nothing reads is a bug.
+model DeliverySetting {
+  id                   String  @id @default(cuid())
+  requirePrepPhoto     Boolean @default(false)
+  requireDeliveryPhoto Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// DEC-DLV-018 (owner, 19 Aug 2026) — "method, zone and time slot are each

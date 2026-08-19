@@ -3,12 +3,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/auth.guard';
 import { HoursModule, HoursService } from '../storefront/hours';
 import { LayoutModule, LayoutService } from '../storefront/layout';
-/*  DEC-DLV-009 — "বেশি নির্দিষ্টতা জেতে"। একটাই function, Sales আর POS-ও
-    এটাই পড়বে; দামের হিসাব দুবার লেখা হয় না। */
+/*  DEC-DLV-009 — "the more specific one wins". One function; Sales and POS
+    read it too, so the price arithmetic is never written twice. */
 import { ratesForArea } from '../delivery/resolve';
 import { cartTypeSets, methodOkForCart } from '../common/delivery-rule';
 
-/** ঢাকা UTC+6। container ছয় ঘণ্টা পিছিয়ে চলে, তাই cut-off সবসময় এই offset ধরে। */
+/** Dhaka is UTC+6. The container runs six hours behind, so every cut-off applies this offset. */
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000;
 
 /**
@@ -660,8 +660,8 @@ export class ShopService {
         feePaisa: true,
         /*  DEC-DLV-008 — the SPEED PROMISE, so the storefront can write its own
             marketing line instead of carrying "2-Hour Delivery" in twenty
-            files. Owner, 3 Aug 2026: *"আমরা এখন যা দেই এগুলা সব test purpose,
-            আমি real কাজের time-এ সব customizable করতাসি যাতে change করা যায়।"*  */
+            files. Owner, 3 Aug 2026: "everything we set now is for testing;
+            for real work I am making it all customizable so it can change."  */
         type: { select: { name: true, timing: true, promiseMinutes: true } },
       },
     });
@@ -695,17 +695,18 @@ export class ShopService {
   }
 
   /* ═════════════════════════════════════════════════════════════════════════
-     CHECKOUT-এর পুরো delivery মেনু — DEC-DLV-009
+     CHECKOUT's whole delivery menu — DEC-DLV-009
 
-     মালিক, ১ আগস্ট ২০২৬: *"delivery module-এ যা edit বা change করা হয়, তা
-     যেন auto পুরা system-এ কাজ করে।"*
+     Owner, 1 Aug 2026: "whatever is edited or changed in the delivery module
+     must work automatically across the whole system."
 
-     ⚠️ `deliveryModes()` (উপরে) এটার জায়গা নেয় না। ওটা homepage-এর বিজ্ঞাপন
-     — নাম আর কাউন্টডাউন। এটা checkout-এর মেনু: কোন delivery নেওয়া যাবে, কত
-     টাকায়, কোন slot-এ, আর আজকের জন্য কখন দরজা বন্ধ। দুটো আলাদা প্রশ্ন, তাই
-     আলাদা উত্তর — কিন্তু **একই টেবিল**।
+     ⚠️ `deliveryModes()` (above) does not replace this. That one is the
+     homepage's advertisement — names and countdowns. This is checkout's menu:
+     which deliveries can be taken, for how much, in which slot, and when the
+     door shuts for today. Two different questions, two answers — ONE table.
 
-     ⚠️ `areaId` না দিলে zone-এর সাধারণ দাম। দিলে "বেশি নির্দিষ্টতা জেতে"
+     ⚠️ Without `areaId`, the zone's general price. With it, "the more
+     specific one wins"
      (DEC-DLV-009) — Dhanmondi-র ৳৮০, পুরো ঢাকার ৳১০০ নয়।
      ═════════════════════════════════════════════════════════════════════════ */
   async deliveryOptions(zone?: string, areaId?: string | null, itemsCsv?: string) {
@@ -713,9 +714,9 @@ export class ShopService {
       ? 'BANGLADESH'
       : 'DHAKA';
 
-    /*  DEC-DLV-011 — cart-এর slug এলে সেই product-গুলোর টিক-দেওয়া
-        DeliveryType-এর set আগে তুলে রাখা হয়; নিচে zone-এর তালিকা এই set
-        দিয়ে ছাঁকা হবে। slug না এলে আগের zone-only আচরণ (PDP-র চিপ ইত্যাদি)। */
+    /*  DEC-DLV-011 — when the cart's slugs arrive, each product's ticked
+        DeliveryType set is collected first; the zone's list below is sieved
+        with it. No slugs = the old zone-only behaviour (PDP chips etc.). */
     const cartSlugs = (itemsCsv ?? '')
       .split(',')
       .map((s) => s.trim())
@@ -748,8 +749,8 @@ export class ShopService {
       },
     });
 
-    /*  এক নামের একাধিক দাম থাকলে কোনটা খাটবে — একটাই function, যেটা
-        Sales আর POS-ও পড়বে। */
+    /*  When one name carries several prices, which applies — one function,
+        the same one Sales and POS read. */
     const chosen = ratesForArea(
       rows.map((r) => ({ ...r, typeId: r.typeId, areaId: r.areaId })),
       areaId ?? null,
@@ -758,10 +759,21 @@ export class ShopService {
     const now = new Date(Date.now() + BD_OFFSET_MS);
     const minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes();
 
+    /*  DEC-DLV-019 — paused days ride along so the date picker can grey them;
+        a blackout on TODAY also closes the no-date shapes for the day.
+        Cast until the local Prisma client is regenerated on the host.  */
+    const todayStr = now.toISOString().slice(0, 10);
+    const blackouts = await (this.prisma.db as unknown as {
+      deliveryBlackout: { findMany: (a: unknown) => Promise<{ date: string; typeId: string | null }[]> };
+    }).deliveryBlackout.findMany({
+      where: { deletedAt: null, date: { gte: todayStr } },
+      select: { date: true, typeId: true },
+    });
+
     return [...chosen.values()]
-      /*  DEC-DLV-011 — যে delivery পুরো cart বইতে পারে না, সে menu-তেই নেই।
-          "multi product hole win hobe se method je method-এ sobgula product
-          delivery possible" — মালিক, ৫ আগস্ট।  */
+      /*  DEC-DLV-011 — a delivery that cannot carry the whole cart never
+          reaches the menu. "With multiple products the winning method is the
+          one every product can ship under" — owner, 5 Aug.  */
       .filter(
         (m) =>
           !typeSets.length ||
@@ -772,41 +784,49 @@ export class ShopService {
         const cut = parseHHMM(m.cutoffTime);
         const t = m.type;
 
-        /*  ── আজ এই delivery নেওয়া যাবে কি না · DEC-DLV-010 ───────────────
-            মালিক: *"২ ঘণ্টার delivery দোকান off/on পর্যন্ত কাজ করবে, তারও
-            একটা সীমা থাকবে — like ১০টা থেকে ৯টা পর্যন্ত।"*
-
-            ⚠️ Shop hours নয়, delivery-র নিজের জানালা। দোকান রাত ১২টা পর্যন্ত
-            খোলা থাকতে পারে, কিন্তু রাত ১১টায় "২ ঘণ্টায়" মানে রাত ১টা — যে
-            প্রতিশ্রুতি কেউ রাখতে পারবে না।  */
+        /*  ── whether this delivery can be taken today · DEC-DLV-010 ─────
+            Owner: "the 2-hour delivery needs its own limit too — like 10 to
+            9." Not shop hours — the delivery's own window. The shop may stay
+            open till midnight, but "in 2 hours" at 11pm means 1am, a promise
+            nobody can keep.  */
         const from = t?.openFromMin ?? null;
         const to = t?.openToMin ?? null;
         const beforeOpen = from !== null && minutesNow < from;
         const afterClose = to !== null && minutesNow >= to;
+        // DEC-DLV-019 — this method's paused days (shop-wide rows count too)
+        const nameId = m.typeId ?? m.type?.id ?? null;
+        const blackoutDates = blackouts
+          .filter((b) => !b.typeId || b.typeId === nameId)
+          .map((b) => b.date);
+        const pausedToday = blackoutDates.includes(todayStr);
 
         return {
-          /*  checkout এটা পড়েই ঠিক করে তারিখ চাইবে না slot চাইবে — নাম দেখে
-              আন্দাজ করে নয়।  */
+          /*  checkout reads this to decide whether to ask for a date or a
+              slot — never guessed from the name.  */
           timing: t?.timing ?? 'TODAY_SLOT',
           promiseMinutes: t?.promiseMinutes ?? null,
           openFromMin: from,
           openToMin: to,
-          /** আজ এখন নেওয়া যাবে কি না, আর না গেলে কেন */
-          closedNow: beforeOpen || afterClose,
-          closedReason: beforeOpen
-            ? 'Opens later today'
-            : afterClose
-              ? 'Closed for today'
-              : null,
-          /*  ⚠️ `typeId`, `id` নয়। Product যুক্ত থাকে নামের সাথে, দামের
-              সারির সাথে নয় — checkout-কে মেলাতে হয় নাম দিয়ে।  */
+          /** whether it can be taken right now, and if not, why */
+          closedNow: pausedToday || beforeOpen || afterClose,
+          closedReason: pausedToday
+            ? 'Paused today'
+            : beforeOpen
+              ? 'Opens later today'
+              : afterClose
+                ? 'Closed for today'
+                : null,
+          /** DEC-DLV-019 — upcoming paused days, for greying the date picker */
+          blackoutDates,
+          /*  ⚠️ `typeId`, not `id`. Products link to the NAME, not the price
+              row — checkout has to match by name.  */
           typeId: m.typeId,
           rateId: m.id,
           name: m.type?.name ?? m.label,
           kind: m.kind,
           feePaisa: m.feePaisa,
           eta: m.etaLabel,
-          /** আজকের জন্য আর কত মিনিট। null = কোনো cut-off নেই। ≤0 = আজ শেষ। */
+          /** minutes left for today. null = no cut-off. <=0 = done for today. */
           minutesLeft: cut === null ? null : cut - minutesNow,
           slots: m.slots.map((sl) => {
             const slCut = parseHHMM(sl.cutoffTime);
@@ -816,8 +836,8 @@ export class ShopService {
               startMin: sl.startMin,
               endMin: sl.endMin,
               capacityPerDay: sl.capacityPerDay,
-              /*  স্লটের নিজের ঘড়ি। না থাকলে স্লট শুরুর আগ পর্যন্ত —
-                  পুরনো নিয়ম, আর সেটাই সবচেয়ে উদার।  */
+              /*  the slot's own clock. Missing = right up until the slot
+                  begins — the old rule, and the most generous one.  */
               minutesLeft:
                 slCut !== null
                   ? slCut - minutesNow
@@ -938,8 +958,8 @@ export class ShopController {
   deliveryOptions(
     @Query('zone') zone?: string,
     @Query('areaId') areaId?: string,
-    /*  DEC-DLV-011 — cart-এর slug, comma-separated। দিলে menu-তে শুধু সেই
-        delivery আসে যেটা cart-এর সব product-এ চলে।  */
+    /*  DEC-DLV-011 — the cart's slugs, comma-separated. When given, the menu
+        carries only the deliveries every product in the cart supports.  */
     @Query('items') items?: string,
   ) {
     return this.svc.deliveryOptions(zone, areaId || null, items);

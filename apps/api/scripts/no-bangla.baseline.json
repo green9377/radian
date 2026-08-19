@@ -140,7 +140,7 @@
   "apps/api/src/seo/seo.service.ts": 1,
   "apps/api/src/shop/catalog.ts": 23,
   "apps/api/src/shop/payment.ts": 7,
-  "apps/api/src/shop/shop.ts": 38,
+  "apps/api/src/shop/shop.ts": 1,
   "apps/api/src/storefront/reviews.ts": 18,
   "apps/web/app/_components/About/AboutView.tsx": 5,
   "apps/web/app/_components/Account/AccountGuard.tsx": 3,
