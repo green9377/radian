@@ -10,7 +10,7 @@ import {
 import {
   getItem, createItem, updateItem, deleteItem, listItems, loadItemFormRefs, generateItemVariants,
   itemUsage, getItemTimeline,
-  createItemCategory, createItemAttribute, addItemAttrValue,
+  createItemCategory, createItemAttribute, addItemAttrValue, getItemSettings,
   listItemTypes, createItemType, FALLBACK_ITEM_TYPES, floorPrice,
   uploadItemImage, itemTint, itemInitials,
   formatTaka, itemStockLabel, getInvItemStock,
@@ -76,7 +76,8 @@ type Draft = {
   reorderLevel: string;
   weightGram: string;
   costTaka: string;        // the PURCHASE rate — what we pay
-  sellTaka: string;        // DEC-ITM-022 — the COUNTER price
+  sellTaka: string;        // DEC-ITM-022 — a FIXED counter price; blank = automatic
+  markupPercent: string;   // DEC-ITM-023 — this item's own profit %; blank = shop default
   marginMode: MarginMode;  // DEC-ITM-018 — how the floor is worked out
   marginPercent: string;
   marginTaka: string;
@@ -91,7 +92,7 @@ const EMPTY: Draft = {
   imageUrl: null, description: "",
   isSaleable: false, isPurchasable: true, isReturnable: true, isPerishable: false,
   isStockTracked: true, shelfLifeDays: "", reorderLevel: "", weightGram: "",
-  costTaka: "", sellTaka: "", marginMode: "none", marginPercent: "", marginTaka: "",
+  costTaka: "", sellTaka: "", markupPercent: "", marginMode: "none", marginPercent: "", marginTaka: "",
   vatPercent: "", maxDiscountPercent: "",
   attributeValueIds: [], isActive: true,
 };
@@ -139,6 +140,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   const [types, setTypes] = useState<ApiItemTypeRow[]>(FALLBACK_ITEM_TYPES);
 
   const [section, setSection] = useState<Section>("basics");
+  /** DEC-ITM-023 — the shop default profit %, so the screen shows the same figure the server will use */
+  const [shopMarkupBp, setShopMarkupBp] = useState<number | null>(null);
+  useEffect(() => { getItemSettings().then((s) => setShopMarkupBp(s.defaultMarkupBp)).catch(() => setShopMarkupBp(null)); }, []);
   // create-category dialog (name + optional parent) — opened from the picker's create row
   const [catDlg, setCatDlg] = useState<{ name: string; parentId: string } | null>(null);
   const [catBusy, setCatBusy] = useState(false);
@@ -194,6 +198,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             weightGram: it.weightGram?.toString() ?? "",
             costTaka: (it.standardCostPaisa / 100).toString(),
             sellTaka: it.sellingPricePaisa != null ? (it.sellingPricePaisa / 100).toString() : "",
+            markupPercent: it.markupBp != null ? (it.markupBp / 100).toString() : "",
             // DEC-ITM-018 — the two margin columns are mutually exclusive, so whichever
             // one carries a value also tells us which mode the form should open in
             marginMode: it.minMarginBp ? "percent" : it.minMarginPaisa ? "flat" : "none",
@@ -246,6 +251,18 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
      the number on screen is the number that gets saved. */
   const costPaisa = Math.max(0, Math.round((parseFloat(draft.costTaka) || 0) * 100));
   const sellPaisa = draft.sellTaka.trim() === "" ? null : Math.max(0, Math.round((parseFloat(draft.sellTaka) || 0) * 100));
+  /*  DEC-ITM-023 — the same three lines the server runs, so the screen and the till
+      never disagree: markup = the item's own percent or the shop default, suggestion =
+      cost + markup (nothing to suggest without a cost), price = fixed one if set.  */
+  const markupBp =
+    draft.markupPercent.trim() === ""
+      ? (shopMarkupBp ?? 2000)
+      : Math.max(0, Math.round((parseFloat(draft.markupPercent) || 0) * 100));
+  const suggestedPaisa = costPaisa > 0 ? Math.round(costPaisa * (1 + markupBp / 10_000)) : null;
+  const priceNowPaisa = sellPaisa ?? suggestedPaisa;
+  /*  cost stops being typed once the item has been bought — the average owns it then
+      (a recipe-driven item never types it at all)  */
+  const costIsAuto = item?.costMode === "AUTO" || (!!item && (item.effectiveCostPaisa ?? 0) > 0);
   const marginBp = draft.marginMode === "percent"
     ? Math.max(0, Math.round((parseFloat(draft.marginPercent) || 0) * 100)) : 0;
   const marginPaisa = draft.marginMode === "flat"
@@ -282,7 +299,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
       reorderLevel: draft.reorderLevel === "" ? null : Math.max(0, Math.round(Number(draft.reorderLevel) || 0)),
       weightGram: draft.weightGram === "" ? null : Math.max(0, Math.round(Number(draft.weightGram) || 0)),
       standardCostPaisa: costPaisa,
-      sellingPricePaisa: sellPaisa, // DEC-ITM-022 — the counter price
+      sellingPricePaisa: sellPaisa, // DEC-ITM-022 — null = follow cost + markup
+      markupBp: draft.markupPercent.trim() === "" ? null : markupBp, // DEC-ITM-023
       // DEC-ITM-018 — send both, always: clearing a rule has to be expressible, and the
       // server treats null as "no rule" while undefined would mean "leave it alone".
       minMarginBp: marginBp || null,
@@ -1027,33 +1045,106 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               it is checked, not copied. */}
           {section === "price" && (
             <Sect title="Price & cost">
+              {/*  DEC-ITM-023 (owner, 20 Aug) — the cost is NOT typed once the item has
+                   been bought: it is the average of what was actually paid, and every
+                   receive moves it. Typing over it would put a wish next to a fact.  */}
               <Pair>
                 <Row
-                  label={`Purchase rate per ${units.find((u) => u.id === draft.unitId)?.name?.toLowerCase() ?? "unit"}`}
-                  hint="What you pay your supplier — updates from purchase bills."
+                  label={`Cost per ${units.find((u) => u.id === draft.unitId)?.name?.toLowerCase() ?? "unit"}`}
+                  hint="The average of what you have actually paid. Purchases keep it up to date."
                 >
-                  <TakaInput value={draft.costTaka} onChange={(v) => set("costTaka", v)}
-                    disabled={item?.costMode === "AUTO"} placeholder="0.00" />
+                  {costIsAuto ? (
+                    <div className="ipt w-full flex items-center justify-between" style={{ background: "#faf6fd" }}>
+                      <b className="text-body">{formatTaka(costPaisa)}</b>
+                      <span className="text-[12px] text-body-soft">
+                        {item?.costMode === "AUTO" ? "from its recipe" : "average of your purchases"}
+                      </span>
+                    </div>
+                  ) : (
+                    <TakaInput value={draft.costTaka} onChange={(v) => set("costTaka", v)} placeholder="0.00" />
+                  )}
                 </Row>
                 <Row label="VAT" hint="The default VAT rate for this item.">
                   <PercentInput value={draft.vatPercent} onChange={(v) => set("vatPercent", v)} placeholder="0" />
                 </Row>
               </Pair>
+              {!costIsAuto && (
+                <p className="text-[12px] text-body-soft m-0 -mt-2">
+                  Starting cost — from the first purchase onward this becomes the average and stops being typed.
+                </p>
+              )}
 
-              {/*  DEC-ITM-022 (owner, 20 Aug) — everything marked "We sell it" is
-                   sellable at the counter, services included, so the price the shop
-                   sells at belongs here. A product page may price differently online. */}
+              {/*  DEC-ITM-022/023 — everything marked "We sell it" is sellable at the
+                   counter, services included. The price follows the cost by default;
+                   fixing it by hand is the exception, and it says so.  */}
               {draft.isSaleable && (
-                <Row label="Counter price" hint="What the shop charges at the till. A website product can set its own price.">
-                  <div className="max-w-[220px]">
-                    <TakaInput value={draft.sellTaka} onChange={(v) => set("sellTaka", v)} placeholder="0.00" />
+                <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
+                    <Icon name="cash" size={13} />
+                    <span className="text-[13px] font-bold text-purple">Counter price</span>
+                    <Info text="What the till charges. It follows the cost automatically; a website product may price differently." />
+                    <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
+                      {([
+                        { k: false, label: "Automatic" },
+                        { k: true, label: "Fixed price" },
+                      ]).map((o, i) => (
+                        <button key={String(o.k)} type="button"
+                          onClick={() => set("sellTaka", o.k ? String((suggestedPaisa ?? 0) / 100) : "")}
+                          className="text-[12.5px] font-bold px-3.5 py-1"
+                          style={{
+                            background: (draft.sellTaka.trim() !== "") === o.k ? ACCENT : "#fff",
+                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#6b5077",
+                            borderLeft: i ? "1px solid #e8dcf0" : undefined,
+                          }}>
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {sellPaisa !== null && floorPaisa !== null && sellPaisa < floorPaisa && (
-                    <p className="text-[12px] text-[#c0392b] m-0 mt-1.5">
-                      Below the floor — {formatTaka(floorPaisa)} is the least this may sell for.
-                    </p>
-                  )}
-                </Row>
+
+                  <div className="p-4">
+                    {draft.sellTaka.trim() === "" ? (
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-[13px] text-body">
+                          {formatTaka(costPaisa)} <span className="text-body-soft">cost</span> +{" "}
+                          <span className="inline-flex items-center gap-1.5 align-middle">
+                            <span className="w-[86px] inline-block">
+                              <PercentInput
+                                value={draft.markupPercent}
+                                onChange={(v) => set("markupPercent", v)}
+                                placeholder={String((shopMarkupBp ?? 2000) / 100)}
+                              />
+                            </span>
+                            <span className="text-body-soft">profit</span>
+                          </span>
+                        </span>
+                        <span className="text-body-soft">→</span>
+                        <b className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
+                          {suggestedPaisa === null ? "—" : formatTaka(suggestedPaisa)}
+                        </b>
+                        {suggestedPaisa === null && (
+                          <span className="text-[12.5px] text-body-soft">
+                            no cost yet — buy it once, or switch to a fixed price
+                          </span>
+                        )}
+                        {draft.markupPercent.trim() === "" && (
+                          <span className="text-[12px] text-body-soft">
+                            shop default {(shopMarkupBp ?? 2000) / 100}%
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="max-w-[220px]">
+                        <TakaInput value={draft.sellTaka} onChange={(v) => set("sellTaka", v)} placeholder="0.00" />
+                      </div>
+                    )}
+                    {sellPaisa !== null && floorPaisa !== null && sellPaisa < floorPaisa && (
+                      <p className="text-[12px] text-[#c0392b] m-0 mt-2">
+                        Below the floor — {formatTaka(floorPaisa)} is the least this may sell for.
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
 
               {item?.costMode === "AUTO" && (
@@ -1239,7 +1330,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     so it belongs in the summary the owner glances at. */}
                 {draft.isSaleable && (<><dt className="text-body-soft">Counter price</dt>
                   <dd className="m-0 font-semibold text-body">
-                    {sellPaisa === null ? "not set" : formatTaka(sellPaisa)}
+                    {priceNowPaisa === null ? "not set" : formatTaka(priceNowPaisa)}
+                    {priceNowPaisa !== null && (
+                      <span className="text-[11px] font-normal text-body-soft ml-1.5">
+                        {sellPaisa === null ? "auto" : "fixed"}
+                      </span>
+                    )}
                   </dd></>)}
                 <dt className="text-body-soft">Sell above</dt>
                 <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "#8b7a95" : "#0e7a3d" }}>

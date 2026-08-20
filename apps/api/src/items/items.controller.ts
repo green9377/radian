@@ -38,6 +38,20 @@ export class ItemsController {
 
   /* ---- static routes first ---- */
 
+  /** DEC-ITM-023 — the shop's default profit percent (one row) */
+  @Get('settings')
+  settings() {
+    return this.svc.getSettings();
+  }
+
+  @Patch('settings')
+  patchSettings(
+    @Body() dto: { defaultMarkupBp?: number },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.patchSettings(dto, actor ?? 'Admin');
+  }
+
   // DEC-ITM-009 — one click, idempotent
   @Post('generate-from-products')
   generate(@Headers('x-actor-name') actor?: string) {

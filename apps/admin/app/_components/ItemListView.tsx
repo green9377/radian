@@ -641,7 +641,7 @@ export default function ItemListView() {
         <div className={ROW + " px-4 py-2.5 th-on-dark hidden md:grid sticky top-0 z-30"}
           style={{ background: ACCENT }}>
           <span /><span>Item / code</span><span>Category</span><span>Type</span><span>Brand</span>
-          <span>Colour</span><span>Size</span><span>Cost</span>
+          <span>Colour</span><span>Size</span><span>Cost · sells at</span>
           <span title="Live stock from Inventory">Stock</span>
           <span>Status</span><span className="text-right">Action</span>
         </div>
@@ -840,10 +840,21 @@ export default function ItemListView() {
                       : <span className="text-body-soft">—</span>}
                   </span>
 
+                  {/*  DEC-ITM-023 — cost on top, what it sells for underneath: the two
+                       numbers are only useful next to each other  */}
                   <span className="text-[13.5px] font-semibold text-body">
                     {i.effectiveCostPaisa > 0 ? formatTaka(i.effectiveCostPaisa) : <span className="text-body-soft font-normal">—</span>}
-                    <span className="block text-[11px] font-normal text-body-soft">
-                      {i.costMode === "AUTO" ? "auto from recipe" : `per ${i.unit?.name?.toLowerCase() ?? "unit"}`}
+                    <span className="block text-[11px] font-normal">
+                      {i.isSaleable && i.effectiveSellPricePaisa != null ? (
+                        <span style={{ color: "#0e7a3d" }}>
+                          sells {formatTaka(i.effectiveSellPricePaisa)}
+                          {i.sellPriceIsManual ? " · fixed" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-body-soft">
+                          {i.costMode === "AUTO" ? "auto from recipe" : `per ${i.unit?.name?.toLowerCase() ?? "unit"}`}
+                        </span>
+                      )}
                     </span>
                   </span>
 

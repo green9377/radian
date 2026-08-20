@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, ItemType, AssemblyMode, CostMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { ensureSingleton } from '../common/singleton';
+
 import type {
   ItemDto,
   ItemPatch,
@@ -10,6 +12,19 @@ import type {
   ItemListQuery,
   VariantGenerateDto,
 } from './item.dto';
+
+/*  The generated client on a machine that has not run BUILD_CHECK.bat yet does not
+    know ItemSetting (DEC-ITM-023). Narrow shim, deleted after the next regenerate. */
+interface ItemSettingClient {
+  itemSetting: {
+    findFirst(): Promise<{ defaultMarkupBp: number } | null>;
+    create(args: { data: Record<string, never> }): Promise<{ defaultMarkupBp: number }>;
+    update(args: {
+      where: { id: string };
+      data: { defaultMarkupBp: number };
+    }): Promise<{ defaultMarkupBp: number }>;
+  };
+}
 
 /*
   ITEM MANAGEMENT — service layer.
@@ -98,7 +113,8 @@ export class ItemsService {
             : { name: dir };
 
     const rows = await this.prisma.db.item.findMany({ where, include: itemInclude, orderBy });
-    return rows.map((r) => this.shape(r));
+    const mk = await this.defaultMarkupBp();
+    return rows.map((r) => this.shape(r, mk));
   }
 
   async findOne(id: string) {
@@ -128,7 +144,7 @@ export class ItemsService {
       },
     });
     if (!item) throw new NotFoundException('Item not found');
-    return this.shape(item);
+    return this.shape(item, await this.defaultMarkupBp());
   }
 
   /**
@@ -147,7 +163,8 @@ export class ItemsService {
       orderBy: { deletedAt: 'desc' },
       take: 200,
     });
-    return rows.map((r) => this.shape(r));
+    const mk = await this.defaultMarkupBp();
+    return rows.map((r) => this.shape(r, mk));
   }
 
   /**
@@ -188,7 +205,8 @@ export class ItemsService {
       },
       orderBy: { name: 'asc' },
     });
-    return rows.map((r) => this.shape(r));
+    const mk = await this.defaultMarkupBp();
+    return rows.map((r) => this.shape(r, mk));
   }
 
   /** where else this item is used — shown before a delete is attempted (ITM-R07) */
@@ -274,7 +292,7 @@ export class ItemsService {
     });
 
     await this.log(item.id, 'CREATE', dto.actorName, `Item "${item.name}" (${item.sku}) created`);
-    return this.shape(item);
+    return this.shape(item, await this.defaultMarkupBp());
   }
 
   /* ------------------------------------------------------ variant generator */
@@ -471,7 +489,7 @@ export class ItemsService {
        next reload — the sort of wrong number nobody reports as a bug, they just stop
        trusting the column. */
     const fresh = await this.prisma.db.item.findFirst({ where: { id }, include: itemInclude });
-    return this.shape(fresh ?? item);
+    return this.shape(fresh ?? item, await this.defaultMarkupBp());
   }
 
   /* ---------------------------------------------------------------- delete */
@@ -1074,17 +1092,19 @@ export class ItemsService {
     const bp = (v: number | null | undefined, max: number) =>
       v === undefined ? undefined : v === null ? null : Math.min(max, Math.max(0, Math.round(v)));
 
-    /*  DEC-ITM-022 — the counter price. Clamped like every other money field: a
-        negative price is a typo, never a business decision. Cast because the
-        generated client on this machine predates the column; it goes away after
-        the next BUILD_CHECK.bat regenerate.  */
-    const counterPrice =
-      dto.sellingPricePaisa === undefined
-        ? {}
-        : ({
-            sellingPricePaisa:
-              dto.sellingPricePaisa === null ? null : Math.max(0, Math.round(dto.sellingPricePaisa)),
-          } as Record<string, number | null>);
+    /*  DEC-ITM-022/023 — the counter price override and this item's own profit
+        percent. Clamped like every money field: a negative price is a typo, never a
+        business decision. Cast because the generated client on this machine predates
+        the columns; it goes away after the next BUILD_CHECK.bat regenerate.  */
+    const counterPrice: Record<string, number | null> = {};
+    if (dto.sellingPricePaisa !== undefined) {
+      counterPrice.sellingPricePaisa =
+        dto.sellingPricePaisa === null ? null : Math.max(0, Math.round(dto.sellingPricePaisa));
+    }
+    if (dto.markupBp !== undefined) {
+      counterPrice.markupBp =
+        dto.markupBp === null ? null : Math.min(1_000_000, Math.max(0, Math.round(dto.markupBp)));
+    }
 
     const out: {
       minMarginBp?: number | null;
@@ -1254,6 +1274,40 @@ export class ItemsService {
     await this.audit.event({ entityType: ENTITY, entityId: id, kind: 'general', label, actorName });
   }
 
+  /**
+   * DEC-ITM-023 — the shop's default profit percent, one row, created on first read.
+   * Cached for a few seconds: every item in a list asks for the same number, and the
+   * owner changes it about twice a year.
+   */
+  private markupCache: { bp: number; at: number } | null = null;
+
+  async defaultMarkupBp(): Promise<number> {
+    if (this.markupCache && Date.now() - this.markupCache.at < 10_000) return this.markupCache.bp;
+    const row = await ensureSingleton(
+      () => (this.prisma.db as unknown as ItemSettingClient).itemSetting.findFirst(),
+      () => (this.prisma.db as unknown as ItemSettingClient).itemSetting.create({ data: {} }),
+    );
+    const bp = row?.defaultMarkupBp ?? 2000;
+    this.markupCache = { bp, at: Date.now() };
+    return bp;
+  }
+
+  async getSettings() {
+    return { defaultMarkupBp: await this.defaultMarkupBp() };
+  }
+
+  async patchSettings(dto: { defaultMarkupBp?: number }, actorName = 'Admin') {
+    const bp = Math.min(1_000_000, Math.max(0, Math.round(dto.defaultMarkupBp ?? 2000)));
+    await this.defaultMarkupBp(); // make sure the row exists
+    await (this.prisma.db as unknown as ItemSettingClient).itemSetting.update({
+      where: { id: 'singleton' },
+      data: { defaultMarkupBp: bp },
+    });
+    this.markupCache = null;
+    await this.audit.record({ entityType: 'ItemSetting', entityId: 'singleton', action: 'UPDATE', actorName });
+    return { defaultMarkupBp: bp };
+  }
+
   /** adds the derived fields the admin screens read, so the maths lives in one place */
   private shape<
     T extends {
@@ -1263,7 +1317,7 @@ export class ItemsService {
       minMarginBp?: number | null;
       minMarginPaisa?: number | null;
     },
-  >(row: T) {
+  >(row: T, defaultMarkupBp = 2000) {
     const cost = this.effective(row);
     /* DEC-ITM-018 — the floor, computed in ONE place so Product, POS and this screen can
        never each round it slightly differently. Null when no rule is set: "no floor" and
@@ -1275,10 +1329,29 @@ export class ItemsService {
           ? cost + row.minMarginPaisa
           : null;
 
+    /*  DEC-ITM-023 — the counter price, worked out in ONE place so the item screen,
+        the till and every report say the same number.
+
+          markup   = this item's own percent, else the shop default
+          suggested= cost + markup            (null when there is no cost yet)
+          price    = the manual override if there is one, else suggested
+
+        A service (no purchases, cost 0) has no suggestion — its price is typed, and
+        that is not a gap: nobody buys wrapping paper labour by the kilo.  */
+    const r = row as T & { markupBp?: number | null; sellingPricePaisa?: number | null };
+    const markupBp = r.markupBp ?? defaultMarkupBp;
+    const suggested = cost > 0 ? Math.round(cost * (1 + markupBp / 10_000)) : null;
+    const price = r.sellingPricePaisa ?? suggested;
+
     return {
       ...row,
       effectiveCostPaisa: cost,
       floorPricePaisa: floor,
+      markupUsedBp: markupBp,
+      suggestedSellPricePaisa: suggested,
+      /** what the till charges: the override when set, otherwise cost + markup */
+      effectiveSellPricePaisa: price,
+      sellPriceIsManual: r.sellingPricePaisa != null,
       // ⚠️ DEC-ITM-005 — there is deliberately no stock figure here. The admin screen
       // shows "—" until the Inventory module exists.
     };

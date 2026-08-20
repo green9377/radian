@@ -2396,8 +2396,13 @@ export interface ApiItem {
   minMarginPaisa?: number | null;
   floorPricePaisa?: number | null; // derived: cost + the margin rule. null = no rule set
 
-  /** DEC-ITM-022 — the COUNTER price (the website's price lives on the Product) */
-  sellingPricePaisa?: number | null;
+  /** DEC-ITM-022/023 — the COUNTER price. The website's price lives on the Product. */
+  sellingPricePaisa?: number | null; // manual override; null = follows cost + markup
+  markupBp?: number | null;          // this item's own profit %; null = shop default
+  markupUsedBp?: number;             // derived: the percent actually applied
+  suggestedSellPricePaisa?: number | null; // derived: cost + markup (null when no cost)
+  effectiveSellPricePaisa?: number | null; // derived: the override, else the suggestion
+  sellPriceIsManual?: boolean;
 
   /** DEC-ITM-019 — starting figures for Sales, not the final ones */
   vatRateBp?: number | null;
@@ -2434,7 +2439,8 @@ export interface ItemWrite {
   attributeValueIds?: string[];
   costMode?: CostMode;
   standardCostPaisa?: number;
-  sellingPricePaisa?: number | null; // DEC-ITM-022 — the counter price
+  sellingPricePaisa?: number | null; // DEC-ITM-022 — the counter price override
+  markupBp?: number | null;          // DEC-ITM-023 — this item's own profit %
   minMarginBp?: number | null;
   minMarginPaisa?: number | null;
   vatRateBp?: number | null;
@@ -2562,6 +2568,12 @@ export const listItems = (q?: {
   return j<ApiItem[]>(`/items${qs ? `?${qs}` : ""}`);
 };
 export const getItem = (id: string) => j<ApiItem>(`/items/${id}`);
+
+/** DEC-ITM-023 — the shop's default profit percent, one row */
+export interface ApiItemSettings { defaultMarkupBp: number }
+export const getItemSettings = () => j<ApiItemSettings>(`/items/settings`);
+export const patchItemSettings = (b: { defaultMarkupBp: number }) =>
+  j<ApiItemSettings>(`/items/settings`, { method: "PATCH", body: JSON.stringify(b) });
 export const createItem = (b: ItemWrite & { name: string; itemType: ItemType; unitId: string }) =>
   j<ApiItem>(`/items`, { method: "POST", body: JSON.stringify(b) });
 export const updateItem = (id: string, b: ItemWrite) =>

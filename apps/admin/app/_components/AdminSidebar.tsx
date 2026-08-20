@@ -350,6 +350,7 @@ const GROUPS: Group[] = [
              screens costs attention and gives nothing back. (sobuj, 21 Jul) */
           { label: "Item categories", href: "/items/categories" },
           { label: "Item types", href: "/items/types" },
+          { label: "Pricing", href: "/items/pricing" },
           { label: "Colours", href: "/items/colors" },
           { label: "Sizes", href: "/items/sizes" },
           // Units lives under Items (owner's call, 21 Jul) — units exist to serve

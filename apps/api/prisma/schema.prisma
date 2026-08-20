@@ -3029,18 +3029,23 @@ model Item {
   minMarginBp    Int? // minimum profit as basis points (1500 = 15%)
   minMarginPaisa Int? // …or as a flat taka amount, in paisa
 
-  /// DEC-ITM-022 (owner, 20 Aug 2026) — the COUNTER price.
+  /// DEC-ITM-022 (owner, 20 Aug 2026) — the COUNTER price, and how it is worked out.
   ///
   /// DEC-ITM-018 said the Item holds no selling price, because the Product held it
   /// and two prices drift. That reasoning assumed everything sold has a Product.
   /// It does not: wrapping, decoration and every counter-only service are Items with
-  /// no web listing, and the owner's ruling is that everything marked "We sell it"
-  /// is sellable at the counter. So the Item carries the price the SHOP sells at.
+  /// no web listing, and everything marked "We sell it" is sellable at the counter.
   ///
-  /// A Product keeps its own `sellingPricePaisa` for the WEBSITE — an online price is
-  /// allowed to differ, and it is the Product's business, not a copy of this one.
-  /// Null = no counter price set yet; the till asks before it can sell it.
-  sellingPricePaisa Int?
+  /// DEC-ITM-023 (owner, 20 Aug) — the price is normally NOT typed. It follows the
+  /// cost: sell = average cost + profit %. The percent comes from the shop default
+  /// (ItemSetting.defaultMarkupBp) unless this item overrides it. So when the market
+  /// moves and a purchase changes the average, every price moves with it by itself.
+  ///
+  /// `sellingPricePaisa` is therefore an OVERRIDE, not the price: null means "follow
+  /// the formula", a number means "this exact price, whatever the cost does".
+  /// A Product keeps its own price for the WEBSITE — allowed to differ, not a copy.
+  sellingPricePaisa Int? // manual override; null = derived from cost + markup
+  markupBp          Int? // this item's own profit %; null = the shop default
 
   /// DEC-ITM-019 — tax and discount DEFAULTS live with the thing being sold, because
   /// they are properties of the thing (a cake is not taxed like a bouquet). The Sales
@@ -3111,6 +3116,19 @@ model Item {
   @@index([itemCategoryId])
   @@index([isActive])
   @@index([supplierId])
+}
+
+/// DEC-ITM-023 (owner, 20 Aug 2026) — the shop's pricing defaults, one row.
+///
+/// The counter price follows the cost, so the profit percent has to live somewhere
+/// the owner can change once for the whole shop. An item may still overrule it
+/// (Item.markupBp), and a single item may fix its own price outright
+/// (Item.sellingPricePaisa) — but with neither, every price in the shop is
+/// cost + this percent, and it moves the moment a purchase moves the average.
+model ItemSetting {
+  id             String   @id @default("singleton")
+  defaultMarkupBp Int     @default(2000) // 2000 = 20% profit on cost
+  updatedAt      DateTime @updatedAt
 }
 
 /// DEC-ITM-017 — the owner's own vocabulary for item types.
