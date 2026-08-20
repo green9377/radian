@@ -944,7 +944,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     const id = setTimeout(() => {
       setItemBusy(true);
       listItems(q ? { search: q } : undefined)
-        .then((r) => setItemHits(r.slice(0, 8)))
+        // DEC-ITM-013 — only saleable, active items may sit behind a product
+        .then((r) => setItemHits(r.filter((i) => i.isSaleable && i.isActive).slice(0, 8)))
         .catch(() => setItemHits([]))
         .finally(() => setItemBusy(false));
     }, 300);
@@ -969,7 +970,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     let stale = false;
     const t = setTimeout(() => {
       listItems(vItemQ.trim() ? { search: vItemQ.trim() } : undefined)
-        .then((r) => !stale && setVItemHits(r.slice(0, 30)))
+        // DEC-ITM-013 — same gate as the product's own item search
+        .then((r) => !stale && setVItemHits(r.filter((i) => i.isSaleable && i.isActive).slice(0, 30)))
         .catch(() => !stale && setVItemHits([]));
     }, 250);
     return () => {
@@ -1530,7 +1532,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               itemLabel: v.item ? `${v.item.name} · ${v.item.sku}` : null,
               price: v.pricePaisa != null ? String(v.pricePaisa / 100) : "",
               discType: (v.discountType ?? "NONE") as VariantRow["discType"],
-              /*  PERCENT server-এ basis point (1000 = ১০%), মালিক দেখেন ১০।  */
+              /*  PERCENT is basis points on the server (1000 = 10%); the owner sees 10.  */
               discValue:
                 v.discountType === "PERCENT"
                   ? String((v.discountValue ?? 0) / 100)
@@ -2668,8 +2670,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               {/*
                 ═══════════════════════════════════════════════════════════
                 DOES IT COME IN MORE THAN ONE — owner, 8 Aug 2026:
-                *"basic-এ ঠিক করব এটা variant হবে কিনা; না দিলে পরের tab-এ
-                variant option আসবে না।"*
+                *"decide on Basics whether this has variants; if not, the
+                variant option must not appear on the next tab."*
 
                 One question, asked once, at the top. Off hides the whole
                 Variants tab — and with it the per-variant rows in Photos,
@@ -2778,9 +2780,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       </L>
                     }
                   >
-                    {/*  DEC-PRD-035 rev (owner, 9 Aug 2026): *"variant-এ price
-                        বসালেই main price-এর ঘর disable হবে, তুলে দিলে আবার
-                        enable."* Disabled exactly when EVERY variant prices
+                    {/*  DEC-PRD-035 rev (owner, 9 Aug 2026): *"the moment a variant
+                        carries a price the main price box disables; clear it and it
+                        enables again."* Disabled exactly when EVERY variant prices
                         itself — with one variant blank the box stays live,
                         because that variant genuinely sells at this price.  */}
                     <input
@@ -2794,8 +2796,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       disabled={allVariantsPriced}
                     />
                     {/*
-                      DEC-PRD-035 — owner, 9 Aug 2026: *"২টা variant-এর দাম
-                      আলাদা হলে main price ঘরের কাজ কী?"*
+                      DEC-PRD-035 — owner, 9 Aug 2026: *"if two variants carry
+                      different prices, what is the main price box even for?"*
 
                       A fair question, and the honest answer is: almost none.
                       Nothing sells at it once every variant prices itself —

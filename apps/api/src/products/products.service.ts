@@ -750,13 +750,30 @@ export class ProductsService {
       if (found !== dto.tagIds.length) throw new BadRequestException('one or more tagIds not found');
     }
     /*  DEC-ITM-002 — the Item must exist. A dangling link would show a
-        listing as stock-tracked while nothing is counting it.  */
-    if (dto.itemId) {
-      const it = await this.prisma.db.item.findFirst({
-        where: { id: dto.itemId },
-        select: { id: true },
+        listing as stock-tracked while nothing is counting it.
+        DEC-ITM-013 (enforced 20 Aug) — and it must be marked "We sell it":
+        the item editor promises "only saleable items may be connected to a
+        Product", so the server keeps that promise. Covers the product's own
+        item AND every variant's item in one query.  */
+    const itemIds = [
+      ...(dto.itemId ? [dto.itemId] : []),
+      ...(dto.variants ?? []).map((v) => v.itemId).filter((x): x is string => !!x?.trim()),
+    ];
+    if (itemIds.length) {
+      const found = await this.prisma.db.item.findMany({
+        where: { id: { in: itemIds } },
+        select: { id: true, name: true, isSaleable: true },
       });
-      if (!it) throw new BadRequestException('itemId not found — pick an item from the list');
+      const byId = new Map(found.map((i) => [i.id, i]));
+      for (const id of itemIds) {
+        const it = byId.get(id);
+        if (!it) throw new BadRequestException('itemId not found — pick an item from the list');
+        if (!it.isSaleable) {
+          throw new BadRequestException(
+            `"${it.name}" is not marked "We sell it". Open the item and switch it on first — only saleable items may sit behind a product.`,
+          );
+        }
+      }
     }
   }
 
