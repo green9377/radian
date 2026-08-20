@@ -526,7 +526,15 @@ export class PurchasesService {
     const adjustment = dto.adjustmentPaisa ?? 0;
     if (!Number.isInteger(adjustment))
       throw new BadRequestException('Adjustment must be an integer (paisa)');
-    const grand = subTotal - discount + adjustment;
+    /*  DEC-PUR-012 (owner, 21 Aug) — a supplier bill carries VAT too, so the
+        purchase screen has the same four doors as the counter. Base is what is
+        left after the discount and the adjustment, exactly like DEC-POS-016.  */
+    const taxRateBps = dto.taxRateBps ?? 0;
+    if (!Number.isInteger(taxRateBps) || taxRateBps < 0 || taxRateBps > 10_000)
+      throw new BadRequestException('VAT rate must be between 0 and 100 percent');
+    const taxBase = Math.max(subTotal - discount + adjustment, 0);
+    const vat = Math.round((taxBase * taxRateBps) / 10_000);
+    const grand = taxBase + vat;
     if (grand < 0) throw new BadRequestException('Grand total cannot be negative');
 
     /* PUR-R04. PUR-REV-4 (30 Jul) — the amount was only ever checked against the CEILING.
@@ -589,6 +597,7 @@ export class PurchasesService {
         subTotalPaisa: subTotal,
         discountPaisa: discount,
         adjustmentPaisa: adjustment,
+        ...({ taxRateBps, vatPaisa: vat } as object),
         grandTotalPaisa: grand,
         lines: { create: preparedLines },
         payments: dto.payment

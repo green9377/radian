@@ -27,6 +27,8 @@ export interface PurchaseCreateDto {
   discountPaisa?: number;
   /** rounding/bargain adjustment — may be negative (39,920 → 39,900) or positive */
   adjustmentPaisa?: number;
+  /** DEC-PUR-012 — supplier VAT rate in basis points (750 = 7.5%) */
+  taxRateBps?: number;
   lines: PurchaseLineDto[];
 
   /**

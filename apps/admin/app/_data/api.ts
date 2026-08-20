@@ -3131,6 +3131,9 @@ export interface ApiPurchase {
   discountPaisa: number;
   /** rounding/bargain adjustment — negative or positive (39,920 → 39,900) */
   adjustmentPaisa?: number;
+  /** DEC-PUR-012 — supplier VAT: the rate as typed, and what it came to */
+  taxRateBps?: number;
+  vatPaisa?: number;
   grandTotalPaisa: number;
   lines: ApiPurchaseLine[];
   payments: ApiPurchasePayment[];
@@ -3180,6 +3183,8 @@ export interface PurchaseCreateWrite {
   notes?: string;
   discountPaisa?: number;
   adjustmentPaisa?: number;
+  /** DEC-PUR-012 — supplier VAT rate in basis points (750 = 7.5%) */
+  taxRateBps?: number;
   lines: PurchaseLineWrite[];
   mode?: "QUICK" | "ADVANCE";
   payment?: { amountPaisa: number; method: PayMethod; note?: string };

@@ -165,6 +165,14 @@ export function ItemPicker({
 
 /* ================================================================ the form */
 
+/* DEC-PUR-012 — supplier VAT rates; same set the counter offers (DEC-POS-016) */
+const PURCHASE_TAX_RATES = [
+  { label: "No VAT", value: 0 },
+  { label: "VAT 5%", value: 5 },
+  { label: "VAT 7.5%", value: 7.5 },
+  { label: "VAT 15%", value: 15 },
+];
+
 export default function PurchaseNewView() {
   const router = useRouter();
   const [items, setItems] = useState<ApiItem[]>([]);
@@ -191,6 +199,7 @@ export default function PurchaseNewView() {
   const [charges, setCharges] = useState<ChargeRow[]>([]);
   const [adjSign, setAdjSign] = useState<1 | -1>(-1);
   const [adjustmentTaka, setAdjustmentTaka] = useState(0);
+  const [taxRate, setTaxRate] = useState(0); // DEC-PUR-012 — supplier VAT
   const [lines, setLines] = useState<Line[]>([]);
   const [advance, setAdvance] = useState(false);
 
@@ -258,7 +267,7 @@ export default function PurchaseNewView() {
 
   const lineTotal = (l: Line) => Math.round((toMilli(l.qty) * tkToPaisa(l.priceTk)) / 1000);
   const subTotal = lines.reduce((s, l) => s + lineTotal(l), 0);
-  const sum = computeMoney({ subtotalPaisa: subTotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate: 0 });
+  const sum = computeMoney({ subtotalPaisa: subTotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate });
   const discount = sum.discountPaisa;
   const adjust = sum.extraPaisa; // named charges + the nameless round-off, as one number
   const grand = sum.totalPaisa;
@@ -287,6 +296,7 @@ export default function PurchaseNewView() {
         notes: [notes.trim(), chargeNote(charges, sum.adjustmentPaisa)].filter(Boolean).join(" · ") || undefined,
         discountPaisa: discount,
         adjustmentPaisa: adjust,
+        taxRateBps: Math.round(taxRate * 100),
         mode: (advance ? "ADVANCE" : "QUICK") as "QUICK" | "ADVANCE",
         lines: lines.map((l): PurchaseLineWrite => ({
           itemId: l.item.id,
@@ -455,18 +465,15 @@ export default function PurchaseNewView() {
         <div className="xl:sticky xl:top-4 space-y-4">
           <div className="rounded-[16px] text-white shadow-lift px-5 py-4"
             style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
-            {/*  no VAT door here: a purchase bill has nowhere to keep a tax rate
-                 yet (the API takes discount + adjustment only). When supplier VAT
-                 arrives it opens here with one word.  */}
             <MoneyBlock
-              doors={["discount", "charge", "adjust"]}
+              doors={["discount", "charge", "adjust", "vat"]}
               subtotalPaisa={subTotal}
               discountMode={discountMode} discountInput={discountInput}
               charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
-              taxRate={0} taxRates={[]} sum={sum}
+              taxRate={taxRate} taxRates={PURCHASE_TAX_RATES} sum={sum}
               onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
               onCharges={setCharges} onAdjSign={setAdjSign}
-              onAdjustment={setAdjustmentTaka} onTaxRate={() => {}} />
+              onAdjustment={setAdjustmentTaka} onTaxRate={setTaxRate} />
 
             <div className="border-t border-white/15 pt-3 mt-3">
               <label className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#e7d8f2] mb-3 cursor-pointer">

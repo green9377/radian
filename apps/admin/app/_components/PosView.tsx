@@ -362,7 +362,8 @@ export default function PosSellView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 items-start">
-        {/* ============ LEFT: catalogue ============ */}
+        {/* ============ LEFT: catalogue, then what is on the bill ============ */}
+        <div className="space-y-5">
         <div className="min-w-0">
           <div className={cardCls + " p-4 mb-4"}>
             <div className="relative mb-3">
@@ -463,11 +464,69 @@ export default function PosSellView() {
           )}
         </div>
 
-        {/* ============ RIGHT: cart — POS terminal (dark, Concept B) ============ */}
+        {/*  WHAT IS ON THIS BILL — under the catalogue, in the white, exactly the
+             way a purchase bill lists what was bought (owner, 21 Aug: pick above,
+             read below). The purple panel is left carrying money only.  */}
+        <div className={cardCls + " overflow-hidden"}>
+          <div className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+            <span>Item</span><span>Price ৳/unit</span><span className="text-center">Qty</span><span className="text-right">Total</span><span />
+          </div>
+          {lines.length === 0 ? (
+            <div className="px-4 py-8 text-center text-[13px] text-body-soft">Nothing on this bill yet — tap an item above.</div>
+          ) : (
+            lines.map((l) => (
+              <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 border-t border-lavender-deep">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-[30px] h-[30px] rounded-[8px] shrink-0"
+                    style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-purple truncate">{l.product.name}</div>
+                    <div className="text-[11px] text-body-soft">
+                      {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && <>cost {formatTaka(l.product.costPaisa)}</>}
+                      {l.product.stockQty !== null && <> · {l.product.stockQty} left</>}
+                    </div>
+                  </div>
+                </div>
+
+                {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
+                <div>
+                  <input type="number" min={0} className="ipt h-[34px] text-[13px] text-right"
+                    value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
+                    placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
+                    onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
+                  {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
+                    <div className="text-[11px] text-[#c0392b] mt-0.5">min {formatTaka(l.product.floorPricePaisa)}</div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden">
+                    <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[30px] h-[32px] text-purple hover:bg-lavender/60">–</button>
+                    <span className="w-[34px] text-center text-[13px] font-medium text-purple">{l.qty}</span>
+                    <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[30px] h-[32px] text-purple hover:bg-lavender/60">+</button>
+                  </div>
+                </div>
+
+                <div className="text-right text-[13.5px] font-semibold text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {formatTaka(l.unitPaisa * l.qty)}
+                </div>
+
+                <button type="button" onClick={() => remove(l.key)} title="Remove"
+                  className="text-body-soft hover:text-[#c0392b] justify-self-center">
+                  <Icon name="trash" size={15} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        </div>
+
+        {/* ============ RIGHT: the money — nothing else lives here ============ */}
         <aside className="sticky top-3 self-start">
-          {/*  The panel is capped to the screen so the money and the Complete
-               button are ALWAYS in view; only the list of lines scrolls
-               (owner, 20 Aug: "complete icon kkhonoi jen screen ar bahire na jay").  */}
+          {/*  Capped to the screen so the money and the Complete button are always
+               in view (owner, 20 Aug: "complete icon kkhonoi jen screen ar bahire
+               na jay").  */}
           <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden" /*  the page header sits above the panel, so the cap has to leave room for
                  it — "100vh − 24" put the button 50px below the fold (owner, 21 Aug)  */
             style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", maxHeight: "calc(100vh - 100px)" }}>
@@ -550,75 +609,10 @@ export default function PosSellView() {
             </div>
             </div>
 
-            <div className="px-4 overflow-y-auto" style={{ flex: "2 1 auto", minHeight: 56, scrollbarGutter: "stable" }}>
-            {/* lines */}
-            {lines.length === 0 ? (
-              <div className="h-full grid place-items-center">
-                <div className="border border-dashed border-white/20 rounded-[12px] py-8 px-6 text-center text-[13px] text-[#c9a6e4]">Tap an item to add it here.</div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1.5 mb-3">
-                {lines.map((l) => (
-                  /*  One tight strip per line (owner, 21 Aug: make it smaller and
-                      cleaner): what it is and what it comes to on top, the price
-                      and the count underneath in small controls. Nothing here is
-                      bigger than it has to be — the money that matters is the
-                      grand total below.  */
-                  <div key={l.key} className="rounded-[10px] px-2 py-1.5" style={{ background: "rgba(255,255,255,.06)" }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-[26px] h-[26px] rounded-[7px] shrink-0"
-                        style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
-                      <div className="text-[12.5px] font-medium text-[#f0e3fa] truncate flex-1 min-w-0">{l.product.name}</div>
-                      <div className="text-[13px] font-semibold shrink-0">{formatTaka(l.unitPaisa * l.qty)}</div>
-                      <button type="button" onClick={() => remove(l.key)}
-                        className="text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0" title="Remove">
-                        <Icon name="trash" size={14} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 mt-1 pl-[34px]">
-                      {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
-                      <span className="relative">
-                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-[#c9a6e4]">৳</span>
-                        <input type="number" min={0}
-                          className="bg-white/10 border border-white/20 rounded-[7px] h-[26px] w-[74px] pl-4 pr-1.5 text-[12px] text-white"
-                          value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
-                          placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
-                          onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
-                      </span>
-                      <span className="text-[11px] text-[#a98ac4]">×</span>
-                      <div className="flex items-center border border-white/25 rounded-[7px] overflow-hidden">
-                        <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[22px] h-[26px] text-[#e7d8f2] hover:bg-white/10 text-[13px]">–</button>
-                        <span className="w-[24px] text-center text-[12px] font-medium">{l.qty}</span>
-                        <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[22px] h-[26px] text-[#e7d8f2] hover:bg-white/10 text-[13px]">+</button>
-                      </div>
-                      <span className="text-[10.5px] text-[#a98ac4] ml-auto truncate">
-                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && <>cost {formatTaka(l.product.costPaisa)}</>}
-                        {l.product.stockQty !== null && <> · {l.product.stockQty} left</>}
-                      </span>
-                    </div>
-
-                    {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
-                      <div className="text-[11px] text-[#ff9b9b] mt-1 pl-[34px]">
-                        Cannot go under {formatTaka(l.product.floorPricePaisa)}.
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            </div>
-
-            {/*  THE MONEY BLOCK — locked in place (owner, 21 Aug: "grand total ar
-                 discount ai jaygay ta jen vitore na jay"). Exactly two things on
-                 this panel scroll: the items above, and the payment lines below.
-                 Everything here stays where the eye left it.
-
-                 Four separate things bend a bill and each has its own logic, so
-                 each has its own row — discount, named additional charges, the
-                 nameless ± adjustment, and VAT. All of it lives in MoneyBlock so
-                 the same block can be dropped on every screen that takes money.  */}
+            {/*  THE MONEY BLOCK — CLAUDE.md §14. Since the bill's items moved out
+                 to the white table under the catalogue (owner, 21 Aug), this panel
+                 carries money and nothing else: the total, the four doors, the
+                 payment lines, the button. Only the payment list ever scrolls.  */}
             <div className="px-4 pt-3 border-t border-white/15 shrink-0">
               <MoneyBlock
                 subtotalPaisa={subtotal}
@@ -646,10 +640,9 @@ export default function PosSellView() {
               <PaymentLines pay={pay} fill />
             </div>
 
-            {/*  THE PINNED FOOT — where the money stands, and the button. Everything
-                 that can grow (cart lines, payment rows) scrolls above it, so no
-                 amount of anything can push Complete off the screen. The bill's own
-                 arithmetic lives in the money block above; only the answer is here.  */}
+            {/*  THE PINNED FOOT — where the money stands, and the button. The only
+                 thing above it that can grow is the payment list, and that scrolls
+                 inside itself, so nothing can push Complete off the screen.  */}
             <div className="p-4 pt-3 border-t border-white/15 shrink-0">
               <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px]">
                 <span className="text-[#c9a6e4]">Paid <b className="text-white font-medium">{formatTaka(paid)}</b></span>

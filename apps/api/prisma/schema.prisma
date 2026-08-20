@@ -3268,6 +3268,10 @@ model Purchase {
   /// rounding / bargain adjustment, may be NEGATIVE (৳39,920 → ৳39,900) or positive
   /// (৳34,790 → ৳34,800). The owner's real bills adjust to a round figure constantly.
   adjustmentPaisa Int @default(0)
+  /// supplier VAT on the bill (DEC-PUR-012, 21 Aug) — the rate as typed, and the
+  /// taka it worked out to. Base = subtotal - discount + adjustment.
+  taxRateBps      Int @default(0)
+  vatPaisa        Int @default(0)
   grandTotalPaisa Int @default(0)
 
   createdAt DateTime  @default(now())
