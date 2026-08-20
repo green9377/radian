@@ -1,8 +1,20 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 19 Aug 2026._
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 21 Aug 2026._
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+---
+
+## 💳 এক টাকার ব্লক, সব পর্দায় (মালিক, ২১ আগস্ট)
+
+`apps/admin/app/_components/MoneyBlock.tsx` — বিলের চারটে অংশ (Discount ৳/%,
+নাম-সহ Additional charge, ± Adjustment, VAT) + Grand total + Payment method
+(যত খুশি, নিজে scroll করে, নিজেরাই বিলের সাথে মিলে যায়)。
+
+POS-এ বসানো হয়ে গেছে。 **যেখানেই টাকা নেওয়া-দেওয়া আছে সেখানেই এটাই বসবে** —
+Purchase bill, Returns/refund, Due collection, Order checkout。 আলাদা করে
+আরেকটা লিখব না; `tone="light"` দিলে সাদা পর্দাতেও চলে。
 
 ---
 
