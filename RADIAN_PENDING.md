@@ -74,15 +74,26 @@ Done today (Items phase): schema + migration `20260820060000_item_selling_price`
 API create/update, the editor's "Counter price" field (red under the floor), and
 the duplicate switch removed from the "Sell online" tab.
 
-To do in the POS phase (NOT now — money surface, its own pass):
+SHIPPED 20 Aug (all six, live on demo):
 
-1. `OrderLine.productId` optional + add `OrderLine.itemId` (same change as backlog D11)
-2. POS catalogue reads items (`isSaleable && isActive`) instead of `listProducts()`
-3. `pos.service.createSale` — item lines priced from `Item.sellingPricePaisa`, refused under the floor
-4. Stock leaves the item directly (DEC-INV-018 warehouse pick unchanged)
-5. ⚠️ **PosDiscountRule targets Products / website categories today** — moving to items
-   means moving those rules to Item categories, or the cap silently stops applying
-6. Old POS sales keep their `productId` — history is not rewritten
+1. ✅ `OrderLine.productId` nullable + `OrderLine.itemId`, with a CHECK that exactly
+   one is set. `SalesReturnLine` follows the same shape.
+2. ✅ `GET /pos/catalogue` — items only; the POS screen reads it
+3. ✅ `createSale` takes `itemId` lines, prices them the way the item screen does
+   (DEC-ITM-023), refuses an unpriced item and anything under the item's floor
+4. ✅ Stock leaves through Inventory by item (MAKE_TO_ORDER still eats its recipe;
+   a service posts nothing and says so)
+5. ✅ `PosDiscountRule` gained `itemId` / `itemCategoryId`; product rules still apply
+   to legacy product lines
+6. ✅ Old POS sales keep their `productId` — history untouched
+
+Still open, on purpose:
+- restocking a RETURNED counter item — Inventory's `postSaleReturn` still speaks
+  Product, so item lines are left out of the automatic restock (Returns phase)
+- the POS screen's discount cap is still the old hardcoded category map on the
+  client; the server cap is the real one (POS phase)
+- DEC-ITM-024 `isOnline`: the switch and the product-picker gate are live; nothing
+  yet un-links a product when the switch goes off (it refuses on the next save)
 
 ---
 
