@@ -523,11 +523,11 @@ export default function PosSellView() {
         </div>
 
         {/* ============ RIGHT: cart — POS terminal (dark, Concept B) ============ */}
-        <aside className="lg:sticky lg:top-4">
+        <aside className="sticky top-3 self-start">
           {/*  The panel is capped to the screen so the money and the Complete
                button are ALWAYS in view; only the list of lines scrolls
                (owner, 20 Aug: "complete icon kkhonoi jen screen ar bahire na jay").  */}
-          <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden lg:max-h-[calc(100vh-2rem)]" style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
+          <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden" style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", maxHeight: "calc(100vh - 24px)" }}>
             <div className="p-4 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -607,7 +607,7 @@ export default function PosSellView() {
             </div>
             </div>
 
-            <div className="px-4 flex-1 overflow-auto" style={{ minHeight: 130 }}>
+            <div className="px-4 flex-1 overflow-auto" style={{ minHeight: 56 }}>
             {/* lines */}
             {lines.length === 0 ? (
               <div className="h-full grid place-items-center">
@@ -665,12 +665,19 @@ export default function PosSellView() {
               </div>
             )}
 
+            </div>
+
             {/*  THE MONEY BLOCK — option D, picked by the owner (21 Aug): the bill
                  is the loudest thing on the panel, and everything that BENDS it —
                  discount, extra charge, VAT — sits underneath it as three small
                  doors that open only when they are needed. Nothing above the total,
-                 nothing big that is not money the customer pays.  */}
-            <div className="border-t border-white/15 mt-3 pt-3">
+                 nothing big that is not money the customer pays.
+
+                 It sits OUTSIDE the scrolling half (21 Aug): with six lines in the
+                 cart the whole block used to scroll away and the button with it.
+                 It shrinks and scrolls inside itself on a short screen; the button
+                 strip below never moves.  */}
+            <div className="px-4 pt-3 border-t border-white/15 overflow-auto" style={{ minHeight: 0, flexShrink: 1 }}>
 
               <div className="text-center">
                 <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Grand total</div>
@@ -798,8 +805,6 @@ export default function PosSellView() {
               </div>
             </div>
 
-            </div>
-
             {/*  THE PINNED FOOT — where the money stands, and the button. Everything
                  that can grow (cart lines, payment rows) scrolls above it, so no
                  amount of anything can push Complete off the screen. The bill's own
@@ -821,7 +826,7 @@ export default function PosSellView() {
 
               <div className="flex gap-2 mt-3">
                 <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
+                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 min-w-0 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /><span className="truncate">{errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</span></button>
               </div>
               {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
             </div>
