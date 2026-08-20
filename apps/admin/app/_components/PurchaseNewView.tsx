@@ -440,8 +440,19 @@ export default function PurchaseNewView() {
                       .map((u) => ({ id: u.id, label: u.name }))}
                     onChange={(id) => patchLine(l.key, { unitId: id })}
                   />
-                  <input className="ipt w-full" placeholder="0" inputMode="decimal"
-                    value={l.qty} onChange={(e) => patchLine(l.key, { qty: e.target.value })} />
+                  {/*  the same − 1 + stepper the counter uses; one shape for a
+                       quantity everywhere (owner, 21 Aug: "atai standard")  */}
+                  <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden bg-white">
+                    <button type="button" title="One less"
+                      onClick={() => patchLine(l.key, { qty: String(Math.max(0, (parseFloat(l.qty) || 0) - 1)) })}
+                      className="w-[30px] h-[36px] text-purple hover:bg-lavender/60 shrink-0">–</button>
+                    <input className="flex-1 min-w-0 h-[36px] text-center text-[13px] font-medium text-purple outline-none border-0"
+                      placeholder="0" inputMode="decimal"
+                      value={l.qty} onChange={(e) => patchLine(l.key, { qty: e.target.value })} />
+                    <button type="button" title="One more"
+                      onClick={() => patchLine(l.key, { qty: String((parseFloat(l.qty) || 0) + 1) })}
+                      className="w-[30px] h-[36px] text-purple hover:bg-lavender/60 shrink-0">+</button>
+                  </div>
                   <input className="ipt w-full" placeholder="0.00" inputMode="decimal"
                     value={l.priceTk} onChange={(e) => patchLine(l.key, { priceTk: e.target.value })} />
                   <span className="text-[13px] font-medium text-right">{formatTaka(lineTotal(l))}</span>
