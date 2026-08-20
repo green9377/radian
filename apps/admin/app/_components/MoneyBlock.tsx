@@ -249,8 +249,9 @@ export function MoneyBlock(p: MoneyBlockProps) {
           <div key={id}>
             <button type="button" onClick={() => setDoor((d) => (d === id ? null : id))} className={rowCls}>
               <span className={`text-[12.5px] ${door === id ? t.value : t.label}`}>{label}</span>
-              <span className={`text-[12.5px] ${value === "—" ? t.faint : t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-                {value} <Icon name={door === id ? "chevronDown" : "plus"} size={12} />
+              <span className={`text-[12.5px] shrink-0 inline-flex items-center gap-1.5 ${value === "—" ? t.faint : t.value}`}
+                style={{ fontVariantNumeric: "tabular-nums" }}>
+                {value}<Icon name={door === id ? "chevronDown" : "plus"} size={12} />
               </span>
             </button>
 

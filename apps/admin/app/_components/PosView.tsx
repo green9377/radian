@@ -624,10 +624,12 @@ export default function PosSellView() {
               )}
             </div>
 
-            {/*  the second of the two scrollers — it takes the height that is left
-                 and keeps its own scrollbar, so ten methods cannot move the button  */}
-            <div className="px-4 pt-3 mt-3 border-t border-white/15 flex flex-col" style={{ flex: "1 1 auto", minHeight: 112 }}>
-              <PaymentLines pay={pay} fill />
+            {/*  the air sits between the bill and the money, so the payment lines
+                 stay next to the button where the hand is  */}
+            <div className="flex-1 min-h-[8px]" />
+
+            <div className="px-4 pt-3 border-t border-white/15 shrink-0">
+              <PaymentLines pay={pay} maxHeight={168} />
             </div>
 
             {/*  THE PINNED FOOT — where the money stands, and the button. The only
