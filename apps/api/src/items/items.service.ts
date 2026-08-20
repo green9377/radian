@@ -382,7 +382,9 @@ export class ItemsService {
           unitId: dto.unitId,
           isStockTracked: dto.itemType !== ItemType.SERVICE,
           assemblyMode: AssemblyMode.NONE,
+          // DEC-ITM-025 — a variant is an item like any other: born for selling
           isSaleable: dto.isSaleable ?? defaultSaleable(dto.itemType),
+          ...({ isOnline: true } as Record<string, boolean>), // DEC-ITM-024
           isPurchasable: dto.isPurchasable ?? defaultPurchasable(dto.itemType),
           isReturnable: dto.isReturnable ?? !(dto.isPerishable ?? false),
           weightGram: dto.weightGram ?? null,

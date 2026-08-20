@@ -5,10 +5,10 @@ import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
-import { WRAP, ACCENT, msg, ErrBar, OkBar, DemoBar, ItemThumb, StatusPill, Modal } from "./ItemUI";
+import { WRAP, ACCENT, msg, ErrBar, OkBar, DemoBar, ItemThumb, StatusPill, Modal, Field } from "./ItemUI";
 import {
   loadItemsSafe, updateItem, deleteItem, linkedProductCount, generateItemsFromProducts,
-  listInvStock, uploadItemImage,
+  listInvStock, uploadItemImage, loadItemCategoriesSafe,
   formatTaka, itemStockLabel, ITEM_TYPE_META,
   type ApiItem, type InvStockRow, type ItemType,
 } from "../_data/api";
@@ -273,6 +273,68 @@ export default function ItemListView() {
 
   /* ---------------- actions ---------------- */
 
+  /* ---- edit a whole variant family at once (owner, 20 Aug) ---- */
+  const [famEdit, setFamEdit] = useState<{
+    base: string;
+    members: ApiItem[];
+    active: "keep" | "on" | "off";
+    priceMode: "keep" | "auto" | "fixed";
+    priceTk: string;
+    markupPct: string;
+    categoryId: string;
+  } | null>(null);
+  const [famBusy, setFamBusy] = useState(false);
+  /** the stockroom tree, for the family dialog's category picker */
+  const [catOptions, setCatOptions] = useState<{ id: string; label: string }[]>([]);
+  useEffect(() => {
+    loadItemCategoriesSafe()
+      .then((r) => {
+        const all = r.groups;
+        setCatOptions(
+          all.map((c) => ({
+            id: c.id,
+            label: c.parentId ? `${all.find((x) => x.id === c.parentId)?.name ?? "?"} › ${c.name}` : c.name,
+          })),
+        );
+      })
+      .catch(() => setCatOptions([]));
+  }, []);
+
+  function openFamilyEdit(base: string, members: ApiItem[]) {
+    setFamEdit({
+      base, members,
+      active: "keep",
+      priceMode: "keep",
+      priceTk: "",
+      markupPct: "",
+      categoryId: "",
+    });
+  }
+
+  async function applyFamilyEdit() {
+    if (!famEdit) return;
+    const patch: Record<string, unknown> = {};
+    if (famEdit.active !== "keep") patch.isActive = famEdit.active === "on";
+    if (famEdit.priceMode === "auto") patch.sellingPricePaisa = null;
+    if (famEdit.priceMode === "fixed") {
+      patch.sellingPricePaisa = Math.max(0, Math.round((parseFloat(famEdit.priceTk) || 0) * 100));
+    }
+    if (famEdit.markupPct.trim() !== "") {
+      patch.markupBp = Math.max(0, Math.round((parseFloat(famEdit.markupPct) || 0) * 100));
+    }
+    if (famEdit.categoryId) patch.itemCategoryId = famEdit.categoryId;
+    if (Object.keys(patch).length === 0) { setFamEdit(null); return; }
+
+    setFamBusy(true); setErr(null);
+    try {
+      await Promise.all(famEdit.members.map((m) => updateItem(m.id, patch)));
+      setOk(`${famEdit.members.length} variants updated.`);
+      setFamEdit(null);
+      await load();
+    } catch (e) { setErr(msg(e, "Could not save the family.")); }
+    finally { setFamBusy(false); }
+  }
+
   /**
    * One press for the whole family. A product with ten colours was ten presses,
    * and half-on/half-off is almost never what anybody meant (owner, 20 Aug).
@@ -464,6 +526,68 @@ export default function ItemListView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ---- edit the whole family at once ---- */}
+      {famEdit && (
+        <Modal title={`Edit all — ${famEdit.base} (${famEdit.members.length} variants)`}
+          onClose={() => setFamEdit(null)} busy={famBusy} canSave saveLabel="Apply to all"
+          onSave={applyFamilyEdit}>
+          <p className="text-[12.5px] text-body-soft m-0">
+            Anything left on &ldquo;keep&rdquo; is not touched.
+          </p>
+
+          <Field label="Show in the shop">
+            <div className="flex gap-1.5">
+              {([["keep", "Keep as is"], ["on", "Show all"], ["off", "Hide all"]] as const).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setFamEdit({ ...famEdit, active: k })}
+                  className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
+                  style={famEdit.active === k
+                    ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                    : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="Counter price">
+            <div className="flex gap-1.5 mb-2 flex-wrap">
+              {([["keep", "Keep as is"], ["auto", "Automatic (cost + profit)"], ["fixed", "One fixed price"]] as const).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setFamEdit({ ...famEdit, priceMode: k })}
+                  className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
+                  style={famEdit.priceMode === k
+                    ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+                    : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {famEdit.priceMode === "fixed" && (
+              <div className="relative max-w-[200px]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold" style={{ color: "#8b7a95" }}>৳</span>
+                <input className="ipt ipt-icon w-full" inputMode="decimal" placeholder="0.00"
+                  value={famEdit.priceTk} onChange={(e) => setFamEdit({ ...famEdit, priceTk: e.target.value })} />
+              </div>
+            )}
+          </Field>
+
+          <Field label="Profit % (blank = leave each as it is)">
+            <div className="relative max-w-[140px]">
+              <input className="ipt w-full" inputMode="decimal" placeholder="e.g. 20" style={{ paddingRight: 30 }}
+                value={famEdit.markupPct} onChange={(e) => setFamEdit({ ...famEdit, markupPct: e.target.value })} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold" style={{ color: "#8b7a95" }}>%</span>
+            </div>
+          </Field>
+
+          <Field label="Item category (blank = leave as is)">
+            <select className="ipt w-full" value={famEdit.categoryId}
+              onChange={(e) => setFamEdit({ ...famEdit, categoryId: e.target.value })}>
+              <option value="">— leave as is —</option>
+              {catOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </Field>
+        </Modal>
       )}
 
       {/* family photos — one slot per variant, saved straight onto each item */}
@@ -724,6 +848,13 @@ export default function ItemListView() {
                       </button>
                     </span>
                     <span className="flex items-center justify-end gap-1 text-body-soft">
+                      {/*  the whole family in one dialog — price, profit, category,
+                           on/off. Ten colours was ten trips into ten editors
+                           (owner, 20 Aug).  */}
+                      <button onClick={(e) => { e.stopPropagation(); openFamilyEdit(row.base, row.members); }}
+                        className="px-1 py-1 hover:text-purple" title="Edit every variant together">
+                        <Icon name="edit" size={15} />
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); setPhotosFam({ base: row.base, fkey: row.fkey }); }}
                         className="px-1 py-1 hover:text-purple" title="Photos — one per variant">
                         <Icon name="photo" size={15} />

@@ -1,0 +1,12 @@
+-- DEC-ITM-025 (owner, 20 Aug 2026) — everything in the item list is for selling.
+--
+-- New items already start saleable. The rows saved before that rule are still
+-- sitting there with the flag off, which is why a whole variant family (flower —
+-- Red / Grey / Sky Blue / Maroon) never reached the till: the catalogue only
+-- shows what is marked "We sell it".
+--
+-- The owner's words: "item mane amder sell kra lagbei" — some things are bought
+-- and resold, some are labour sold on its own, and the things that are NOT for
+-- sale (the shop's own AC, its lights) are assets, a different book entirely.
+-- So every existing item is opened for sale; he can switch off the odd exception.
+UPDATE "Item" SET "isSaleable" = true WHERE "deletedAt" IS NULL AND "isSaleable" = false;
