@@ -48,11 +48,6 @@ const METHODS = [
   { id: "courier", label: "Nationwide Courier", zone: "bangladesh", feePaisa: 12000, slots: false, date: false },
 ] as const;
 const SLOTS = ["10 AM – 1 PM", "3 PM – 6 PM", "6 PM – 9 PM"];
-/* channel dropdown — fed by the Channel master (Orders → Sales channels);
-   this static list is ONLY the offline fallback. Fixed 19 Aug — the master
-   existed but this form never read it, so switching a channel off did nothing. */
-const CHANNELS = ["Phone", "WhatsApp", "Call", "Shop", "Facebook", "Instagram"];
-
 const isCrafted = (p?: ApiProduct) => p?.productType === "CRAFTED";
 
 interface Line {
@@ -81,16 +76,8 @@ export default function NewOrderForm() {
     deliveryConfigSafe().then(setApiMethods).catch(() => {});
   }, []);
 
-  const [channelSel, setChannelSel] = useState("Phone");
-  const activeChannelNames = apiChannels.filter((c) => c.isActive !== false).map((c) => c.name);
-  // if the master loads and the current pick is not a live channel, move to the first live one
-  useEffect(() => {
-    if (channelSel === "__custom" || activeChannelNames.length === 0) return;
-    if (!activeChannelNames.includes(channelSel)) setChannelSel(activeChannelNames[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiChannels]);
-  const [customChannel, setCustomChannel] = useState("");
-  const channel = channelSel === "__custom" ? customChannel.trim() || "Custom" : channelSel;
+  /** this page is the website's own door (owner, 21 Aug) */
+  const channel = "Website";
 
   // customer — pick from dropdown, or create new
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -308,22 +295,12 @@ export default function NewOrderForm() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         <div className="min-w-0">
-          {/* CHANNEL + CUSTOMER */}
+          {/*  CUSTOMER. No channel picker here (owner, 21 Aug): this page books
+               WEBSITE orders. Everything sold by a person — counter, Facebook,
+               WhatsApp, phone — is rung up at the till, where the channel is
+               chosen (DEC-POS-019).  */}
           <div className={cardCls}>
-            <h3 className="font-display text-[17px] text-purple m-0 mb-3">Channel &amp; customer</h3>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-              <div>
-                <label className={labelCls}>Channel</label>
-                <select className="ipt h-[44px]" value={channelSel} onChange={(e) => setChannelSel(e.target.value)}>
-                  {/* live channels from the master; switched-off ones stay out */}
-                  {(activeChannelNames.length ? activeChannelNames : CHANNELS).map((c) => (<option key={c} value={c}>{c}</option>))}
-                  <option value="__custom">Custom…</option>
-                </select>
-                {channelSel === "__custom" && (
-                  <input className="ipt h-[40px] mt-2" placeholder="Name your channel (e.g. TikTok, Reseller)" value={customChannel} onChange={(e) => setCustomChannel(e.target.value)} />
-                )}
-              </div>
-            </div>
+            <h3 className="font-display text-[17px] text-purple m-0 mb-3">Customer</h3>
 
             {/* customer — dropdown to pick, or create new */}
             <div className="mt-4">
