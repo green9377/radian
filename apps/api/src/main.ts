@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 // BigInt (Customer.ltvPaisa) JSON-serialize safety net — নইলে response throw করে।
 // (service response-এ ltvPaisa Number-এ map করা হয়; এটা fallback।)
@@ -86,6 +87,10 @@ async function bootstrap() {
   });
 
   console.log(`[CORS] allowed: ${allowed.join(', ')}`);
+
+  /*  A database constraint must never reach the screen as "Internal server
+      error" — see prisma-exception.filter.ts (owner, 20 Aug).  */
+  app.useGlobalFilters(new PrismaExceptionFilter());
 
   // ⚠️ Render/Railway নিজেরাই PORT ঢুকিয়ে দেয় — হাতে PORT সেট করলে তারা app
   // খুঁজে পায় না ("Application failed to respond")। আর '0.0.0.0' না দিলে

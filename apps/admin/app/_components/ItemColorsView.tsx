@@ -57,6 +57,8 @@ export default function ItemColorsView() {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [dlg, setDlg] = useState<{ id: string | null; label: string; hex: string } | null>(null);
+  const [dlgErr, setDlgErr] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<ApiItemAttrValue | null>(null);
 
   async function load() {
     setLoading(true);
@@ -81,13 +83,20 @@ export default function ItemColorsView() {
     (v) => !query.trim() || v.label.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
+  /** live duplicate check — the same list the server checks against */
+  const dupLabel =
+    !!dlg?.label.trim() &&
+    (attr?.values ?? []).some(
+      (v) => v.id !== dlg.id && v.label.trim().toLowerCase() === dlg.label.trim().toLowerCase(),
+    );
+
   async function save() {
     if (!dlg) return;
     const label = dlg.label.trim();
     if (!label) return;
     const hex = isHex(dlg.hex) ? dlg.hex.trim().toLowerCase() : null;
 
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setDlgErr(null);
     try {
       if (dlg.id) {
         await updateItemAttrValue(dlg.id, { label, swatch: hex });
@@ -98,7 +107,11 @@ export default function ItemColorsView() {
       }
       setDlg(null);
       await load();
-    } catch (e) { setErr(msg(e, "Could not save.")); }
+    } catch (e) {
+      // the failure belongs INSIDE the dialog — a banner behind the overlay is
+      // unreadable, and the owner cannot see what to change (20 Aug)
+      setDlgErr(msg(e, "Could not save."));
+    }
     finally { setBusy(false); }
   }
 
@@ -109,10 +122,16 @@ export default function ItemColorsView() {
     catch (e) { setErr(msg(e, "Could not save.")); await load(); }
   }
 
-  async function remove(v: ApiItemAttrValue) {
+  function remove(v: ApiItemAttrValue) {
     const used = v._count?.items ?? 0;
     if (used > 0) { setErr(`“${v.label}” is on ${used} item(s). Take it off those first.`); return; }
-    if (!confirm(`Delete the colour “${v.label}”?`)) return;
+    setConfirming(v); // house dialog, never window.confirm() (Phase 2 ruling)
+  }
+
+  async function doRemove() {
+    const v = confirming;
+    if (!v) return;
+    setConfirming(null);
     setAttr((a) => (a ? { ...a, values: a.values.filter((x) => x.id !== v.id) } : a));
     try { await deleteItemAttrValue(v.id); }
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
@@ -183,18 +202,29 @@ export default function ItemColorsView() {
       {dlg && (
         <Modal
           title={dlg.id ? "Edit colour" : "Add colour"}
-          onClose={() => setDlg(null)}
+          onClose={() => { setDlg(null); setDlgErr(null); }}
           onSave={save}
-          canSave={!!dlg.label.trim()}
+          canSave={!!dlg.label.trim() && !dupLabel}
           busy={busy}
           wide
         >
+          {dlgErr && (
+            <p className="text-[12.5px] text-[#c0392b] rounded-[10px] px-3 py-2 m-0"
+              style={{ background: "#fdecea" }}>{dlgErr}</p>
+          )}
           <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-4 items-start">
             <div>
               <Field label="Colour name" required>
                 <input autoFocus className="ipt w-full" placeholder="e.g. Baby Pink"
-                  value={dlg.label} onChange={(e) => setDlg({ ...dlg, label: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === "Enter" && dlg.label.trim()) save(); }} />
+                  value={dlg.label}
+                  onChange={(e) => { setDlg({ ...dlg, label: e.target.value }); setDlgErr(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && dlg.label.trim() && !dupLabel) save(); }} />
+                {/* caught while typing, like every other master (Phase 2) */}
+                {dupLabel && (
+                  <p className="text-[11.5px] text-[#c0392b] m-0 mt-1">
+                    &ldquo;{dlg.label.trim()}&rdquo; is already in the list.
+                  </p>
+                )}
               </Field>
 
               <Field label="Colour code">
@@ -232,6 +262,15 @@ export default function ItemColorsView() {
               ))}
             </div>
           </div>
+        </Modal>
+      )}
+
+      {confirming && (
+        <Modal title={`Delete "${confirming.label}"?`} onClose={() => setConfirming(null)}
+          canSave saveLabel="Delete the colour" onSave={doRemove}>
+          <p className="text-[13px] text-body m-0">
+            No item carries this colour, so nothing else changes.
+          </p>
         </Modal>
       )}
 

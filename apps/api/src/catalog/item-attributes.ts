@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { findBuried } from '../common/revive-buried';
 
 /*
   ITEM ATTRIBUTE master — DEC-ITM-015 (rev 21 Jul 2026, sobuj).
@@ -84,6 +85,20 @@ export class ItemAttributesService {
     });
     if (dupe) throw new BadRequestException(`"${name}" already exists.`);
 
+    /*  Same buried-row trap as addValue (revive-buried.ts).  */
+    const buried = await findBuried(this.prisma.itemAttribute, {
+      name: { equals: name, mode: 'insensitive' },
+    });
+    if (buried) {
+      const revived = await this.prisma.db.itemAttribute.update({
+        where: { id: buried.id },
+        data: { deletedAt: null, name, isActive: dto.isActive ?? true },
+        include: withValues,
+      });
+      await this.log(buried.id, 'UPDATE', dto.actorName, `Item attribute "${name}" restored`);
+      return revived;
+    }
+
     const a = await this.prisma.db.itemAttribute.create({
       data: { name, sortOrder: dto.sortOrder, isActive: dto.isActive },
       include: withValues,
@@ -137,6 +152,27 @@ export class ItemAttributesService {
       select: { id: true },
     });
     if (dupe) throw new BadRequestException(`"${label}" is already there.`);
+
+    /*  A removed label is soft-deleted, but @@unique([attributeId, label]) counts
+        the dead row too — so adding "Pink" again after removing it used to reach
+        create() and come back as a raw 500 (owner, 20 Aug). See revive-buried.ts.  */
+    const buried = await findBuried(this.prisma.itemAttributeValue, {
+      attributeId,
+      label: { equals: label, mode: 'insensitive' },
+    });
+    if (buried) {
+      const revived = await this.prisma.itemAttributeValue.update({
+        where: { id: buried.id },
+        data: {
+          deletedAt: null,
+          label,
+          swatch: dto.swatch ?? null,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.log(attributeId, 'UPDATE', dto.actorName, `Restored "${label}"`);
+      return revived;
+    }
 
     const count = await this.prisma.db.itemAttributeValue.count({ where: { attributeId } });
     const v = await this.prisma.db.itemAttributeValue.create({

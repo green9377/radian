@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { findBuried } from '../common/revive-buried';
 
 /*
   Unit master (DEC-PRD-009, owner's final call 21 Jul, sobuj).
@@ -161,6 +162,20 @@ export class UnitsService {
     const baseQty = baseUnitId ? (dto.baseQty ?? 1) : 1; // a base unit is always 1
     this.validateQty(baseUnitId, baseQty);
     if (baseUnitId) await this.ensureExists(baseUnitId, 'baseUnitId not found');
+
+    /*  name and shortCode are @unique across soft-deleted rows too — bring the
+        buried unit back rather than dying on the constraint (revive-buried.ts)  */
+    const buried =
+      (await findBuried(this.prisma.unit, { name: { equals: name, mode: 'insensitive' } })) ??
+      (await findBuried(this.prisma.unit, { shortCode }));
+    if (buried) {
+      await this.prisma.unit.update({
+        where: { id: buried.id },
+        data: { deletedAt: null, name, shortCode, baseUnitId, baseQty, isActive: dto.isActive ?? true },
+      });
+      await this.log(buried.id, 'UPDATE', dto.actorName, `Unit "${name}" (${shortCode}) restored`);
+      return this.findOne(buried.id);
+    }
 
     const u = await this.prisma.db.unit.create({
       data: {

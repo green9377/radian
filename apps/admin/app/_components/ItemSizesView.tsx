@@ -41,6 +41,8 @@ export default function ItemSizesView() {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [dlg, setDlg] = useState<Dlg | null>(null);
+  const [dlgErr, setDlgErr] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<ApiItemAttribute | null>(null);
 
   async function load() {
     setLoading(true);
@@ -59,13 +61,18 @@ export default function ItemSizesView() {
         a.values.some((v) => v.label.toLowerCase().includes(query.trim().toLowerCase())))
     : attrs;
 
+  /** live duplicate check, like every other master */
+  const dupName =
+    !!dlg?.name.trim() &&
+    attrs.some((a) => a.id !== dlg.id && a.name.trim().toLowerCase() === dlg.name.trim().toLowerCase());
+
   async function save() {
     if (!dlg) return;
     const name = dlg.name.trim();
     if (!name) return;
     const lines = dlg.lines.filter((l) => l.label.trim());
 
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setDlgErr(null);
     try {
       let id = dlg.id;
       if (id) {
@@ -92,7 +99,10 @@ export default function ItemSizesView() {
       setOk(dlg.id ? "Saved." : `“${name}” added.`);
       setDlg(null);
       await load();
-    } catch (e) { setErr(msg(e, "Could not save.")); }
+    } catch (e) {
+      // inside the dialog — a banner behind the overlay cannot be read (20 Aug)
+      setDlgErr(msg(e, "Could not save."));
+    }
     finally { setBusy(false); }
   }
 
@@ -102,10 +112,16 @@ export default function ItemSizesView() {
     catch (e) { setErr(msg(e, "Could not save.")); await load(); }
   }
 
-  async function remove(a: ApiItemAttribute) {
+  function remove(a: ApiItemAttribute) {
     const used = a.values.reduce((n, v) => n + (v._count?.items ?? 0), 0);
     if (used > 0) { setErr(`“${a.name}” is on ${used} item(s). Take it off those first.`); return; }
-    if (!confirm(`Delete “${a.name}” and its sizes?`)) return;
+    setConfirming(a); // house dialog, never window.confirm() (Phase 2 ruling)
+  }
+
+  async function doRemove() {
+    const a = confirming;
+    if (!a) return;
+    setConfirming(null);
     setAttrs((p) => p.filter((x) => x.id !== a.id));
     try { await deleteItemAttribute(a.id); }
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
@@ -178,14 +194,24 @@ export default function ItemSizesView() {
       {dlg && (
         <Modal
           title={dlg.id ? "Edit size type" : "Add size type"}
-          onClose={() => setDlg(null)}
+          onClose={() => { setDlg(null); setDlgErr(null); }}
           onSave={save}
-          canSave={!!dlg.name.trim()}
+          canSave={!!dlg.name.trim() && !dupName}
           busy={busy}
         >
+          {dlgErr && (
+            <p className="text-[12.5px] text-[#c0392b] rounded-[10px] px-3 py-2 m-0"
+              style={{ background: "#fdecea" }}>{dlgErr}</p>
+          )}
           <Field label="Size type name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. Flower Vase"
-              value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })} />
+              value={dlg.name}
+              onChange={(e) => { setDlg({ ...dlg, name: e.target.value }); setDlgErr(null); }} />
+            {dupName && (
+              <p className="text-[11.5px] text-[#c0392b] m-0 mt-1">
+                &ldquo;{dlg.name.trim()}&rdquo; already exists.
+              </p>
+            )}
           </Field>
 
           <div className="border border-lavender-deep rounded-[12px] overflow-hidden">
@@ -215,6 +241,16 @@ export default function ItemSizesView() {
             </div>
           </div>
 
+        </Modal>
+      )}
+
+      {confirming && (
+        <Modal title={`Delete "${confirming.name}"?`} onClose={() => setConfirming(null)}
+          canSave saveLabel="Delete the size type" onSave={doRemove}>
+          <p className="text-[13px] text-body m-0">
+            Its {confirming.values.length} size{confirming.values.length === 1 ? "" : "s"} go with it.
+            No item carries them, so nothing else changes.
+          </p>
         </Modal>
       )}
     </div>
