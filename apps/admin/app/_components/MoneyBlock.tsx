@@ -86,26 +86,34 @@ export function chargeNote(charges: ChargeRow[], adjustmentPaisa: number): strin
 
 /* ---------------------------------------------------------------- payments */
 
-export type PayMethod = "Cash" | "bKash" | "Nagad" | "Card";
-export const PAY_METHODS: PayMethod[] = ["Cash", "bKash", "Nagad", "Card"];
+/*  A method is whatever the screen calls it — the counter says "Cash", the
+    purchase API says "CASH". The block does not care; it carries the id it was
+    given straight back out.  */
+export interface PayOption { id: string; label: string }
+export const COUNTER_METHODS: PayOption[] = [
+  { id: "Cash", label: "Cash" },
+  { id: "bKash", label: "bKash" },
+  { id: "Nagad", label: "Nagad" },
+  { id: "Card", label: "Card" },
+];
 
 export interface PayRow {
   id: string;
-  method: PayMethod;
+  method: string;
   amountPaisa: number;
   /** typed by hand. An untyped row carries whatever is still unpaid. */
   touched?: boolean;
 }
 
-const firstRow = (): PayRow[] => [{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }];
+const firstRow = (method: string): PayRow[] => [{ id: `pay-${Date.now()}`, method, amountPaisa: 0 }];
 
 /**
  * Money coming IN. The rows balance themselves: what was typed stands, and the
  * first untyped row carries the rest — so one method is one press, and splitting
  * is "type 600 in the second line".
  */
-export function usePayRows(totalPaisa: number) {
-  const [pays, setPays] = useState<PayRow[]>(firstRow);
+export function usePayRows(totalPaisa: number, defaultMethod = "Cash") {
+  const [pays, setPays] = useState<PayRow[]>(() => firstRow(defaultMethod));
 
   useEffect(() => {
     setPays((p) => {
@@ -126,7 +134,7 @@ export function usePayRows(totalPaisa: number) {
   }, [totalPaisa, pays]);
 
   const paidPaisa = pays.reduce((s, r) => s + r.amountPaisa, 0);
-  const cashPaisa = pays.filter((r) => r.method === "Cash").reduce((s, r) => s + r.amountPaisa, 0);
+  const cashPaisa = pays.filter((r) => r.method.toLowerCase() === "cash").reduce((s, r) => s + r.amountPaisa, 0);
   const duePaisa = Math.max(0, totalPaisa - paidPaisa);
   const changePaisa = paidPaisa > totalPaisa && cashPaisa > 0 ? Math.min(cashPaisa, paidPaisa - totalPaisa) : 0;
 
@@ -139,13 +147,13 @@ export function usePayRows(totalPaisa: number) {
     changePaisa,
     /** paid over the bill with no cash in it — nothing to hand back */
     overpaidNoChange: paidPaisa > totalPaisa && changePaisa === 0,
-    setMethod: (id: string, method: PayMethod) => setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r))),
+    setMethod: (id: string, method: string) => setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r))),
     setAmount: (id: string, amountPaisa: number) =>
       setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa), touched: true } : r))),
-    addRow: () => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]),
+    addRow: () => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: defaultMethod, amountPaisa: 0 }]),
     removeRow: (id: string) => setPays((p) => (p.length > 1 ? p.filter((r) => r.id !== id) : p)),
     takeTheRest: () => setPays((p) => p.map((r, i) => (i === p.length - 1 ? { ...r, amountPaisa: r.amountPaisa + Math.max(0, totalPaisa - paidPaisa), touched: true } : r))),
-    reset: () => setPays(firstRow()),
+    reset: () => setPays(firstRow(defaultMethod)),
   };
 }
 
@@ -178,6 +186,8 @@ const LIGHT: Tone = {
 export interface MoneyBlockProps extends MoneyInput {
   sum: MoneySum;
   tone?: "dark" | "light";
+  /** which doors this screen has room for; default is all four */
+  doors?: Door[];
   taxRates: { label: string; value: number }[];
   onDiscount: (v: number) => void;
   onDiscountMode: (m: DiscountMode) => void;
@@ -187,7 +197,7 @@ export interface MoneyBlockProps extends MoneyInput {
   onTaxRate: (v: number) => void;
 }
 
-type Door = "discount" | "charge" | "adjust" | "vat";
+export type Door = "discount" | "charge" | "adjust" | "vat";
 
 /**
  * The bill, option D (owner picked it 21 Aug and it stays): the total is the
@@ -199,12 +209,13 @@ export function MoneyBlock(p: MoneyBlockProps) {
   const [door, setDoor] = useState<Door | null>(null);
   const chargesOn = p.sum.chargesPaisa !== 0 || p.charges.length > 0;
 
-  const doors: [Door, string, boolean][] = [
+  const all: [Door, string, boolean][] = [
     ["discount", "Discount", p.sum.discountPaisa > 0],
     ["charge", "Charge", chargesOn],
     ["adjust", "Adjustment", p.sum.adjustmentPaisa !== 0],
     ["vat", "VAT", p.sum.vatPaisa > 0],
   ];
+  const doors = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
 
   const chip = (on: boolean, open: boolean) =>
     "text-[11.5px] px-2.5 py-1 rounded-full border font-medium " +
@@ -221,6 +232,9 @@ export function MoneyBlock(p: MoneyBlockProps) {
         <div className={`font-semibold font-display text-[32px] leading-[1.15] ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(p.sum.totalPaisa)}
         </div>
+        {/*  the working-out only shows when there IS one — a bill with nothing
+             taken off it says the total once, not twice  */}
+        {(p.sum.discountPaisa > 0 || p.sum.chargesPaisa > 0 || p.sum.adjustmentPaisa !== 0 || p.sum.vatPaisa > 0) && (
         <div className={`text-[11px] mt-0.5 ${t.faint}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(p.subtotalPaisa)}
           {p.sum.discountPaisa > 0 && <span className="text-[#3f9e6e]"> − {formatTaka(p.sum.discountPaisa)}</span>}
@@ -228,6 +242,7 @@ export function MoneyBlock(p: MoneyBlockProps) {
           {p.sum.adjustmentPaisa !== 0 && <span> {p.sum.adjustmentPaisa < 0 ? "−" : "+"} {formatTaka(Math.abs(p.sum.adjustmentPaisa))}</span>}
           {p.sum.vatPaisa > 0 && <span> + VAT {formatTaka(p.sum.vatPaisa)}</span>}
         </div>
+        )}
       </div>
 
       <div className="flex items-center justify-center flex-wrap gap-1.5 mt-2">
@@ -314,18 +329,22 @@ export function MoneyBlock(p: MoneyBlockProps) {
 export interface PaymentLinesProps {
   pay: ReturnType<typeof usePayRows>;
   tone?: "dark" | "light";
+  /** the methods THIS screen knows; ids go straight to its own API */
+  methods?: PayOption[];
+  /** words above the list — "Payment" at the till, "Paid now" on a bill */
+  title?: string;
   /** how tall the list may grow before it scrolls on its own */
   maxHeight?: number;
   /** take whatever height is left in a flex column and scroll inside it */
   fill?: boolean;
 }
 
-export function PaymentLines({ pay, tone, maxHeight = 148, fill }: PaymentLinesProps) {
+export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNTER_METHODS, title = "Payment" }: PaymentLinesProps) {
   const t = tone === "light" ? LIGHT : DARK;
   return (
     <div className={fill ? "flex flex-col min-h-0 h-full" : ""}>
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-[12.5px] font-medium ${t.label}`}>Payment</span>
+        <span className={`text-[12.5px] font-medium ${t.label}`}>{title}</span>
         {pay.duePaisa > 0 && pay.paidPaisa > 0 && (
           <button type="button" onClick={pay.takeTheRest} className={`text-[11.5px] underline ${t.label}`}>
             take the rest ({formatTaka(pay.duePaisa)})
@@ -340,8 +359,8 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill }: PaymentLinesP
         {pay.pays.map((r) => (
           <div key={r.id} className="flex items-center gap-2">
             <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
-              onChange={(e) => pay.setMethod(r.id, e.target.value as PayMethod)}>
-              {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+              onChange={(e) => pay.setMethod(r.id, e.target.value)}>
+              {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
             <span className="relative shrink-0" style={{ width: 108 }}>
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>

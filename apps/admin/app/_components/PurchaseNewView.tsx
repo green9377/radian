@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { WRAP, ACCENT, ACCENT_BG, ItemPageHead, ErrBar, DemoBar, Field, QuickSelect, ItemThumb, msg } from "./ItemUI";
 import {
-  loadItemsSafe, listUnits, createPurchase, isCostJumpRefusal,
+  loadItemsSafe, listUnits, createPurchase, addPurchasePayment, isCostJumpRefusal,
   listSuppliers, createSupplier, listSupplierTypes,
   formatTaka, toMilli, uploadItemImage, PAY_METHODS, ITEM_TYPE_META,
   type ApiItem, type ApiUnit, type PayMethod, type PurchaseLineWrite, type ItemType,
   type ApiSupplier,
 } from "../_data/api";
+import { MoneyBlock, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 
 /*
   New purchase — ONE screen, Biznify-Direct-Bill style (the owner's 331-of-331 habit).
@@ -184,14 +185,14 @@ export default function PurchaseNewView() {
   const [notes, setNotes] = useState("");
   const [attachment, setAttachment] = useState<string | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
-  const [discountTk, setDiscountTk] = useState("");
-  const [adjustSign, setAdjustSign] = useState<1 | -1>(-1); // Biznify-style ± dropdown
-  const [signOpen, setSignOpen] = useState(false);
-  const [adjustTk, setAdjustTk] = useState("");
+  /*  CLAUDE.md §14 — the one money screen. Same block as the counter, in white.  */
+  const [discountMode, setDiscountMode] = useState<DiscountMode>("amt");
+  const [discountInput, setDiscountInput] = useState(0);
+  const [charges, setCharges] = useState<ChargeRow[]>([]);
+  const [adjSign, setAdjSign] = useState<1 | -1>(-1);
+  const [adjustmentTaka, setAdjustmentTaka] = useState(0);
   const [lines, setLines] = useState<Line[]>([]);
   const [advance, setAdvance] = useState(false);
-  const [payMethod, setPayMethod] = useState<PayMethod>("CASH");
-  const [payTk, setPayTk] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -257,10 +258,12 @@ export default function PurchaseNewView() {
 
   const lineTotal = (l: Line) => Math.round((toMilli(l.qty) * tkToPaisa(l.priceTk)) / 1000);
   const subTotal = lines.reduce((s, l) => s + lineTotal(l), 0);
-  const discount = tkToPaisa(discountTk);
-  const adjust = adjustSign * Math.abs(tkToPaisa(adjustTk));
-  const grand = Math.max(subTotal - discount + adjust, 0);
-  const pay = tkToPaisa(payTk);
+  const sum = computeMoney({ subtotalPaisa: subTotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate: 0 });
+  const discount = sum.discountPaisa;
+  const adjust = sum.extraPaisa; // named charges + the nameless round-off, as one number
+  const grand = sum.totalPaisa;
+  const payRows = usePayRows(grand, "CASH");
+  const pay = payRows.paidPaisa;
 
   const ready =
     supplierName.trim().length > 0 &&
@@ -272,6 +275,7 @@ export default function PurchaseNewView() {
 
   async function save(confirmCost = false) {
     setBusy(true); setErr(null); setCostJump(null);
+    const paidRows = payRows.pays.filter((r) => r.amountPaisa > 0);
     try {
       const created = await createPurchase({
         supplierName: supplierName.trim(),
@@ -280,7 +284,7 @@ export default function PurchaseNewView() {
         purchaseDate: new Date(purchaseDate).toISOString(),
         supplierReceiptNo: receiptNo.trim() || undefined,
         attachmentUrl: attachment ?? undefined,
-        notes: notes.trim() || undefined,
+        notes: [notes.trim(), chargeNote(charges, sum.adjustmentPaisa)].filter(Boolean).join(" · ") || undefined,
         discountPaisa: discount,
         adjustmentPaisa: adjust,
         mode: (advance ? "ADVANCE" : "QUICK") as "QUICK" | "ADVANCE",
@@ -290,9 +294,14 @@ export default function PurchaseNewView() {
           qtyMilli: toMilli(l.qty),
           unitPricePaisa: tkToPaisa(l.priceTk),
         })),
-        payment: pay > 0 ? { amountPaisa: pay, method: payMethod } : undefined,
+        payment: paidRows.length ? { amountPaisa: paidRows[0].amountPaisa, method: paidRows[0].method as PayMethod } : undefined,
         confirmCost,
       });
+      /*  the API takes one payment on create; the rest of the methods go on
+          straight after, so a split bill is still one press for the buyer  */
+      for (const r of paidRows.slice(1)) {
+        await addPurchasePayment(created.id, { amountPaisa: r.amountPaisa, method: r.method as PayMethod });
+      }
       router.push(`/purchases/${created.id}`);
     } catch (e) {
       if (isCostJumpRefusal(e)) {
@@ -441,90 +450,45 @@ export default function PurchaseNewView() {
           </div>
         </div>
 
-        {/* ---------------- totals + payment rail ---------------- */}
+        {/* ---------------- the money rail — CLAUDE.md §14, one block everywhere --- */}
         <div className="xl:sticky xl:top-4 space-y-4">
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
-            <div className="flex justify-between text-[13px] py-1"><span className="text-body-soft">Subtotal</span><b>{formatTaka(subTotal)}</b></div>
-            <div className="flex justify-between items-center text-[13px] py-1">
-              <span className="text-body-soft">Discount (৳)</span>
-              <input className="ipt w-[110px] text-right" placeholder="0" inputMode="decimal"
-                value={discountTk} onChange={(e) => setDiscountTk(e.target.value)} />
-            </div>
-            {/* Biznify-style ± dropdown (owner, 22 Jul rev-2: "drop down kre daw").
-                Custom, not a native <select> (conventions sec 13.3). */}
-            <div className="flex justify-between items-center text-[13px] py-1 gap-2">
-              <span className="text-body-soft" title="Round figure: 39,920 → 39,900 = − 20">Adjustment</span>
-              <span className="flex items-center gap-1.5">
-                <span className="relative">
-                  <button type="button" onClick={() => setSignOpen((v) => !v)}
-                    className="ipt flex items-center gap-1.5 font-bold"
-                    style={{ minHeight: 36, width: 58, color: adjustSign === 1 ? "#0e7a3d" : "#c0392b" }}>
-                    {adjustSign === 1 ? "+" : "−"}
-                    <Icon name="chevronDown" size={12} className="ml-auto opacity-60" />
-                  </button>
-                  {signOpen && (
-                    <>
-                      <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setSignOpen(false)} aria-hidden />
-                      <div className="absolute z-20 right-0 mt-1 w-[120px] bg-white border border-lavender-deep rounded-[10px] shadow-soft overflow-hidden">
-                        <button type="button" onClick={() => { setAdjustSign(1); setSignOpen(false); }}
-                          className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-lavender/40 flex items-center gap-2">
-                          <b style={{ color: "#0e7a3d" }}>+</b> <span className="text-body">Add</span>
-                          {adjustSign === 1 && <Icon name="check" size={12} className="ml-auto text-purple" />}
-                        </button>
-                        <button type="button" onClick={() => { setAdjustSign(-1); setSignOpen(false); }}
-                          className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-lavender/40 flex items-center gap-2 border-t border-lavender-deep/60">
-                          <b style={{ color: "#c0392b" }}>−</b> <span className="text-body">Subtract</span>
-                          {adjustSign === -1 && <Icon name="check" size={12} className="ml-auto text-purple" />}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </span>
-                <input className="ipt w-[86px] text-right" placeholder="0" inputMode="decimal"
-                  value={adjustTk} onChange={(e) => setAdjustTk(e.target.value)} />
-              </span>
-            </div>
-            {adjust !== 0 && (
-              <p className="text-[11.5px] text-body-soft text-right m-0">
-                {adjustSign === 1 ? "+" : "−"} {formatTaka(Math.abs(adjust))} adjusted
-              </p>
-            )}
-            <div className="flex justify-between text-[14.5px] py-2 border-t border-lavender-deep mt-1">
-              <b className="text-purple">Grand total</b><b className="text-purple">{formatTaka(grand)}</b>
-            </div>
+            {/*  no VAT door here: a purchase bill has nowhere to keep a tax rate
+                 yet (the API takes discount + adjustment only). When supplier VAT
+                 arrives it opens here with one word.  */}
+            <MoneyBlock
+              tone="light"
+              doors={["discount", "charge", "adjust"]}
+              subtotalPaisa={subTotal}
+              discountMode={discountMode} discountInput={discountInput}
+              charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
+              taxRate={0} taxRates={[]} sum={sum}
+              onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
+              onCharges={setCharges} onAdjSign={setAdjSign}
+              onAdjustment={setAdjustmentTaka} onTaxRate={() => {}} />
 
-            <div className="border-t border-lavender-deep pt-3 mt-1">
+            <div className="border-t border-lavender-deep pt-3 mt-3">
               <label className="flex items-center gap-2.5 text-[13px] font-medium text-body mb-3 cursor-pointer">
                 <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#b45309]" />
                 Advance order — goods arrive later
               </label>
-              <Field label={advance ? "Advance paid now" : "Paid now"} required={advance}
-                hint={pay < grand && pay > 0 ? `Due will be ${formatTaka(grand - pay)}` : undefined}>
-                {/* no native select (conventions sec 13.3) — method chips */}
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {PAY_METHODS.map((m) => (
-                    <button key={m.id} type="button" onClick={() => setPayMethod(m.id)}
-                      className="text-[12px] font-medium px-2.5 py-1.5 rounded-[9px] border"
-                      style={payMethod === m.id
-                        ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-                <input className="ipt w-full text-right" placeholder="0" inputMode="decimal"
-                  value={payTk} onChange={(e) => setPayTk(e.target.value)} />
-              </Field>
-              {pay > grand && <p className="text-[12px] text-[#c0392b] -mt-2 mb-2">Payment cannot exceed the grand total (PUR-R04).</p>}
+
+              <PaymentLines pay={payRows} tone="light" methods={PAY_METHODS}
+                title={advance ? "Advance paid now" : "Paid now"} maxHeight={168} />
+
+              {pay > 0 && pay < grand && (
+                <p className="text-[12px] text-body-soft mt-2 mb-0">Owed to the supplier: <b className="text-purple">{formatTaka(grand - pay)}</b></p>
+              )}
+              {pay > grand && <p className="text-[12px] text-[#c0392b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
+              {advance && pay === 0 && <p className="text-[12px] text-[#b45309] mt-2 mb-0">An advance order needs money now.</p>}
             </div>
 
             <button disabled={!ready || busy} onClick={() => save(false)}
-              className="w-full text-white text-[14px] font-medium px-4 py-3 rounded-[11px] disabled:opacity-40 mt-1"
+              className="w-full text-white text-[14px] font-medium px-4 py-3 rounded-[11px] disabled:opacity-40 mt-3"
               style={{ background: advance ? "#b45309" : ACCENT }}>
               {busy ? "Saving…" : advance ? "Save advance order" : "Save purchase (received)"}
             </button>
           </div>
-
         </div>
       </div>
 
