@@ -419,6 +419,10 @@ export default function PosSellView() {
               </div>
             ))
           )}
+          <button type="button" onClick={() => setPickerOpen(true)}
+            className="w-full text-left px-4 py-3 border-t border-lavender-deep text-purple font-medium text-[13.5px] inline-flex items-center gap-2 hover:bg-lavender/40">
+            <Icon name="plus" size={15} /> Add items
+          </button>
         </div>
 
         </div>
