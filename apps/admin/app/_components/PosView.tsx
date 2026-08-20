@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { posCatalogue, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift } from "../_data/api";
+import { MoneyBlock, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -40,10 +41,6 @@ const TAX_RATES = [
   { label: "VAT 15%", value: 15 },
 ];
 
-type AdjDoor = "discount" | "charge" | "vat";
-type PayMethod = "Cash" | "bKash" | "Nagad" | "Card";
-const PAY_METHODS: PayMethod[] = ["Cash", "bKash", "Nagad", "Card"];
-
 interface CartLine {
   key: string;
   /** DEC-POS-018 — the counter sells items, so a cart line IS an item */
@@ -56,14 +53,6 @@ interface CartLine {
    */
   unitPaisa: number;
 }
-interface PayRow {
-  id: string;
-  method: PayMethod;
-  amountPaisa: number;
-  /*  typed by the cashier. A row nobody has typed into carries whatever is
-      still unpaid, so the numbers always add up to the bill by themselves.  */
-  touched?: boolean;
-}
 interface HeldCart {
   id: string;
   label: string;
@@ -73,7 +62,7 @@ interface HeldCart {
   isGift: boolean;
   discountTaka: number;
   adjustmentTaka: number;
-  adjustmentNote: string;
+  charges: ChargeRow[];
   taxRate: number;
   at: number;
 }
@@ -197,36 +186,18 @@ export default function PosSellView() {
     return c.name.toLowerCase().includes(ql) || (qd.length >= 2 && cd.includes(qd));
   });
 
-  // ---- discount + approval ----
-  /*  A discount is asked for the way the shop says it out loud — "ten percent off"
-      or "take fifty taka off" — so the box takes either and the taka it works out
-      to is shown beside it.  */
-  const [discountMode, setDiscountMode] = useState<"amt" | "pct">("amt");
-  /** which of the three little doors under the total is open, if any */
-  const [openAdj, setOpenAdj] = useState<AdjDoor | null>(null);
+  // ---- the four things that bend a bill (MoneyBlock owns the shapes) ----
+  const [discountMode, setDiscountMode] = useState<DiscountMode>("amt");
   const [discountInput, setDiscountInput] = useState<number>(0);
+  const [charges, setCharges] = useState<ChargeRow[]>([]);
+  const [adjSign, setAdjSign] = useState<1 | -1>(1);
+  const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(0);
+
   const [approved, setApproved] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinErr, setPinErr] = useState(false);
-
-  // ---- adjustment (DEC-POS-015) + VAT (DEC-POS-016) ----
-  const [adjSign, setAdjSign] = useState<1 | -1>(1);
-  const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
-  const [adjustmentNote, setAdjustmentNote] = useState("");
-  const [taxRate, setTaxRate] = useState<number>(0);
-
-  // ---- payment ----
-  /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice any more.
-      Whatever is taken is taken; whatever is left is the due. `payTouched` only
-      remembers whether the cashier has typed an amount — until then the first line
-      follows the bill, so the ordinary sale is one press.  */
-  const [pays, setPays] = useState<PayRow[]>([{ id: "pay-first", method: "Cash", amountPaisa: 0 }]);
-  const setPayMethodOf = (id: string, method: PayMethod) =>
-    setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r)));
-  const setPayAmt = (id: string, amountPaisa: number) =>
-    setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa), touched: true } : r)));
-  const removePay = (id: string) => setPays((p) => p.filter((r) => r.id !== id));
 
   // ---- held carts ----
   const [held, setHeld] = useState<HeldCart[]>([]);
@@ -237,27 +208,20 @@ export default function PosSellView() {
 
   // ---- money (DEC-POS-015/016) ----
   const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
-  const discountPaisa = Math.min(
-    discountMode === "pct"
-      ? Math.round((subtotal * Math.min(100, Math.max(0, discountInput))) / 100)
-      : Math.round(Math.max(0, discountInput)) * 100,
-    subtotal,
-  );
-  const adjustmentPaisa = adjSign * Math.round(Math.abs(adjustmentTaka)) * 100; // + charge, − allowance
-  const taxableBase = Math.max(0, subtotal - discountPaisa + adjustmentPaisa);
-  const vatPaisa = Math.round((taxableBase * taxRate) / 100);
-  const total = taxableBase + vatPaisa;
+  const moneyIn = { subtotalPaisa: subtotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate };
+  const sum = computeMoney(moneyIn);
+  const { discountPaisa, vatPaisa, discountPct } = sum;
+  const adjustmentPaisa = sum.extraPaisa; // charges + adjustment — one number for the order
+  const total = sum.totalPaisa;
 
-  const paid = pays.reduce((s, r) => s + r.amountPaisa, 0);
-  const cashPaid = pays.filter((r) => r.method === "Cash").reduce((s, r) => s + r.amountPaisa, 0);
-  const duePaisa = Math.max(0, total - paid);
-  const changePaisa = paid > total && cashPaid > 0 ? Math.min(cashPaid, paid - total) : 0;
-  const overpaidNoChange = paid > total && changePaisa === 0; // digital overpay — can't give change
+  /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice. Money
+      is taken as many ways as the customer likes; whatever is left is the due.  */
+  const pay = usePayRows(total);
+  const { paidPaisa: paid, duePaisa, changePaisa, overpaidNoChange } = pay;
 
   /*  The cap lives on the server and it refuses in words; the screen no longer
       guesses one. Approval is still asked for when a line goes under its floor.  */
   const cap = 100;
-  const discountPct = subtotal ? (discountPaisa / subtotal) * 100 : 0;
   const overCap = false;
   const needsApproval = false;
 
@@ -269,28 +233,6 @@ export default function PosSellView() {
   /*  A due is money owed by a person, so it needs a person (DEC-POS-008). This is
       the ONLY thing that asks for a name — a fully paid walk-in never does.  */
   const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
-
-  /*  The rows balance themselves: everything the cashier HAS typed stands, and the
-      first row he has not typed into carries whatever is still unpaid. So one
-      method is one press, and splitting is "type 600 in the second line" — the
-      first drops to the rest on its own. Empty leftover rows cannot pile up.  */
-  useEffect(() => {
-    setPays((p) => {
-      const typed = p.reduce((s, r) => s + (r.touched ? r.amountPaisa : 0), 0);
-      const rest = Math.max(0, total - typed);
-      let taken = false;
-      let changed = false;
-      const next = p.map((r) => {
-        if (r.touched) return r;
-        const want = taken ? 0 : rest;
-        taken = true;
-        if (r.amountPaisa === want) return r;
-        changed = true;
-        return { ...r, amountPaisa: want };
-      });
-      return changed ? next : p;
-    });
-  }, [total, pays]);
 
   const errors: string[] = [];
   if (!shiftOpen) errors.push("Open a shift to start selling.");
@@ -323,20 +265,19 @@ export default function PosSellView() {
     setDiscountInput(0);
     setDiscountMode("amt");
     setApproved(false);
-    setOpenAdj(null);
+    setCharges([]);
     setAdjSign(1);
     setAdjustmentTaka(0);
-    setAdjustmentNote("");
     setTaxRate(0);
     // one payment line always exists, so the panel is never an empty box
-    setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
+    pay.reset();
   }
 
   function holdSale() {
     if (lines.length === 0) return;
     setHeld((h) => [
       ...h,
-      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka: Math.round(discountPaisa / 100), adjustmentTaka: Math.round(adjustmentPaisa / 100), adjustmentNote, taxRate, at: Date.now() },
+      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka: Math.round(discountPaisa / 100), adjustmentTaka: Math.round(sum.adjustmentPaisa / 100), charges, taxRate, at: Date.now() },
     ]);
     resetSale();
   }
@@ -350,10 +291,10 @@ export default function PosSellView() {
     setDiscountInput(hc.discountTaka);
     setAdjSign(hc.adjustmentTaka < 0 ? -1 : 1);
     setAdjustmentTaka(Math.abs(hc.adjustmentTaka));
-    setAdjustmentNote(hc.adjustmentNote);
+    setCharges(hc.charges ?? []);
     setTaxRate(hc.taxRate);
     // a resumed cart starts with one payment line again, not whatever was half-typed
-    setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
+    pay.reset();
     setHeld((h) => h.filter((x) => x.id !== hc.id));
     setShowHeld(false);
   }
@@ -373,12 +314,12 @@ export default function PosSellView() {
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
         adjustmentPaisa,
-        adjustmentNote: adjustmentNote || undefined,
+        adjustmentNote: chargeNote(charges, sum.adjustmentPaisa) || undefined,
         taxRateBps: Math.round(taxRate * 100),
         /*  the server still takes a word for this; it is derived now, never asked
             (DEC-POS-017 retired) — anything left unpaid makes it a partial sale  */
         payMode: duePaisa > 0 ? "partial" : "full",
-        payments: pays
+        payments: pay.pays
           .filter((p) => p.amountPaisa > 0)
           .map((p) => ({ method: p.method.toLowerCase() as "cash" | "bkash" | "nagad" | "card", amountPaisa: p.amountPaisa })),
       });
@@ -609,7 +550,7 @@ export default function PosSellView() {
             </div>
             </div>
 
-            <div className="px-4 flex-1 overflow-auto" style={{ minHeight: 56 }}>
+            <div className="px-4 overflow-y-auto" style={{ flex: "2 1 0", minHeight: 56, scrollbarGutter: "stable" }}>
             {/* lines */}
             {lines.length === 0 ? (
               <div className="h-full grid place-items-center">
@@ -669,88 +610,24 @@ export default function PosSellView() {
 
             </div>
 
-            {/*  THE MONEY BLOCK — option D, picked by the owner (21 Aug): the bill
-                 is the loudest thing on the panel, and everything that BENDS it —
-                 discount, extra charge, VAT — sits underneath it as three small
-                 doors that open only when they are needed. Nothing above the total,
-                 nothing big that is not money the customer pays.
+            {/*  THE MONEY BLOCK — locked in place (owner, 21 Aug: "grand total ar
+                 discount ai jaygay ta jen vitore na jay"). Exactly two things on
+                 this panel scroll: the items above, and the payment lines below.
+                 Everything here stays where the eye left it.
 
-                 It sits OUTSIDE the scrolling half (21 Aug): with six lines in the
-                 cart the whole block used to scroll away and the button with it.
-                 It shrinks and scrolls inside itself on a short screen; the button
-                 strip below never moves.  */}
-            <div className="px-4 pt-3 border-t border-white/15 overflow-auto" style={{ minHeight: 0, flexShrink: 1 }}>
-
-              <div className="text-center">
-                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Grand total</div>
-                <div className="text-white font-semibold font-display text-[34px] leading-[1.15]">{formatTaka(total)}</div>
-                {(discountPaisa > 0 || adjustmentPaisa !== 0 || vatPaisa > 0) && (
-                  <div className="text-[11px] text-[#a98ac4] mt-0.5">
-                    {formatTaka(subtotal)}
-                    {discountPaisa > 0 && <span className="text-[#7fe0a8]"> − {formatTaka(discountPaisa)}</span>}
-                    {adjustmentPaisa !== 0 && <span> {adjustmentPaisa < 0 ? "−" : "+"} {formatTaka(Math.abs(adjustmentPaisa))}</span>}
-                    {vatPaisa > 0 && <span> + VAT {taxRate}% {formatTaka(vatPaisa)}</span>}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-center gap-2 mt-2.5">
-                {([["discount", "Discount", discountPaisa > 0], ["charge", "Charge", adjustmentPaisa !== 0], ["vat", "VAT", vatPaisa > 0]] as [AdjDoor, string, boolean][]).map(([id, label, on]) => (
-                  <button key={id} type="button"
-                    onClick={() => setOpenAdj((o) => (o === id ? null : id))}
-                    className={"text-[12px] px-3 py-1.5 rounded-full border font-medium " + (on ? "bg-white/20 border-white/50 text-white" : openAdj === id ? "bg-white/10 border-white/45 text-white" : "border-white/25 text-[#e7d8f2] hover:bg-white/10")}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {openAdj === "discount" && (
-                <div className="flex items-center justify-center gap-1.5 mt-2.5">
-                  {/*  NOTE: .ipt sets width:100% and loads after Tailwind, so a
-                       w-[..] class is silently ignored — widths have to be inline.  */}
-                  <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 78 }}
-                    value={discountInput || ""} placeholder="0" autoFocus
-                    onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
-                  <select className="ipt h-[36px] text-[12.5px]" style={{ width: 58, paddingLeft: 8, paddingRight: 4 }}
-                    value={discountMode} onChange={(e) => setDiscountMode(e.target.value === "pct" ? "pct" : "amt")}>
-                    <option value="amt">৳</option>
-                    <option value="pct">%</option>
-                  </select>
-                  <span className="text-[12px] text-[#7fe0a8] min-w-[70px]">{discountPaisa > 0 ? `− ${formatTaka(discountPaisa)}` : "off the bill"}</span>
-                </div>
-              )}
-
-              {openAdj === "charge" && (
-                <div className="mt-2.5">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <select className="ipt h-[36px] text-[13px]" style={{ width: 58, paddingLeft: 8, paddingRight: 4 }}
-                      value={adjSign} onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
-                      <option value={1}>+</option>
-                      <option value={-1}>−</option>
-                    </select>
-                    <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 78 }}
-                      value={adjustmentTaka || ""} placeholder="0" autoFocus
-                      onChange={(e) => setAdjustmentTaka(Math.abs(Number(e.target.value)))} />
-                    <span className="text-[12px] text-[#c9a6e4] min-w-[70px]">
-                      {adjustmentPaisa !== 0 ? `${adjustmentPaisa < 0 ? "−" : "+"} ${formatTaka(Math.abs(adjustmentPaisa))}` : "on the bill"}
-                    </span>
-                  </div>
-                  {adjustmentPaisa !== 0 && (
-                    <input className="ipt h-[34px] text-[12.5px] mt-2" placeholder="What is this charge for?"
-                      value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
-                  )}
-                </div>
-              )}
-
-              {openAdj === "vat" && (
-                <div className="flex items-center justify-center gap-1.5 mt-2.5">
-                  <select className="ipt h-[36px] text-[12.5px]" style={{ width: 124, paddingLeft: 10, paddingRight: 4 }}
-                    value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
-                    {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
-                  </select>
-                  <span className="text-[12px] text-[#c9a6e4] min-w-[70px]">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "no tax"}</span>
-                </div>
-              )}
+                 Four separate things bend a bill and each has its own logic, so
+                 each has its own row — discount, named additional charges, the
+                 nameless ± adjustment, and VAT. All of it lives in MoneyBlock so
+                 the same block can be dropped on every screen that takes money.  */}
+            <div className="px-4 pt-3 border-t border-white/15 shrink-0">
+              <MoneyBlock
+                subtotalPaisa={subtotal}
+                discountMode={discountMode} discountInput={discountInput}
+                charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
+                taxRate={taxRate} taxRates={TAX_RATES} sum={sum}
+                onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
+                onCharges={setCharges} onAdjSign={setAdjSign}
+                onAdjustment={setAdjustmentTaka} onTaxRate={setTaxRate} />
 
               {needsApproval && (
                 <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }}
@@ -761,50 +638,12 @@ export default function PosSellView() {
               {overCap && approved && (
                 <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Discount approved</div>
               )}
+            </div>
 
-              {/*  as many methods as the customer wants to use — the list scrolls,
-                   it never pushes anything off the screen (owner, 21 Aug)  */}
-              <div className="mt-3 pt-3 border-t border-white/15">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[12.5px] text-[#c9a6e4] font-medium">Payment method</span>
-                  {duePaisa > 0 && paid > 0 && (
-                    <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
-                      className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
-                      take the rest ({formatTaka(duePaisa)})
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2 max-h-[168px] overflow-auto">
-                  {pays.map((r) => (
-                    <div key={r.id} className="flex items-center gap-2">
-                      <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
-                        onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
-                        {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <span className="relative shrink-0" style={{ width: 108 }}>
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
-                        <input type="number" min={0} inputMode="numeric"
-                          className="ipt h-[40px] w-full text-[16px] font-semibold text-right"
-                          style={{ paddingLeft: 22 }}
-                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                          onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
-                      </span>
-                      <button type="button" onClick={() => removePay(r.id)}
-                        className={"text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0 " + (pays.length > 1 ? "" : "invisible")}
-                        title="Remove this payment">
-                        <Icon name="trash" size={15} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button type="button"
-                  onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }])}
-                  className="mt-2 text-[12px] font-medium text-[#e7d8f2] border border-white/25 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 hover:bg-white/10">
-                  <Icon name="plus" size={12} /> Add payment method
-                </button>
-              </div>
+            {/*  the second of the two scrollers — it takes the height that is left
+                 and keeps its own scrollbar, so ten methods cannot move the button  */}
+            <div className="px-4 pt-3 mt-3 border-t border-white/15 flex flex-col" style={{ flex: "1 1 0", minHeight: 96 }}>
+              <PaymentLines pay={pay} fill />
             </div>
 
             {/*  THE PINNED FOOT — where the money stands, and the button. Everything
