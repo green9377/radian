@@ -568,7 +568,7 @@ export default function PosSellView() {
                na jay").  */}
           <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden" /*  the page header sits above the panel, so the cap has to leave room for
                  it — "100vh − 24" put the button 50px below the fold (owner, 21 Aug)  */
-            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", maxHeight: "calc(100vh - 100px)" }}>
+            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", height: "calc(100vh - 100px)" }}>
             <div className="p-4 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">

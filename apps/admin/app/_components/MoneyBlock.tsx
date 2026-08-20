@@ -204,124 +204,120 @@ export type Door = "discount" | "charge" | "adjust" | "vat";
  * loudest thing on the screen, and the four things that bend it sit under it as
  * four small doors that open only when they are needed. Nothing above the total.
  */
+/**
+ * The bill — layout F (owner picked it 21 Aug): the total is a board at the top
+ * of the panel, and the four things that bend it are four quiet rows under it.
+ * A row opens its own small editor in place. Money only: no item names, no
+ * customer — those live on the white bill beside this panel.
+ */
 export function MoneyBlock(p: MoneyBlockProps) {
   const t = p.tone === "light" ? LIGHT : DARK;
   const [door, setDoor] = useState<Door | null>(null);
   const chargesOn = p.sum.chargesPaisa !== 0 || p.charges.length > 0;
 
-  const all: [Door, string, boolean][] = [
-    ["discount", "Discount", p.sum.discountPaisa > 0],
-    ["charge", "Charge", chargesOn],
-    ["adjust", "Adjustment", p.sum.adjustmentPaisa !== 0],
-    ["vat", "VAT", p.sum.vatPaisa > 0],
+  const all: [Door, string, string][] = [
+    ["discount", "Discount", p.sum.discountPaisa > 0 ? `− ${formatTaka(p.sum.discountPaisa)}` : "—"],
+    ["charge", "Charge", chargesOn ? `+ ${formatTaka(p.sum.chargesPaisa)}` : "—"],
+    ["adjust", "Adjustment", p.sum.adjustmentPaisa !== 0 ? `${p.sum.adjustmentPaisa < 0 ? "−" : "+"} ${formatTaka(Math.abs(p.sum.adjustmentPaisa))}` : "—"],
+    ["vat", "VAT", p.sum.vatPaisa > 0 ? `+ ${formatTaka(p.sum.vatPaisa)}` : "—"],
   ];
-  const doors = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
+  const rows = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
 
-  const chip = (on: boolean, open: boolean) =>
-    "text-[11.5px] px-2.5 py-1 rounded-full border font-medium " +
-    (on
-      ? p.tone === "light" ? "bg-lavender border-orchid-mid text-purple" : "bg-white/20 border-white/50 text-white"
-      : open
-        ? p.tone === "light" ? "bg-lavender/60 border-orchid-mid text-purple" : "bg-white/10 border-white/45 text-white"
-        : t.chip);
+  const rowCls = "w-full flex items-center justify-between gap-2 py-2.5 text-left border-b " + t.line;
+  const editor = "pb-3 flex items-center gap-1.5 flex-wrap";
 
   return (
     <div>
-      <div className="text-center">
+      {/*  the board: the one number the shop and the customer both look at  */}
+      <div className="rounded-[12px] px-3 py-4 text-center"
+        style={{ background: p.tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.09)" }}>
         <div className={`text-[10.5px] uppercase tracking-[0.08em] font-medium ${t.label}`}>Grand total</div>
-        <div className={`font-semibold font-display text-[32px] leading-[1.15] ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <div className={`font-semibold font-display text-[38px] leading-[1.15] ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(p.sum.totalPaisa)}
         </div>
-        {/*  the working-out only shows when there IS one — a bill with nothing
-             taken off it says the total once, not twice  */}
-        {(p.sum.discountPaisa > 0 || p.sum.chargesPaisa > 0 || p.sum.adjustmentPaisa !== 0 || p.sum.vatPaisa > 0) && (
         <div className={`text-[11px] mt-0.5 ${t.faint}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(p.subtotalPaisa)}
-          {p.sum.discountPaisa > 0 && <span className="text-[#3f9e6e]"> − {formatTaka(p.sum.discountPaisa)}</span>}
+          {p.sum.discountPaisa > 0 && <span> − {formatTaka(p.sum.discountPaisa)}</span>}
           {p.sum.chargesPaisa > 0 && <span> + {formatTaka(p.sum.chargesPaisa)}</span>}
           {p.sum.adjustmentPaisa !== 0 && <span> {p.sum.adjustmentPaisa < 0 ? "−" : "+"} {formatTaka(Math.abs(p.sum.adjustmentPaisa))}</span>}
           {p.sum.vatPaisa > 0 && <span> + VAT {formatTaka(p.sum.vatPaisa)}</span>}
         </div>
-        )}
       </div>
 
-      <div className="flex items-center justify-center flex-wrap gap-1.5 mt-2">
-        {doors.map(([id, label, on]) => (
-          <button key={id} type="button" onClick={() => setDoor((d) => (d === id ? null : id))} className={chip(on, door === id)}>
-            {label}
-          </button>
+      <div className="mt-3">
+        {rows.map(([id, label, value]) => (
+          <div key={id}>
+            <button type="button" onClick={() => setDoor((d) => (d === id ? null : id))} className={rowCls}>
+              <span className={`text-[12.5px] ${door === id ? t.value : t.label}`}>{label}</span>
+              <span className={`text-[12.5px] ${value === "—" ? t.faint : t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+                {value} <Icon name={door === id ? "chevronDown" : "plus"} size={12} />
+              </span>
+            </button>
+
+            {door === id && id === "discount" && (
+              <div className={editor}>
+                <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }} autoFocus
+                  value={p.discountInput || ""} placeholder="0"
+                  onChange={(e) => p.onDiscount(Math.max(0, Number(e.target.value)))} />
+                <select className="ipt h-[36px] text-[12.5px]" style={{ width: 62, paddingLeft: 8, paddingRight: 4 }}
+                  value={p.discountMode} onChange={(e) => p.onDiscountMode(e.target.value === "pct" ? "pct" : "amt")}>
+                  <option value="amt">৳</option>
+                  <option value="pct">%</option>
+                </select>
+                <span className={`text-[11.5px] ${t.faint}`}>off the bill</span>
+              </div>
+            )}
+
+            {door === id && id === "charge" && (
+              <div className="pb-3">
+                {p.charges.map((c) => (
+                  <div className="flex items-center gap-1.5 mb-1.5" key={c.id}>
+                    <input className="ipt h-[36px] text-[12.5px] flex-1 min-w-0" placeholder="What is this charge for?"
+                      value={c.label}
+                      onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, label: e.target.value } : x)))} />
+                    <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 82 }}
+                      value={c.amountTaka || ""} placeholder="0"
+                      onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, amountTaka: Math.max(0, Number(e.target.value)) } : x)))} />
+                    <button type="button" title="Remove this charge" className={`shrink-0 ${t.label} hover:text-[#ff9b9b]`}
+                      onClick={() => p.onCharges(p.charges.filter((x) => x.id !== c.id))}>
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button type="button"
+                  onClick={() => p.onCharges([...p.charges, { id: `chg-${Date.now()}`, label: "", amountTaka: 0 }])}
+                  className={`text-[11.5px] font-medium border rounded-full px-2.5 py-1 inline-flex items-center gap-1.5 ${t.chip}`}>
+                  <Icon name="plus" size={12} /> {p.charges.length ? "One more charge" : "Add a charge"}
+                </button>
+              </div>
+            )}
+
+            {door === id && id === "adjust" && (
+              <div className={editor}>
+                <select className="ipt h-[36px] text-[13px]" style={{ width: 62, paddingLeft: 8, paddingRight: 4 }}
+                  value={p.adjSign} onChange={(e) => p.onAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
+                  <option value={1}>+</option>
+                  <option value={-1}>−</option>
+                </select>
+                <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }} autoFocus
+                  value={p.adjustmentTaka || ""} placeholder="0"
+                  onChange={(e) => p.onAdjustment(Math.abs(Number(e.target.value)))} />
+                <span className={`text-[11.5px] ${t.faint}`}>round-off</span>
+              </div>
+            )}
+
+            {door === id && id === "vat" && (
+              <div className={editor}>
+                <select className="ipt h-[36px] text-[12.5px]" style={{ width: 140, paddingLeft: 10, paddingRight: 4 }}
+                  value={p.taxRate} onChange={(e) => p.onTaxRate(Number(e.target.value))}>
+                  {p.taxRates.map((r) => (<option key={r.label} value={r.value}>{r.label}</option>))}
+                </select>
+                <span className={`text-[11.5px] ${t.faint}`}>on everything above</span>
+              </div>
+            )}
+          </div>
         ))}
       </div>
-
-      {door === "discount" && (
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <input type="number" min={0} className="ipt h-[34px] text-[13px] text-right" style={{ width: 76 }} autoFocus
-            value={p.discountInput || ""} placeholder="0"
-            onChange={(e) => p.onDiscount(Math.max(0, Number(e.target.value)))} />
-          <select className="ipt h-[34px] text-[12.5px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }}
-            value={p.discountMode} onChange={(e) => p.onDiscountMode(e.target.value === "pct" ? "pct" : "amt")}>
-            <option value="amt">৳</option>
-            <option value="pct">%</option>
-          </select>
-          <span className="text-[12px] text-[#3f9e6e]" style={{ width: 74 }}>
-            {p.sum.discountPaisa > 0 ? `− ${formatTaka(p.sum.discountPaisa)}` : "off the bill"}
-          </span>
-        </div>
-      )}
-
-      {door === "charge" && (
-        <div className="mt-2">
-          {p.charges.map((c) => (
-            <div className="flex items-center gap-1.5 mb-1.5" key={c.id}>
-              <input className="ipt h-[34px] text-[12.5px] flex-1 min-w-0" placeholder="What is this charge for?"
-                value={c.label}
-                onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, label: e.target.value } : x)))} />
-              <input type="number" min={0} className="ipt h-[34px] text-[13px] text-right" style={{ width: 76 }}
-                value={c.amountTaka || ""} placeholder="0"
-                onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, amountTaka: Math.max(0, Number(e.target.value)) } : x)))} />
-              <button type="button" title="Remove this charge" className={`shrink-0 ${t.label} hover:text-[#ff9b9b]`}
-                onClick={() => p.onCharges(p.charges.filter((x) => x.id !== c.id))}>
-                <Icon name="trash" size={14} />
-              </button>
-            </div>
-          ))}
-          <div className="text-center">
-            <button type="button"
-              onClick={() => p.onCharges([...p.charges, { id: `chg-${Date.now()}`, label: "", amountTaka: 0 }])}
-              className={`text-[11.5px] font-medium border rounded-full px-2.5 py-1 inline-flex items-center gap-1.5 ${t.chip}`}>
-              <Icon name="plus" size={12} /> {p.charges.length ? "One more charge" : "Add a charge"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {door === "adjust" && (
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <select className="ipt h-[34px] text-[13px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }}
-            value={p.adjSign} onChange={(e) => p.onAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
-            <option value={1}>+</option>
-            <option value={-1}>−</option>
-          </select>
-          <input type="number" min={0} className="ipt h-[34px] text-[13px] text-right" style={{ width: 76 }} autoFocus
-            value={p.adjustmentTaka || ""} placeholder="0"
-            onChange={(e) => p.onAdjustment(Math.abs(Number(e.target.value)))} />
-          <span className={`text-[12px] ${t.faint}`} style={{ width: 74 }}>
-            {p.sum.adjustmentPaisa !== 0 ? `${p.sum.adjustmentPaisa < 0 ? "−" : "+"} ${formatTaka(Math.abs(p.sum.adjustmentPaisa))}` : "round-off"}
-          </span>
-        </div>
-      )}
-
-      {door === "vat" && (
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <select className="ipt h-[34px] text-[12.5px]" style={{ width: 128, paddingLeft: 10, paddingRight: 4 }}
-            value={p.taxRate} onChange={(e) => p.onTaxRate(Number(e.target.value))}>
-            {p.taxRates.map((r) => (<option key={r.label} value={r.value}>{r.label}</option>))}
-          </select>
-          <span className={`text-[12px] ${t.faint}`} style={{ width: 74 }}>
-            {p.sum.vatPaisa > 0 ? `+ ${formatTaka(p.sum.vatPaisa)}` : "no tax"}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
