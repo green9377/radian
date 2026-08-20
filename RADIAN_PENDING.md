@@ -19,7 +19,7 @@ Screens that still carry their own money UI (found by reading the code, 21 Aug):
 
 | Screen | What it does today | What it must become |
 |---|---|---|
-| POS -> Due board (`PosViews.tsx`) | "Collect" takes the WHOLE due as cash, no method to choose, failures land in an `alert()` | MoneyBlock + PaymentLines — how much, which method, the rest stays due |
+| ~~POS -> Due board (`PosViews.tsx`)~~ | ~~"Collect" takes the WHOLE due as cash~~ | **DONE 21 Aug** — a proper collect dialog in the house style: how much, which methods, oldest bill first, "Still owed after this" in amber. The board's invented demo rows went with it |
 | Purchase bill (`PurchaseDetailView.tsx`) | its own little "Add payment" form | the same block, `tone="light"` |
 | ~~Purchase new (`PurchaseNewView.tsx`)~~ | ~~its own discount / VAT / adjustment fields~~ | **DONE 21 Aug** — MoneyBlock `tone="light"`, three doors (a purchase bill has no VAT field yet), split payments posted after create |
 | Returns / refund (`ReturnViews.tsx`) | one free-text reference box | the same block |
