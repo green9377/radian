@@ -174,7 +174,7 @@ export default function ItemListView() {
       if (flags.has("purchasable") && !i.isPurchasable) return false;
       if (flags.has("online") && !(i.isOnline ?? true)) return false;
       if (flags.has("noPrice") && !(i.isSaleable && i.effectiveSellPricePaisa == null)) return false;
-      if (flags.has("noCost") && i.effectiveCostPaisa > 0) return false;
+      if (flags.has("noCost") && (i.effectiveCostPaisa ?? 0) > 0) return false;
       if (flags.has("noPhoto") && i.imageUrl) return false;
       if (q) {
         const hay = [
@@ -189,7 +189,7 @@ export default function ItemListView() {
     const by: Record<SortKey, (a: ApiItem, b: ApiItem) => number> = {
       type: (a, b) => a.itemType.localeCompare(b.itemType) || a.name.localeCompare(b.name),
       name: (a, b) => a.name.localeCompare(b.name),
-      cost: (a, b) => b.effectiveCostPaisa - a.effectiveCostPaisa,
+      cost: (a, b) => (b.effectiveCostPaisa ?? 0) - (a.effectiveCostPaisa ?? 0),
       category: (a, b) =>
         (a.itemCategory?.name ?? "~").localeCompare(b.itemCategory?.name ?? "~") || a.name.localeCompare(b.name),
       newest: (a, b) => b.id.localeCompare(a.id),
@@ -673,7 +673,7 @@ export default function ItemListView() {
               const first = row.members[0];
               const fm = ITEM_TYPE_META[first.itemType];
               const open = openFams.has(row.fkey);
-              const costs = row.members.map((x) => x.effectiveCostPaisa).filter((c) => c > 0);
+              const costs = row.members.map((x) => x.effectiveCostPaisa ?? 0).filter((c) => c > 0);
               const lo = costs.length ? Math.min(...costs) : 0;
               const hi = costs.length ? Math.max(...costs) : 0;
               const activeN = row.members.filter((x) => x.isActive).length;
@@ -861,7 +861,7 @@ export default function ItemListView() {
                       {i.isSaleable && i.effectiveSellPricePaisa == null && (
                         <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fdecea] text-[#c0392b]">no price</span>
                       )}
-                      {i.effectiveCostPaisa <= 0 && !i.isSaleable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbf1e2] text-[#8a6d1f]">no cost</span>}
+                      {(i.effectiveCostPaisa ?? 0) <= 0 && !i.isSaleable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbf1e2] text-[#8a6d1f]">no cost</span>}
                     </div>
                   </div>
 
@@ -893,7 +893,13 @@ export default function ItemListView() {
                   {/*  DEC-ITM-023 — cost on top, what it sells for underneath: the two
                        numbers are only useful next to each other  */}
                   <span className="text-[13.5px] font-semibold text-body">
-                    {i.effectiveCostPaisa > 0 ? formatTaka(i.effectiveCostPaisa) : <span className="text-body-soft font-normal">—</span>}
+                    {/*  DEC-ADM-012 — no cost in the payload means this person may not
+                         see one; the price line below stands on its own.  */}
+                    {i.effectiveCostPaisa === undefined
+                      ? <span className="text-body-soft font-normal">—</span>
+                      : i.effectiveCostPaisa > 0
+                        ? formatTaka(i.effectiveCostPaisa)
+                        : <span className="text-body-soft font-normal">—</span>}
                     <span className="block text-[11px] font-normal">
                       {i.isSaleable && i.effectiveSellPricePaisa != null ? (
                         <span style={{ color: "#0e7a3d" }}>

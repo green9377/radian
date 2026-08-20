@@ -1,5 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { PosService } from './pos.service';
+import type { AuthedRequest } from '../auth/auth.guard';
+import { costFor } from '../common/strip-cost';
 import type {
   OpenShiftDto,
   CloseShiftDto,
@@ -25,8 +27,10 @@ export class PosController {
 
   /** DEC-POS-018 — what the till may sell: items, never products */
   @Get('catalogue')
-  catalogue(@Query('search') search?: string) {
-    return this.pos.catalogue(search);
+  async catalogue(@Req() req: AuthedRequest, @Query('search') search?: string) {
+    /*  DEC-ADM-012 — a cashier sees the selling price; the cost only reaches the
+        people whose template says so, and it is removed here, not hidden there.  */
+    return costFor(req.actor?.canSeeCost, await this.pos.catalogue(search));
   }
 
   /* registers */

@@ -349,13 +349,14 @@ export class AdministrationController {
   rename(
     @Req() req: AuthedRequest,
     @Param('id') id: string,
-    @Body() dto: { name: string; note?: string },
+    @Body() dto: { name: string; note?: string; canSeeCost?: boolean },
   ) {
     return this.access.renamePosition(
       id,
       dto.name,
       dto.note ?? null,
       req.actor?.name ?? 'unknown',
+      dto.canSeeCost, // DEC-ADM-012
     );
   }
 

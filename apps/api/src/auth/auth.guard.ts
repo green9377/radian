@@ -34,7 +34,13 @@ export type AppRoleName = 'OWNER' | 'MANAGER' | 'STAFF';
 export const Roles = (...roles: AppRoleName[]) => SetMetadata(ROLES, roles);
 
 export interface AuthedRequest extends Request {
-  actor?: { id: string; name: string; role: string };
+  actor?: {
+    id: string;
+    name: string;
+    role: string;
+    /** DEC-ADM-012 — may this person see what things cost? */
+    canSeeCost?: boolean;
+  };
 }
 
 @Injectable()
@@ -57,7 +63,13 @@ export class AuthGuard implements CanActivate {
     if (!user) throw new UnauthorizedException('Please sign in again');
 
     // the ledger records THIS name — never one typed into a form
-    req.actor = { id: user.id, name: user.name, role: user.role };
+    req.actor = {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      // DEC-ADM-012 — carried on the request so a service can strip cost fields
+      canSeeCost: await this.auth.canSeeCost(user.id),
+    };
 
     const roles = this.reflector.getAllAndOverride<AppRoleName[]>(ROLES, [
       ctx.getHandler(),

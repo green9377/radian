@@ -384,7 +384,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                   {members.map((m) => (
                     <div key={m.id} className="px-4 py-2 grid grid-cols-[minmax(0,1fr)_100px_120px] gap-3 items-center text-[13px]">
                       <span className="truncate text-body">{m.name}</span>
-                      <span className="text-right text-body-soft">{formatTaka(m.effectiveCostPaisa)}</span>
+                      <span className="text-right text-body-soft">{formatTaka(m.effectiveCostPaisa ?? 0)}</span>
                       <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#c0392b" : "#0e7a3d" }}>
                         {m.effectiveSellPricePaisa == null ? "no price" : formatTaka(m.effectiveSellPricePaisa)}
                         {m.sellPriceIsManual && <span className="text-[11px] font-normal text-body-soft"> fixed</span>}

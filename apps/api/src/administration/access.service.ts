@@ -136,6 +136,8 @@ export class AccessService implements OnModuleInit {
       note: p.note,
       isOwner: p.isOwner,
       isLocked: p.isLocked,
+      // DEC-ADM-012 — may this template see what things cost?
+      canSeeCost: p.isOwner || (p as { canSeeCost?: boolean }).canSeeCost === true,
       people: liveOf.get(p.id) ?? 0,
       rules: p._count.access,
     }));
@@ -192,6 +194,7 @@ export class AccessService implements OnModuleInit {
     name: string,
     note: string | null,
     actorName: string,
+    canSeeCost?: boolean,
   ) {
     const p = await this.prisma.db.position.findUnique({ where: { id } });
     if (!p) throw new NotFoundException('That position does not exist');
@@ -199,16 +202,28 @@ export class AccessService implements OnModuleInit {
     const clean = name.trim();
     if (!clean) throw new BadRequestException('A position needs a name');
 
+    /*  DEC-ADM-012 / ADM-RULE-004 — the owner's template can never be cut back,
+        so the cost switch is not offered on it and cannot be turned off here.  */
+    const costPatch =
+      canSeeCost === undefined || p.isOwner
+        ? {}
+        : ({ canSeeCost } as Record<string, boolean>);
+
     const updated = await this.prisma.db.position.update({
       where: { id },
-      data: { name: clean, note },
+      data: { name: clean, note, ...costPatch },
     });
     await this.audit.record({
       entityType: 'Position',
       entityId: id,
       action: 'UPDATE',
       actorName,
-      changes: { name: { from: p.name, to: clean } },
+      changes: {
+        name: { from: p.name, to: clean },
+        ...(canSeeCost !== undefined && !p.isOwner
+          ? { canSeeCost: { from: (p as { canSeeCost?: boolean }).canSeeCost === true, to: canSeeCost } }
+          : {}),
+      },
     });
     return updated;
   }

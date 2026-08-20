@@ -5378,6 +5378,20 @@ model Position {
   /// The three starting positions - renameable, but never deletable
   isLocked Boolean @default(false)
 
+  /// DEC-ADM-012 (owner, 20 Aug 2026) — may this template see what things COST?
+  ///
+  /// Access nodes answer "which screens", one per sidebar row. This is a
+  /// different question: on the screens a person already has, does the buying
+  /// price show at all. The counter is the case that forced it — a cashier
+  /// needs the selling price and has no business knowing the margin, while a
+  /// manager haggling needs both on the same tile.
+  ///
+  /// Off is the default, and it is enforced on the SERVER: cost fields are
+  /// stripped from the response, not just hidden by the screen. Hiding in the
+  /// browser is not a permission, it is a curtain.
+  /// The owner's own template always sees cost (ADM-RULE-004).
+  canSeeCost Boolean @default(false)
+
   access PositionAccess[]
   users  AppUser[]
 

@@ -395,8 +395,9 @@ export default function PosSellView() {
                   <div className="flex items-center justify-between mt-auto pt-1.5">
                     <span className="min-w-0">
                       <span className="block text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
-                      {/*  what it cost us — the cashier haggles against this (owner, 20 Aug)  */}
-                      {p.costPaisa > 0 && (
+                      {/*  what it cost us — the cashier haggles against this (owner, 20 Aug).
+                           DEC-ADM-012: absent entirely when this person may not see cost.  */}
+                      {p.costPaisa !== undefined && p.costPaisa > 0 && (
                         <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
                       )}
                     </span>
@@ -513,7 +514,7 @@ export default function PosSellView() {
                           placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
                           onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
                         <span className="text-[11.5px] text-[#c9a6e4]">each</span>
-                        {l.product.costPaisa > 0 && (
+                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && (
                           <span className="text-[11px] text-[#a98ac4]">cost {formatTaka(l.product.costPaisa)}</span>
                         )}
                       </div>

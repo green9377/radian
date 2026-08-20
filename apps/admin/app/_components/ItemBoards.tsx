@@ -107,7 +107,7 @@ export function ItemTrashView() {
                     <div className="text-[13px] text-body-soft font-mono">{i.sku}</div>
                   </div>
                   <span className="text-[13px] text-body-soft truncate">{i.itemCategory?.name ?? "—"}</span>
-                  <span className="text-[13px] text-body-soft">{formatTaka(i.effectiveCostPaisa)}</span>
+                  <span className="text-[13px] text-body-soft">{formatTaka(i.effectiveCostPaisa ?? 0)}</span>
                   <span className="flex items-center gap-1.5 shrink-0">
                     <button onClick={() => restore(i)}
                       className="text-white text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] inline-flex items-center gap-1.5"

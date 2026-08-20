@@ -128,7 +128,7 @@ export function ItemPicker({
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-medium text-body truncate">{i.name}</span>
                     <span className="block text-[13px] text-body-soft truncate">
-                      {i.sku} · {i.unit?.name ?? "—"}{i.standardCostPaisa > 0 ? ` · ${formatTaka(i.standardCostPaisa)}` : ""}
+                      {i.sku} · {i.unit?.name ?? "—"}{(i.standardCostPaisa ?? 0) > 0 ? ` · ${formatTaka(i.standardCostPaisa ?? 0)}` : ""}
                     </span>
                   </span>
                   {n > 0 && (
@@ -243,7 +243,7 @@ export default function PurchaseNewView() {
             unitId: p.item.unitId,
             qty: String(p.qty),
             // starting price = current cost — one less thing to type
-            priceTk: p.item.standardCostPaisa > 0 ? String(p.item.standardCostPaisa / 100) : "",
+            priceTk: (p.item.standardCostPaisa ?? 0) > 0 ? String((p.item.standardCostPaisa ?? 0) / 100) : "",
           });
         }
       }

@@ -41,7 +41,7 @@ export default function ItemsOverview() {
   useEffect(() => { load(); }, []);
 
   const s = useMemo(() => {
-    const noCost = items.filter((i) => i.effectiveCostPaisa <= 0 && !i.isSaleable);
+    const noCost = items.filter((i) => (i.effectiveCostPaisa ?? 0) <= 0 && !i.isSaleable);
     /*  the one gap that stops a sale dead: on the counter with no price (20 Aug)  */
     const noPrice = items.filter((i) => i.isSaleable && i.effectiveSellPricePaisa == null);
     const noPhoto = items.filter((i) => !i.imageUrl);
@@ -50,8 +50,8 @@ export default function ItemsOverview() {
       (i) => i.itemType === "FINISHED" && i.assemblyMode !== "NONE" && (i._count?.components ?? 0) === 0,
     );
     const assembled = items.filter((i) => i.assemblyMode !== "NONE");
-    const perUnit = items.reduce((n, i) => n + i.effectiveCostPaisa, 0);
-    const dearest = items.slice().sort((a, b) => b.effectiveCostPaisa - a.effectiveCostPaisa).slice(0, 5);
+    const perUnit = items.reduce((n, i) => n + (i.effectiveCostPaisa ?? 0), 0);
+    const dearest = items.slice().sort((a, b) => (b.effectiveCostPaisa ?? 0) - (a.effectiveCostPaisa ?? 0)).slice(0, 5);
     const byType = (Object.keys(ITEM_TYPE_META) as (keyof typeof ITEM_TYPE_META)[])
       .map((t) => ({ t, n: items.filter((i) => i.itemType === t).length }))
       .filter((x) => x.n > 0);
@@ -193,7 +193,7 @@ export default function ItemsOverview() {
                   <span className="block text-[13.5px] text-purple font-medium truncate">{i.name}</span>
                   <span className="block text-[12px] text-body-soft">{ITEM_TYPE_META[i.itemType].short}</span>
                 </span>
-                <span className="text-[13.5px] font-semibold text-body shrink-0">{formatTaka(i.effectiveCostPaisa)}</span>
+                <span className="text-[13.5px] font-semibold text-body shrink-0">{formatTaka(i.effectiveCostPaisa ?? 0)}</span>
               </Link>
             ))}
             {!loading && s.dearest.length === 0 && (

@@ -124,7 +124,7 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, ha
       </div>
       {lines.map((l) => {
         const item = byId.get(l.itemId);
-        const cost = item ? item.effectiveCostPaisa : 0;
+        const cost = item?.effectiveCostPaisa ?? 0;
         const value = Math.round(toMilli(l.qty || 0) * cost / 1000);
         const stock = have && item ? have.qtyMilliOf(l.itemId) : 0;
         const tooMuch = !!have && !!item && toMilli(l.qty || 0) > stock;
@@ -280,7 +280,7 @@ export function InvOpeningView() {
   const ready = validLines(lines);
   const worthPaisa = ready.reduce((s, l) => {
     const it = byId.get(l.itemId);
-    return s + (it ? Math.round((l.qtyMilli * it.effectiveCostPaisa) / 1000) : 0);
+    return s + Math.round((l.qtyMilli * (it?.effectiveCostPaisa ?? 0)) / 1000);
   }, 0);
   const whName = whs.find((w) => w.id === warehouseId)?.name ?? "—";
 
@@ -398,7 +398,7 @@ export function InvTransferView() {
   const ready = validLines(lines);
   const worthPaisa = ready.reduce((s, l) => {
     const it = byId.get(l.itemId);
-    return s + (it ? Math.round((l.qtyMilli * it.effectiveCostPaisa) / 1000) : 0);
+    return s + Math.round((l.qtyMilli * (it?.effectiveCostPaisa ?? 0)) / 1000);
   }, 0);
   const shortLines = ready.filter((l) => l.qtyMilli > stockInFrom(l.itemId)).length;
 
@@ -516,7 +516,7 @@ export function InvIssueView() {
   const reasons = kind === "WASTAGE" ? WASTAGE_REASONS : GIFT_REASONS;
   const totalPaisa = validLines(lines).reduce((s, l) => {
     const item = byId.get(l.itemId);
-    return s + (item ? Math.round(l.qtyMilli * item.effectiveCostPaisa / 1000) : 0);
+    return s + Math.round((l.qtyMilli * (item?.effectiveCostPaisa ?? 0)) / 1000);
   }, 0);
 
   async function save() {

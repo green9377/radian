@@ -200,7 +200,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             shelfLifeDays: it.shelfLifeDays?.toString() ?? "",
             reorderLevel: it.reorderLevel?.toString() ?? "",
             weightGram: it.weightGram?.toString() ?? "",
-            costTaka: (it.standardCostPaisa / 100).toString(),
+            costTaka: ((it.standardCostPaisa ?? 0) / 100).toString(),
             sellTaka: it.sellingPricePaisa != null ? (it.sellingPricePaisa / 100).toString() : "",
             markupPercent: it.markupBp != null ? (it.markupBp / 100).toString() : "",
             // DEC-ITM-018 — the two margin columns are mutually exclusive, so whichever

@@ -2387,9 +2387,11 @@ export interface ApiItem {
   attributeValues?: ApiItemAttrValue[];
 
   costMode: CostMode;
-  standardCostPaisa: number;   // the PURCHASE rate — what we pay
-  computedCostPaisa: number | null;
-  effectiveCostPaisa: number;  // derived server-side so the maths lives in one place
+  /*  DEC-ADM-012 — every cost figure is ABSENT for anybody whose template does not
+      say "See cost prices"; the server strips them, so a screen cannot leak one.  */
+  standardCostPaisa?: number;  // the PURCHASE rate — what we pay
+  computedCostPaisa?: number | null;
+  effectiveCostPaisa?: number; // derived server-side so the maths lives in one place
 
   /** DEC-ITM-018 — Item owns the buy side and the FLOOR. */
   minMarginBp?: number | null;
@@ -4074,8 +4076,8 @@ export interface ApiPosCatalogueRow {
   categoryName: string | null;
   pricePaisa: number | null;
   priceIsFixed: boolean;
-  /** what the shop paid — shown at the counter so a haggle is informed */
-  costPaisa: number;
+  /** DEC-ADM-012 — absent when this person may not see cost */
+  costPaisa?: number;
   floorPricePaisa: number | null;
   /** null = not counted (a service); otherwise what the shop holds right now */
   stockQty: number | null;
@@ -4985,6 +4987,22 @@ export interface AppUserWrite {
   pin?: string;
   role?: ApiRole;
   isActive?: boolean;
+}
+
+/**
+ * DEC-ADM-012 — who is signed in, and may they see what things cost.
+ * Cached for the tab: every screen that draws a cost figure asks, and the answer
+ * cannot change without signing in again.
+ */
+export interface ApiMe {
+  id: string; name: string; username: string; role: ApiRole;
+  hasPin: boolean; canSeeCost: boolean;
+}
+let mePromise: Promise<ApiMe> | null = null;
+export const authMe = () => j<ApiMe>("/auth/me");
+export function meCached(): Promise<ApiMe> {
+  if (!mePromise) mePromise = authMe().catch((e) => { mePromise = null; throw e; });
+  return mePromise;
 }
 
 export const listAppUsers = () => j<ApiAppUser[]>("/auth/users");
@@ -6486,6 +6504,8 @@ export interface ApiPosition {
   note: string | null;
   isOwner: boolean;
   isLocked: boolean;
+  /** DEC-ADM-012 — may this template see buying prices? */
+  canSeeCost: boolean;
   /** how many people hold this position */
   people: number;
   /** how many explicit decisions are stored — the rest is inherited */
@@ -6512,10 +6532,12 @@ export function createPosition(name: string, note?: string): Promise<ApiPosition
     body: JSON.stringify({ name, note }),
   });
 }
-export function renamePosition(id: string, name: string, note?: string): Promise<ApiPosition> {
+export function renamePosition(
+  id: string, name: string, note?: string, canSeeCost?: boolean,
+): Promise<ApiPosition> {
   return j<ApiPosition>(`/administration/positions/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ name, note }),
+    body: JSON.stringify({ name, note, canSeeCost }),
   });
 }
 export function removePosition(id: string): Promise<{ ok: boolean }> {

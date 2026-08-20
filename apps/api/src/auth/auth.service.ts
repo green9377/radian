@@ -149,6 +149,32 @@ export class AuthService {
     return s.user;
   }
 
+  /**
+   * DEC-ADM-012 — may this person see buying prices?
+   *
+   * It rides on the access TEMPLATE, not the person, so moving somebody between
+   * templates moves what they can see with them. The owner always can
+   * (ADM-RULE-004), and anybody with no template at all cannot: a cost figure
+   * is not something to hand out by accident.
+   */
+  async canSeeCost(userId: string): Promise<boolean> {
+    const u = await this.prisma.db.appUser.findUnique({
+      where: { id: userId },
+      /*  canSeeCost cast: the client on a machine that has not regenerated since
+          DEC-ADM-012 does not know the column yet.  */
+      select: {
+        role: true,
+        position: { select: { isOwner: true, ...({ canSeeCost: true } as object) } },
+      },
+    });
+    if (!u) return false;
+    if (u.position?.isOwner) return true;
+    if (u.position) return (u.position as { canSeeCost?: boolean }).canSeeCost === true;
+    /*  No template yet — fall back to the role while the migration to templates
+        finishes (DEC-FIN-028 note): OWNER and MANAGER buy things, STAFF does not.  */
+    return u.role === 'OWNER' || u.role === 'MANAGER';
+  }
+
   /** money actions re-confirm the person behind the open session */
   async checkPin(userId: string, pin?: string): Promise<boolean> {
     if (!pin) return false;
@@ -159,7 +185,12 @@ export class AuthService {
 
   async me(userId: string) {
     const u = await this.prisma.db.appUser.findUnique({ where: { id: userId } });
-    return u && { id: u.id, name: u.name, username: u.username, role: u.role, hasPin: !!u.pinHash };
+    if (!u) return null;
+    return {
+      id: u.id, name: u.name, username: u.username, role: u.role, hasPin: !!u.pinHash,
+      // DEC-ADM-012 — the screens read this to know whether to draw cost at all
+      canSeeCost: await this.canSeeCost(u.id),
+    };
   }
 
   /** change my own password / PIN — current password proves it is really me */

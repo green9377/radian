@@ -88,6 +88,22 @@ export default function AccessControl() {
   }, [selected]);
 
   const position = positions.find((p) => p.id === selected) ?? null;
+
+  /** DEC-ADM-012 — the one capability that is not a screen */
+  async function toggleCost(p: ApiPosition) {
+    if (p.isOwner) return; // ADM-RULE-004 — never cut back
+    setBusy(`cost:${p.id}`);
+    setErr(""); setOk("");
+    try {
+      await renamePosition(p.id, p.name, p.note ?? undefined, !p.canSeeCost);
+      setPositions((list) => list.map((x) => (x.id === p.id ? { ...x, canSeeCost: !p.canSeeCost } : x)));
+      setOk(!p.canSeeCost
+        ? `${p.name} can now see what things cost.`
+        : `${p.name} no longer sees cost — the server stops sending it.`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save that.");
+    } finally { setBusy(null); }
+  }
   const nodeCount = useMemo(() => flatten(tree).length, [tree]);
 
   const parentOf = useMemo(() => {
@@ -333,6 +349,31 @@ export default function AccessControl() {
                 </span>
               </div>
             )}
+
+            {/*  DEC-ADM-012 — not a screen, so not a row in the tree below: this says
+                 whether the buying price shows AT ALL on the screens this template
+                 already has. Off means the server does not even send it.  */}
+            <div className="px-4 py-3 border-b border-[#f0eaf7] flex items-center gap-3 flex-wrap"
+              style={{ background: "#faf7fd" }}>
+              <span className="text-[12.5px] font-bold text-purple">See cost prices</span>
+              <span className="text-[11.5px] text-[#8f87a0] flex-1 min-w-[220px]">
+                What the shop paid — on items, at the till, in reports. The selling price is always visible.
+              </span>
+              {position.isOwner ? (
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: "#e7f5f1", color: "#0e8f74" }}>Always on</span>
+              ) : (
+                <button
+                  onClick={() => void toggleCost(position)}
+                  disabled={busy === `cost:${position.id}`}
+                  className="text-[12px] font-bold px-3.5 py-1.5 rounded-full border-2 disabled:opacity-50"
+                  style={position.canSeeCost
+                    ? { background: "#0e8f74", borderColor: "#0e8f74", color: "#fff" }
+                    : { background: "#fff", borderColor: "#e0d7ec", color: "#7a6f96" }}>
+                  {position.canSeeCost ? "On" : "Off"}
+                </button>
+              )}
+            </div>
 
             {DEPT_ORDER.filter((d) => tree.some((m) => m.domain === d)).map((domain) => {
               const c = dept(domain);

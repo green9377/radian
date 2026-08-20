@@ -8,9 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ItemsService } from './items.service';
 import { Roles } from '../auth/auth.guard';
+import type { AuthedRequest } from '../auth/auth.guard';
+import { costFor } from '../common/strip-cost';
 import type {
   ItemDto,
   ItemPatch,
@@ -31,9 +34,12 @@ import type {
 export class ItemsController {
   constructor(private readonly svc: ItemsService) {}
 
+  /*  DEC-ADM-012 — the two reads that carry buying prices lose them for anybody
+      without "See cost prices". Stripped HERE, on the way out, so no screen can
+      forget to hide something.  */
   @Get()
-  list(@Query() q: ItemListQuery) {
-    return this.svc.list(q);
+  async list(@Query() q: ItemListQuery, @Req() req: AuthedRequest) {
+    return costFor(req.actor?.canSeeCost, await this.svc.list(q));
   }
 
   /* ---- static routes first ---- */
@@ -66,14 +72,14 @@ export class ItemsController {
 
   /** soft-deleted items — the Trash screen */
   @Get('trash')
-  trash() {
-    return this.svc.trash();
+  async trash(@Req() req: AuthedRequest) {
+    return costFor(req.actor?.canSeeCost, await this.svc.trash());
   }
 
   /** every assembled item with its lines + what its products sell for */
   @Get('recipes')
-  recipes() {
-    return this.svc.recipes();
+  async recipes(@Req() req: AuthedRequest) {
+    return costFor(req.actor?.canSeeCost, await this.svc.recipes());
   }
 
   @Patch('components/:lineId')
@@ -94,8 +100,8 @@ export class ItemsController {
   /* ---- per-item routes ---- */
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return costFor(req.actor?.canSeeCost, await this.svc.findOne(id));
   }
 
   @Get(':id/usage')
