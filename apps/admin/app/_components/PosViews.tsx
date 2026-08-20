@@ -20,7 +20,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { PaymentLines, usePayRows } from "./MoneyBlock";
+import { PayDialog, usePayRows } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -376,18 +376,14 @@ export function PosDueBoard() {
 }
 
 /**
- * Taking a due IS taking money, so it wears the house money block (CLAUDE.md §14):
- * how much, by which methods, and what is left after. It used to be one button
- * that assumed the whole amount in cash and shouted through alert() when the
- * server refused (owner, 21 Aug).
+ * Taking a due IS taking money, so it wears the house dialog (CLAUDE.md §14).
+ * It used to be one button that assumed the whole amount in cash and shouted
+ * through alert() when the server refused (owner, 21 Aug).
  */
 function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => void; onDone: () => void }) {
-  const owed = row.duePaisa;
-  const pay = usePayRows(owed);
+  const pay = usePayRows(row.duePaisa);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const taking = Math.min(pay.paidPaisa, owed);
-  const left = owed - taking;
 
   async function collect() {
     setBusy(true); setErr(null);
@@ -415,62 +411,13 @@ function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }} {...backdropClose(onClose)}>
-      <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift overflow-hidden"
-        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
-        <div className="p-4 pb-2 flex items-center justify-between">
-          <div>
-            <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Collect due</div>
-            <div className="text-[14px] font-medium">{row.name} <span className="text-[#c9a6e4] font-normal">· {row.phone}</span></div>
-          </div>
-          <button type="button" onClick={onClose} className="text-[#c9a6e4] text-[22px] leading-none px-1">×</button>
-        </div>
-
-        <div className="px-4">
-          <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
-            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Owed</div>
-            <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(owed)}</div>
-            <div className="text-[11px] text-[#a98ac4]">{row.orders.length} bill{row.orders.length === 1 ? "" : "s"} · oldest {new Date(row.oldest).toLocaleDateString()}</div>
-          </div>
-
-          <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
-            <PaymentLines pay={pay} title="Taking now" maxHeight={148} />
-          </div>
-        </div>
-
-        <div className="p-4 pt-3 mt-3 border-t border-white/15">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-[12px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
-              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Taking</div>
-              <div className="text-[19px] font-semibold font-display" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(taking)}</div>
-            </div>
-            <div className="rounded-[12px] px-3 py-2.5"
-              style={{ background: left > 0 ? "rgba(240,180,106,.14)" : "rgba(127,224,168,.14)" }}>
-              <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8" }}>
-                {left > 0 ? "Still owed after this" : "Cleared"}
-              </div>
-              <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>
-                {formatTaka(left)}
-              </div>
-            </div>
-          </div>
-
-          {pay.paidPaisa > owed && (
-            <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Cannot take more than is owed — {formatTaka(owed)}.</p>
-          )}
-          {err && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{err}</div>}
-
-          <div className="flex gap-2 mt-3">
-            <button type="button" onClick={onClose}
-              className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
-            <button type="button" onClick={collect} disabled={busy || taking <= 0 || pay.paidPaisa > owed}
-              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
-              <Icon name="check" size={17} /> {busy ? "Collecting…" : `Collect · ${formatTaka(taking)}`}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PayDialog
+      title="Collect due" who={`${row.name} · ${row.phone}`}
+      owedPaisa={row.duePaisa} owedLabel="Owed"
+      note={`${row.orders.length} bill${row.orders.length === 1 ? "" : "s"} · oldest ${new Date(row.oldest).toLocaleDateString()}`}
+      pay={pay} busy={busy} error={err}
+      confirmLabel="Collect" leftLabel="Taking now"
+      onConfirm={collect} onClose={onClose} />
   );
 }
 

@@ -11,6 +11,7 @@ import {
   getPurchaseTimeline, isCostJumpRefusal, formatTaka, fmtQty, toMilli, PAY_METHODS,
   type ApiPurchase, type PayMethod, type ActivityEvent,
 } from "../_data/api";
+import { PayDialog, usePayRows } from "./MoneyBlock";
 
 /*
   Purchase detail — receive, pay, return. RADIAN_PURCHASE_MODULE_ARCHITECTURE.md.
@@ -39,8 +40,6 @@ export default function PurchaseDetailView({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
 
   const [payOpen, setPayOpen] = useState(false);
-  const [payMethod, setPayMethod] = useState<PayMethod>("CASH");
-  const [payTk, setPayTk] = useState("");
 
   const [returnOpen, setReturnOpen] = useState(false);
   const [returnReason, setReturnReason] = useState("");
@@ -203,7 +202,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             <div className="flex items-center justify-between mb-2.5">
               <b className="text-[14px] text-purple">Payments</b>
               {p.status !== "CANCELLED" && p.duePaisa > 0 && (
-                <button onClick={() => { setPayTk(String(p.duePaisa / 100)); setPayOpen(true); }}
+                <button onClick={() => setPayOpen(true)}
                   className="text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] text-white" style={{ background: ACCENT }}>
                   <Icon name="plus" size={11} /> Add payment
                 </button>
@@ -330,31 +329,12 @@ export default function PurchaseDetailView({ id }: { id: string }) {
         </Modal>
       )}
 
-      {/* ---------------- add payment modal ---------------- */}
+      {/*  paying a supplier is the same act as collecting a due, so it is the same
+           dialog (CLAUDE.md §14) — many methods, part payments, PUR-R04 upheld  */}
       {payOpen && (
-        <Modal title={`Add payment — due ${formatTaka(p.duePaisa)}`} onClose={() => setPayOpen(false)}
-          canSave={tkToPaisa(payTk) > 0 && tkToPaisa(payTk) <= p.duePaisa} busy={busy} saveLabel="Record payment"
-          onSave={async () => {
-            await act(() => addPurchasePayment(id, { amountPaisa: tkToPaisa(payTk), method: payMethod }), "Payment recorded.");
-            setPayOpen(false);
-          }}>
-          <Field label="Method" required>
-            <div className="flex flex-wrap gap-1.5">
-              {PAY_METHODS.map((m) => (
-                <button key={m.id} type="button" onClick={() => setPayMethod(m.id)}
-                  className="text-[12px] font-medium px-2.5 py-1.5 rounded-[9px] border"
-                  style={payMethod === m.id
-                    ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                    : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Amount (৳)" required hint={tkToPaisa(payTk) > p.duePaisa ? "More than the due — PUR-R04 will refuse it" : undefined}>
-            <input className="ipt w-full text-right" inputMode="decimal" value={payTk} onChange={(e) => setPayTk(e.target.value)} autoFocus />
-          </Field>
-        </Modal>
+        <PayBill purchaseId={id} owedPaisa={p.duePaisa} supplier={p.supplierName}
+          onClose={() => setPayOpen(false)}
+          onDone={async () => { setPayOpen(false); await load(); setOk("Payment recorded."); }} />
       )}
 
       {/* ---------------- return modal ---------------- */}
@@ -395,5 +375,43 @@ export default function PurchaseDetailView({ id }: { id: string }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+/**
+ * Paying the supplier — the house dialog (CLAUDE.md §14). The API takes one
+ * payment at a time, so a split bill posts one call per method; PUR-R04 (never
+ * more than is owed) is upheld by the dialog and by the server.
+ */
+function PayBill({ purchaseId, owedPaisa, supplier, onClose, onDone }: {
+  purchaseId: string; owedPaisa: number; supplier: string;
+  onClose: () => void; onDone: () => void;
+}) {
+  const pay = usePayRows(owedPaisa, "CASH");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function record() {
+    setBusy(true); setErr(null);
+    try {
+      for (const r of pay.pays.filter((x) => x.amountPaisa > 0)) {
+        await addPurchasePayment(purchaseId, { amountPaisa: r.amountPaisa, method: r.method as PayMethod });
+      }
+      onDone();
+    } catch (e) {
+      setErr(msg(e, "Could not record the payment."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PayDialog
+      title="Pay the supplier" who={supplier}
+      owedPaisa={owedPaisa} owedLabel="Still owed"
+      pay={pay} methods={PAY_METHODS} busy={busy} error={err}
+      confirmLabel="Pay" leftLabel="Paying now"
+      dueAfterLabel="Still owed after this" clearedLabel="Bill cleared"
+      onConfirm={record} onClose={onClose} />
   );
 }

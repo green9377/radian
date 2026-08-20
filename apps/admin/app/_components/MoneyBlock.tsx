@@ -432,3 +432,96 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNT
     </div>
   );
 }
+
+/**
+ * One dialog for every "hand over some money against a balance" — collecting a
+ * customer's due, paying a supplier's bill, refunding a return (CLAUDE.md §14).
+ * Always the same shape: what is owed, how much is being handed over and by
+ * which methods, and what is left after.
+ */
+export function PayDialog({
+  title, who, owedPaisa, owedLabel = "Owed", pay, methods, busy, error,
+  confirmLabel = "Take", leftLabel = "Taking", dueAfterLabel = "Still owed after this",
+  clearedLabel = "Cleared", note, onConfirm, onClose,
+}: {
+  title: string;
+  who?: string;
+  owedPaisa: number;
+  owedLabel?: string;
+  pay: ReturnType<typeof usePayRows>;
+  methods?: PayOption[];
+  busy?: boolean;
+  error?: string | null;
+  confirmLabel?: string;
+  leftLabel?: string;
+  dueAfterLabel?: string;
+  clearedLabel?: string;
+  /** a line of small print under the owed card — bills, dates, a reason */
+  note?: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const taking = Math.min(pay.paidPaisa, owedPaisa);
+  const left = owedPaisa - taking;
+  const tooMuch = pay.paidPaisa > owedPaisa;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }}
+      onClick={onClose}>
+      <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift overflow-hidden"
+        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="p-4 pb-2 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">{title}</div>
+            {who && <div className="text-[14px] font-medium truncate">{who}</div>}
+          </div>
+          <button type="button" onClick={onClose} className="text-[#c9a6e4] text-[22px] leading-none px-1 shrink-0">×</button>
+        </div>
+
+        <div className="px-4">
+          <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">{owedLabel}</div>
+            <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {formatTaka(owedPaisa)}
+            </div>
+            {note && <div className="text-[11px] text-[#a98ac4]">{note}</div>}
+          </div>
+
+          <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
+            <PaymentLines pay={pay} methods={methods} title={leftLabel} maxHeight={148} />
+          </div>
+        </div>
+
+        <div className="p-4 pt-3 mt-3 border-t border-white/15">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-[12px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">{leftLabel}</div>
+              <div className="text-[19px] font-semibold font-display" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(taking)}</div>
+            </div>
+            <div className="rounded-[12px] px-3 py-2.5"
+              style={{ background: left > 0 ? "rgba(240,180,106,.14)" : "rgba(127,224,168,.14)" }}>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium truncate" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8" }}>
+                {left > 0 ? dueAfterLabel : clearedLabel}
+              </div>
+              <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>
+                {formatTaka(left)}
+              </div>
+            </div>
+          </div>
+
+          {tooMuch && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Cannot be more than {formatTaka(owedPaisa)}.</p>}
+          {error && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{error}</div>}
+
+          <div className="flex gap-2 mt-3">
+            <button type="button" onClick={onClose}
+              className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
+            <button type="button" onClick={onConfirm} disabled={busy || taking <= 0 || tooMuch}
+              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(taking)}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
