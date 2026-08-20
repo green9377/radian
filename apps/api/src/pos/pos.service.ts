@@ -418,6 +418,8 @@ export class PosService {
         /** what the till charges; null = nobody has priced it yet */
         pricePaisa: it.sellingPricePaisa ?? auto,
         priceIsFixed: it.sellingPricePaisa != null,
+        /** what the shop paid — the cashier haggles against this (owner, 20 Aug) */
+        costPaisa: cost,
         /** the least it may go for — the till refuses under this */
         floorPricePaisa: floor,
         /** null = not counted (a service); otherwise the whole shop's on-hand */
@@ -456,6 +458,7 @@ export class PosService {
           where: { id: { in: itemIds } },
           select: {
             id: true, name: true, isSaleable: true, isActive: true, itemType: true,
+            isStockTracked: true,
             standardCostPaisa: true, computedCostPaisa: true, costMode: true,
             minMarginBp: true, minMarginPaisa: true,
             ...({ sellingPricePaisa: true, markupBp: true } as object),
@@ -472,6 +475,34 @@ export class PosService {
         })
       : [];
     const pMap = new Map(products.map((p) => [p.id, p]));
+
+    /*  POS-R14 (owner, 20 Aug) — the counter cannot sell what is not on the shelf.
+        The website may take an order for something that has run out (DEC-INV-011
+        ALLOW_WARN, so a bouquet can still be promised for tomorrow); a customer
+        standing at the till cannot walk out with air. Services are not counted.  */
+    if (itemIds.length) {
+      const wanted = new Map<string, number>();
+      for (const l of dto.lines) {
+        if (l.itemId) wanted.set(l.itemId, (wanted.get(l.itemId) ?? 0) + Math.max(0, l.qty ?? 0));
+      }
+      const tracked = items.filter((i) => i.isStockTracked);
+      if (tracked.length) {
+        const held = await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: tracked.map((i) => i.id) } },
+          _sum: { qtyMilli: true },
+        });
+        const onHand = new Map(held.map((h) => [h.itemId, Math.floor((h._sum.qtyMilli ?? 0) / 1000)]));
+        const short = tracked
+          .map((i) => ({ name: i.name, want: wanted.get(i.id) ?? 0, have: onHand.get(i.id) ?? 0 }))
+          .filter((x) => x.want > x.have);
+        if (short.length) {
+          throw new BadRequestException(
+            `not enough stock: ${short.map((x) => `${x.name} (want ${x.want}, have ${x.have})`).join('; ')}`,
+          );
+        }
+      }
+    }
 
     const lineData: Prisma.OrderLineCreateWithoutOrderInput[] = dto.lines.map((l) => {
       if (!l.qty || l.qty < 1) throw new BadRequestException('line qty must be >= 1');

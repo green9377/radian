@@ -4074,6 +4074,8 @@ export interface ApiPosCatalogueRow {
   categoryName: string | null;
   pricePaisa: number | null;
   priceIsFixed: boolean;
+  /** what the shop paid — shown at the counter so a haggle is informed */
+  costPaisa: number;
   floorPricePaisa: number | null;
   /** null = not counted (a service); otherwise what the shop holds right now */
   stockQty: number | null;

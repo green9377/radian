@@ -25,16 +25,9 @@ import { posCatalogue, listCustomers, formatTaka, genBg, posCurrentShift, posOpe
 const cardCls = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
 const labelCls = "text-[12.5px] text-body-soft font-medium mb-1 block";
 
-/* DEC-POS-006 — category discount caps (admin-configurable later; POS-owned for now). */
-const CATEGORY_DISCOUNT_CAP: Record<string, number> = {
-  "Fresh Flowers": 100,
-  Plants: 100,
-  "Balloon Bouquets": 25,
-  Cakes: 10,
-  Chocolates: 10,
-  "Gift Boxes": 10,
-};
-const DEFAULT_CAP = 10;
+/*  DEC-POS-006 — the discount cap is the SERVER's (PosDiscountRule, per item or
+    item category). A hardcoded map of website category names used to live here and
+    quietly capped everything at 10% because nothing matched it (owner, 20 Aug).  */
 const MANAGER_PIN = "1234"; // demo only — real gate = Roles & Permissions (POS-R13)
 
 /* DEC-POS-016 — VAT rates come from the Tax module (admin-configurable). Demo set. */
@@ -53,6 +46,12 @@ interface CartLine {
   /** DEC-POS-018 — the counter sells items, so a cart line IS an item */
   product: ApiPosCatalogueRow;
   qty: number;
+  /**
+   * POS-R15 (owner, 20 Aug) — the price is negotiable at the counter: a ৳200 thing
+   * may go for ৳100 if that is the deal. Starts at the item's price and can be
+   * typed over; the item's floor is the only wall.
+   */
+  unitPaisa: number;
 }
 interface PayRow {
   id: string;
@@ -118,14 +117,34 @@ export default function PosSellView() {
 
   // ---- cart ----
   const [lines, setLines] = useState<CartLine[]>([]);
+  /** how many of this item are already in the cart — the shelf has to cover them all */
+  const inCart = (id: string) => lines.find((l) => l.product.id === id)?.qty ?? 0;
+  /** POS-R14 — the counter cannot sell what is not on the shelf */
+  const canAdd = (p: ApiPosCatalogueRow, extra = 1) =>
+    p.stockQty === null || inCart(p.id) + extra <= p.stockQty;
+
   const add = (p: ApiPosCatalogueRow) =>
     setLines((ls) => {
       const hit = ls.find((l) => l.product.id === p.id);
-      if (hit) return ls.map((l) => (l.product.id === p.id ? { ...l, qty: l.qty + 1 } : l));
-      return [...ls, { key: `${p.id}-${Date.now()}`, product: p, qty: 1 }];
+      if (hit) {
+        if (!canAdd(p)) return ls;
+        return ls.map((l) => (l.product.id === p.id ? { ...l, qty: l.qty + 1 } : l));
+      }
+      if (!canAdd(p)) return ls;
+      return [...ls, { key: `${p.id}-${Date.now()}`, product: p, qty: 1, unitPaisa: p.pricePaisa ?? 0 }];
     });
   const setQty = (key: string, qty: number) =>
-    setLines((ls) => ls.map((l) => (l.key === key ? { ...l, qty: Math.max(1, qty) } : l)));
+    setLines((ls) =>
+      ls.map((l) => {
+        if (l.key !== key) return l;
+        const want = Math.max(1, qty);
+        // never past the shelf (a service has no shelf, so it is never capped)
+        const cap = l.product.stockQty === null ? want : Math.min(want, Math.max(1, l.product.stockQty));
+        return { ...l, qty: cap };
+      }),
+    );
+  const setUnit = (key: string, unitPaisa: number) =>
+    setLines((ls) => ls.map((l) => (l.key === key ? { ...l, unitPaisa: Math.max(0, unitPaisa) } : l)));
   const remove = (key: string) => setLines((ls) => ls.filter((l) => l.key !== key));
 
   // ---- customer / gift ----
@@ -195,7 +214,7 @@ export default function PosSellView() {
   const [receipt, setReceipt] = useState<null | { no: string; total: number; hideprice: boolean; due: number }>(null);
 
   // ---- money (DEC-POS-015/016) ----
-  const subtotal = lines.reduce((s, l) => s + (l.product.pricePaisa ?? 0) * l.qty, 0);
+  const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
   const discountPaisa = Math.min(Math.round(discountTaka) * 100, subtotal);
   const adjustmentPaisa = Math.round(adjustmentTaka) * 100; // may be negative
   const taxableBase = Math.max(0, subtotal - discountPaisa + adjustmentPaisa);
@@ -208,13 +227,12 @@ export default function PosSellView() {
   const changePaisa = paid > total && cashPaid > 0 ? Math.min(cashPaid, paid - total) : 0;
   const overpaidNoChange = paid > total && changePaisa === 0; // digital overpay — can't give change
 
-  // discount cap across cart (strictest wins) — DEC-POS-006
-  const cap = lines.length
-    ? Math.min(...lines.map((l) => CATEGORY_DISCOUNT_CAP[l.product.categoryName ?? ""] ?? DEFAULT_CAP))
-    : 100;
+  /*  The cap lives on the server and it refuses in words; the screen no longer
+      guesses one. Approval is still asked for when a line goes under its floor.  */
+  const cap = 100;
   const discountPct = subtotal ? (discountPaisa / subtotal) * 100 : 0;
-  const overCap = discountPct > cap + 0.001;
-  const needsApproval = overCap && !approved;
+  const overCap = false;
+  const needsApproval = false;
 
   useEffect(() => {
     if (!overCap && approved) setApproved(false);
@@ -232,10 +250,15 @@ export default function PosSellView() {
   /*  DEC-ITM-023 — an item nobody has priced cannot be rung up. Services usually
       land here first: no purchase means no cost, so no automatic price.  */
   {
-    const unpriced = lines.filter((l) => l.product.pricePaisa === null).map((l) => l.product.name);
+    const unpriced = lines.filter((l) => l.unitPaisa <= 0).map((l) => l.product.name);
     if (unpriced.length) {
-      errors.push(`No counter price yet: ${unpriced.join(", ")} — set it on the item first.`);
+      errors.push(`No price on: ${unpriced.join(", ")} — type one on the line, or set it on the item.`);
     }
+    /*  POS-R15 — haggling is allowed, going under the floor is not  */
+    const under = lines
+      .filter((l) => l.product.floorPricePaisa !== null && l.unitPaisa < l.product.floorPricePaisa)
+      .map((l) => `${l.product.name} (min ${formatTaka(l.product.floorPricePaisa!)})`);
+    if (under.length) errors.push(`Under the minimum: ${under.join(", ")}.`);
   }
 
   function resetSale() {
@@ -291,7 +314,7 @@ export default function PosSellView() {
         customerName: custName || undefined,
         customerPhone: custPhone || undefined,
         isGift,
-        lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty })),
+        lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
         adjustmentPaisa,
@@ -357,7 +380,9 @@ export default function PosSellView() {
 
           <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
             {grid.map((p) => (
-              <button key={p.id} type="button" onClick={() => add(p)} className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full">
+              <button key={p.id} type="button" onClick={() => add(p)} disabled={!canAdd(p)}
+                title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
+                className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full disabled:opacity-45 disabled:hover:shadow-soft disabled:cursor-not-allowed">
                 <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
@@ -368,8 +393,14 @@ export default function PosSellView() {
                     {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} in stock` : "out of stock"}
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
-                    <span className="text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
-                    <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1"><Icon name="plus" size={12} /> Add</span>
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
+                      {/*  what it cost us — the cashier haggles against this (owner, 20 Aug)  */}
+                      {p.costPaisa > 0 && (
+                        <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
+                      )}
+                    </span>
+                    <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1 shrink-0"><Icon name="plus" size={12} /> Add</span>
                   </div>
                 </div>
               </button>
@@ -393,6 +424,20 @@ export default function PosSellView() {
                 <Icon name="heart" size={13} /> {isGift ? "Gift" : "Mark gift"}
               </button>
             </div>
+
+            {/*  Why the sale cannot go through, AT THE TOP. It used to sit under the
+                 Complete button at the bottom of a tall panel, off the screen — the
+                 owner filled a cart with a closed shift and saw nothing (20 Aug).  */}
+            {errors.length > 0 && lines.length > 0 && (
+              <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
+                style={{ background: "rgba(255,155,123,.14)", color: "#ffc9a8" }}>
+                {errors[0]}
+                {!shiftOpen && (
+                  <button type="button" onClick={openShift} className="underline ml-1.5 font-semibold">Open the shift</button>
+                )}
+                {errors.length > 1 && <span className="opacity-70"> · +{errors.length - 1} more</span>}
+              </div>
+            )}
 
             <div className="mb-3">
               {selectedCust ? (
@@ -459,7 +504,24 @@ export default function PosSellView() {
                     <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
                     <div className="min-w-0">
                       <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
-                      <div className="text-[12px] text-[#c9a6e4]">{formatTaka(l.product.pricePaisa ?? 0)} each</div>
+                      {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[12px] text-[#c9a6e4]">৳</span>
+                        <input type="number" min={0}
+                          className="bg-white/10 border border-white/20 rounded-[7px] h-[26px] w-[74px] px-2 text-[12.5px] text-white"
+                          value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
+                          placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
+                          onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
+                        <span className="text-[11.5px] text-[#c9a6e4]">each</span>
+                        {l.product.costPaisa > 0 && (
+                          <span className="text-[11px] text-[#a98ac4]">cost {formatTaka(l.product.costPaisa)}</span>
+                        )}
+                      </div>
+                      {l.product.floorPricePaisa !== null && l.unitPaisa < l.product.floorPricePaisa && (
+                        <div className="text-[11px] text-[#ff9b9b] mt-0.5">
+                          under the floor — {formatTaka(l.product.floorPricePaisa)} is the least
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center border border-white/25 rounded-[9px] overflow-hidden">
@@ -467,7 +529,7 @@ export default function PosSellView() {
                         <span className="w-[28px] text-center text-[13px] font-medium">{l.qty}</span>
                         <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">+</button>
                       </div>
-                      <div className="w-[74px] text-right text-[13px] font-medium">{formatTaka((l.product.pricePaisa ?? 0) * l.qty)}</div>
+                      <div className="w-[74px] text-right text-[13px] font-medium">{formatTaka(l.unitPaisa * l.qty)}</div>
                       <button type="button" onClick={() => remove(l.key)} className="text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove"><Icon name="trash" size={15} /></button>
                     </div>
                   </div>
@@ -572,7 +634,7 @@ export default function PosSellView() {
             {/* actions */}
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-              <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> Complete {total > 0 ? "· " + formatTaka(total) : "sale"}</button>
+              <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
             </div>
             {errors.length > 0 && lines.length > 0 && (
               <ul className="text-[11.5px] text-[#ffb27a] mt-2.5 list-disc pl-4 space-y-0.5">{errors.map((e) => (<li key={e}>{e}</li>))}</ul>
@@ -609,7 +671,7 @@ export default function PosSellView() {
             ) : (
               <div className="flex flex-col gap-2.5">
                 {held.map((hc) => {
-                  const t = hc.lines.reduce((s, l) => s + (l.product.pricePaisa ?? 0) * l.qty, 0);
+                  const t = hc.lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
                   return (
                     <button key={hc.id} type="button" onClick={() => resumeSale(hc)} className="text-left border border-lavender-deep rounded-[12px] p-3 hover:border-orchid-mid bg-lavender/40">
                       <div className="flex items-center justify-between"><span className="text-[13.5px] font-medium text-purple">{hc.label}</span><span className="text-[13px] font-medium">{formatTaka(t)}</span></div>

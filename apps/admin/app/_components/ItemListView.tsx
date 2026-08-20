@@ -273,6 +273,21 @@ export default function ItemListView() {
 
   /* ---------------- actions ---------------- */
 
+  /**
+   * One press for the whole family. A product with ten colours was ten presses,
+   * and half-on/half-off is almost never what anybody meant (owner, 20 Aug).
+   */
+  async function toggleFamily(members: ApiItem[], on: boolean) {
+    const targets = members.filter((m) => m.isActive !== on);
+    if (!targets.length) return;
+    setItems((p) => p.map((x) => (targets.some((t) => t.id === x.id) ? { ...x, isActive: on } : x)));
+    if (isDemo) return;
+    try {
+      await Promise.all(targets.map((t) => updateItem(t.id, { isActive: on })));
+      setOk(`${targets.length} variant${targets.length === 1 ? "" : "s"} ${on ? "shown" : "hidden"}.`);
+    } catch (e) { setErr(msg(e, "Could not save.")); await load(); }
+  }
+
   async function toggleActive(i: ApiItem) {
     setItems((p) => p.map((x) => (x.id === i.id ? { ...x, isActive: !x.isActive } : x)));
     if (isDemo) return;
@@ -694,11 +709,19 @@ export default function ItemListView() {
                         : <span className="text-body-soft font-normal">—</span>}
                     </span>
                     <span className="text-[13px] text-body-soft">—</span>
-                    <span className="text-[12px] font-semibold px-2 py-1 rounded-full justify-self-start"
-                      style={activeN > 0
-                        ? { background: "#e7f5f1", color: "#0e8f74" }
-                        : { background: "#f1eef4", color: "#7b6b88" }}>
-                      {activeN}/{row.members.length} active
+                    {/*  the whole family on or off in one press (owner, 20 Aug: he could
+                         only reach one variant at a time, which is no way to open a
+                         product with ten colours)  */}
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => toggleFamily(row.members, activeN !== row.members.length)}
+                        title={activeN === row.members.length ? "Hide every variant" : "Show every variant"}
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
+                        style={activeN > 0
+                          ? { background: "#e7f5f1", color: "#0e8f74" }
+                          : { background: "#f1eef4", color: "#7b6b88" }}>
+                        {activeN}/{row.members.length} active
+                      </button>
                     </span>
                     <span className="flex items-center justify-end gap-1 text-body-soft">
                       <button onClick={(e) => { e.stopPropagation(); setPhotosFam({ base: row.base, fkey: row.fkey }); }}

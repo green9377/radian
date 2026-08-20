@@ -1383,8 +1383,13 @@ export class ItemsService {
 /* DEC-ITM-013 defaults — an ingredient is bought but not sold on its own; a service is
    sold but never bought; a consumable is neither sold nor returned. Staff can override
    any of these per item; these are only the sensible starting points. */
-function defaultSaleable(t: ItemType): boolean {
-  return t === ItemType.FINISHED || t === ItemType.SERVICE;
+/*  DEC-ITM-025 (owner, 20 Aug 2026) — everything in this list is for selling.
+    "item mane amder sell kra lagbei" — some things are bought and resold, some are
+    labour sold on its own, and the things that are NOT for sale (the shop's own AC,
+    its lights) are assets, which is a different book entirely. So a new item starts
+    saleable whatever its type; the switch stays for the odd exception.  */
+function defaultSaleable(_t: ItemType): boolean {
+  return true;
 }
 function defaultPurchasable(t: ItemType): boolean {
   return t !== ItemType.SERVICE;

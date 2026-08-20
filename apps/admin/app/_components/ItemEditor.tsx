@@ -91,7 +91,7 @@ type Draft = {
 const EMPTY: Draft = {
   name: "", sku: "", itemType: "RAW", itemTypeId: "", unitId: "", itemCategoryId: "", brandId: "", supplierId: "",
   imageUrl: null, description: "",
-  isSaleable: false, isOnline: true, isPurchasable: true, isReturnable: true, isPerishable: false,
+  isSaleable: true, isOnline: true, isPurchasable: true, isReturnable: true, isPerishable: false,
   isStockTracked: true, shelfLifeDays: "", reorderLevel: "", weightGram: "",
   costTaka: "", sellTaka: "", markupPercent: "", marginMode: "none", marginPercent: "", marginTaka: "",
   vatPercent: "", maxDiscountPercent: "",
@@ -99,9 +99,11 @@ const EMPTY: Draft = {
 };
 
 /** DEC-ITM-013 — sensible starting flags per type; the same rule the API applies */
+/*  DEC-ITM-025 — everything here is for selling; picking a type only decides
+    whether it is also BOUGHT and whether it is counted.  */
 function flagsForType(t: ItemType) {
   return {
-    isSaleable: t === "FINISHED" || t === "SERVICE",
+    isSaleable: true,
     isPurchasable: t !== "SERVICE",
     isStockTracked: t !== "SERVICE",
   };
