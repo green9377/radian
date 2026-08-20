@@ -52,13 +52,17 @@ type Kind = "ALL" | "SINGLE" | "VARIANT";
    carry labels — "Red Rose" is one item whose colour happens to be red. Labels describe
    an item; they do not say how it was born. */
 const isVariant = (i: ApiItem) => !!i.familyKey;
-type Flag = "saleable" | "purchasable" | "returnable" | "perishable" | "noCost" | "noPhoto";
+/*  The chips match the switches an item actually has (20 Aug): returnable and
+    perishable left the form, so filtering by them filtered on a field nobody can
+    set. "No price" replaces them — a sellable item with no price is the one thing
+    that silently breaks the till.  */
+type Flag = "saleable" | "purchasable" | "online" | "noPrice" | "noCost" | "noPhoto";
 
 const FLAGS: { k: Flag; label: string }[] = [
-  { k: "saleable", label: "Saleable" },
+  { k: "saleable", label: "Sold at counter" },
+  { k: "online", label: "On the website" },
   { k: "purchasable", label: "Purchasable" },
-  { k: "returnable", label: "Returnable" },
-  { k: "perishable", label: "Perishable" },
+  { k: "noPrice", label: "No price" },
   { k: "noCost", label: "No cost" },
   { k: "noPhoto", label: "No photo" },
 ];
@@ -118,7 +122,7 @@ export default function ItemListView() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const only = p.get("only");
-    if (only && ["saleable", "purchasable", "returnable", "perishable", "noCost", "noPhoto"].includes(only)) {
+    if (only && ["saleable", "purchasable", "online", "noPrice", "noCost", "noPhoto"].includes(only)) {
       setFlags(new Set([only as Flag]));
     }
     const s = p.get("sort");
@@ -168,8 +172,8 @@ export default function ItemListView() {
       if (status === "hidden" && i.isActive) return false;
       if (flags.has("saleable") && !i.isSaleable) return false;
       if (flags.has("purchasable") && !i.isPurchasable) return false;
-      if (flags.has("returnable") && !i.isReturnable) return false;
-      if (flags.has("perishable") && !i.isPerishable) return false;
+      if (flags.has("online") && !(i.isOnline ?? true)) return false;
+      if (flags.has("noPrice") && !(i.isSaleable && i.effectiveSellPricePaisa == null)) return false;
       if (flags.has("noCost") && i.effectiveCostPaisa > 0) return false;
       if (flags.has("noPhoto") && i.imageUrl) return false;
       if (q) {
@@ -810,8 +814,24 @@ export default function ItemListView() {
                           <Icon name="layers" size={9} /> {recipeCount}
                         </span>
                       )}
-                      {i.isPerishable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fdecea] text-[#c0392b]">perishable</span>}
-                      {i.effectiveCostPaisa <= 0 && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbf1e2] text-[#8a6d1f]">no cost</span>}
+                      {/*  where this thing can actually be sold — the counter, the
+                           website, or neither. One forgotten switch used to hide a
+                           whole service from the till with nothing on screen to say so
+                           (owner, 20 Aug).  */}
+                      {i.isSaleable ? (
+                        <>
+                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#e7f5f1", color: "#0e8f74" }}>counter</span>
+                          {(i.isOnline ?? true) && (
+                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#f9e9fd", color: "#8b21c9" }}>online</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#f1eef4", color: "#7b6b88" }}>not sold</span>
+                      )}
+                      {i.isSaleable && i.effectiveSellPricePaisa == null && (
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fdecea] text-[#c0392b]">no price</span>
+                      )}
+                      {i.effectiveCostPaisa <= 0 && !i.isSaleable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbf1e2] text-[#8a6d1f]">no cost</span>}
                     </div>
                   </div>
 

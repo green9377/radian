@@ -1170,7 +1170,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                   <Icon name="shield" size={13} />
                   <span className="text-[13px] font-bold text-purple">Minimum profit</span>
-                  <Info text="Item does not hold a selling price — Product and POS do. What it holds is the least you will accept, so nothing can be sold under it by accident." />
+                  <Info text="The lowest this may ever be sold for. The till refuses to go under it, however the price was worked out." />
                   <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
                     {([
                       { k: "none" as const, label: "Off" },
@@ -1193,7 +1193,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <div className="p-4">
                   {draft.marginMode === "none" ? (
                     <p className="text-[13px] text-body-soft m-0">
-                      No floor set — Product and POS may price this item freely.
+                      No floor set — the counter and the website may price this freely.
                     </p>
                   ) : (
                     <>

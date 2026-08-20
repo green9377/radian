@@ -41,7 +41,9 @@ export default function ItemsOverview() {
   useEffect(() => { load(); }, []);
 
   const s = useMemo(() => {
-    const noCost = items.filter((i) => i.effectiveCostPaisa <= 0);
+    const noCost = items.filter((i) => i.effectiveCostPaisa <= 0 && !i.isSaleable);
+    /*  the one gap that stops a sale dead: on the counter with no price (20 Aug)  */
+    const noPrice = items.filter((i) => i.isSaleable && i.effectiveSellPricePaisa == null);
     const noPhoto = items.filter((i) => !i.imageUrl);
     const noCat = items.filter((i) => !i.itemCategoryId);
     const emptyRecipe = items.filter(
@@ -54,7 +56,7 @@ export default function ItemsOverview() {
       .map((t) => ({ t, n: items.filter((i) => i.itemType === t).length }))
       .filter((x) => x.n > 0);
     const hidden = items.filter((i) => !i.isActive).length;
-    return { noCost, noPhoto, noCat, emptyRecipe, assembled, perUnit, dearest, byType, hidden };
+    return { noCost, noPrice, noPhoto, noCat, emptyRecipe, assembled, perUnit, dearest, byType, hidden };
   }, [items]);
 
   /* Only the problems that actually exist, worst first — and every one of them now
@@ -62,7 +64,8 @@ export default function ItemsOverview() {
      and Costs boards were removed (21 Jul): they only repeated what the list already
      shows, and "assembled but no recipe" is an Assembly question, not an Item one. */
   const issues = [
-    { n: s.noCost.length, label: "no cost set", tone: "#c0392b", bg: "#fdecea", icon: "cash", href: "/items/list?only=noCost" },
+    { n: s.noPrice.length, label: "on sale with no price", tone: "#c0392b", bg: "#fdecea", icon: "cash", href: "/items/list?only=noPrice" },
+    { n: s.noCost.length, label: "no cost set", tone: "#b45309", bg: "#fff4e6", icon: "box", href: "/items/list?only=noCost" },
     { n: s.noCat.length, label: "not in a category", tone: "#0e8f74", bg: "#e7f5f1", icon: "grid", href: "/items/list" },
     { n: s.noPhoto.length, label: "no photo", tone: "#b76e79", bg: "#f6ece3", icon: "photo", href: "/items/list?only=noPhoto" },
   ].filter((x) => x.n > 0);

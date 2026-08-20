@@ -35,6 +35,7 @@ export default function ItemCategoriesView() {
 
   // the dialog: null = closed, otherwise the row being edited (id null = new)
   const [dlg, setDlg] = useState<{ id: string | null; name: string; parentId: string } | null>(null);
+  const [confirming, setConfirming] = useState<ApiItemCategory | null>(null);
 
   async function load() {
     setLoading(true);
@@ -82,7 +83,7 @@ export default function ItemCategoriesView() {
     catch (e) { setErr(msg(e, "Could not save.")); await load(); }
   }
 
-  async function remove(c: ApiItemCategory) {
+  function remove(c: ApiItemCategory) {
     const n = c._count?.items ?? 0;
     const kids = cats.filter((x) => x.parentId === c.id).length;
     if (n || kids) {
@@ -93,7 +94,13 @@ export default function ItemCategoriesView() {
       );
       return;
     }
-    if (!confirm(`Delete “${c.name}”?`)) return;
+    setConfirming(c); // house dialog, never window.confirm() (Phase 2 ruling)
+  }
+
+  async function doRemove() {
+    const c = confirming;
+    if (!c) return;
+    setConfirming(null);
     setCats((p) => p.filter((x) => x.id !== c.id));
     try { await deleteItemCategory(c.id); }
     catch (e) { setErr(msg(e, "Could not delete.")); await load(); }
@@ -189,6 +196,15 @@ export default function ItemCategoriesView() {
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter" && dlg.name.trim()) save(); }} />
           </Field>
+        </Modal>
+      )}
+
+      {confirming && (
+        <Modal title={`Delete "${confirming.name}"?`} onClose={() => setConfirming(null)}
+          canSave saveLabel="Delete the category" onSave={doRemove}>
+          <p className="text-[13px] text-body m-0">
+            Nothing is in it and it has no sub-categories, so nothing else changes.
+          </p>
         </Modal>
       )}
 
