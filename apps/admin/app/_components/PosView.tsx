@@ -59,6 +59,9 @@ interface PayRow {
   id: string;
   method: PayMethod;
   amountPaisa: number;
+  /*  typed by the cashier. A row nobody has typed into carries whatever is
+      still unpaid, so the numbers always add up to the bill by themselves.  */
+  touched?: boolean;
 }
 interface HeldCart {
   id: string;
@@ -210,13 +213,13 @@ export default function PosSellView() {
       Whatever is taken is taken; whatever is left is the due. `payTouched` only
       remembers whether the cashier has typed an amount — until then the first line
       follows the bill, so the ordinary sale is one press.  */
-  const [payTouched, setPayTouched] = useState(false);
   const [pays, setPays] = useState<PayRow[]>([{ id: "pay-first", method: "Cash", amountPaisa: 0 }]);
   const setPayMethodOf = (id: string, method: PayMethod) =>
     setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r)));
   const setPayAmt = (id: string, amountPaisa: number) =>
-    setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa) } : r)));
+    setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa), touched: true } : r)));
   const removePay = (id: string) => setPays((p) => p.filter((r) => r.id !== id));
+  const MAX_PAYS = 3;
 
   // ---- held carts ----
   const [held, setHeld] = useState<HeldCart[]>([]);
@@ -255,12 +258,27 @@ export default function PosSellView() {
       the ONLY thing that asks for a name — a fully paid walk-in never does.  */
   const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
 
-  /*  Until somebody types an amount, the one payment line IS the bill — add an item
-      and it keeps up. The moment a number is typed the screen stops guessing.  */
+  /*  The rows balance themselves: everything the cashier HAS typed stands, and the
+      first row he has not typed into carries whatever is still unpaid. So one
+      method is one press, and splitting is "type 600 in the second line" — the
+      first drops to the rest on its own. Empty leftover rows cannot pile up.  */
   useEffect(() => {
-    if (payTouched) return;
-    setPays((p) => (p.length === 1 && p[0].amountPaisa !== total ? [{ ...p[0], amountPaisa: total }] : p));
-  }, [payTouched, total]);
+    setPays((p) => {
+      const typed = p.reduce((s, r) => s + (r.touched ? r.amountPaisa : 0), 0);
+      const rest = Math.max(0, total - typed);
+      let taken = false;
+      let changed = false;
+      const next = p.map((r) => {
+        if (r.touched) return r;
+        const want = taken ? 0 : rest;
+        taken = true;
+        if (r.amountPaisa === want) return r;
+        changed = true;
+        return { ...r, amountPaisa: want };
+      });
+      return changed ? next : p;
+    });
+  }, [total, pays]);
 
   const errors: string[] = [];
   if (!shiftOpen) errors.push("Open a shift to start selling.");
@@ -296,7 +314,6 @@ export default function PosSellView() {
     setAdjustmentNote("");
     setTaxRate(0);
     // one payment line always exists, so the panel is never an empty box
-    setPayTouched(false);
     setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
   }
 
@@ -319,7 +336,6 @@ export default function PosSellView() {
     setAdjustmentNote(hc.adjustmentNote);
     setTaxRate(hc.taxRate);
     // a resumed cart starts with one payment line again, not whatever was half-typed
-    setPayTouched(false);
     setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
     setHeld((h) => h.filter((x) => x.id !== hc.id));
     setShowHeld(false);
@@ -635,25 +651,6 @@ export default function PosSellView() {
               </div>
             )}
 
-            </div>
-
-            <div className="p-4 pt-3 border-t border-white/15 shrink-0">
-            {/*  totals — the small arithmetic on the left, ONE big number on the
-                 right. It used to be four evenly-sized rows and the eye had to
-                 hunt for the one that matters.  */}
-            <div className="flex items-end justify-between gap-3">
-              <div className="text-[11.5px] text-[#a98ac4] leading-[1.6] min-w-0">
-                <div>Subtotal {formatTaka(subtotal)}</div>
-                {discountPaisa > 0 && <div className="text-[#7fe0a8]">Discount − {formatTaka(discountPaisa)} · {discountPct.toFixed(0)}%</div>}
-                {adjustmentPaisa !== 0 && <div>Adjustment {adjustmentPaisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustmentPaisa))}</div>}
-                {vatPaisa > 0 && <div>VAT {taxRate}% + {formatTaka(vatPaisa)}</div>}
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Total</div>
-                <div className="text-white font-semibold text-[27px] font-display leading-[1.1]">{formatTaka(total)}</div>
-              </div>
-            </div>
-
             {/*  PAYMENT — rebuilt again 20 Aug on the owner's second look:
                  "full ar partial uthaia daw… jokhon full payment krbe na tokhonei
                  atkaia dibe customer name number ar jonno."
@@ -680,41 +677,48 @@ export default function PosSellView() {
                     )}
                   </div>
 
+                  {/*  method on a small line of its own, the amount on a full-width
+                       line under it — a number never gets squeezed by the dropdown
+                       beside it, however narrow the panel gets.  */}
                   <div className="flex flex-col gap-2">
                     {pays.map((r) => (
                       <div key={r.id}
-                        className="flex items-stretch rounded-[12px] border border-white/25 bg-white/10 overflow-hidden focus-within:border-white/60">
-                        <select
-                          className="w-[96px] shrink-0 bg-transparent border-0 border-r border-white/20 text-[12.5px] text-[#f0e3fa] px-2.5 outline-none cursor-pointer"
-                          value={r.method}
-                          onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
-                          {PAY_METHODS.map((m) => <option key={m} value={m} className="text-purple">{m}</option>)}
-                        </select>
-                        <span className="pl-3 self-center text-[17px] text-[#c9a6e4] shrink-0">৳</span>
-                        <input type="number" min={0} inputMode="numeric"
-                          className="flex-1 min-w-0 h-[56px] bg-transparent border-0 outline-none px-2 text-[24px] font-semibold font-display text-white placeholder:text-white/25"
-                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                          onChange={(e) => { setPayTouched(true); setPayAmt(r.id, Number(e.target.value) * 100); }} />
-                        {pays.length > 1 && (
-                          <button type="button" onClick={() => removePay(r.id)}
-                            className="px-2.5 text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0" title="Remove this payment">
-                            <Icon name="trash" size={15} />
-                          </button>
-                        )}
+                        className="rounded-[12px] border border-white/25 bg-white/10 px-2.5 pt-1.5 pb-1 focus-within:border-white/60">
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="bg-transparent border-0 text-[12px] text-[#c9a6e4] outline-none cursor-pointer px-0 py-0"
+                            value={r.method}
+                            onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
+                            {PAY_METHODS.map((m) => <option key={m} value={m} className="text-purple">{m}</option>)}
+                          </select>
+                          {pays.length > 1 && (
+                            <button type="button" onClick={() => removePay(r.id)}
+                              className="ml-auto text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove this payment">
+                              <Icon name="trash" size={14} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[18px] text-[#c9a6e4] shrink-0">৳</span>
+                          <input type="number" min={0} inputMode="numeric"
+                            className="flex-1 min-w-0 w-full h-[42px] bg-transparent border-0 outline-none p-0 text-[26px] font-semibold font-display text-white placeholder:text-white/25"
+                            value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                            onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/*  a real labelled door, not a bare + (owner, 20 Aug: the split option
-                       looked as if it had gone)  */}
-                  <button type="button"
-                    onClick={() => {
-                      setPayTouched(true);
-                      setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: Math.max(0, duePaisa) }]);
-                    }}
-                    className="mt-2 w-full text-[12px] font-medium py-1.5 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
-                    <Icon name="plus" size={13} /> Pay part of it another way
-                  </button>
+                  {/*  Three methods is already more than a counter ever needs, and an
+                       empty extra line is worse than none — the owner pressed this
+                       seven times and got seven zero lines (20 Aug).  */}
+                  {pays.length < MAX_PAYS && (
+                    <button type="button"
+                      onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }])}
+                      className="mt-2 w-full text-[12px] font-medium py-1.5 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
+                      <Icon name="plus" size={13} /> Pay part of it another way
+                    </button>
+                  )}
                 </div>
 
                 <div className="w-[118px] shrink-0">
@@ -748,47 +752,47 @@ export default function PosSellView() {
                 <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Discount approved</div>
               )}
 
-              <div className="mt-2.5 space-y-1 border-t border-white/10 pt-2.5">
-                <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Paid now</span><span className="font-medium">{formatTaka(paid)}</span></div>
-                {duePaisa > 0 && (
-                  <div className="flex justify-between text-[13px]">
-                    <span className="text-[#f0b46a] font-medium">Due — collect later</span>
-                    <span className="text-[#f0b46a] font-medium">{formatTaka(duePaisa)}</span>
-                  </div>
-                )}
-                {changePaisa > 0 && (
-                  <div className="flex justify-between text-[13px]">
-                    <span className="text-[#7fe0a8] font-medium">Change to give</span>
-                    <span className="text-[#7fe0a8] font-medium">{formatTaka(changePaisa)}</span>
-                  </div>
-                )}
-                {overpaidNoChange && (
-                  <div className="flex justify-between text-[13px]">
-                    <span className="text-[#f0b46a] font-medium">Digital overpay — no change</span>
-                    <span className="text-[#f0b46a] font-medium">reduce {formatTaka(paid - total)}</span>
-                  </div>
-                )}
+            </div>
+
+            </div>
+
+            {/*  THE PINNED FOOT — only three things live here: what the bill is,
+                 where the money stands, and the button. Everything that can grow
+                 (lines, payment rows) scrolls above it, so no amount of anything
+                 can push Complete off the screen.  */}
+            <div className="p-4 pt-3 border-t border-white/15 shrink-0">
+              <div className="flex items-end justify-between gap-3">
+                <div className="text-[11.5px] text-[#a98ac4] leading-[1.6] min-w-0">
+                  <div>Subtotal {formatTaka(subtotal)}</div>
+                  {discountPaisa > 0 && <div className="text-[#7fe0a8]">Discount − {formatTaka(discountPaisa)} · {discountPct.toFixed(0)}%</div>}
+                  {adjustmentPaisa !== 0 && <div>Adjustment {adjustmentPaisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustmentPaisa))}</div>}
+                  {vatPaisa > 0 && <div>VAT {taxRate}% + {formatTaka(vatPaisa)}</div>}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Total</div>
+                  <div className="text-white font-semibold text-[27px] font-display leading-[1.1]">{formatTaka(total)}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px] mt-2 pt-2 border-t border-white/10">
+                <span className="text-[#c9a6e4]">Paid <b className="text-white font-medium">{formatTaka(paid)}</b></span>
+                {duePaisa > 0 && <span className="text-[#f0b46a] font-medium">Due {formatTaka(duePaisa)}</span>}
+                {changePaisa > 0 && <span className="text-[#7fe0a8] font-medium">Change {formatTaka(changePaisa)}</span>}
+                {overpaidNoChange && <span className="text-[#f0b46a] font-medium">Digital overpay — reduce {formatTaka(paid - total)}</span>}
               </div>
 
               {needsCustomer && (
-                <div className="mt-2.5 rounded-[10px] bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] text-[12px] px-3 py-2 flex items-start gap-1.5">
+                <div className="mt-2 rounded-[10px] bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] text-[12px] px-3 py-2 flex items-start gap-1.5">
                   <Icon name="user" size={14} />
-                  <span>
-                    {formatTaka(duePaisa)} stays unpaid — add a <b className="font-semibold">customer name or phone</b> above,
-                    so there is somebody to collect it from.
-                  </span>
+                  <span>{formatTaka(duePaisa)} stays unpaid — add a <b className="font-semibold">customer name or phone</b> above.</span>
                 </div>
               )}
-            </div>
 
-            {/*  actions — this row is the last child of a shrink-0 footer inside a
-                 screen-capped panel, so it never leaves the view; the cart lines
-                 scroll behind it.  */}
-            <div className="flex gap-2 mt-3">
-              <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-              <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
-            </div>
-            {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
+                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
+              </div>
+              {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
             </div>
           </div>
         </aside>
