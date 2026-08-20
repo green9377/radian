@@ -306,19 +306,118 @@ export class PosService {
     return this.discountRules();
   }
 
-  /** Strictest cap across the cart; unconfigured = 100 (no block). */
-  private async cartDiscountCap(productIds: string[]): Promise<number> {
+  /**
+   * Strictest cap across the cart; unconfigured = 100 (no block).
+   *
+   * DEC-POS-018 — a counter line sells an Item, so a rule can now also be written
+   * against an item or its item category. A rule written against a website product
+   * still applies to the legacy product line, exactly as before.
+   */
+  private async cartDiscountCap(productIds: string[], itemIds: string[] = []): Promise<number> {
     const rules = await this.discountRules();
     if (!rules.length) return 100;
-    const products = await this.prisma.db.product.findMany({ where: { id: { in: productIds } }, select: { id: true, category: { select: { id: true } } } });
     let cap = 100;
-    for (const p of products) {
-      const override = rules.find((r) => r.productId === p.id);
-      const catRule = p.category ? rules.find((r) => r.categoryId === p.category!.id) : undefined;
-      const rule = override ?? catRule;
-      if (rule) cap = Math.min(cap, rule.maxPercent);
+
+    if (productIds.length) {
+      const products = await this.prisma.db.product.findMany({ where: { id: { in: productIds } }, select: { id: true, category: { select: { id: true } } } });
+      for (const p of products) {
+        const override = rules.find((r) => r.productId === p.id);
+        const catRule = p.category ? rules.find((r) => r.categoryId === p.category!.id) : undefined;
+        const rule = override ?? catRule;
+        if (rule) cap = Math.min(cap, rule.maxPercent);
+      }
     }
+
+    if (itemIds.length) {
+      const items = await this.prisma.db.item.findMany({
+        where: { id: { in: itemIds } },
+        select: { id: true, itemCategoryId: true },
+      });
+      for (const it of items) {
+        const rule =
+          rules.find((r) => (r as { itemId?: string | null }).itemId === it.id) ??
+          (it.itemCategoryId
+            ? rules.find((r) => (r as { itemCategoryId?: string | null }).itemCategoryId === it.itemCategoryId)
+            : undefined);
+        if (rule) cap = Math.min(cap, rule.maxPercent);
+      }
+    }
+
     return cap;
+  }
+
+  /* ------------------------------------------------ catalogue (DEC-POS-018) */
+
+  /**
+   * What the till may sell: every item marked "We sell it", services included.
+   *
+   * Products are deliberately absent. The website's shelf is a listing on top of
+   * these same items, and offering both would put one thing on the screen twice —
+   * with two prices and two ways for stock to leave.
+   *
+   * The price is worked out exactly as the item screen works it out (DEC-ITM-023),
+   * because a cashier reading a different number from the owner is how arguments start.
+   */
+  async catalogue(search?: string) {
+    const rows = await this.prisma.db.item.findMany({
+      where: {
+        isSaleable: true,
+        isActive: true,
+        ...(search?.trim()
+          ? {
+              OR: [
+                { name: { contains: search.trim(), mode: 'insensitive' as const } },
+                { sku: { contains: search.trim(), mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true, sku: true, name: true, imageUrl: true, itemType: true,
+        costMode: true, standardCostPaisa: true, computedCostPaisa: true,
+        minMarginBp: true, minMarginPaisa: true,
+        itemCategory: { select: { id: true, name: true } },
+        unit: { select: { name: true, shortCode: true } },
+        ...({ sellingPricePaisa: true, markupBp: true } as object),
+      },
+      orderBy: { name: 'asc' },
+      take: 500,
+    });
+
+    const defaultMarkupBp = await this.itemMarkupBp();
+    return rows.map((r) => {
+      const it = r as typeof r & { sellingPricePaisa?: number | null; markupBp?: number | null };
+      const cost = it.costMode === 'AUTO' ? (it.computedCostPaisa ?? it.standardCostPaisa) : it.standardCostPaisa;
+      const auto = cost > 0 ? Math.round(cost * (1 + (it.markupBp ?? defaultMarkupBp) / 10_000)) : null;
+      const floor = it.minMarginBp
+        ? Math.round(cost * (1 + it.minMarginBp / 10_000))
+        : it.minMarginPaisa
+          ? cost + it.minMarginPaisa
+          : null;
+      return {
+        id: it.id,
+        sku: it.sku,
+        name: it.name,
+        imageUrl: it.imageUrl,
+        itemType: it.itemType,
+        unitName: it.unit?.name ?? null,
+        categoryId: it.itemCategory?.id ?? null,
+        categoryName: it.itemCategory?.name ?? null,
+        /** what the till charges; null = nobody has priced it yet */
+        pricePaisa: it.sellingPricePaisa ?? auto,
+        priceIsFixed: it.sellingPricePaisa != null,
+        /** the least it may go for — the till refuses under this */
+        floorPricePaisa: floor,
+      };
+    });
+  }
+
+  /** DEC-ITM-023 — the shop's default profit percent, the same row the Item module reads */
+  private async itemMarkupBp(): Promise<number> {
+    const row = await (this.prisma.db as unknown as {
+      itemSetting: { findFirst(): Promise<{ defaultMarkupBp: number } | null> };
+    }).itemSetting.findFirst();
+    return row?.defaultMarkupBp ?? 2000;
   }
 
   /* ------------------------------------------------ SALE (DEC-POS-001) */
@@ -333,17 +432,88 @@ export class PosService {
       : await this.currentShift(dto.registerId);
     if (!shift || shift.status !== PosShiftStatus.OPEN) throw new BadRequestException('open a shift before selling');
 
-    // products + lines
-    const products = await this.prisma.db.product.findMany({
-      where: { id: { in: dto.lines.map((l) => l.productId) } },
-      select: { id: true, name: true, productType: true, sellingPricePaisa: true, discountType: true, discountValue: true, discountStartsAt: true, discountEndsAt: true, stockMode: true },
-    });
+    /*  DEC-POS-018 — the counter's catalogue is the ITEM list. A line names an item;
+        `productId` is only still accepted so an older till keeps working.  */
+    const itemIds = dto.lines.map((l) => l.itemId).filter((v): v is string => !!v);
+    const productIds = dto.lines.map((l) => l.productId).filter((v): v is string => !!v);
+
+    const items = itemIds.length
+      ? await this.prisma.db.item.findMany({
+          where: { id: { in: itemIds } },
+          select: {
+            id: true, name: true, isSaleable: true, isActive: true, itemType: true,
+            standardCostPaisa: true, computedCostPaisa: true, costMode: true,
+            minMarginBp: true, minMarginPaisa: true,
+            ...({ sellingPricePaisa: true, markupBp: true } as object),
+          },
+        })
+      : [];
+    const iMap = new Map(items.map((i) => [i.id, i as typeof i & { sellingPricePaisa?: number | null; markupBp?: number | null }]));
+    const defaultMarkupBp = itemIds.length ? await this.itemMarkupBp() : 2000;
+
+    const products = productIds.length
+      ? await this.prisma.db.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, productType: true, sellingPricePaisa: true, discountType: true, discountValue: true, discountStartsAt: true, discountEndsAt: true, stockMode: true },
+        })
+      : [];
     const pMap = new Map(products.map((p) => [p.id, p]));
+
     const lineData: Prisma.OrderLineCreateWithoutOrderInput[] = dto.lines.map((l) => {
+      if (!l.qty || l.qty < 1) throw new BadRequestException('line qty must be >= 1');
+
+      /* ---- the counter's own path: an Item ---- */
+      if (l.itemId) {
+        const it = iMap.get(l.itemId);
+        if (!it) throw new BadRequestException(`itemId ${l.itemId} not found`);
+        if (!it.isSaleable || !it.isActive) {
+          throw new BadRequestException(`"${it.name}" is not on sale — switch on "We sell it" first`);
+        }
+        /*  the price the item screen shows, worked out the same way (DEC-ITM-023):
+            a fixed price if it has one, else cost + profit%.  */
+        const cost =
+          it.costMode === 'AUTO' ? (it.computedCostPaisa ?? it.standardCostPaisa) : it.standardCostPaisa;
+        const markupBp = it.markupBp ?? defaultMarkupBp;
+        const auto = cost > 0 ? Math.round(cost * (1 + markupBp / 10_000)) : null;
+        const listed = it.sellingPricePaisa ?? auto;
+        const unitPaisa = l.unitPaisa ?? listed ?? 0;
+        if (unitPaisa <= 0) {
+          throw new BadRequestException(
+            `"${it.name}" has no counter price yet — set one on the item, or type the price on the line`,
+          );
+        }
+        /*  DEC-ITM-018 — the floor is the whole point of the floor: the till may
+            haggle, but never under what the owner said he would accept.  */
+        const floor = it.minMarginBp
+          ? Math.round(cost * (1 + it.minMarginBp / 10_000))
+          : it.minMarginPaisa
+            ? cost + it.minMarginPaisa
+            : null;
+        if (floor !== null && unitPaisa < floor) {
+          throw new BadRequestException(
+            `"${it.name}" cannot be sold under ${(floor / 100).toFixed(2)} — that is its minimum`,
+          );
+        }
+        /*  cast: the generated client on a machine that has not run BUILD_CHECK.bat
+            still thinks a line must have a product (DEC-POS-018 made it optional)  */
+        return {
+          item: { connect: { id: it.id } },
+          name: it.name,
+          addonLabels: [],
+          // a counter line is what it is; the enum only exists for website products
+          productType: 'READYMADE' as ProductType,
+          qty: l.qty,
+          unitPaisa,
+          linePaisa: unitPaisa * l.qty,
+          discountPaisa: 0,
+        } as unknown as Prisma.OrderLineCreateWithoutOrderInput;
+      }
+
+      /* ---- legacy path: a website product sold at the counter ---- */
+      if (!l.productId) throw new BadRequestException('a line needs an itemId');
       const p = pMap.get(l.productId);
       if (!p) throw new BadRequestException(`productId ${l.productId} not found`);
-      if (!l.qty || l.qty < 1) throw new BadRequestException('line qty must be >= 1');
-      /*  DEC-PRD-028 — কাউন্টারেও একই দাম, একই মেয়াদ।  */
+      /*  DEC-PRD-028 — the counter honours the same price and the same window.  */
       const unitPaisa = l.unitPaisa ?? paidPaisa(p);
       return {
         product: { connect: { id: p.id } },
@@ -368,7 +538,10 @@ export class PosService {
 
     // discount cap (DEC-POS-006)
     if (discountPaisa > 0) {
-      const cap = await this.cartDiscountCap(dto.lines.map((l) => l.productId));
+      const cap = await this.cartDiscountCap(
+        dto.lines.map((l) => l.productId).filter((v): v is string => !!v),
+        dto.lines.map((l) => l.itemId).filter((v): v is string => !!v),
+      );
       const pct = subtotalPaisa ? (discountPaisa / subtotalPaisa) * 100 : 0;
       if (pct > cap + 0.001 && !dto.discountApprovedBy?.trim()) {
         throw new BadRequestException(`discount ${pct.toFixed(0)}% exceeds the ${cap}% cap — manager approval required`);
@@ -459,9 +632,11 @@ export class PosService {
         await tx.posCashMovement.create({ data: { shiftId: shift.id, kind: PosCashKind.SALE_CASH, amountPaisa: cashPaid, note: orderNo, actorName } });
       }
 
-      // legacy Product.stockQty decrement (DEC-INV-015 stage 1 — still the enforcing copy).
-      // Negative allowed for a counter sale (item is physically leaving) — DEC-INV-011.
+      /*  legacy Product.stockQty decrement (DEC-INV-015 stage 1 — still the enforcing
+          copy) — only for the legacy product lines. An item line's stock leaves
+          through Inventory alone (DEC-POS-018), which is the whole point.  */
       for (const l of dto.lines) {
+        if (!l.productId) continue;
         const p = pMap.get(l.productId);
         if (p && p.stockMode === 'MANUAL') {
           await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
@@ -484,7 +659,7 @@ export class PosService {
 
     // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
     try {
-      const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId, qty: l.qty })) });
+      const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty })) });
       if (r.skipped.length) {
         await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
       }

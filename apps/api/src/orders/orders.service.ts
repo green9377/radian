@@ -86,7 +86,8 @@ export class OrdersService {
     orderId: string,
     orderNo: string,
     direction: 1 | -1,
-    lines: { productId: string; qty: number }[],
+    /*  DEC-POS-018 — either key; Inventory resolves the item from whichever it gets  */
+    lines: { productId?: string | null; itemId?: string | null; qty: number }[],
     actorName: string,
   ) {
     try {
@@ -446,7 +447,11 @@ export class OrdersService {
       throw new BadRequestException(`cannot start preparing from deliveryStatus=${o.deliveryStatus}`);
 
     const lines = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
-    const products = await this.prisma.db.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } } });
+    /*  DEC-POS-018 — a counter line carries an Item, not a Product. These website
+        paths only ever see product lines; the filter keeps the types honest.  */
+    const products = await this.prisma.db.product.findMany({
+      where: { id: { in: lines.map((l) => l.productId).filter((v): v is string => !!v) } },
+    });
     const pMap = new Map(products.map((p) => [p.id, p]));
 
     /*
@@ -469,7 +474,7 @@ export class OrdersService {
        A variant line is judged against ITS shelf, not the product's sum. */
     const short: string[] = [];
     for (const l of lines) {
-      const p = pMap.get(l.productId);
+      const p = l.productId ? pMap.get(l.productId) : undefined;
       if (!p || p.stockMode !== 'MANUAL') continue;
       const v = l.variantId ? vMap.get(l.variantId) : null;
       if (v) {
@@ -498,7 +503,7 @@ export class OrdersService {
     // can never leave stock committed against an order that never started.
     const updated = await this.prisma.db.$transaction(async (tx) => {
       for (const l of lines) {
-        const p = pMap.get(l.productId);
+        const p = l.productId ? pMap.get(l.productId) : undefined;
         if (!p || p.stockMode !== 'MANUAL') continue;
         // MANUAL stock: variant line → variant-এর ঘর; নইলে product-এর ঘর (DEC-MOD-003 / DEC-PRD-014)
         if (l.variantId && vMap.has(l.variantId)) {
@@ -531,7 +536,7 @@ export class OrdersService {
     // DEC-INV-015 stage 1: parallel ledger copy (fail-soft — see mirrorToInventory)
     await this.mirrorToInventory(
       id, o.orderNo, -1,
-      lines.map((l) => ({ productId: l.productId, qty: l.qty })),
+      lines.map((l) => ({ productId: l.productId, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty })),
       actorName,
     );
     return this.shape(updated);
@@ -589,6 +594,7 @@ export class OrdersService {
       }
       // units, not orders — stock moves by qty, so the "sold" counter must too.
       for (const l of lines) {
+        if (!l.productId) continue; // DEC-POS-018 — an item line has no product counter
         await tx.product.update({ where: { id: l.productId }, data: { salesCount: { increment: l.qty } } });
       }
       // Customer LTV / ordersCount @delivered (Sales writes the Sales-owned mirror)
@@ -682,14 +688,18 @@ export class OrdersService {
     const preparingStarted = o.deliveryStatus !== DeliveryStatus.unassigned;
 
     const lines = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
-    const products = await this.prisma.db.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } } });
+    /*  DEC-POS-018 — a counter line carries an Item, not a Product. These website
+        paths only ever see product lines; the filter keeps the types honest.  */
+    const products = await this.prisma.db.product.findMany({
+      where: { id: { in: lines.map((l) => l.productId).filter((v): v is string => !!v) } },
+    });
     const pMap = new Map(products.map((p) => [p.id, p]));
 
     // REV-C2: per-line refund figures + stock revert run in one transaction.
     let totalRefund = 0;
     await this.prisma.db.$transaction(async (tx) => {
       for (const l of lines) {
-        const p = pMap.get(l.productId);
+        const p = l.productId ? pMap.get(l.productId) : undefined;
         const net = l.linePaisa - l.discountPaisa;
         let refund = net;
         let note = 'Readymade — refunded in full';
@@ -1284,7 +1294,11 @@ export class OrdersService {
 
       const quote = await this.offers.quote({
         customerId: order.customerId,
-        lines: order.lines.map((l) => ({ productId: l.productId, qty: l.qty, unitPaisa: l.unitPaisa })),
+        /*  DEC-POS-018 — the offer engine prices website products; a counter item
+            line has no product to match a rule against.  */
+        lines: order.lines
+          .map((l) => ({ productId: l.productId, qty: l.qty, unitPaisa: l.unitPaisa }))
+          .filter((l): l is { productId: string; qty: number; unitPaisa: number } => !!l.productId),
         deliveryPaisa: order.deliveryPaisa,
         paymentMethod: order.paymentMethod,
         couponCode: order.couponCode ?? undefined,

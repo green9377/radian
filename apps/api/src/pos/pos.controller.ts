@@ -23,6 +23,12 @@ export class PosController {
     return this.pos.analyticsToday();
   }
 
+  /** DEC-POS-018 — what the till may sell: items, never products */
+  @Get('catalogue')
+  catalogue(@Query('search') search?: string) {
+    return this.pos.catalogue(search);
+  }
+
   /* registers */
   @Get('registers')
   registers() {

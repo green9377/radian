@@ -171,6 +171,8 @@ export class ReturnsService {
       return {
         orderLineId: l.id,
         productId: l.productId,
+        /*  DEC-POS-018 — a counter line carries an Item instead of a Product.  */
+        itemId: (l as { itemId?: string | null }).itemId ?? null,
         name: l.name,
         productType: l.productType,
         qty: l.qty,
@@ -247,6 +249,7 @@ export class ReturnsService {
       lineRows.push({
         orderLineId: src.orderLineId,
         productId: src.productId,
+        ...({ itemId: src.itemId ?? null } as object), // DEC-POS-018
         name: src.name,
         qty: inp.qty,
         unitPaisa: src.unitPaisa,
@@ -289,6 +292,7 @@ export class ReturnsService {
             create: lineRows.map((l) => ({
               orderLine: { connect: { id: l.orderLineId } },
               productId: l.productId,
+              ...({ itemId: (l as { itemId?: string | null }).itemId ?? null } as object), // DEC-POS-018
               name: l.name,
               qty: l.qty,
               unitPaisa: l.unitPaisa,
@@ -370,9 +374,13 @@ export class ReturnsService {
     const refundMethod = dto.refundMethod ?? r.refundMethod;
 
     // 1) restock — ONLY lines the staff marked RESTOCK; fail-soft (never break the flow)
+    /*  DEC-POS-018 — Inventory's postSaleReturn still speaks Product. A counter line
+        has no Product, so it is left out of the automatic restock rather than being
+        guessed at; the Returns phase gives item lines their own path.  */
     const restockLines = r.lines
       .filter((l) => l.restockAction === ReturnRestockAction.RESTOCK)
-      .map((l) => ({ productId: l.productId, qty: l.qty }));
+      .map((l) => ({ productId: l.productId, qty: l.qty }))
+      .filter((l): l is { productId: string; qty: number } => !!l.productId);
     if (restockLines.length) {
       try {
         const res = await this.inventory.postSaleReturn({

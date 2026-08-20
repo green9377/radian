@@ -25,10 +25,17 @@ export interface CashMovementDto {
   actorName?: string;
 }
 
+/**
+ * DEC-POS-018 (owner, 20 Aug 2026) — the counter sells ITEMS.
+ *
+ * `itemId` is the way in. `productId` stays only so that a till or receipt built
+ * before this change keeps working; nothing new should send it.
+ */
 export interface PosSaleLineDto {
-  productId: string;
+  itemId?: string;
+  productId?: string; // legacy — a website product sold at the counter
   qty: number;
-  unitPaisa?: number; // override; else product offer price
+  unitPaisa?: number; // override; else the item's counter price
 }
 
 export interface PosPaymentDto {

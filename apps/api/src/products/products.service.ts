@@ -152,10 +152,15 @@ export class ProductsService {
     };
     const map = new Map<string, Agg>();
     for (const l of lines) {
-      let a = map.get(l.productId);
+      /*  DEC-POS-018 — a counter line sells an Item and has no productId. This is the
+          PRODUCT funnel, so those lines are not ours to count; the till's own numbers
+          live in the POS reports.  */
+      const pid = l.productId;
+      if (!pid) continue;
+      let a = map.get(pid);
       if (!a) {
         a = {
-          productId: l.productId,
+          productId: pid,
           orderIds: new Set(),
           cancelledIds: new Set(),
           deliveredIds: new Set(),
@@ -163,7 +168,7 @@ export class ProductsService {
           revenuePaisa: 0,
           refundPaisa: 0,
         };
-        map.set(l.productId, a);
+        map.set(pid, a);
       }
       const cancelled = l.order.salesStatus === 'cancelled';
       a.orderIds.add(l.order.id);

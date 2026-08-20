@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { listProducts, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiProduct, type ApiCustomer, type ApiPosShift } from "../_data/api";
+import { posCatalogue, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift } from "../_data/api";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -50,7 +50,8 @@ const PAY_METHODS: PayMethod[] = ["Cash", "bKash", "Nagad", "Card"];
 
 interface CartLine {
   key: string;
-  product: ApiProduct;
+  /** DEC-POS-018 — the counter sells items, so a cart line IS an item */
+  product: ApiPosCatalogueRow;
   qty: number;
 }
 interface PayRow {
@@ -74,13 +75,15 @@ interface HeldCart {
 }
 
 export default function PosSellView() {
-  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [products, setProducts] = useState<ApiPosCatalogueRow[]>([]);
   /*  6 Aug 2026 — demo fallback removed (owner's order, and here it was
       worse than cosmetic: a counter screen offering SELLABLE fake products
       is a mis-sale waiting to happen). Empty catalog = empty grid.  */
   useEffect(() => {
-    listProducts()
-      .then((r) => setProducts(r.items))
+    /*  DEC-POS-018 — items, never products: everything marked "We sell it",
+        services included. One thing, one price, one way stock leaves.  */
+    posCatalogue()
+      .then(setProducts)
       .catch(() => setProducts([]));
   }, []);
 
@@ -105,17 +108,17 @@ export default function PosSellView() {
   const [cat, setCat] = useState<string>("All");
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => p.category?.name && set.add(p.category.name));
+    products.forEach((p) => p.categoryName && set.add(p.categoryName));
     return ["All", ...Array.from(set)];
   }, [products]);
   const grid = products
-    .filter((p) => (cat === "All" ? true : p.category?.name === cat))
+    .filter((p) => (cat === "All" ? true : p.categoryName === cat))
     .filter((p) => p.name.toLowerCase().includes(q.toLowerCase()))
     .slice(0, 60);
 
   // ---- cart ----
   const [lines, setLines] = useState<CartLine[]>([]);
-  const add = (p: ApiProduct) =>
+  const add = (p: ApiPosCatalogueRow) =>
     setLines((ls) => {
       const hit = ls.find((l) => l.product.id === p.id);
       if (hit) return ls.map((l) => (l.product.id === p.id ? { ...l, qty: l.qty + 1 } : l));
@@ -192,7 +195,7 @@ export default function PosSellView() {
   const [receipt, setReceipt] = useState<null | { no: string; total: number; hideprice: boolean; due: number }>(null);
 
   // ---- money (DEC-POS-015/016) ----
-  const subtotal = lines.reduce((s, l) => s + l.product.offerPricePaisa * l.qty, 0);
+  const subtotal = lines.reduce((s, l) => s + (l.product.pricePaisa ?? 0) * l.qty, 0);
   const discountPaisa = Math.min(Math.round(discountTaka) * 100, subtotal);
   const adjustmentPaisa = Math.round(adjustmentTaka) * 100; // may be negative
   const taxableBase = Math.max(0, subtotal - discountPaisa + adjustmentPaisa);
@@ -207,7 +210,7 @@ export default function PosSellView() {
 
   // discount cap across cart (strictest wins) — DEC-POS-006
   const cap = lines.length
-    ? Math.min(...lines.map((l) => CATEGORY_DISCOUNT_CAP[l.product.category?.name ?? ""] ?? DEFAULT_CAP))
+    ? Math.min(...lines.map((l) => CATEGORY_DISCOUNT_CAP[l.product.categoryName ?? ""] ?? DEFAULT_CAP))
     : 100;
   const discountPct = subtotal ? (discountPaisa / subtotal) * 100 : 0;
   const overCap = discountPct > cap + 0.001;
@@ -226,6 +229,14 @@ export default function PosSellView() {
   if (needsApproval) errors.push("Discount over limit — needs manager approval.");
   if (payMode === "full" && duePaisa > 0) errors.push(`Full payment: take the full amount (${formatTaka(duePaisa)} left).`);
   if (needsCustomer) errors.push("Due sale needs a customer name or phone.");
+  /*  DEC-ITM-023 — an item nobody has priced cannot be rung up. Services usually
+      land here first: no purchase means no cost, so no automatic price.  */
+  {
+    const unpriced = lines.filter((l) => l.product.pricePaisa === null).map((l) => l.product.name);
+    if (unpriced.length) {
+      errors.push(`No counter price yet: ${unpriced.join(", ")} — set it on the item first.`);
+    }
+  }
 
   function resetSale() {
     setLines([]);
@@ -280,7 +291,7 @@ export default function PosSellView() {
         customerName: custName || undefined,
         customerPhone: custPhone || undefined,
         isGift,
-        lines: lines.map((l) => ({ productId: l.product.id, qty: l.qty })),
+        lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
         adjustmentPaisa,
@@ -335,7 +346,7 @@ export default function PosSellView() {
           <div className={cardCls + " p-4 mb-4"}>
             <div className="relative mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft"><Icon name="search" size={17} /></span>
-              <input className="ipt h-[44px] ipt-icon" placeholder="Search products by name…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="ipt h-[44px] ipt-icon" placeholder="Search by name or code…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="flex gap-2 flex-wrap">
               {categories.map((c) => (
@@ -347,17 +358,17 @@ export default function PosSellView() {
           <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
             {grid.map((p) => (
               <button key={p.id} type="button" onClick={() => add(p)} className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full">
-                <div className="h-[104px] w-full shrink-0" style={{ background: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug) }} />
+                <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
-                    <span className="text-[13.5px] font-semibold text-body">{formatTaka(p.offerPricePaisa)}</span>
+                    <span className="text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
                     <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1"><Icon name="plus" size={12} /> Add</span>
                   </div>
                 </div>
               </button>
             ))}
-            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">No products match.</div>}
+            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
           </div>
         </div>
 
@@ -433,16 +444,16 @@ export default function PosSellView() {
             {/* lines */}
             {lines.length === 0 ? (
               <div className="h-full grid place-items-center">
-                <div className="border border-dashed border-white/20 rounded-[12px] py-8 px-6 text-center text-[13px] text-[#c9a6e4]">Tap products to add them here.</div>
+                <div className="border border-dashed border-white/20 rounded-[12px] py-8 px-6 text-center text-[13px] text-[#c9a6e4]">Tap an item to add it here.</div>
               </div>
             ) : (
               <div className="flex flex-col gap-2 mb-3">
                 {lines.map((l) => (
                   <div key={l.key} className="grid grid-cols-[36px_minmax(0,1fr)_auto] gap-2.5 items-center">
-                    <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: l.product.images?.[0]?.url ? `url(${l.product.images[0].url}) center/cover no-repeat` : genBg(l.product.slug) }} />
+                    <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
                     <div className="min-w-0">
                       <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
-                      <div className="text-[12px] text-[#c9a6e4]">{formatTaka(l.product.offerPricePaisa)} each</div>
+                      <div className="text-[12px] text-[#c9a6e4]">{formatTaka(l.product.pricePaisa ?? 0)} each</div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center border border-white/25 rounded-[9px] overflow-hidden">
@@ -450,7 +461,7 @@ export default function PosSellView() {
                         <span className="w-[28px] text-center text-[13px] font-medium">{l.qty}</span>
                         <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">+</button>
                       </div>
-                      <div className="w-[74px] text-right text-[13px] font-medium">{formatTaka(l.product.offerPricePaisa * l.qty)}</div>
+                      <div className="w-[74px] text-right text-[13px] font-medium">{formatTaka((l.product.pricePaisa ?? 0) * l.qty)}</div>
                       <button type="button" onClick={() => remove(l.key)} className="text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove"><Icon name="trash" size={15} /></button>
                     </div>
                   </div>
@@ -592,7 +603,7 @@ export default function PosSellView() {
             ) : (
               <div className="flex flex-col gap-2.5">
                 {held.map((hc) => {
-                  const t = hc.lines.reduce((s, l) => s + l.product.offerPricePaisa * l.qty, 0);
+                  const t = hc.lines.reduce((s, l) => s + (l.product.pricePaisa ?? 0) * l.qty, 0);
                   return (
                     <button key={hc.id} type="button" onClick={() => resumeSale(hc)} className="text-left border border-lavender-deep rounded-[12px] p-3 hover:border-orchid-mid bg-lavender/40">
                       <div className="flex items-center justify-between"><span className="text-[13.5px] font-medium text-purple">{hc.label}</span><span className="text-[13px] font-medium">{formatTaka(t)}</span></div>

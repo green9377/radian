@@ -575,7 +575,11 @@ export class InventoryService {
     orderNo: string;
     actor: string;
     direction: 1 | -1;
-    lines: { productId: string; qty: number }[];
+    /**
+     * DEC-POS-018 — a line is either a website Product (stock is found through
+     * `Product.itemId`) or, at the counter, the Item itself. Exactly one is set.
+     */
+    lines: { productId?: string | null; itemId?: string | null; qty: number }[];
   }): Promise<{ posted: number; skipped: string[] }> {
     const warehouseId = await this.saleWarehouseId();
     const drafts: MovementDraft[] = [];
@@ -584,16 +588,21 @@ export class InventoryService {
 
     for (const l of params.lines) {
       if (l.qty <= 0) continue;
-      const product = await this.prisma.db.product.findFirst({
-        where: { id: l.productId },
-        select: { id: true, name: true, itemId: true },
-      });
-      if (!product?.itemId) {
-        skipped.push(product?.name ?? l.productId);
-        continue;
+      let itemId = l.itemId ?? null;
+      if (!itemId) {
+        if (!l.productId) continue; // neither — nothing to move
+        const product = await this.prisma.db.product.findFirst({
+          where: { id: l.productId },
+          select: { id: true, name: true, itemId: true },
+        });
+        if (!product?.itemId) {
+          skipped.push(product?.name ?? l.productId);
+          continue;
+        }
+        itemId = product.itemId;
       }
       const item = await this.prisma.db.item.findFirst({
-        where: { id: product.itemId },
+        where: { id: itemId },
         select: {
           id: true, name: true, unitId: true, isStockTracked: true, itemType: true,
           assemblyMode: true, costMode: true, standardCostPaisa: true, computedCostPaisa: true,
@@ -604,7 +613,9 @@ export class InventoryService {
         },
       });
       if (!item || !item.isStockTracked || item.itemType === 'SERVICE') {
-        skipped.push(product.name);
+        /*  A service leaves no stock behind — that is what a service IS (wrapping,
+            decoration), so it is reported as skipped, not as a failure.  */
+        skipped.push(item?.name ?? itemId);
         continue;
       }
 

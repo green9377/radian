@@ -2523,8 +2523,20 @@ model OrderLine {
   id        String  @id @default(cuid())
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
+
+  /// DEC-POS-018 (owner, 20 Aug 2026) — a line is EITHER a website product or a
+  /// stockroom item.
+  ///
+  /// The website sells Products. The counter sells Items: everything marked
+  /// "We sell it", services included, and a service never has a Product. So
+  /// `productId` became optional and `itemId` joined it — exactly one of the two
+  /// is set, and the service that writes the line decides which.
+  ///
+  /// Old rows keep their productId untouched; history is not rewritten.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  itemId    String?
+  item      Item?    @relation("OrderLineItem", fields: [itemId], references: [id])
 
   name        String
   bg          String?
@@ -2572,6 +2584,7 @@ model OrderLine {
 
   @@index([orderId])
   @@index([productId])
+  @@index([itemId])
 }
 
 enum AddedFrom {
@@ -2798,7 +2811,10 @@ model SalesReturnLine {
   orderLineId String
   orderLine   OrderLine @relation(fields: [orderLineId], references: [id])
 
-  productId String // snapshot ref (Product owner unchanged)
+  /// DEC-POS-018 — a returned line came either from a website Product or, at the
+  /// counter, straight from an Item. Nullable for the same reason OrderLine's is.
+  productId String? // snapshot ref (Product owner unchanged)
+  itemId    String? // counter sales return the item itself
   name      String // frozen snapshot
   qty       Int
   unitPaisa Int
@@ -3087,6 +3103,7 @@ model Item {
   components ItemComponent[] @relation("ItemRecipe") // what THIS item is made of
   usedIn     ItemComponent[] @relation("ItemUsedIn") // recipes THIS item appears in
   products   Product[] // DEC-ITM-002 — many Products may share one Item
+  orderLines OrderLine[] @relation("OrderLineItem") // DEC-POS-018 — counter sales sell items directly
   productVariants ProductVariant[] // DEC-PRD-015 - one colour, one Item
   addOns     AddOn[] // DEC-PRD-039 - the Item that holds an add-on's stock
   purchaseLines PurchaseLine[] // DEC-PUR-009 — purchase history of this item
@@ -4433,6 +4450,11 @@ model PosDiscountRule {
   id               String   @id @default(cuid())
   categoryId       String? // one of category / product
   productId        String?
+  /// DEC-POS-018 — the counter sells Items, so a cap can be written against an item
+  /// or its stockroom category. The product/website-category pair stays for the
+  /// rules already written, and for a website product rung up at the counter.
+  itemId           String?
+  itemCategoryId   String?
   maxPercent       Int      @default(0) // 100 = free negotiation
   requiresApproval Boolean  @default(true)
   createdAt        DateTime @default(now())
@@ -4441,6 +4463,8 @@ model PosDiscountRule {
 
   @@index([categoryId])
   @@index([productId])
+  @@index([itemId])
+  @@index([itemCategoryId])
 }
 
 // ============================================================

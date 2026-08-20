@@ -4053,13 +4053,31 @@ export interface PosSaleInput {
   shiftId?: string; registerId?: string; branchId?: string;
   customerId?: string; customerName?: string; customerPhone?: string;
   isGift?: boolean;
-  lines: { productId: string; qty: number; unitPaisa?: number }[];
+  /** DEC-POS-018 — the counter sells items; productId is only the legacy path */
+  lines: { itemId?: string; productId?: string; qty: number; unitPaisa?: number }[];
   discountPaisa?: number; discountApprovedBy?: string;
   adjustmentPaisa?: number; adjustmentNote?: string; taxRateBps?: number;
   payMode: "full" | "partial";
   payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number }[];
   actorName?: string;
 }
+
+/** DEC-POS-018 — what the till may sell: items, never products */
+export interface ApiPosCatalogueRow {
+  id: string;
+  sku: string;
+  name: string;
+  imageUrl: string | null;
+  itemType: ItemType;
+  unitName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  pricePaisa: number | null;
+  priceIsFixed: boolean;
+  floorPricePaisa: number | null;
+}
+export const posCatalogue = (search?: string) =>
+  j<ApiPosCatalogueRow[]>(`/pos/catalogue${search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`);
 
 export const posSettings = () => j<ApiPosSettings>(`/pos/settings`);
 export const updatePosSettings = (patch: Partial<ApiPosSettings>) =>
