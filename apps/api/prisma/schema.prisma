@@ -3047,6 +3047,17 @@ model Item {
   sellingPricePaisa Int? // manual override; null = derived from cost + markup
   markupBp          Int? // this item's own profit %; null = the shop default
 
+  /// DEC-ITM-024 (owner, 20 Aug 2026) — the two doors are separate.
+  ///
+  /// `isSaleable` = the SHOP sells it: it reaches the counter, services included.
+  /// `isOnline`   = it may also reach the WEBSITE: only these appear on the product
+  ///                page's item picker, and the server refuses to link the others.
+  ///
+  /// Wrapping and decoration are sold at the counter and have no web listing;
+  /// switching this off is how the owner says so, instead of the absence of a
+  /// Product having to mean it. Off never affects the till.
+  isOnline Boolean @default(true)
+
   /// DEC-ITM-019 — tax and discount DEFAULTS live with the thing being sold, because
   /// they are properties of the thing (a cake is not taxed like a bouquet). The Sales
   /// module reads these as the starting figure; the rate actually charged is stamped on

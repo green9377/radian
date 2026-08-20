@@ -68,6 +68,7 @@ type Draft = {
   imageUrl: string | null;
   description: string;
   isSaleable: boolean;
+  isOnline: boolean;   // DEC-ITM-024 — may also reach the website
   isPurchasable: boolean;
   isReturnable: boolean;
   isPerishable: boolean;
@@ -90,7 +91,7 @@ type Draft = {
 const EMPTY: Draft = {
   name: "", sku: "", itemType: "RAW", itemTypeId: "", unitId: "", itemCategoryId: "", brandId: "", supplierId: "",
   imageUrl: null, description: "",
-  isSaleable: false, isPurchasable: true, isReturnable: true, isPerishable: false,
+  isSaleable: false, isOnline: true, isPurchasable: true, isReturnable: true, isPerishable: false,
   isStockTracked: true, shelfLifeDays: "", reorderLevel: "", weightGram: "",
   costTaka: "", sellTaka: "", markupPercent: "", marginMode: "none", marginPercent: "", marginTaka: "",
   vatPercent: "", maxDiscountPercent: "",
@@ -190,7 +191,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             unitId: it.unitId, itemCategoryId: it.itemCategoryId ?? "", brandId: it.brandId ?? "",
             supplierId: it.supplierId ?? "",
             imageUrl: it.imageUrl ?? null, description: it.description ?? "",
-            isSaleable: it.isSaleable, isPurchasable: it.isPurchasable,
+            isSaleable: it.isSaleable, isOnline: it.isOnline ?? true, isPurchasable: it.isPurchasable,
             isReturnable: it.isReturnable, isPerishable: it.isPerishable,
             isStockTracked: it.isStockTracked,
             shelfLifeDays: it.shelfLifeDays?.toString() ?? "",
@@ -291,6 +292,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
       imageUrl: draft.imageUrl,
       description: draft.description.trim() || null,
       isSaleable: draft.isSaleable,
+      isOnline: draft.isOnline, // DEC-ITM-024
       isPurchasable: draft.isPurchasable,
       isReturnable: draft.isReturnable,
       isPerishable: draft.isPerishable,
@@ -1263,10 +1265,27 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                "We sell it" (How it is used) = the counter; a Product = the website.  */}
           {section === "connect" && (
             <Sect title="Sell online">
+              {/*  DEC-ITM-024 — its own switch, not the counter's. Off = it never
+                   appears on the product page; the till is untouched either way.  */}
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
+                <SwitchRow on={draft.isOnline && draft.isSaleable}
+                  onClick={() => draft.isSaleable && set("isOnline", !draft.isOnline)}
+                  icon="link" tone="#8b21c9"
+                  title="Sell online" sub="Off keeps it off the product page — the counter still sells it" />
+              </div>
+
               {!draft.isSaleable ? (
                 <Note tone="grey">
                   Switch on <b>We sell it</b> under &ldquo;How it is used&rdquo; first — the website sells
                   what the shop sells.
+                </Note>
+              ) : !draft.isOnline ? (
+                <Note tone="grey">
+                  Counter only. It will not appear when a product page looks for an item.
+                  {(item?._count?.products ?? 0) > 0 && (
+                    <> {item!._count!.products} product{item!._count!.products === 1 ? "" : "s"} already
+                    point at it — they keep working until someone saves them again.</>
+                  )}
                 </Note>
               ) : isNew ? (
                 <Note tone="purple">

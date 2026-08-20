@@ -2396,6 +2396,9 @@ export interface ApiItem {
   minMarginPaisa?: number | null;
   floorPricePaisa?: number | null; // derived: cost + the margin rule. null = no rule set
 
+  /** DEC-ITM-024 — may this item also reach the website's product page */
+  isOnline?: boolean;
+
   /** DEC-ITM-022/023 — the COUNTER price. The website's price lives on the Product. */
   sellingPricePaisa?: number | null; // manual override; null = follows cost + markup
   markupBp?: number | null;          // this item's own profit %; null = shop default
@@ -2439,6 +2442,7 @@ export interface ItemWrite {
   attributeValueIds?: string[];
   costMode?: CostMode;
   standardCostPaisa?: number;
+  isOnline?: boolean;                // DEC-ITM-024 — may go on the website
   sellingPricePaisa?: number | null; // DEC-ITM-022 — the counter price override
   markupBp?: number | null;          // DEC-ITM-023 — this item's own profit %
   minMarginBp?: number | null;

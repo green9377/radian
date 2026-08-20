@@ -272,6 +272,7 @@ export class ItemsService {
         // DEC-ITM-013 — sensible defaults per type: an ingredient is bought, not sold;
         // a service is sold, not bought; nothing perishable comes back.
         isSaleable: dto.isSaleable ?? defaultSaleable(behaviour),
+        ...({ isOnline: dto.isOnline ?? true } as Record<string, boolean>), // DEC-ITM-024
         isPurchasable: dto.isPurchasable ?? defaultPurchasable(behaviour),
         isReturnable: dto.isReturnable ?? !(dto.isPerishable ?? false),
         weightGram: dto.weightGram ?? null,
@@ -456,6 +457,7 @@ export class ItemsService {
         isStockTracked: norm.isStockTracked,
         assemblyMode: norm.assemblyMode,
         isSaleable: dto.isSaleable,
+        ...(dto.isOnline === undefined ? {} : ({ isOnline: dto.isOnline } as Record<string, boolean>)), // DEC-ITM-024
         isPurchasable: dto.isPurchasable,
         isReturnable: dto.isReturnable,
         weightGram: dto.weightGram === undefined ? undefined : dto.weightGram,

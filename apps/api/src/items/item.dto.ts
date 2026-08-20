@@ -34,6 +34,8 @@ export interface ItemDto {
 
   // DEC-ITM-013 — not derivable from itemType, so they are their own flags
   isSaleable?: boolean;
+  /// DEC-ITM-024 — may it also reach the website's product page
+  isOnline?: boolean;
   isPurchasable?: boolean;
   isReturnable?: boolean;
 

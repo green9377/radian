@@ -762,7 +762,9 @@ export class ProductsService {
     if (itemIds.length) {
       const found = await this.prisma.db.item.findMany({
         where: { id: { in: itemIds } },
-        select: { id: true, name: true, isSaleable: true },
+        /*  isOnline cast: the generated client on a machine that has not run
+            BUILD_CHECK.bat yet predates DEC-ITM-024. Goes away on regenerate.  */
+        select: { id: true, name: true, isSaleable: true, ...({ isOnline: true } as object) },
       });
       const byId = new Map(found.map((i) => [i.id, i]));
       for (const id of itemIds) {
@@ -771,6 +773,13 @@ export class ProductsService {
         if (!it.isSaleable) {
           throw new BadRequestException(
             `"${it.name}" is not marked "We sell it". Open the item and switch it on first — only saleable items may sit behind a product.`,
+          );
+        }
+        /*  DEC-ITM-024 — and it has to be allowed online. A counter-only item
+            (wrapping, decoration) belongs on the till, not on a product page.  */
+        if (!(it as { isOnline?: boolean }).isOnline) {
+          throw new BadRequestException(
+            `"${it.name}" is counter only. Switch on "Sell online" in the item to put it on the website.`,
           );
         }
       }

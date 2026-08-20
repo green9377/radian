@@ -944,8 +944,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     const id = setTimeout(() => {
       setItemBusy(true);
       listItems(q ? { search: q } : undefined)
-        // DEC-ITM-013 — only saleable, active items may sit behind a product
-        .then((r) => setItemHits(r.filter((i) => i.isSaleable && i.isActive).slice(0, 8)))
+        // DEC-ITM-013/024 — only saleable, active, online items may sit behind a product
+        .then((r) => setItemHits(r.filter((i) => i.isSaleable && i.isActive && (i.isOnline ?? true)).slice(0, 8)))
         .catch(() => setItemHits([]))
         .finally(() => setItemBusy(false));
     }, 300);
@@ -970,8 +970,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     let stale = false;
     const t = setTimeout(() => {
       listItems(vItemQ.trim() ? { search: vItemQ.trim() } : undefined)
-        // DEC-ITM-013 — same gate as the product's own item search
-        .then((r) => !stale && setVItemHits(r.filter((i) => i.isSaleable && i.isActive).slice(0, 30)))
+        // DEC-ITM-013/024 — same gate as the product's own item search
+        .then((r) => !stale && setVItemHits(r.filter((i) => i.isSaleable && i.isActive && (i.isOnline ?? true)).slice(0, 30)))
         .catch(() => !stale && setVItemHits([]));
     }, 250);
     return () => {
