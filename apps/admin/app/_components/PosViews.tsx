@@ -20,6 +20,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
+import { PaymentLines, usePayRows } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -60,17 +61,9 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "gr
   );
 }
 
-/* ---------- demo fallback ---------- */
-const DEMO_SALES: ApiPosSale[] = [
-  { id: "d1", orderNo: "POS-100241", placedAt: new Date().toISOString(), senderName: "Walk-in", senderPhone: "", totalPaisa: 498000, duePaisa: 0, paidPaisa: 498000, isGift: false, transactions: [{ method: "cash", amountPaisa: 498000 }], _count: { lines: 3 } },
-  { id: "d2", orderNo: "POS-100240", placedAt: new Date().toISOString(), senderName: "Nadia Rahman", senderPhone: "01710", totalPaisa: 349000, duePaisa: 0, paidPaisa: 349000, isGift: true, transactions: [{ method: "cash", amountPaisa: 200000 }, { method: "bkash", amountPaisa: 149000 }], _count: { lines: 2 } },
-  { id: "d3", orderNo: "POS-100238", placedAt: new Date().toISOString(), senderName: "Imran Hossain", senderPhone: "01711", totalPaisa: 712000, duePaisa: 200000, paidPaisa: 512000, isGift: false, transactions: [{ method: "card", amountPaisa: 512000 }], _count: { lines: 4 } },
-];
-const DEMO_DUE: ApiPosDue[] = [
-  { customerId: "c1", name: "Imran Hossain", phone: "01711-223344", duePaisa: 200000, oldest: new Date().toISOString(), orders: [] },
-  { customerId: "c2", name: "Rafiq Traders", phone: "01822-556677", duePaisa: 450000, oldest: new Date().toISOString(), orders: [] },
-];
-
+/*  No demo constants here any more (owner's standing order): a POS screen that
+    invents sales or dues teaches the shop to trust numbers that are not real.
+    Empty API answer = empty screen.  */
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 const methodLabel = (s: ApiPosSale) => (s.transactions?.length ? Array.from(new Set(s.transactions.map((t) => t.method))).join(" + ") : "—");
 
@@ -89,7 +82,7 @@ function GradientStat({ label, value, sub, icon, from, to }: { label: string; va
 
 export function PosOverview() {
   const [a, setA] = useState<ApiPosAnalytics | null>(null);
-  const [sales, setSales] = useState<ApiPosSale[]>(DEMO_SALES);
+  const [sales, setSales] = useState<ApiPosSale[]>([]);
   useEffect(() => {
     posAnalyticsToday().then(setA).catch(() => {});
     posListSales({ days: 30 }).then((r) => { if (r.length) setSales(r); }).catch(() => {});
@@ -157,7 +150,7 @@ export function PosOverview() {
 /* ================= SHIFT / TODAY ================= */
 export function PosShiftBoard() {
   const [shift, setShift] = useState<ApiPosShift | null>(null);
-  const [sales, setSales] = useState<ApiPosSale[]>(DEMO_SALES);
+  const [sales, setSales] = useState<ApiPosSale[]>([]);
   const [a, setA] = useState<ApiPosAnalytics | null>(null);
   useEffect(() => {
     posCurrentShift().then(setShift).catch(() => {});
@@ -214,7 +207,7 @@ export function PosShiftBoard() {
 /* ================= SALES HISTORY ================= */
 export function PosSalesHistory() {
   const [q, setQ] = useState("");
-  const [sales, setSales] = useState<ApiPosSale[]>(DEMO_SALES);
+  const [sales, setSales] = useState<ApiPosSale[]>([]);
   const [rx, setRx] = useState<ApiPosSale | null>(null);
   useEffect(() => { posListSales({ days: 90 }).then((r) => { if (r.length) setSales(r); }).catch(() => {}); }, []);
   const list = sales.filter((s) => (s.orderNo + (s.customer?.name ?? s.senderName)).toLowerCase().includes(q.toLowerCase()));
@@ -332,23 +325,11 @@ export function PosDayClose() {
 
 /* ================= DUE BOARD ================= */
 export function PosDueBoard() {
-  const [rows, setRows] = useState<ApiPosDue[]>(DEMO_DUE);
+  const [rows, setRows] = useState<ApiPosDue[]>([]);
+  const [open, setOpen] = useState<ApiPosDue | null>(null);
   useEffect(() => { posDue().then((r) => setRows(r)).catch(() => {}); }, []);
   const total = rows.reduce((s, r) => s + r.duePaisa, 0);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  async function collect(row: ApiPosDue) {
-    setBusyId(row.customerId);
-    try {
-      for (const o of row.orders) {
-        if (o.duePaisa > 0) await posCollectDue({ orderId: o.id, payments: [{ method: "cash", amountPaisa: o.duePaisa }] });
-      }
-      setRows(await posDue());
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not collect the due");
-    } finally {
-      setBusyId(null);
-    }
-  }
+
   return (
     <div className={wrap}>
       <Head title="Due board" sub="Known customers who owe on credit sales — collect and clear here." />
@@ -363,6 +344,7 @@ export function PosDueBoard() {
             <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
               <th className="px-4 py-2.5 font-medium">Customer</th>
               <th className="px-4 py-2.5 font-medium">Phone</th>
+              <th className="px-4 py-2.5 font-medium">Bills</th>
               <th className="px-4 py-2.5 font-medium text-right">Due</th>
               <th className="px-4 py-2.5 font-medium text-right">Action</th>
             </tr>
@@ -372,13 +354,121 @@ export function PosDueBoard() {
               <tr key={d.customerId} className="border-t border-lavender-deep hover:bg-lavender/30">
                 <td className="px-4 py-2.5 font-medium text-purple">{d.name}</td>
                 <td className="px-4 py-2.5 text-body-soft">{d.phone}</td>
+                <td className="px-4 py-2.5 text-body-soft">{d.orders.length} · oldest {new Date(d.oldest).toLocaleDateString()}</td>
                 <td className="px-4 py-2.5 text-right font-medium text-[#b45309]">{formatTaka(d.duePaisa)}</td>
-                <td className="px-4 py-2.5 text-right"><button type="button" onClick={() => collect(d)} disabled={busyId === d.customerId || !d.orders.length} className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5 disabled:opacity-50">{busyId === d.customerId ? "…" : "Collect"}</button></td>
+                <td className="px-4 py-2.5 text-right">
+                  <button type="button" onClick={() => setOpen(d)} disabled={!d.orders.length}
+                    className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5 disabled:opacity-50">Collect</button>
+                </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-body-soft">No outstanding due.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-body-soft">No outstanding due.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {open && (
+        <CollectDue row={open} onClose={() => setOpen(null)}
+          onDone={async () => { setOpen(null); setRows(await posDue().catch(() => [])); }} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Taking a due IS taking money, so it wears the house money block (CLAUDE.md §14):
+ * how much, by which methods, and what is left after. It used to be one button
+ * that assumed the whole amount in cash and shouted through alert() when the
+ * server refused (owner, 21 Aug).
+ */
+function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => void; onDone: () => void }) {
+  const owed = row.duePaisa;
+  const pay = usePayRows(owed);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const taking = Math.min(pay.paidPaisa, owed);
+  const left = owed - taking;
+
+  async function collect() {
+    setBusy(true); setErr(null);
+    try {
+      /*  oldest bill first — the shop's own habit, and it keeps the ageing
+          report honest. Each bill takes from the methods in the order typed.  */
+      const purses = pay.pays.filter((r) => r.amountPaisa > 0).map((r) => ({ method: r.method.toLowerCase(), left: r.amountPaisa }));
+      const bills = [...row.orders].sort((a, b) => +new Date(a.placedAt) - +new Date(b.placedAt));
+      for (const o of bills) {
+        let need = o.duePaisa;
+        const parts: { method: string; amountPaisa: number }[] = [];
+        for (const purse of purses) {
+          if (need <= 0) break;
+          const take = Math.min(purse.left, need);
+          if (take > 0) { parts.push({ method: purse.method, amountPaisa: take }); purse.left -= take; need -= take; }
+        }
+        if (parts.length) await posCollectDue({ orderId: o.id, payments: parts });
+      }
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not collect the due");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }} {...backdropClose(onClose)}>
+      <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift overflow-hidden"
+        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="p-4 pb-2 flex items-center justify-between">
+          <div>
+            <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Collect due</div>
+            <div className="text-[14px] font-medium">{row.name} <span className="text-[#c9a6e4] font-normal">· {row.phone}</span></div>
+          </div>
+          <button type="button" onClick={onClose} className="text-[#c9a6e4] text-[22px] leading-none px-1">×</button>
+        </div>
+
+        <div className="px-4">
+          <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Owed</div>
+            <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(owed)}</div>
+            <div className="text-[11px] text-[#a98ac4]">{row.orders.length} bill{row.orders.length === 1 ? "" : "s"} · oldest {new Date(row.oldest).toLocaleDateString()}</div>
+          </div>
+
+          <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
+            <PaymentLines pay={pay} title="Taking now" maxHeight={148} />
+          </div>
+        </div>
+
+        <div className="p-4 pt-3 mt-3 border-t border-white/15">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-[12px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Taking</div>
+              <div className="text-[19px] font-semibold font-display" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(taking)}</div>
+            </div>
+            <div className="rounded-[12px] px-3 py-2.5"
+              style={{ background: left > 0 ? "rgba(240,180,106,.14)" : "rgba(127,224,168,.14)" }}>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8" }}>
+                {left > 0 ? "Still owed after this" : "Cleared"}
+              </div>
+              <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>
+                {formatTaka(left)}
+              </div>
+            </div>
+          </div>
+
+          {pay.paidPaisa > owed && (
+            <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Cannot take more than is owed — {formatTaka(owed)}.</p>
+          )}
+          {err && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{err}</div>}
+
+          <div className="flex gap-2 mt-3">
+            <button type="button" onClick={onClose}
+              className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
+            <button type="button" onClick={collect} disabled={busy || taking <= 0 || pay.paidPaisa > owed}
+              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              <Icon name="check" size={17} /> {busy ? "Collecting…" : `Collect · ${formatTaka(taking)}`}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
