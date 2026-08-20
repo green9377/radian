@@ -10,16 +10,18 @@ import { posCatalogue, listCustomers, formatTaka, genBg, posCurrentShift, posOpe
 
   Decisions shown here (locked, POS kickoff 23 Jul):
   - DEC-POS-001  a completed sale = an Order (channel=POS); no separate ledger.
-  - DEC-POS-006  discount cap is per category (flowers = free), over-limit needs
-                 a manager PIN approval (inline popup) — demoed with PIN 1234.
+  - DEC-POS-006  the discount cap lives on the SERVER (per item or item category);
+                 this screen no longer guesses one.
   - DEC-POS-007  customer optional (walk-in); credit needs an identified customer.
   - DEC-POS-009  split payment: many methods in one sale; cash excess = change.
   - DEC-POS-011  Hold / resume parked carts (rush time).
   - DEC-POS-012  gift → price-hidden receipt.
   - DEC-POS-015  Adjustment: manual ± amount on the bill (round-off / extra charge) + note.
   - DEC-POS-016  VAT/Tax: rate from Tax module; base = subtotal − discount ± adjustment.
-  - DEC-POS-017  Payment mode Full vs Partial (advance, rest as due — needs a known customer).
-  ⇄ SWAP HERE: POST /pos/sales (create Order channel=POS) when the POS API lands.
+  - DEC-POS-017  RETIRED 20 Aug — there is no Full/Partial choice. Money is taken,
+                 as many ways as the customer likes; whatever is left over is the
+                 due, and a due is what asks for a name and a number.
+  - DEC-POS-018  the counter sells ITEMS, never Products (20 Aug).
 */
 
 const cardCls = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
@@ -69,7 +71,6 @@ interface HeldCart {
   adjustmentTaka: number;
   adjustmentNote: string;
   taxRate: number;
-  payMode: "full" | "partial";
   at: number;
 }
 
@@ -206,7 +207,11 @@ export default function PosSellView() {
   const [showExtra, setShowExtra] = useState(false);
 
   // ---- payment ----
-  const [payMode, setPayMode] = useState<"full" | "partial">("full");
+  /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice any more.
+      Whatever is taken is taken; whatever is left is the due. `payTouched` only
+      remembers whether the cashier has typed an amount — until then the first line
+      follows the bill, so the ordinary sale is one press.  */
+  const [payTouched, setPayTouched] = useState(false);
   const [pays, setPays] = useState<PayRow[]>([{ id: "pay-first", method: "Cash", amountPaisa: 0 }]);
   const setPayMethodOf = (id: string, method: PayMethod) =>
     setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r)));
@@ -247,24 +252,22 @@ export default function PosSellView() {
   }, [overCap, approved]);
 
   // due (partial or full-credit) must be tied to a known customer — DEC-POS-008
-  const needsCustomer = payMode === "partial" && duePaisa > 0 && !custName.trim();
+  /*  A due is money owed by a person, so it needs a person (DEC-POS-008). This is
+      the ONLY thing that asks for a name — a fully paid walk-in never does.  */
+  const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
 
-  /*  In FULL mode the amount is not a decision, so it follows the bill by itself —
-      change a price or a quantity and the payment line keeps up.  */
+  /*  Until somebody types an amount, the one payment line IS the bill — add an item
+      and it keeps up. The moment a number is typed the screen stops guessing.  */
   useEffect(() => {
-    if (payMode !== "full") return;
-    setPays((p) => {
-      if (p.length !== 1) return p;
-      return p[0].amountPaisa === total ? p : [{ ...p[0], amountPaisa: total }];
-    });
-  }, [payMode, total]);
+    if (payTouched) return;
+    setPays((p) => (p.length === 1 && p[0].amountPaisa !== total ? [{ ...p[0], amountPaisa: total }] : p));
+  }, [payTouched, total]);
 
   const errors: string[] = [];
   if (!shiftOpen) errors.push("Open a shift to start selling.");
   if (lines.length === 0) errors.push("Add at least one item.");
   if (needsApproval) errors.push("Discount over limit — needs manager approval.");
-  if (payMode === "full" && duePaisa > 0) errors.push(`Full payment: take the full amount (${formatTaka(duePaisa)} left).`);
-  if (needsCustomer) errors.push("Due sale needs a customer name or phone.");
+  if (needsCustomer) errors.push(`${formatTaka(duePaisa)} unpaid — add a customer name or phone.`);
   /*  DEC-ITM-023 — an item nobody has priced cannot be rung up. Services usually
       land here first: no purchase means no cost, so no automatic price.  */
   {
@@ -293,8 +296,8 @@ export default function PosSellView() {
     setAdjustmentTaka(0);
     setAdjustmentNote("");
     setTaxRate(0);
-    setPayMode("full");
     // one payment line always exists, so the panel is never an empty box
+    setPayTouched(false);
     setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
     setShowExtra(false);
   }
@@ -303,7 +306,7 @@ export default function PosSellView() {
     if (lines.length === 0) return;
     setHeld((h) => [
       ...h,
-      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka, adjustmentTaka, adjustmentNote, taxRate, payMode, at: Date.now() },
+      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka, adjustmentTaka, adjustmentNote, taxRate, at: Date.now() },
     ]);
     resetSale();
   }
@@ -317,8 +320,8 @@ export default function PosSellView() {
     setAdjustmentTaka(hc.adjustmentTaka);
     setAdjustmentNote(hc.adjustmentNote);
     setTaxRate(hc.taxRate);
-    setPayMode(hc.payMode);
     // a resumed cart starts with one payment line again, not whatever was half-typed
+    setPayTouched(false);
     setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
     setHeld((h) => h.filter((x) => x.id !== hc.id));
     setShowHeld(false);
@@ -341,7 +344,9 @@ export default function PosSellView() {
         adjustmentPaisa,
         adjustmentNote: adjustmentNote || undefined,
         taxRateBps: Math.round(taxRate * 100),
-        payMode,
+        /*  the server still takes a word for this; it is derived now, never asked
+            (DEC-POS-017 retired) — anything left unpaid makes it a partial sale  */
+        payMode: duePaisa > 0 ? "partial" : "full",
         payments: pays
           .filter((p) => p.amountPaisa > 0)
           .map((p) => ({ method: p.method.toLowerCase() as "cash" | "bkash" | "nagad" | "card", amountPaisa: p.amountPaisa })),
@@ -681,93 +686,90 @@ export default function PosSellView() {
               </div>
             </div>
 
-            {/*  PAYMENT — rebuilt 20 Aug on the owner's reading: "onk elomelo lage…
-                 cash bkash agula dropdown kro… full hole full nibe, partial hole
-                 partial nibe."
+            {/*  PAYMENT — rebuilt again 20 Aug on the owner's second look:
+                 "full ar partial uthaia daw… jokhon full payment krbe na tokhonei
+                 atkaia dibe customer name number ar jonno."
 
-                 So the two modes now behave differently instead of only looking
-                 different: FULL takes the whole bill by itself — pick the method and
-                 the amount is the total, nothing to type. PARTIAL is the only mode
-                 that asks for a number, because that is the only mode where the
-                 number is a decision. Methods are one dropdown, not four coloured
-                 buttons; a second method appears only if the sale is split.  */}
+                 So there is no mode to choose any more. Money is taken, one method
+                 at a time, as many as the customer wants to use. Whatever is left
+                 unpaid IS the due, and a due is the thing that needs a name and a
+                 number — asked for exactly then, and never otherwise.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
-              <div className="inline-flex bg-white/10 rounded-[10px] p-[3px] gap-[3px] mb-3">
-                {([["full", "Paid in full"], ["partial", "Part now, rest due"]] as const).map(([v, l]) => (
-                  <button key={v} type="button"
-                    onClick={() => {
-                      setPayMode(v);
-                      // full = one line for the whole bill; partial = one line to type into
-                      setPays(v === "full" && total > 0
-                        ? [{ id: `pay-${Date.now()}`, method: pays[0]?.method ?? "Cash", amountPaisa: total }]
-                        : pays.length ? [{ ...pays[0], amountPaisa: 0 }] : [{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
-                    }}
-                    className={"text-[12px] px-3.5 py-1.5 rounded-[8px] font-medium transition-colors " + (payMode === v ? "bg-white text-purple" : "text-[#c9a6e4] hover:text-white")}>
-                    {l}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12.5px] text-[#c9a6e4] font-medium">Payment</span>
+                {duePaisa > 0 && paid > 0 && (
+                  <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
+                    className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
+                    take the rest ({formatTaka(duePaisa)})
                   </button>
-                ))}
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
-                {pays.map((r, idx) => (
+                {pays.map((r) => (
                   <div key={r.id} className="flex items-center gap-2">
                     <select
-                      className="ipt h-[38px] w-[116px] text-[12.5px]"
+                      className="ipt h-[40px] w-[118px] text-[12.5px]"
                       value={r.method}
                       onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
                       {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
-
-                    {payMode === "full" && pays.length === 1 ? (
-                      /*  nothing to decide: the bill is the amount  */
-                      <span className="flex-1 h-[38px] rounded-[10px] px-3 flex items-center justify-between text-[13px] bg-white/10 border border-white/15">
-                        <span className="text-[#c9a6e4]">whole bill</span>
-                        <b>{formatTaka(total)}</b>
-                      </span>
-                    ) : (
-                      <span className="flex-1 relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#c9a6e4]">৳</span>
-                        <input type="number" min={0} className="ipt h-[38px] w-full" style={{ paddingLeft: 24 }}
-                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                          onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
-                      </span>
-                    )}
-
+                    <span className="flex-1 relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#c9a6e4]">৳</span>
+                      <input type="number" min={0} className="ipt h-[40px] w-full text-[14px]" style={{ paddingLeft: 26 }}
+                        value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                        onChange={(e) => { setPayTouched(true); setPayAmt(r.id, Number(e.target.value) * 100); }} />
+                    </span>
                     {pays.length > 1 && (
                       <button type="button" onClick={() => removePay(r.id)}
-                        className="text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove this payment">
-                        <Icon name="trash" size={14} />
-                      </button>
-                    )}
-                    {idx === pays.length - 1 && duePaisa > 0 && (
-                      <button type="button"
-                        onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: payMode === "full" ? duePaisa : 0 }])}
-                        className="text-[#c9a6e4] hover:text-white" title="Split — pay the rest another way">
-                        <Icon name="plus" size={15} />
+                        className="text-[#c9a6e4] hover:text-[#ff9b9b] px-1" title="Remove this payment">
+                        <Icon name="trash" size={15} />
                       </button>
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="mt-2.5 space-y-1">
-                <div className="flex justify-between text-[12.5px]"><span className="text-[#c9a6e4]">Paid</span><span>{formatTaka(paid)}</span></div>
+              {/*  a real labelled door, not a bare + (owner, 20 Aug: the split option
+                   looked as if it had gone)  */}
+              <button type="button"
+                onClick={() => {
+                  setPayTouched(true);
+                  setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: Math.max(0, duePaisa) }]);
+                }}
+                className="mt-2 w-full text-[12.5px] font-medium py-2 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
+                <Icon name="plus" size={13} /> Pay part of it another way
+              </button>
+
+              <div className="mt-3 space-y-1 border-t border-white/10 pt-2.5">
+                <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Paid now</span><span className="font-medium">{formatTaka(paid)}</span></div>
                 {duePaisa > 0 && (
-                  <div className="flex justify-between text-[12.5px]">
-                    <span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>
-                      {payMode === "partial" ? "Rest on due" : "Still to take"}
-                    </span>
-                    <span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>{formatTaka(duePaisa)}</span>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-[#f0b46a] font-medium">Due — collect later</span>
+                    <span className="text-[#f0b46a] font-medium">{formatTaka(duePaisa)}</span>
                   </div>
                 )}
-                {changePaisa > 0 && <div className="flex justify-between text-[12.5px]"><span className="text-[#7fe0a8] font-medium">Change to give</span><span className="text-[#7fe0a8] font-medium">{formatTaka(changePaisa)}</span></div>}
-                {overpaidNoChange && <div className="flex justify-between text-[12.5px]"><span className="text-[#f0b46a] font-medium">Digital overpay — no change</span><span className="text-[#f0b46a] font-medium">reduce {formatTaka(paid - total)}</span></div>}
+                {changePaisa > 0 && (
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-[#7fe0a8] font-medium">Change to give</span>
+                    <span className="text-[#7fe0a8] font-medium">{formatTaka(changePaisa)}</span>
+                  </div>
+                )}
+                {overpaidNoChange && (
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-[#f0b46a] font-medium">Digital overpay — no change</span>
+                    <span className="text-[#f0b46a] font-medium">reduce {formatTaka(paid - total)}</span>
+                  </div>
+                )}
               </div>
 
               {needsCustomer && (
-                <div className="mt-2 rounded-[10px] bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] text-[12px] px-3 py-2 flex items-start gap-1.5">
+                <div className="mt-2.5 rounded-[10px] bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] text-[12px] px-3 py-2 flex items-start gap-1.5">
                   <Icon name="user" size={14} />
-                  <span>Due sale — add a <b className="font-semibold">customer name or phone</b> above so the {formatTaka(duePaisa)} can be collected later.</span>
+                  <span>
+                    {formatTaka(duePaisa)} stays unpaid — add a <b className="font-semibold">customer name or phone</b> above,
+                    so there is somebody to collect it from.
+                  </span>
                 </div>
               )}
             </div>
