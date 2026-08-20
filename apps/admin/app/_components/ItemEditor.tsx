@@ -1473,7 +1473,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   there for anyone who wants it; it just is not shouting at everyone all the time.
 */
 
-function Sect({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+export function Sect({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-4">
@@ -1486,7 +1486,7 @@ function Sect({ title, hint, children }: { title: string; hint?: string; childre
 }
 
 /** the ⓘ. Pure CSS hover — no state, no portal, no library. */
-function Info({ text }: { text: string }) {
+export function Info({ text }: { text: string }) {
   return (
     <span className="relative inline-flex group align-middle">
       <span
@@ -1507,7 +1507,7 @@ function Info({ text }: { text: string }) {
   );
 }
 
-function Row({
+export function Row({
   label, hint, required, children, wide,
 }: { label: string; hint?: string; required?: boolean; children: React.ReactNode; wide?: boolean }) {
   return (
@@ -1523,7 +1523,7 @@ function Row({
 }
 
 /** two fields side by side — the old form put everything in one tall column */
-function Pair({ children }: { children: React.ReactNode }) {
+export function Pair({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
 }
 
@@ -1536,7 +1536,7 @@ function Pill({ text, tone = "#470066", bg = "#f7f1fb" }: { text: string; tone?:
  * Replaces the row of identical chips, where nothing told you what a flag did or
  * whether it was on.
  */
-function SwitchRow({
+export function SwitchRow({
   on, onClick, icon, tone, title, sub,
 }: { on: boolean; onClick: () => void; icon: string; tone: string; title: string; sub: string }) {
   return (
@@ -1561,7 +1561,7 @@ function SwitchRow({
 }
 
 /** the one place a coloured explanation box is allowed — and it is one line, not three */
-function Note({ tone, children }: { tone: "green" | "grey" | "purple" | "amber"; children: React.ReactNode }) {
+export function Note({ tone, children }: { tone: "green" | "grey" | "purple" | "amber"; children: React.ReactNode }) {
   const T = {
     green: { bg: "#e8f7ef", fg: "#0e7a3d" },
     grey: { bg: "#f5f2f7", fg: "#6b5077" },
@@ -1576,7 +1576,7 @@ function Note({ tone, children }: { tone: "green" | "grey" | "purple" | "amber";
 }
 
 /** money in, money out — the ৳ sits inside the box so the number is what you read */
-function TakaInput({
+export function TakaInput({
   value, onChange, placeholder, disabled,
 }: { value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
   return (
@@ -1588,7 +1588,7 @@ function TakaInput({
   );
 }
 
-function PercentInput({
+export function PercentInput({
   value, onChange, placeholder,
 }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
@@ -1614,7 +1614,7 @@ function isPale(hex?: string | null) {
  * small tile on the left and three paragraphs on the right; this is the same function
  * in a quarter of the height.
  */
-function PhotoDrop({
+export function PhotoDrop({
   item, onImage, onErr,
 }: {
   item: { sku: string; name: string; imageUrl: string | null };
@@ -2046,7 +2046,7 @@ function InlineValueAdd({
  * of its own, and marks the difference with a purple ring — so you can see at a glance
  * which ones you have already handled, without reading anything.
  */
-function VariantPhoto({
+export function VariantPhoto({
   name, url, own, onPick, onErr,
 }: {
   name: string;
