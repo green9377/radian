@@ -450,14 +450,15 @@ export default function PurchaseNewView() {
           </div>
         </div>
 
-        {/* ---------------- the money rail — CLAUDE.md §14, one block everywhere --- */}
+        {/* ---------------- the money rail — CLAUDE.md §14, one block everywhere,
+                              and it wears the same purple as the till (owner, 21 Aug) --- */}
         <div className="xl:sticky xl:top-4 space-y-4">
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
+          <div className="rounded-[16px] text-white shadow-lift px-5 py-4"
+            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
             {/*  no VAT door here: a purchase bill has nowhere to keep a tax rate
                  yet (the API takes discount + adjustment only). When supplier VAT
                  arrives it opens here with one word.  */}
             <MoneyBlock
-              tone="light"
               doors={["discount", "charge", "adjust"]}
               subtotalPaisa={subTotal}
               discountMode={discountMode} discountInput={discountInput}
@@ -467,26 +468,27 @@ export default function PurchaseNewView() {
               onCharges={setCharges} onAdjSign={setAdjSign}
               onAdjustment={setAdjustmentTaka} onTaxRate={() => {}} />
 
-            <div className="border-t border-lavender-deep pt-3 mt-3">
-              <label className="flex items-center gap-2.5 text-[13px] font-medium text-body mb-3 cursor-pointer">
-                <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#b45309]" />
+            <div className="border-t border-white/15 pt-3 mt-3">
+              <label className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#e7d8f2] mb-3 cursor-pointer">
+                <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#f0b46a]" />
                 Advance order — goods arrive later
               </label>
 
-              <PaymentLines pay={payRows} tone="light" methods={PAY_METHODS}
+              <PaymentLines pay={payRows} methods={PAY_METHODS}
                 title={advance ? "Advance paid now" : "Paid now"} maxHeight={168} />
 
               {pay > 0 && pay < grand && (
-                <p className="text-[12px] text-body-soft mt-2 mb-0">Owed to the supplier: <b className="text-purple">{formatTaka(grand - pay)}</b></p>
+                <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">Owed to the supplier: <b className="font-semibold">{formatTaka(grand - pay)}</b></p>
               )}
-              {pay > grand && <p className="text-[12px] text-[#c0392b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
-              {advance && pay === 0 && <p className="text-[12px] text-[#b45309] mt-2 mb-0">An advance order needs money now.</p>}
+              {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
+              {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}
             </div>
 
             <button disabled={!ready || busy} onClick={() => save(false)}
-              className="w-full text-white text-[14px] font-medium px-4 py-3 rounded-[11px] disabled:opacity-40 mt-3"
-              style={{ background: advance ? "#b45309" : ACCENT }}>
-              {busy ? "Saving…" : advance ? "Save advance order" : "Save purchase (received)"}
+              className="w-full bg-white hover:bg-[#f4ecf9] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
+              style={{ color: advance ? "#b45309" : "#4a1268" }}>
+              <Icon name="check" size={17} />
+              {busy ? "Saving…" : advance ? "Save advance order" : `Save purchase${grand > 0 ? " · " + formatTaka(grand) : ""}`}
             </button>
           </div>
         </div>
