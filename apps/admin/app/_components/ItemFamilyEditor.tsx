@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { WRAP, ACCENT, msg, ErrBar, OkBar, ItemThumb, QuickSelect } from "./ItemUI";
 import {
@@ -10,6 +9,7 @@ import {
 } from "./ItemEditor";
 import {
   listItems, updateItem, getItemSettings, loadItemCategoriesSafe, loadBrandsSafe,
+  createItemCategory, createBrand,
   formatTaka, ITEM_TYPE_META,
   type ApiItem, type ApiItemCategory, type ApiBrand,
 } from "../_data/api";
@@ -48,7 +48,6 @@ function shared<T>(members: ApiItem[], pick: (i: ApiItem) => T): T | null {
 }
 
 export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
-  const router = useRouter();
   const [members, setMembers] = useState<ApiItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -245,6 +244,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                     value={catNow}
                     placeholder={cur.categoryId === null ? "— they differ —" : "— no category —"}
                     onChange={(id) => setCategoryId(id)}
+                    createLabel="Create category"
                     options={cats
                       .slice()
                       .sort((a, b) => a.name.localeCompare(b.name))
@@ -252,6 +252,13 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                         id: c.id,
                         label: c.parentId ? `${cats.find((x) => x.id === c.parentId)?.name ?? "?"} › ${c.name}` : c.name,
                       }))}
+                    onCreate={async (label) => {
+                      try {
+                        const created = await createItemCategory({ name: label.trim() });
+                        setCats((p) => [...p, created]);
+                        return created.id;
+                      } catch (e) { setErr(msg(e, "Could not create that category.")); return null; }
+                    }}
                   />
                 </Row>
                 <Row label="Brand">
@@ -259,7 +266,16 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                     value={brandNow}
                     placeholder={cur.brandId === null ? "— they differ —" : "— none —"}
                     onChange={(id) => setBrandId(id)}
+                    createLabel="Create brand"
                     options={brands.map((b) => ({ id: b.id, label: b.name }))}
+                    onCreate={async (label) => {
+                      try {
+                        const slug = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                        const created = await createBrand({ name: label.trim(), slug: slug || `brand-${Date.now()}` });
+                        setBrands((p) => [...p, created]);
+                        return created.id;
+                      } catch (e) { setErr(msg(e, "Could not create that brand.")); return null; }
+                    }}
                   />
                 </Row>
               </Pair>

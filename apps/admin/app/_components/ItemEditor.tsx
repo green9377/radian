@@ -11,6 +11,7 @@ import {
   getItem, createItem, updateItem, deleteItem, listItems, loadItemFormRefs, generateItemVariants,
   itemUsage, getItemTimeline,
   createItemCategory, createItemAttribute, addItemAttrValue, getItemSettings,
+  createBrand, createSupplier, listSupplierTypes, createUnit,
   listItemTypes, createItemType, FALLBACK_ITEM_TYPES, floorPrice,
   uploadItemImage, itemTint, itemInitials,
   formatTaka, itemStockLabel, getInvItemStock,
@@ -337,6 +338,20 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
     finally { setSaving(false); }
   }
 
+  /*  Made a category on its own screen, came back, and the picker still did not
+      have it — the owner had to reload the page (20 Aug). Every time this window
+      gets focus again the reference lists are re-read.  */
+  useEffect(() => {
+    const refresh = () => {
+      loadItemFormRefs()
+        .then((r) => { setUnits(r.units); setGroups(r.groups); setBrands(r.brands); setAttrs(r.attributes); })
+        .catch(() => { /* keep what we have */ });
+      listSuppliers().then(setSuppliers).catch(() => { /* keep */ });
+    };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
   /** re-pull the dropdown sources after something was created inline */
   async function reloadRefs() {
     try {
@@ -628,19 +643,31 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               </Row>
 
               <Pair>
-                <Row label="Unit" required hint="How you count it — stem, kg, piece.">
-                  {units.length === 0 ? (
-                    <div className="text-[12.5px] text-[#c0392b]">
-                      No units yet. <Link href="/units" className="underline">Add one first</Link>.
-                    </div>
-                  ) : (
-                    <select className="ipt w-full" value={draft.unitId} onChange={(e) => set("unitId", e.target.value)}>
-                      {/* hidden units are not offered for NEW picks, but an item already
-                          on one keeps it visible — records never lose their unit (19 Aug) */}
-                      {units.filter((u) => u.isActive || u.id === draft.unitId)
-                        .map((u) => <option key={u.id} value={u.id}>{u.name} ({u.shortCode})</option>)}
-                    </select>
-                  )}
+                <Row label="Unit" required hint="How you count it — stem, kg, piece. Type a new one to create it here.">
+                  <QuickSelect
+                    value={draft.unitId}
+                    placeholder={units.length === 0 ? "No units yet — type one" : "Pick a unit"}
+                    allowClear={false}
+                    createLabel="Create unit"
+                    onChange={(id) => set("unitId", id)}
+                    /* hidden units are not offered for NEW picks, but an item already on
+                       one keeps it visible — records never lose their unit (19 Aug) */
+                    options={units
+                      .filter((u) => u.isActive || u.id === draft.unitId)
+                      .map((u) => ({ id: u.id, label: u.name, hint: u.shortCode }))}
+                    onCreate={async (label) => {
+                      try {
+                        /*  the short code is derived server-side from the name when it
+                            is not given, so one typed word is enough here  */
+                        const created = await createUnit({
+                          name: label.trim(),
+                          shortCode: label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "unit",
+                        });
+                        setUnits((p) => [...p, created]);
+                        return created.id;
+                      } catch (e) { setErr(msg(e, "Could not create that unit.")); return null; }
+                    }}
+                  />
                 </Row>
 
                 <Row label="SKU" required hint="One code used everywhere — orders, packing slips, stock. Auto-built from the name unless you type your own.">
@@ -787,7 +814,18 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   value={draft.brandId}
                   placeholder="— none —"
                   onChange={(id) => set("brandId", id)}
+                  createLabel="Create brand"
                   options={brands.map((b) => ({ id: b.id, label: b.name }))}
+                  /*  made here, not on another screen: leaving a half-filled form to go
+                      and create a brand is how the form gets abandoned (owner, 20 Aug) */
+                  onCreate={async (label) => {
+                    try {
+                      const slug = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                      const created = await createBrand({ name: label.trim(), slug: slug || `brand-${Date.now()}` });
+                      setBrands((p) => [...p, created]);
+                      return created.id;
+                    } catch (e) { setErr(msg(e, "Could not create that brand.")); return null; }
+                  }}
                 />
               </Row>
 
@@ -799,7 +837,18 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   value={draft.supplierId}
                   placeholder="— none —"
                   onChange={(id) => set("supplierId", id)}
+                  createLabel="Create supplier"
                   options={suppliers.map((s) => ({ id: s.id, label: s.nickname ? `${s.name} (${s.nickname})` : s.name }))}
+                  onCreate={async (label) => {
+                    try {
+                      const types = await listSupplierTypes();
+                      const t = types.find((x) => x.name === "Product Supplier") ?? types[0];
+                      if (!t) { setErr("No supplier types exist yet — open Suppliers → Settings once."); return null; }
+                      const created = await createSupplier({ name: label.trim(), typeId: t.id });
+                      setSuppliers((p) => [...p, created]);
+                      return created.id;
+                    } catch (e) { setErr(msg(e, "Could not create that supplier.")); return null; }
+                  }}
                 />
               </Row>
               </Pair>
@@ -2007,34 +2056,56 @@ function InlineValueAdd({
     finally { setBusy(false); }
   }
 
+  /*  The old "+ new" was a 12px dashed chip hiding at the end of a row of swatches
+      (owner, 20 Aug: "system ta sundor na"). A door you have to hunt for is not a
+      door, so it is a proper labelled button now, and it opens a proper little
+      form — name, a swatch grid you can actually hit, a hex box, Add.  */
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="text-[12px] px-2.5 py-1.5 rounded-[8px] border border-dashed inline-flex items-center gap-1"
-        style={{ borderColor: "#efe4f7", color: ACCENT }}>
-        <Icon name="plus" size={12} /> new
+        className="text-[12.5px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
+        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
+        <Icon name="plus" size={13} /> New {attrName.toLowerCase()}
       </button>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 border rounded-[9px] px-1.5 py-1 bg-white" style={{ borderColor: ACCENT }}>
-      <input autoFocus className="ipt" style={{ minHeight: 28, width: 110, padding: "2px 8px", fontSize: 12 }}
-        placeholder={`New ${attrName.toLowerCase()}`}
-        value={label} onChange={(e) => setLabel(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } if (e.key === "Escape") setOpen(false); }} />
-      {isColour && QUICK_SWATCHES.map((c) => (
-        <button key={c} type="button" onClick={() => setSwatch(swatch === c ? null : c)}
-          className="w-[15px] h-[15px] rounded-full border-2 shrink-0"
-          style={{ background: c, borderColor: swatch === c ? ACCENT : "#e3d7ec" }} />
-      ))}
-      <button type="button" onClick={add} disabled={busy || !label.trim()}
-        className="text-white text-[11.5px] font-medium px-2 py-1 rounded-[7px] disabled:opacity-50"
-        style={{ background: ACCENT }}>
-        {busy ? "…" : "Add"}
-      </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-body-soft px-1"><Icon name="trash" size={12} /></button>
-    </span>
+    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#d9c7e6", background: "#faf6fd" }}>
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-[12.5px] font-bold text-purple">New {attrName.toLowerCase()}</span>
+        <button type="button" onClick={() => setOpen(false)}
+          className="ml-auto text-body-soft hover:text-purple text-[18px] leading-none px-1">×</button>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <input autoFocus className="ipt" style={{ minHeight: 38, width: 190 }}
+          placeholder={isColour ? "e.g. Baby Pink" : `e.g. ${attrName === "Size" ? "Large" : "New " + attrName.toLowerCase()}`}
+          value={label} onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } if (e.key === "Escape") setOpen(false); }} />
+
+        {isColour && (
+          <>
+            <span className="flex items-center gap-1.5 flex-wrap">
+              {QUICK_SWATCHES.map((c) => (
+                <button key={c} type="button" onClick={() => setSwatch(swatch === c ? null : c)} title={c}
+                  className="w-[26px] h-[26px] rounded-full border-2 shrink-0 transition-transform hover:scale-110"
+                  style={{ background: c, borderColor: swatch === c ? "#2c0f3d" : "#e3d7ec" }} />
+              ))}
+            </span>
+            <input className="ipt font-mono" style={{ minHeight: 38, width: 110 }}
+              placeholder="#e0203c" value={swatch ?? ""}
+              onChange={(e) => setSwatch(e.target.value.trim() || null)} />
+          </>
+        )}
+
+        <button type="button" onClick={add} disabled={busy || !label.trim()}
+          className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] disabled:opacity-50"
+          style={{ background: ACCENT }}>
+          {busy ? "Adding…" : "Add"}
+        </button>
+      </div>
+    </div>
   );
 }
 
