@@ -550,7 +550,7 @@ export default function PosSellView() {
             </div>
             </div>
 
-            <div className="px-4 overflow-y-auto" style={{ flex: "2 1 0", minHeight: 56, scrollbarGutter: "stable" }}>
+            <div className="px-4 overflow-y-auto" style={{ flex: "2 1 auto", minHeight: 56, scrollbarGutter: "stable" }}>
             {/* lines */}
             {lines.length === 0 ? (
               <div className="h-full grid place-items-center">
@@ -642,7 +642,7 @@ export default function PosSellView() {
 
             {/*  the second of the two scrollers — it takes the height that is left
                  and keeps its own scrollbar, so ten methods cannot move the button  */}
-            <div className="px-4 pt-3 mt-3 border-t border-white/15 flex flex-col" style={{ flex: "1 1 0", minHeight: 96 }}>
+            <div className="px-4 pt-3 mt-3 border-t border-white/15 flex flex-col" style={{ flex: "1 1 auto", minHeight: 112 }}>
               <PaymentLines pay={pay} fill />
             </div>
 
