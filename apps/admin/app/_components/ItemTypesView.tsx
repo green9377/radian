@@ -106,7 +106,7 @@ export default function ItemTypesView() {
 
       <DataTable head={
         <div className={ROW + " text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95"}>
-          <span>Type</span><span>Behaves like</span><span>Items</span><span>Status</span><span className="text-right">Action</span>
+          <span>Type</span><span>What it does</span><span>Items</span><span>Status</span><span className="text-right">Action</span>
         </div>
       }>
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
@@ -122,8 +122,18 @@ export default function ItemTypesView() {
                     style={{ background: "#f1eef4", color: "#7b6b88" }}>built-in</span>
                 )}
               </span>
+              {/* a custom type is its own kind — say what it DOES in plain words,
+                  not which built-in it secretly maps to */}
               <span className="text-[12px] font-semibold px-2 py-1 rounded-full justify-self-start"
-                style={{ background: m.bg, color: m.colour }}>{m.label}</span>
+                style={{ background: m.bg, color: m.colour }}>
+                {t.isSystem
+                  ? m.label
+                  : t.behaviour === "SERVICE"
+                    ? "Not counted in stock"
+                    : t.behaviour === "FINISHED"
+                      ? "Counted · has recipes"
+                      : "Counted in stock"}
+              </span>
               <span className="text-[13px] text-body-soft">{t._count?.items ?? 0}</span>
               <span>
                 {t.isSystem

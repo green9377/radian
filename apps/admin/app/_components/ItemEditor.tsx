@@ -573,17 +573,18 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     const tone = t.colour ?? ITEM_TYPE_META[t.behaviour].colour;
                     const on = typeRow?.id === t.id;
                     return (
+                      /* a custom type stands on its own name — no "·Raw" tail, the
+                         internal rule-behaviour is not the owner's business here */
                       <button key={t.id} type="button"
                         onClick={() => setDraft((d) => ({
                           ...d, itemTypeId: t.id, itemType: t.behaviour, ...flagsForType(t.behaviour),
                         }))}
-                        title={t.isSystem ? ITEM_TYPE_META[t.behaviour].blurb : `Behaves like ${ITEM_TYPE_META[t.behaviour].label}`}
+                        title={t.isSystem ? ITEM_TYPE_META[t.behaviour].blurb : undefined}
                         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 transition-colors"
                         style={on
                           ? { background: tone, borderColor: tone, color: "#fff" }
                           : { background: "#fff", borderColor: "#e8dcf0", color: tone }}>
                         {t.name}
-                        {!t.isSystem && <span className="opacity-60 ml-1.5 text-[11px]">·{ITEM_TYPE_META[t.behaviour].short}</span>}
                       </button>
                     );
                   })}
