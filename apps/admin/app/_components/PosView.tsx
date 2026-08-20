@@ -204,7 +204,6 @@ export default function PosSellView() {
   const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
   const [adjustmentNote, setAdjustmentNote] = useState("");
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [showExtra, setShowExtra] = useState(false);
 
   // ---- payment ----
   /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice any more.
@@ -299,7 +298,6 @@ export default function PosSellView() {
     // one payment line always exists, so the panel is never an empty box
     setPayTouched(false);
     setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
-    setShowExtra(false);
   }
 
   function holdSale() {
@@ -493,7 +491,10 @@ export default function PosSellView() {
 
         {/* ============ RIGHT: cart — POS terminal (dark, Concept B) ============ */}
         <aside className="lg:sticky lg:top-4">
-          <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden" style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
+          {/*  The panel is capped to the screen so the money and the Complete
+               button are ALWAYS in view; only the list of lines scrolls
+               (owner, 20 Aug: "complete icon kkhonoi jen screen ar bahire na jay").  */}
+          <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden lg:max-h-[calc(100vh-2rem)]" style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
             <div className="p-4 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -573,7 +574,7 @@ export default function PosSellView() {
             </div>
             </div>
 
-            <div className="px-4 h-[300px] overflow-auto">
+            <div className="px-4 flex-1 overflow-auto" style={{ minHeight: 130 }}>
             {/* lines */}
             {lines.length === 0 ? (
               <div className="h-full grid place-items-center">
@@ -634,55 +635,22 @@ export default function PosSellView() {
               </div>
             )}
 
-            {/* discount */}
-            <div className="border-t border-white/15 pt-3 mb-1">
-              <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">Discount (৳)</label>
-              <div className="flex items-center gap-2 flex-wrap">
-                <input type="number" min={0} className="ipt h-[38px] w-[110px]" value={discountTaka || ""} placeholder="0" onChange={(e) => setDiscountTaka(Math.max(0, Number(e.target.value)))} />
-                {discountPaisa > 0 && <span className="text-[12px] text-[#c9a6e4]">{discountPct.toFixed(0)}% off</span>}
-                {needsApproval && (
-                  <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }} className="text-[12px] px-3 py-1.5 rounded-[9px] font-medium bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] inline-flex items-center gap-1.5"><Icon name="shield" size={13} /> Manager approve</button>
-                )}
-                {overCap && approved && <span className="text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Approved</span>}
-              </div>
-            </div>
-
-            {/* adjustment + VAT (collapsible) — DEC-POS-015/016 */}
-            <div className="mt-2">
-              <button type="button" onClick={() => setShowExtra((s) => !s)} className="text-[12px] text-[#c9a6e4] font-medium inline-flex items-center gap-1">
-                <Icon name={showExtra ? "chevronDown" : "plus"} size={13} /> Adjustment &amp; VAT
-              </button>
-              {showExtra && (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">Adjustment ৳ (+/−)</label>
-                    <input type="number" className="ipt h-[38px]" value={adjustmentTaka || ""} placeholder="0" onChange={(e) => setAdjustmentTaka(Number(e.target.value))} />
-                  </div>
-                  <div>
-                    <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">VAT / Tax</label>
-                    <select className="ipt h-[38px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
-                      {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
-                    </select>
-                  </div>
-                  {adjustmentPaisa !== 0 && (
-                    <input className="ipt h-[36px] col-span-2 text-[12.5px]" placeholder="Adjustment note (e.g. round-off, extra ribbon)" value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
-                  )}
-                </div>
-              )}
-            </div>
-
             </div>
 
             <div className="p-4 pt-3 border-t border-white/15 shrink-0">
-            {/* totals */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Subtotal</span><span>{formatTaka(subtotal)}</span></div>
-              {discountPaisa > 0 && <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Discount</span><span className="text-[#7fe0a8]">− {formatTaka(discountPaisa)}</span></div>}
-              {adjustmentPaisa !== 0 && <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Adjustment</span><span>{adjustmentPaisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustmentPaisa))}</span></div>}
-              {vatPaisa > 0 && <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">VAT ({taxRate}%)</span><span>+ {formatTaka(vatPaisa)}</span></div>}
-              <div className="flex justify-between items-center pt-1">
-                <span className="text-[#c9a6e4] font-medium">Total</span>
-                <span className="text-white font-semibold text-[22px] font-display">{formatTaka(total)}</span>
+            {/*  totals — the small arithmetic on the left, ONE big number on the
+                 right. It used to be four evenly-sized rows and the eye had to
+                 hunt for the one that matters.  */}
+            <div className="flex items-end justify-between gap-3">
+              <div className="text-[11.5px] text-[#a98ac4] leading-[1.6] min-w-0">
+                <div>Subtotal {formatTaka(subtotal)}</div>
+                {discountPaisa > 0 && <div className="text-[#7fe0a8]">Discount − {formatTaka(discountPaisa)} · {discountPct.toFixed(0)}%</div>}
+                {adjustmentPaisa !== 0 && <div>Adjustment {adjustmentPaisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustmentPaisa))}</div>}
+                {vatPaisa > 0 && <div>VAT {taxRate}% + {formatTaka(vatPaisa)}</div>}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Total</div>
+                <div className="text-white font-semibold text-[27px] font-display leading-[1.1]">{formatTaka(total)}</div>
               </div>
             </div>
 
@@ -695,53 +663,92 @@ export default function PosSellView() {
                  unpaid IS the due, and a due is the thing that needs a name and a
                  number — asked for exactly then, and never otherwise.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[12.5px] text-[#c9a6e4] font-medium">Payment</span>
-                {duePaisa > 0 && paid > 0 && (
-                  <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
-                    className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
-                    take the rest ({formatTaka(duePaisa)})
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {pays.map((r) => (
-                  <div key={r.id} className="flex items-center gap-2">
-                    <select
-                      className="ipt h-[40px] w-[118px] text-[12.5px]"
-                      value={r.method}
-                      onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
-                      {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                    <span className="flex-1 relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#c9a6e4]">৳</span>
-                      <input type="number" min={0} className="ipt h-[40px] w-full text-[14px]" style={{ paddingLeft: 26 }}
-                        value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                        onChange={(e) => { setPayTouched(true); setPayAmt(r.id, Number(e.target.value) * 100); }} />
-                    </span>
-                    {pays.length > 1 && (
-                      <button type="button" onClick={() => removePay(r.id)}
-                        className="text-[#c9a6e4] hover:text-[#ff9b9b] px-1" title="Remove this payment">
-                        <Icon name="trash" size={15} />
+              {/*  Money on the left in a box big enough to read across a counter;
+                   the two things that BEND the money — discount and adjustment —
+                   standing right beside it, not buried above the cart
+                   (owner, 20 Aug: "ammount lekhar ghor ta clean and boro howa lagbe.
+                   discount and adjustment agula ammount ar ghorer pasei thakbe").  */}
+              <div className="flex gap-2.5 items-start">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Taking now</span>
+                    {duePaisa > 0 && paid > 0 && (
+                      <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
+                        className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
+                        take the rest ({formatTaka(duePaisa)})
                       </button>
                     )}
                   </div>
-                ))}
+
+                  <div className="flex flex-col gap-2">
+                    {pays.map((r) => (
+                      <div key={r.id}
+                        className="flex items-stretch rounded-[12px] border border-white/25 bg-white/10 overflow-hidden focus-within:border-white/60">
+                        <select
+                          className="w-[96px] shrink-0 bg-transparent border-0 border-r border-white/20 text-[12.5px] text-[#f0e3fa] px-2.5 outline-none cursor-pointer"
+                          value={r.method}
+                          onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
+                          {PAY_METHODS.map((m) => <option key={m} value={m} className="text-purple">{m}</option>)}
+                        </select>
+                        <span className="pl-3 self-center text-[17px] text-[#c9a6e4] shrink-0">৳</span>
+                        <input type="number" min={0} inputMode="numeric"
+                          className="flex-1 min-w-0 h-[56px] bg-transparent border-0 outline-none px-2 text-[24px] font-semibold font-display text-white placeholder:text-white/25"
+                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                          onChange={(e) => { setPayTouched(true); setPayAmt(r.id, Number(e.target.value) * 100); }} />
+                        {pays.length > 1 && (
+                          <button type="button" onClick={() => removePay(r.id)}
+                            className="px-2.5 text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0" title="Remove this payment">
+                            <Icon name="trash" size={15} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/*  a real labelled door, not a bare + (owner, 20 Aug: the split option
+                       looked as if it had gone)  */}
+                  <button type="button"
+                    onClick={() => {
+                      setPayTouched(true);
+                      setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: Math.max(0, duePaisa) }]);
+                    }}
+                    className="mt-2 w-full text-[12px] font-medium py-1.5 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
+                    <Icon name="plus" size={13} /> Pay part of it another way
+                  </button>
+                </div>
+
+                <div className="w-[118px] shrink-0">
+                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1">Discount ৳</label>
+                  <input type="number" min={0} className="ipt h-[34px] text-[13px]" value={discountTaka || ""} placeholder="0"
+                    onChange={(e) => setDiscountTaka(Math.max(0, Number(e.target.value)))} />
+
+                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1 mt-2">Adjust ৳ ±</label>
+                  <input type="number" className="ipt h-[34px] text-[13px]" value={adjustmentTaka || ""} placeholder="0"
+                    onChange={(e) => setAdjustmentTaka(Number(e.target.value))} />
+
+                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1 mt-2">VAT</label>
+                  <select className="ipt h-[32px] text-[12px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
+                    {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
+                  </select>
+                </div>
               </div>
 
-              {/*  a real labelled door, not a bare + (owner, 20 Aug: the split option
-                   looked as if it had gone)  */}
-              <button type="button"
-                onClick={() => {
-                  setPayTouched(true);
-                  setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: Math.max(0, duePaisa) }]);
-                }}
-                className="mt-2 w-full text-[12.5px] font-medium py-2 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
-                <Icon name="plus" size={13} /> Pay part of it another way
-              </button>
+              {adjustmentPaisa !== 0 && (
+                <input className="ipt h-[32px] text-[12.5px] mt-2" placeholder="Why the adjustment? (round-off, extra ribbon…)"
+                  value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
+              )}
 
-              <div className="mt-3 space-y-1 border-t border-white/10 pt-2.5">
+              {needsApproval && (
+                <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }}
+                  className="mt-2 w-full text-[12px] py-2 rounded-[10px] font-medium bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] inline-flex items-center justify-center gap-1.5">
+                  <Icon name="shield" size={13} /> {discountPct.toFixed(0)}% discount — manager approval needed
+                </button>
+              )}
+              {overCap && approved && (
+                <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Discount approved</div>
+              )}
+
+              <div className="mt-2.5 space-y-1 border-t border-white/10 pt-2.5">
                 <div className="flex justify-between text-[13px]"><span className="text-[#c9a6e4]">Paid now</span><span className="font-medium">{formatTaka(paid)}</span></div>
                 {duePaisa > 0 && (
                   <div className="flex justify-between text-[13px]">
@@ -774,14 +781,13 @@ export default function PosSellView() {
               )}
             </div>
 
-            {/* actions */}
-            <div className="flex gap-2 mt-4">
+            {/*  actions — this row is the last child of a shrink-0 footer inside a
+                 screen-capped panel, so it never leaves the view; the cart lines
+                 scroll behind it.  */}
+            <div className="flex gap-2 mt-3">
               <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-              <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
+              <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /> {errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</button>
             </div>
-            {errors.length > 0 && lines.length > 0 && (
-              <ul className="text-[11.5px] text-[#ffb27a] mt-2.5 list-disc pl-4 space-y-0.5">{errors.map((e) => (<li key={e}>{e}</li>))}</ul>
-            )}
             {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
             </div>
           </div>
