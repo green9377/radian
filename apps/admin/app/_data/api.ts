@@ -4060,6 +4060,8 @@ export interface PosSaleInput {
   shiftId?: string; registerId?: string; branchId?: string;
   customerId?: string; customerName?: string; customerPhone?: string;
   isGift?: boolean;
+  /** DEC-POS-019 — which channel brought the sale in; empty = the counter itself */
+  channelId?: string;
   /** DEC-POS-018 — the counter sells items; productId is only the legacy path */
   lines: { itemId?: string; productId?: string; qty: number; unitPaisa?: number }[];
   discountPaisa?: number; discountApprovedBy?: string;

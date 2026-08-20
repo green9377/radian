@@ -625,7 +625,12 @@ export class PosService {
     if (duePaisa > 0 && !identified) throw new BadRequestException('a due (credit) sale needs an identified customer');
 
     const customer = await this.resolveCustomer(dto);
-    const channelId = await this.posChannelId();
+    /*  DEC-POS-019 — the cashier says which channel this sale came through; the
+        counter's own channel is the default when nothing is picked.  */
+    const channelId = dto.channelId
+      ? (await this.prisma.db.channel.findFirst({ where: { id: dto.channelId, isActive: true }, select: { id: true } }))?.id
+        ?? (() => { throw new BadRequestException('That sales channel is switched off'); })()
+      : await this.posChannelId();
     const paymentStatus = duePaisa === 0 ? PaymentStatus.paid : paid > 0 ? PaymentStatus.advance_paid : PaymentStatus.unpaid;
 
     // POS-REV-2 — receipt number allocated INSIDE the retry, wrapping the whole sale

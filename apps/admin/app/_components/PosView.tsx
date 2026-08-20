@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift } from "../_data/api";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel } from "../_data/api";
 import { MoneyBlock, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
@@ -166,6 +166,21 @@ export default function PosSellView() {
   const [custQ, setCustQ] = useState("");
   const [isGift, setIsGift] = useState(false);
 
+  /*  DEC-POS-019 (owner, 21 Aug) — the counter is not only walk-ins. The same
+      staff sells over Facebook, WhatsApp and the phone and the money lands in the
+      same drawer, so the sale says which channel brought it in.  */
+  const [channels, setChannels] = useState<ApiChannel[]>([]);
+  const [channelId, setChannelId] = useState<string>("");
+  useEffect(() => {
+    listChannels()
+      .then((r) => {
+        const live = r.filter((c) => c.isActive);
+        setChannels(live);
+        setChannelId((cur) => cur || live.find((c) => c.slug === "pos")?.id || live[0]?.id || "");
+      })
+      .catch(() => setChannels([]));
+  }, []);
+
   const pickCustomer = (c: ApiCustomer) => {
     setSelectedCust(c);
     setCustName(c.name);
@@ -312,6 +327,7 @@ export default function PosSellView() {
         customerName: custName || undefined,
         customerPhone: custPhone || undefined,
         isGift,
+        channelId: channelId || undefined,
         lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
@@ -366,6 +382,30 @@ export default function PosSellView() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 items-start">
         {/* ============ LEFT: this bill ============ */}
         <div className="space-y-5">
+        {/*  THE BILL'S HEAD — what a bill says about itself before it says what is
+             on it: its number, its date, and which channel brought the sale in
+             (DEC-POS-019, owner 21 Aug). The receipt number is the server's to
+             give, so it is shown as what it is until the sale is saved.  */}
+        <div className={cardCls + " p-4"}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className={labelCls}>Bill no</label>
+              <div className="ipt flex items-center text-body-soft" style={{ background: "#f6f2fa" }}>Auto — on save</div>
+            </div>
+            <div>
+              <label className={labelCls}>Date</label>
+              <div className="ipt flex items-center">{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+            </div>
+            <div>
+              <label className={labelCls}>Sales channel</label>
+              <select className="ipt" value={channelId} onChange={(e) => setChannelId(e.target.value)}>
+                {channels.length === 0 && <option value="">Counter</option>}
+                {channels.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/*  THIS BILL — the page itself, exactly like a purchase bill: an empty
              table with one door, "Add items". The purple panel carries money only.  */}
         <div className={cardCls + " overflow-hidden"}>

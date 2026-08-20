@@ -55,6 +55,13 @@ export interface CreatePosSaleDto {
 
   isGift?: boolean;
 
+  /**
+   * DEC-POS-019 (owner, 21 Aug) — which channel brought this sale in. The counter
+   * is not only walk-ins: the same staff sells over Facebook, WhatsApp and the
+   * phone, and the money still lands in the drawer. Empty = the POS channel.
+   */
+  channelId?: string;
+
   lines: PosSaleLineDto[];
 
   discountPaisa?: number;
