@@ -76,6 +76,7 @@ type Draft = {
   reorderLevel: string;
   weightGram: string;
   costTaka: string;        // the PURCHASE rate — what we pay
+  sellTaka: string;        // DEC-ITM-022 — the COUNTER price
   marginMode: MarginMode;  // DEC-ITM-018 — how the floor is worked out
   marginPercent: string;
   marginTaka: string;
@@ -90,7 +91,7 @@ const EMPTY: Draft = {
   imageUrl: null, description: "",
   isSaleable: false, isPurchasable: true, isReturnable: true, isPerishable: false,
   isStockTracked: true, shelfLifeDays: "", reorderLevel: "", weightGram: "",
-  costTaka: "", marginMode: "none", marginPercent: "", marginTaka: "",
+  costTaka: "", sellTaka: "", marginMode: "none", marginPercent: "", marginTaka: "",
   vatPercent: "", maxDiscountPercent: "",
   attributeValueIds: [], isActive: true,
 };
@@ -192,6 +193,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             reorderLevel: it.reorderLevel?.toString() ?? "",
             weightGram: it.weightGram?.toString() ?? "",
             costTaka: (it.standardCostPaisa / 100).toString(),
+            sellTaka: it.sellingPricePaisa != null ? (it.sellingPricePaisa / 100).toString() : "",
             // DEC-ITM-018 — the two margin columns are mutually exclusive, so whichever
             // one carries a value also tells us which mode the form should open in
             marginMode: it.minMarginBp ? "percent" : it.minMarginPaisa ? "flat" : "none",
@@ -243,6 +245,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
   /* DEC-ITM-018 — the floor, recomputed as you type. Same formula the server uses, so
      the number on screen is the number that gets saved. */
   const costPaisa = Math.max(0, Math.round((parseFloat(draft.costTaka) || 0) * 100));
+  const sellPaisa = draft.sellTaka.trim() === "" ? null : Math.max(0, Math.round((parseFloat(draft.sellTaka) || 0) * 100));
   const marginBp = draft.marginMode === "percent"
     ? Math.max(0, Math.round((parseFloat(draft.marginPercent) || 0) * 100)) : 0;
   const marginPaisa = draft.marginMode === "flat"
@@ -279,6 +282,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
       reorderLevel: draft.reorderLevel === "" ? null : Math.max(0, Math.round(Number(draft.reorderLevel) || 0)),
       weightGram: draft.weightGram === "" ? null : Math.max(0, Math.round(Number(draft.weightGram) || 0)),
       standardCostPaisa: costPaisa,
+      sellingPricePaisa: sellPaisa, // DEC-ITM-022 — the counter price
       // DEC-ITM-018 — send both, always: clearing a rule has to be expressible, and the
       // server treats null as "no rule" while undefined would mean "leave it alone".
       minMarginBp: marginBp || null,
@@ -1036,6 +1040,22 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 </Row>
               </Pair>
 
+              {/*  DEC-ITM-022 (owner, 20 Aug) — everything marked "We sell it" is
+                   sellable at the counter, services included, so the price the shop
+                   sells at belongs here. A product page may price differently online. */}
+              {draft.isSaleable && (
+                <Row label="Counter price" hint="What the shop charges at the till. A website product can set its own price.">
+                  <div className="max-w-[220px]">
+                    <TakaInput value={draft.sellTaka} onChange={(v) => set("sellTaka", v)} placeholder="0.00" />
+                  </div>
+                  {sellPaisa !== null && floorPaisa !== null && sellPaisa < floorPaisa && (
+                    <p className="text-[12px] text-[#c0392b] m-0 mt-1.5">
+                      Below the floor — {formatTaka(floorPaisa)} is the least this may sell for.
+                    </p>
+                  )}
+                </Row>
+              )}
+
               {item?.costMode === "AUTO" && (
                 <Note tone="green">
                   On <b>automatic cost</b> — {formatTaka(item.computedCostPaisa ?? 0)}, added up from its recipe in Assembly.
@@ -1147,16 +1167,16 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {/* DEC-ITM-010 phase 3 — the answer to "can I connect this to the Product
               module?". The link is one SKU: the Product borrows this item's code, and
               once Inventory exists the stock the website shows is this item's stock. */}
+          {/*  DEC-ITM-022 — this tab used to repeat the "We sell it" switch, so the
+               same fact had two switches and the owner could not tell them apart.
+               "We sell it" (How it is used) = the counter; a Product = the website.  */}
           {section === "connect" && (
             <Sect title="Sell online">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
-                <SwitchRow on={draft.isSaleable} onClick={() => set("isSaleable", !draft.isSaleable)}
-                  icon="link" tone="#8b21c9"
-                  title="This item can be sold" sub="Only saleable items may be connected to a Product" />
-              </div>
-
               {!draft.isSaleable ? (
-                <Note tone="grey">Turn the switch on to connect this item to a product page.</Note>
+                <Note tone="grey">
+                  Switch on <b>We sell it</b> under &ldquo;How it is used&rdquo; first — the website sells
+                  what the shop sells.
+                </Note>
               ) : isNew ? (
                 <Note tone="purple">
                   Create the item first. The connect button appears here straight after — a Product has to point at a
@@ -1217,6 +1237,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 </dd>
                 {/* DEC-ITM-018 — the floor is the number that actually constrains selling,
                     so it belongs in the summary the owner glances at. */}
+                {draft.isSaleable && (<><dt className="text-body-soft">Counter price</dt>
+                  <dd className="m-0 font-semibold text-body">
+                    {sellPaisa === null ? "not set" : formatTaka(sellPaisa)}
+                  </dd></>)}
                 <dt className="text-body-soft">Sell above</dt>
                 <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "#8b7a95" : "#0e7a3d" }}>
                   {floorPaisa === null ? "no floor" : formatTaka(floorPaisa)}

@@ -58,6 +58,34 @@ Deferred on purpose (do in their own phase, or when the owner asks):
 - PIN test rides Phase 9 (Finance) — the lock is Administration's, the
   buttons that demand it are Finance's
 
+## 🧾 DEC-ITM-022 + DEC-POS-018 — POS sells Items; a Product is the website only (owner, 20 Aug 2026)
+
+Owner's ruling: *"duniar joto sell ache sob POS-e asbe; online on/off ar sathe
+somporko hobe just product page."*
+
+| | |
+|---|---|
+| **We sell it** (`Item.isSaleable`) | sellable at the counter — services included (wrapping, decoration): never bought, only sold |
+| **Product** | the website shelf and nothing else. No product = not online, but still on the till |
+| **POS catalogue** | Items only, never Products — one thing cannot appear twice, and stock leaves by one path |
+| **Counter price** | `Item.sellingPricePaisa` (DEC-ITM-022, built today). The website price stays the Product's own field and may differ |
+
+Done today (Items phase): schema + migration `20260820060000_item_selling_price`,
+API create/update, the editor's "Counter price" field (red under the floor), and
+the duplicate switch removed from the "Sell online" tab.
+
+To do in the POS phase (NOT now — money surface, its own pass):
+
+1. `OrderLine.productId` optional + add `OrderLine.itemId` (same change as backlog D11)
+2. POS catalogue reads items (`isSaleable && isActive`) instead of `listProducts()`
+3. `pos.service.createSale` — item lines priced from `Item.sellingPricePaisa`, refused under the floor
+4. Stock leaves the item directly (DEC-INV-018 warehouse pick unchanged)
+5. ⚠️ **PosDiscountRule targets Products / website categories today** — moving to items
+   means moving those rules to Item categories, or the cap silently stops applying
+6. Old POS sales keep their `productId` — history is not rewritten
+
+---
+
 ## 🔤 প্রকল্প থেকে বাংলা সরানো (চলমান, ১৭ আগস্ট শুরু)
 
 **মালিকের নির্দেশ:** প্রকল্পের কোথাও বাংলা থাকবে না — **মন্তব্যেও নয়**,

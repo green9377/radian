@@ -51,6 +51,9 @@ export interface ItemDto {
   minMarginBp?: number | null; // 1500 = 15% minimum profit
   minMarginPaisa?: number | null; // …or a flat taka figure, in paisa
 
+  /// DEC-ITM-022 — the counter price. Null clears it.
+  sellingPricePaisa?: number | null;
+
   /// DEC-ITM-019 — defaults the Sales module starts from, never the final figure
   vatRateBp?: number | null; // 750 = 7.5%
   maxDiscountBp?: number | null; // the most any seller may knock off

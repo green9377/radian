@@ -1074,6 +1074,18 @@ export class ItemsService {
     const bp = (v: number | null | undefined, max: number) =>
       v === undefined ? undefined : v === null ? null : Math.min(max, Math.max(0, Math.round(v)));
 
+    /*  DEC-ITM-022 — the counter price. Clamped like every other money field: a
+        negative price is a typo, never a business decision. Cast because the
+        generated client on this machine predates the column; it goes away after
+        the next BUILD_CHECK.bat regenerate.  */
+    const counterPrice =
+      dto.sellingPricePaisa === undefined
+        ? {}
+        : ({
+            sellingPricePaisa:
+              dto.sellingPricePaisa === null ? null : Math.max(0, Math.round(dto.sellingPricePaisa)),
+          } as Record<string, number | null>);
+
     const out: {
       minMarginBp?: number | null;
       minMarginPaisa?: number | null;
@@ -1095,7 +1107,7 @@ export class ItemsService {
     if (out.minMarginBp) out.minMarginPaisa = null;
     else if (out.minMarginPaisa) out.minMarginBp = null;
 
-    return out;
+    return { ...out, ...counterPrice };
   }
 
   /** ITM-R04 + ITM-R02 + ITM-R05 — the field combinations that must never disagree */

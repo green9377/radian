@@ -2391,10 +2391,13 @@ export interface ApiItem {
   computedCostPaisa: number | null;
   effectiveCostPaisa: number;  // derived server-side so the maths lives in one place
 
-  /** DEC-ITM-018 — Item owns the buy side and the FLOOR, never the selling price. */
+  /** DEC-ITM-018 — Item owns the buy side and the FLOOR. */
   minMarginBp?: number | null;
   minMarginPaisa?: number | null;
   floorPricePaisa?: number | null; // derived: cost + the margin rule. null = no rule set
+
+  /** DEC-ITM-022 — the COUNTER price (the website's price lives on the Product) */
+  sellingPricePaisa?: number | null;
 
   /** DEC-ITM-019 — starting figures for Sales, not the final ones */
   vatRateBp?: number | null;
@@ -2431,6 +2434,7 @@ export interface ItemWrite {
   attributeValueIds?: string[];
   costMode?: CostMode;
   standardCostPaisa?: number;
+  sellingPricePaisa?: number | null; // DEC-ITM-022 — the counter price
   minMarginBp?: number | null;
   minMarginPaisa?: number | null;
   vatRateBp?: number | null;

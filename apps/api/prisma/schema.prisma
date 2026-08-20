@@ -3024,12 +3024,23 @@ model Item {
   standardCostPaisa Int      @default(0) // manual entry — paisa, never float
   computedCostPaisa Int? // rolled up from the recipe; null when there is no recipe
 
-  /// DEC-ITM-018 — Item owns the BUY side and the FLOOR. It does NOT own the selling
-  /// price (owner's ruling, 21 Jul): one price in two places drifts. Product / POS set
-  /// the real price and must not go under floor = purchase rate + minimum profit.
-  /// Exactly one of the two margin columns is used; percent wins if both are set.
+  /// DEC-ITM-018 — Item owns the BUY side and the FLOOR. Exactly one of the two
+  /// margin columns is used; percent wins if both are set.
   minMarginBp    Int? // minimum profit as basis points (1500 = 15%)
   minMarginPaisa Int? // …or as a flat taka amount, in paisa
+
+  /// DEC-ITM-022 (owner, 20 Aug 2026) — the COUNTER price.
+  ///
+  /// DEC-ITM-018 said the Item holds no selling price, because the Product held it
+  /// and two prices drift. That reasoning assumed everything sold has a Product.
+  /// It does not: wrapping, decoration and every counter-only service are Items with
+  /// no web listing, and the owner's ruling is that everything marked "We sell it"
+  /// is sellable at the counter. So the Item carries the price the SHOP sells at.
+  ///
+  /// A Product keeps its own `sellingPricePaisa` for the WEBSITE — an online price is
+  /// allowed to differ, and it is the Product's business, not a copy of this one.
+  /// Null = no counter price set yet; the till asks before it can sell it.
+  sellingPricePaisa Int?
 
   /// DEC-ITM-019 — tax and discount DEFAULTS live with the thing being sold, because
   /// they are properties of the thing (a cake is not taxed like a bouquet). The Sales
