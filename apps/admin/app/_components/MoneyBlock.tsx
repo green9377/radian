@@ -334,10 +334,13 @@ export function MoneyBlock(p: MoneyBlockProps) {
  * been taken, and what is still owed (or handed back). The old one-line strip
  * was too quiet to trust with a due (owner, 21 Aug).
  */
-export function MoneyResult({ pay, totalPaisa, tone }: {
+export function MoneyResult({ pay, totalPaisa, tone, dueLabel = "Due — collect later", settledLabel = "Nothing left to take" }: {
   pay: ReturnType<typeof usePayRows>;
   totalPaisa: number;
   tone?: "dark" | "light";
+  /** the counter collects a due; a purchase OWES one — same shape, other words */
+  dueLabel?: string;
+  settledLabel?: string;
 }) {
   const t = tone === "light" ? LIGHT : DARK;
   const due = pay.duePaisa > 0;
@@ -345,12 +348,12 @@ export function MoneyResult({ pay, totalPaisa, tone }: {
   const over = pay.overpaidNoChange;
 
   const right = due
-    ? { label: "Due — collect later", value: formatTaka(pay.duePaisa), fg: "#f0b46a", bg: "rgba(240,180,106,.14)" }
+    ? { label: dueLabel, value: formatTaka(pay.duePaisa), fg: "#f0b46a", bg: "rgba(240,180,106,.14)" }
     : change
       ? { label: "Change to give", value: formatTaka(pay.changePaisa), fg: "#7fe0a8", bg: "rgba(127,224,168,.14)" }
       : over
         ? { label: "Overpaid — reduce", value: formatTaka(pay.paidPaisa - totalPaisa), fg: "#f0b46a", bg: "rgba(240,180,106,.14)" }
-        : { label: "Nothing left to take", value: "৳ 0", fg: "#7fe0a8", bg: "rgba(127,224,168,.14)" };
+        : { label: settledLabel, value: "৳ 0", fg: "#7fe0a8", bg: "rgba(127,224,168,.14)" };
 
   return (
     <div className="grid grid-cols-2 gap-2">

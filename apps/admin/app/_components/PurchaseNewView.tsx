@@ -11,7 +11,7 @@ import {
   type ApiItem, type ApiUnit, type PayMethod, type PurchaseLineWrite, type ItemType,
   type ApiSupplier,
 } from "../_data/api";
-import { MoneyBlock, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 
 /*
   New purchase — ONE screen, Biznify-Direct-Bill style (the owner's 331-of-331 habit).
@@ -471,43 +471,56 @@ export default function PurchaseNewView() {
           </div>
         </div>
 
-        {/* ---------------- the money rail — CLAUDE.md §14, one block everywhere,
-                              and it wears the same purple as the till (owner, 21 Aug) --- */}
-        <div className="xl:sticky xl:top-4 space-y-4">
-          <div className="rounded-[16px] text-white shadow-lift px-5 py-4"
-            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }}>
-            <MoneyBlock
-              doors={["discount", "charge", "adjust", "vat"]}
-              subtotalPaisa={subTotal}
-              discountMode={discountMode} discountInput={discountInput}
-              charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
-              taxRate={taxRate} taxRates={PURCHASE_TAX_RATES} sum={sum}
-              onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
-              onCharges={setCharges} onAdjSign={setAdjSign}
-              onAdjustment={setAdjustmentTaka} onTaxRate={setTaxRate} />
+        {/* ---------------- the money rail — CLAUDE.md §14, the same block, the same
+                              purple, the same order as the till (owner, 21 Aug) --- */}
+        <div className="xl:sticky xl:top-4">
+          <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden"
+            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", height: "calc(100vh - 100px)" }}>
 
-            <div className="border-t border-white/15 pt-3 mt-3">
-              <label className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#e7d8f2] mb-3 cursor-pointer">
-                <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#f0b46a]" />
-                Advance order — goods arrive later
-              </label>
-
-              <PaymentLines pay={payRows} methods={PAY_METHODS}
-                title={advance ? "Advance paid now" : "Paid now"} maxHeight={168} />
-
-              {pay > 0 && pay < grand && (
-                <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">Owed to the supplier: <b className="font-semibold">{formatTaka(grand - pay)}</b></p>
-              )}
-              {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
-              {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}
+            <div className="p-4 pb-2 shrink-0">
+              <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">This purchase</div>
             </div>
 
-            <button disabled={!ready || busy} onClick={() => save(false)}
-              className="w-full bg-white hover:bg-[#f4ecf9] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
-              style={{ color: advance ? "#b45309" : "#4a1268" }}>
-              <Icon name="check" size={17} />
-              {busy ? "Saving…" : advance ? "Save advance order" : `Save purchase${grand > 0 ? " · " + formatTaka(grand) : ""}`}
-            </button>
+            <div className="px-4 shrink-0">
+              {/*  no VAT door was possible until DEC-PUR-012; now the supplier bill
+                   carries tax like any other, so all four doors are here.  */}
+              <MoneyBlock
+                subtotalPaisa={subTotal}
+                discountMode={discountMode} discountInput={discountInput}
+                charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
+                taxRate={taxRate} taxRates={PURCHASE_TAX_RATES} sum={sum}
+                onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
+                onCharges={setCharges} onAdjSign={setAdjSign}
+                onAdjustment={setAdjustmentTaka} onTaxRate={setTaxRate} />
+            </div>
+
+            <div className="flex-1 min-h-[8px]" />
+
+            <div className="px-4 shrink-0 pb-1">
+              <div className="rounded-[12px] px-3 py-3" style={{ background: "rgba(255,255,255,.07)" }}>
+                <label className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#e7d8f2] mb-2.5 cursor-pointer">
+                  <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#f0b46a]" />
+                  Advance order — goods arrive later
+                </label>
+                <PaymentLines pay={payRows} methods={PAY_METHODS}
+                  title={advance ? "Advance paid now" : "Paid now"} maxHeight={168} />
+              </div>
+            </div>
+
+            <div className="p-4 pt-3 border-t border-white/15 shrink-0">
+              <MoneyResult pay={payRows} totalPaisa={grand}
+                dueLabel="Owed to the supplier" settledLabel="Nothing owed" />
+
+              {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
+              {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}
+
+              <button disabled={!ready || busy} onClick={() => save(false)}
+                className="w-full bg-white hover:bg-[#f4ecf9] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
+                style={{ color: advance ? "#b45309" : "#4a1268" }}>
+                <Icon name="check" size={17} />
+                {busy ? "Saving…" : advance ? "Save advance order" : `Save purchase${grand > 0 ? " · " + formatTaka(grand) : ""}`}
+              </button>
+            </div>
           </div>
         </div>
       </div>
