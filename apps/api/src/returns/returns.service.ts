@@ -223,7 +223,9 @@ export class ReturnsService {
     // build validated lines
     const lineRows: {
       orderLineId: string;
-      productId: string;
+      /*  DEC-POS-018 — a website line carries a product, a counter line an item  */
+      productId: string | null;
+      itemId: string | null;
       name: string;
       qty: number;
       unitPaisa: number;
@@ -249,7 +251,7 @@ export class ReturnsService {
       lineRows.push({
         orderLineId: src.orderLineId,
         productId: src.productId,
-        ...({ itemId: src.itemId ?? null } as object), // DEC-POS-018
+        itemId: src.itemId ?? null, // DEC-POS-018
         name: src.name,
         qty: inp.qty,
         unitPaisa: src.unitPaisa,
@@ -289,16 +291,18 @@ export class ReturnsService {
           actorName,
           note: dto.note,
           lines: {
+            /*  cast: on a machine whose client predates DEC-POS-018 productId is
+                still non-null and itemId unknown. Removed at the next regenerate.  */
             create: lineRows.map((l) => ({
               orderLine: { connect: { id: l.orderLineId } },
               productId: l.productId,
-              ...({ itemId: (l as { itemId?: string | null }).itemId ?? null } as object), // DEC-POS-018
+              itemId: l.itemId ?? null, // DEC-POS-018
               name: l.name,
               qty: l.qty,
               unitPaisa: l.unitPaisa,
               valuePaisa: l.valuePaisa,
               restockAction: l.restockAction,
-            })),
+            })) as unknown as Prisma.SalesReturnLineCreateWithoutReturnInput[],
           },
         },
         include: RETURN_INCLUDE,
