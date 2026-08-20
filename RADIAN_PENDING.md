@@ -6,15 +6,45 @@
 
 ---
 
-## 💳 এক টাকার ব্লক, সব পর্দায় (মালিক, ২১ আগস্ট)
+## 💳 One money screen, everywhere (owner, 21 Aug) — rule in CLAUDE.md §14
 
-`apps/admin/app/_components/MoneyBlock.tsx` — বিলের চারটে অংশ (Discount ৳/%,
-নাম-সহ Additional charge, ± Adjustment, VAT) + Grand total + Payment method
-(যত খুশি, নিজে scroll করে, নিজেরাই বিলের সাথে মিলে যায়)。
+`apps/admin/app/_components/MoneyBlock.tsx` — grand total loudest, four small
+doors under it (Discount taka/% · named Charge · ± Adjustment · VAT), then
+Payment (as many methods as wanted, its own scroll, amounts balance themselves),
+and the button never leaves the screen.
 
-POS-এ বসানো হয়ে গেছে。 **যেখানেই টাকা নেওয়া-দেওয়া আছে সেখানেই এটাই বসবে** —
-Purchase bill, Returns/refund, Due collection, Order checkout。 আলাদা করে
-আরেকটা লিখব না; `tone="light"` দিলে সাদা পর্দাতেও চলে。
+**POS Sell — done, owner-approved (21 Aug).**
+
+Screens that still carry their own money UI (found by reading the code, 21 Aug):
+
+| Screen | What it does today | What it must become |
+|---|---|---|
+| POS -> Due board (`PosViews.tsx`) | "Collect" takes the WHOLE due as cash, no method to choose, failures land in an `alert()` | MoneyBlock + PaymentLines — how much, which method, the rest stays due |
+| Purchase bill (`PurchaseDetailView.tsx`) | its own little "Add payment" form | the same block, `tone="light"` |
+| Purchase new (`PurchaseNewView.tsx`) | its own discount / VAT / adjustment fields | the same block |
+| Returns / refund (`ReturnViews.tsx`) | one free-text reference box | the same block |
+| New order / Order edit (`NewOrderForm`, `OrderEditor`, `OrderEditForm`) | their own discount / VAT fields | the same block |
+| POS Settings -> Payment methods | four names HARDCODED, always shown as "On" | come from a master, switchable in admin |
+
+---
+
+## 📌 Phase 3 — where it stands (21 Aug)
+
+**Closed and owner-approved:** every Items screen · item type master ·
+sub-category · variant family as its own page · per-variant photos · category /
+brand / supplier / unit / colour / size all creatable inside the item form ·
+cost = purchase average (DEC-ITM-023) · sell = cost + markup · "See cost prices"
+permission (DEC-ADM-012) · "We sell it" and "Sell online" as two real switches
+(DEC-ITM-024) · everything in the item list is for selling (DEC-ITM-025) · a
+service is always saleable (ITM-R13) · **the counter sells Items, not Products
+(DEC-POS-018)** · haggling, price floor, nothing sold off an empty shelf ·
+the money block.
+
+**Deliberately left open, each in its own phase:**
+- putting a returned counter item back on the shelf -> Returns phase
+- the shop's own AC / lights belong in an asset book, not in Items -> Finance
+- a screen to set the POS discount cap -> POS phase
+- moving the six screens above onto MoneyBlock -> each in its own phase
 
 ---
 
@@ -29,7 +59,7 @@ unless the owner says so.
 | 0 | Baseline sweep + demo DB cleaned to config-only | done (18 Aug) |
 | 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
 | 2 | Masters — units, categories, colours/sizes, variants, supplier types, channels, delivery masters+setup | **CLOSED 19 Aug** |
-| 3 | Items → Purchase → Inventory | **IN PROGRESS (19 Aug)** — owner's correction: purchases need items, so Items pages (new/list/editor/recipes/costs/trash) are tested FIRST; direction: `RADIAN_PHASE3_DIRECTION.md` |
+| 3 | Items → Purchase → Inventory | **IN PROGRESS** — part A (Items + the POS money screen) **CLOSED 21 Aug, owner-approved**; part B **Purchase** is next, then part C **Inventory**. Direction: `RADIAN_PHASE3_DIRECTION.md` |
 | 4–10 | Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
 
 Phase 2 closed with (all owner-tested and revised, live on demo):
