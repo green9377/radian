@@ -680,13 +680,15 @@ export default function PosSellView() {
               </div>
 
               {/*  a discount is said out loud either way — "ten percent" or
-                   "fifty taka off" — so the box takes both  */}
+                   "fifty taka off" — so the box takes both.
+                   NOTE: .ipt sets width:100% and loads after Tailwind, so w-[64px]
+                   is silently ignored on these — the width has to be inline.  */}
               <div className="flex items-center gap-1.5 py-1">
                 <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Discount</span>
-                <input type="number" min={0} className="ipt h-[36px] w-[62px] shrink-0 text-[13px] text-right"
+                <input type="number" min={0} className="ipt h-[36px] shrink-0 text-[13px] text-right" style={{ width: 64 }}
                   value={discountInput || ""} placeholder="0"
                   onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
-                <select className="ipt h-[36px] w-[50px] shrink-0 text-[12.5px]" value={discountMode}
+                <select className="ipt h-[36px] shrink-0 text-[12.5px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }} value={discountMode}
                   onChange={(e) => setDiscountMode(e.target.value as "amt" | "pct")}>
                   <option value="amt">৳</option>
                   <option value="pct">%</option>
@@ -705,12 +707,12 @@ export default function PosSellView() {
                 <>
                   <div className="flex items-center gap-1.5 py-1">
                     <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Adjustment</span>
-                    <select className="ipt h-[36px] w-[50px] shrink-0 text-[13px]" value={adjSign}
+                    <select className="ipt h-[36px] shrink-0 text-[13px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }} value={adjSign}
                       onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
                       <option value={1}>+</option>
                       <option value={-1}>−</option>
                     </select>
-                    <input type="number" min={0} className="ipt h-[36px] w-[62px] shrink-0 text-[13px] text-right"
+                    <input type="number" min={0} className="ipt h-[36px] shrink-0 text-[13px] text-right" style={{ width: 64 }}
                       value={adjustmentTaka || ""} placeholder="0"
                       onChange={(e) => setAdjustmentTaka(Math.abs(Number(e.target.value)))} />
                     <span className="w-[64px] text-right text-[12px] shrink-0">
@@ -726,7 +728,7 @@ export default function PosSellView() {
 
               <div className="flex items-center gap-1.5 py-1">
                 <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">VAT</span>
-                <select className="ipt h-[36px] w-[112px] shrink-0 text-[12.5px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
+                <select className="ipt h-[36px] shrink-0 text-[12.5px]" style={{ width: 112, paddingLeft: 10, paddingRight: 4 }} value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
                   {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
                 </select>
                 <span className="w-[64px] text-right text-[12px] shrink-0">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "—"}</span>
