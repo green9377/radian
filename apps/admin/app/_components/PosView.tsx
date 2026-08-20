@@ -109,6 +109,17 @@ export default function PosSellView() {
   const [cat, setCat] = useState<string>("All");
   /** the shelf opens on top of the bill, the way a purchase picks its items */
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  /*  F or G — the owner asked to see both live before one becomes the house
+      style (21 Aug). The loser goes in the bin the moment he says which.  */
+  const [layout, setLayout] = useState<"board" | "cards">("board");
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("radian:pos:money") : null;
+    if (saved === "board" || saved === "cards") setLayout(saved);
+  }, []);
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem("radian:pos:money", layout);
+  }, [layout]);
   const categories = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => p.categoryName && set.add(p.categoryName));
@@ -577,6 +588,15 @@ export default function PosSellView() {
                   <button type="button" onClick={resetSale} className="text-[11px] text-[#e7d8f2] bg-white/10 border border-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1 hover:bg-white/20" title="Clear this sale"><Icon name="trash" size={11} /> Clear</button>
                 )}
               </div>
+              {/*  a temporary switch so the owner can hold F and G side by side  */}
+              <div className="flex items-center gap-1 mr-auto ml-2">
+                {(["board", "cards"] as const).map((l) => (
+                  <button key={l} type="button" onClick={() => setLayout(l)}
+                    className={"text-[10.5px] px-2 py-0.5 rounded-full border " + (layout === l ? "bg-white/25 border-white/50 text-white" : "border-white/20 text-[#c9a6e4]")}>
+                    {l === "board" ? "F" : "G"}
+                  </button>
+                ))}
+              </div>
               <button type="button" onClick={() => setIsGift((g) => !g)} className={"text-[12px] px-3 py-1.5 rounded-full font-medium border inline-flex items-center gap-1.5 " + (isGift ? "bg-orchid text-white border-orchid" : "bg-white/10 text-[#e7d8f2] border-white/25")}>
                 <Icon name="heart" size={13} /> {isGift ? "Gift" : "Mark gift"}
               </button>
@@ -605,6 +625,7 @@ export default function PosSellView() {
                  payment lines, the button. Only the payment list ever scrolls.  */}
             <div className="px-4 pt-3 border-t border-white/15 shrink-0">
               <MoneyBlock
+                layout={layout}
                 subtotalPaisa={subtotal}
                 discountMode={discountMode} discountInput={discountInput}
                 charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
@@ -628,8 +649,11 @@ export default function PosSellView() {
                  stay next to the button where the hand is  */}
             <div className="flex-1 min-h-[8px]" />
 
-            <div className="px-4 pt-3 border-t border-white/15 shrink-0">
-              <PaymentLines pay={pay} maxHeight={168} />
+            <div className={"px-4 shrink-0 " + (layout === "cards" ? "pb-1" : "pt-3 border-t border-white/15")}>
+              <div className={layout === "cards" ? "rounded-[12px] px-3 py-3" : ""}
+                style={layout === "cards" ? { background: "rgba(255,255,255,.07)" } : undefined}>
+                <PaymentLines pay={pay} maxHeight={168} />
+              </div>
             </div>
 
             {/*  THE PINNED FOOT — where the money stands, and the button. The only
