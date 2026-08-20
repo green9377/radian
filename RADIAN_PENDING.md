@@ -97,6 +97,30 @@ Still open, on purpose:
 
 ---
 
+## 🧾 20 Aug — Items, POS and the cost permission (all live on demo)
+
+Decisions locked and built today, on top of DEC-ITM-022 / DEC-POS-018 above:
+
+| | |
+|---|---|
+| **DEC-ITM-023** | The counter price FOLLOWS the cost: sell = purchase average + profit%. The percent is the shop default (Items → Pricing, 20%), an item may carry its own, and an item may fix an exact price which ignores both. Cost is read-only once the item has been bought — purchases own the average. |
+| **DEC-ITM-024** | "Sell online" is its own switch (`Item.isOnline`), separate from "We sell it". Off = never on the product page; the counter is untouched. The product editor's item pickers and `validateRefs` both enforce it. |
+| **DEC-ITM-025** | Everything in the item list is for selling, so a new item starts saleable whatever its type. Things that are NOT for sale (the shop's own AC, its lights) are assets — a different book, not built yet. |
+| **ITM-R13** | A SERVICE is always saleable and never purchasable. A forgotten tick used to hide a whole service from the till. |
+| **DEC-ADM-012** | "See cost prices" is a permission on the access template, not a screen. Enforced server-side by `common/strip-cost.ts`: cost, computed/effective cost, stock value, floor, margin rule, markup and suggested price all leave the response. OWNER always sees cost. |
+| **POS-R14** | The counter cannot sell what is not on the shelf — tile disabled at zero, qty capped, server refuses. Services are never counted, so never blocked. |
+| **POS-R15** | The line price is the cashier's to change (haggling). The item's floor is the only wall, on the screen and on the server. |
+
+Screens built or rebuilt: Items → Pricing · Items → Item types · the variant
+FAMILY editor at `/items/family/[key]` (full page, same shape as New item group)
+· POS catalogue in tiles or rows · cost switch on Administration → Access.
+
+Still open, on purpose:
+- restocking a RETURNED counter item (Inventory's `postSaleReturn` still speaks
+  Product) — Returns phase
+- POS discount cap: the server's is real; the screen no longer guesses one
+- an ASSET book for the shop's own things (AC, lights) — not started
+
 ## 🔤 প্রকল্প থেকে বাংলা সরানো (চলমান, ১৭ আগস্ট শুরু)
 
 **মালিকের নির্দেশ:** প্রকল্পের কোথাও বাংলা থাকবে না — **মন্তব্যেও নয়**,
