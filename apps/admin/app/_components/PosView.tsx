@@ -107,6 +107,8 @@ export default function PosSellView() {
   }, [view]);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
+  /** the shelf opens on top of the bill, the way a purchase picks its items */
+  const [pickerOpen, setPickerOpen] = useState(false);
   const categories = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => p.categoryName && set.add(p.categoryName));
@@ -362,117 +364,16 @@ export default function PosSellView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 items-start">
-        {/* ============ LEFT: catalogue, then what is on the bill ============ */}
+        {/* ============ LEFT: this bill ============ */}
         <div className="space-y-5">
-        <div className="min-w-0">
-          <div className={cardCls + " p-4 mb-4"}>
-            <div className="relative mb-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft"><Icon name="search" size={17} /></span>
-              <input className="ipt h-[44px] ipt-icon" placeholder="Search by name or code…" value={q} onChange={(e) => setQ(e.target.value)} />
-            </div>
-            <div className="flex gap-2 flex-wrap items-center">
-              {categories.map((c) => (
-                <button key={c} type="button" onClick={() => setCat(c)} className={"text-[12.5px] px-3.5 py-1.5 rounded-full font-medium transition-colors border " + (cat === c ? "bg-purple text-white border-purple" : "bg-white text-body-soft border-lavender-deep hover:border-orchid-mid")}>{c}</button>
-              ))}
-              {/*  Tiles are fine for twenty things and useless for four hundred; rows
-                   fit more on the screen and put stock, price and cost in columns you
-                   can read down (owner, 20 Aug). The choice is remembered.  */}
-              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#e3d7ec" }}>
-                {([["grid", "Tiles"], ["rows", "Rows"]] as const).map(([k, label], i) => (
-                  <button key={k} type="button" onClick={() => setView(k)}
-                    className="text-[12px] font-semibold px-3 py-1.5"
-                    style={{
-                      background: view === k ? "#470066" : "#fff",
-                      color: view === k ? "#fff" : "#6b5878",
-                      borderLeft: i ? "1px solid #e3d7ec" : undefined,
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {view === "rows" ? (
-            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
-              <div className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
-                <span /><span>Item</span><span>Category</span><span className="text-right">Stock</span><span className="text-right">Price</span><span />
-              </div>
-              <div className="divide-y divide-lavender-deep max-h-[62vh] overflow-y-auto">
-                {grid.map((p) => (
-                  <div key={p.id} className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2">
-                    <span className="w-[38px] h-[38px] rounded-[10px]"
-                      style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
-                    <span className="min-w-0">
-                      <span className="block text-[13.5px] font-medium text-purple truncate">{p.name}</span>
-                      <span className="block font-mono text-[11.5px] text-body-soft truncate">{p.sku}</span>
-                    </span>
-                    <span className="text-[12.5px] text-body-soft truncate">{p.categoryName ?? "—"}</span>
-                    <span className="text-right text-[12.5px]"
-                      style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
-                      {p.stockQty === null ? "service" : p.stockQty > 0 ? p.stockQty : "out of stock"}
-                    </span>
-                    <span className="text-right">
-                      <span className="block text-[13.5px] font-semibold text-body">
-                        {p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}
-                      </span>
-                      {p.costPaisa !== undefined && p.costPaisa > 0 && (
-                        <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
-                      )}
-                    </span>
-                    <button type="button" onClick={() => add(p)} disabled={!canAdd(p)}
-                      title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
-                      className="justify-self-end text-white bg-purple inline-flex items-center gap-1 text-[12px] font-medium rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <Icon name="plus" size={12} /> Add
-                    </button>
-                  </div>
-                ))}
-                {grid.length === 0 && <div className="text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
-              </div>
-            </div>
-          ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
-            {grid.map((p) => (
-              <button key={p.id} type="button" onClick={() => add(p)} disabled={!canAdd(p)}
-                title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
-                className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full disabled:opacity-45 disabled:hover:shadow-soft disabled:cursor-not-allowed">
-                <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
-                <div className="p-2.5 flex flex-col flex-1">
-                  <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
-                  {/*  what is actually on the shelf — a till that hides a shortage makes
-                       the cashier promise something the shop cannot hand over  */}
-                  <div className="text-[11.5px] mt-0.5"
-                    style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
-                    {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} in stock` : "out of stock"}
-                  </div>
-                  <div className="flex items-center justify-between mt-auto pt-1.5">
-                    <span className="min-w-0">
-                      <span className="block text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
-                      {/*  what it cost us — the cashier haggles against this (owner, 20 Aug).
-                           DEC-ADM-012: absent entirely when this person may not see cost.  */}
-                      {p.costPaisa !== undefined && p.costPaisa > 0 && (
-                        <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
-                      )}
-                    </span>
-                    <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1 shrink-0"><Icon name="plus" size={12} /> Add</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
-          </div>
-          )}
-        </div>
-
-        {/*  WHAT IS ON THIS BILL — under the catalogue, in the white, exactly the
-             way a purchase bill lists what was bought (owner, 21 Aug: pick above,
-             read below). The purple panel is left carrying money only.  */}
+        {/*  THIS BILL — the page itself, exactly like a purchase bill: an empty
+             table with one door, "Add items". The purple panel carries money only.  */}
         <div className={cardCls + " overflow-hidden"}>
           <div className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
             <span>Item</span><span>Price ৳/unit</span><span className="text-center">Qty</span><span className="text-right">Total</span><span />
           </div>
           {lines.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[13px] text-body-soft">Nothing on this bill yet — tap an item above.</div>
+            <div className="px-4 py-8 text-center text-[13px] text-body-soft">Nothing on this bill yet — press <b className="text-purple">Add items</b> and pick from your shelf.</div>
           ) : (
             lines.map((l) => (
               <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 border-t border-lavender-deep">
@@ -667,6 +568,127 @@ export default function PosSellView() {
           </div>
         </aside>
       </div>
+
+
+      {/*  THE SHELF — a picker, not a wall of tiles (owner, 21 Aug: "purchase page
+           ar moto, Add items click krle product asbe"). Same door as a purchase
+           bill: the bill is the page, the shelf opens on top of it.  */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-8" style={{ background: "rgba(40,20,50,.45)" }}>
+          <div className="bg-white rounded-[18px] shadow-2xl flex flex-col min-h-0 overflow-hidden w-full max-w-[1100px]"
+            style={{ height: "min(86vh, 820px)" }}>
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-lavender-deep">
+              <h2 className="font-display text-[19px] text-purple m-0">Pick items</h2>
+              {lines.length > 0 && (
+                <span className="text-[12.5px] text-body-soft">{lines.length} on the bill · {formatTaka(subtotal)}</span>
+              )}
+              <button type="button" onClick={() => setPickerOpen(false)}
+                className="ml-auto text-[13px] font-medium text-white bg-purple rounded-[10px] px-4 py-2">Done</button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4" style={{ background: "#faf7fd" }}>
+        <div className="min-w-0">
+          <div className={cardCls + " p-4 mb-4"}>
+            <div className="relative mb-3">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft"><Icon name="search" size={17} /></span>
+              <input className="ipt h-[44px] ipt-icon" placeholder="Search by name or code…" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            <div className="flex gap-2 flex-wrap items-center">
+              {categories.map((c) => (
+                <button key={c} type="button" onClick={() => setCat(c)} className={"text-[12.5px] px-3.5 py-1.5 rounded-full font-medium transition-colors border " + (cat === c ? "bg-purple text-white border-purple" : "bg-white text-body-soft border-lavender-deep hover:border-orchid-mid")}>{c}</button>
+              ))}
+              {/*  Tiles are fine for twenty things and useless for four hundred; rows
+                   fit more on the screen and put stock, price and cost in columns you
+                   can read down (owner, 20 Aug). The choice is remembered.  */}
+              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#e3d7ec" }}>
+                {([["grid", "Tiles"], ["rows", "Rows"]] as const).map(([k, label], i) => (
+                  <button key={k} type="button" onClick={() => setView(k)}
+                    className="text-[12px] font-semibold px-3 py-1.5"
+                    style={{
+                      background: view === k ? "#470066" : "#fff",
+                      color: view === k ? "#fff" : "#6b5878",
+                      borderLeft: i ? "1px solid #e3d7ec" : undefined,
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {view === "rows" ? (
+            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
+              <div className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+                <span /><span>Item</span><span>Category</span><span className="text-right">Stock</span><span className="text-right">Price</span><span />
+              </div>
+              <div className="divide-y divide-lavender-deep max-h-[62vh] overflow-y-auto">
+                {grid.map((p) => (
+                  <div key={p.id} className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2">
+                    <span className="w-[38px] h-[38px] rounded-[10px]"
+                      style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-medium text-purple truncate">{p.name}</span>
+                      <span className="block font-mono text-[11.5px] text-body-soft truncate">{p.sku}</span>
+                    </span>
+                    <span className="text-[12.5px] text-body-soft truncate">{p.categoryName ?? "—"}</span>
+                    <span className="text-right text-[12.5px]"
+                      style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
+                      {p.stockQty === null ? "service" : p.stockQty > 0 ? p.stockQty : "out of stock"}
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-[13.5px] font-semibold text-body">
+                        {p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}
+                      </span>
+                      {p.costPaisa !== undefined && p.costPaisa > 0 && (
+                        <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
+                      )}
+                    </span>
+                    <button type="button" onClick={() => add(p)} disabled={!canAdd(p)}
+                      title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
+                      className="justify-self-end text-white bg-purple inline-flex items-center gap-1 text-[12px] font-medium rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Icon name="plus" size={12} /> Add
+                    </button>
+                  </div>
+                ))}
+                {grid.length === 0 && <div className="text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
+              </div>
+            </div>
+          ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
+            {grid.map((p) => (
+              <button key={p.id} type="button" onClick={() => add(p)} disabled={!canAdd(p)}
+                title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
+                className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full disabled:opacity-45 disabled:hover:shadow-soft disabled:cursor-not-allowed">
+                <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
+                <div className="p-2.5 flex flex-col flex-1">
+                  <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
+                  {/*  what is actually on the shelf — a till that hides a shortage makes
+                       the cashier promise something the shop cannot hand over  */}
+                  <div className="text-[11.5px] mt-0.5"
+                    style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
+                    {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} in stock` : "out of stock"}
+                  </div>
+                  <div className="flex items-center justify-between mt-auto pt-1.5">
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
+                      {/*  what it cost us — the cashier haggles against this (owner, 20 Aug).
+                           DEC-ADM-012: absent entirely when this person may not see cost.  */}
+                      {p.costPaisa !== undefined && p.costPaisa > 0 && (
+                        <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
+                      )}
+                    </span>
+                    <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1 shrink-0"><Icon name="plus" size={12} /> Add</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
+          </div>
+          )}
+        </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== manager PIN popup (DEC-POS-006) ===== */}
       {showPin && (
