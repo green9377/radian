@@ -207,9 +207,9 @@ export default function PosSellView() {
 
   // ---- payment ----
   const [payMode, setPayMode] = useState<"full" | "partial">("full");
-  const [pays, setPays] = useState<PayRow[]>([]);
-  const addPay = (method: PayMethod) =>
-    setPays((p) => [...p, { id: `${method}-${Date.now()}`, method, amountPaisa: 0 }]);
+  const [pays, setPays] = useState<PayRow[]>([{ id: "pay-first", method: "Cash", amountPaisa: 0 }]);
+  const setPayMethodOf = (id: string, method: PayMethod) =>
+    setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r)));
   const setPayAmt = (id: string, amountPaisa: number) =>
     setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa) } : r)));
   const removePay = (id: string) => setPays((p) => p.filter((r) => r.id !== id));
@@ -249,6 +249,16 @@ export default function PosSellView() {
   // due (partial or full-credit) must be tied to a known customer — DEC-POS-008
   const needsCustomer = payMode === "partial" && duePaisa > 0 && !custName.trim();
 
+  /*  In FULL mode the amount is not a decision, so it follows the bill by itself —
+      change a price or a quantity and the payment line keeps up.  */
+  useEffect(() => {
+    if (payMode !== "full") return;
+    setPays((p) => {
+      if (p.length !== 1) return p;
+      return p[0].amountPaisa === total ? p : [{ ...p[0], amountPaisa: total }];
+    });
+  }, [payMode, total]);
+
   const errors: string[] = [];
   if (!shiftOpen) errors.push("Open a shift to start selling.");
   if (lines.length === 0) errors.push("Add at least one item.");
@@ -284,7 +294,8 @@ export default function PosSellView() {
     setAdjustmentNote("");
     setTaxRate(0);
     setPayMode("full");
-    setPays([]);
+    // one payment line always exists, so the panel is never an empty box
+    setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
     setShowExtra(false);
   }
 
@@ -307,6 +318,8 @@ export default function PosSellView() {
     setAdjustmentNote(hc.adjustmentNote);
     setTaxRate(hc.taxRate);
     setPayMode(hc.payMode);
+    // a resumed cart starts with one payment line again, not whatever was half-typed
+    setPays([{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
     setHeld((h) => h.filter((x) => x.id !== hc.id));
     setShowHeld(false);
   }
@@ -564,38 +577,53 @@ export default function PosSellView() {
             ) : (
               <div className="flex flex-col gap-2 mb-3">
                 {lines.map((l) => (
-                  <div key={l.key} className="grid grid-cols-[36px_minmax(0,1fr)_auto] gap-2.5 items-center">
-                    <div className="w-[36px] h-[36px] rounded-[9px]" style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
-                    <div className="min-w-0">
-                      <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
+                  /*  One line, two rows: WHAT it is on top, WHAT IT COSTS THE CUSTOMER
+                      underneath. The old single row had the price box, the word "each",
+                      the cost note, the stepper and the total all fighting for the same
+                      strip and none of them readable (owner, 20 Aug).  */
+                  <div key={l.key} className="rounded-[12px] px-2.5 py-2" style={{ background: "rgba(255,255,255,.06)" }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-[34px] h-[34px] rounded-[9px] shrink-0"
+                        style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
+                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && (
+                          <div className="text-[11px] text-[#a98ac4]">cost {formatTaka(l.product.costPaisa)}</div>
+                        )}
+                      </div>
+                      <div className="text-[13.5px] font-semibold shrink-0">{formatTaka(l.unitPaisa * l.qty)}</div>
+                      <button type="button" onClick={() => remove(l.key)}
+                        className="text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0" title="Remove">
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2">
                       {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[12px] text-[#c9a6e4]">৳</span>
+                      <span className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-[#c9a6e4]">৳</span>
                         <input type="number" min={0}
-                          className="bg-white/10 border border-white/20 rounded-[7px] h-[26px] w-[74px] px-2 text-[12.5px] text-white"
+                          className="bg-white/10 border border-white/20 rounded-[8px] h-[30px] w-[92px] pl-5 pr-2 text-[12.5px] text-white"
                           value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
                           placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
                           onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
-                        <span className="text-[11.5px] text-[#c9a6e4]">each</span>
-                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && (
-                          <span className="text-[11px] text-[#a98ac4]">cost {formatTaka(l.product.costPaisa)}</span>
-                        )}
-                      </div>
-                      {l.product.floorPricePaisa !== null && l.unitPaisa < l.product.floorPricePaisa && (
-                        <div className="text-[11px] text-[#ff9b9b] mt-0.5">
-                          under the floor — {formatTaka(l.product.floorPricePaisa)} is the least
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex items-center border border-white/25 rounded-[9px] overflow-hidden">
+                      </span>
+                      <span className="text-[12px] text-[#c9a6e4]">×</span>
+                      <div className="flex items-center border border-white/25 rounded-[8px] overflow-hidden">
                         <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">–</button>
-                        <span className="w-[28px] text-center text-[13px] font-medium">{l.qty}</span>
+                        <span className="w-[30px] text-center text-[13px] font-medium">{l.qty}</span>
                         <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">+</button>
                       </div>
-                      <div className="w-[74px] text-right text-[13px] font-medium">{formatTaka(l.unitPaisa * l.qty)}</div>
-                      <button type="button" onClick={() => remove(l.key)} className="text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove"><Icon name="trash" size={15} /></button>
+                      {l.product.stockQty !== null && (
+                        <span className="text-[11px] text-[#a98ac4] ml-auto">{l.product.stockQty} in stock</span>
+                      )}
                     </div>
+
+                    {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
+                      <div className="text-[11px] text-[#ff9b9b] mt-1.5">
+                        Cannot go under {formatTaka(l.product.floorPricePaisa)} — that is this item's minimum.
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -603,7 +631,7 @@ export default function PosSellView() {
 
             {/* discount */}
             <div className="border-t border-white/15 pt-3 mb-1">
-              <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">Discount ৳ {lines.length > 0 && <span className="text-[#c9a6e4]/70">· limit {cap}% this cart</span>}</label>
+              <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">Discount (৳)</label>
               <div className="flex items-center gap-2 flex-wrap">
                 <input type="number" min={0} className="ipt h-[38px] w-[110px]" value={discountTaka || ""} placeholder="0" onChange={(e) => setDiscountTaka(Math.max(0, Number(e.target.value)))} />
                 {discountPaisa > 0 && <span className="text-[12px] text-[#c9a6e4]">{discountPct.toFixed(0)}% off</span>}
@@ -653,44 +681,93 @@ export default function PosSellView() {
               </div>
             </div>
 
-            {/* payment */}
+            {/*  PAYMENT — rebuilt 20 Aug on the owner's reading: "onk elomelo lage…
+                 cash bkash agula dropdown kro… full hole full nibe, partial hole
+                 partial nibe."
+
+                 So the two modes now behave differently instead of only looking
+                 different: FULL takes the whole bill by itself — pick the method and
+                 the amount is the total, nothing to type. PARTIAL is the only mode
+                 that asks for a number, because that is the only mode where the
+                 number is a decision. Methods are one dropdown, not four coloured
+                 buttons; a second method appears only if the sale is split.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
-              {/* Full / Partial (DEC-POS-017) */}
-              <div className="inline-flex bg-white/10 rounded-[10px] p-[3px] gap-[3px] mb-2.5">
-                {([["full", "Full payment"], ["partial", "Partial (rest due)"]] as const).map(([v, l]) => (
-                  <button key={v} type="button" onClick={() => setPayMode(v)} className={"text-[12px] px-3.5 py-1.5 rounded-[8px] font-medium transition-colors " + (payMode === v ? "bg-white text-purple" : "text-[#c9a6e4] hover:text-white")}>{l}</button>
+              <div className="inline-flex bg-white/10 rounded-[10px] p-[3px] gap-[3px] mb-3">
+                {([["full", "Paid in full"], ["partial", "Part now, rest due"]] as const).map(([v, l]) => (
+                  <button key={v} type="button"
+                    onClick={() => {
+                      setPayMode(v);
+                      // full = one line for the whole bill; partial = one line to type into
+                      setPays(v === "full" && total > 0
+                        ? [{ id: `pay-${Date.now()}`, method: pays[0]?.method ?? "Cash", amountPaisa: total }]
+                        : pays.length ? [{ ...pays[0], amountPaisa: 0 }] : [{ id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }]);
+                    }}
+                    className={"text-[12px] px-3.5 py-1.5 rounded-[8px] font-medium transition-colors " + (payMode === v ? "bg-white text-purple" : "text-[#c9a6e4] hover:text-white")}>
+                    {l}
+                  </button>
                 ))}
               </div>
-              <label className="text-[12.5px] text-[#c9a6e4] font-medium mb-1 block">Payment (split allowed)</label>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                {([["Cash", "#159b63"], ["bKash", "#cf43ea"], ["Nagad", "#b76e79"], ["Card", "rgba(255,255,255,0.15)"]] as const).map(([m, bg]) => (
-                  <button key={m} type="button" onClick={() => addPay(m as PayMethod)} className="text-[12.5px] py-2.5 rounded-[10px] font-medium text-white inline-flex items-center justify-center gap-1.5" style={{ background: bg }}><Icon name="plus" size={13} /> {m}</button>
+
+              <div className="flex flex-col gap-2">
+                {pays.map((r, idx) => (
+                  <div key={r.id} className="flex items-center gap-2">
+                    <select
+                      className="ipt h-[38px] w-[116px] text-[12.5px]"
+                      value={r.method}
+                      onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
+                      {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+
+                    {payMode === "full" && pays.length === 1 ? (
+                      /*  nothing to decide: the bill is the amount  */
+                      <span className="flex-1 h-[38px] rounded-[10px] px-3 flex items-center justify-between text-[13px] bg-white/10 border border-white/15">
+                        <span className="text-[#c9a6e4]">whole bill</span>
+                        <b>{formatTaka(total)}</b>
+                      </span>
+                    ) : (
+                      <span className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#c9a6e4]">৳</span>
+                        <input type="number" min={0} className="ipt h-[38px] w-full" style={{ paddingLeft: 24 }}
+                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                          onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
+                      </span>
+                    )}
+
+                    {pays.length > 1 && (
+                      <button type="button" onClick={() => removePay(r.id)}
+                        className="text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove this payment">
+                        <Icon name="trash" size={14} />
+                      </button>
+                    )}
+                    {idx === pays.length - 1 && duePaisa > 0 && (
+                      <button type="button"
+                        onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: payMode === "full" ? duePaisa : 0 }])}
+                        className="text-[#c9a6e4] hover:text-white" title="Split — pay the rest another way">
+                        <Icon name="plus" size={15} />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
-              {total > 0 && pays.length === 0 && (
-                <button type="button" onClick={() => setPays([{ id: `Cash-${Date.now()}`, method: "Cash", amountPaisa: total }])} className="text-[12px] text-[#c9a6e4] underline mb-2 inline-block">Exact cash ({formatTaka(total)})</button>
-              )}
-              {pays.length > 0 && (
-                <div className="flex flex-col gap-2 mb-2">
-                  {pays.map((r) => (
-                    <div key={r.id} className="flex items-center gap-2">
-                      <span className="w-[58px] text-[12.5px] text-[#e7d8f2] inline-flex items-center gap-1"><Icon name="cash" size={13} /> {r.method}</span>
-                      <input type="number" min={0} className="ipt h-[36px] flex-1" value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0" onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
-                      <button type="button" onClick={() => removePay(r.id)} className="text-[#c9a6e4] hover:text-[#ff9b9b]"><Icon name="trash" size={14} /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-between text-[12.5px]"><span className="text-[#c9a6e4]">Paid</span><span>{formatTaka(paid)}</span></div>
-              {duePaisa > 0 && (
-                <div className="flex justify-between text-[12.5px]"><span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>{payMode === "partial" ? "Due (credit — known customer)" : "Still owed"}</span><span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>{formatTaka(duePaisa)}</span></div>
-              )}
-              {changePaisa > 0 && <div className="flex justify-between text-[12.5px]"><span className="text-[#7fe0a8] font-medium">Change</span><span className="text-[#7fe0a8] font-medium">{formatTaka(changePaisa)}</span></div>}
-              {overpaidNoChange && <div className="flex justify-between text-[12.5px]"><span className="text-[#f0b46a] font-medium">Overpaid (digital — no change)</span><span className="text-[#f0b46a] font-medium">reduce {formatTaka(paid - total)}</span></div>}
+
+              <div className="mt-2.5 space-y-1">
+                <div className="flex justify-between text-[12.5px]"><span className="text-[#c9a6e4]">Paid</span><span>{formatTaka(paid)}</span></div>
+                {duePaisa > 0 && (
+                  <div className="flex justify-between text-[12.5px]">
+                    <span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>
+                      {payMode === "partial" ? "Rest on due" : "Still to take"}
+                    </span>
+                    <span className={payMode === "partial" ? "text-[#f0b46a] font-medium" : "text-[#ff9b9b] font-medium"}>{formatTaka(duePaisa)}</span>
+                  </div>
+                )}
+                {changePaisa > 0 && <div className="flex justify-between text-[12.5px]"><span className="text-[#7fe0a8] font-medium">Change to give</span><span className="text-[#7fe0a8] font-medium">{formatTaka(changePaisa)}</span></div>}
+                {overpaidNoChange && <div className="flex justify-between text-[12.5px]"><span className="text-[#f0b46a] font-medium">Digital overpay — no change</span><span className="text-[#f0b46a] font-medium">reduce {formatTaka(paid - total)}</span></div>}
+              </div>
+
               {needsCustomer && (
                 <div className="mt-2 rounded-[10px] bg-[#fff4e5] border border-[#f0c27a] text-[#b45309] text-[12px] px-3 py-2 flex items-start gap-1.5">
                   <Icon name="user" size={14} />
-                  <span>Selling on due — add a <b className="font-semibold">customer name or phone</b> above so the {formatTaka(duePaisa)} can be collected later.</span>
+                  <span>Due sale — add a <b className="font-semibold">customer name or phone</b> above so the {formatTaka(duePaisa)} can be collected later.</span>
                 </div>
               )}
             </div>
