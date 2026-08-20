@@ -197,13 +197,19 @@ export default function PosSellView() {
   });
 
   // ---- discount + approval ----
-  const [discountTaka, setDiscountTaka] = useState<number>(0);
+  /*  A discount is asked for the way the shop says it out loud — "ten percent off"
+      or "take fifty taka off" — so the box takes either and the taka it works out
+      to is shown beside it.  */
+  const [discountMode, setDiscountMode] = useState<"amt" | "pct">("amt");
+  const [discountInput, setDiscountInput] = useState<number>(0);
   const [approved, setApproved] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinErr, setPinErr] = useState(false);
 
   // ---- adjustment (DEC-POS-015) + VAT (DEC-POS-016) ----
+  const [showCharge, setShowCharge] = useState(false);
+  const [adjSign, setAdjSign] = useState<1 | -1>(1);
   const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
   const [adjustmentNote, setAdjustmentNote] = useState("");
   const [taxRate, setTaxRate] = useState<number>(0);
@@ -219,7 +225,6 @@ export default function PosSellView() {
   const setPayAmt = (id: string, amountPaisa: number) =>
     setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa), touched: true } : r)));
   const removePay = (id: string) => setPays((p) => p.filter((r) => r.id !== id));
-  const MAX_PAYS = 3;
 
   // ---- held carts ----
   const [held, setHeld] = useState<HeldCart[]>([]);
@@ -230,8 +235,13 @@ export default function PosSellView() {
 
   // ---- money (DEC-POS-015/016) ----
   const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
-  const discountPaisa = Math.min(Math.round(discountTaka) * 100, subtotal);
-  const adjustmentPaisa = Math.round(adjustmentTaka) * 100; // may be negative
+  const discountPaisa = Math.min(
+    discountMode === "pct"
+      ? Math.round((subtotal * Math.min(100, Math.max(0, discountInput))) / 100)
+      : Math.round(Math.max(0, discountInput)) * 100,
+    subtotal,
+  );
+  const adjustmentPaisa = adjSign * Math.round(Math.abs(adjustmentTaka)) * 100; // + charge, − allowance
   const taxableBase = Math.max(0, subtotal - discountPaisa + adjustmentPaisa);
   const vatPaisa = Math.round((taxableBase * taxRate) / 100);
   const total = taxableBase + vatPaisa;
@@ -308,8 +318,11 @@ export default function PosSellView() {
     setCustOpen(false);
     setCustQ("");
     setIsGift(false);
-    setDiscountTaka(0);
+    setDiscountInput(0);
+    setDiscountMode("amt");
     setApproved(false);
+    setShowCharge(false);
+    setAdjSign(1);
     setAdjustmentTaka(0);
     setAdjustmentNote("");
     setTaxRate(0);
@@ -321,7 +334,7 @@ export default function PosSellView() {
     if (lines.length === 0) return;
     setHeld((h) => [
       ...h,
-      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka, adjustmentTaka, adjustmentNote, taxRate, at: Date.now() },
+      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka: Math.round(discountPaisa / 100), adjustmentTaka: Math.round(adjustmentPaisa / 100), adjustmentNote, taxRate, at: Date.now() },
     ]);
     resetSale();
   }
@@ -331,8 +344,11 @@ export default function PosSellView() {
     setCustPhone(hc.customerPhone);
     setCustNew(!!hc.customerName.trim());
     setIsGift(hc.isGift);
-    setDiscountTaka(hc.discountTaka);
-    setAdjustmentTaka(hc.adjustmentTaka);
+    setDiscountMode("amt");
+    setDiscountInput(hc.discountTaka);
+    setAdjSign(hc.adjustmentTaka < 0 ? -1 : 1);
+    setAdjustmentTaka(Math.abs(hc.adjustmentTaka));
+    setShowCharge(hc.adjustmentTaka !== 0);
     setAdjustmentNote(hc.adjustmentNote);
     setTaxRate(hc.taxRate);
     // a resumed cart starts with one payment line again, not whatever was half-typed
@@ -651,96 +667,75 @@ export default function PosSellView() {
               </div>
             )}
 
-            {/*  PAYMENT — rebuilt again 20 Aug on the owner's second look:
-                 "full ar partial uthaia daw… jokhon full payment krbe na tokhonei
-                 atkaia dibe customer name number ar jonno."
-
-                 So there is no mode to choose any more. Money is taken, one method
-                 at a time, as many as the customer wants to use. Whatever is left
-                 unpaid IS the due, and a due is the thing that needs a name and a
-                 number — asked for exactly then, and never otherwise.  */}
+            {/*  THE MONEY BLOCK — laid out the way the owner's reference does it
+                 (21 Aug): one thing per row, its name on the left, the control on
+                 the right, and the taka it comes to at the end of that same row.
+                 Nothing sits side by side fighting for width, so nothing gets
+                 squeezed however narrow the panel is.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
-              {/*  Money on the left in a box big enough to read across a counter;
-                   the two things that BEND the money — discount and adjustment —
-                   standing right beside it, not buried above the cart
-                   (owner, 20 Aug: "ammount lekhar ghor ta clean and boro howa lagbe.
-                   discount and adjustment agula ammount ar ghorer pasei thakbe").  */}
-              <div className="flex gap-2.5 items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Taking now</span>
-                    {duePaisa > 0 && paid > 0 && (
-                      <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
-                        className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
-                        take the rest ({formatTaka(duePaisa)})
-                      </button>
-                    )}
-                  </div>
 
-                  {/*  method on a small line of its own, the amount on a full-width
-                       line under it — a number never gets squeezed by the dropdown
-                       beside it, however narrow the panel gets.  */}
-                  <div className="flex flex-col gap-2">
-                    {pays.map((r) => (
-                      <div key={r.id}
-                        className="rounded-[12px] border border-white/25 bg-white/10 px-2.5 pt-1.5 pb-1 focus-within:border-white/60">
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="bg-transparent border-0 text-[12px] text-[#c9a6e4] outline-none cursor-pointer px-0 py-0"
-                            value={r.method}
-                            onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
-                            {PAY_METHODS.map((m) => <option key={m} value={m} className="text-purple">{m}</option>)}
-                          </select>
-                          {pays.length > 1 && (
-                            <button type="button" onClick={() => removePay(r.id)}
-                              className="ml-auto text-[#c9a6e4] hover:text-[#ff9b9b]" title="Remove this payment">
-                              <Icon name="trash" size={14} />
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[18px] text-[#c9a6e4] shrink-0">৳</span>
-                          <input type="number" min={0} inputMode="numeric"
-                            className="flex-1 min-w-0 w-full h-[42px] bg-transparent border-0 outline-none p-0 text-[26px] font-semibold font-display text-white placeholder:text-white/25"
-                            value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                            onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/*  Three methods is already more than a counter ever needs, and an
-                       empty extra line is worse than none — the owner pressed this
-                       seven times and got seven zero lines (20 Aug).  */}
-                  {pays.length < MAX_PAYS && (
-                    <button type="button"
-                      onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }])}
-                      className="mt-2 w-full text-[12px] font-medium py-1.5 rounded-[10px] border border-dashed border-white/25 text-[#e7d8f2] hover:bg-white/10 inline-flex items-center justify-center gap-1.5">
-                      <Icon name="plus" size={13} /> Pay part of it another way
-                    </button>
-                  )}
-                </div>
-
-                <div className="w-[118px] shrink-0">
-                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1">Discount ৳</label>
-                  <input type="number" min={0} className="ipt h-[34px] text-[13px]" value={discountTaka || ""} placeholder="0"
-                    onChange={(e) => setDiscountTaka(Math.max(0, Number(e.target.value)))} />
-
-                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1 mt-2">Adjust ৳ ±</label>
-                  <input type="number" className="ipt h-[34px] text-[13px]" value={adjustmentTaka || ""} placeholder="0"
-                    onChange={(e) => setAdjustmentTaka(Number(e.target.value))} />
-
-                  <label className="block text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1 mt-2">VAT</label>
-                  <select className="ipt h-[32px] text-[12px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
-                    {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
-                  </select>
-                </div>
+              <div className="flex items-center gap-2 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Subtotal</span>
+                <span className="text-[13.5px] font-medium">{formatTaka(subtotal)}</span>
               </div>
 
-              {adjustmentPaisa !== 0 && (
-                <input className="ipt h-[32px] text-[12.5px] mt-2" placeholder="Why the adjustment? (round-off, extra ribbon…)"
-                  value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
+              {/*  a discount is said out loud either way — "ten percent" or
+                   "fifty taka off" — so the box takes both  */}
+              <div className="flex items-center gap-2 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Discount</span>
+                <input type="number" min={0} className="ipt h-[36px] w-[72px] text-[13px] text-right"
+                  value={discountInput || ""} placeholder="0"
+                  onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
+                <select className="ipt h-[36px] w-[56px] text-[12.5px]" value={discountMode}
+                  onChange={(e) => setDiscountMode(e.target.value as "amt" | "pct")}>
+                  <option value="amt">৳</option>
+                  <option value="pct">%</option>
+                </select>
+                <span className="w-[76px] text-right text-[12.5px] shrink-0 text-[#7fe0a8]">
+                  {discountPaisa > 0 ? `− ${formatTaka(discountPaisa)}` : "—"}
+                </span>
+              </div>
+
+              {!showCharge ? (
+                <button type="button" onClick={() => setShowCharge(true)}
+                  className="my-1 text-[12px] font-medium text-[#e7d8f2] border border-white/25 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 hover:bg-white/10">
+                  <Icon name="plus" size={12} /> Add additional charge
+                </button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 py-1">
+                    <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Adjustment</span>
+                    <select className="ipt h-[36px] w-[56px] text-[13px]" value={adjSign}
+                      onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
+                      <option value={1}>+</option>
+                      <option value={-1}>−</option>
+                    </select>
+                    <input type="number" min={0} className="ipt h-[36px] w-[72px] text-[13px] text-right"
+                      value={adjustmentTaka || ""} placeholder="0"
+                      onChange={(e) => setAdjustmentTaka(Math.abs(Number(e.target.value)))} />
+                    <span className="w-[76px] text-right text-[12.5px] shrink-0">
+                      {adjustmentPaisa !== 0 ? `${adjustmentPaisa < 0 ? "− " : "+ "}${formatTaka(Math.abs(adjustmentPaisa))}` : "—"}
+                    </span>
+                  </div>
+                  {adjustmentPaisa !== 0 && (
+                    <input className="ipt h-[34px] text-[12.5px] mb-1" placeholder="What is this charge for? (round-off, extra ribbon…)"
+                      value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
+                  )}
+                </>
               )}
+
+              <div className="flex items-center gap-2 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">VAT / Tax</span>
+                <select className="ipt h-[36px] w-[134px] text-[12.5px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
+                  {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
+                </select>
+                <span className="w-[76px] text-right text-[12.5px] shrink-0">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "—"}</span>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-white/15 mt-1.5 pt-2.5">
+                <span className="text-[13.5px] font-semibold text-white">Grand Total</span>
+                <span className="text-[25px] font-semibold font-display leading-none">{formatTaka(total)}</span>
+              </div>
 
               {needsApproval && (
                 <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }}
@@ -752,29 +747,59 @@ export default function PosSellView() {
                 <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Discount approved</div>
               )}
 
-            </div>
-
-            </div>
-
-            {/*  THE PINNED FOOT — only three things live here: what the bill is,
-                 where the money stands, and the button. Everything that can grow
-                 (lines, payment rows) scrolls above it, so no amount of anything
-                 can push Complete off the screen.  */}
-            <div className="p-4 pt-3 border-t border-white/15 shrink-0">
-              <div className="flex items-end justify-between gap-3">
-                <div className="text-[11.5px] text-[#a98ac4] leading-[1.6] min-w-0">
-                  <div>Subtotal {formatTaka(subtotal)}</div>
-                  {discountPaisa > 0 && <div className="text-[#7fe0a8]">Discount − {formatTaka(discountPaisa)} · {discountPct.toFixed(0)}%</div>}
-                  {adjustmentPaisa !== 0 && <div>Adjustment {adjustmentPaisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustmentPaisa))}</div>}
-                  {vatPaisa > 0 && <div>VAT {taxRate}% + {formatTaka(vatPaisa)}</div>}
+              {/*  as many methods as the customer wants to use — the list scrolls,
+                   it never pushes anything off the screen (owner, 21 Aug)  */}
+              <div className="mt-3 pt-3 border-t border-white/15">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[12.5px] text-[#c9a6e4] font-medium">Payment method</span>
+                  {duePaisa > 0 && paid > 0 && (
+                    <button type="button" onClick={() => setPayAmt(pays[pays.length - 1].id, pays[pays.length - 1].amountPaisa + duePaisa)}
+                      className="text-[11.5px] text-[#c9a6e4] underline hover:text-white">
+                      take the rest ({formatTaka(duePaisa)})
+                    </button>
+                  )}
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Total</div>
-                  <div className="text-white font-semibold text-[27px] font-display leading-[1.1]">{formatTaka(total)}</div>
+
+                <div className="flex flex-col gap-2 max-h-[184px] overflow-auto">
+                  {pays.map((r) => (
+                    <div key={r.id} className="flex items-center gap-2">
+                      <select className="ipt h-[44px] flex-1 min-w-0 text-[13px]" value={r.method}
+                        onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
+                        {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <span className="relative w-[112px] shrink-0">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
+                        <input type="number" min={0} inputMode="numeric"
+                          className="ipt h-[44px] w-full text-[17px] font-semibold text-right"
+                          style={{ paddingLeft: 24 }}
+                          value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                          onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
+                      </span>
+                      <button type="button" onClick={() => removePay(r.id)}
+                        className={"text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0 " + (pays.length > 1 ? "" : "invisible")}
+                        title="Remove this payment">
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+
+                <button type="button"
+                  onClick={() => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: "Cash", amountPaisa: 0 }])}
+                  className="mt-2 text-[12px] font-medium text-[#e7d8f2] border border-white/25 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 hover:bg-white/10">
+                  <Icon name="plus" size={12} /> Add payment method
+                </button>
               </div>
+            </div>
 
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px] mt-2 pt-2 border-t border-white/10">
+            </div>
+
+            {/*  THE PINNED FOOT — where the money stands, and the button. Everything
+                 that can grow (cart lines, payment rows) scrolls above it, so no
+                 amount of anything can push Complete off the screen. The bill's own
+                 arithmetic lives in the money block above; only the answer is here.  */}
+            <div className="p-4 pt-3 border-t border-white/15 shrink-0">
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px]">
                 <span className="text-[#c9a6e4]">Paid <b className="text-white font-medium">{formatTaka(paid)}</b></span>
                 {duePaisa > 0 && <span className="text-[#f0b46a] font-medium">Due {formatTaka(duePaisa)}</span>}
                 {changePaisa > 0 && <span className="text-[#7fe0a8] font-medium">Change {formatTaka(changePaisa)}</span>}
