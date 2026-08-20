@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel } from "../_data/api";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers } from "../_data/api";
 import { MoneyBlock, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
@@ -166,6 +166,23 @@ export default function PosSellView() {
   const [custQ, setCustQ] = useState("");
   const [isGift, setIsGift] = useState(false);
 
+  /*  DEC-POS-020 (owner, 21 Aug) — a bill says when it was written, who wrote it
+      and anything the shop wants remembered about it.  */
+  const today = new Date().toISOString().slice(0, 10);
+  const [saleDate, setSaleDate] = useState(today);
+  const [note, setNote] = useState("");
+  const [me, setMe] = useState<ApiMe | null>(null);
+  const [staff, setStaff] = useState<ApiAppUser[]>([]);
+  const [soldBy, setSoldBy] = useState("");
+  /** only an owner or a manager may put another name on the bill */
+  const mayChangeSeller = me?.role === "OWNER" || me?.role === "MANAGER";
+  useEffect(() => {
+    meCached()
+      .then((u) => { setMe(u); setSoldBy((cur) => cur || u.name); })
+      .catch(() => {});
+    listAppUsers().then((u) => setStaff(u.filter((x) => x.isActive !== false))).catch(() => setStaff([]));
+  }, []);
+
   /*  DEC-POS-019 (owner, 21 Aug) — the counter is not only walk-ins. The same
       staff sells over Facebook, WhatsApp and the phone and the money lands in the
       same drawer, so the sale says which channel brought it in.  */
@@ -283,6 +300,8 @@ export default function PosSellView() {
     setDiscountMode("amt");
     setApproved(false);
     setCharges([]);
+    setNote("");
+    setSaleDate(new Date().toISOString().slice(0, 10));
     setAdjSign(1);
     setAdjustmentTaka(0);
     setTaxRate(0);
@@ -328,6 +347,9 @@ export default function PosSellView() {
         customerPhone: custPhone || undefined,
         isGift,
         channelId: channelId || undefined,
+        saleDate: saleDate ? new Date(`${saleDate}T12:00:00`).toISOString() : undefined,
+        salespersonName: soldBy || undefined,
+        note: note.trim() || undefined,
         lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
@@ -387,14 +409,15 @@ export default function PosSellView() {
              (DEC-POS-019, owner 21 Aug). The receipt number is the server's to
              give, so it is shown as what it is until the sale is saved.  */}
         <div className={cardCls + " p-4"}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             <div>
               <label className={labelCls}>Bill no</label>
               <div className="ipt flex items-center text-body-soft" style={{ background: "#f6f2fa" }}>Auto — on save</div>
             </div>
             <div>
               <label className={labelCls}>Date</label>
-              <div className="ipt flex items-center">{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+              <input type="date" className="ipt" value={saleDate} max={today}
+                onChange={(e) => setSaleDate(e.target.value || today)} />
             </div>
             <div>
               <label className={labelCls}>Sales channel</label>
@@ -402,6 +425,77 @@ export default function PosSellView() {
                 {channels.length === 0 && <option value="">Counter</option>}
                 {channels.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </select>
+            </div>
+            <div>
+              <label className={labelCls}>Sold by</label>
+              {mayChangeSeller ? (
+                <select className="ipt" value={soldBy} onChange={(e) => setSoldBy(e.target.value)}>
+                  {me && !staff.some((u) => u.name === me.name) && <option value={me.name}>{me.name}</option>}
+                  {staff.map((u) => (<option key={u.id} value={u.name}>{u.name}</option>))}
+                </select>
+              ) : (
+                <div className="ipt flex items-center text-body-soft" style={{ background: "#f6f2fa" }}>{soldBy || "—"}</div>
+              )}
+            </div>
+          </div>
+
+          {/*  the customer belongs on the bill, next to its date and its seller —
+               not in the money panel (owner, 21 Aug)  */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 mt-3">
+            <div>
+              <label className={labelCls}>Customer</label>
+              {selectedCust ? (
+                <div className="flex items-center gap-2 flex-wrap bg-[#e6f4ec] border border-[#bfe3cd] rounded-[10px] px-3 py-2.5">
+                  <Icon name="user" size={15} />
+                  <span className="text-[12.5px] text-[#2e7d5b] min-w-0"><b className="font-medium">{selectedCust.name}</b> · {selectedCust.phone} · {selectedCust.ordersCount} orders · LTV {formatTaka(selectedCust.ltvPaisa)}</span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-white border border-[#bfe3cd] text-[#2e7d5b] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#dff0e6]"><Icon name="phone" size={13} /> Call</a>
+                    <button type="button" onClick={clearCustomer} className="text-[12.5px] text-[#2e7d5b] underline">Change</button>
+                  </div>
+                </div>
+              ) : custNew ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#e0a1a1] bg-[#fdf4f4]" : "")} placeholder={needsCustomer ? "Name required for due" : "New customer name"} value={custName} onChange={(e) => setCustName(e.target.value)} />
+                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#e0a1a1] bg-[#fdf4f4]" : "")} placeholder="Phone" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
+                  </div>
+                  <button type="button" onClick={() => { setCustNew(false); setCustName(""); setCustPhone(""); }} className="text-[12px] text-purple font-medium mt-1.5 inline-flex items-center gap-1"><Icon name="chevronLeft" size={12} /> Pick an existing customer instead</button>
+                </>
+              ) : (
+                <div className="relative">
+                  <button type="button" onClick={() => setCustOpen((o) => !o)} className={"h-[42px] w-full flex items-center justify-between text-left rounded-[10px] px-3 border " + (needsCustomer ? "bg-[#fdf4f4] border-[#e0a1a1] text-[#b45309]" : "bg-white border-lavender-deep text-body")}>
+                    <span className="inline-flex items-center gap-1.5 text-[12.5px]"><Icon name="user" size={15} /> {needsCustomer ? "Choose customer (required for due)" : "Walk-in — search customer (optional)"}</span>
+                    <Icon name="chevronDown" size={16} />
+                  </button>
+                  {custOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" {...backdropClose(() => setCustOpen(false))} />
+                      <div className="absolute z-40 mt-1 left-0 right-0 bg-white border border-lavender-deep rounded-[12px] shadow-lift overflow-hidden">
+                        <div className="p-2 border-b border-lavender-deep">
+                          <input autoFocus className="ipt h-[38px]" placeholder="Search name or phone…" value={custQ} onChange={(e) => setCustQ(e.target.value)} />
+                        </div>
+                        <div className="max-h-[240px] overflow-auto">
+                          {custList.slice(0, 40).map((c) => (
+                            <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-lavender/60 border-b border-lavender-deep last:border-0">
+                              <button type="button" onClick={() => pickCustomer(c)} className="text-left min-w-0 flex-1">
+                                <div className="text-[13px] text-purple font-medium truncate">{c.name} <span className="text-body-soft font-normal">({c.phone})</span></div>
+                                <div className="text-[12px] text-body-soft">{c.ordersCount} orders · LTV {formatTaka(c.ltvPaisa)}</div>
+                              </button>
+                              <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="shrink-0 inline-flex items-center gap-1 text-[12px] text-purple border border-lavender-deep rounded-[8px] px-2.5 py-1.5 hover:border-orchid-mid"><Icon name="phone" size={13} /> Call</a>
+                            </div>
+                          ))}
+                          {custList.length === 0 && <div className="px-3 py-3 text-[13px] text-body-soft">No customer matches “{custQ}”.</div>}
+                        </div>
+                        <button type="button" onClick={() => { setCustNew(true); setCustOpen(false); setCustQ(""); }} className="w-full text-left px-3 py-2.5 border-t border-lavender-deep text-purple font-medium text-[13px] inline-flex items-center gap-1.5 hover:bg-lavender/60"><Icon name="plus" size={14} /> Create new customer</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className={labelCls}>Note</label>
+              <input className="ipt" placeholder="Anything to remember about this sale" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>
         </div>
@@ -502,57 +596,8 @@ export default function PosSellView() {
               </div>
             )}
 
-            <div className="mb-3">
-              {selectedCust ? (
-                <div className="flex items-center gap-2 flex-wrap bg-[#e6f4ec] border border-[#bfe3cd] rounded-[10px] px-3 py-2.5">
-                  <Icon name="user" size={15} />
-                  <span className="text-[12.5px] text-[#2e7d5b] min-w-0"><b className="font-medium">{selectedCust.name}</b> · {selectedCust.phone} · {selectedCust.ordersCount} orders · LTV {formatTaka(selectedCust.ltvPaisa)}</span>
-                  <div className="flex items-center gap-2 ml-auto">
-                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-white border border-[#bfe3cd] text-[#2e7d5b] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#dff0e6]"><Icon name="phone" size={13} /> Call</a>
-                    <button type="button" onClick={clearCustomer} className="text-[12.5px] text-[#2e7d5b] underline">Change</button>
-                  </div>
-                </div>
-              ) : custNew ? (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#e0a1a1] bg-[#fdf4f4]" : "")} placeholder={needsCustomer ? "Name required for due" : "New customer name"} value={custName} onChange={(e) => setCustName(e.target.value)} />
-                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#e0a1a1] bg-[#fdf4f4]" : "")} placeholder="Phone" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
-                  </div>
-                  <button type="button" onClick={() => { setCustNew(false); setCustName(""); setCustPhone(""); }} className="text-[12px] text-[#c9a6e4] font-medium mt-1.5 inline-flex items-center gap-1"><Icon name="chevronLeft" size={12} /> Pick an existing customer instead</button>
-                </>
-              ) : (
-                <div className="relative">
-                  <button type="button" onClick={() => setCustOpen((o) => !o)} className={"h-[42px] w-full flex items-center justify-between text-left rounded-[10px] px-3 border " + (needsCustomer ? "bg-[#fdf4f4] border-[#e0a1a1] text-[#b45309]" : "bg-white/10 border-white/25 text-[#e7d8f2]")}>
-                    <span className="inline-flex items-center gap-1.5 text-[12.5px]"><Icon name="user" size={15} /> {needsCustomer ? "Choose customer (required for due)" : "Walk-in — search customer (optional)"}</span>
-                    <Icon name="chevronDown" size={16} />
-                  </button>
-                  {custOpen && (
-                    <>
-                      <div className="fixed inset-0 z-30" {...backdropClose(() => setCustOpen(false))} />
-                      <div className="absolute z-40 mt-1 left-0 right-0 bg-white border border-lavender-deep rounded-[12px] shadow-lift overflow-hidden">
-                        <div className="p-2 border-b border-lavender-deep">
-                          <input autoFocus className="ipt h-[38px]" placeholder="Search name or phone…" value={custQ} onChange={(e) => setCustQ(e.target.value)} />
-                        </div>
-                        <div className="max-h-[240px] overflow-auto">
-                          {custList.slice(0, 40).map((c) => (
-                            <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-lavender/60 border-b border-lavender-deep last:border-0">
-                              <button type="button" onClick={() => pickCustomer(c)} className="text-left min-w-0 flex-1">
-                                <div className="text-[13px] text-purple font-medium truncate">{c.name} <span className="text-body-soft font-normal">({c.phone})</span></div>
-                                <div className="text-[12px] text-body-soft">{c.ordersCount} orders · LTV {formatTaka(c.ltvPaisa)}</div>
-                              </button>
-                              <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="shrink-0 inline-flex items-center gap-1 text-[12px] text-purple border border-lavender-deep rounded-[8px] px-2.5 py-1.5 hover:border-orchid-mid"><Icon name="phone" size={13} /> Call</a>
-                            </div>
-                          ))}
-                          {custList.length === 0 && <div className="px-3 py-3 text-[13px] text-body-soft">No customer matches “{custQ}”.</div>}
-                        </div>
-                        <button type="button" onClick={() => { setCustNew(true); setCustOpen(false); setCustQ(""); }} className="w-full text-left px-3 py-2.5 border-t border-lavender-deep text-purple font-medium text-[13px] inline-flex items-center gap-1.5 hover:bg-lavender/60"><Icon name="plus" size={14} /> Create new customer</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
-            </div>
+
 
             {/*  THE MONEY BLOCK — CLAUDE.md §14. Since the bill's items moved out
                  to the white table under the catalogue (owner, 21 Aug), this panel

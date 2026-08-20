@@ -2237,6 +2237,11 @@ model Order {
 
   internalNote String?
 
+  /// DEC-POS-020 (owner, 21 Aug) - who sold it. Defaults to whoever is signed in;
+  /// a manager may put another name on the bill. A snapshot, not an FK: staff
+  /// come and go and the receipt must still read the same in five years.
+  salespersonName String?
+
   // Finance (DEC-FIN-024) - set once the revenue entry is posted; editing or
   // soft-deleting a stamped order MUST raise an adjusting entry (FIN-RULE-022).
   financePostedAt DateTime?

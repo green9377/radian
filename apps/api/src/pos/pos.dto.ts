@@ -62,6 +62,13 @@ export interface CreatePosSaleDto {
    */
   channelId?: string;
 
+  /** DEC-POS-020 — the bill's own date; today when empty, never the future */
+  saleDate?: string;
+  /** DEC-POS-020 — who sold it; whoever is signed in when empty */
+  salespersonName?: string;
+  /** DEC-POS-020 — a line of words about this sale, kept on the order */
+  note?: string;
+
   lines: PosSaleLineDto[];
 
   discountPaisa?: number;

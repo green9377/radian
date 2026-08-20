@@ -627,6 +627,11 @@ export class PosService {
     const customer = await this.resolveCustomer(dto);
     /*  DEC-POS-019 — the cashier says which channel this sale came through; the
         counter's own channel is the default when nothing is picked.  */
+    /*  DEC-POS-020 — a bill may be dated back, never forward.  */
+    const saleDate = dto.saleDate ? new Date(dto.saleDate) : new Date();
+    if (Number.isNaN(saleDate.getTime())) throw new BadRequestException('That date cannot be read');
+    if (saleDate.getTime() > Date.now() + 60_000) throw new BadRequestException('A bill cannot be dated in the future');
+
     const channelId = dto.channelId
       ? (await this.prisma.db.channel.findFirst({ where: { id: dto.channelId, isActive: true }, select: { id: true } }))?.id
         ?? (() => { throw new BadRequestException('That sales channel is switched off'); })()
@@ -640,6 +645,12 @@ export class PosService {
       const created = await tx.order.create({
         data: {
           orderNo,
+          /*  DEC-POS-020 — the bill's own date. A counter sale is normally now,
+              but a bill written up the next morning must be able to say which
+              day it belongs to. The future is refused above; the drawer and the
+              shift stay with today either way.  */
+          placedAt: saleDate,
+          ...({ salespersonName: dto.salespersonName?.trim() || actorName } as object),
           channel: { connect: { id: channelId } },
           customer: { connect: { id: customer.id } },
           senderName: customer.name,
@@ -662,7 +673,9 @@ export class PosService {
           vatPaisa,
           taxRateBps,
           totalPaisa,
-          internalNote: dto.adjustmentNote,
+          /*  the charge names (DEC-POS-015) and the cashier's own words about
+              this sale (DEC-POS-020) both belong on the bill  */
+          internalNote: [dto.note?.trim(), dto.adjustmentNote?.trim()].filter(Boolean).join(" · ") || null,
           lines: { create: lineData },
         },
         include: { lines: true },

@@ -4062,6 +4062,12 @@ export interface PosSaleInput {
   isGift?: boolean;
   /** DEC-POS-019 — which channel brought the sale in; empty = the counter itself */
   channelId?: string;
+  /** DEC-POS-020 — the bill's own date (ISO); today when empty, never the future */
+  saleDate?: string;
+  /** DEC-POS-020 — who sold it; whoever is signed in when empty */
+  salespersonName?: string;
+  /** DEC-POS-020 — the shop's own words about this sale */
+  note?: string;
   /** DEC-POS-018 — the counter sells items; productId is only the legacy path */
   lines: { itemId?: string; productId?: string; qty: number; unitPaisa?: number }[];
   discountPaisa?: number; discountApprovedBy?: string;
