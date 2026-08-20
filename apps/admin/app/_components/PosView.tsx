@@ -674,24 +674,24 @@ export default function PosSellView() {
                  squeezed however narrow the panel is.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
 
-              <div className="flex items-center gap-2 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Subtotal</span>
+              <div className="flex items-center gap-1.5 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Subtotal</span>
                 <span className="text-[13.5px] font-medium">{formatTaka(subtotal)}</span>
               </div>
 
               {/*  a discount is said out loud either way — "ten percent" or
                    "fifty taka off" — so the box takes both  */}
-              <div className="flex items-center gap-2 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Discount</span>
-                <input type="number" min={0} className="ipt h-[36px] w-[72px] text-[13px] text-right"
+              <div className="flex items-center gap-1.5 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Discount</span>
+                <input type="number" min={0} className="ipt h-[36px] w-[62px] shrink-0 text-[13px] text-right"
                   value={discountInput || ""} placeholder="0"
                   onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
-                <select className="ipt h-[36px] w-[56px] text-[12.5px]" value={discountMode}
+                <select className="ipt h-[36px] w-[50px] shrink-0 text-[12.5px]" value={discountMode}
                   onChange={(e) => setDiscountMode(e.target.value as "amt" | "pct")}>
                   <option value="amt">৳</option>
                   <option value="pct">%</option>
                 </select>
-                <span className="w-[76px] text-right text-[12.5px] shrink-0 text-[#7fe0a8]">
+                <span className="w-[64px] text-right text-[12px] shrink-0 text-[#7fe0a8]">
                   {discountPaisa > 0 ? `− ${formatTaka(discountPaisa)}` : "—"}
                 </span>
               </div>
@@ -703,17 +703,17 @@ export default function PosSellView() {
                 </button>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 py-1">
-                    <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">Adjustment</span>
-                    <select className="ipt h-[36px] w-[56px] text-[13px]" value={adjSign}
+                  <div className="flex items-center gap-1.5 py-1">
+                    <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Adjustment</span>
+                    <select className="ipt h-[36px] w-[50px] shrink-0 text-[13px]" value={adjSign}
                       onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
                       <option value={1}>+</option>
                       <option value={-1}>−</option>
                     </select>
-                    <input type="number" min={0} className="ipt h-[36px] w-[72px] text-[13px] text-right"
+                    <input type="number" min={0} className="ipt h-[36px] w-[62px] shrink-0 text-[13px] text-right"
                       value={adjustmentTaka || ""} placeholder="0"
                       onChange={(e) => setAdjustmentTaka(Math.abs(Number(e.target.value)))} />
-                    <span className="w-[76px] text-right text-[12.5px] shrink-0">
+                    <span className="w-[64px] text-right text-[12px] shrink-0">
                       {adjustmentPaisa !== 0 ? `${adjustmentPaisa < 0 ? "− " : "+ "}${formatTaka(Math.abs(adjustmentPaisa))}` : "—"}
                     </span>
                   </div>
@@ -724,12 +724,12 @@ export default function PosSellView() {
                 </>
               )}
 
-              <div className="flex items-center gap-2 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0">VAT / Tax</span>
-                <select className="ipt h-[36px] w-[134px] text-[12.5px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
+              <div className="flex items-center gap-1.5 py-1">
+                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">VAT</span>
+                <select className="ipt h-[36px] w-[112px] shrink-0 text-[12.5px]" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
                   {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
                 </select>
-                <span className="w-[76px] text-right text-[12.5px] shrink-0">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "—"}</span>
+                <span className="w-[64px] text-right text-[12px] shrink-0">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "—"}</span>
               </div>
 
               <div className="flex items-center justify-between border-t border-white/15 mt-1.5 pt-2.5">
