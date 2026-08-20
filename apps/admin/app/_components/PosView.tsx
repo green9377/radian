@@ -40,6 +40,7 @@ const TAX_RATES = [
   { label: "VAT 15%", value: 15 },
 ];
 
+type AdjDoor = "discount" | "charge" | "vat";
 type PayMethod = "Cash" | "bKash" | "Nagad" | "Card";
 const PAY_METHODS: PayMethod[] = ["Cash", "bKash", "Nagad", "Card"];
 
@@ -201,6 +202,8 @@ export default function PosSellView() {
       or "take fifty taka off" — so the box takes either and the taka it works out
       to is shown beside it.  */
   const [discountMode, setDiscountMode] = useState<"amt" | "pct">("amt");
+  /** which of the three little doors under the total is open, if any */
+  const [openAdj, setOpenAdj] = useState<AdjDoor | null>(null);
   const [discountInput, setDiscountInput] = useState<number>(0);
   const [approved, setApproved] = useState(false);
   const [showPin, setShowPin] = useState(false);
@@ -208,7 +211,6 @@ export default function PosSellView() {
   const [pinErr, setPinErr] = useState(false);
 
   // ---- adjustment (DEC-POS-015) + VAT (DEC-POS-016) ----
-  const [showCharge, setShowCharge] = useState(false);
   const [adjSign, setAdjSign] = useState<1 | -1>(1);
   const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
   const [adjustmentNote, setAdjustmentNote] = useState("");
@@ -321,7 +323,7 @@ export default function PosSellView() {
     setDiscountInput(0);
     setDiscountMode("amt");
     setApproved(false);
-    setShowCharge(false);
+    setOpenAdj(null);
     setAdjSign(1);
     setAdjustmentTaka(0);
     setAdjustmentNote("");
@@ -348,7 +350,6 @@ export default function PosSellView() {
     setDiscountInput(hc.discountTaka);
     setAdjSign(hc.adjustmentTaka < 0 ? -1 : 1);
     setAdjustmentTaka(Math.abs(hc.adjustmentTaka));
-    setShowCharge(hc.adjustmentTaka !== 0);
     setAdjustmentNote(hc.adjustmentNote);
     setTaxRate(hc.taxRate);
     // a resumed cart starts with one payment line again, not whatever was half-typed
@@ -613,53 +614,50 @@ export default function PosSellView() {
                 <div className="border border-dashed border-white/20 rounded-[12px] py-8 px-6 text-center text-[13px] text-[#c9a6e4]">Tap an item to add it here.</div>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 mb-3">
+              <div className="flex flex-col gap-1.5 mb-3">
                 {lines.map((l) => (
-                  /*  One line, two rows: WHAT it is on top, WHAT IT COSTS THE CUSTOMER
-                      underneath. The old single row had the price box, the word "each",
-                      the cost note, the stepper and the total all fighting for the same
-                      strip and none of them readable (owner, 20 Aug).  */
-                  <div key={l.key} className="rounded-[12px] px-2.5 py-2" style={{ background: "rgba(255,255,255,.06)" }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-[34px] h-[34px] rounded-[9px] shrink-0"
+                  /*  One tight strip per line (owner, 21 Aug: make it smaller and
+                      cleaner): what it is and what it comes to on top, the price
+                      and the count underneath in small controls. Nothing here is
+                      bigger than it has to be — the money that matters is the
+                      grand total below.  */
+                  <div key={l.key} className="rounded-[10px] px-2 py-1.5" style={{ background: "rgba(255,255,255,.06)" }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-[26px] h-[26px] rounded-[7px] shrink-0"
                         style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-medium text-[#f0e3fa] truncate">{l.product.name}</div>
-                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && (
-                          <div className="text-[11px] text-[#a98ac4]">cost {formatTaka(l.product.costPaisa)}</div>
-                        )}
-                      </div>
-                      <div className="text-[13.5px] font-semibold shrink-0">{formatTaka(l.unitPaisa * l.qty)}</div>
+                      <div className="text-[12.5px] font-medium text-[#f0e3fa] truncate flex-1 min-w-0">{l.product.name}</div>
+                      <div className="text-[13px] font-semibold shrink-0">{formatTaka(l.unitPaisa * l.qty)}</div>
                       <button type="button" onClick={() => remove(l.key)}
                         className="text-[#c9a6e4] hover:text-[#ff9b9b] shrink-0" title="Remove">
-                        <Icon name="trash" size={15} />
+                        <Icon name="trash" size={14} />
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-1.5 mt-1 pl-[34px]">
                       {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
                       <span className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-[#c9a6e4]">৳</span>
+                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-[#c9a6e4]">৳</span>
                         <input type="number" min={0}
-                          className="bg-white/10 border border-white/20 rounded-[8px] h-[30px] w-[92px] pl-5 pr-2 text-[12.5px] text-white"
+                          className="bg-white/10 border border-white/20 rounded-[7px] h-[26px] w-[74px] pl-4 pr-1.5 text-[12px] text-white"
                           value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
                           placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
                           onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
                       </span>
-                      <span className="text-[12px] text-[#c9a6e4]">×</span>
-                      <div className="flex items-center border border-white/25 rounded-[8px] overflow-hidden">
-                        <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">–</button>
-                        <span className="w-[30px] text-center text-[13px] font-medium">{l.qty}</span>
-                        <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[26px] h-[30px] text-[#e7d8f2] hover:bg-white/10">+</button>
+                      <span className="text-[11px] text-[#a98ac4]">×</span>
+                      <div className="flex items-center border border-white/25 rounded-[7px] overflow-hidden">
+                        <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[22px] h-[26px] text-[#e7d8f2] hover:bg-white/10 text-[13px]">–</button>
+                        <span className="w-[24px] text-center text-[12px] font-medium">{l.qty}</span>
+                        <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[22px] h-[26px] text-[#e7d8f2] hover:bg-white/10 text-[13px]">+</button>
                       </div>
-                      {l.product.stockQty !== null && (
-                        <span className="text-[11px] text-[#a98ac4] ml-auto">{l.product.stockQty} in stock</span>
-                      )}
+                      <span className="text-[10.5px] text-[#a98ac4] ml-auto truncate">
+                        {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && <>cost {formatTaka(l.product.costPaisa)}</>}
+                        {l.product.stockQty !== null && <> · {l.product.stockQty} left</>}
+                      </span>
                     </div>
 
                     {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
-                      <div className="text-[11px] text-[#ff9b9b] mt-1.5">
-                        Cannot go under {formatTaka(l.product.floorPricePaisa)} — that is this item's minimum.
+                      <div className="text-[11px] text-[#ff9b9b] mt-1 pl-[34px]">
+                        Cannot go under {formatTaka(l.product.floorPricePaisa)}.
                       </div>
                     )}
                   </div>
@@ -667,77 +665,83 @@ export default function PosSellView() {
               </div>
             )}
 
-            {/*  THE MONEY BLOCK — laid out the way the owner's reference does it
-                 (21 Aug): one thing per row, its name on the left, the control on
-                 the right, and the taka it comes to at the end of that same row.
-                 Nothing sits side by side fighting for width, so nothing gets
-                 squeezed however narrow the panel is.  */}
+            {/*  THE MONEY BLOCK — option D, picked by the owner (21 Aug): the bill
+                 is the loudest thing on the panel, and everything that BENDS it —
+                 discount, extra charge, VAT — sits underneath it as three small
+                 doors that open only when they are needed. Nothing above the total,
+                 nothing big that is not money the customer pays.  */}
             <div className="border-t border-white/15 mt-3 pt-3">
 
-              <div className="flex items-center gap-1.5 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Subtotal</span>
-                <span className="text-[13.5px] font-medium">{formatTaka(subtotal)}</span>
+              <div className="text-center">
+                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Grand total</div>
+                <div className="text-white font-semibold font-display text-[34px] leading-[1.15]">{formatTaka(total)}</div>
+                {(discountPaisa > 0 || adjustmentPaisa !== 0 || vatPaisa > 0) && (
+                  <div className="text-[11px] text-[#a98ac4] mt-0.5">
+                    {formatTaka(subtotal)}
+                    {discountPaisa > 0 && <span className="text-[#7fe0a8]"> − {formatTaka(discountPaisa)}</span>}
+                    {adjustmentPaisa !== 0 && <span> {adjustmentPaisa < 0 ? "−" : "+"} {formatTaka(Math.abs(adjustmentPaisa))}</span>}
+                    {vatPaisa > 0 && <span> + VAT {taxRate}% {formatTaka(vatPaisa)}</span>}
+                  </div>
+                )}
               </div>
 
-              {/*  a discount is said out loud either way — "ten percent" or
-                   "fifty taka off" — so the box takes both.
-                   NOTE: .ipt sets width:100% and loads after Tailwind, so w-[64px]
-                   is silently ignored on these — the width has to be inline.  */}
-              <div className="flex items-center gap-1.5 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Discount</span>
-                <input type="number" min={0} className="ipt h-[36px] shrink-0 text-[13px] text-right" style={{ width: 64 }}
-                  value={discountInput || ""} placeholder="0"
-                  onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
-                <select className="ipt h-[36px] shrink-0 text-[12.5px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }} value={discountMode}
-                  onChange={(e) => setDiscountMode(e.target.value as "amt" | "pct")}>
-                  <option value="amt">৳</option>
-                  <option value="pct">%</option>
-                </select>
-                <span className="w-[64px] text-right text-[12px] shrink-0 text-[#7fe0a8]">
-                  {discountPaisa > 0 ? `− ${formatTaka(discountPaisa)}` : "—"}
-                </span>
+              <div className="flex items-center justify-center gap-2 mt-2.5">
+                {([["discount", "Discount", discountPaisa > 0], ["charge", "Charge", adjustmentPaisa !== 0], ["vat", "VAT", vatPaisa > 0]] as [AdjDoor, string, boolean][]).map(([id, label, on]) => (
+                  <button key={id} type="button"
+                    onClick={() => setOpenAdj((o) => (o === id ? null : id))}
+                    className={"text-[12px] px-3 py-1.5 rounded-full border font-medium " + (on ? "bg-white/20 border-white/50 text-white" : openAdj === id ? "bg-white/10 border-white/45 text-white" : "border-white/25 text-[#e7d8f2] hover:bg-white/10")}>
+                    {label}
+                  </button>
+                ))}
               </div>
 
-              {!showCharge ? (
-                <button type="button" onClick={() => setShowCharge(true)}
-                  className="my-1 text-[12px] font-medium text-[#e7d8f2] border border-white/25 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 hover:bg-white/10">
-                  <Icon name="plus" size={12} /> Add additional charge
-                </button>
-              ) : (
-                <>
-                  <div className="flex items-center gap-1.5 py-1">
-                    <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">Adjustment</span>
-                    <select className="ipt h-[36px] shrink-0 text-[13px]" style={{ width: 56, paddingLeft: 8, paddingRight: 4 }} value={adjSign}
-                      onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
+              {openAdj === "discount" && (
+                <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                  {/*  NOTE: .ipt sets width:100% and loads after Tailwind, so a
+                       w-[..] class is silently ignored — widths have to be inline.  */}
+                  <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 78 }}
+                    value={discountInput || ""} placeholder="0" autoFocus
+                    onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value)))} />
+                  <select className="ipt h-[36px] text-[12.5px]" style={{ width: 58, paddingLeft: 8, paddingRight: 4 }}
+                    value={discountMode} onChange={(e) => setDiscountMode(e.target.value === "pct" ? "pct" : "amt")}>
+                    <option value="amt">৳</option>
+                    <option value="pct">%</option>
+                  </select>
+                  <span className="text-[12px] text-[#7fe0a8] min-w-[70px]">{discountPaisa > 0 ? `− ${formatTaka(discountPaisa)}` : "off the bill"}</span>
+                </div>
+              )}
+
+              {openAdj === "charge" && (
+                <div className="mt-2.5">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <select className="ipt h-[36px] text-[13px]" style={{ width: 58, paddingLeft: 8, paddingRight: 4 }}
+                      value={adjSign} onChange={(e) => setAdjSign(Number(e.target.value) === -1 ? -1 : 1)}>
                       <option value={1}>+</option>
                       <option value={-1}>−</option>
                     </select>
-                    <input type="number" min={0} className="ipt h-[36px] shrink-0 text-[13px] text-right" style={{ width: 64 }}
-                      value={adjustmentTaka || ""} placeholder="0"
+                    <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 78 }}
+                      value={adjustmentTaka || ""} placeholder="0" autoFocus
                       onChange={(e) => setAdjustmentTaka(Math.abs(Number(e.target.value)))} />
-                    <span className="w-[64px] text-right text-[12px] shrink-0">
-                      {adjustmentPaisa !== 0 ? `${adjustmentPaisa < 0 ? "− " : "+ "}${formatTaka(Math.abs(adjustmentPaisa))}` : "—"}
+                    <span className="text-[12px] text-[#c9a6e4] min-w-[70px]">
+                      {adjustmentPaisa !== 0 ? `${adjustmentPaisa < 0 ? "−" : "+"} ${formatTaka(Math.abs(adjustmentPaisa))}` : "on the bill"}
                     </span>
                   </div>
                   {adjustmentPaisa !== 0 && (
-                    <input className="ipt h-[34px] text-[12.5px] mb-1" placeholder="What is this charge for? (round-off, extra ribbon…)"
+                    <input className="ipt h-[34px] text-[12.5px] mt-2" placeholder="What is this charge for?"
                       value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} />
                   )}
-                </>
+                </div>
               )}
 
-              <div className="flex items-center gap-1.5 py-1">
-                <span className="text-[12.5px] text-[#c9a6e4] flex-1 min-w-0 truncate">VAT</span>
-                <select className="ipt h-[36px] shrink-0 text-[12.5px]" style={{ width: 112, paddingLeft: 10, paddingRight: 4 }} value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
-                  {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
-                </select>
-                <span className="w-[64px] text-right text-[12px] shrink-0">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "—"}</span>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-white/15 mt-1.5 pt-2.5">
-                <span className="text-[13.5px] font-semibold text-white">Grand Total</span>
-                <span className="text-[25px] font-semibold font-display leading-none">{formatTaka(total)}</span>
-              </div>
+              {openAdj === "vat" && (
+                <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                  <select className="ipt h-[36px] text-[12.5px]" style={{ width: 124, paddingLeft: 10, paddingRight: 4 }}
+                    value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))}>
+                    {TAX_RATES.map((t) => (<option key={t.label} value={t.value}>{t.label}</option>))}
+                  </select>
+                  <span className="text-[12px] text-[#c9a6e4] min-w-[70px]">{vatPaisa > 0 ? `+ ${formatTaka(vatPaisa)}` : "no tax"}</span>
+                </div>
+              )}
 
               {needsApproval && (
                 <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }}
@@ -762,18 +766,18 @@ export default function PosSellView() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 max-h-[184px] overflow-auto">
+                <div className="flex flex-col gap-2 max-h-[168px] overflow-auto">
                   {pays.map((r) => (
                     <div key={r.id} className="flex items-center gap-2">
-                      <select className="ipt h-[44px] flex-1 min-w-0 text-[13px]" value={r.method}
+                      <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
                         onChange={(e) => setPayMethodOf(r.id, e.target.value as PayMethod)}>
                         {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
-                      <span className="relative w-[112px] shrink-0">
+                      <span className="relative shrink-0" style={{ width: 108 }}>
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
                         <input type="number" min={0} inputMode="numeric"
-                          className="ipt h-[44px] w-full text-[17px] font-semibold text-right"
-                          style={{ paddingLeft: 24 }}
+                          className="ipt h-[40px] w-full text-[16px] font-semibold text-right"
+                          style={{ paddingLeft: 22 }}
                           value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
                           onChange={(e) => setPayAmt(r.id, Number(e.target.value) * 100)} />
                       </span>
