@@ -17,7 +17,7 @@ import {
 import { ItemType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
-import { findBuried } from '../common/revive-buried';
+import { claimBuried } from '../common/revive-buried';
 
 /*
   ITEM TYPE master — DEC-ITM-017 (owner's ruling, 21 Jul: "type custom make korar option
@@ -115,9 +115,12 @@ export class ItemTypesService implements OnModuleInit {
     await this.ensureFreeName(name);
 
     /*  a removed type still holds its @unique name — revive it (revive-buried.ts)  */
-    const buried = await findBuried(this.prisma.itemTypeMaster, {
-      name: { equals: name, mode: 'insensitive' },
-    });
+    const buried = await claimBuried(
+      this.prisma.itemTypeMaster,
+      { name: { equals: name, mode: 'insensitive' } },
+      'name',
+      name,
+    );
     if (buried) {
       const revived = await this.prisma.itemTypeMaster.update({
         where: { id: buried.id },

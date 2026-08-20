@@ -255,7 +255,16 @@ export default function ItemColorsView() {
             <div className="flex flex-wrap gap-1.5">
               {PRESET.map((c) => (
                 <button key={c.hex} type="button"
-                  onClick={() => setDlg({ ...dlg, hex: c.hex, label: dlg.label.trim() ? dlg.label : c.label })}
+                  /*  clicking a preset renames too, unless the owner typed a name of
+                      his own (owner, 20 Aug: picked another swatch and the old preset
+                      name stayed, so the row read "Pink" in sky blue)  */
+                  onClick={() => {
+                    const typedOwnName =
+                      dlg.label.trim() !== "" &&
+                      !PRESET.some((p) => p.label.toLowerCase() === dlg.label.trim().toLowerCase());
+                    setDlg({ ...dlg, hex: c.hex, label: typedOwnName ? dlg.label : c.label });
+                    setDlgErr(null);
+                  }}
                   title={`${c.label} · ${c.hex}`}
                   className="w-[30px] h-[30px] rounded-full border-2"
                   style={{ background: c.hex, borderColor: dlg.hex.toLowerCase() === c.hex ? ACCENT : "#efe4f7" }} />

@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
-import { findBuried } from '../common/revive-buried';
+import { claimBuried, stampedName } from '../common/revive-buried';
 
 /*
   ITEM ATTRIBUTE master — DEC-ITM-015 (rev 21 Jul 2026, sobuj).
@@ -86,9 +86,12 @@ export class ItemAttributesService {
     if (dupe) throw new BadRequestException(`"${name}" already exists.`);
 
     /*  Same buried-row trap as addValue (revive-buried.ts).  */
-    const buried = await findBuried(this.prisma.itemAttribute, {
-      name: { equals: name, mode: 'insensitive' },
-    });
+    const buried = await claimBuried(
+      this.prisma.itemAttribute,
+      { name: { equals: name, mode: 'insensitive' } },
+      'name',
+      name,
+    );
     if (buried) {
       const revived = await this.prisma.db.itemAttribute.update({
         where: { id: buried.id },
@@ -156,10 +159,12 @@ export class ItemAttributesService {
     /*  A removed label is soft-deleted, but @@unique([attributeId, label]) counts
         the dead row too — so adding "Pink" again after removing it used to reach
         create() and come back as a raw 500 (owner, 20 Aug). See revive-buried.ts.  */
-    const buried = await findBuried(this.prisma.itemAttributeValue, {
-      attributeId,
-      label: { equals: label, mode: 'insensitive' },
-    });
+    const buried = await claimBuried(
+      this.prisma.itemAttributeValue,
+      { attributeId, label: { equals: label, mode: 'insensitive' } },
+      'label',
+      label,
+    );
     if (buried) {
       const revived = await this.prisma.itemAttributeValue.update({
         where: { id: buried.id },
@@ -191,6 +196,37 @@ export class ItemAttributesService {
   async updateValue(valueId: string, dto: Partial<ValueDto>) {
     const v = await this.prisma.db.itemAttributeValue.findFirst({ where: { id: valueId } });
     if (!v) throw new NotFoundException('Value not found');
+
+    /*  renaming hits the same two walls as adding: a LIVE row with that name
+        (refuse, in words) and a BURIED one holding it hostage (free it)  */
+    const label = dto.label?.trim();
+    if (label && label.toLowerCase() !== v.label.toLowerCase()) {
+      const live = await this.prisma.db.itemAttributeValue.findFirst({
+        where: {
+          attributeId: v.attributeId,
+          label: { equals: label, mode: 'insensitive' },
+          id: { not: valueId },
+        },
+        select: { id: true },
+      });
+      if (live) throw new BadRequestException(`"${label}" is already there.`);
+      await claimBuried(
+        this.prisma.itemAttributeValue,
+        { attributeId: v.attributeId, label: { equals: label, mode: 'insensitive' }, id: { not: valueId } },
+        'label',
+        label,
+      ).then(async (buried) => {
+        /*  the survivor of the graveyard has to give the name up too — it stays
+            readable in history under its stamped name  */
+        if (buried) {
+          await this.prisma.itemAttributeValue.update({
+            where: { id: buried.id },
+            data: { label: stampedName(label, buried) },
+          });
+        }
+      });
+    }
+
     const updated = await this.prisma.db.itemAttributeValue.update({
       where: { id: valueId },
       data: {

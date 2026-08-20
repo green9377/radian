@@ -16,7 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
-import { findBuried } from '../common/revive-buried';
+import { claimBuried } from '../common/revive-buried';
 
 /*
   Unit master (DEC-PRD-009, owner's final call 21 Jul, sobuj).
@@ -164,10 +164,29 @@ export class UnitsService {
     if (baseUnitId) await this.ensureExists(baseUnitId, 'baseUnitId not found');
 
     /*  name and shortCode are @unique across soft-deleted rows too — bring the
-        buried unit back rather than dying on the constraint (revive-buried.ts)  */
-    const buried =
-      (await findBuried(this.prisma.unit, { name: { equals: name, mode: 'insensitive' } })) ??
-      (await findBuried(this.prisma.unit, { shortCode }));
+        buried unit back rather than dying on the constraint (revive-buried.ts).
+        Both columns have to be freed, or the revive collides on the other one.  */
+    const buriedByName = await claimBuried(
+      this.prisma.unit,
+      { name: { equals: name, mode: 'insensitive' } },
+      'name',
+      name,
+    );
+    const buriedByCode = await claimBuried(
+      this.prisma.unit,
+      { shortCode, ...(buriedByName ? { id: { not: buriedByName.id } } : {}) },
+      'shortCode',
+      shortCode,
+    );
+    /*  a dead row holding only the CODE must give it up too — otherwise reviving
+        the name-match dies on shortCode  */
+    if (buriedByName && buriedByCode) {
+      await this.prisma.unit.update({
+        where: { id: buriedByCode.id },
+        data: { shortCode: `${shortCode}-${buriedByCode.id.slice(-4)}` },
+      });
+    }
+    const buried = buriedByName ?? buriedByCode;
     if (buried) {
       await this.prisma.unit.update({
         where: { id: buried.id },
