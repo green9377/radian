@@ -4075,6 +4075,8 @@ export interface ApiPosCatalogueRow {
   pricePaisa: number | null;
   priceIsFixed: boolean;
   floorPricePaisa: number | null;
+  /** null = not counted (a service); otherwise what the shop holds right now */
+  stockQty: number | null;
 }
 export const posCatalogue = (search?: string) =>
   j<ApiPosCatalogueRow[]>(`/pos/catalogue${search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`);

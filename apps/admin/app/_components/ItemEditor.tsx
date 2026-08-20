@@ -1024,14 +1024,23 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               (Returns, Inventory expiry, Orders/POS). The columns stay in the schema. */}
           {section === "behaviour" && (
             <Sect title="How it is used" hint="Set what this item can be used for.">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
-                <SwitchRow on={draft.isPurchasable} onClick={() => set("isPurchasable", !draft.isPurchasable)}
-                  icon="download" tone="#0e8f74"
-                  title="We buy it" sub="Can go on a purchase order" />
-                <SwitchRow on={draft.isSaleable} onClick={() => set("isSaleable", !draft.isSaleable)}
-                  icon="cash" tone="#8b21c9"
-                  title="We sell it" sub="Can sit behind a Product or be sold at the counter" />
-              </div>
+              {/*  ITM-R13 — a service is sold and never bought; the switches would
+                   only be two ways to break it, so they are locked and say why.  */}
+              {draft.itemType === "SERVICE" ? (
+                <Note tone="purple">
+                  A service is always on sale and never bought — it goes to the counter as
+                  soon as it has a price.
+                </Note>
+              ) : (
+                <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
+                  <SwitchRow on={draft.isPurchasable} onClick={() => set("isPurchasable", !draft.isPurchasable)}
+                    icon="download" tone="#0e8f74"
+                    title="We buy it" sub="Can go on a purchase order" />
+                  <SwitchRow on={draft.isSaleable} onClick={() => set("isSaleable", !draft.isSaleable)}
+                    icon="cash" tone="#8b21c9"
+                    title="We sell it" sub="Sold at the counter, and may sit behind a product" />
+                </div>
+              )}
 
               <Pair>
                 <Row label="Weight (grams)" hint="Couriers charge by weight — needed for shipping quotes.">
@@ -1079,7 +1088,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               {/*  DEC-ITM-022/023 — everything marked "We sell it" is sellable at the
                    counter, services included. The price follows the cost by default;
                    fixing it by hand is the exception, and it says so.  */}
-              {draft.isSaleable && (
+              {(draft.isSaleable || draft.itemType === "SERVICE") && (
                 <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
                   <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                     <Icon name="cash" size={13} />

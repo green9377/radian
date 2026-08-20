@@ -43,6 +43,7 @@ interface ItemSettingClient {
     ITM-R10  audit + timeline on every write                             core_principles
     ITM-R11  the product generator is idempotent                         DEC-ITM-009
     ITM-R12  a variant family = separate Items, no ghost parent row       DEC-ITM-016
+    ITM-R13  SERVICE => always saleable, never purchasable                 owner, 20 Aug
 */
 
 const ENTITY = 'Item';
@@ -271,9 +272,12 @@ export class ItemsService {
         assemblyMode: norm.assemblyMode,
         // DEC-ITM-013 — sensible defaults per type: an ingredient is bought, not sold;
         // a service is sold, not bought; nothing perishable comes back.
-        isSaleable: dto.isSaleable ?? defaultSaleable(behaviour),
+        // ITM-R13 — a service overrules whatever the form sent for these two
+        ...this.serviceFlags(behaviour, {
+          isSaleable: dto.isSaleable ?? defaultSaleable(behaviour),
+          isPurchasable: dto.isPurchasable ?? defaultPurchasable(behaviour),
+        }),
         ...({ isOnline: dto.isOnline ?? true } as Record<string, boolean>), // DEC-ITM-024
-        isPurchasable: dto.isPurchasable ?? defaultPurchasable(behaviour),
         isReturnable: dto.isReturnable ?? !(dto.isPerishable ?? false),
         weightGram: dto.weightGram ?? null,
         // ITM-R05 — a brand-new item has no recipe yet, so AUTO is not yet meaningful
@@ -456,9 +460,12 @@ export class ItemsService {
         imageUrl: dto.imageUrl === undefined ? undefined : dto.imageUrl,
         isStockTracked: norm.isStockTracked,
         assemblyMode: norm.assemblyMode,
-        isSaleable: dto.isSaleable,
+        // ITM-R13 — a service is always sellable and never bought, whatever was sent
+        ...this.serviceFlags(nextType, {
+          isSaleable: dto.isSaleable,
+          isPurchasable: dto.isPurchasable,
+        }),
         ...(dto.isOnline === undefined ? {} : ({ isOnline: dto.isOnline } as Record<string, boolean>)), // DEC-ITM-024
-        isPurchasable: dto.isPurchasable,
         isReturnable: dto.isReturnable,
         weightGram: dto.weightGram === undefined ? undefined : dto.weightGram,
         costMode: norm.costMode,
@@ -1161,6 +1168,19 @@ export class ItemsService {
     if (hasRecipe === false && costMode === CostMode.AUTO) costMode = CostMode.MANUAL;
 
     return { isStockTracked, assemblyMode, costMode };
+  }
+
+  /**
+   * ITM-R13 (owner, 20 Aug 2026) — a SERVICE is always sellable, and never bought.
+   *
+   * "basorghor" was saved with "We sell it" off and vanished from the till. A
+   * service is not stocked, not counted and not purchased; being sold is the only
+   * thing it does. Leaving that to a switch means one forgotten tick hides a whole
+   * line of business, so the rule decides it instead of the screen.
+   */
+  private serviceFlags(t: ItemType, v: { isSaleable?: boolean; isPurchasable?: boolean }) {
+    if (t !== ItemType.SERVICE) return v;
+    return { ...v, isSaleable: true, isPurchasable: false };
   }
 
   /** ITM-R03 — can `from` reach `target` by walking down its recipe? */

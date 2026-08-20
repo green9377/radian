@@ -361,6 +361,12 @@ export default function PosSellView() {
                 <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
+                  {/*  what is actually on the shelf — a till that hides a shortage makes
+                       the cashier promise something the shop cannot hand over  */}
+                  <div className="text-[11.5px] mt-0.5"
+                    style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
+                    {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} in stock` : "out of stock"}
+                  </div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
                     <span className="text-[13.5px] font-semibold text-body">{p.pricePaisa === null ? "no price" : formatTaka(p.pricePaisa)}</span>
                     <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1"><Icon name="plus" size={12} /> Add</span>

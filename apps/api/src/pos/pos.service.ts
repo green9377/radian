@@ -374,6 +374,7 @@ export class PosService {
       },
       select: {
         id: true, sku: true, name: true, imageUrl: true, itemType: true,
+        isStockTracked: true,
         costMode: true, standardCostPaisa: true, computedCostPaisa: true,
         minMarginBp: true, minMarginPaisa: true,
         itemCategory: { select: { id: true, name: true } },
@@ -383,6 +384,17 @@ export class PosService {
       orderBy: { name: 'asc' },
       take: 500,
     });
+
+    /*  What is actually on the shelf. The till showed a teddy with nothing behind it
+        and said nothing (owner, 20 Aug) — a counter screen that hides the shortage is
+        worse than one that has no stock figure at all, because the cashier promises
+        something the shop cannot hand over. Services are not counted and say so.  */
+    const stock = await this.prisma.db.inventoryStock.groupBy({
+      by: ['itemId'],
+      where: { itemId: { in: rows.map((r) => r.id) } },
+      _sum: { qtyMilli: true },
+    });
+    const onHand = new Map(stock.map((s) => [s.itemId, s._sum.qtyMilli ?? 0]));
 
     const defaultMarkupBp = await this.itemMarkupBp();
     return rows.map((r) => {
@@ -408,6 +420,8 @@ export class PosService {
         priceIsFixed: it.sellingPricePaisa != null,
         /** the least it may go for — the till refuses under this */
         floorPricePaisa: floor,
+        /** null = not counted (a service); otherwise the whole shop's on-hand */
+        stockQty: it.isStockTracked ? Math.round((onHand.get(it.id) ?? 0) / 1000) : null,
       };
     });
   }
