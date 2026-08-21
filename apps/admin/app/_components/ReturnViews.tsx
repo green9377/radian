@@ -200,12 +200,10 @@ const SETTLE_WHY: Record<ReturnResolution, string> = {
   PARTIAL_COMPENSATION: "The customer keeps the goods and you give back part of the price.",
 };
 
-function Choice({ on, title, why, onPick, open, onInfo, wide }: {
-  on: boolean; title: string; why: string; onPick: () => void;
-  open: boolean; onInfo: () => void; wide?: boolean;
+function Choice({ on, title, onPick, open, onInfo }: {
+  on: boolean; title: string; onPick: () => void; open: boolean; onInfo: () => void;
 }) {
   return (
-    <div className={wide ? "" : "shrink-0"}>
       <div onClick={onPick} role="button" tabIndex={0}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onPick()}
         className={"cursor-pointer select-none flex items-center gap-2 rounded-[10px] border pl-3 pr-2 h-[38px] " + (on
@@ -219,10 +217,12 @@ function Choice({ on, title, why, onPick, open, onInfo, wide }: {
             ? "bg-purple text-white border-purple"
             : "border-lavender-deep text-body-soft hover:border-orchid-mid")}>i</span>
       </div>
-      {open && <div className="text-[11.5px] text-body-soft leading-[1.45] mt-1.5 max-w-[250px]">{why}</div>}
-    </div>
   );
 }
+
+/** the one line the little "i" opens, in its own slot under the group */
+const Why = ({ text }: { text: string }) =>
+  text ? <div className="text-[11.5px] text-body-soft leading-[1.45] mt-1.5">{text}</div> : null;
 
 /* ================================================================== NEW RETURN */
 
@@ -341,7 +341,13 @@ export function NewReturn() {
         lines,
       });
       router.push(`/returns/${created.id}`);
-    } catch (e) { setErr(msg(e, "Could not create return")); setBusy(false); }
+    } catch (e) {
+      setErr(msg(e, "Could not create return"));
+      /*  the screen was drawn before someone else touched the order — redraw it
+          from the server instead of leaving a lie on the page  */
+      try { setEl(await eligibleOrderForReturn(el.order.id)); } catch { /* keep the error */ }
+      setBusy(false);
+    }
   }
 
   return (
@@ -450,13 +456,15 @@ export function NewReturn() {
                             <label className="lbl">The goods</label>
                             <div className="flex items-start gap-1.5">
                               {(["RESTOCK", "WRITE_OFF"] as ReturnRestockAction[]).map((id) => (
-                                <Choice key={id} title={GOODS_LABEL[id]} why={GOODS_WHY[id]}
+                                <Choice key={id} title={GOODS_LABEL[id]}
                                   on={d.restockAction === id}
                                   onPick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: id } }))}
                                   open={tip === `${l.orderLineId}:${id}`}
                                   onInfo={() => setTip((t) => (t === `${l.orderLineId}:${id}` ? "" : `${l.orderLineId}:${id}`))} />
                               ))}
                             </div>
+                            <Why text={tip.startsWith(`${l.orderLineId}:`)
+                              ? GOODS_WHY[tip.slice(l.orderLineId.length + 1) as ReturnRestockAction] : ""} />
                           </div>
 
                           <div className="ml-auto text-right">
@@ -515,12 +523,13 @@ export function NewReturn() {
               <label className="lbl">How it is settled</label>
               <div className="grid grid-cols-2 gap-1.5 items-start">
                 {(["REFUND", "STORE_CREDIT", "REPLACEMENT", "PARTIAL_COMPENSATION"] as ReturnResolution[]).map((id) => (
-                  <Choice key={id} wide title={SETTLE_LABEL[id]} why={SETTLE_WHY[id]}
+                  <Choice key={id} title={SETTLE_LABEL[id]}
                     on={resolution === id} onPick={() => setResolution(id)}
                     open={tip === `res:${id}`}
                     onInfo={() => setTip((t) => (t === `res:${id}` ? "" : `res:${id}`))} />
                 ))}
               </div>
+              <Why text={tip.startsWith("res:") ? SETTLE_WHY[tip.slice(4) as ReturnResolution] : ""} />
             </div>
 
             {resolution === "PARTIAL_COMPENSATION" && (
@@ -595,6 +604,13 @@ export function ReturnDetail({ id }: { id: string }) {
   const canComplete = r.status === "approved";
   const canCancel = r.status !== "completed" && r.status !== "cancelled" && r.status !== "rejected";
   const needsPayout = r.resolution === "REFUND" || r.resolution === "PARTIAL_COMPENSATION";
+  /*  a partial compensation pays the agreed amount, not the value of the goods,
+      and nothing ever passes what was collected (DEC-RTN-008)  */
+  const payoutCap = Math.max(0, (r.order?.paidPaisa ?? 0) - (r.order?.refundPaisa ?? 0));
+  const payoutPaisa = Math.min(
+    r.resolution === "PARTIAL_COMPENSATION" ? r.compensationPaisa : r.returnValuePaisa,
+    payoutCap || r.returnValuePaisa,
+  );
 
   return (
     <div className={WRAP}>
@@ -633,7 +649,9 @@ export function ReturnDetail({ id }: { id: string }) {
             <div className="space-y-2">
               {timeline.map((t) => (
                 <div key={t.id} className="text-[12.5px] flex gap-2">
-                  <span className="text-body-soft w-[120px] shrink-0">{new Date(t.createdAt).toLocaleString()}</span>
+                  <span className="text-body-soft w-[135px] shrink-0 whitespace-nowrap">
+                    {new Date(t.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                  </span>
                   <span>{t.label} <span className="text-body-soft">· {t.actorName}</span></span>
                 </div>
               ))}
@@ -722,9 +740,11 @@ export function ReturnDetail({ id }: { id: string }) {
         <RefundDialog
           title="Refund the customer"
           who={r.order?.orderNo}
-          amountPaisa={Math.min(r.returnValuePaisa, r.order?.paidPaisa ?? r.returnValuePaisa)}
+          amountPaisa={payoutPaisa}
           amountLabel="Paying back"
-          note={`Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
+          note={r.resolution === "PARTIAL_COMPENSATION"
+            ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
+            : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
           methods={REFUND_METHODS.map((m) => ({
             id: m,
             label: m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase(),
