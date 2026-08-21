@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { WRAP, ItemPageHead, ErrBar, Modal, Field, msg } from "./ItemUI";
 import Icon from "./Icon";
 import {
-  listPaymentMethods, updatePaymentMethod, addPaymentAccount, updatePaymentAccount,
+  listPaymentMethods, updatePaymentMethod, addPaymentAccount, updatePaymentAccount, deletePaymentAccount,
   type ApiPaymentMethod, type ApiPaymentAccount, type ApiPaymentAccountWrite,
 } from "../_data/api";
 
@@ -14,14 +14,17 @@ import {
   One switch per method for the whole Business OS, and under each method the
   actual accounts (three bKash numbers, four bank accounts) the money lands in.
 
-  Redesigned twice the same day on the owner's feedback:
-    · nothing saves itself — every edit is a dialog with a Save button, and the
-      confirmation is a floating toast so the page never reflows
-    · a bank account asks for what a bank account IS: the bank (picked from the
-      Bangladesh list), account number, holder, branch, routing
-    · and the look is BOLD — each method wears its own brand colour (bKash
-      pink, Nagad orange, bank navy…), because "six grey rows" is not how a
-      flower shop's control room should feel (owner: "bold and colorfull")
+  Design settled after three rounds with the owner, same day:
+    · every edit is a dialog with a Save button; the confirmation is a floating
+      toast, so the page never reflows or jumps
+    · each method keeps its street colour (bKash pink, Nagad orange…) but worn
+      LIGHTLY — a tinted header and coloured accents on a calm white card, not
+      a full gradient banner ("style ta sundor na… easy look a banaw")
+    · the cards pack into two independent columns, so a short card (Cash) does
+      not leave a hole beside a tall one (bKash with three numbers)
+    · an account added by mistake can be DELETED from its edit dialog — but
+      only while no money ever moved through it; after that, off is the only
+      way (the ledger never loses an account it has lines against)
 */
 
 /*  Scheduled + major banks of Bangladesh. A dropdown, so the ledger never
@@ -49,16 +52,15 @@ const kindOf = (code: string): "BANK" | "WALLET" | "CASH" | "CARD" => {
   return "WALLET"; // BKASH · NAGAD · OTHER
 };
 
-/*  each method's own face — the colours people already know from the street:
-    bKash pink, Nagad orange, cash green, card blue, bank navy, rose for the
-    rest. The gradient header IS the identity; no two methods look alike.  */
-const LOOKS: Record<string, { grad: string; deep: string; icon: string }> = {
-  CASH:  { grad: "linear-gradient(120deg,#0e7a3d,#16a34a)", deep: "#0e7a3d", icon: "cash" },
-  BKASH: { grad: "linear-gradient(120deg,#c1125c,#e2136e)", deep: "#e2136e", icon: "phone" },
-  NAGAD: { grad: "linear-gradient(120deg,#d94206,#f6921e)", deep: "#ec5c10", icon: "phone" },
-  CARD:  { grad: "linear-gradient(120deg,#1d4f8f,#2f7ad1)", deep: "#2563a8", icon: "register" },
-  BANK:  { grad: "linear-gradient(120deg,#251650,#4633a5)", deep: "#3b2d86", icon: "warehouse" },
-  OTHER: { grad: "linear-gradient(120deg,#8f4c58,#b76e79)", deep: "#b76e79", icon: "wallet" },
+/*  each method's own colour — the ones people already know from the street.
+    `tint` is the light wash the header sits on.  */
+const LOOKS: Record<string, { deep: string; tint: string; icon: string }> = {
+  CASH:  { deep: "#0e7a3d", tint: "#eaf7ef", icon: "cash" },
+  BKASH: { deep: "#d6146a", tint: "#fdeef5", icon: "phone" },
+  NAGAD: { deep: "#e05a10", tint: "#fdf1e8", icon: "phone" },
+  CARD:  { deep: "#2563a8", tint: "#ecf3fa", icon: "register" },
+  BANK:  { deep: "#4633a5", tint: "#efedfa", icon: "warehouse" },
+  OTHER: { deep: "#a05a66", tint: "#f9f0f1", icon: "wallet" },
 };
 const lookOf = (code: string) => LOOKS[code.toUpperCase()] ?? LOOKS.OTHER;
 
@@ -121,153 +123,136 @@ export default function PaymentMethodsView() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
 
       {toast && (
-        <div className="fixed top-5 right-5 z-50 text-[13.5px] font-semibold text-white px-5 py-3 rounded-[14px] shadow-lift inline-flex items-center gap-2"
-          style={{ background: "linear-gradient(120deg,#0e7a3d,#16a34a)" }}>
-          <Icon name="check" size={15} /> {toast}
+        <div className="fixed top-5 right-5 z-50 text-[13px] font-semibold text-white px-4 py-2.5 rounded-[12px] shadow-lift inline-flex items-center gap-2"
+          style={{ background: "#0e7a3d" }}>
+          <Icon name="check" size={14} /> {toast}
         </div>
       )}
 
       {rows === null && (
-        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-10 text-center text-[13px] text-body-soft">
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-10 text-center text-[13px] text-body-soft">
           Loading…
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-5 items-start">
+      {/*  two independent columns (CSS multi-column), so a one-account card
+           does not leave a hole beside a three-account card  */}
+      <div className="md:columns-2 gap-5">
         {shop.map((r) => {
           const look = lookOf(r.code);
           const accounts = r.accounts ?? [];
           const kind = kindOf(r.code);
+          const liveCount = accounts.filter((a) => a.isActive).length;
           return (
-            <div key={r.id} className="rounded-[18px] overflow-hidden shadow-soft bg-white"
-              style={{ border: "1px solid #efe4f7", opacity: r.isActive ? 1 : 0.92 }}>
+            <div key={r.id} className="break-inside-avoid mb-5 rounded-[16px] overflow-hidden bg-white shadow-soft border border-lavender-deep">
 
-              {/* ---------- the coloured face ---------- */}
-              <div className="relative px-5 py-4 flex items-center justify-between gap-3 text-white"
-                style={{ background: r.isActive ? look.grad : "linear-gradient(120deg,#8d8496,#a99fb4)" }}>
-                {/* a soft shine so the band reads premium, not flat */}
-                <span aria-hidden className="absolute inset-0 pointer-events-none"
-                  style={{ background: "radial-gradient(420px 90px at 18% 0%, rgba(255,255,255,.28), transparent 60%)" }} />
-                <span className="relative flex items-center gap-3.5 min-w-0">
-                  <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0"
-                    style={{ background: "rgba(255,255,255,.2)", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.35)" }}>
-                    <Icon name={look.icon} size={22} />
+              {/* ---------- header: a light wash of the method's colour ---------- */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3.5"
+                style={{ background: r.isActive ? look.tint : "#f4f2f6" }}>
+                <span className="flex items-center gap-3 min-w-0">
+                  <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0"
+                    style={{ background: r.isActive ? look.deep : "#aaa1b5" }}>
+                    <Icon name={look.icon} size={19} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block font-display text-[21px] leading-[1.15] truncate">{r.name}</span>
-                    <span className="block text-[11.5px] font-medium tracking-[0.02em]" style={{ color: "rgba(255,255,255,.85)" }}>
+                    <span className="block text-[16.5px] font-semibold leading-[1.2] truncate"
+                      style={{ color: r.isActive ? look.deep : "#7c7189" }}>
+                      {r.name}
+                    </span>
+                    <span className="block text-[11.5px] text-body-soft">
                       {r.isActive
-                        ? `${accounts.filter((a) => a.isActive).length || "No"} account${accounts.filter((a) => a.isActive).length === 1 ? "" : "s"} · everywhere money moves`
-                        : "Switched off everywhere"}
+                        ? `${liveCount || "no"} account${liveCount === 1 ? "" : "s"} on`
+                        : "Off everywhere"}
                     </span>
                   </span>
                 </span>
 
                 <button type="button" disabled={busy === r.id} onClick={() => toggleMethod(r)}
                   aria-label={`${r.isActive ? "Switch off" : "Switch on"} ${r.name}`}
-                  className="relative shrink-0 rounded-full transition-colors"
+                  className="shrink-0 rounded-full transition-colors"
                   style={{
-                    width: 56, height: 32, padding: 3,
-                    background: r.isActive ? "rgba(255,255,255,.32)" : "rgba(255,255,255,.22)",
-                    boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.45)",
+                    width: 50, height: 29, padding: 3,
+                    background: r.isActive ? look.deep : "#d5cede",
                     opacity: busy === r.id ? 0.5 : 1,
                   }}>
-                  <span className="block rounded-full transition-transform"
-                    style={{
-                      width: 26, height: 26, background: "#fff",
-                      transform: `translateX(${r.isActive ? 24 : 0}px)`,
-                      boxShadow: "0 1px 4px rgba(0,0,0,.25)",
-                    }} />
+                  <span className="block bg-white rounded-full transition-transform shadow-sm"
+                    style={{ width: 23, height: 23, transform: `translateX(${r.isActive ? 21 : 0}px)` }} />
                 </button>
               </div>
 
-              {/* ---------- its accounts ---------- */}
-              <div className="px-4 py-4 space-y-2.5">
+              {/* ---------- accounts: quiet white rows, colour only as accents ---------- */}
+              <div>
                 {accounts.map((a) => (
                   <div key={a.id}
-                    className="flex items-center gap-3 rounded-[13px] px-3 py-2.5 border-2 transition-colors"
-                    style={{
-                      borderColor: a.isActive ? `${look.deep}33` : "#eee8f4",
-                      background: a.isActive ? `${look.deep}0d` : "#faf8fc",
-                      opacity: a.isActive ? 1 : 0.6,
-                    }}>
-                    <span className="w-[38px] h-[38px] rounded-[11px] grid place-items-center text-[13px] font-bold text-white shrink-0"
-                      style={{ background: a.isActive ? look.grad : "#b6aec2" }}>
+                    className="flex items-center gap-3 px-4 py-3 border-t border-lavender-deep/60"
+                    style={{ opacity: a.isActive ? 1 : 0.55 }}>
+                    <span className="w-[34px] h-[34px] rounded-full grid place-items-center text-[12px] font-bold shrink-0"
+                      style={{ background: look.tint, color: look.deep }}>
                       {initials(a.bankName ?? a.name)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13.5px] font-semibold text-purple leading-[1.3] truncate">{a.name}</span>
+                      <span className="block text-[13.5px] font-medium text-purple leading-[1.3] truncate">{a.name}</span>
                       <span className="block text-[11.5px] text-body-soft leading-[1.3] truncate">
-                        {[a.bankName, a.accountRef, a.branchName].filter(Boolean).join(" · ") || "No details yet"}
-                        {a.accountHolder ? ` — ${a.accountHolder}` : ""}
+                        {[a.accountRef, a.branchName, a.accountHolder].filter(Boolean).join(" · ") || "No details yet"}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1 shrink-0">
-                      <button type="button" title="Edit"
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      <button type="button" title="Edit or delete"
                         onClick={() => setDialog({ methodId: r.id, methodCode: r.code, methodName: r.name, account: a })}
-                        className="p-2 rounded-[9px] text-body-soft hover:text-purple hover:bg-white">
+                        className="p-2 rounded-[8px] text-body-soft hover:text-purple hover:bg-lavender/50">
                         <Icon name="edit" size={14} />
                       </button>
                       <button type="button" disabled={busy === a.id} onClick={() => toggleAccount(a)}
-                        className="text-[10.5px] font-bold tracking-[0.04em] px-2.5 py-1.5 rounded-full text-white"
-                        style={{ background: a.isActive ? look.deep : "#b6aec2" }}>
+                        className="text-[10.5px] font-bold tracking-[0.03em] w-[42px] py-1.5 rounded-full"
+                        style={a.isActive
+                          ? { background: look.tint, color: look.deep }
+                          : { background: "#f0edf3", color: "#8d8398" }}>
                         {a.isActive ? "ON" : "OFF"}
                       </button>
                     </span>
                   </div>
                 ))}
 
-                <button type="button"
-                  onClick={() => setDialog({ methodId: r.id, methodCode: r.code, methodName: r.name, account: null })}
-                  className="w-full rounded-[13px] border-2 border-dashed py-2.5 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors hover:text-white"
-                  style={{ borderColor: `${look.deep}55`, color: look.deep }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = look.deep; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                  <Icon name="plus" size={13} />
-                  {kind === "BANK" ? "Add bank account" : kind === "WALLET" ? `Add ${r.name} number` : "Add account"}
-                </button>
+                <div className="border-t border-lavender-deep/60 px-4 py-2.5">
+                  <button type="button"
+                    onClick={() => setDialog({ methodId: r.id, methodCode: r.code, methodName: r.name, account: null })}
+                    className="text-[12.5px] font-semibold inline-flex items-center gap-1.5 px-2 py-1.5 rounded-[8px] hover:bg-lavender/40"
+                    style={{ color: look.deep }}>
+                    <Icon name="plus" size={12} />
+                    {kind === "BANK" ? "Add bank account" : kind === "WALLET" ? `Add ${r.name} number` : "Add account"}
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
 
-        {/* ---------- the website's own two, same bold language ---------- */}
+        {/* ---------- the website's own two ---------- */}
         {site.length > 0 && (
-          <div className="rounded-[18px] overflow-hidden shadow-soft bg-white" style={{ border: "1px solid #efe4f7" }}>
-            <div className="relative px-5 py-4 text-white"
-              style={{ background: "linear-gradient(120deg,#470066,#8b21c9)" }}>
-              <span aria-hidden className="absolute inset-0 pointer-events-none"
-                style={{ background: "radial-gradient(420px 90px at 18% 0%, rgba(255,255,255,.25), transparent 60%)" }} />
-              <span className="relative flex items-center gap-3.5">
-                <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0"
-                  style={{ background: "rgba(255,255,255,.2)", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.35)" }}>
-                  <Icon name="store" size={22} />
-                </span>
-                <span>
-                  <span className="block font-display text-[21px] leading-[1.15]">The website&apos;s own</span>
-                  <span className="block text-[11.5px] font-medium" style={{ color: "rgba(255,255,255,.85)" }}>
-                    Switched where they are set up, not here
-                  </span>
-                </span>
+          <div className="break-inside-avoid mb-5 rounded-[16px] overflow-hidden bg-white shadow-soft border border-lavender-deep">
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ background: "#f7f1fb" }}>
+              <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: "#470066" }}>
+                <Icon name="store" size={19} />
+              </span>
+              <span>
+                <span className="block text-[16.5px] font-semibold leading-[1.2]" style={{ color: "#470066" }}>The website&apos;s own</span>
+                <span className="block text-[11.5px] text-body-soft">Switched where they are set up, not here</span>
               </span>
             </div>
-            <div className="px-4 py-4 space-y-2.5">
-              {site.map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-3 rounded-[13px] px-3.5 py-3 border-2"
-                  style={{ borderColor: "#47006622", background: "#4700660a" }}>
-                  <span className="text-[13.5px] font-semibold text-purple">{r.name}</span>
-                  <span className="text-[10.5px] font-bold tracking-[0.04em] px-2.5 py-1.5 rounded-full text-white"
-                    style={{ background: "#8b21c9" }}>
-                    {r.code === "COD" ? "DELIVERY SETUP" : "GATEWAY"}
-                  </span>
-                </div>
-              ))}
-              <p className="text-[12px] text-body-soft leading-[1.55] m-0 px-1 pt-1">
-                Off here = off at the counter, on purchase bills, supplier payments
-                and refunds, all at once. A bill already written keeps the method
-                it was paid by.
-              </p>
-            </div>
+            {site.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 border-t border-lavender-deep/60">
+                <span className="text-[13.5px] font-medium text-purple">{r.name}</span>
+                <span className="text-[10.5px] font-bold tracking-[0.03em] px-2.5 py-1.5 rounded-full"
+                  style={{ background: "#f7f1fb", color: "#470066" }}>
+                  {r.code === "COD" ? "DELIVERY SETUP" : "GATEWAY"}
+                </span>
+              </div>
+            ))}
+            <p className="text-[12px] text-body-soft leading-[1.55] m-0 px-4 py-3 border-t border-lavender-deep/60">
+              Off here = off at the counter, on purchase bills, supplier payments
+              and refunds, all at once. A bill already written keeps the method
+              it was paid by.
+            </p>
           </div>
         )}
       </div>
@@ -302,6 +287,9 @@ function AccountDialog({ state, onClose, onSaved }: {
   const [routing, setRouting] = useState(a?.routingNo ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  /*  delete is two presses on the same button — no native confirm(), and no
+      way to lose an account to one slip of the mouse  */
+  const [armDelete, setArmDelete] = useState(false);
 
   const bankName = bank === "__other" ? bankOther.trim() : bank;
 
@@ -336,6 +324,15 @@ function AccountDialog({ state, onClose, onSaved }: {
         : await addPaymentAccount(state.methodId, body);
       onSaved(rows, a ? "Account saved" : "Account added");
     } catch (e) { setErr(msg(e, "Could not save the account")); setBusy(false); }
+  }
+
+  async function remove() {
+    if (!a) return;
+    if (!armDelete) { setArmDelete(true); return; }
+    setBusy(true); setErr("");
+    try {
+      onSaved(await deletePaymentAccount(a.id), "Account deleted");
+    } catch (e) { setErr(msg(e, "Could not delete the account")); setArmDelete(false); setBusy(false); }
   }
 
   return (
@@ -399,6 +396,21 @@ function AccountDialog({ state, onClose, onSaved }: {
         <Field label="Shown on payment screens as" hint="Leave empty and the suggestion is used">
           <input className="ipt" value={name} onChange={(e) => setName(e.target.value)} placeholder={suggested || "A short label"} />
         </Field>
+      )}
+
+      {a && !a.isSystem && (
+        <div className="mt-4 pt-3 border-t border-lavender-deep flex items-center justify-between gap-3">
+          <span className="text-[11.5px] text-body-soft">
+            {armDelete ? "Really delete this account?" : "Added by mistake? It can go while no money has moved through it."}
+          </span>
+          <button type="button" disabled={busy} onClick={remove}
+            className={"text-[12.5px] font-semibold px-3 py-2 rounded-[9px] shrink-0 " + (armDelete
+              ? "text-white"
+              : "text-[#c0392b] border border-[#e0a1a1] bg-white hover:bg-[#fdf3f3]")}
+            style={armDelete ? { background: "#c0392b" } : undefined}>
+            {armDelete ? "Yes, delete" : "Delete"}
+          </button>
+        </div>
       )}
     </Modal>
   );

@@ -192,6 +192,13 @@ export class AdministrationController {
     return this.payMethods.updateAccount(accountId, dto);
   }
 
+  /** only an account no money ever moved through — otherwise switch it off */
+  @Roles('OWNER', 'MANAGER')
+  @Delete('payment-accounts/:accountId')
+  deletePaymentAccount(@Param('accountId') accountId: string) {
+    return this.payMethods.deleteAccount(accountId);
+  }
+
   /* ---- people (OWNER only) ---- */
 
   @Get('people')

@@ -3123,6 +3123,8 @@ export const addPaymentAccount = (methodId: string, b: ApiPaymentAccountWrite) =
   j<ApiPaymentMethod[]>(`/administration/payment-methods/${methodId}/accounts`, { method: "POST", body: JSON.stringify(b) });
 export const updatePaymentAccount = (accountId: string, b: ApiPaymentAccountWrite & { isActive?: boolean }) =>
   j<ApiPaymentMethod[]>(`/administration/payment-accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deletePaymentAccount = (accountId: string) =>
+  j<ApiPaymentMethod[]>(`/administration/payment-accounts/${accountId}`, { method: "DELETE" });
 
 /** the four the counter and the buying side share, in the shop's own order */
 export const TILL_CODES = ["CASH", "BKASH", "NAGAD", "CARD", "BANK", "OTHER"];

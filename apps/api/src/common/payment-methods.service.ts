@@ -291,6 +291,35 @@ export class PaymentMethodsService {
     return this.list();
   }
 
+  /**
+   * Delete an account that was added by mistake. Same rules as the chart of
+   * accounts (DEC-FIN-014): a system row or one with ledger lines or payments
+   * behind it can only be switched off — history never loses its account.
+   */
+  async deleteAccount(accountId: string): Promise<PaymentMethodRow[]> {
+    const acc = await this.prisma.db.financeAccount.findFirst({ where: { id: accountId } });
+    if (!acc || !acc.isMoneyAccount) throw new BadRequestException('No such account.');
+    if (acc.isSystem)
+      throw new BadRequestException(
+        `${acc.name} is the ledger's built-in account for this method — switch it off instead.`,
+      );
+    const [lines, pos, pur, sup] = await Promise.all([
+      this.prisma.db.journalLine.count({ where: { accountId } }),
+      this.prisma.db.paymentTransaction.count({ where: ({ accountId } as object) }),
+      this.prisma.db.purchasePayment.count({ where: ({ accountId } as object) }),
+      this.prisma.db.supplierPayment.count({ where: ({ accountId } as object) }),
+    ]);
+    if (lines + pos + pur + sup > 0)
+      throw new BadRequestException(
+        'Money has already moved through this account — switch it off instead of deleting.',
+      );
+    await this.prisma.db.financeAccount.update({
+      where: { id: accountId },
+      data: { deletedAt: new Date() },
+    });
+    return this.list();
+  }
+
   /* ------------------------------------------------------------- helpers */
 
   /** the master's code for a stored value, or null when it is not a till at all */
