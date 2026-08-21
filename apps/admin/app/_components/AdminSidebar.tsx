@@ -288,7 +288,6 @@ const GROUPS: Group[] = [
           { label: "Wastage & Gift", href: "/inventory/issue" },
           { label: "Stocktake", href: "/inventory/stocktake" },
           { label: "Movements", href: "/inventory/movements" },
-          { label: "Warehouses", href: "/inventory/warehouses" },
           { label: "Reports", href: "/inventory/reports" },
           { label: "Settings", href: "/inventory/settings" },
         ],
@@ -563,6 +562,13 @@ const GROUPS: Group[] = [
           with the other settings.  */
       {
         label: "Sales channels", href: "/orders/channels", icon: "store",
+      },
+      /*  Warehouses are a shop-wide fact (CLAUDE.md §15) — POS sells from them,
+          purchases land in them, assembly picks from them. So they are set up
+          here with the other whole-shop settings, not inside Inventory
+          (owner, 21 Aug: "warehouse setup... setup niye jaw").  */
+      {
+        label: "Warehouses", href: "/inventory/warehouses", icon: "warehouse",
       },
       /*  DEC-GBL-001 (owner, 21 Aug) — the payment list was five lists: three
           enums, a POS-only switch and Finance's accounts, so bKash off at the

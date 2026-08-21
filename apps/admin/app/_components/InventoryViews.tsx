@@ -190,6 +190,10 @@ export function InvStockBoard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [adjustRow, setAdjustRow] = useState<InvStockRow | null>(null);
+  /*  tiles first — the same photo-card language as the till and the purchase
+      picker (owner, 21 Aug: "tile and row system, jevabe pos and purchase
+      pick item a show kre"); the row table stays one press away  */
+  const [view, setView] = useState<"tiles" | "rows">("tiles");
   const [filter, setFilter] = useState<string>(
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("filter") ?? "all"
@@ -261,11 +265,94 @@ export function InvStockBoard() {
             {label}
           </button>
         ))}
-        <span className="ml-auto text-[13px] text-body-soft">
-          {shown.length} items · value <b className="text-body">{formatTaka(totalValue)}</b>
+        <span className="ml-auto flex items-center gap-3">
+          <span className="text-[13px] text-body-soft">
+            {shown.length} items · value <b className="text-body">{formatTaka(totalValue)}</b>
+          </span>
+          <span className="flex rounded-[10px] border border-lavender-deep overflow-hidden">
+            {(["tiles", "rows"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} title={v === "tiles" ? "Photo tiles" : "Table rows"}
+                className="px-2.5 py-2"
+                style={view === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#6b5878" }}>
+                <Icon name={v === "tiles" ? "grid" : "layers"} size={14} />
+              </button>
+            ))}
+          </span>
         </span>
       </div>
 
+      {/* ---------------- tiles ---------------- */}
+      {view === "tiles" && (
+        <>
+          {loading && <p className="text-[13px] text-body-soft">Loading…</p>}
+          {!loading && shown.length === 0 && (
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-10 text-center text-[13px] text-body-soft">
+              Nothing here yet. Enter your first counts on the Opening stock screen.
+            </div>
+          )}
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
+            {shown.map((r) => {
+              const mto = r.assemblyMode === "MAKE_TO_ORDER";
+              return (
+                <div key={r.itemId}
+                  className="bg-white rounded-[14px] shadow-soft overflow-hidden border-2 flex flex-col"
+                  style={{ borderColor: r.isNegative ? "#f0b4b4" : r.isLow ? "#f0d9a8" : "#efe4f7" }}>
+                  <div className="flex items-center gap-2.5 px-3 pt-3">
+                    <ItemThumb item={r} size={44} />
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-body leading-[1.25] truncate">{r.name}</span>
+                      <span className="block text-[11px] text-body-soft truncate">{r.sku}</span>
+                    </span>
+                  </div>
+                  <div className="px-3 py-2.5 flex items-end justify-between gap-2">
+                    <span>
+                      <span className="block text-[10px] uppercase tracking-[0.06em] text-body-soft font-semibold">In stock</span>
+                      <b className="block text-[20px] leading-[1.1] font-display"
+                        style={{ color: r.isNegative ? "#c0392b" : r.isLow ? "#b45309" : "#470066", fontVariantNumeric: "tabular-nums" }}>
+                        {mto ? "—" : fmtQty(r.totalQtyMilli)}
+                      </b>
+                      <span className="block text-[10.5px] text-body-soft">{mto ? "made to order" : r.unitName}</span>
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-[10px] uppercase tracking-[0.06em] text-body-soft font-semibold">Value</span>
+                      <span className="block text-[13px] font-medium text-body" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        {mto ? "—" : formatTaka(r.valuePaisa)}
+                      </span>
+                    </span>
+                  </div>
+                  {!mto && cols.length > 1 && (
+                    <div className="px-3 pb-2 flex flex-wrap gap-1">
+                      {cols.map((w) => (
+                        <span key={w.id} className="text-[10.5px] px-1.5 py-0.5 rounded-full"
+                          style={{ background: "#f7f1fb", color: "#5c4a6b", fontVariantNumeric: "tabular-nums" }}>
+                          {w.name.split(" ")[0]} {fmtQty(whQty(r, w.id))}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto border-t border-lavender-deep/60 flex">
+                    {(r.isNegative || r.isLow) && (
+                      <span className="text-[10.5px] font-bold px-2.5 py-2"
+                        style={{ color: r.isNegative ? "#c0392b" : "#b45309" }}>
+                        {r.isNegative ? "NEGATIVE" : "LOW"}
+                      </span>
+                    )}
+                    {!mto && (
+                      <button onClick={() => setAdjustRow(r)}
+                        className="ml-auto text-[12px] font-semibold px-3 py-2 text-purple hover:bg-lavender/40">
+                        Adjust
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ---------------- rows ---------------- */}
+      {view === "rows" && (
       <DataTable head={
         <div className={ROW + " text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95"}
           style={rowCols(cols.length)}>
@@ -318,6 +405,7 @@ export function InvStockBoard() {
           </div>
         ))}
       </DataTable>
+      )}
 
       {adjustRow && (
         <InvAdjustModal row={adjustRow} whs={whs}

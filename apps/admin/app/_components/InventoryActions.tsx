@@ -6,6 +6,7 @@ import {
   WRAP, ACCENT, ItemPageHead, DemoBar, DataTable, ItemThumb, Modal, Field,
   QuickSelect, ErrBar, OkBar, msg,
 } from "./ItemUI";
+import { ItemPicker } from "./PurchaseNewView";
 import {
   listItems, formatTaka, fmtQty, toMilli,
   loadInvWarehousesSafe, loadInvTransfersSafe, loadInvIssuesSafe,
@@ -85,43 +86,47 @@ function WhPills({ whs, value, onChange, exclude }: {
   );
 }
 
-/** shared multi-item line editor — CSS grid (the §১০.৫ .ipt flex trap) */
-function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, have }: {
+/*  Shared multi-item line editor. The item is CHOSEN in the same photo picker
+    the till and the purchase form use (owner, 21 Aug: "pick an item a click
+    krle jen pos ar purchases ar moto ase") — a dropdown of bare names made
+    staff guess which rose was which. A chosen line shows its face and stays.  */
+function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have }: {
   lines: Line[];
   setLines: (l: Line[]) => void;
-  options: { id: string; label: string; hint?: string; imageUrl?: string | null; tintSeed?: string }[];
+  /** what the picker offers — already filtered to what this screen may touch */
+  items: ApiItem[];
   byId: Map<string, ApiItem>;
   showValue?: boolean;
   showExpiry?: boolean;
   /** Transfer only — how much the source store holds, so you cannot move air */
   have?: { label: string; qtyMilliOf: (itemId: string) => number };
 }) {
+  const [pickOpen, setPickOpen] = useState(false);
   const patch = (key: number, p: Partial<Line>) =>
     setLines(lines.map((l) => (l.key === key ? { ...l, ...p } : l)));
 
-  /*  ⚠️ column order must match the cells below, and BOTH extras can be on at
-      once (Opening stock shows expiry AND value) — the old chain picked only
-      one and silently dropped the other's header.                            */
   /*  grid-cols-[…] cannot be stitched together at runtime — Tailwind collects
-      class names at build time, so a generated name never reaches the bundle
-      (got burned once on the Stock board). Hence the inline style.          */
+      class names at build time (got burned once on the Stock board). Hence
+      the inline style.  */
   const cols = "grid gap-2.5 items-center";
   const grid = {
     gridTemplateColumns: [
-      "minmax(220px,1fr)", "120px",
-      have && "120px", showExpiry && "150px", showValue && "110px", "36px",
+      "minmax(220px,1fr)", "110px",
+      have && "110px", showExpiry && "150px", showValue && "110px", "36px",
     ].filter(Boolean).join(" "),
   };
 
   return (
     <div>
-      <div style={grid} className={cols + " mb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft"}>
-        <span>Item</span><span>Qty</span>
-        {have && <span className="text-right">{have.label}</span>}
-        {showExpiry && <span>Expiry (if any)</span>}
-        {showValue && <span className="text-right">Worth</span>}
-        <span />
-      </div>
+      {lines.length > 0 && (
+        <div style={grid} className={cols + " mb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft"}>
+          <span>Item</span><span>Qty</span>
+          {have && <span className="text-right">{have.label}</span>}
+          {showExpiry && <span>Expiry (if any)</span>}
+          {showValue && <span className="text-right">Worth</span>}
+          <span />
+        </div>
+      )}
       {lines.map((l) => {
         const item = byId.get(l.itemId);
         const cost = item?.effectiveCostPaisa ?? 0;
@@ -130,10 +135,13 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, ha
         const tooMuch = !!have && !!item && toMilli(l.qty || 0) > stock;
         return (
           <div key={l.key} style={grid} className={cols + " mb-2"}>
-            <QuickSelect
-              value={l.itemId} options={options} placeholder="Pick an item…"
-              onChange={(id) => patch(l.key, { itemId: id })} allowClear={false}
-            />
+            <span className="flex items-center gap-2.5 min-w-0">
+              {item && <ItemThumb item={item} size={34} />}
+              <span className="min-w-0">
+                <span className="block text-[13px] font-medium text-body truncate">{item?.name ?? "?"}</span>
+                <span className="block text-[11px] text-body-soft truncate">{item?.sku}{item?.unit?.name ? ` · ${item.unit.name}` : ""}</span>
+              </span>
+            </span>
             <input className="ipt" placeholder={item ? item.unit?.name ?? "Qty" : "Qty"}
               inputMode="decimal" value={l.qty}
               onChange={(e) => patch(l.key, { qty: e.target.value })} />
@@ -162,11 +170,28 @@ function LinesEditor({ lines, setLines, options, byId, showValue, showExpiry, ha
           </div>
         );
       })}
-      <button type="button" onClick={() => setLines([...lines, newLine()])}
+      {lines.length === 0 && (
+        <p className="text-[13px] text-body-soft mt-1 mb-2">Nothing on the sheet yet — press <b>Add items</b> and pick from your shelf.</p>
+      )}
+      <button type="button" onClick={() => setPickOpen(true)}
         className="text-[12.5px] font-medium inline-flex items-center gap-1.5 mt-1"
         style={{ color: ACCENT }}>
-        <Icon name="plus" size={12} /> Add line
+        <Icon name="plus" size={12} /> Add items
       </button>
+
+      {pickOpen && (
+        <ItemPicker
+          items={items.filter((i) => !lines.some((l) => l.itemId === i.id))}
+          onClose={() => setPickOpen(false)}
+          onDone={(picked) => {
+            setLines([
+              ...lines,
+              ...picked.map(({ item, qty }) => ({ key: lineKey++, itemId: item.id, qty: String(qty) })),
+            ]);
+            setPickOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -242,9 +267,9 @@ const SaveBtn = ({ onClick, busy, disabled, label, full }: {
 /* ================================================================= OPENING */
 
 export function InvOpeningView() {
-  const { byId, options, whs, isDemo, reload } = useInvBase();
+  const { items, byId, whs, isDemo, reload } = useInvBase();
   const [warehouseId, setWarehouseId] = useState("");
-  const [lines, setLines] = useState<Line[]>([newLine()]);
+  const [lines, setLines] = useState<Line[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -272,10 +297,10 @@ export function InvOpeningView() {
       enters the list — the guaranteed mistake cannot be made. Same rule,
       caught earlier.                                                        */
   const openable = useMemo(
-    () => options.filter((o) => !(warehouseId && touched.get(o.id)?.has(warehouseId))),
-    [options, touched, warehouseId],
+    () => items.filter((i) => !(warehouseId && touched.get(i.id)?.has(warehouseId))),
+    [items, touched, warehouseId],
   );
-  const hiddenCount = options.length - openable.length;
+  const hiddenCount = items.length - openable.length;
 
   const ready = validLines(lines);
   const worthPaisa = ready.reduce((s, l) => {
@@ -294,7 +319,7 @@ export function InvOpeningView() {
         note: note || undefined,
       });
       setOk(`Opening posted — ${r.posted} item(s). Counted numbers are now the truth.`);
-      setLines([newLine()]); setNote("");
+      setLines([]); setNote("");
     } catch (e) { setErr(msg(e, "Could not post opening stock")); }
     finally { setBusy(false); }
   }
@@ -317,7 +342,7 @@ export function InvOpeningView() {
               <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
             </SheetBar>
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} options={openable} byId={byId} showExpiry showValue />
+              <LinesEditor lines={lines} setLines={setLines} items={openable} byId={byId} showExpiry showValue />
             </div>
             <SheetNote value={note} onChange={setNote} placeholder="e.g. First count, 10 Aug morning" />
           </>
@@ -346,10 +371,10 @@ export function InvOpeningView() {
 /* ================================================================ TRANSFER */
 
 export function InvTransferView() {
-  const { byId, options, whs, isDemo, reload } = useInvBase();
+  const { items, byId, whs, isDemo, reload } = useInvBase();
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
-  const [lines, setLines] = useState<Line[]>([newLine()]);
+  const [lines, setLines] = useState<Line[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -386,7 +411,7 @@ export function InvTransferView() {
     try {
       const t = await postInvTransfer({ fromWarehouseId: fromId, toWarehouseId: toId, lines: ls, note: note || undefined });
       setOk(`${t.transferNo} posted — OUT and IN in one transaction (DEC-INV-004).`);
-      setLines([newLine()]); setNote("");
+      setLines([]); setNote("");
       loadHistory();
     } catch (e) { setErr(msg(e, "Could not post transfer")); }
     finally { setBusy(false); }
@@ -428,7 +453,7 @@ export function InvTransferView() {
               </span>
             </SheetBar>
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId}
+              <LinesEditor lines={lines} setLines={setLines} items={items} byId={byId}
                 have={{ label: `In ${fromName || "source"}`, qtyMilliOf: stockInFrom }} />
             </div>
             <SheetNote value={note} onChange={setNote} placeholder="e.g. Morning restock for the shop floor" />
@@ -482,12 +507,12 @@ export function InvTransferView() {
 /* ============================================================ WASTAGE & GIFT */
 
 export function InvIssueView() {
-  const { byId, options, whs, isDemo, reload } = useInvBase();
+  const { items, byId, whs, isDemo, reload } = useInvBase();
   const [kind, setKind] = useState<"WASTAGE" | "GIFT">("WASTAGE");
   const [warehouseId, setWarehouseId] = useState("");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
-  const [lines, setLines] = useState<Line[]>([newLine()]);
+  const [lines, setLines] = useState<Line[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -529,7 +554,7 @@ export function InvIssueView() {
         lines: ls.map(({ itemId, qtyMilli }) => ({ itemId, qtyMilli })),
       });
       setOk(`${doc.issueNo} posted — ${formatTaka(doc.totalValuePaisa)} written off at AVCO cost.`);
-      setLines([newLine()]); setReason(""); setNote("");
+      setLines([]); setReason(""); setNote("");
       loadHistory();
     } catch (e) { setErr(msg(e, "Could not post the entry")); }
     finally { setBusy(false); }
@@ -587,7 +612,7 @@ export function InvIssueView() {
             </div>
 
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} options={options} byId={byId} showValue />
+              <LinesEditor lines={lines} setLines={setLines} items={items} byId={byId} showValue />
             </div>
             <SheetNote value={note} onChange={setNote}
               placeholder={kind === "WASTAGE" ? "e.g. Morning sorting" : "e.g. Sent to client office"} />

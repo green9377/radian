@@ -265,8 +265,10 @@ export function InvSettingsView() {
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
       {settings && (
-        <div className="max-w-[1100px]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 items-start">
+        <div>
+          {/*  the page used to sit in a quarter of the screen (owner, 21 Aug:
+              "1 vag niye bose ache") — three real decisions now share the width  */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-start">
             <WhCard icon="bag" title="Sales leave from"
               blurb="Where an order takes stock from first"
               value={settings.defaultSaleWarehouseId}
@@ -291,6 +293,15 @@ export function InvSettingsView() {
               value={settings.defaultReceiveWarehouseId}
               onPick={(id) => save({ defaultReceiveWarehouseId: id })}
               foot={<span className="text-[12px] text-body-soft">{holdLine(settings.defaultReceiveWarehouseId)}</span>}
+            />
+
+            {/*  DEC-ASM-003 — assembly's two ends lived only in code; now the
+                 owner can see and change them like everything else  */}
+            <WhCard icon="tools" title="Assembly picks from"
+              blurb="Where bouquet components are taken from"
+              value={settings.defaultAssemblyComponentWarehouseId ?? null}
+              onPick={(id) => save({ defaultAssemblyComponentWarehouseId: id })}
+              foot={<span className="text-[12px] text-body-soft">Finished goods land back in the sales store unless a transfer says otherwise.</span>}
             />
           </div>
 
@@ -322,12 +333,23 @@ export function InvSettingsView() {
             </div>
           </div>
 
-          <p className="text-[12px] text-body-soft mt-3 mb-0">
-            Stores are added, renamed or closed on{" "}
-            <a href="/inventory/warehouses" className="underline font-medium" style={{ color: ACCENT }}>
-              Warehouses
-            </a>.
-          </p>
+          {/*  the stores themselves are a SHOP-wide thing (CLAUDE.md §15), so
+               they are made and closed in Setup → Warehouses, not here  */}
+          <div className="mt-4 bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 flex flex-wrap items-center gap-3">
+            <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white" style={{ background: ACCENT }}>
+              <Icon name="warehouse" size={16} />
+            </span>
+            <span className="flex-1 min-w-[220px]">
+              <b className="block text-[13.5px] text-purple">Your stores</b>
+              <span className="block text-[12px] text-body-soft">
+                {whs.filter((w) => w.isActive).map((w) => `${w.name}${(held[w.id] ?? 0) > 0 ? ` (${held[w.id]} items)` : ""}`).join(" · ") || "None yet"}
+              </span>
+            </span>
+            <a href="/inventory/warehouses"
+              className="text-[13px] font-medium text-purple border border-lavender-deep rounded-[10px] px-4 py-2.5 hover:bg-lavender/40">
+              Manage in Setup →
+            </a>
+          </div>
         </div>
       )}
     </div>
