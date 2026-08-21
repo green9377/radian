@@ -6,6 +6,37 @@
 
 ---
 
+## 🧾 Phase 3 part B — Purchase (21 Aug)
+
+Walked the whole circle on demo myself before handing it over: PUR-000006
+(buy → received → part paid → paid), PUR-000007 (advance → cost-jump refusal →
+confirm → received → PRT-000001 return), PUR-000008 (advance → 4 of 10 taken in).
+
+Verified live, nothing to fix:
+
+- create → receive → stock lands in Main Storeroom with the right unit cost
+- item cost follows the moving average: 5.15 → 5.63 (20 @ ৳8) → 6.60 (5 @ ৳30)
+- cost-jump guard refuses a price 3× off and offers one confirm (PUR-R07)
+- payments: part payment, then the rest; "Add payment" disappears when nothing is owed
+- supplier return: stock out, ৳60 cut from the due first (PUR-R08)
+- supplier ledger and the purchase board agree on the due to the last taka
+
+Shipped in the same pass:
+
+| | |
+|---|---|
+| **DEC-PUR-013** | **Only part of it arrived** — receive line by line; the API always allowed it, the screen did not. A part receipt refused on price comes back as the same part receipt, not as "everything" |
+| **DEC-SUP-011** | the supplier's **What we buy** tab, read off the purchase history: item, how many bills, how much bought, last price, average price. It used to say "Items (0)" while seven bills sat in his ledger |
+| polish | money reads in ৳ everywhere (timeline said "60 tk"), the rail label fits ("Still owed"), and a returned line prints "− ৳60 returned" so total − paid ≠ due stops looking like broken arithmetic |
+
+Owner's ruling, 21 Aug: a replacement is like-for-like (no price difference),
+and a part delivery is taken in line by line.
+
+Left for part C (Inventory): stock board, warehouses, transfers, DEC-INV-017
+warehouse rules, DEC-INV-018 sell-from-where.
+
+---
+
 ## ↩ Returns — what the owner found on 21 Aug (all shipped)
 
 | What was wrong | What it is now |
