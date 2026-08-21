@@ -12,6 +12,7 @@ import {
   type ApiPurchase, type PayMethod, type ActivityEvent,
 } from "../_data/api";
 import { PayDialog, usePayRows, usePaymentMethods, BILL_TENDERS } from "./MoneyBlock";
+import { PaymentsCard, BillTimeline, MoneyRail } from "./BillUI";
 
 /*
   Purchase detail — receive, pay, return. RADIAN_PURCHASE_MODULE_ARCHITECTURE.md.
@@ -222,25 +223,22 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* ---------------- payments ---------------- */}
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <b className="text-[14px] text-purple">Payments</b>
-              {p.status !== "CANCELLED" && p.duePaisa > 0 && (
-                <button onClick={() => setPayOpen(true)}
-                  className="text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] text-white" style={{ background: ACCENT }}>
-                  <Icon name="plus" size={11} /> Add payment
-                </button>
-              )}
-            </div>
-            {p.payments.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing paid yet.</p>}
-            {p.payments.map((x) => (
-              <div key={x.id} className="flex items-center justify-between gap-3 py-2 border-b border-lavender-deep/60 last:border-0">
-                <span className="text-[13px] text-body">{fmtDate(x.paidAt)} · {x.method}{x.note ? ` · ${x.note}` : ""}</span>
-                <b className="text-[13px]" style={{ color: "#0e7a3d" }}>{formatTaka(x.amountPaisa)}</b>
-              </div>
-            ))}
-          </div>
+          {/* ---------------- payments (shared bill face, BillUI) ---------------- */}
+          <PaymentsCard
+            rows={p.payments.map((x) => ({
+              id: x.id,
+              when: fmtDate(x.paidAt),
+              method: x.method,
+              amountPaisa: x.amountPaisa,
+              note: x.note,
+            }))}
+            action={p.status !== "CANCELLED" && p.duePaisa > 0 ? (
+              <button onClick={() => setPayOpen(true)}
+                className="text-[11.5px] font-semibold px-3 py-1.5 rounded-[8px] text-purple bg-white inline-flex items-center gap-1">
+                <Icon name="plus" size={11} /> Add payment
+              </button>
+            ) : undefined}
+          />
 
           {/* ---------------- returns ---------------- */}
           {p.returns.length > 0 && (
@@ -259,26 +257,13 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             </div>
           )}
 
-          {/* ---------------- timeline ---------------- */}
-          {events.length > 0 && (
-            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5">
-              <b className="text-[14px] text-purple block mb-3">Timeline</b>
-              <div className="relative pl-5">
-                <span className="absolute left-[5px] top-1 bottom-1 w-[2px] rounded-full" style={{ background: "#eadff3" }} />
-                {events.map((e) => (
-                  <div key={e.id} className="relative mb-3 last:mb-0">
-                    <span className="absolute -left-[19px] top-[3px] w-[10px] h-[10px] rounded-full border-2 border-white"
-                      style={{ background: e.kind === "payment" ? "#0e7a3d" : e.kind === "system" ? "#8d7a97" : ACCENT }} />
-                    <div className="text-[13px] text-body leading-snug">{e.label}</div>
-                    <div className="text-[13px] text-body-soft">
-                      {new Date(e.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      {e.actorName ? ` · ${e.actorName}` : ""}{e.note ? ` · ${e.note}` : ""}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <BillTimeline events={events.map((e) => ({
+            id: e.id,
+            kind: e.kind,
+            label: e.label,
+            when: new Date(e.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+            by: e.actorName,
+          }))} />
 
           {p.attachmentUrl && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 mb-5">
@@ -292,23 +277,22 @@ export default function PurchaseDetailView({ id }: { id: string }) {
 
         {/* ---------------- money + actions rail ---------------- */}
         <div className="xl:sticky xl:top-4 space-y-4">
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
-            <div className="flex justify-between text-[13px] py-1"><span className="text-body-soft">Subtotal</span><span>{formatTaka(p.subTotalPaisa)}</span></div>
-            {p.discountPaisa > 0 && <div className="flex justify-between text-[13px] py-1"><span className="text-body-soft">Discount</span><span>− {formatTaka(p.discountPaisa)}</span></div>}
-            {(p.adjustmentPaisa ?? 0) !== 0 && (
-              <div className="flex justify-between text-[13px] py-1">
-                <span className="text-body-soft">Adjustment</span>
-                <span>{(p.adjustmentPaisa ?? 0) > 0 ? "+ " : "− "}{formatTaka(Math.abs(p.adjustmentPaisa ?? 0))}</span>
-              </div>
-            )}
-            {p.returnedPaisa > 0 && <div className="flex justify-between text-[13px] py-1"><span className="text-body-soft">Returned</span><span>− {formatTaka(p.returnedPaisa)}</span></div>}
-            <div className="flex justify-between text-[14px] py-1.5 border-t border-lavender-deep"><b className="text-purple">Payable</b><b className="text-purple">{formatTaka(p.payablePaisa)}</b></div>
-            <div className="flex justify-between text-[13px] py-1"><span className="text-body-soft">Paid</span><span style={{ color: "#0e7a3d" }}>{formatTaka(p.paidPaisa)}</span></div>
-            <div className="flex justify-between text-[14px] py-1.5 border-t border-lavender-deep">
-              <b style={{ color: p.duePaisa > 0 ? "#c0392b" : "#0e7a3d" }}>Due</b>
-              <b style={{ color: p.duePaisa > 0 ? "#c0392b" : "#0e7a3d" }}>{formatTaka(p.duePaisa)}</b>
-            </div>
-          </div>
+          {/*  the bill's money in the house purple (CLAUDE.md §14) — the same
+               voice as the till and the new-purchase form  */}
+          <MoneyRail
+            totalPaisa={p.payablePaisa}
+            rows={[
+              { label: "Subtotal", paisa: p.subTotalPaisa },
+              ...(p.discountPaisa > 0 ? [{ label: "Discount", paisa: p.discountPaisa, tone: "minus" as const }] : []),
+              ...((p.adjustmentPaisa ?? 0) !== 0
+                ? [{ label: "Adjustment", paisa: p.adjustmentPaisa ?? 0, tone: (p.adjustmentPaisa ?? 0) > 0 ? ("plus" as const) : ("minus" as const) }]
+                : []),
+              ...((p.vatPaisa ?? 0) > 0 ? [{ label: "VAT", paisa: p.vatPaisa ?? 0, tone: "plus" as const }] : []),
+              ...(p.returnedPaisa > 0 ? [{ label: "Returned", paisa: p.returnedPaisa, tone: "minus" as const }] : []),
+            ]}
+            paidPaisa={p.paidPaisa}
+            duePaisa={p.duePaisa}
+          />
 
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 space-y-2">
             {outstanding && (

@@ -198,6 +198,36 @@ export function usePayRows(totalPaisa: number, defaultMethod = "Cash") {
   };
 }
 
+/*  ৳ with paisa — the old input printed Math.round(amount/100), so ৳29.80
+    could neither be typed nor survive a redraw (owner, 21 Aug: "poysa bosano
+    jay na… bisal gap"). The text is buffered while the field has focus, so a
+    half-typed "29." is not snatched away mid-keystroke.  */
+export function TakaInput({ valuePaisa, onPaisa, className, style, placeholder = "0", autoFocus }: {
+  valuePaisa: number;
+  onPaisa: (paisa: number) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  placeholder?: string;
+  autoFocus?: boolean;
+}) {
+  const fmt = (pz: number) => (pz ? (pz % 100 === 0 ? String(pz / 100) : (pz / 100).toFixed(2)) : "");
+  const [txt, setTxt] = useState(fmt(valuePaisa));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setTxt(fmt(valuePaisa)); }, [valuePaisa, focused]);
+  return (
+    <input type="text" inputMode="decimal" className={className} style={style}
+      value={txt} placeholder={placeholder} autoFocus={autoFocus}
+      onFocus={() => setFocused(true)}
+      onBlur={() => { setFocused(false); setTxt(fmt(valuePaisa)); }}
+      onChange={(e) => {
+        const v = e.target.value.replace(/,/g, "");
+        if (!/^\d*\.?\d{0,2}$/.test(v)) return; // digits and at most two paisa places
+        setTxt(v);
+        onPaisa(Math.round((parseFloat(v) || 0) * 100));
+      }} />
+  );
+}
+
 /* ------------------------------------------------------------------- looks */
 
 /*  NOTE: .ipt sets width:100% and loads after Tailwind, so a w-[..] class on an
@@ -455,13 +485,11 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNT
                   onChange={(e) => pay.setMethod(r.id, e.target.value)}>
                   {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
-                <span className="relative shrink-0" style={{ width: 108 }}>
+                <span className="relative shrink-0" style={{ width: 118 }}>
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
-                  <input type="number" min={0} inputMode="numeric"
+                  <TakaInput valuePaisa={r.amountPaisa} onPaisa={(pz) => pay.setAmount(r.id, pz)}
                     className="ipt h-[40px] w-full text-[16px] font-semibold text-right"
-                    style={{ paddingLeft: 22, fontVariantNumeric: "tabular-nums" }}
-                    value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                    onChange={(e) => pay.setAmount(r.id, Number(e.target.value) * 100)} />
+                    style={{ paddingLeft: 22, fontVariantNumeric: "tabular-nums" }} />
                 </span>
                 <button type="button" onClick={() => pay.removeRow(r.id)} title="Remove this payment"
                   className={`shrink-0 ${t.label} hover:text-[#ff9b9b] ${pay.pays.length > 1 ? "" : "invisible"}`}>

@@ -9,6 +9,7 @@ import {
   getOrderTimeline,
   type ApiOrder,
 } from "../_data/api";
+import { PaymentsCard, BillTimeline, MoneyRail } from "./BillUI";
 
 /*
   The counter bill, after the sale (owner, 21 Aug: "pos a order complete krle o
@@ -120,52 +121,39 @@ export default function PosSaleView({ id }: { id: string }) {
             {lines.length === 0 && <div className="px-4 py-6 text-center text-[13px] text-body-soft">No lines on this bill.</div>}
           </div>
 
-          {/* ---------------- payments ---------------- */}
-          <div className={CARD + " px-5 py-4 mb-5"}>
-            <b className="text-[14px] text-purple block mb-2.5">Payments</b>
-            {txns.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing paid yet.</p>}
-            {txns.map((t) => (
-              <div key={t.id} className="flex items-center justify-between gap-3 py-2 border-b border-lavender-deep/60 last:border-0">
-                <span className="text-[13px] text-body">
-                  {fmtWhen(t.createdAt)} · {t.method}
-                  {t.actorName ? <span className="text-body-soft"> · {t.actorName}</span> : null}
-                </span>
-                <b className="text-[13px]" style={{ color: "#0e7a3d" }}>{formatTaka(t.amountPaisa)}</b>
-              </div>
-            ))}
-          </div>
+          {/* ---------------- payments (shared bill face, BillUI) ---------------- */}
+          <PaymentsCard
+            rows={txns.map((t) => ({
+              id: t.id,
+              when: fmtWhen(t.createdAt),
+              method: t.method,
+              amountPaisa: t.amountPaisa,
+              by: t.actorName,
+            }))}
+          />
 
-          {/* ---------------- timeline ---------------- */}
-          {events.length > 0 && (
-            <div className={CARD + " px-5 py-4"}>
-              <b className="text-[14px] text-purple block mb-2.5">Timeline</b>
-              {events.map((e, i) => (
-                <div key={i} className="flex gap-3 py-1.5">
-                  <span className="w-[7px] h-[7px] rounded-full mt-[6px] shrink-0" style={{ background: ACCENT }} />
-                  <div>
-                    <div className="text-[13px] text-body">{e.label}</div>
-                    <div className="text-[11.5px] text-body-soft">{fmtWhen(e.createdAt)}{e.actorName ? ` · ${e.actorName}` : ""}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <BillTimeline events={events.map((e, i) => ({
+            id: String(i),
+            kind: e.kind,
+            label: e.label,
+            when: fmtWhen(e.createdAt),
+            by: e.actorName,
+          }))} />
         </div>
 
         {/* ---------------- money ---------------- */}
         <div className="space-y-4">
-          <div className={CARD + " px-5 py-4 text-[13px] space-y-1.5"}>
-            <div className="flex justify-between"><span className="text-body-soft">Subtotal</span><span>{formatTaka(o.subtotalPaisa)}</span></div>
-            {o.discountPaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Discount</span><span className="text-[#0e7a3d]">− {formatTaka(o.discountPaisa)}</span></div>}
-            <div className="flex justify-between pt-1.5 border-t border-lavender-deep">
-              <b style={{ color: ACCENT }}>Grand total</b><b style={{ color: ACCENT }}>{formatTaka(o.totalPaisa)}</b>
-            </div>
-            <div className="flex justify-between"><span className="text-body-soft">Paid</span><span>{formatTaka(o.paidPaisa)}</span></div>
-            <div className="flex justify-between">
-              <span className={due > 0 ? "text-[#b45309] font-medium" : "text-[#0e7a3d] font-medium"}>{due > 0 ? "Due" : "Nothing owed"}</span>
-              <span className={due > 0 ? "text-[#b45309] font-medium" : "text-[#0e7a3d] font-medium"}>{formatTaka(due)}</span>
-            </div>
-          </div>
+          {/*  the bill's money in the house purple (CLAUDE.md §14)  */}
+          <MoneyRail
+            totalLabel="Grand total"
+            totalPaisa={o.totalPaisa}
+            rows={[
+              { label: "Subtotal", paisa: o.subtotalPaisa },
+              ...(o.discountPaisa > 0 ? [{ label: "Discount", paisa: o.discountPaisa, tone: "minus" as const }] : []),
+            ]}
+            paidPaisa={o.paidPaisa}
+            duePaisa={due}
+          />
 
           {o.internalNote && (
             <div className={CARD + " px-5 py-4"}>
