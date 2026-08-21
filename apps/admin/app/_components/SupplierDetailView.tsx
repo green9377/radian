@@ -10,7 +10,7 @@ import { fmtDate } from "./PurchaseViews";
 import {
   getSupplier, getSupplierLedger, getSupplierTimeline, removeSupplier,
   paySupplier, supplierPayPreview, adjustSupplier, applySupplierCredit,
-  formatTaka, PAY_METHODS,
+  formatTaka, fmtQty, PAY_METHODS,
   type ApiSupplierDetail, type SupplierLedger, type ActivityEvent, type PayMethod,
 } from "../_data/api";
 import { SupplierAvatar, StatusPill } from "./SupplierViews";
@@ -116,7 +116,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             {([
               ["ledger", `Ledger`],
-              ["items", `${isVendor ? "Products" : "Items"} (${s.items.length})`],
+              ["items", `${isVendor ? "Products" : "What we buy"} (${isVendor ? s.items.length : (s.bought?.length ?? 0)})`],
               ["credits", `Credits (${s.credits.filter((c) => !c.appliedPurchaseId && !c.appliedAt).length})`],
               ["timeline", "Timeline"],
             ] as const).map(([id, label]) => (
@@ -189,56 +189,102 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                "vendorPrice" column to drift). Selling side comes from linked Products. */}
           {tab === "items" && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
-              {s.items.length === 0 && (
-                <p className="text-[13px] font-medium text-body m-0">
-                  Nothing yet — set “Supplier” on an item to link it here.
-                </p>
-              )}
-              {s.items.length > 0 && (
-                <div className="grid grid-cols-[minmax(0,1fr)_92px_92px_92px] gap-2 px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft">
-                  <span>{isVendor ? "Product" : "Item"}</span>
-                  <span className="text-right">{isVendor ? "Vendor price" : "Cost"}</span>
-                  <span className="text-right">Selling</span>
-                  <span className="text-right">Margin</span>
-                </div>
-              )}
-              {s.items.map((it) => {
-                const product = it.products.find((p) => p.isPublished) ?? it.products[0] ?? null;
-                const selling = product?.sellingPricePaisa ?? null;
-                const margin = selling != null ? selling - it.standardCostPaisa : null;
-                return (
-                  <Link key={it.id} href={`/items/${it.id}`}
-                    className="grid grid-cols-[minmax(0,1fr)_92px_92px_92px] gap-2 items-center py-2 border-b border-lavender-deep/60 last:border-0 hover:bg-lavender/20 rounded-[8px] px-2 -mx-0">
-                    <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-[34px] h-[34px] rounded-[9px] overflow-hidden bg-lavender/40 grid place-items-center shrink-0">
-                        {it.imageUrl
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />
-                          : <Icon name="box" size={15} />}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-medium text-body truncate">{it.name}</span>
-                        <span className="block text-[11.5px] text-body-soft truncate">
-                          {it.sku}
-                          {!it.isStockTracked ? " · no stock" : ""}
-                          {!it.isActive ? " · inactive" : ""}
-                          {product ? (product.isPublished ? " · live on site" : " · product unpublished") : " · no product yet"}
+              {/*  DEC-SUP-011 — for a goods supplier this is his history with us:
+                   what, how often, and what he charged last. A vendor keeps the
+                   old view, because there the item IS his product (DEC-SUP-009).  */}
+              {!isVendor && (
+                <>
+                  {(s.bought?.length ?? 0) === 0 && (
+                    <p className="text-[13px] font-medium text-body m-0">Nothing bought from him yet.</p>
+                  )}
+                  {(s.bought?.length ?? 0) > 0 && (
+                    <div className="grid grid-cols-[minmax(0,1fr)_70px_90px_90px_92px] gap-2 px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft">
+                      <span>Item</span>
+                      <span className="text-right">Bills</span>
+                      <span className="text-right">Bought</span>
+                      <span className="text-right">Last price</span>
+                      <span className="text-right">Average</span>
+                    </div>
+                  )}
+                  {(s.bought ?? []).map((b) => (
+                    <Link key={b.itemId} href={`/items/${b.itemId}`}
+                      className="grid grid-cols-[minmax(0,1fr)_70px_90px_90px_92px] gap-2 items-center py-2 border-b border-lavender-deep/60 last:border-0 hover:bg-lavender/20 rounded-[8px] px-2">
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span className="w-[34px] h-[34px] rounded-[9px] overflow-hidden bg-lavender/40 grid place-items-center shrink-0">
+                          {b.imageUrl
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={b.imageUrl} alt="" className="w-full h-full object-cover" />
+                            : <Icon name="box" size={15} />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-medium text-body truncate">{b.name}</span>
+                          <span className="block text-[11.5px] text-body-soft truncate">
+                            {b.sku}
+                            {b.lastPurchaseNo ? ` · last on ${b.lastPurchaseNo}` : ""}
+                            {b.lastAt ? ` · ${new Date(b.lastAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                          </span>
                         </span>
                       </span>
-                    </span>
-                    <span className="text-[13px] text-right">{formatTaka(it.standardCostPaisa)}</span>
-                    <span className="text-[13px] text-right">{selling != null ? formatTaka(selling) : "—"}</span>
-                    <span className="text-[13px] font-semibold text-right"
-                      style={{ color: margin == null ? "#9b8aa6" : margin >= 0 ? "#0e7a3d" : "#c0392b" }}>
-                      {margin != null ? formatTaka(margin) : "—"}
-                    </span>
-                  </Link>
-                );
-              })}
+                      <span className="text-[13px] text-right">{b.timesBought}</span>
+                      <span className="text-[13px] text-right">{fmtQty(b.qtyMilli)}{b.unitName ? ` ${b.unitName}` : ""}</span>
+                      <span className="text-[13px] text-right font-medium">{formatTaka(b.lastPricePaisa)}</span>
+                      <span className="text-[13px] text-right text-body-soft">{formatTaka(b.avgPricePaisa)}</span>
+                    </Link>
+                  ))}
+                </>
+              )}
+
+              {isVendor && (
+                <>
+                  {s.items.length === 0 && (
+                    <p className="text-[13px] font-medium text-body m-0">
+                      Nothing yet — set “Supplier” on an item to link it here.
+                    </p>
+                  )}
+                  {s.items.length > 0 && (
+                    <div className="grid grid-cols-[minmax(0,1fr)_92px_92px_92px] gap-2 px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-body-soft">
+                      <span>Product</span>
+                      <span className="text-right">Vendor price</span>
+                      <span className="text-right">Selling</span>
+                      <span className="text-right">Margin</span>
+                    </div>
+                  )}
+                  {s.items.map((it) => {
+                    const product = it.products.find((p) => p.isPublished) ?? it.products[0] ?? null;
+                    const selling = product?.sellingPricePaisa ?? null;
+                    const margin = selling != null ? selling - it.standardCostPaisa : null;
+                    return (
+                      <Link key={it.id} href={`/items/${it.id}`}
+                        className="grid grid-cols-[minmax(0,1fr)_92px_92px_92px] gap-2 items-center py-2 border-b border-lavender-deep/60 last:border-0 hover:bg-lavender/20 rounded-[8px] px-2">
+                        <span className="flex items-center gap-3 min-w-0">
+                          <span className="w-[34px] h-[34px] rounded-[9px] overflow-hidden bg-lavender/40 grid place-items-center shrink-0">
+                            {it.imageUrl
+                              // eslint-disable-next-line @next/next/no-img-element
+                              ? <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />
+                              : <Icon name="box" size={15} />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-medium text-body truncate">{it.name}</span>
+                            <span className="block text-[11.5px] text-body-soft truncate">
+                              {it.sku}
+                              {product ? (product.isPublished ? " · live on site" : " · product unpublished") : " · no product yet"}
+                            </span>
+                          </span>
+                        </span>
+                        <span className="text-[13px] text-right">{formatTaka(it.standardCostPaisa)}</span>
+                        <span className="text-[13px] text-right">{selling != null ? formatTaka(selling) : "—"}</span>
+                        <span className="text-[13px] font-semibold text-right"
+                          style={{ color: margin == null ? "#9b8aa6" : margin >= 0 ? "#0e7a3d" : "#c0392b" }}>
+                          {margin != null ? formatTaka(margin) : "—"}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
             </div>
           )}
 
-          {/* ---------------- credits (SUP-R11 — apply flow) ---------------- */}
           {tab === "credits" && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
               {s.credits.length === 0 && <p className="text-[13px] text-body-soft m-0">No credit history yet. Credits appear from over-payment or large returns.</p>}

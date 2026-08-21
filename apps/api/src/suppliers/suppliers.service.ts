@@ -371,10 +371,17 @@ export class SuppliersService {
         orderBy: { adjustedAt: 'desc' },
       }),
     ]);
+    /*  DEC-SUP-011 (owner, 21 Aug) — "Items (0)" while seven bills sat in his
+        ledger. The tab now answers the question a shopkeeper actually asks:
+        WHAT do I buy from this man, how often, and at what price lately.
+        Read off the purchase history, so it needs nobody to tag anything.  */
+    const bought = await this.boughtFrom(id);
+
     return {
       ...b.supplier,
       type,
       items,
+      bought,
       credits,
       adjustments,
       duePaisa: b.duePaisa,
@@ -388,6 +395,73 @@ export class SuppliersService {
       lastPurchaseAt: b.lastPurchaseAt,
       purchaseDues: b.purchaseDues,
     };
+  }
+
+  /** DEC-SUP-011 — every item ever bought from this supplier, newest price first */
+  private async boughtFrom(supplierId: string) {
+    const lines = await this.prisma.db.purchaseLine.findMany({
+      where: {
+        purchase: { supplierId, deletedAt: null, status: { not: 'CANCELLED' } },
+      },
+      select: {
+        itemId: true,
+        qtyMilli: true,
+        unitPricePaisa: true,
+        purchaseId: true,
+        item: { select: { id: true, sku: true, name: true, imageUrl: true } },
+        unit: { select: { name: true } },
+        purchase: { select: { purchaseDate: true, purchaseNo: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const by = new Map<string, {
+      itemId: string; sku: string; name: string; imageUrl: string | null; unitName: string | null;
+      bills: Set<string>; qtyMilli: number; valuePaisa: number;
+      lastPricePaisa: number; lastAt: Date | null; lastPurchaseNo: string | null;
+    }>();
+
+    for (const l of lines) {
+      const row = by.get(l.itemId) ?? {
+        itemId: l.itemId,
+        sku: l.item?.sku ?? '',
+        name: l.item?.name ?? '',
+        imageUrl: l.item?.imageUrl ?? null,
+        unitName: l.unit?.name ?? null,
+        bills: new Set<string>(),
+        qtyMilli: 0,
+        valuePaisa: 0,
+        lastPricePaisa: 0,
+        lastAt: null,
+        lastPurchaseNo: null,
+      };
+      row.bills.add(l.purchaseId);
+      row.qtyMilli += l.qtyMilli;
+      row.valuePaisa += Math.round((l.qtyMilli * l.unitPricePaisa) / 1000);
+      const at = l.purchase?.purchaseDate ?? null;
+      if (!row.lastAt || (at && at >= row.lastAt)) {
+        row.lastAt = at;
+        row.lastPricePaisa = l.unitPricePaisa;
+        row.lastPurchaseNo = l.purchase?.purchaseNo ?? null;
+      }
+      by.set(l.itemId, row);
+    }
+
+    return [...by.values()]
+      .map((r) => ({
+        itemId: r.itemId,
+        sku: r.sku,
+        name: r.name,
+        imageUrl: r.imageUrl,
+        unitName: r.unitName,
+        timesBought: r.bills.size,
+        qtyMilli: r.qtyMilli,
+        lastPricePaisa: r.lastPricePaisa,
+        avgPricePaisa: r.qtyMilli > 0 ? Math.round((r.valuePaisa * 1000) / r.qtyMilli) : 0,
+        lastAt: r.lastAt,
+        lastPurchaseNo: r.lastPurchaseNo,
+      }))
+      .sort((a, b2) => (b2.lastAt?.getTime() ?? 0) - (a.lastAt?.getTime() ?? 0));
   }
 
   /**

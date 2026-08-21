@@ -41,6 +41,14 @@ export default function PurchaseDetailView({ id }: { id: string }) {
 
   const [payOpen, setPayOpen] = useState(false);
 
+  /*  DEC-PUR-013 (owner, 21 Aug) — half a delivery is normal in this trade, so
+      the screen can take what actually turned up, line by line.  */
+  const [recvOpen, setRecvOpen] = useState(false);
+  const [recvQty, setRecvQty] = useState<Record<string, string>>({});
+  /*  a part receipt refused on price must come back as the SAME part receipt,
+      not as "receive everything" (that is how a half delivery becomes a full one)  */
+  const [recvPending, setRecvPending] = useState<{ lineId: string; qtyMilli: number }[] | null>(null);
+
   const [returnOpen, setReturnOpen] = useState(false);
   const [returnReason, setReturnReason] = useState("");
   const [returnQty, setReturnQty] = useState<Record<string, string>>({});
@@ -72,7 +80,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
 
   async function act(fn: () => Promise<ApiPurchase>, done: string) {
     setBusy(true); setErr(null); setCostJump(null);
-    try { setP(await fn()); setOk(done); await refreshEvents(); }
+    try { setP(await fn()); setOk(done); setRecvPending(null); await refreshEvents(); }
     catch (e) {
       if (isCostJumpRefusal(e)) {
         // same in-page confirm card as the New-purchase form — no native confirm()
@@ -142,7 +150,13 @@ export default function PurchaseDetailView({ id }: { id: string }) {
               Never mind
             </button>
             <button disabled={busy}
-              onClick={() => act(() => receivePurchase(id, { confirmCost: true }), "Goods received — stock posted, average cost updated.")}
+              onClick={async () => {
+                await act(
+                  () => receivePurchase(id, { confirmCost: true, lines: recvPending ?? undefined }),
+                  recvPending ? "Taken in — stock posted for what arrived." : "Goods received — stock posted, average cost updated.",
+                );
+                setRecvPending(null);
+              }}
               className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "#b45309" }}>
               The price is right — receive anyway
             </button>
@@ -298,10 +312,24 @@ export default function PurchaseDetailView({ id }: { id: string }) {
 
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4 space-y-2">
             {outstanding && (
-              <button disabled={busy} onClick={() => act(() => receivePurchase(id), "Goods received — stock posted, average cost updated.")}
-                className="w-full text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: "#0e7a3d" }}>
-                <Icon name="check" size={13} /> Receive everything outstanding
-              </button>
+              <>
+                <button disabled={busy} onClick={() => act(() => receivePurchase(id), "Goods received — stock posted, average cost updated.")}
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  <Icon name="check" size={13} /> Receive everything outstanding
+                </button>
+                <button disabled={busy}
+                  onClick={() => {
+                    const d: Record<string, string> = {};
+                    for (const l of p.lines) {
+                      const left = l.qtyMilli - l.receivedQtyMilli;
+                      if (left > 0) d[l.id] = fmtQty(left);
+                    }
+                    setRecvQty(d); setRecvOpen(true);
+                  }}
+                  className="w-full border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[10px] hover:border-orchid">
+                  Only part of it arrived
+                </button>
+              </>
             )}
             {returnable && (
               <button disabled={busy} onClick={() => { setReturnQty({}); setReturnOpen(true); }}
@@ -346,6 +374,40 @@ export default function PurchaseDetailView({ id }: { id: string }) {
         <PayBill purchaseId={id} owedPaisa={p.duePaisa} supplier={p.supplierName}
           onClose={() => setPayOpen(false)}
           onDone={async () => { setPayOpen(false); await load(); setOk("Payment recorded."); }} />
+      )}
+
+      {/* ---------------- part receive (DEC-PUR-013) ---------------- */}
+      {recvOpen && (
+        <Modal title="What arrived" wide onClose={() => setRecvOpen(false)}
+          canSave={p.lines.some((l) => toMilli(recvQty[l.id] ?? "") > 0)}
+          busy={busy} saveLabel="Take it in"
+          onSave={async () => {
+            const lines = p.lines
+              .map((l) => ({ lineId: l.id, qtyMilli: toMilli(recvQty[l.id] ?? "") }))
+              .filter((l) => l.qtyMilli > 0);
+            setRecvPending(lines);
+            await act(() => receivePurchase(id, { lines }), "Taken in — stock posted for what arrived.");
+            setRecvOpen(false);
+          }}>
+          {p.lines.map((l) => {
+            const left = l.qtyMilli - l.receivedQtyMilli;
+            if (left <= 0) return null;
+            return (
+              <div key={l.id} className="grid grid-cols-[minmax(0,1fr)_130px] gap-3 items-center mb-2.5">
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-medium truncate">{l.item?.name}</span>
+                  <span className="block text-[13px] text-body-soft">
+                    {fmtQty(left)} {l.unit?.name} still to come
+                    {l.receivedQtyMilli > 0 ? ` · ${fmtQty(l.receivedQtyMilli)} already in` : ""}
+                  </span>
+                </span>
+                <input className="ipt text-right" placeholder="0" inputMode="decimal"
+                  value={recvQty[l.id] ?? ""}
+                  onChange={(e) => setRecvQty((q) => ({ ...q, [l.id]: e.target.value }))} />
+              </div>
+            );
+          })}
+        </Modal>
       )}
 
       {/* ---------------- return modal ---------------- */}

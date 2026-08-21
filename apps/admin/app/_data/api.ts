@@ -3841,6 +3841,12 @@ export interface ApiSupplierDetail extends ApiSupplier {
     isStockTracked: boolean; isActive: boolean; standardCostPaisa: number;
     products: { id: string; name: string; sellingPricePaisa: number; isPublished: boolean }[];
   }[];
+  /** DEC-SUP-011 — what we actually buy from him, read off the purchase history */
+  bought: {
+    itemId: string; sku: string; name: string; imageUrl: string | null; unitName: string | null;
+    timesBought: number; qtyMilli: number; lastPricePaisa: number; avgPricePaisa: number;
+    lastAt: string | null; lastPurchaseNo: string | null;
+  }[];
   credits: { id: string; amountPaisa: number; note: string | null; appliedPurchaseId: string | null; appliedAt: string | null; createdAt: string }[];
   adjustments: { id: string; amountPaisa: number; note: string; adjustedAt: string }[];
   openingRemaining: number;
