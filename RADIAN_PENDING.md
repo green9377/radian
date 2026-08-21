@@ -6,6 +6,22 @@
 
 ---
 
+## ↩ Returns — what the owner found on 21 Aug (all shipped)
+
+| What was wrong | What it is now |
+|---|---|
+| No return could be created at all — "same returnNo already exists" | A deleted return still owns its number; the counter now reads the raw table and steps over a taken number (`withNextReturnNo`). POS bill numbers had the same trap. |
+| A completed return never put the goods back | Restock speaks Item as well as Product, and lands in the store the goods left (DEC-INV-018) |
+| A replacement gave goods away and took nothing off the shelf | **DEC-RTN-017** — the return screen asks what goes out (same goods by default, or pick another item from the counter list); completing posts the goods out as a SALE movement and the bill shows "Given instead" |
+| Store credit never asked how much | **DEC-RTN-018** — the amount is asked, default = value of the goods. Above what was collected is OWNER/MANAGER only; cash refunds stay capped (DEC-RTN-008) |
+| A part-compensation payout offered the whole line value | The dialog pays the agreed amount |
+| Store credit / replacement asked "which way does the money go back" | That question only appears for a refund; the button says what will happen |
+| Explanations all over the screen | Every choice carries a small "i" that opens its own line, in its own slot |
+
+Replacement price difference: **not charged** — a replacement is a like-for-like swap (owner, 21 Aug).
+
+---
+
 ## 💳 One money screen, everywhere (owner, 21 Aug) — rule in CLAUDE.md §14
 
 `apps/admin/app/_components/MoneyBlock.tsx` — grand total loudest, four small
