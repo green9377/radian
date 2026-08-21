@@ -184,10 +184,18 @@ export class PosService {
 
   async settings() {
     // ensureSingleton — survives two requests creating this row at once (P2002)
-    return ensureSingleton(
+    const s = await ensureSingleton(
       () => this.prisma.db.posSetting.findFirst(),
       () => this.prisma.db.posSetting.create({ data: {} }),
     );
+    /*  DEC-GBL-002 (owner, 21 Aug) — VAT is one rate for the shop, and Finance
+        owns it (it is what the Mushak challan prints). The till used to keep a
+        second rate of its own, so a bill could carry a percentage the books had
+        never heard of. The column stays for now; nothing reads it.  */
+    const fin = await this.prisma.db.financeSetting.findFirst({
+      select: { vatEnabled: true, vatRateBps: true },
+    });
+    return { ...s, defaultTaxRateBps: fin?.vatEnabled ? fin.vatRateBps : 0 };
   }
 
   async updateSettings(patch: UpdatePosSettingsDto) {
@@ -200,7 +208,7 @@ export class PosService {
         DEC-POS-021; the bug was older than the feature.  */
     const data: Prisma.PosSettingUpdateInput = {};
     if (patch.openingFloatDefaultPaisa !== undefined) data.openingFloatDefaultPaisa = patch.openingFloatDefaultPaisa;
-    if (patch.defaultTaxRateBps !== undefined) data.defaultTaxRateBps = patch.defaultTaxRateBps;
+    // DEC-GBL-002 — the rate is Finance's; the till does not get its own
     if (patch.giftReceiptHidePrice !== undefined) data.giftReceiptHidePrice = patch.giftReceiptHidePrice;
     if (patch.defaultCreditLimitPaisa !== undefined) data.defaultCreditLimitPaisa = patch.defaultCreditLimitPaisa;
     if (patch.receiptHeader !== undefined) data.receiptHeader = patch.receiptHeader;

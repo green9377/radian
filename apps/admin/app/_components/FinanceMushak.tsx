@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiMushakChallan, ApiMushakOrder, ApiMushakReadiness,
-  mushakChallan, mushakOrders, mushakReadiness, updateFinanceSettings,
+  mushakChallan, mushakOrders, mushakReadiness, saveCompany,
 } from "../_data/api";
 import {
   Banner, Card, Empty, FinHeader, Flash, Panel, Table, Td, Th, TONE, WRAP,
@@ -51,11 +51,15 @@ export default function FinanceMushak() {
 
   async function save() {
     try {
-      await updateFinanceSettings({
-        businessName: f.businessName.trim() || null,
-        businessBin: f.businessBin.trim() || null,
-        businessAddress: f.businessAddress.trim() || null,
-        businessVatCircle: f.businessVatCircle.trim() || null,
+      /*  DEC-GBL-003 (owner, 21 Aug) — who we are is written ONCE, in Company
+          settings. This screen used to save a second copy inside Finance, and
+          two BINs is how a challan goes out with the wrong number. The reader
+          already prefers the company row; now the writer does too.  */
+      await saveCompany({
+        legalName: f.businessName.trim() || null,
+        bin: f.businessBin.trim() || null,
+        registeredAddress: f.businessAddress.trim() || null,
+        vatCircle: f.businessVatCircle.trim() || null,
         signatoryName: f.signatoryName.trim() || null,
         signatoryDesignation: f.signatoryDesignation.trim() || null,
       });

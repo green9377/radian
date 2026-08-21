@@ -104,9 +104,30 @@ messaging channels · SSLCommerz keys.
 
 ---
 
-## E. Fix order (to be agreed)
+## E. What is done
 
-1. A1 payment methods — the one that bit
-2. A2 VAT rate
-3. A3 company identity
-4. B reasons + the New-order delivery table
+**A1 · DEC-GBL-001 — SHIPPED 21 Aug.** `PaymentMethodMaster`, one row per method,
+one On/Off each (the owner's choice: no per-place ticks). Setup → Payment
+methods. POS, purchase bills, supplier payments and refunds all read it, and the
+server refuses a payment on a method that is off, so a stale tab cannot slip one
+through. What the owner had already switched off at the till was carried over on
+the first run. Rows cannot be added or deleted — a new name would have nowhere
+to be stored (the three enums still hold the value on old bills).
+
+**A2 · DEC-GBL-002 — SHIPPED 21 Aug.** Finance owns the VAT rate. POS reads it
+(the till's own `defaultTaxRateBps` is no longer written or read) and the POS
+settings screen shows the shop's rate with a link to Finance. Each bill keeps
+its own snapshot, as it must.
+
+**A3 · DEC-GBL-003 — SHIPPED 21 Aug.** CompanySetting owns the BIN, the
+registered name and address, the VAT circle and the signatory. The Mushak screen
+now SAVES there instead of writing a second copy into Finance (it already read
+the company row first). A migration copies over anything that only ever got
+typed into the Finance copy.
+
+## F. Still open
+
+1. **B** — the reason master (wastage / gift), and New order reading the
+   Delivery module instead of its own fee table.
+2. **D1** — one approval threshold for the whole system, or one per module?
+3. **D2** — one rounding rule, or leave each screen as it is?

@@ -24,7 +24,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { COUNTER_METHODS, PayDialog, usePayRows } from "./MoneyBlock";
+import { PayDialog, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -475,8 +475,8 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
 /* ================= SETTINGS ================= */
 export function PosSettings() {
   const [s, setS] = useState<ApiPosSettings | null>(null);
-  const [savingMethods, setSavingMethods] = useState(false);
   const [saved, setSaved] = useState(false);
+  const payList = usePaymentMethods(TILL_TENDERS); // DEC-GBL-001
 
   async function save(patch: Partial<ApiPosSettings>) {
     try {
@@ -489,13 +489,6 @@ export function PosSettings() {
       shop has not written one yet, and the screen should say exactly that  */
   const [rules, setRules] = useState<{ cat: string; cap: string; appr: string }[]>([]);
 
-  const enabled = s?.enabledMethods ?? [];
-  async function saveMethods(next: string[]) {
-    setSavingMethods(true);
-    try { setS(await updatePosSettings({ enabledMethods: next })); }
-    catch { /* the screen keeps what it had; the next load tells the truth */ }
-    finally { setSavingMethods(false); }
-  }
   useEffect(() => {
     posSettings().then(setS).catch(() => {});
     posDiscountRules().then((r) => {
@@ -531,14 +524,19 @@ export function PosSettings() {
                 <input className="ipt" inputMode="decimal" defaultValue={String((s?.openingFloatDefaultPaisa ?? 0) / 100)}
                   onBlur={(e) => save({ openingFloatDefaultPaisa: Math.max(0, Math.round(Number(e.target.value) * 100)) })} />
               </div>
+              {/*  DEC-GBL-002 — one VAT rate for the shop, and Finance owns it
+                   (it is what the government challan prints). The till used to
+                   keep a second rate of its own.  */}
               <div>
-                <label className="lbl">Default VAT rate</label>
-                <select className="ipt" value={s?.defaultTaxRateBps ?? 0}
-                  onChange={(e) => save({ defaultTaxRateBps: Number(e.target.value) })}>
-                  {[0, 500, 750, 1500].map((bp) => (
-                    <option key={bp} value={bp}>{bp === 0 ? "No VAT" : `${bp / 100}%`}</option>
-                  ))}
-                </select>
+                <label className="lbl">VAT rate</label>
+                <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[12px] px-3.5 h-[40px] bg-[#faf8fc]">
+                  <span className="text-[13.5px] font-medium text-purple">
+                    {(s?.defaultTaxRateBps ?? 0) === 0 ? "No VAT" : `${(s?.defaultTaxRateBps ?? 0) / 100}%`}
+                  </span>
+                  <Link href="/finance/settings" className="text-[12px] underline text-body-soft shrink-0">
+                    Set in Finance
+                  </Link>
+                </div>
               </div>
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 accent-[#7a2ea8]"
@@ -564,32 +562,19 @@ export function PosSettings() {
             </div>
           </div>
 
-          {/*  DEC-POS-021 — the four names used to be written into this screen and
-               always shown as "On", so a shop that does not take cards had no way
-               to say so. They are the shop's now (PosSetting.enabledMethods).  */}
+          {/*  DEC-GBL-001 — the payment list stopped being the till's own on
+               21 Aug: it is the shop's, and it lives with the other shop-wide
+               settings so switching bKash off there switches it off here, on a
+               purchase bill and on a refund at the same moment.  */}
           <div className={card + " p-5"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-1">Payment methods</h3>
-            <p className="text-[12.5px] text-body-soft m-0 mb-3">What the counter may take. Switch one off and it disappears from the till.</p>
-            <div className="flex gap-2 flex-wrap">
-              {COUNTER_METHODS.map((m) => {
-                const on = !enabled.length || enabled.includes(m.id);
-                return (
-                  <button key={m.id} type="button" disabled={savingMethods}
-                    onClick={() => {
-                      const all = COUNTER_METHODS.map((x) => x.id);
-                      const cur = enabled.length ? enabled : all;
-                      const next = cur.includes(m.id) ? cur.filter((x) => x !== m.id) : [...cur, m.id];
-                      if (next.length === 0) return; // a till that takes nothing is not a till
-                      saveMethods(next);
-                    }}
-                    className={"text-[12.5px] font-medium rounded-full px-3.5 py-1.5 inline-flex items-center gap-1.5 border " + (on
-                      ? "bg-[#e9f9ef] text-[#0e7a3d] border-[#c2ecd3]"
-                      : "bg-white text-body-soft border-lavender-deep")}>
-                    <Icon name={on ? "check" : "alert"} size={13} /> {m.label}
-                  </button>
-                );
-              })}
-            </div>
+            <p className="text-[12.5px] text-body-soft m-0 mb-3">
+              {payList.length ? payList.map((m) => m.label).join(" · ") : "Nothing switched on"}
+            </p>
+            <Link href="/administration/payment-methods"
+              className="text-[13px] font-medium text-purple border border-lavender-deep rounded-[10px] px-4 py-2.5 inline-block hover:bg-lavender/40">
+              Change them for the whole shop →
+            </Link>
           </div>
         </div>
       </div>
