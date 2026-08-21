@@ -781,6 +781,11 @@ export class InventoryService {
     returnId: string;
     returnNo: string;
     actor: string;
+    /*  DEC-INV-018, extended 21 Aug — goods go back into the store they LEFT.
+        A cancel already did this; a customer return did not, so a counter sale
+        that left Main Storeroom came back into Radian Shop and both shelves
+        read wrong. The ledger knows where it went from; ask it.  */
+    orderId?: string;
     /*  DEC-POS-018 / owner 21 Aug — a counter line has no Product, and this
         method only ever spoke Product, so a returned counter item was silently
         never restocked: the return completed, the money went back, the shelf
@@ -865,6 +870,12 @@ export class InventoryService {
         });
       }
     }
+
+    /*  put it back where it came from (DEC-INV-018) — the default store is only
+        the fallback for goods this order never took from anywhere.  */
+    const placed = params.orderId ? await this.mirrorOriginalSale(params.orderId, drafts) : drafts;
+    drafts.length = 0;
+    drafts.push(...placed);
 
     if (drafts.length) {
       await this.prisma.db.$transaction(async (raw) => this.postMovements(asTx(raw), drafts));

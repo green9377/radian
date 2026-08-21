@@ -392,7 +392,7 @@ export class ReturnsService {
     if (!lines.length) return { posted: 0, skipped: [], already: 0 };
 
     const res = await this.inventory.postSaleReturn({
-      returnId: r.id, returnNo: r.returnNo, actor: actorName, lines,
+      returnId: r.id, returnNo: r.returnNo, orderId: r.orderId, actor: actorName, lines,
     });
     await this.event(id, 'system', `Restock reposted — ${res.posted} movement(s)`, actorName);
     return { ...res, already: 0 };
@@ -423,6 +423,7 @@ export class ReturnsService {
         const res = await this.inventory.postSaleReturn({
           returnId: r.id,
           returnNo: r.returnNo,
+          orderId: r.orderId, // back into the store the goods left (DEC-INV-018)
           actor: actorName,
           lines: restockLines,
         });
