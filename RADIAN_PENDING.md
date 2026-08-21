@@ -37,6 +37,29 @@ warehouse rules, DEC-INV-018 sell-from-where.
 
 ---
 
+## 📦 Phase 3 part C — Inventory (21 Aug night, shipped + self-tested)
+
+The owner's four points, all live:
+
+1. **Stock board = photo tiles** (rows one press away) — the same card language
+   as the till's picker: image, IN STOCK big, per-store chips, LOW/NEGATIVE
+   borders, Adjust in the footer.
+2. **Opening / Transfer / Wastage pick items in the shared `ItemPicker`** — the
+   bare-name dropdown is gone; a chosen line shows its photo and stays.
+   Self-tested live: OPENING +4 (rose — Green), TRF-000002 (−5/+5 Main→Shop),
+   WST-000001 (−2, Rotten) — all three verified in the movements table.
+3. Stocktake explained to the owner (draft count → review differences → Apply
+   posts adjustments). Screen unchanged this round.
+4. **Settings fills the width** — three warehouse decisions side by side
+   (sales / purchases / assembly picks, DEC-ASM-003 now visible), the two
+   switches under, and a "Your stores" strip. **Warehouses moved to Setup**
+   (shop-wide fact, CLAUDE.md §15); registry regenerated, 6/6 green.
+
+Still open in part C: wastage/gift reasons are hardcoded (DEC-GBL-004 reason
+master), movements/reports pages untouched this round.
+
+---
+
 ## 🧾 Bill pages + paisa (owner, 21 Aug evening — all shipped)
 
 - **Paisa can be typed** — every payment amount box is now `TakaInput`
