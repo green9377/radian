@@ -112,7 +112,18 @@ export default function PurchaseDetailView({ id }: { id: string }) {
         title={p.purchaseNo}
         blurb={`${p.supplierName}${p.supplierPhone ? " · " + p.supplierPhone : ""} · ${fmtDate(p.purchaseDate)}${p.supplierReceiptNo ? " · receipt " + p.supplierReceiptNo : ""}`}
         right={
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 flex-wrap">
+            {/*  from a bill, straight back to work (owner, 21 Aug): buy the next
+                 one, or go and sell — the counter is the other half of the shop  */}
+            <Link href="/purchases/new"
+              className="text-[13px] font-medium text-white px-4 py-2.5 rounded-[10px] inline-flex items-center gap-1.5"
+              style={{ background: ACCENT }}>
+              <Icon name="plus" size={14} /> New purchase
+            </Link>
+            <Link href="/pos/sell"
+              className="text-[13px] font-medium text-purple border border-lavender-deep px-4 py-2.5 rounded-[10px] inline-flex items-center gap-1.5 hover:bg-lavender/40">
+              <Icon name="plus" size={14} /> Sell (counter)
+            </Link>
             <StatusChip status={p.status} />
             <PayBadge p={p} />
           </span>

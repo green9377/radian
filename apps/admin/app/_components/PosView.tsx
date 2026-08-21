@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
@@ -68,6 +69,7 @@ interface HeldCart {
 }
 
 export default function PosSellView() {
+  const router = useRouter();
   const [products, setProducts] = useState<ApiPosCatalogueRow[]>([]);
   /*  6 Aug 2026 — demo fallback removed (owner's order, and here it was
       worse than cosmetic: a counter screen offering SELLABLE fake products
@@ -390,9 +392,12 @@ export default function PosSellView() {
           .filter((p) => p.amountPaisa > 0)
           .map((p) => ({ method: p.method.toLowerCase() as "cash" | "bkash" | "nagad" | "card", amountPaisa: p.amountPaisa })),
       });
-      setReceipt({ no: sale.orderNo, total: sale.totalPaisa, hideprice: isGift, due: sale.duePaisa });
-      posCurrentShift().then(setShift).catch(() => {}); // refresh drawer cash
+      /*  DEC-POS-023 (owner, 21 Aug) — a finished sale opens as a bill, the same
+          page a purchase gets. The receipt strip stays for the gift case, where
+          the point is a price-free slip, not a record.  */
       resetSale();
+      posCurrentShift().then(setShift).catch(() => {});
+      router.push(`/pos/sale/${sale.id}`);
     } catch (e) {
       setSaleErr(e instanceof Error ? e.message : "Could not complete the sale");
     }
