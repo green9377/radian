@@ -23,8 +23,11 @@ Screens that still carry their own money UI (found by reading the code, 21 Aug):
 | ~~Purchase bill (`PurchaseDetailView.tsx`)~~ | ~~its own little "Add payment" form~~ | **DONE 21 Aug** — `PayDialog`: many methods, part payments, PUR-R04 upheld |
 | ~~Purchase new (`PurchaseNewView.tsx`)~~ | ~~its own discount / VAT / adjustment fields~~ | **DONE 21 Aug** — MoneyBlock `tone="light"`, three doors (a purchase bill has no VAT field yet), split payments posted after create |
 | ~~Returns / refund (`ReturnViews.tsx`)~~ | ~~one free-text reference box~~ | **DONE 21 Aug** — `RefundDialog`: what goes back, which way, a reference; the payout stays capped at what was collected (DEC-RTN-008) |
-| New order / Order edit (`NewOrderForm`, `OrderEditor`, `OrderEditForm`) | their own discount / VAT fields | the same block |
-| POS Settings -> Payment methods | four names HARDCODED, always shown as "On" | come from a master, switchable in admin |
+| New order (website) | reads its total from the offers engine + delivery fee | **nothing to do** — there is no manual discount on a website order; the block would be a lie |
+| Order edit | per-LINE discounts + named charges, with a real API behind them | a cosmetic pass one day; the logic is right and differs from a counter bill |
+| Finance -> Money in / out | moves between money ACCOUNTS (drawer, bKash, bank) | **nothing to do** — accounts are the right model there, not payment methods |
+| Delivery -> settle COD | a batch table: many parcels, each with cash received + cost | **nothing to do** — one balance per dialog would make it worse |
+| ~~POS Settings -> Payment methods~~ | ~~four names HARDCODED, always "On"~~ | **DONE 21 Aug** — DEC-POS-021 `PosSetting.enabledMethods`; switch one off and it leaves the till. Saving POS settings had been broken since the actor stamp landed (ActorInterceptor writes `actorName` into every body and the service passed the body straight to Prisma) — fixed by naming the fields |
 
 ---
 
