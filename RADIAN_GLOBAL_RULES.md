@@ -125,6 +125,24 @@ now SAVES there instead of writing a second copy into Finance (it already read
 the company row first). A migration copies over anything that only ever got
 typed into the Finance copy.
 
+**DEC-GBL-006 — SHIPPED 21 Aug.** A method is not an account. bKash is HOW the
+money moves; 01711…, 01811… are WHERE it lands, and a shop has three of them
+and four bank accounts. Under each method the owner can now add accounts (name
++ number), rename them and switch one off. They are **Finance's money accounts**
+(DEC-FIN-008), not a second list — the ledger has always had one per method, so
+another bKash number is simply another row on the same table, and the books know
+it the moment it is added.
+
+Every payment now records WHICH account took it (`accountId` on
+PaymentTransaction, PurchasePayment and SupplierPayment), and Finance posts to
+that account instead of the method's default. The owner's rule for the screens:
+**ask only when there is a choice** — one account, no question; two or more and
+the row shows "Which account…". The server refuses a payment that does not say.
+
+**Taken out of the other screens.** POS settings no longer carries a payment
+list of its own (not even a link) — payment setup is in one place, and one place
+only: Setup → Payment methods.
+
 ## F. Still open
 
 1. **B** — the reason master (wastage / gift), and New order reading the
