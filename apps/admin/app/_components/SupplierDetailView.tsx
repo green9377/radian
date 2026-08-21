@@ -10,10 +10,11 @@ import { fmtDate } from "./PurchaseViews";
 import {
   getSupplier, getSupplierLedger, getSupplierTimeline, removeSupplier,
   paySupplier, supplierPayPreview, adjustSupplier, applySupplierCredit,
-  formatTaka, fmtQty, PAY_METHODS,
+  formatTaka, fmtQty,
   type ApiSupplierDetail, type SupplierLedger, type ActivityEvent, type PayMethod,
 } from "../_data/api";
 import { SupplierAvatar, StatusPill } from "./SupplierViews";
+import { usePaymentMethods, BILL_TENDERS } from "./MoneyBlock";
 
 /*
   Supplier detail — profile · ledger · Pay (allocation confirm) · adjustment ·
@@ -395,6 +396,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
 function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () => void; onDone: () => void }) {
   const [amountTk, setAmountTk] = useState("");
   const [method, setMethod] = useState<PayMethod>("CASH");
+  const payMethods = usePaymentMethods(BILL_TENDERS); // DEC-GBL-001
   const [note, setNote] = useState("");
   const [split, setSplit] = useState<{ purchaseId: string | null; purchaseNo: string | null; duePaisa: number; amountTk: string }[]>([]);
   const [previewed, setPreviewed] = useState(false);
@@ -452,8 +454,8 @@ function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () =>
         </Field>
         <Field label="Method">
           <div className="flex gap-1.5 flex-wrap">
-            {PAY_METHODS.map((m) => (
-              <button key={m.id} type="button" onClick={() => setMethod(m.id)}
+            {payMethods.map((m) => (
+              <button key={m.id} type="button" onClick={() => setMethod(m.id as PayMethod)}
                 className="text-[12px] font-medium px-3 py-1.5 rounded-[9px] border"
                 style={method === m.id
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }

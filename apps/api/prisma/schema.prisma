@@ -4640,6 +4640,29 @@ model OfferSetting {
 }
 
 /// Singleton POS settings (DEC-POS: everything admin-configurable).
+/// DEC-GBL-001 (owner, 21 Aug 2026) — ONE list of payment methods for the whole
+/// Business OS. It existed in five places before: three enums (orders/POS,
+/// purchases, returns), a POS-only on/off list, and Finance's money accounts —
+/// so bKash switched off at the till was still offered on a purchase bill.
+///
+/// The enums stay as the STORED value (a bill keeps the method it was written
+/// with, even years later); this table decides what may be OFFERED and what a
+/// new payment may use. Off here = gone from every screen and refused by the
+/// server. Rows are seeded and cannot be created or deleted from the UI: a new
+/// name would have nowhere to be stored.
+model PaymentMethodMaster {
+  id       String  @id
+  code     String  @unique // CASH · BKASH · NAGAD · CARD · BANK · OTHER · ONLINE · COD
+  name     String // what the screens print
+  isActive Boolean @default(true)
+  /// the website's own two (online gateway, cash on delivery) — the shop does not
+  /// switch these from here; the gateway page and the delivery module own them
+  isSystem  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PosSetting {
   id                     String   @id @default(cuid())
   openingFloatDefaultPaisa Int    @default(0)

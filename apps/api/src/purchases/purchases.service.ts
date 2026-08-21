@@ -5,6 +5,7 @@ import { AuditService } from '../common/audit.service';
 import { ItemsService } from '../items/items.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import type {
   PurchaseCreateDto,
   PurchasePatch,
@@ -75,6 +76,7 @@ export class PurchasesService {
     private readonly inventory: InventoryService,
     // Finance consumes received goods and bill payments — fail-soft (DEC-FIN-010)
     private readonly finance: FinanceEventsService,
+    private readonly payMethods: PaymentMethodsService, // DEC-GBL-001
   ) {}
 
   /**
@@ -839,8 +841,9 @@ export class PurchasesService {
       throw new BadRequestException('Cannot pay on a cancelled purchase');
     if (!Number.isInteger(dto.amountPaisa) || dto.amountPaisa <= 0)
       throw new BadRequestException('Payment amount must be a positive integer (paisa)');
+    await this.payMethods.assertActive(dto.method); // DEC-GBL-001
     if (p.paidPaisa + dto.amountPaisa > p.payablePaisa)
-      // PUR-R04 — নীতিটা Sales-এর REV-ভুল থেকে শেখা: টাকা কখনো হাওয়ায় ভাসে না
+      // PUR-R04 — learnt from the Sales REV bug: money never floats in the air
       throw new BadRequestException(
         `Payment exceeds what is owed — due is ${p.duePaisa} paisa`,
       );

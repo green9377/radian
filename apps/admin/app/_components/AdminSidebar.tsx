@@ -564,6 +564,14 @@ const GROUPS: Group[] = [
       {
         label: "Sales channels", href: "/orders/channels", icon: "store",
       },
+      /*  DEC-GBL-001 (owner, 21 Aug) — the payment list was five lists: three
+          enums, a POS-only switch and Finance's accounts, so bKash off at the
+          till was still on a purchase bill. It is one shop-wide setting now,
+          and it sits with the other shop-wide settings.  */
+      {
+        label: "Payment methods", href: "/administration/payment-methods", icon: "wallet",
+        roles: ["OWNER", "MANAGER"],
+      },
       {
         label: "Delivery setup", icon: "truck",
         subs: [

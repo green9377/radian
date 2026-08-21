@@ -26,9 +26,15 @@ import {
   type ReturnSettings, type ReturnResolution, type ReturnRefundMethod, type ReturnRestockAction,
   type ReturnStatus, type ApiOrder,
 } from "../_data/api";
-import { RefundDialog } from "./MoneyBlock";
+import { RefundDialog, usePaymentMethods } from "./MoneyBlock";
 
-const REFUND_METHODS: ReturnRefundMethod[] = ["ORIGINAL", "CASH", "BKASH", "NAGAD", "CARD", "BANK", "STORE_CREDIT"];
+/*  DEC-GBL-001 — ORIGINAL and STORE_CREDIT are rules, not tills, so they are
+    always offered; the real doors come from the shop's own list.  */
+const REFUND_TENDERS = ["CASH", "BKASH", "NAGAD", "CARD", "BANK"];
+function useRefundMethods(): ReturnRefundMethod[] {
+  const live = usePaymentMethods(REFUND_TENDERS);
+  return ["ORIGINAL", ...live.map((m) => m.id as ReturnRefundMethod), "STORE_CREDIT"];
+}
 const RESOLUTIONS: ReturnResolution[] = ["REFUND", "REPLACEMENT", "PARTIAL_COMPENSATION", "STORE_CREDIT"];
 
 function StatusPill({ status }: { status: ReturnStatus }) {
@@ -248,6 +254,7 @@ export function NewReturn() {
   const [reasonId, setReasonId] = useState("");
   const [reasonNote, setReasonNote] = useState("");
   const [tip, setTip] = useState("");
+  const refundMethods = useRefundMethods(); // DEC-GBL-001
   const [newReason, setNewReason] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
 
@@ -683,7 +690,7 @@ export function NewReturn() {
               <div>
                 <label className="lbl">Which way the money goes back</label>
                 <select className="ipt" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as ReturnRefundMethod)}>
-                  {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase()}</option>)}
+                  {refundMethods.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase()}</option>)}
                 </select>
               </div>
             )}
@@ -715,6 +722,7 @@ export function ReturnDetail({ id }: { id: string }) {
   const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
   const [refundRef, setRefundRef] = useState("");
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const refundMethods = useRefundMethods(); // DEC-GBL-001
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   async function load() {
@@ -897,7 +905,7 @@ export function ReturnDetail({ id }: { id: string }) {
           note={r.resolution === "PARTIAL_COMPENSATION"
             ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
             : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
-          methods={REFUND_METHODS.map((m) => ({
+          methods={refundMethods.map((m) => ({
             id: m,
             label: m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase(),
           }))}
@@ -924,6 +932,7 @@ export function ReturnSettingsView() {
   const [newLabel, setNewLabel] = useState("");
   const [newApproval, setNewApproval] = useState(false);
   const [newMethod, setNewMethod] = useState<ReturnRefundMethod>("ORIGINAL");
+  const refundMethods = useRefundMethods(); // DEC-GBL-001
 
   async function load() {
     try { setReasons(await getReturnReasons()); setSettings(await getReturnSettings()); }
@@ -982,7 +991,7 @@ export function ReturnSettingsView() {
             <input className="ipt" placeholder="New reason (e.g. Damaged on arrival)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
             <div className="flex items-center gap-2">
               <select className="ipt flex-1" value={newMethod} onChange={(e) => setNewMethod(e.target.value as ReturnRefundMethod)}>
-                {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m}</option>)}
+                {refundMethods.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m}</option>)}
               </select>
               <label className="text-[12px] flex items-center gap-1.5 shrink-0">
                 <input type="checkbox" checked={newApproval} onChange={(e) => setNewApproval(e.target.checked)} /> needs approval

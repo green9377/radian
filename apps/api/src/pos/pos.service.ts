@@ -15,6 +15,7 @@ import {
   PosCashKind,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import { paidPaisa } from '../common/discount-window';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -48,6 +49,8 @@ export class PosService {
     private readonly inventory: InventoryService,
     // Finance consumes the completed counter sale — fail-soft (DEC-FIN-010)
     private readonly finance: FinanceEventsService,
+    /*  DEC-GBL-001 — one payment list for the whole shop  */
+    private readonly payMethods: PaymentMethodsService,
   ) {}
 
   /* ------------------------------------------------ helpers */
@@ -620,6 +623,8 @@ export class PosService {
         throw new BadRequestException(`${p.method} amount must be a positive whole number of paisa`);
       }
       if (!TENDER_METHOD[p.method]) throw new BadRequestException(`unknown tender: ${p.method}`);
+      // DEC-GBL-001 — the shop's list decides, not the screen
+      await this.payMethods.assertActive(p.method);
     }
     const paid = payments.reduce((s, p) => s + p.amountPaisa, 0);
     /* POS-REV-6 — and refuse an OVERPAYMENT rather than swallowing it. `duePaisa` was
@@ -929,6 +934,7 @@ export class PosService {
         throw new BadRequestException(`${p.method} amount must be a positive whole number of paisa`);
       }
       if (!TENDER_METHOD[p.method as PosTender]) throw new BadRequestException(`unknown tender: ${p.method}`);
+      await this.payMethods.assertActive(p.method); // DEC-GBL-001
     }
     const amount = lines.reduce((s, p) => s + p.amountPaisa, 0);
     if (amount <= 0) throw new BadRequestException('enter an amount to collect');

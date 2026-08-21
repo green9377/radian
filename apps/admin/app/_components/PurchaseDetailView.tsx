@@ -8,10 +8,10 @@ import { WRAP, ACCENT, ItemPageHead, ErrBar, OkBar, DemoBar, Modal, Field, ItemT
 import { StatusChip, PayBadge, fmtDate } from "./PurchaseViews";
 import {
   getPurchase, receivePurchase, addPurchasePayment, cancelPurchase, createPurchaseReturn, repostPurchaseStock,
-  getPurchaseTimeline, isCostJumpRefusal, formatTaka, fmtQty, toMilli, PAY_METHODS,
+  getPurchaseTimeline, isCostJumpRefusal, formatTaka, fmtQty, toMilli,
   type ApiPurchase, type PayMethod, type ActivityEvent,
 } from "../_data/api";
-import { PayDialog, usePayRows } from "./MoneyBlock";
+import { PayDialog, usePayRows, usePaymentMethods, BILL_TENDERS } from "./MoneyBlock";
 
 /*
   Purchase detail — receive, pay, return. RADIAN_PURCHASE_MODULE_ARCHITECTURE.md.
@@ -236,7 +236,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             {p.payments.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing paid yet.</p>}
             {p.payments.map((x) => (
               <div key={x.id} className="flex items-center justify-between gap-3 py-2 border-b border-lavender-deep/60 last:border-0">
-                <span className="text-[13px] text-body">{fmtDate(x.paidAt)} · {PAY_METHODS.find((m) => m.id === x.method)?.label ?? x.method}{x.note ? ` · ${x.note}` : ""}</span>
+                <span className="text-[13px] text-body">{fmtDate(x.paidAt)} · {x.method}{x.note ? ` · ${x.note}` : ""}</span>
                 <b className="text-[13px]" style={{ color: "#0e7a3d" }}>{formatTaka(x.amountPaisa)}</b>
               </div>
             ))}
@@ -461,6 +461,7 @@ function PayBill({ purchaseId, owedPaisa, supplier, onClose, onDone }: {
   onClose: () => void; onDone: () => void;
 }) {
   const pay = usePayRows(owedPaisa, "CASH");
+  const billMethods = usePaymentMethods(BILL_TENDERS); // DEC-GBL-001
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -482,7 +483,7 @@ function PayBill({ purchaseId, owedPaisa, supplier, onClose, onDone }: {
     <PayDialog
       title="Pay the supplier" who={supplier}
       owedPaisa={owedPaisa} owedLabel="Still owed"
-      pay={pay} methods={PAY_METHODS} busy={busy} error={err}
+      pay={pay} methods={billMethods} busy={busy} error={err}
       confirmLabel="Pay" leftLabel="Paying now"
       dueAfterLabel="Still owed after this" clearedLabel="Bill cleared"
       onConfirm={record} onClose={onClose} />

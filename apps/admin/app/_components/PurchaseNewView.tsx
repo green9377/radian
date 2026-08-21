@@ -7,11 +7,11 @@ import { WRAP, ACCENT, ACCENT_BG, ItemPageHead, ErrBar, DemoBar, Field, QuickSel
 import {
   loadItemsSafe, listUnits, createPurchase, addPurchasePayment, isCostJumpRefusal,
   listSuppliers, createSupplier, listSupplierTypes,
-  formatTaka, toMilli, uploadItemImage, PAY_METHODS, ITEM_TYPE_META,
+  formatTaka, toMilli, uploadItemImage, ITEM_TYPE_META,
   type ApiItem, type ApiUnit, type PayMethod, type PurchaseLineWrite, type ItemType,
   type ApiSupplier,
 } from "../_data/api";
-import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, usePaymentMethods, BILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 
 /*
   New purchase — ONE screen, Biznify-Direct-Bill style (the owner's 331-of-331 habit).
@@ -271,6 +271,7 @@ export default function PurchaseNewView() {
   const discount = sum.discountPaisa;
   const adjust = sum.extraPaisa; // named charges + the nameless round-off, as one number
   const grand = sum.totalPaisa;
+  const billMethods = usePaymentMethods(BILL_TENDERS); // DEC-GBL-001
   const payRows = usePayRows(grand, "CASH");
   const pay = payRows.paidPaisa;
 
@@ -502,7 +503,7 @@ export default function PurchaseNewView() {
                   <input type="checkbox" checked={advance} onChange={(e) => setAdvance(e.target.checked)} className="w-4 h-4 accent-[#f0b46a]" />
                   Advance order — goods arrive later
                 </label>
-                <PaymentLines pay={payRows} methods={PAY_METHODS}
+                <PaymentLines pay={payRows} methods={billMethods}
                   title={advance ? "Advance paid now" : "Paid now"} maxHeight={168} />
               </div>
             </div>

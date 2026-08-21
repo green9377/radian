@@ -3080,6 +3080,28 @@ export function lineCostPaisa(l: ApiItemComponent): number {
 export type PurchaseStatus = "ORDERED" | "ADVANCE_PAID" | "RECEIVED" | "CANCELLED";
 export type PayMethod = "CASH" | "BKASH" | "NAGAD" | "BANK" | "CARD" | "OTHER";
 
+/* ---------------------------------------------------------------- DEC-GBL-001
+   The shop's payment methods — ONE list for the whole Business OS. The screens
+   below used to keep their own copies, which is how bKash could be off at the
+   till and on in a purchase bill. */
+export interface ApiPaymentMethod {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  isSystem: boolean;
+  sortOrder: number;
+}
+export const listPaymentMethods = () =>
+  j<ApiPaymentMethod[]>(`/administration/payment-methods`);
+export const updatePaymentMethod = (
+  id: string,
+  b: { isActive?: boolean; name?: string; sortOrder?: number },
+) => j<ApiPaymentMethod>(`/administration/payment-methods/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+
+/** the four the counter and the buying side share, in the shop's own order */
+export const TILL_CODES = ["CASH", "BKASH", "NAGAD", "CARD", "BANK", "OTHER"];
+
 export const PAY_METHODS: { id: PayMethod; label: string }[] = [
   { id: "CASH", label: "Cash" },
   { id: "BKASH", label: "bKash" },

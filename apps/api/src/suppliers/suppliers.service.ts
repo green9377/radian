@@ -2,6 +2,7 @@ import { ensureSingleton } from '../common/singleton';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, PayMethod, NotifyChannel, NotifyMode, SupplierStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
 import { AuditService } from '../common/audit.service';
 import type {
@@ -57,6 +58,7 @@ export class SuppliersService {
     // DEC-FIN-022 — the supplier payment is the ONLY thing Finance posts; the
     // PurchasePayment rows it creates above are skipped there on purpose.
     private readonly finance: FinanceEventsService,
+    private readonly payMethods: PaymentMethodsService, // DEC-GBL-001
   ) {}
 
   /* ---------------------------------------------------------------- numbers */
@@ -791,6 +793,7 @@ export class SuppliersService {
     if (!Number.isInteger(amount) || amount <= 0)
       throw new BadRequestException('Amount must be a positive integer (paisa)');
     if (!dto.method) throw new BadRequestException('Method is required');
+    await this.payMethods.assertActive(dto.method); // DEC-GBL-001
 
     const b = await this.balances(id);
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : new Date();

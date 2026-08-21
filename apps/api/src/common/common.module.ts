@@ -3,21 +3,27 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditService } from './audit.service';
 import { StorefrontCacheService } from './storefront-cache.service';
 import { StorefrontCacheInterceptor } from './storefront-cache.interceptor';
+import { PaymentMethodsService } from './payment-methods.service';
 
 /**
- * CommonModule — cross-cutting service (AuditService) সব module-এ inject-যোগ্য।
- * PrismaModule @Global, তাই AuditService PrismaService inject করতে পারে。
+ * CommonModule — the cross-cutting services every module may inject.
+ * PrismaModule is @Global, so these can take PrismaService themselves.
  *
- * DEC-WEB-004 — StorefrontCacheInterceptor global: প্রতিটা সফল write-এর পর
- * দোকানকে খবর দেয় যে তার জমানো পাতা পুরনো হয়ে গেছে。
+ * DEC-WEB-004 — StorefrontCacheInterceptor is global: after every successful
+ * write it tells the shop that its cached pages are stale.
+ *
+ * DEC-GBL-001 — PaymentMethodsService lives here for the same reason: the
+ * shop's payment list belongs to no single module, and POS, Purchases,
+ * Suppliers and Returns all have to read the same answer.
  */
 @Global()
 @Module({
   providers: [
     AuditService,
+    PaymentMethodsService,
     StorefrontCacheService,
     { provide: APP_INTERCEPTOR, useClass: StorefrontCacheInterceptor },
   ],
-  exports: [AuditService, StorefrontCacheService],
+  exports: [AuditService, PaymentMethodsService, StorefrontCacheService],
 })
 export class CommonModule {}

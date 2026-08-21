@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Icon from "./Icon";
-import { formatTaka } from "../_data/api";
+import { formatTaka, listPaymentMethods, type ApiPaymentMethod } from "../_data/api";
 
 /*
   The money half of any screen that takes money — POS today, purchases, due
@@ -96,6 +96,29 @@ export const COUNTER_METHODS: PayOption[] = [
   { id: "Nagad", label: "Nagad" },
   { id: "Card", label: "Card" },
 ];
+
+/*  DEC-GBL-001 — the shop's own list, read once and shared by every money
+    screen. `only` narrows it to the codes a screen can actually store: the
+    counter has four tenders, the buying side six. Off in Setup = gone here,
+    and the server refuses it as well, so a stale tab cannot slip one past.  */
+/** the four a counter drawer can hold, and the six a bill can be paid by */
+export const TILL_TENDERS = ["CASH", "BKASH", "NAGAD", "CARD"];
+export const BILL_TENDERS = ["CASH", "BKASH", "NAGAD", "CARD", "BANK", "OTHER"];
+
+export function usePaymentMethods(only?: string[]): PayOption[] {
+  const [rows, setRows] = useState<ApiPaymentMethod[] | null>(null);
+  useEffect(() => { listPaymentMethods().then(setRows).catch(() => setRows(null)); }, []);
+  return useMemo(() => {
+    if (!rows?.length) {
+      // the list could not be read — offer the built-in four rather than nothing
+      return only ? COUNTER_METHODS.filter((m) => only.includes(m.id.toUpperCase())) : COUNTER_METHODS;
+    }
+    return rows
+      .filter((r) => r.isActive && (!only || only.includes(r.code.toUpperCase())))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((r) => ({ id: r.code, label: r.name }));
+  }, [rows, only]);
+}
 
 export interface PayRow {
   id: string;

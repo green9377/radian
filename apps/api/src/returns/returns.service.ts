@@ -19,6 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import type {
   CreateReturnDto,
   CompleteReturnDto,
@@ -66,6 +67,7 @@ export class ReturnsService {
     private readonly inventory: InventoryService,
     // Finance consumes the completed return — fail-soft (DEC-FIN-010)
     private readonly finance: FinanceEventsService,
+    private readonly payMethods: PaymentMethodsService, // DEC-GBL-001
   ) {}
 
   /* ============================ reads ============================ */
@@ -482,6 +484,8 @@ export class ReturnsService {
       throw new BadRequestException(`a ${r.status} return cannot be completed`);
 
     const refundMethod = dto.refundMethod ?? r.refundMethod;
+    // DEC-GBL-001 — a payout cannot leave by a door the shop has closed
+    await this.payMethods.assertActive(refundMethod);
 
     /*  1) restock — ONLY lines the staff marked RESTOCK; fail-soft (never break
         the flow). Website lines come back by their Product, counter lines by the

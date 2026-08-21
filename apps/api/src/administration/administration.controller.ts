@@ -12,6 +12,7 @@ import {
 import { Public, Roles, type AuthedRequest } from '../auth/auth.guard';
 import { RegistryService } from './registry.service';
 import { AccessService } from './access.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import { AccessGuard } from './access.guard';
 import { PeopleService } from './people.service';
 import { CompanyService, type CompanyWriteDto } from './company.service';
@@ -41,9 +42,12 @@ export class AdministrationController {
     private readonly company_: CompanyService,
     private readonly system: SystemService,
     private readonly integrations_: IntegrationsService,
+    /*  DEC-GBL-001 — the shop's payment list lives in CommonModule, because it
+        belongs to no single module; this controller only hands it a door.  */
+    private readonly payMethods: PaymentMethodsService,
   ) {}
 
-  /* ---- সবার জন্য ---- */
+  /* ---- open to anyone signed in ---- */
 
   /** সাইডবার এটা পড়বে — নিজের চোখে যা দেখা যায় তার তালিকা (ADM-RULE-001) */
   @Get('my-access')
@@ -148,6 +152,25 @@ export class AdministrationController {
   @Roles('OWNER')
   saveCompany(@Req() req: AuthedRequest, @Body() dto: CompanyWriteDto) {
     return this.company_.update(dto, req.actor?.name ?? 'unknown');
+  }
+
+  /* ---- the shop's payment methods (DEC-GBL-001) ----
+     Readable by anyone signed in: the till, the purchase screen and the refund
+     dialog all draw their list from here. Only the owner or a manager may flip
+     one, because switching bKash off stops money coming in that way. */
+
+  @Get('payment-methods')
+  paymentMethods() {
+    return this.payMethods.list();
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Patch('payment-methods/:id')
+  savePaymentMethod(
+    @Param('id') id: string,
+    @Body() dto: { isActive?: boolean; name?: string; sortOrder?: number },
+  ) {
+    return this.payMethods.update(id, dto);
   }
 
   /* ---- people (OWNER only) ---- */

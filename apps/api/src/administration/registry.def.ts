@@ -1630,6 +1630,19 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 156
   },
   {
+    "key": "administration.payment-methods",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Payment methods",
+    "domain": "Setup",
+    "href": "/administration/payment-methods",
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 157
+  },
+  {
     "key": "delivery-setup",
     "parentKey": null,
     "kind": "MODULE",
@@ -1637,7 +1650,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": null,
     "legacyRoles": null,
-    "sortOrder": 157
+    "sortOrder": 158
   },
   {
     "key": "delivery.zones",
@@ -1647,7 +1660,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/delivery/zones",
     "legacyRoles": null,
-    "sortOrder": 158
+    "sortOrder": 159
   },
   {
     "key": "delivery.setup",
@@ -1657,7 +1670,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/delivery/setup",
     "legacyRoles": null,
-    "sortOrder": 159
+    "sortOrder": 160
   },
   {
     "key": "delivery.riders",
@@ -1667,7 +1680,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/delivery/riders",
     "legacyRoles": null,
-    "sortOrder": 160
+    "sortOrder": 161
   },
   {
     "key": "returns.settings",
@@ -1677,7 +1690,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/returns/settings",
     "legacyRoles": null,
-    "sortOrder": 161
+    "sortOrder": 162
   },
   {
     "key": "employees",
@@ -1690,7 +1703,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 162
+    "sortOrder": 163
   },
   {
     "key": "employees.overview",
@@ -1700,7 +1713,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees",
     "legacyRoles": null,
-    "sortOrder": 163
+    "sortOrder": 164
   },
   {
     "key": "employees.new",
@@ -1710,7 +1723,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees/new",
     "legacyRoles": null,
-    "sortOrder": 164
+    "sortOrder": 165
   },
   {
     "key": "employees.roles",
@@ -1720,7 +1733,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees/roles",
     "legacyRoles": null,
-    "sortOrder": 165
+    "sortOrder": 166
   },
   {
     "key": "employees.attendance",
@@ -1730,7 +1743,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees/attendance",
     "legacyRoles": null,
-    "sortOrder": 166
+    "sortOrder": 167
   },
   {
     "key": "employees.payroll",
@@ -1740,7 +1753,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees/payroll",
     "legacyRoles": null,
-    "sortOrder": 167
+    "sortOrder": 168
   },
   {
     "key": "employees.trash",
@@ -1750,7 +1763,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/employees/trash",
     "legacyRoles": null,
-    "sortOrder": 168
+    "sortOrder": 169
   },
   {
     "key": "administration",
@@ -1762,7 +1775,7 @@ export const REGISTRY: RegistryNode[] = [
     "legacyRoles": [
       "OWNER"
     ],
-    "sortOrder": 169
+    "sortOrder": 170
   },
   {
     "key": "administration.overview",
@@ -1772,7 +1785,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration",
     "legacyRoles": null,
-    "sortOrder": 170
+    "sortOrder": 171
   },
   {
     "key": "administration.access",
@@ -1782,7 +1795,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/access",
     "legacyRoles": null,
-    "sortOrder": 171
+    "sortOrder": 172
   },
   {
     "key": "settings.people",
@@ -1792,7 +1805,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/settings/people",
     "legacyRoles": null,
-    "sortOrder": 172
+    "sortOrder": 173
   },
   {
     "key": "settings.audit",
@@ -1802,7 +1815,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/settings/audit",
     "legacyRoles": null,
-    "sortOrder": 173
+    "sortOrder": 174
   },
   {
     "key": "administration.company",
@@ -1812,7 +1825,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/company",
     "legacyRoles": null,
-    "sortOrder": 174
+    "sortOrder": 175
   },
   {
     "key": "administration.settings",
@@ -1822,7 +1835,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/settings",
     "legacyRoles": null,
-    "sortOrder": 175
+    "sortOrder": 176
   },
   {
     "key": "administration.backup",
@@ -1832,7 +1845,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/backup",
     "legacyRoles": null,
-    "sortOrder": 176
+    "sortOrder": 177
   },
   {
     "key": "administration.integrations",
@@ -1842,7 +1855,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations",
     "legacyRoles": null,
-    "sortOrder": 177
+    "sortOrder": 178
   },
   {
     "key": "administration.integrations.overview",
@@ -1852,7 +1865,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations",
     "legacyRoles": null,
-    "sortOrder": 178
+    "sortOrder": 179
   },
   {
     "key": "administration.integrations.payment",
@@ -1862,7 +1875,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations/payment",
     "legacyRoles": null,
-    "sortOrder": 179
+    "sortOrder": 180
   },
   {
     "key": "administration.integrations.courier",
@@ -1872,7 +1885,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations/courier",
     "legacyRoles": null,
-    "sortOrder": 180
+    "sortOrder": 181
   },
   {
     "key": "administration.integrations.messaging",
@@ -1882,7 +1895,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations/messaging",
     "legacyRoles": null,
-    "sortOrder": 181
+    "sortOrder": 182
   },
   {
     "key": "administration.integrations.social",
@@ -1892,7 +1905,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations/social",
     "legacyRoles": null,
-    "sortOrder": 182
+    "sortOrder": 183
   },
   {
     "key": "administration.integrations.analytics",
@@ -1902,7 +1915,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/administration/integrations/analytics",
     "legacyRoles": null,
-    "sortOrder": 183
+    "sortOrder": 184
   },
   {
     "key": "settings.me",
@@ -1912,6 +1925,6 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Setup",
     "href": "/settings/me",
     "legacyRoles": null,
-    "sortOrder": 184
+    "sortOrder": 185
   }
 ];

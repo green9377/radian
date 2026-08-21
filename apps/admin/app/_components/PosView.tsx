@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
-import { MoneyBlock, MoneyResult, PaymentLines, COUNTER_METHODS, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -87,16 +87,9 @@ export default function PosSellView() {
   const [saleErr, setSaleErr] = useState<string | null>(null);
   useEffect(() => { posCurrentShift().then(setShift).catch(() => {}); }, []);
 
-  /*  DEC-POS-021 — the counter offers only the methods the shop says it takes.  */
-  const [methods, setMethods] = useState(COUNTER_METHODS);
-  useEffect(() => {
-    posSettings()
-      .then((s) => {
-        const on = s.enabledMethods ?? [];
-        if (on.length) setMethods(COUNTER_METHODS.filter((m) => on.includes(m.id)));
-      })
-      .catch(() => {});
-  }, []);
+  /*  DEC-GBL-001 (was DEC-POS-021, POS-only) — the counter offers what the SHOP
+      takes, from the one list every money screen reads.  */
+  const methods = usePaymentMethods(TILL_TENDERS);
   const shiftOpen = !!shift;
   const openingFloatPaisa = shift?.openingFloatPaisa ?? 0;
   async function openShift() {
@@ -272,7 +265,7 @@ export default function PosSellView() {
 
   /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice. Money
       is taken as many ways as the customer likes; whatever is left is the due.  */
-  const pay = usePayRows(total);
+  const pay = usePayRows(total, methods[0]?.id ?? "CASH");
   const { paidPaisa: paid, duePaisa, changePaisa, overpaidNoChange } = pay;
 
   /*  The cap lives on the server and it refuses in words; the screen no longer
