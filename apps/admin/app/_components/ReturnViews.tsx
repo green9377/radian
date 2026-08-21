@@ -176,6 +176,54 @@ export function ReturnsOverview() {
   );
 }
 
+/*  Every word on this page hangs off the thing it explains (owner, 21 Aug:
+    "jar je bekkha setar upore click krle show krbe" — not one icon at the top).
+    The chip picks; the little circle on it opens that one line, nothing else.  */
+const GOODS_LABEL: Record<ReturnRestockAction, string> = {
+  RESTOCK: "Back on the shelf",
+  WRITE_OFF: "Thrown away",
+};
+const GOODS_WHY: Record<ReturnRestockAction, string> = {
+  RESTOCK: "Still sellable — stock goes up by what comes back.",
+  WRITE_OFF: "Damaged or wilted — stock stays as it is and the shop takes the loss.",
+};
+const SETTLE_LABEL: Record<ReturnResolution, string> = {
+  REFUND: "Money back",
+  STORE_CREDIT: "Store credit",
+  REPLACEMENT: "Replacement",
+  PARTIAL_COMPENSATION: "Keeps it, part back",
+};
+const SETTLE_WHY: Record<ReturnResolution, string> = {
+  REFUND: "The money goes back to the customer, never more than what was collected.",
+  STORE_CREDIT: "No money leaves — the value waits in the customer's account for next time.",
+  REPLACEMENT: "The same goods are sent again. No money moves at all.",
+  PARTIAL_COMPENSATION: "The customer keeps the goods and you give back part of the price.",
+};
+
+function Choice({ on, title, why, onPick, open, onInfo, wide }: {
+  on: boolean; title: string; why: string; onPick: () => void;
+  open: boolean; onInfo: () => void; wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "" : "shrink-0"}>
+      <div onClick={onPick} role="button" tabIndex={0}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onPick()}
+        className={"cursor-pointer select-none flex items-center gap-2 rounded-[10px] border pl-3 pr-2 h-[38px] " + (on
+          ? "border-orchid-mid bg-lavender text-purple"
+          : "border-lavender-deep bg-white text-body-soft hover:border-orchid-mid")}>
+        <span className="text-[12.5px] font-medium flex-1 whitespace-nowrap">{title}</span>
+        <span role="button" tabIndex={0} aria-label={"What " + title + " means"}
+          onClick={(e) => { e.stopPropagation(); onInfo(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onInfo(); } }}
+          className={"w-[19px] h-[19px] rounded-full text-[11px] font-bold leading-[17px] text-center border " + (open
+            ? "bg-purple text-white border-purple"
+            : "border-lavender-deep text-body-soft hover:border-orchid-mid")}>i</span>
+      </div>
+      {open && <div className="text-[11.5px] text-body-soft leading-[1.45] mt-1.5 max-w-[250px]">{why}</div>}
+    </div>
+  );
+}
+
 /* ================================================================== NEW RETURN */
 
 type LineDraft = { checked: boolean; qty: number; restockAction: ReturnRestockAction };
@@ -189,7 +237,7 @@ export function NewReturn() {
   const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
   const [reasonId, setReasonId] = useState("");
   const [reasonNote, setReasonNote] = useState("");
-  const [help, setHelp] = useState(false);
+  const [tip, setTip] = useState("");
   const [newReason, setNewReason] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
 
@@ -301,33 +349,9 @@ export function NewReturn() {
       <ItemPageHead
         eyebrow="Commerce · Returns & Refunds"
         title="New return"
-        right={
-          <span className="flex items-center gap-2">
-            {/*  the words live behind a "?" (owner, 21 Aug: a screen full of
-                 explanation is a screen nobody reads)  */}
-            <button type="button" onClick={() => setHelp((v) => !v)} aria-label="What these mean"
-              className={"w-[34px] h-[34px] rounded-full border text-[15px] font-semibold " + (help
-                ? "border-orchid-mid bg-lavender text-purple"
-                : "border-lavender-deep text-body-soft hover:border-orchid-mid")}>?</button>
-            <Link href="/returns" className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep">← Back</Link>
-          </span>
-        }
+        right={<Link href="/returns" className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep">← Back</Link>}
       />
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
-
-      {help && (
-        <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 mb-4 text-[12.5px] text-body">
-          <div className="grid md:grid-cols-2 gap-x-6 gap-y-1.5">
-            <div><b className="text-purple">Back on the shelf</b> — sellable again, stock goes up.</div>
-            <div><b className="text-purple">Thrown away</b> — damaged or wilted; stock unchanged, the shop takes the loss.</div>
-            <div><b className="text-purple">Money back</b> — the value goes back the way it came in.</div>
-            <div><b className="text-purple">Store credit</b> — no money leaves; it waits in the customer&apos;s account.</div>
-            <div><b className="text-purple">Replacement</b> — same goods sent again, no money moves.</div>
-            <div><b className="text-purple">Keeps it, part back</b> — the customer keeps the goods, you return part of the price.</div>
-            <div className="md:col-span-2 text-body-soft">Only a delivered order can be returned, and a payout never passes what was collected.</div>
-          </div>
-        </div>
-      )}
 
       {!el && (
         <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5">
@@ -424,18 +448,13 @@ export function NewReturn() {
                                mani ki") — and no cut-off dropdown  */}
                           <div>
                             <label className="lbl">The goods</label>
-                            <div className="flex gap-1.5">
-                              {([
-                                ["RESTOCK", "Back on the shelf"],
-                                ["WRITE_OFF", "Thrown away"],
-                              ] as [ReturnRestockAction, string][]).map(([id, title]) => (
-                                <button key={id} type="button"
-                                  onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: id } }))}
-                                  className={"text-[12.5px] font-medium rounded-[9px] border px-3 h-[36px] " + (d.restockAction === id
-                                    ? "border-orchid-mid bg-lavender text-purple"
-                                    : "border-lavender-deep bg-white text-body-soft hover:border-orchid-mid")}>
-                                  {title}
-                                </button>
+                            <div className="flex items-start gap-1.5">
+                              {(["RESTOCK", "WRITE_OFF"] as ReturnRestockAction[]).map((id) => (
+                                <Choice key={id} title={GOODS_LABEL[id]} why={GOODS_WHY[id]}
+                                  on={d.restockAction === id}
+                                  onPick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: id } }))}
+                                  open={tip === `${l.orderLineId}:${id}`}
+                                  onInfo={() => setTip((t) => (t === `${l.orderLineId}:${id}` ? "" : `${l.orderLineId}:${id}`))} />
                               ))}
                             </div>
                           </div>
@@ -494,19 +513,12 @@ export function NewReturn() {
 
             <div>
               <label className="lbl">How it is settled</label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {([
-                  ["REFUND", "Money back"],
-                  ["STORE_CREDIT", "Store credit"],
-                  ["REPLACEMENT", "Replacement"],
-                  ["PARTIAL_COMPENSATION", "Keeps it, part back"],
-                ] as [ReturnResolution, string][]).map(([id, title]) => (
-                  <button key={id} type="button" onClick={() => setResolution(id)}
-                    className={"text-[12.5px] font-medium rounded-[9px] border px-2.5 h-[38px] " + (resolution === id
-                      ? "border-orchid-mid bg-lavender text-purple"
-                      : "border-lavender-deep bg-white text-body-soft hover:border-orchid-mid")}>
-                    {title}
-                  </button>
+              <div className="grid grid-cols-2 gap-1.5 items-start">
+                {(["REFUND", "STORE_CREDIT", "REPLACEMENT", "PARTIAL_COMPENSATION"] as ReturnResolution[]).map((id) => (
+                  <Choice key={id} wide title={SETTLE_LABEL[id]} why={SETTLE_WHY[id]}
+                    on={resolution === id} onPick={() => setResolution(id)}
+                    open={tip === `res:${id}`}
+                    onInfo={() => setTip((t) => (t === `res:${id}` ? "" : `res:${id}`))} />
                 ))}
               </div>
             </div>
@@ -518,7 +530,9 @@ export function NewReturn() {
               </div>
             )}
 
-            {resolution !== "REPLACEMENT" && (
+            {/*  a replacement moves no money and store credit has only one way
+                 out, so this choice is only real for a refund  */}
+            {(resolution === "REFUND" || resolution === "PARTIAL_COMPENSATION") && (
               <div>
                 <label className="lbl">Which way the money goes back</label>
                 <select className="ipt" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as ReturnRefundMethod)}>
@@ -580,6 +594,7 @@ export function ReturnDetail({ id }: { id: string }) {
   const canApprove = r.status === "pending_approval";
   const canComplete = r.status === "approved";
   const canCancel = r.status !== "completed" && r.status !== "cancelled" && r.status !== "rejected";
+  const needsPayout = r.resolution === "REFUND" || r.resolution === "PARTIAL_COMPENSATION";
 
   return (
     <div className={WRAP}>
@@ -642,22 +657,33 @@ export function ReturnDetail({ id }: { id: string }) {
 
           {canComplete && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4">
-              {/*  paying a refund is money leaving, so it goes through the house
-                   dialog like every other movement (CLAUDE.md §14)  */}
-              <button disabled={busy} onClick={() => setPayoutOpen(true)}
-                className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
-                {busy ? "Working…" : r.resolution === "REPLACEMENT" ? "Complete return" : "Complete & pay out"}
-              </button>
-              <p className="text-[11.5px] text-body-soft mt-2 mb-0">
-                The payout is capped at what was actually collected (DEC-RTN-008).
-              </p>
+              {/*  Only a refund is money leaving, and that goes through the house
+                   dialog (CLAUDE.md §14). Store credit and a replacement move no
+                   cash, so asking "which way does the money go back" there was a
+                   dead end the owner walked into (21 Aug).  */}
+              {needsPayout ? (
+                <button disabled={busy} onClick={() => setPayoutOpen(true)}
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  {busy ? "Working…" : "Complete & pay out"}
+                </button>
+              ) : (
+                <button disabled={busy}
+                  onClick={() => act(
+                    () => completeReturn(id, { refundMethod: r.resolution === "STORE_CREDIT" ? "STORE_CREDIT" : refundMethod }),
+                    r.resolution === "STORE_CREDIT" ? "Store credit given" : "Return completed",
+                  )}
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  {busy ? "Working…" : r.resolution === "STORE_CREDIT"
+                    ? `Complete — give ${formatTaka(r.returnValuePaisa)} store credit`
+                    : "Complete — the replacement goes out"}
+                </button>
+              )}
             </div>
           )}
 
           {canApprove && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
               <div className="text-[13px] font-semibold" style={{ color: "#c77700" }}>Needs approval</div>
-              <p className="text-[12.5px] text-body-soft m-0">Perishable/crafted goods or a large amount need a sign-off before payout.</p>
               <div className="flex gap-2">
                 <button disabled={busy} onClick={() => act(() => approveReturn(id), "Approved")}
                   className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>Approve</button>

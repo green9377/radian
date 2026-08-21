@@ -81,7 +81,8 @@ export class PosService {
 
   /** DEC-POS-004 — sequential POS receipt number POS-NNNNNN (shared counter pattern). */
   private async nextPosNo(skip = 0): Promise<string> {
-    const last = await this.prisma.db.order.findFirst({
+    // raw client: a deleted bill still holds its number in the unique index
+    const last = await this.prisma.order.findFirst({
       where: { orderNo: { startsWith: 'POS-' } },
       orderBy: { orderNo: 'desc' },
       select: { orderNo: true },
@@ -91,7 +92,7 @@ export class PosService {
   }
 
   private async nextShiftNo(skip = 0): Promise<string> {
-    const last = await this.prisma.db.posShift.findFirst({
+    const last = await this.prisma.posShift.findFirst({
       where: { shiftNo: { startsWith: 'SHF-' } },
       orderBy: { shiftNo: 'desc' },
       select: { shiftNo: true },

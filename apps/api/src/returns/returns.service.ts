@@ -271,9 +271,8 @@ export class ReturnsService {
     const needsApproval = Boolean(reason?.requiresApproval) || hasCrafted || overThreshold;
     const status = needsApproval ? ReturnStatus.pending_approval : ReturnStatus.approved;
 
-    const returnNo = await this.nextReturnNo();
-
-    const created = await this.prisma.db.$transaction(async (tx) => {
+    const created = await this.withNextReturnNo((returnNo) =>
+      this.prisma.db.$transaction(async (tx) => {
       return tx.salesReturn.create({
         data: {
           returnNo,
@@ -307,7 +306,9 @@ export class ReturnsService {
         },
         include: RETURN_INCLUDE,
       });
-    });
+    }),
+    );
+    const returnNo = created.returnNo;
 
     await this.audit.record({ entityType: ENTITY, entityId: created.id, action: 'CREATE', actorName });
     await this.event(
@@ -682,11 +683,16 @@ export class ReturnsService {
     }
   }
 
-  private async nextReturnNo(): Promise<string> {
+  private async nextReturnNo(skip = 0): Promise<string> {
     // Parse the numeric max over REAL numbers only (RTN-000001). Demo rows use a
     // non-numeric RTN-D001 shape and must be ignored — a naive desc+parseInt would
     // pick "RTN-D004", parse NaN, and poison every future number.
-    const rows = await this.prisma.db.salesReturn.findMany({
+    //
+    // The RAW client on purpose (21 Aug): a soft-deleted return keeps its row and
+    // its number, and the unique index does not care about deletedAt. Reading
+    // through `.db` hides those rows, so the next return is handed a number that
+    // already exists and every create dies on P2002.
+    const rows = await this.prisma.salesReturn.findMany({
       where: { returnNo: { startsWith: 'RTN-' } },
       select: { returnNo: true },
     });
@@ -698,7 +704,25 @@ export class ReturnsService {
         if (n > max) max = n;
       }
     }
-    return `RTN-${String(max + 1).padStart(6, '0')}`;
+    return `RTN-${String(max + 1 + skip).padStart(6, '0')}`;
+  }
+
+  /**
+   * Read-then-write is not atomic, and a number can also be taken by a row that
+   * was deleted. Stepping over a taken number costs nothing — the sequence only
+   * has to be unique and roughly increasing (same shape as Purchases, PUR-REV-7).
+   */
+  private async withNextReturnNo<T>(write: (no: string) => Promise<T>): Promise<T> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        return await write(await this.nextReturnNo(attempt));
+      } catch (e) {
+        const taken =
+          e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+        if (!taken || attempt === 7) throw e;
+      }
+    }
+    throw new BadRequestException('Could not allocate a return number — try again.');
   }
 
   private async event(
