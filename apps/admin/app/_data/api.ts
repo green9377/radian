@@ -4281,6 +4281,8 @@ export const approveReturn = (id: string) => j<ApiReturn>(`/returns/${id}/approv
 export const rejectReturn = (id: string, note?: string) =>
   j<ApiReturn>(`/returns/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) });
 export const cancelReturn = (id: string) => j<ApiReturn>(`/returns/${id}/cancel`, { method: "POST" });
+export const repostReturnRestock = (id: string) =>
+  j<{ posted: number; skipped: string[]; already: number }>(`/returns/${id}/repost-restock`, { method: "POST" });
 export const completeReturn = (id: string, b: Record<string, unknown>) =>
   j<ApiReturn>(`/returns/${id}/complete`, { method: "POST", body: JSON.stringify(b) });
 export const deleteReturn = (id: string) => j(`/returns/${id}`, { method: "DELETE" });

@@ -17,7 +17,8 @@ import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ErrBar, OkBar, msg
 import {
   listReturns, returnAnalytics, getReturn, getReturnTimeline,
   eligibleOrderForReturn, createReturn, approveReturn, rejectReturn, cancelReturn,
-  completeReturn, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
+  completeReturn,
+  repostReturnRestock, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
   deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit, listOrders, formatTaka,
   RETURN_STATUS_META, RESOLUTION_LABEL,
   type ApiReturn, type ReturnAnalytics, type EligibleOrder, type ApiReturnReason,
@@ -540,6 +541,20 @@ export function ReturnDetail({ id }: { id: string }) {
           {canCancel && (
             <button disabled={busy} onClick={() => act(() => cancelReturn(id), "Cancelled")}
               className="w-full text-[12.5px] px-4 py-2.5 rounded-[10px] border border-lavender-deep text-body-soft">Cancel return</button>
+          )}
+          {r.status === "completed" && (
+            <button disabled={busy}
+              onClick={async () => {
+                setBusy(true); setErr("");
+                try {
+                  const res = await repostReturnRestock(id);
+                  setOk(res.already > 0 ? "The goods are already back on the shelf." : `Put back on the shelf — ${res.posted} movement(s).`);
+                } catch (e) { setErr(msg(e, "Could not repost the restock")); }
+                finally { setBusy(false); }
+              }}
+              className="w-full text-[12.5px] px-4 py-2.5 rounded-[10px] border border-lavender-deep text-purple hover:bg-lavender/40">
+              Put the goods back on the shelf
+            </button>
           )}
           {r.status !== "completed" && (
             <button disabled={busy} onClick={() => act(async () => { await deleteReturn(id); router.push("/returns"); }, "Deleted")}

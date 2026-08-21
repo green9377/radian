@@ -365,6 +365,39 @@ export class ReturnsService {
 
   /* ============================ complete (execute) ============================ */
 
+  /**
+   * Put a completed return's goods back on the shelf when they never got there.
+   * Two of the owner's returns (21 Aug) completed while the restock path only
+   * spoke Product, so counter lines were dropped in silence. Guarded: if the
+   * movements are already there it does nothing rather than restocking twice.
+   */
+  async repostRestock(id: string, actorName = 'system') {
+    const r = await this.prisma.db.salesReturn.findFirst({
+      where: { id },
+      include: { lines: true },
+    });
+    if (!r) throw new NotFoundException('return not found');
+    if (r.status !== ReturnStatus.completed)
+      throw new BadRequestException('only a completed return can be reposted');
+
+    const already = await this.prisma.db.inventoryMovement.count({
+      where: { refType: 'SALE_RETURN', refId: r.id },
+    });
+    if (already > 0) return { posted: 0, skipped: [], already };
+
+    const lines = r.lines
+      .filter((l) => l.restockAction === ReturnRestockAction.RESTOCK)
+      .map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty }))
+      .filter((l) => !!l.productId || !!l.itemId);
+    if (!lines.length) return { posted: 0, skipped: [], already: 0 };
+
+    const res = await this.inventory.postSaleReturn({
+      returnId: r.id, returnNo: r.returnNo, actor: actorName, lines,
+    });
+    await this.event(id, 'system', `Restock reposted — ${res.posted} movement(s)`, actorName);
+    return { ...res, already: 0 };
+  }
+
   async complete(id: string, dto: CompleteReturnDto = {}) {
     const actorName = dto.actorName ?? 'Admin';
     const r = await this.findOne(id);

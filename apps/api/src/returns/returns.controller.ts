@@ -108,6 +108,13 @@ export class ReturnsController {
   ) {
     return this.svc.complete(id, { ...dto, actorName: dto.actorName ?? actor });
   }
+  /*  put the goods back when a completed return never reached the shelf
+      (owner, 21 Aug) — guarded against a second press  */
+  @Roles('OWNER', 'MANAGER')
+  @Post(':id/repost-restock')
+  repostRestock(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.svc.repostRestock(id, actor ?? 'Admin');
+  }
   @Roles('OWNER', 'MANAGER')
   @Delete(':id')
   remove(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
