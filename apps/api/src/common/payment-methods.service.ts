@@ -30,6 +30,10 @@ export interface PaymentAccountRow {
   id: string;
   name: string;
   accountRef: string | null;
+  accountHolder: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  routingNo: string | null;
   isActive: boolean;
   isSystem: boolean;
 }
@@ -54,11 +58,27 @@ interface AccountRecord {
   id: string;
   name: string;
   accountRef: string | null;
+  accountHolder: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  routingNo: string | null;
   isActive: boolean;
   isSystem: boolean;
   payMethod: string | null;
   code: string;
 }
+
+/** the free-text details a screen may write on an account */
+export interface AccountDetailsDto {
+  name?: string;
+  accountRef?: string | null;
+  accountHolder?: string | null;
+  bankName?: string | null;
+  branchName?: string | null;
+  routingNo?: string | null;
+}
+
+const DETAIL_KEYS = ['accountRef', 'accountHolder', 'bankName', 'branchName', 'routingNo'] as const;
 
 @Injectable()
 export class PaymentMethodsService {
@@ -92,13 +112,7 @@ export class PaymentMethodsService {
       ...m,
       accounts: accounts
         .filter((a) => (a.payMethod ?? '').toUpperCase() === m.code.toUpperCase())
-        .map((a) => ({
-          id: a.id,
-          name: a.name,
-          accountRef: a.accountRef,
-          isActive: a.isActive,
-          isSystem: a.isSystem,
-        })),
+        .map((a) => this.accountRow(a)),
     }));
   }
 
@@ -156,7 +170,8 @@ export class PaymentMethodsService {
       orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
       select: {
         id: true, name: true, isActive: true, isSystem: true, payMethod: true, code: true,
-        ...({ accountRef: true } as object), // DEC-GBL-006 (cast: pre-migration client)
+        // DEC-GBL-006 (cast: pre-migration client)
+        ...({ accountRef: true, accountHolder: true, bankName: true, branchName: true, routingNo: true } as object),
       },
     });
     return rows as unknown as AccountRecord[];
@@ -169,9 +184,7 @@ export class PaymentMethodsService {
     const all = await this.moneyAccounts();
     return all
       .filter((a) => (a.payMethod ?? '').toUpperCase() === code && a.isActive)
-      .map((a) => ({
-        id: a.id, name: a.name, accountRef: a.accountRef, isActive: a.isActive, isSystem: a.isSystem,
-      }));
+      .map((a) => this.accountRow(a));
   }
 
   /**
@@ -197,9 +210,31 @@ export class PaymentMethodsService {
     );
   }
 
+  private accountRow(a: AccountRecord): PaymentAccountRow {
+    return {
+      id: a.id,
+      name: a.name,
+      accountRef: a.accountRef ?? null,
+      accountHolder: a.accountHolder ?? null,
+      bankName: a.bankName ?? null,
+      branchName: a.branchName ?? null,
+      routingNo: a.routingNo ?? null,
+      isActive: a.isActive,
+      isSystem: a.isSystem,
+    };
+  }
+
+  private detailData(dto: AccountDetailsDto): Record<string, string | null> {
+    const data: Record<string, string | null> = {};
+    for (const k of DETAIL_KEYS) {
+      if (dto[k] !== undefined) data[k] = (dto[k] ?? '').trim() || null;
+    }
+    return data;
+  }
+
   async addAccount(
     methodId: string,
-    dto: { name?: string; accountRef?: string },
+    dto: AccountDetailsDto,
   ): Promise<PaymentMethodRow[]> {
     const t = this.table;
     if (!t) throw new BadRequestException('Payment methods are not set up yet.');
@@ -228,7 +263,7 @@ export class PaymentMethodsService {
         isSystem: false,
         isActive: true,
         sortOrder: 100 + money.length,
-        ...({ accountRef: (dto.accountRef ?? '').trim() || null } as object),
+        ...(this.detailData(dto) as object),
       },
     });
     return this.list();
@@ -236,13 +271,12 @@ export class PaymentMethodsService {
 
   async updateAccount(
     accountId: string,
-    patch: { name?: string; accountRef?: string | null; isActive?: boolean },
+    patch: AccountDetailsDto & { isActive?: boolean },
   ): Promise<PaymentMethodRow[]> {
     const acc = await this.prisma.db.financeAccount.findFirst({ where: { id: accountId } });
     if (!acc || !acc.isMoneyAccount) throw new BadRequestException('No such account.');
-    const data: Record<string, unknown> = {};
+    const data: Record<string, unknown> = this.detailData(patch);
     if (patch.name !== undefined && patch.name.trim()) data.name = patch.name.trim();
-    if (patch.accountRef !== undefined) data.accountRef = (patch.accountRef ?? '').trim() || null;
     if (patch.isActive !== undefined) {
       if (patch.isActive === false) {
         const siblings = await this.accountsFor(acc.payMethod);

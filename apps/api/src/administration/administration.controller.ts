@@ -12,7 +12,7 @@ import {
 import { Public, Roles, type AuthedRequest } from '../auth/auth.guard';
 import { RegistryService } from './registry.service';
 import { AccessService } from './access.service';
-import { PaymentMethodsService } from '../common/payment-methods.service';
+import { PaymentMethodsService, type AccountDetailsDto } from '../common/payment-methods.service';
 import { AccessGuard } from './access.guard';
 import { PeopleService } from './people.service';
 import { CompanyService, type CompanyWriteDto } from './company.service';
@@ -179,10 +179,7 @@ export class AdministrationController {
 
   @Roles('OWNER', 'MANAGER')
   @Post('payment-methods/:id/accounts')
-  addPaymentAccount(
-    @Param('id') id: string,
-    @Body() dto: { name?: string; accountRef?: string },
-  ) {
+  addPaymentAccount(@Param('id') id: string, @Body() dto: AccountDetailsDto) {
     return this.payMethods.addAccount(id, dto);
   }
 
@@ -190,7 +187,7 @@ export class AdministrationController {
   @Patch('payment-accounts/:accountId')
   savePaymentAccount(
     @Param('accountId') accountId: string,
-    @Body() dto: { name?: string; accountRef?: string | null; isActive?: boolean },
+    @Body() dto: AccountDetailsDto & { isActive?: boolean },
   ) {
     return this.payMethods.updateAccount(accountId, dto);
   }

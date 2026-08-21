@@ -4797,9 +4797,13 @@ model FinanceAccount {
   payMethod      String? // PayMethod|PaymentMethod value this account maps to
   /// DEC-GBL-006 (owner, 21 Aug) — a shop has three bKash numbers and four bank
   /// accounts. Each one is a money account of the same METHOD, told apart by the
-  /// number written here. Setup → Payment methods adds them; the ledger has held
-  /// them all along, which is why they live on this row and not in a second table.
-  accountRef     String?
+  /// details below. Setup → Payment methods adds them; the ledger has held them
+  /// all along, which is why they live on this row and not in a second table.
+  accountRef     String? // wallet / account NUMBER
+  accountHolder  String? // whose name the account is in
+  bankName       String? // BANK only — picked from the Bangladesh bank list
+  branchName     String? // BANK only
+  routingNo      String? // BANK only — 9-digit routing
   costBehavior   CostBehavior? // EXPENSE only (FIN-RULE-016)
   isSystem       Boolean       @default(false)
   isActive       Boolean       @default(true)
