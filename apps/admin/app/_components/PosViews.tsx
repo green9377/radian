@@ -473,6 +473,15 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
 export function PosSettings() {
   const [s, setS] = useState<ApiPosSettings | null>(null);
   const [savingMethods, setSavingMethods] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save(patch: Partial<ApiPosSettings>) {
+    try {
+      setS(await updatePosSettings(patch));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1500);
+    } catch { /* the next load tells the truth */ }
+  }
   /*  no invented discount rules here either — an empty rule table means the
       shop has not written one yet, and the screen should say exactly that  */
   const [rules, setRules] = useState<{ cat: string; cap: string; appr: string }[]>([]);
@@ -508,15 +517,50 @@ export function PosSettings() {
         </div>
 
         <div className="flex flex-col gap-5">
+          {/*  Everything here is the shop's to set (owner, 21 Aug: nothing on this
+               screen could be changed). Each field saves as it is left.  */}
           <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-3">Cash & receipt</h3>
+            <h3 className="font-display text-[16px] text-purple m-0 mb-1">Cash &amp; receipt</h3>
+            <p className="text-[12.5px] text-body-soft m-0 mb-3">Saved as soon as you leave a box.{saved && <span className="text-[#0e7a3d] font-medium"> · saved</span>}</p>
             <div className="space-y-3 text-[13px]">
-              <div className="flex items-center justify-between"><span className="text-body-soft">Default opening float</span><span className="font-medium">{formatTaka(s?.openingFloatDefaultPaisa ?? 0)}</span></div>
-              <div className="flex items-center justify-between"><span className="text-body-soft">Default VAT rate</span><span className="font-medium">{s ? (s.defaultTaxRateBps / 100).toFixed(s.defaultTaxRateBps % 100 ? 1 : 0) + "%" : "0%"}</span></div>
-              <div className="flex items-center justify-between"><span className="text-body-soft">Gift receipt hides price</span><span className={(s?.giftReceiptHidePrice ?? true) ? "text-[#0e7a3d] font-medium" : "text-body-soft"}>{(s?.giftReceiptHidePrice ?? true) ? "On" : "Off"}</span></div>
-              <div className="flex items-center justify-between"><span className="text-body-soft">Default credit limit</span><span className="font-medium">{formatTaka(s?.defaultCreditLimitPaisa ?? 0)}</span></div>
+              <div>
+                <label className="lbl">Default opening float (৳)</label>
+                <input className="ipt" inputMode="decimal" defaultValue={String((s?.openingFloatDefaultPaisa ?? 0) / 100)}
+                  onBlur={(e) => save({ openingFloatDefaultPaisa: Math.max(0, Math.round(Number(e.target.value) * 100)) })} />
+              </div>
+              <div>
+                <label className="lbl">Default VAT rate</label>
+                <select className="ipt" value={s?.defaultTaxRateBps ?? 0}
+                  onChange={(e) => save({ defaultTaxRateBps: Number(e.target.value) })}>
+                  {[0, 500, 750, 1500].map((bp) => (
+                    <option key={bp} value={bp}>{bp === 0 ? "No VAT" : `${bp / 100}%`}</option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 accent-[#7a2ea8]"
+                  checked={s?.giftReceiptHidePrice ?? true}
+                  onChange={(e) => save({ giftReceiptHidePrice: e.target.checked })} />
+                <span>Gift receipt hides the price</span>
+              </label>
+              <div>
+                <label className="lbl">Default credit limit (৳)</label>
+                <input className="ipt" inputMode="decimal" defaultValue={String((s?.defaultCreditLimitPaisa ?? 0) / 100)}
+                  onBlur={(e) => save({ defaultCreditLimitPaisa: Math.max(0, Math.round(Number(e.target.value) * 100)) })} />
+              </div>
+              <div>
+                <label className="lbl">Receipt header</label>
+                <input className="ipt" defaultValue={s?.receiptHeader ?? ""} placeholder="Radian Flower &amp; Gift"
+                  onBlur={(e) => save({ receiptHeader: e.target.value || null })} />
+              </div>
+              <div>
+                <label className="lbl">Receipt footer</label>
+                <input className="ipt" defaultValue={s?.receiptFooter ?? ""} placeholder="Thank you — come again"
+                  onBlur={(e) => save({ receiptFooter: e.target.value || null })} />
+              </div>
             </div>
           </div>
+
           {/*  DEC-POS-021 — the four names used to be written into this screen and
                always shown as "On", so a shop that does not take cards had no way
                to say so. They are the shop's now (PosSetting.enabledMethods).  */}
