@@ -3559,6 +3559,13 @@ export interface InvSettings {
 export const getInvIssueReport = (days = 30) => j<InvIssueReport>(`/inventory/reports/issues?days=${days}`);
 export const getInvValuation = () => j<InvValuation>(`/inventory/reports/valuation`);
 export const getInvSettings = () => j<InvSettings>(`/inventory/settings`);
+/** DEC-GBL-004 — why goods leave without money, editable at last */
+export interface ApiIssueReason { id: string; purpose: string; label: string; isActive: boolean; sortOrder: number }
+export const getIssueReasons = (purpose: "WASTAGE" | "GIFT") =>
+  j<ApiIssueReason[]>(`/inventory/issue-reasons?purpose=${purpose}`);
+export const addIssueReason = (purpose: "WASTAGE" | "GIFT", label: string) =>
+  j<ApiIssueReason>(`/inventory/issue-reasons`, { method: "POST", body: JSON.stringify({ purpose, label }) });
+
 export const patchInvSettings = (dto: Partial<Omit<InvSettings, "id">>) =>
   j<InvSettings>(`/inventory/settings`, { method: "PATCH", body: JSON.stringify(dto) });
 

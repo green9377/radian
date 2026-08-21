@@ -75,6 +75,20 @@ export class InventoryController {
     return this.svc.settings();
   }
 
+  /*  DEC-GBL-004 — the reasons goods leave for, editable at last  */
+  @Get('issue-reasons')
+  issueReasons(@Query('purpose') purpose?: string) {
+    return this.svc.issueReasons(purpose);
+  }
+
+  @Post('issue-reasons')
+  addIssueReason(
+    @Body() dto: { purpose?: string; label?: string },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.addIssueReason(dto.purpose ?? '', dto.label ?? '', actor ?? 'Admin');
+  }
+
   @Patch('settings')
   updateSettings(@Body() dto: SettingsPatch, @Headers('x-actor-name') actor?: string) {
     return this.svc.updateSettings({ ...dto, actorName: dto.actorName ?? actor });

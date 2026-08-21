@@ -3820,6 +3820,25 @@ model ItemExpiryLot {
 }
 
 /// DEC-INV-003 / 011 — single row, admin-configurable (never hardcoded).
+/// DEC-GBL-004 (owner, 21 Aug) — why goods leave without money. The wastage and
+/// gift reasons were written into the screen, so the owner could never add
+/// "Vase cracked" without a deploy. One master, a purpose per row; Returns keeps
+/// its own richer table (approval flags, refund defaults) and may fold in later.
+model ReasonMaster {
+  id        String  @id @default(cuid())
+  purpose   String // WASTAGE | GIFT
+  label     String
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([purpose, label])
+  @@index([purpose])
+}
+
 model InventorySetting {
   id                        String              @id @default("singleton")
   defaultSaleWarehouseId    String? // seeded to the shop floor (SHOP)

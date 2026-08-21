@@ -8,7 +8,7 @@ import {
 } from "./ItemUI";
 import { ItemPicker } from "./PurchaseNewView";
 import {
-  listItems, formatTaka, fmtQty, toMilli,
+  listItems, formatTaka, fmtQty, toMilli, getIssueReasons, addIssueReason,
   loadInvWarehousesSafe, loadInvTransfersSafe, loadInvIssuesSafe,
   postInvOpening, postInvTransfer, postInvIssue, postInvAdjust,
   type ApiItem, type ApiWarehouse, type InvIssue, type InvStockRow, type InvTransfer,
@@ -23,8 +23,6 @@ import {
   movements atomically through InventoryService (INV-RULE-001).
 */
 
-const WASTAGE_REASONS = ["Rotten", "Dried out", "Broken", "Expired", "Damaged in transit", "Other"];
-const GIFT_REASONS = ["Marketing", "Relationship", "Corporate sample", "Compensation", "Other"];
 
 type Line = { key: number; itemId: string; qty: string; expiryDate?: string };
 let lineKey = 1;
@@ -538,7 +536,29 @@ export function InvIssueView() {
   }
   useEffect(() => { loadHistory(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [histKind]);
 
-  const reasons = kind === "WASTAGE" ? WASTAGE_REASONS : GIFT_REASONS;
+  /*  DEC-GBL-004 — the reasons are the shop's, not the screen's. A list nobody
+      can add to goes stale (the same lesson as return reasons, same day).  */
+  const [reasonRows, setReasonRows] = useState<{ WASTAGE: string[]; GIFT: string[] }>({ WASTAGE: [], GIFT: [] });
+  const [newReasonOpen, setNewReasonOpen] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+  useEffect(() => {
+    (async () => {
+      try {
+        const [w, g] = await Promise.all([getIssueReasons("WASTAGE"), getIssueReasons("GIFT")]);
+        setReasonRows({ WASTAGE: w.map((r) => r.label), GIFT: g.map((r) => r.label) });
+      } catch { /* the chips simply stay empty; free-text note still works */ }
+    })();
+  }, []);
+  async function saveReason() {
+    const label = reasonDraft.trim();
+    if (!label) return;
+    try {
+      await addIssueReason(kind, label);
+      setReasonRows((m) => ({ ...m, [kind]: [...m[kind], label] }));
+      setReason(label); setReasonDraft(""); setNewReasonOpen(false);
+    } catch (e) { setErr(msg(e, "Could not add that reason")); }
+  }
+  const reasons = reasonRows[kind];
   const totalPaisa = validLines(lines).reduce((s, l) => {
     const item = byId.get(l.itemId);
     return s + Math.round((l.qtyMilli * (item?.effectiveCostPaisa ?? 0)) / 1000);
@@ -609,6 +629,22 @@ export function InvIssueView() {
                   {r}
                 </button>
               ))}
+              {newReasonOpen ? (
+                <span className="flex items-center gap-1.5">
+                  <input className="ipt h-[32px] text-[12.5px]" style={{ width: 180 }} autoFocus
+                    placeholder="New reason…" value={reasonDraft}
+                    onChange={(e) => setReasonDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveReason()} />
+                  <button type="button" onClick={saveReason} disabled={!reasonDraft.trim()}
+                    className="text-white text-[12px] font-medium px-2.5 h-[32px] rounded-[8px] disabled:opacity-40"
+                    style={{ background: ACCENT }}>Add</button>
+                  <button type="button" onClick={() => { setNewReasonOpen(false); setReasonDraft(""); }}
+                    className="text-[15px] text-body-soft px-1">×</button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setNewReasonOpen(true)}
+                  className="text-[12px] font-medium underline" style={{ color: ACCENT }}>+ New reason</button>
+              )}
             </div>
 
             <div className="px-4 py-3">

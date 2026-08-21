@@ -281,6 +281,58 @@ export class InventoryService {
   }
 
   /** sequential doc numbers — same discipline as PUR-R09 (ordered by the number itself) */
+  /* ---------------- DEC-GBL-004 — issue reasons, a master not a constant ---- */
+
+  /** the tolerated purposes — a typo must not create a fourth family */
+  private static REASON_PURPOSES = new Set(['WASTAGE', 'GIFT']);
+
+  private get reasonTable() {
+    /*  cast: a client generated before the migration has no model for it  */
+    return (this.prisma as unknown as {
+      reasonMaster?: {
+        findMany(a: unknown): Promise<{ id: string; purpose: string; label: string; isActive: boolean; sortOrder: number }[]>;
+        create(a: unknown): Promise<{ id: string; purpose: string; label: string; isActive: boolean; sortOrder: number }>;
+      };
+    }).reasonMaster;
+  }
+
+  async issueReasons(purpose?: string) {
+    const t = this.reasonTable;
+    if (!t) return [];
+    const p = (purpose ?? '').toUpperCase();
+    try {
+      return await t.findMany({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          ...(p && InventoryService.REASON_PURPOSES.has(p) ? { purpose: p } : {}),
+        },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  async addIssueReason(purpose: string, label: string, actor: string) {
+    const p = purpose.toUpperCase();
+    if (!InventoryService.REASON_PURPOSES.has(p))
+      throw new BadRequestException('purpose must be WASTAGE or GIFT');
+    const l = label.trim();
+    if (!l) throw new BadRequestException('Give the reason a name');
+    const t = this.reasonTable;
+    if (!t) throw new BadRequestException('Reasons are not set up yet');
+    try {
+      const row = await t.create({ data: { purpose: p, label: l, sortOrder: 500 } });
+      await this.audit.record({ entityType: 'ReasonMaster', entityId: row.id, action: 'CREATE', actorName: actor });
+      return row;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')
+        throw new BadRequestException('That reason already exists');
+      throw e;
+    }
+  }
+
   private async nextNo(prefix: 'TRF' | 'WST' | 'GFT' | 'STK', skip = 0): Promise<string> {
     let lastNo: string | undefined;
     if (prefix === 'TRF') {

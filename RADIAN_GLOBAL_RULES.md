@@ -143,9 +143,14 @@ the row shows "Which account…". The server refuses a payment that does not say
 list of its own (not even a link) — payment setup is in one place, and one place
 only: Setup → Payment methods.
 
+**DEC-GBL-004 (first half) — SHIPPED 21 Aug.** `ReasonMaster` (purpose
+WASTAGE | GIFT), seeded from the lists that lived in the screen; the Wastage &
+Gift page reads it and carries "+ New reason" inline. Returns keeps its own
+richer table (approval flags, refund defaults) — folding it in stays open.
+
 ## F. Still open
 
-1. **B** — the reason master (wastage / gift), and New order reading the
-   Delivery module instead of its own fee table.
+1. **B (rest)** — New order reading the Delivery module instead of its own fee
+   table; folding ReturnReason into ReasonMaster.
 2. **D1** — one approval threshold for the whole system, or one per module?
 3. **D2** — one rounding rule, or leave each screen as it is?
