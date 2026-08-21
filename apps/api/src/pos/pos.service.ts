@@ -641,10 +641,16 @@ export class PosService {
     const customer = await this.resolveCustomer(dto);
     /*  DEC-POS-019 — the cashier says which channel this sale came through; the
         counter's own channel is the default when nothing is picked.  */
-    /*  DEC-POS-020 — a bill may be dated back, never forward.  */
-    const saleDate = dto.saleDate ? new Date(dto.saleDate) : new Date();
-    if (Number.isNaN(saleDate.getTime())) throw new BadRequestException('That date cannot be read');
-    if (saleDate.getTime() > Date.now() + 60_000) throw new BadRequestException('A bill cannot be dated in the future');
+    /*  DEC-POS-020 — a bill may be dated back, never forward. "Forward" has to
+        allow for the clock: the shop is at UTC+6 and the server is not, so a
+        bill written this morning arrives stamped a few hours ahead. Anything
+        inside a day is pulled back to now; a genuinely later day is refused.  */
+    const asked = dto.saleDate ? new Date(dto.saleDate) : new Date();
+    if (Number.isNaN(asked.getTime())) throw new BadRequestException('That date cannot be read');
+    const now = Date.now();
+    if (asked.getTime() > now + 24 * 60 * 60 * 1000)
+      throw new BadRequestException('A bill cannot be dated in the future');
+    const saleDate = asked.getTime() > now ? new Date(now) : asked;
 
     const channelId = dto.channelId
       ? (await this.prisma.db.channel.findFirst({ where: { id: dto.channelId, isActive: true }, select: { id: true } }))?.id

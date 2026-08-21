@@ -359,7 +359,12 @@ export default function PosSellView() {
         customerPhone: custPhone || undefined,
         isGift,
         channelId: channelId || undefined,
-        saleDate: saleDate ? new Date(`${saleDate}T12:00:00`).toISOString() : undefined,
+        /*  today means this moment; an older day is stamped at noon so a
+            timezone cannot drag it into the day before or after (21 Aug: noon
+            on today's date read as the future to a server an hour behind).  */
+        saleDate: !saleDate || saleDate === new Date().toISOString().slice(0, 10)
+          ? undefined
+          : new Date(`${saleDate}T12:00:00`).toISOString(),
         salespersonName: soldBy || undefined,
         note: note.trim() || undefined,
         lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
