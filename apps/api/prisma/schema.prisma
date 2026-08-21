@@ -2791,6 +2791,10 @@ model SalesReturn {
   storeCreditPaisa  Int @default(0) // credit issued instead of cash
   compensationPaisa Int @default(0) // partial compensation payout (goods kept)
 
+  /// DEC-RTN-018 — how much credit the shop decided to give. The owner may go
+  /// above what was collected (OWNER/MANAGER only); null means "the goods' value".
+  creditAskPaisa Int?
+
   refundMethod    ReturnRefundMethod @default(ORIGINAL)
   refundReference String? // bKash txn / bank ref
 
@@ -2801,11 +2805,35 @@ model SalesReturn {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  lines SalesReturnLine[]
+  lines        SalesReturnLine[]
+  replacements ReturnReplacementLine[]
 
   @@index([orderId])
   @@index([customerId])
   @@index([status])
+}
+
+/// DEC-RTN-017 — what went OUT of the shop on a replacement. Without this row a
+/// replacement only ever put goods back on the shelf and never took any off, so
+/// the stock quietly grew by one every time (owner, 21 Aug).
+/// itemId/productId are snapshots, not relations: the name and price are frozen
+/// here, and a replacement must survive the item being renamed or retired.
+model ReturnReplacementLine {
+  id       String      @id @default(cuid())
+  returnId String
+  return   SalesReturn @relation(fields: [returnId], references: [id])
+
+  itemId    String? // counter stock (DEC-POS-018)
+  productId String? // website product
+  name      String
+  qty       Int
+  unitPaisa Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([returnId])
 }
 
 model SalesReturnLine {

@@ -20,6 +20,7 @@ import {
   completeReturn,
   repostReturnRestock, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
   deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit, listOrders, formatTaka,
+  posCatalogue, type ApiPosCatalogueRow,
   RETURN_STATUS_META, RESOLUTION_LABEL,
   type ApiReturn, type ReturnAnalytics, type EligibleOrder, type ApiReturnReason,
   type ReturnSettings, type ReturnResolution, type ReturnRefundMethod, type ReturnRestockAction,
@@ -227,6 +228,15 @@ const Why = ({ text }: { text: string }) =>
 /* ================================================================== NEW RETURN */
 
 type LineDraft = { checked: boolean; qty: number; restockAction: ReturnRestockAction };
+/** DEC-RTN-017 — one line of goods handed over in place of what came back */
+type ReplRow = {
+  key: string;
+  itemId: string | null;
+  productId: string | null;
+  name: string;
+  qty: number;
+  unitPaisa: number;
+};
 
 export function NewReturn() {
   const router = useRouter();
@@ -260,6 +270,14 @@ export function NewReturn() {
   const [resolution, setResolution] = useState<ReturnResolution>("REFUND");
   const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
   const [compensationTk, setCompensationTk] = useState("");
+  /*  DEC-RTN-017 — what goes back OUT. Starts as the same goods; the staff can
+      swap or add. DEC-RTN-018 — and the credit is a decision, not a formula.  */
+  const [repl, setRepl] = useState<ReplRow[]>([]);
+  const [replTouched, setReplTouched] = useState(false);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [pickSearch, setPickSearch] = useState("");
+  const [pickHits, setPickHits] = useState<ApiPosCatalogueRow[]>([]);
+  const [creditTk, setCreditTk] = useState("");
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -317,6 +335,38 @@ export function NewReturn() {
     }, 0);
   }, [el, drafts]);
 
+  /*  the default replacement is the same goods, same count — until someone
+      changes it, after which the screen stops second-guessing them  */
+  useEffect(() => {
+    if (resolution !== "REPLACEMENT" || replTouched || !el) return;
+    setRepl(
+      el.lines
+        .filter((l) => drafts[l.orderLineId]?.checked && drafts[l.orderLineId].qty > 0)
+        .map((l) => ({
+          key: l.orderLineId,
+          itemId: l.itemId ?? null,
+          productId: l.itemId ? null : l.productId,
+          name: l.name,
+          qty: drafts[l.orderLineId].qty,
+          unitPaisa: l.unitPaisa,
+        })),
+    );
+  }, [resolution, replTouched, el, drafts]);
+
+  /*  and the credit starts at what the goods are worth  */
+  useEffect(() => {
+    if (resolution === "STORE_CREDIT") setCreditTk((selectedValue / 100).toString());
+  }, [resolution, selectedValue]);
+
+  useEffect(() => {
+    if (!pickOpen) return;
+    let dead = false;
+    posCatalogue(pickSearch.trim() || undefined)
+      .then((r) => !dead && setPickHits(r.slice(0, 40)))
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [pickOpen, pickSearch]);
+
   async function submit() {
     if (!el) return;
     const lines = el.lines
@@ -339,6 +389,14 @@ export function NewReturn() {
           resolution === "PARTIAL_COMPENSATION" ? Math.round(parseFloat(compensationTk || "0") * 100) : undefined,
         note: note || undefined,
         lines,
+        replacements: resolution === "REPLACEMENT"
+          ? repl.filter((r) => r.qty > 0).map((r) => ({
+              itemId: r.itemId, productId: r.productId, name: r.name, qty: r.qty, unitPaisa: r.unitPaisa,
+            }))
+          : undefined,
+        creditAskPaisa: resolution === "STORE_CREDIT"
+          ? Math.round(parseFloat(creditTk || "0") * 100)
+          : undefined,
       });
       router.push(`/returns/${created.id}`);
     } catch (e) {
@@ -532,6 +590,86 @@ export function NewReturn() {
               <Why text={tip.startsWith("res:") ? SETTLE_WHY[tip.slice(4) as ReturnResolution] : ""} />
             </div>
 
+            {/*  DEC-RTN-017 — a replacement is goods leaving the shop, so the
+                 shop has to say which goods  */}
+            {resolution === "REPLACEMENT" && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="lbl">What goes out instead</label>
+                  <button type="button" className="text-[11.5px] text-purple underline"
+                    onClick={() => { setPickOpen((v) => !v); setPickSearch(""); }}>
+                    {pickOpen ? "Close" : "+ Another item"}
+                  </button>
+                </div>
+
+                {pickOpen && (
+                  <div className="border border-lavender-deep rounded-[10px] p-2 mb-2 bg-[#faf6fd]">
+                    <input className="ipt" autoFocus placeholder="Search the counter list…"
+                      value={pickSearch} onChange={(e) => setPickSearch(e.target.value)} />
+                    <div className="mt-1.5 max-h-[190px] overflow-y-auto">
+                      {pickHits.map((h) => (
+                        <button key={h.id} type="button"
+                          onClick={() => {
+                            setReplTouched(true);
+                            setPickOpen(false);
+                            setRepl((rows) => {
+                              const at = rows.findIndex((r) => r.itemId === h.id);
+                              if (at >= 0) {
+                                const next = rows.slice();
+                                next[at] = { ...next[at], qty: next[at].qty + 1 };
+                                return next;
+                              }
+                              return [...rows, {
+                                key: `pick:${h.id}:${rows.length}`,
+                                itemId: h.id, productId: null, name: h.name,
+                                qty: 1, unitPaisa: h.pricePaisa ?? 0,
+                              }];
+                            });
+                          }}
+                          className="w-full text-left px-2 py-1.5 rounded-[8px] hover:bg-white flex items-center justify-between gap-2">
+                          <span className="text-[12.5px] truncate">{h.name}</span>
+                          <span className="text-[11.5px] text-body-soft shrink-0">
+                            {h.pricePaisa === null ? "—" : formatTaka(h.pricePaisa)}
+                            {h.stockQty !== null && h.stockQty !== undefined ? ` · ${h.stockQty} left` : ""}
+                          </span>
+                        </button>
+                      ))}
+                      {pickHits.length === 0 && <div className="text-[12px] text-body-soft px-2 py-2">Nothing matches.</div>}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  {repl.map((r, i) => (
+                    <div key={r.key} className="flex items-center gap-2 border border-lavender-deep rounded-[10px] px-2.5 py-1.5 bg-white">
+                      <span className="text-[12.5px] flex-1 truncate">{r.name}</span>
+                      <div className="flex items-center border border-lavender-deep rounded-[8px] overflow-hidden shrink-0">
+                        <button type="button" className="w-[26px] h-[28px] text-purple hover:bg-lavender/60"
+                          onClick={() => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x)); }}>–</button>
+                        <span className="w-[26px] text-center text-[12.5px] font-medium text-purple">{r.qty}</span>
+                        <button type="button" className="w-[26px] h-[28px] text-purple hover:bg-lavender/60"
+                          onClick={() => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: x.qty + 1 } : x)); }}>+</button>
+                      </div>
+                      <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[#c0392b] shrink-0"
+                        onClick={() => { setReplTouched(true); setRepl((rows) => rows.filter((_, j) => j !== i)); }}>✕</button>
+                    </div>
+                  ))}
+                  {repl.length === 0 && (
+                    <div className="text-[12px] text-body-soft">Tick the goods coming back, or add an item.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/*  DEC-RTN-018 — how much credit is the shop's call, not a formula  */}
+            {resolution === "STORE_CREDIT" && (
+              <div>
+                <label className="lbl">How much credit (৳)</label>
+                <input className="ipt" type="number" value={creditTk}
+                  onChange={(e) => setCreditTk(e.target.value)} placeholder="e.g. 300" />
+              </div>
+            )}
+
             {resolution === "PARTIAL_COMPENSATION" && (
               <div>
                 <label className="lbl">How much goes back (৳)</label>
@@ -643,6 +781,20 @@ export function ReturnDetail({ id }: { id: string }) {
             ))}
           </div>
 
+          {/*  DEC-RTN-017 — a replacement is two movements, so the bill shows
+               both: what came back, and what went out in its place  */}
+          {(r.replacements?.length ?? 0) > 0 && (
+            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
+              <div className="px-4 py-2.5 text-[12px] font-semibold text-white" style={{ background: "#0e7a3d" }}>Given instead</div>
+              {r.replacements!.map((x) => (
+                <div key={x.id} className="px-4 py-3 border-b border-lavender-deep last:border-0 flex items-center justify-between gap-3">
+                  <div className="text-[13.5px]">{x.name} <span className="text-body-soft">× {x.qty}</span></div>
+                  <span className="text-[13px] text-body-soft">{formatTaka(x.unitPaisa * x.qty)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* timeline */}
           <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4">
             <div className="text-[13px] font-semibold mb-2" style={{ color: ACCENT }}>Timeline</div>
@@ -692,7 +844,7 @@ export function ReturnDetail({ id }: { id: string }) {
                   )}
                   className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
                   {busy ? "Working…" : r.resolution === "STORE_CREDIT"
-                    ? `Complete — give ${formatTaka(r.returnValuePaisa)} store credit`
+                    ? `Complete — give ${formatTaka(r.creditAskPaisa ?? r.returnValuePaisa)} store credit`
                     : "Complete — the replacement goes out"}
                 </button>
               )}

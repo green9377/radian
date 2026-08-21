@@ -1,6 +1,7 @@
 import { ensureSingleton } from '../common/singleton';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -45,6 +46,17 @@ const RETURN_INCLUDE = {
   reason: true,
   lines: true,
 } satisfies Prisma.SalesReturnInclude;
+
+/** DEC-RTN-017 — what went back out to the customer on a replacement */
+export interface ReplacementRow {
+  id: string;
+  itemId: string | null;
+  productId: string | null;
+  name: string;
+  qty: number;
+  unitPaisa: number;
+  deletedAt: Date | null;
+}
 
 @Injectable()
 export class ReturnsService {
@@ -129,7 +141,25 @@ export class ReturnsService {
       include: RETURN_INCLUDE,
     });
     if (!r) throw new NotFoundException('return not found');
-    return r;
+    return { ...r, replacements: await this.replacementsOf(id) };
+  }
+
+  /*  Read on its own instead of through `include`: the extended (soft-delete)
+      client and a client generated before DEC-RTN-017 disagree about the shape,
+      and one relation is not worth a type argument that deep.  */
+  private async replacementsOf(returnId: string): Promise<ReplacementRow[]> {
+    const client = this.prisma as unknown as {
+      returnReplacementLine?: { findMany(args: unknown): Promise<ReplacementRow[]> };
+    };
+    if (!client.returnReplacementLine) return [];
+    try {
+      return await client.returnReplacementLine.findMany({
+        where: { returnId, deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch {
+      return [];
+    }
   }
 
   async timeline(id: string) {
@@ -271,6 +301,44 @@ export class ReturnsService {
     const needsApproval = Boolean(reason?.requiresApproval) || hasCrafted || overThreshold;
     const status = needsApproval ? ReturnStatus.pending_approval : ReturnStatus.approved;
 
+    /*  DEC-RTN-017 — a replacement takes goods OUT of the shop. Default is the
+        same goods in the same count; the staff can swap them on the screen.  */
+    const replacementRows =
+      resolution === ReturnResolution.REPLACEMENT
+        ? (dto.replacements?.length
+            ? dto.replacements
+                .filter((x) => x.qty > 0 && (x.itemId || x.productId))
+                .map((x) => ({
+                  itemId: x.itemId ?? null,
+                  productId: x.productId ?? null,
+                  name: x.name,
+                  qty: x.qty,
+                  unitPaisa: x.unitPaisa ?? 0,
+                }))
+            : lineRows.map((l) => ({
+                itemId: l.itemId,
+                productId: l.productId,
+                name: l.name,
+                qty: l.qty,
+                unitPaisa: l.unitPaisa,
+              })))
+        : [];
+
+    /*  DEC-RTN-018 — the shop says how much credit it gives. Above what was
+        collected is the owner's call, not a cashier's.  */
+    let creditAskPaisa: number | null = null;
+    if (resolution === ReturnResolution.STORE_CREDIT) {
+      const want = Math.round(dto.creditAskPaisa ?? returnValuePaisa);
+      if (want < 0) throw new BadRequestException('store credit cannot be negative');
+      const cap = await this.settleCap(dto.orderId);
+      const role = (dto.actorRole ?? '').toUpperCase();
+      if (want > cap && role !== 'OWNER' && role !== 'MANAGER')
+        throw new ForbiddenException(
+          `Only the owner or a manager can give more credit than the ${(cap / 100).toFixed(2)} taka collected on this bill.`,
+        );
+      creditAskPaisa = want;
+    }
+
     const created = await this.withNextReturnNo((returnNo) =>
       this.prisma.db.$transaction(async (tx) => {
       return tx.salesReturn.create({
@@ -287,6 +355,10 @@ export class ReturnsService {
           refundReference: dto.refundReference,
           compensationPaisa:
             resolution === ReturnResolution.PARTIAL_COMPENSATION ? dto.compensationPaisa ?? 0 : 0,
+          ...({ creditAskPaisa } as object), // DEC-RTN-018 (cast: pre-migration client)
+          ...(replacementRows.length
+            ? ({ replacements: { create: replacementRows } } as object) // DEC-RTN-017
+            : {}),
           actorName,
           note: dto.note,
           lines: {
@@ -472,14 +544,56 @@ export class ReturnsService {
       if (asStoreCredit) storeCreditPaisa = Math.min(r.returnValuePaisa, cap);
       else refundPaisa = Math.min(r.returnValuePaisa, cap);
     } else if (r.resolution === ReturnResolution.STORE_CREDIT) {
-      storeCreditPaisa = Math.min(r.returnValuePaisa, cap);
+      /*  DEC-RTN-018 — the amount the shop decided, which may sit above the cap
+          because an owner or a manager said so when the return was written.  */
+      const asked = (r as { creditAskPaisa?: number | null }).creditAskPaisa;
+      storeCreditPaisa = asked === null || asked === undefined ? Math.min(r.returnValuePaisa, cap) : asked;
     } else if (r.resolution === ReturnResolution.PARTIAL_COMPENSATION) {
       const want = r.compensationPaisa || 0;
       compensationPaisa = Math.min(want, cap);
       if (asStoreCredit) storeCreditPaisa = compensationPaisa;
       else refundPaisa = compensationPaisa;
     } else if (r.resolution === ReturnResolution.REPLACEMENT) {
-      await this.event(id, 'delivery', `Replacement — redeliver goods (no money moved)`, actorName);
+      /*  DEC-RTN-017 — the goods that go out have to leave the shelf, or a
+          replacement quietly grows the stock by one every time.  */
+      const out = (r.replacements ?? []).filter((x) => !x.deletedAt && x.qty > 0);
+      const outLines = out
+        .map((x) => ({ productId: x.productId, itemId: x.itemId, qty: x.qty }))
+        .filter((l) => !!l.productId || !!l.itemId);
+      if (outLines.length) {
+        try {
+          const res = await this.inventory.postSaleForOrder({
+            orderId: r.orderId,
+            orderNo: `${r.order?.orderNo ?? ''} · replacement ${r.returnNo}`,
+            actor: actorName,
+            direction: -1,
+            lines: outLines,
+          });
+          await this.event(
+            id,
+            'system',
+            `Replacement out — ${res.posted} movement(s)${
+              res.skipped.length ? ` · skipped (no item link): ${res.skipped.join(', ')}` : ''
+            }`,
+            actorName,
+          );
+        } catch (e) {
+          await this.event(
+            id,
+            'system',
+            `⚠ Replacement stock not deducted: ${e instanceof Error ? e.message : e}`,
+            actorName,
+          );
+        }
+      }
+      await this.event(
+        id,
+        'delivery',
+        out.length
+          ? `Replacement handed over — ${out.map((o) => `${o.name} × ${o.qty}`).join(', ')} (no money moved)`
+          : 'Replacement — redeliver goods (no money moved)',
+        actorName,
+      );
     }
 
     const cashOut = refundPaisa; // actual money leaving (compensation handled above merged into refundPaisa when not store-credit)
@@ -681,6 +795,29 @@ export class ReturnsService {
       default:
         return orderMethod;
     }
+  }
+
+  /**
+   * What is still ours to give back on this order: collected − already refunded −
+   * credit already issued (DEC-RTN-011). Cash never passes it; store credit may,
+   * but only on an owner's or a manager's say-so (DEC-RTN-018).
+   */
+  private async settleCap(orderId: string, exceptReturnId?: string): Promise<number> {
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId },
+      select: { paidPaisa: true, refundPaisa: true },
+    });
+    if (!order) return 0;
+    const prior = await this.prisma.db.salesReturn.aggregate({
+      where: {
+        orderId,
+        id: exceptReturnId ? { not: exceptReturnId } : undefined,
+        status: ReturnStatus.completed,
+        deletedAt: null,
+      },
+      _sum: { storeCreditPaisa: true },
+    });
+    return Math.max(0, order.paidPaisa - order.refundPaisa - (prior._sum.storeCreditPaisa ?? 0));
   }
 
   private async nextReturnNo(skip = 0): Promise<string> {

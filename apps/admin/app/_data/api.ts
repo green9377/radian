@@ -4215,10 +4215,23 @@ export interface ApiReturn {
   customer?: { id: string; name: string; phone?: string } | null;
   reason?: ApiReturnReason | null;
   lines?: ApiReturnLine[];
+  /** DEC-RTN-018 — the credit the shop decided to give */
+  creditAskPaisa?: number | null;
+  /** DEC-RTN-017 — what went back OUT to the customer */
+  replacements?: {
+    id: string;
+    itemId: string | null;
+    productId: string | null;
+    name: string;
+    qty: number;
+    unitPaisa: number;
+  }[];
 }
 export interface EligibleLine {
   orderLineId: string;
   productId: string;
+  /** DEC-POS-018 — a counter line carries the Item itself */
+  itemId?: string | null;
   name: string;
   productType: "READYMADE" | "CRAFTED";
   qty: number;

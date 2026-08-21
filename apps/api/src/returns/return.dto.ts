@@ -11,6 +11,15 @@ export interface ReturnLineInput {
   restockAction?: ReturnRestockAction; // default: READYMADE→RESTOCK, CRAFTED→WRITE_OFF (DEC-RTN-007)
 }
 
+/** DEC-RTN-017 — one line of goods going back OUT to the customer */
+export interface ReplacementLineInput {
+  itemId?: string | null;
+  productId?: string | null;
+  name: string;
+  qty: number;
+  unitPaisa?: number;
+}
+
 export interface CreateReturnDto {
   orderId: string;
   reasonId?: string;
@@ -21,7 +30,13 @@ export interface CreateReturnDto {
   compensationPaisa?: number; // PARTIAL_COMPENSATION payout amount
   note?: string;
   lines: ReturnLineInput[];
+  /** REPLACEMENT — what goes out; empty means "the same goods again" */
+  replacements?: ReplacementLineInput[];
+  /** STORE_CREDIT — how much the shop gives (DEC-RTN-018) */
+  creditAskPaisa?: number;
   actorName?: string;
+  /** set by the controller from the signed-in user, never trusted from the body */
+  actorRole?: string;
 }
 
 export interface CompleteReturnDto {

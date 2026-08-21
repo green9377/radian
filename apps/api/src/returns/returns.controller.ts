@@ -8,9 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ReturnsService } from './returns.service';
 import { Roles } from '../auth/auth.guard';
+import type { AuthedRequest } from '../auth/auth.guard';
 import type {
   CreateReturnDto,
   CompleteReturnDto,
@@ -71,8 +73,18 @@ export class ReturnsController {
     return this.svc.list(q);
   }
   @Post()
-  create(@Body() dto: CreateReturnDto, @Headers('x-actor-name') actor?: string) {
-    return this.svc.create({ ...dto, actorName: dto.actorName ?? actor });
+  create(
+    @Body() dto: CreateReturnDto,
+    @Req() req: AuthedRequest,
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    /*  DEC-RTN-018 — the role decides whether credit may pass what was
+        collected, so it is read off the session, not off the body.  */
+    return this.svc.create({
+      ...dto,
+      actorName: dto.actorName ?? actor,
+      actorRole: req.actor?.role,
+    });
   }
 
   /* per-return */
