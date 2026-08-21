@@ -885,7 +885,7 @@ export class PurchasesService {
       entityType: ENTITY,
       entityId: id,
       kind: 'payment',
-      label: `Paid ${(dto.amountPaisa / 100).toLocaleString()} tk (${dto.method}) on ${p.purchaseNo}`,
+      label: `Paid ৳${(dto.amountPaisa / 100).toLocaleString()} by ${dto.method.toLowerCase()} on ${p.purchaseNo}`,
       actorName: actor,
     });
     return this.findOne(id);
@@ -1020,8 +1020,8 @@ export class PurchasesService {
       kind: 'general',
       label:
         credit > 0
-          ? `Return ${returnNo}: ${(total / 100).toLocaleString()} tk — due cut ${(dueCut / 100).toLocaleString()}, credit ${(credit / 100).toLocaleString()}`
-          : `Return ${returnNo}: ${(total / 100).toLocaleString()} tk cut from due`,
+          ? `Return ${returnNo}: ৳${(total / 100).toLocaleString()} — ৳${(dueCut / 100).toLocaleString()} cut from the due, ৳${(credit / 100).toLocaleString()} left with the supplier`
+          : `Return ${returnNo}: ৳${(total / 100).toLocaleString()} cut from the due`,
       actorName: actor,
     });
 
@@ -1156,9 +1156,9 @@ export class PurchasesService {
       const ratio = Math.max(entered, effective) / Math.min(entered, effective);
       if (ratio > COST_JUMP_RATIO) {
         throw new BadRequestException(
-          `COST_JUMP:"${item.name}" — entered price is ${ratio.toFixed(1)}× away from the current cost (${(
+          `COST_JUMP:"${item.name}" — entered price is ${ratio.toFixed(1)}× away from the current cost (৳${(
             effective / 100
-          ).toLocaleString()} tk/${item.unit.name}). Check the number, or confirm to proceed.`,
+          ).toLocaleString()} per ${item.unit.name}). Check the number, or confirm to proceed.`,
         );
       }
     }

@@ -509,7 +509,7 @@ export default function PurchaseNewView() {
 
             <div className="p-4 pt-3 border-t border-white/15 shrink-0">
               <MoneyResult pay={payRows} totalPaisa={grand}
-                dueLabel="Owed to the supplier" settledLabel="Nothing owed" />
+                dueLabel="Still owed" settledLabel="Nothing owed" />
 
               {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
               {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}

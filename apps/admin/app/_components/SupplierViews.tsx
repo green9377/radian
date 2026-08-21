@@ -103,8 +103,9 @@ export function SuppliersOverview() {
           <span className="min-w-0">
             <b className="block text-[13.5px] text-purple">Fulfillment vendors — {vendorRows.length}</b>
             <span className="block text-[12px] text-body-soft truncate">
-              Cake-type partners: their products, your orders, no stock held.
-              {vendorRows.some((v) => v.duePaisa > 0) && <> Due {formatTaka(vendorRows.reduce((s, v) => s + v.duePaisa, 0))}.</>}
+              {vendorRows.some((v) => v.duePaisa > 0)
+                ? <>Due {formatTaka(vendorRows.reduce((s, v) => s + v.duePaisa, 0))}</>
+                : "Nothing owed"}
             </span>
           </span>
         </span>

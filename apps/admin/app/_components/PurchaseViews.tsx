@@ -302,7 +302,14 @@ export function PurchaseListView() {
             <span className="text-[12.5px] text-body-soft min-w-0 truncate">
               {p.lines.map((l) => `${l.item?.name ?? "?"} ×${fmtQty(l.qtyMilli)}`).join(", ")}
             </span>
-            <span className="text-[13px] font-medium text-right">{formatTaka(p.grandTotalPaisa)}</span>
+            {/*  a returned line makes total − paid ≠ due, and the row looked like
+                 bad arithmetic until the return said so out loud (21 Aug)  */}
+            <span className="text-[13px] font-medium text-right">
+              {formatTaka(p.grandTotalPaisa)}
+              {p.returnedPaisa > 0 && (
+                <span className="block text-[11px] text-body-soft">− {formatTaka(p.returnedPaisa)} returned</span>
+              )}
+            </span>
             <span className="text-[13px] text-right" style={{ color: "#0e7a3d" }}>{formatTaka(p.paidPaisa)}</span>
             <span className="text-[13px] font-semibold text-right" style={{ color: p.duePaisa > 0 ? "#c0392b" : "#9b8aa6" }}>
               {p.duePaisa > 0 ? formatTaka(p.duePaisa) : "—"}
