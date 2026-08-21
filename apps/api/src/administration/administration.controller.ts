@@ -173,6 +173,28 @@ export class AdministrationController {
     return this.payMethods.update(id, dto);
   }
 
+  /*  DEC-GBL-006 — the accounts under a method (three bKash numbers, four bank
+      accounts). They are Finance's money accounts, so adding one here also
+      gives the ledger somewhere to put the money.  */
+
+  @Roles('OWNER', 'MANAGER')
+  @Post('payment-methods/:id/accounts')
+  addPaymentAccount(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; accountRef?: string },
+  ) {
+    return this.payMethods.addAccount(id, dto);
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Patch('payment-accounts/:accountId')
+  savePaymentAccount(
+    @Param('accountId') accountId: string,
+    @Body() dto: { name?: string; accountRef?: string | null; isActive?: boolean },
+  ) {
+    return this.payMethods.updateAccount(accountId, dto);
+  }
+
   /* ---- people (OWNER only) ---- */
 
   @Get('people')

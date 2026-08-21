@@ -68,6 +68,8 @@ export interface ReceiveDto {
 export interface PaymentDto {
   amountPaisa: number;
   method: PayMethodDto;
+  /** DEC-GBL-006 — which account the money left from */
+  accountId?: string;
   paidAt?: string;
   note?: string;
   actorName?: string;

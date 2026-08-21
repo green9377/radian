@@ -469,7 +469,7 @@ function PayBill({ purchaseId, owedPaisa, supplier, onClose, onDone }: {
     setBusy(true); setErr(null);
     try {
       for (const r of pay.pays.filter((x) => x.amountPaisa > 0)) {
-        await addPurchasePayment(purchaseId, { amountPaisa: r.amountPaisa, method: r.method as PayMethod });
+        await addPurchasePayment(purchaseId, { amountPaisa: r.amountPaisa, method: r.method as PayMethod, accountId: r.accountId });
       }
       onDone();
     } catch (e) {

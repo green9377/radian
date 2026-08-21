@@ -26,7 +26,7 @@ import {
   type ReturnSettings, type ReturnResolution, type ReturnRefundMethod, type ReturnRestockAction,
   type ReturnStatus, type ApiOrder,
 } from "../_data/api";
-import { RefundDialog, usePaymentMethods } from "./MoneyBlock";
+import { RefundDialog, usePaymentMethods, type PayOption } from "./MoneyBlock";
 
 /*  DEC-GBL-001 — ORIGINAL and STORE_CREDIT are rules, not tills, so they are
     always offered; the real doors come from the shop's own list.  */
@@ -34,6 +34,16 @@ const REFUND_TENDERS = ["CASH", "BKASH", "NAGAD", "CARD", "BANK"];
 function useRefundMethods(): ReturnRefundMethod[] {
   const live = usePaymentMethods(REFUND_TENDERS);
   return ["ORIGINAL", ...live.map((m) => m.id as ReturnRefundMethod), "STORE_CREDIT"];
+}
+/*  the payout dialog needs the accounts too (DEC-GBL-006): "which bKash number
+    did the money go back out of" is the same question as taking it in.  */
+function usePayoutOptions(): PayOption[] {
+  const live = usePaymentMethods(REFUND_TENDERS);
+  return [
+    { id: "ORIGINAL", label: "Original method" },
+    ...live,
+    { id: "STORE_CREDIT", label: "Store credit" },
+  ];
 }
 const RESOLUTIONS: ReturnResolution[] = ["REFUND", "REPLACEMENT", "PARTIAL_COMPENSATION", "STORE_CREDIT"];
 
@@ -721,8 +731,10 @@ export function ReturnDetail({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
   const [refundRef, setRefundRef] = useState("");
+  const [refundAccountId, setRefundAccountId] = useState(""); // DEC-GBL-006
   const [payoutOpen, setPayoutOpen] = useState(false);
   const refundMethods = useRefundMethods(); // DEC-GBL-001
+  const payoutOptions = usePayoutOptions(); // DEC-GBL-006
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   async function load() {
@@ -905,15 +917,20 @@ export function ReturnDetail({ id }: { id: string }) {
           note={r.resolution === "PARTIAL_COMPENSATION"
             ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
             : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
-          methods={refundMethods.map((m) => ({
-            id: m,
-            label: m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase(),
-          }))}
+          methods={payoutOptions}
           method={refundMethod} onMethod={(v) => setRefundMethod(v as ReturnRefundMethod)}
+          accountId={refundAccountId} onAccount={setRefundAccountId}
           reference={refundRef} onReference={setRefundRef}
           busy={busy} error={err || null} confirmLabel="Pay out"
           onConfirm={async () => {
-            await act(() => completeReturn(id, { refundMethod, refundReference: refundRef || undefined }), "Return completed");
+            await act(
+              () => completeReturn(id, {
+                refundMethod,
+                refundAccountId: refundAccountId || undefined,
+                refundReference: refundRef || undefined,
+              }),
+              "Return completed",
+            );
             setPayoutOpen(false);
           }}
           onClose={() => setPayoutOpen(false)} />

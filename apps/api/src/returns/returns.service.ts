@@ -484,7 +484,8 @@ export class ReturnsService {
       throw new BadRequestException(`a ${r.status} return cannot be completed`);
 
     const refundMethod = dto.refundMethod ?? r.refundMethod;
-    // DEC-GBL-001 — a payout cannot leave by a door the shop has closed
+    // DEC-GBL-001/006 — a payout cannot leave by a door the shop has closed,
+    // and it has to say which account it left from
     await this.payMethods.assertActive(refundMethod);
 
     /*  1) restock — ONLY lines the staff marked RESTOCK; fail-soft (never break
@@ -606,6 +607,7 @@ export class ReturnsService {
       // cash refund → real PaymentTransaction on the order + bump order.refundPaisa
       if (cashOut > 0) {
         const method = this.mapRefundMethod(refundMethod, order.paymentMethod);
+        const accountId = await this.payMethods.resolveAccount(method, dto.refundAccountId);
         await tx.paymentTransaction.create({
           data: {
             orderId: order.id,
@@ -614,6 +616,7 @@ export class ReturnsService {
             amountPaisa: cashOut,
             note: `Return ${r.returnNo}`,
             actorName,
+            ...({ accountId } as object), // DEC-GBL-006
           },
         });
         const newRefund = order.refundPaisa + cashOut;

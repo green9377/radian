@@ -41,6 +41,8 @@ export interface PosSaleLineDto {
 export interface PosPaymentDto {
   method: PosTender;
   amountPaisa: number;
+  /** DEC-GBL-006 — which bKash number / bank account took it, when there are several */
+  accountId?: string;
 }
 
 export interface CreatePosSaleDto {

@@ -842,6 +842,7 @@ export class PurchasesService {
     if (!Number.isInteger(dto.amountPaisa) || dto.amountPaisa <= 0)
       throw new BadRequestException('Payment amount must be a positive integer (paisa)');
     await this.payMethods.assertActive(dto.method); // DEC-GBL-001
+    const accountId = await this.payMethods.resolveAccount(dto.method, dto.accountId); // DEC-GBL-006
     if (p.paidPaisa + dto.amountPaisa > p.payablePaisa)
       // PUR-R04 — learnt from the Sales REV bug: money never floats in the air
       throw new BadRequestException(
@@ -855,6 +856,7 @@ export class PurchasesService {
         method: dto.method as PayMethod,
         paidAt: dto.paidAt ? new Date(dto.paidAt) : new Date(),
         note: dto.note ?? null,
+        ...({ accountId } as object), // DEC-GBL-006
       },
     });
     // DEC-FIN-022 — skipped automatically if a SupplierPayment created this row.

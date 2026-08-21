@@ -41,6 +41,8 @@ export interface CreateReturnDto {
 
 export interface CompleteReturnDto {
   refundMethod?: ReturnRefundMethod; // last-minute override
+  /** DEC-GBL-006 — which account the payout left from */
+  refundAccountId?: string;
   refundReference?: string;
   actorName?: string;
 }

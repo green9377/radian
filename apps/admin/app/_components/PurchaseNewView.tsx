@@ -311,7 +311,7 @@ export default function PurchaseNewView() {
       /*  the API takes one payment on create; the rest of the methods go on
           straight after, so a split bill is still one press for the buyer  */
       for (const r of paidRows.slice(1)) {
-        await addPurchasePayment(created.id, { amountPaisa: r.amountPaisa, method: r.method as PayMethod });
+        await addPurchasePayment(created.id, { amountPaisa: r.amountPaisa, method: r.method as PayMethod, accountId: r.accountId });
       }
       router.push(`/purchases/${created.id}`);
     } catch (e) {

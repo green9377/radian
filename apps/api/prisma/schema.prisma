@@ -2606,6 +2606,9 @@ model PaymentTransaction {
   order       Order         @relation(fields: [orderId], references: [id])
   kind        PaymentTxnKind // ADVANCE | PAYMENT | COD_COLLECTED | REFUND
   method      PaymentMethod
+  /// DEC-GBL-006 — WHICH bKash number / bank account the money landed in
+  /// (FinanceAccount.id). Null = the one account that method has.
+  accountId   String?
   amountPaisa Int
   reference   String?
   note        String?
@@ -3363,6 +3366,7 @@ model PurchasePayment {
 
   amountPaisa Int
   method      PayMethod
+  accountId   String? // DEC-GBL-006 — which account the money left from
   paidAt      DateTime  @default(now())
   note        String?
 
@@ -3558,6 +3562,7 @@ model SupplierPayment {
 
   amountPaisa Int
   method      PayMethod
+  accountId   String? // DEC-GBL-006 — which account the money left from
   paidAt      DateTime  @default(now())
   note        String?
 
@@ -4790,6 +4795,11 @@ model FinanceAccount {
   groupName      String?
   isMoneyAccount Boolean       @default(false) // cash/bKash/bank/… (DEC-FIN-008)
   payMethod      String? // PayMethod|PaymentMethod value this account maps to
+  /// DEC-GBL-006 (owner, 21 Aug) — a shop has three bKash numbers and four bank
+  /// accounts. Each one is a money account of the same METHOD, told apart by the
+  /// number written here. Setup → Payment methods adds them; the ledger has held
+  /// them all along, which is why they live on this row and not in a second table.
+  accountRef     String?
   costBehavior   CostBehavior? // EXPENSE only (FIN-RULE-016)
   isSystem       Boolean       @default(false)
   isActive       Boolean       @default(true)

@@ -51,6 +51,8 @@ export type SupplierPatch = Partial<Omit<SupplierCreateDto, 'openingDuePaisa' | 
 export interface SupplierPayDto {
   amountPaisa: number;
   method: 'CASH' | 'BKASH' | 'NAGAD' | 'BANK' | 'CARD' | 'OTHER';
+  /** DEC-GBL-006 — which account the money left from */
+  accountId?: string;
   paidAt?: string;
   note?: string;
   /** omit → auto oldest-first (opening due, then purchases by date).

@@ -24,7 +24,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { PayDialog, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
+import { PayDialog, usePayRows } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -440,14 +440,15 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
     try {
       /*  oldest bill first — the shop's own habit, and it keeps the ageing
           report honest. Each bill takes from the methods in the order typed.  */
-      const purses = pay.pays.filter((r) => r.amountPaisa > 0).map((r) => ({ method: r.method.toLowerCase(), left: r.amountPaisa }));
+      const purses = pay.pays.filter((r) => r.amountPaisa > 0)
+        .map((r) => ({ method: r.method.toLowerCase(), accountId: r.accountId, left: r.amountPaisa }));
       for (const o of [...bills].sort((a, b) => +new Date(a.placedAt) - +new Date(b.placedAt))) {
         let need = o.duePaisa;
-        const parts: { method: string; amountPaisa: number }[] = [];
+        const parts: { method: string; amountPaisa: number; accountId?: string }[] = [];
         for (const purse of purses) {
           if (need <= 0) break;
           const take = Math.min(purse.left, need);
-          if (take > 0) { parts.push({ method: purse.method, amountPaisa: take }); purse.left -= take; need -= take; }
+          if (take > 0) { parts.push({ method: purse.method, amountPaisa: take, accountId: purse.accountId }); purse.left -= take; need -= take; }
         }
         if (parts.length) await posCollectDue({ orderId: o.id, payments: parts });
       }
@@ -476,7 +477,6 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
 export function PosSettings() {
   const [s, setS] = useState<ApiPosSettings | null>(null);
   const [saved, setSaved] = useState(false);
-  const payList = usePaymentMethods(TILL_TENDERS); // DEC-GBL-001
 
   async function save(patch: Partial<ApiPosSettings>) {
     try {
@@ -562,20 +562,6 @@ export function PosSettings() {
             </div>
           </div>
 
-          {/*  DEC-GBL-001 — the payment list stopped being the till's own on
-               21 Aug: it is the shop's, and it lives with the other shop-wide
-               settings so switching bKash off there switches it off here, on a
-               purchase bill and on a refund at the same moment.  */}
-          <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-1">Payment methods</h3>
-            <p className="text-[12.5px] text-body-soft m-0 mb-3">
-              {payList.length ? payList.map((m) => m.label).join(" · ") : "Nothing switched on"}
-            </p>
-            <Link href="/administration/payment-methods"
-              className="text-[13px] font-medium text-purple border border-lavender-deep rounded-[10px] px-4 py-2.5 inline-block hover:bg-lavender/40">
-              Change them for the whole shop →
-            </Link>
-          </div>
         </div>
       </div>
     </div>
@@ -685,7 +671,8 @@ function HandOver({ row, busy, err, onClose, onDone }: {
   onClose: () => void; onDone: (p: { method: string; amountPaisa: number }[]) => void;
 }) {
   const pay = usePayRows(row.duePaisa);
-  const rest = pay.pays.filter((r) => r.amountPaisa > 0).map((r) => ({ method: r.method.toLowerCase(), amountPaisa: r.amountPaisa }));
+  const rest = pay.pays.filter((r) => r.amountPaisa > 0)
+    .map((r) => ({ method: r.method.toLowerCase(), amountPaisa: r.amountPaisa, accountId: r.accountId }));
 
   /*  nothing left to collect: it is a hand-over, not a payment, so the dialog
       says so and the button simply releases the goods  */

@@ -71,8 +71,24 @@ export class FinanceEventsService {
     return a.id;
   }
 
-  /** map a PayMethod / PaymentMethod value onto the money account it lives in */
-  private async moneyAccountFor(method: string | null | undefined): Promise<string> {
+  /**
+   * Map a PayMethod / PaymentMethod value onto the money account it lives in.
+   *
+   * DEC-GBL-006 — a shop can hold three bKash numbers, so the payment now says
+   * WHICH account took it. When it does, that is the answer; the map below is
+   * the fallback for older rows and for methods with a single account.
+   */
+  private async moneyAccountFor(
+    method: string | null | undefined,
+    accountId?: string | null,
+  ): Promise<string> {
+    if (accountId) {
+      const acc = await this.prisma.db.financeAccount.findFirst({
+        where: { id: accountId, isMoneyAccount: true },
+        select: { id: true },
+      });
+      if (acc) return acc.id;
+    }
     const m = (method ?? '').toUpperCase();
     const map: Record<string, string> = {
       CASH: ACC.CASH,
@@ -278,7 +294,7 @@ export class FinanceEventsService {
       if (!p || p.deletedAt || p.amountPaisa === 0) return;
       if (await this.beforeGoLive(p.createdAt)) return;
 
-      const money = await this.moneyAccountFor(p.method);
+      const money = await this.moneyAccountFor(p.method, (p as { accountId?: string | null }).accountId);
       const key = `PAYMENT:${p.id}:${p.kind}`;
       const counter = p.order?.orderNo ?? '';
 
@@ -440,7 +456,10 @@ export class FinanceEventsService {
         narration: `${sp.paymentNo} — paid ${sp.supplier?.name ?? 'supplier'}`,
         lines: [
           { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: sp.amountPaisa },
-          { accountId: await this.moneyAccountFor(sp.method), creditPaisa: sp.amountPaisa },
+          {
+            accountId: await this.moneyAccountFor(sp.method, (sp as { accountId?: string | null }).accountId),
+            creditPaisa: sp.amountPaisa,
+          },
         ],
       });
       await this.prisma.db.supplierPayment.update({
@@ -470,7 +489,10 @@ export class FinanceEventsService {
         narration: 'Paid a supplier bill',
         lines: [
           { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: pp.amountPaisa },
-          { accountId: await this.moneyAccountFor(pp.method), creditPaisa: pp.amountPaisa },
+          {
+            accountId: await this.moneyAccountFor(pp.method, (pp as { accountId?: string | null }).accountId),
+            creditPaisa: pp.amountPaisa,
+          },
         ],
       });
     });

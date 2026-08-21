@@ -631,8 +631,9 @@ export class PosService {
         throw new BadRequestException(`${p.method} amount must be a positive whole number of paisa`);
       }
       if (!TENDER_METHOD[p.method]) throw new BadRequestException(`unknown tender: ${p.method}`);
-      // DEC-GBL-001 — the shop's list decides, not the screen
+      // DEC-GBL-001/006 — the shop's list decides, and it says WHICH account
       await this.payMethods.assertActive(p.method);
+      p.accountId = (await this.payMethods.resolveAccount(p.method, p.accountId)) ?? undefined;
     }
     const paid = payments.reduce((s, p) => s + p.amountPaisa, 0);
     /* POS-REV-6 — and refuse an OVERPAYMENT rather than swallowing it. `duePaisa` was
@@ -732,7 +733,14 @@ export class PosService {
       // above (POS-REV-6), so there is nothing left here to skip over silently.
       for (const p of payments) {
         await tx.paymentTransaction.create({
-          data: { orderId: created.id, kind: PaymentTxnKind.PAYMENT, method: TENDER_METHOD[p.method], amountPaisa: p.amountPaisa, actorName },
+          data: {
+            orderId: created.id,
+            kind: PaymentTxnKind.PAYMENT,
+            method: TENDER_METHOD[p.method],
+            amountPaisa: p.amountPaisa,
+            actorName,
+            ...({ accountId: p.accountId ?? null } as object), // DEC-GBL-006
+          },
         });
       }
 
@@ -943,6 +951,8 @@ export class PosService {
       }
       if (!TENDER_METHOD[p.method as PosTender]) throw new BadRequestException(`unknown tender: ${p.method}`);
       await this.payMethods.assertActive(p.method); // DEC-GBL-001
+      (p as { accountId?: string }).accountId =
+        (await this.payMethods.resolveAccount(p.method, (p as { accountId?: string }).accountId)) ?? undefined;
     }
     const amount = lines.reduce((s, p) => s + p.amountPaisa, 0);
     if (amount <= 0) throw new BadRequestException('enter an amount to collect');
@@ -959,7 +969,14 @@ export class PosService {
       const ids: string[] = [];
       for (const p of lines) {
         const txn = await tx.paymentTransaction.create({
-          data: { orderId: o.id, kind: PaymentTxnKind.PAYMENT, method: TENDER_METHOD[p.method as PosTender], amountPaisa: p.amountPaisa, actorName },
+          data: {
+            orderId: o.id,
+            kind: PaymentTxnKind.PAYMENT,
+            method: TENDER_METHOD[p.method as PosTender],
+            amountPaisa: p.amountPaisa,
+            actorName,
+            ...({ accountId: (p as { accountId?: string }).accountId ?? null } as object),
+          },
         });
         ids.push(txn.id);
       }

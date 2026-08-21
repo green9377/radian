@@ -89,7 +89,12 @@ export function chargeNote(charges: ChargeRow[], adjustmentPaisa: number): strin
 /*  A method is whatever the screen calls it — the counter says "Cash", the
     purchase API says "CASH". The block does not care; it carries the id it was
     given straight back out.  */
-export interface PayOption { id: string; label: string }
+export interface PayOption {
+  id: string;
+  label: string;
+  /** DEC-GBL-006 — the accounts under this method; asked for only when >1 */
+  accounts?: { id: string; label: string }[];
+}
 export const COUNTER_METHODS: PayOption[] = [
   { id: "Cash", label: "Cash" },
   { id: "bKash", label: "bKash" },
@@ -116,13 +121,21 @@ export function usePaymentMethods(only?: string[]): PayOption[] {
     return rows
       .filter((r) => r.isActive && (!only || only.includes(r.code.toUpperCase())))
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((r) => ({ id: r.code, label: r.name }));
+      .map((r) => ({
+        id: r.code,
+        label: r.name,
+        accounts: (r.accounts ?? [])
+          .filter((a) => a.isActive)
+          .map((a) => ({ id: a.id, label: a.accountRef ? `${a.name} · ${a.accountRef}` : a.name })),
+      }));
   }, [rows, only]);
 }
 
 export interface PayRow {
   id: string;
   method: string;
+  /** DEC-GBL-006 — which account took it, when the method has more than one */
+  accountId?: string;
   amountPaisa: number;
   /** typed by hand. An untyped row carries whatever is still unpaid. */
   touched?: boolean;
@@ -170,7 +183,12 @@ export function usePayRows(totalPaisa: number, defaultMethod = "Cash") {
     changePaisa,
     /** paid over the bill with no cash in it — nothing to hand back */
     overpaidNoChange: paidPaisa > totalPaisa && changePaisa === 0,
-    setMethod: (id: string, method: string) => setPays((p) => p.map((r) => (r.id === id ? { ...r, method } : r))),
+    /*  changing the method drops the account with it — an account belongs to
+        exactly one method, and a stale id is how money lands in the wrong book  */
+    setMethod: (id: string, method: string) =>
+      setPays((p) => p.map((r) => (r.id === id ? { ...r, method, accountId: undefined } : r))),
+    setAccount: (id: string, accountId: string) =>
+      setPays((p) => p.map((r) => (r.id === id ? { ...r, accountId } : r))),
     setAmount: (id: string, amountPaisa: number) =>
       setPays((p) => p.map((r) => (r.id === id ? { ...r, amountPaisa: Math.max(0, amountPaisa), touched: true } : r))),
     addRow: () => setPays((p) => [...p, { id: `pay-${Date.now()}`, method: defaultMethod, amountPaisa: 0 }]),
@@ -426,26 +444,40 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNT
            pixel sideways when a row is added (owner, 21 Aug: it shook)  */}
       <div className={"flex flex-col gap-2 overflow-y-auto " + (fill ? "flex-1 min-h-0" : "")}
         style={{ maxHeight: fill ? undefined : maxHeight, minHeight: fill ? 44 : undefined, scrollbarGutter: "stable" }}>
-        {pay.pays.map((r) => (
-          <div key={r.id} className="flex items-center gap-2">
-            <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
-              onChange={(e) => pay.setMethod(r.id, e.target.value)}>
-              {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-            <span className="relative shrink-0" style={{ width: 108 }}>
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
-              <input type="number" min={0} inputMode="numeric"
-                className="ipt h-[40px] w-full text-[16px] font-semibold text-right"
-                style={{ paddingLeft: 22, fontVariantNumeric: "tabular-nums" }}
-                value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
-                onChange={(e) => pay.setAmount(r.id, Number(e.target.value) * 100)} />
-            </span>
-            <button type="button" onClick={() => pay.removeRow(r.id)} title="Remove this payment"
-              className={`shrink-0 ${t.label} hover:text-[#ff9b9b] ${pay.pays.length > 1 ? "" : "invisible"}`}>
-              <Icon name="trash" size={15} />
-            </button>
-          </div>
-        ))}
+        {pay.pays.map((r) => {
+          /*  DEC-GBL-006 — one bKash number, no question; three, and the row
+              has to say which one, or nobody can reconcile the statement.  */
+          const accounts = methods.find((m) => m.id === r.method)?.accounts ?? [];
+          return (
+            <div key={r.id} className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
+                  onChange={(e) => pay.setMethod(r.id, e.target.value)}>
+                  {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+                <span className="relative shrink-0" style={{ width: 108 }}>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-body-soft">৳</span>
+                  <input type="number" min={0} inputMode="numeric"
+                    className="ipt h-[40px] w-full text-[16px] font-semibold text-right"
+                    style={{ paddingLeft: 22, fontVariantNumeric: "tabular-nums" }}
+                    value={r.amountPaisa ? Math.round(r.amountPaisa / 100) : ""} placeholder="0"
+                    onChange={(e) => pay.setAmount(r.id, Number(e.target.value) * 100)} />
+                </span>
+                <button type="button" onClick={() => pay.removeRow(r.id)} title="Remove this payment"
+                  className={`shrink-0 ${t.label} hover:text-[#ff9b9b] ${pay.pays.length > 1 ? "" : "invisible"}`}>
+                  <Icon name="trash" size={15} />
+                </button>
+              </div>
+              {accounts.length > 1 && (
+                <select className="ipt h-[34px] text-[12.5px]" value={r.accountId ?? ""}
+                  onChange={(e) => pay.setAccount(r.id, e.target.value)}>
+                  <option value="">Which account…</option>
+                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                </select>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <button type="button" onClick={pay.addRow}
@@ -556,6 +588,7 @@ export function PayDialog({
  */
 export function RefundDialog({
   title, who, amountPaisa, amountLabel = "Refund", note, methods, method, onMethod,
+  accountId, onAccount,
   reference, onReference, busy, error, confirmLabel = "Pay out", onConfirm, onClose,
 }: {
   title: string;
@@ -566,6 +599,9 @@ export function RefundDialog({
   methods: PayOption[];
   method: string;
   onMethod: (id: string) => void;
+  /** DEC-GBL-006 — which account the money leaves from, when there is a choice */
+  accountId?: string;
+  onAccount?: (id: string) => void;
   reference: string;
   onReference: (v: string) => void;
   busy?: boolean;
@@ -598,9 +634,21 @@ export function RefundDialog({
 
           <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
             <div className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5">How it goes back</div>
-            <select className="ipt h-[40px] text-[13px]" value={method} onChange={(e) => onMethod(e.target.value)}>
+            <select className="ipt h-[40px] text-[13px]" value={method}
+              onChange={(e) => { onMethod(e.target.value); onAccount?.(""); }}>
               {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
+            {(() => {
+              const accounts = methods.find((m) => m.id === method)?.accounts ?? [];
+              if (accounts.length < 2 || !onAccount) return null;
+              return (
+                <select className="ipt h-[36px] text-[12.5px] mt-2" value={accountId ?? ""}
+                  onChange={(e) => onAccount(e.target.value)}>
+                  <option value="">Which account…</option>
+                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                </select>
+              );
+            })()}
             <input className="ipt h-[38px] text-[12.5px] mt-2" placeholder="Reference — bKash txn, bank ref (optional)"
               value={reference} onChange={(e) => onReference(e.target.value)} />
           </div>

@@ -383,7 +383,11 @@ export default function PosSellView() {
         payMode: duePaisa > 0 ? "partial" : "full",
         payments: pay.pays
           .filter((p) => p.amountPaisa > 0)
-          .map((p) => ({ method: p.method.toLowerCase() as "cash" | "bkash" | "nagad" | "card", amountPaisa: p.amountPaisa })),
+          .map((p) => ({
+            method: p.method.toLowerCase() as "cash" | "bkash" | "nagad" | "card",
+            amountPaisa: p.amountPaisa,
+            accountId: p.accountId, // DEC-GBL-006
+          })),
       });
       /*  DEC-POS-023 (owner, 21 Aug) — a finished sale opens as a bill, the same
           page a purchase gets. The receipt strip stays for the gift case, where

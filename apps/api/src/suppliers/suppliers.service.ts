@@ -794,6 +794,7 @@ export class SuppliersService {
       throw new BadRequestException('Amount must be a positive integer (paisa)');
     if (!dto.method) throw new BadRequestException('Method is required');
     await this.payMethods.assertActive(dto.method); // DEC-GBL-001
+    const accountId = await this.payMethods.resolveAccount(dto.method, dto.accountId); // DEC-GBL-006
 
     const b = await this.balances(id);
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : new Date();
@@ -853,6 +854,7 @@ export class SuppliersService {
         method: dto.method as PayMethod,
         paidAt,
         note: dto.note?.trim() || null,
+        ...({ accountId } as object), // DEC-GBL-006
       },
     });
 

@@ -3084,6 +3084,13 @@ export type PayMethod = "CASH" | "BKASH" | "NAGAD" | "BANK" | "CARD" | "OTHER";
    The shop's payment methods — ONE list for the whole Business OS. The screens
    below used to keep their own copies, which is how bKash could be off at the
    till and on in a purchase bill. */
+export interface ApiPaymentAccount {
+  id: string;
+  name: string;
+  accountRef: string | null;
+  isActive: boolean;
+  isSystem: boolean;
+}
 export interface ApiPaymentMethod {
   id: string;
   code: string;
@@ -3091,6 +3098,8 @@ export interface ApiPaymentMethod {
   isActive: boolean;
   isSystem: boolean;
   sortOrder: number;
+  /** DEC-GBL-006 — the actual bKash numbers / bank accounts under this method */
+  accounts?: ApiPaymentAccount[];
 }
 export const listPaymentMethods = () =>
   j<ApiPaymentMethod[]>(`/administration/payment-methods`);
@@ -3098,6 +3107,12 @@ export const updatePaymentMethod = (
   id: string,
   b: { isActive?: boolean; name?: string; sortOrder?: number },
 ) => j<ApiPaymentMethod>(`/administration/payment-methods/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const addPaymentAccount = (methodId: string, b: { name: string; accountRef?: string }) =>
+  j<ApiPaymentMethod[]>(`/administration/payment-methods/${methodId}/accounts`, { method: "POST", body: JSON.stringify(b) });
+export const updatePaymentAccount = (
+  accountId: string,
+  b: { name?: string; accountRef?: string | null; isActive?: boolean },
+) => j<ApiPaymentMethod[]>(`/administration/payment-accounts/${accountId}`, { method: "PATCH", body: JSON.stringify(b) });
 
 /** the four the counter and the buying side share, in the shop's own order */
 export const TILL_CODES = ["CASH", "BKASH", "NAGAD", "CARD", "BANK", "OTHER"];
@@ -3234,7 +3249,7 @@ export const receivePurchase = (id: string, b?: { lines?: { lineId: string; qtyM
 /** DEC-PUR-010 — received goods that never reached stock; safe to press twice */
 export const repostPurchaseStock = (id: string) =>
   j<ApiPurchase>(`/purchases/${id}/repost-stock`, { method: "POST" });
-export const addPurchasePayment = (id: string, b: { amountPaisa: number; method: PayMethod; note?: string }) =>
+export const addPurchasePayment = (id: string, b: { amountPaisa: number; method: PayMethod; accountId?: string; note?: string }) =>
   j<ApiPurchase>(`/purchases/${id}/payments`, { method: "POST", body: JSON.stringify(b) });
 export const cancelPurchase = (id: string, note?: string) =>
   j<ApiPurchase>(`/purchases/${id}/cancel`, { method: "POST", body: JSON.stringify({ note }) });
@@ -4108,7 +4123,7 @@ export interface PosSaleInput {
   discountPaisa?: number; discountApprovedBy?: string;
   adjustmentPaisa?: number; adjustmentNote?: string; taxRateBps?: number;
   payMode: "full" | "partial";
-  payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number }[];
+  payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number; accountId?: string }[];
   actorName?: string;
 }
 
@@ -4161,9 +4176,9 @@ export interface ApiPosAdvance {
   lines: { id: string; name: string; qty: number; unitPaisa: number }[];
 }
 export const posAdvanceOrders = () => j<ApiPosAdvance[]>(`/pos/advance`);
-export const posHandOverAdvance = (id: string, b: { payments?: { method: string; amountPaisa: number }[] }) =>
+export const posHandOverAdvance = (id: string, b: { payments?: { method: string; amountPaisa: number; accountId?: string }[] }) =>
   j<unknown>(`/pos/advance/${id}/handover`, { method: "POST", body: JSON.stringify(b) });
-export const posCollectDue = (b: { orderId: string; payments: { method: string; amountPaisa: number }[] }) =>
+export const posCollectDue = (b: { orderId: string; payments: { method: string; amountPaisa: number; accountId?: string }[] }) =>
   j<ApiPosSale>(`/pos/due/collect`, { method: "POST", body: JSON.stringify(b) });
 export const posDiscountRules = () => j<ApiPosDiscountRule[]>(`/pos/discount-rules`);
 export const posAnalyticsToday = () => j<ApiPosAnalytics>(`/pos/analytics/today`);
