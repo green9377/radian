@@ -345,7 +345,15 @@ export class InventoryService {
    * ─────────────────────────────────────────────────────────────────────────
    */
   private async ensureWarehouseId(): Promise<string> {
-    const first = await this.prisma.db.warehouse.findFirst({ where: { isActive: true } });
+    /*  ⚠️ ORDER MATTERS (owner, 21 Aug). This was an unordered findFirst, so
+        with two warehouses the database could hand back a different one from
+        call to call: a counter sale left Main Storeroom and its return landed
+        in Radian Shop, and the shelf looked wrong in both places. Oldest first
+        is arbitrary but STABLE — and Inventory → Settings overrides it.  */
+    const first = await this.prisma.db.warehouse.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
     if (first) return first.id;
     /*  ⚠️ Deleted-but-present is a real case: `code` is unique, so a plain
         create would collide with a soft-deleted SHOP row. Revive it instead.  */
