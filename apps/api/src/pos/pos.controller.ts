@@ -7,6 +7,7 @@ import type {
   CloseShiftDto,
   CashMovementDto,
   CreatePosSaleDto,
+  PosPaymentDto,
   CollectDueDto,
   DiscountRuleInput,
   UpdatePosSettingsDto,
@@ -79,6 +80,16 @@ export class PosController {
   @Post('due/collect')
   collectDue(@Body() dto: CollectDueDto) {
     return this.pos.collectDue(dto);
+  }
+
+  /* advance orders (DEC-POS-022) */
+  @Get('advance')
+  advanceOrders() {
+    return this.pos.advanceOrders();
+  }
+  @Post('advance/:id/handover')
+  handOverAdvance(@Param('id') id: string, @Body() dto: { payments?: PosPaymentDto[]; actorName?: string }) {
+    return this.pos.handOverAdvance(id, dto);
   }
 
   /* settings */

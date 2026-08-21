@@ -69,6 +69,15 @@ export interface CreatePosSaleDto {
   /** DEC-POS-020 — a line of words about this sale, kept on the order */
   note?: string;
 
+  /**
+   * DEC-POS-022 (owner, 21 Aug) — an ADVANCE order: the customer orders today
+   * and takes the goods on `promisedFor`. Three rules, his:
+   *   · the stock leaves on the day it is handed over, not today
+   *   · whatever he pays today is an advance; the rest is a due
+   *   · it waits on POS → Advance orders until "Hand over"
+   */
+  advance?: { promisedFor: string };
+
   lines: PosSaleLineDto[];
 
   discountPaisa?: number;

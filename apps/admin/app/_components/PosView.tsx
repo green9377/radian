@@ -183,6 +183,9 @@ export default function PosSellView() {
   const today = new Date().toISOString().slice(0, 10);
   const [saleDate, setSaleDate] = useState(today);
   const [note, setNote] = useState("");
+  /*  DEC-POS-022 — ordered today, taken later. The goods stay on the shelf and
+      whatever is paid today is an advance; the rest waits on the due board.  */
+  const [advanceFor, setAdvanceFor] = useState("");
   const [me, setMe] = useState<ApiMe | null>(null);
   const [staff, setStaff] = useState<ApiAppUser[]>([]);
   const [soldBy, setSoldBy] = useState("");
@@ -318,6 +321,7 @@ export default function PosSellView() {
     setApproved(false);
     setCharges([]);
     setNote("");
+    setAdvanceFor("");
     setSaleDate(new Date().toISOString().slice(0, 10));
     setAdjSign(1);
     setAdjustmentTaka(0);
@@ -372,6 +376,7 @@ export default function PosSellView() {
           : new Date(`${saleDate}T12:00:00`).toISOString(),
         salespersonName: soldBy || undefined,
         note: note.trim() || undefined,
+        advance: advanceFor ? { promisedFor: new Date(`${advanceFor}T12:00:00`).toISOString() } : undefined,
         lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
@@ -518,6 +523,23 @@ export default function PosSellView() {
             <div>
               <label className={labelCls}>Note</label>
               <input className="ipt" placeholder="Anything to remember about this sale" value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            <div className="xl:col-span-2">
+              <label className="flex items-center gap-2.5 text-[13px] font-medium text-body cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 accent-[#b45309]"
+                  checked={!!advanceFor}
+                  onChange={(e) => setAdvanceFor(e.target.checked ? new Date(Date.now() + 86_400_000).toISOString().slice(0, 10) : "")} />
+                Advance order — the customer takes it later
+              </label>
+              {advanceFor && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[12.5px] text-body-soft">Taking it on</span>
+                  <input type="date" className="ipt" style={{ width: 190 }} value={advanceFor}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setAdvanceFor(e.target.value)} />
+                  <span className="text-[12px] text-body-soft">stock leaves on that day, not today</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -690,7 +712,7 @@ export default function PosSellView() {
 
               <div className="flex gap-2 mt-3">
                 <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 min-w-0 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /><span className="truncate">{errors.length ? errors[0].replace(/\.$/, "") : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</span></button>
+                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 min-w-0 bg-white hover:bg-[#f4ecf9] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /><span className="truncate">{errors.length ? errors[0].replace(/\.$/, "") : advanceFor ? `Take advance${total > 0 ? " · " + formatTaka(total) : ""}` : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</span></button>
               </div>
               {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
             </div>

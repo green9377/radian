@@ -633,8 +633,18 @@ export class PosService {
     }
     const duePaisa = Math.max(0, totalPaisa - paid);
 
+    /*  DEC-POS-022 — an advance order is a promise, not a hand-over. The goods
+        stay on the shelf until the day comes, so nothing about stock happens
+        here; the money that came in today is real and is recorded.  */
+    const promisedFor = dto.advance?.promisedFor ? new Date(dto.advance.promisedFor) : null;
+    if (promisedFor && Number.isNaN(promisedFor.getTime()))
+      throw new BadRequestException('That pick-up date cannot be read');
+    if (promisedFor && promisedFor.getTime() < Date.now() - 24 * 60 * 60 * 1000)
+      throw new BadRequestException('An advance order cannot be promised for a day that has passed');
+    const isAdvance = !!promisedFor;
+
     // payment-mode rules (DEC-POS-017 / DEC-POS-008)
-    if (dto.payMode === 'full' && duePaisa > 0) throw new BadRequestException('full payment: take the whole amount or switch to partial');
+    if (!isAdvance && dto.payMode === 'full' && duePaisa > 0) throw new BadRequestException('full payment: take the whole amount or switch to partial');
     const identified = !!(dto.customerId || dto.customerPhone?.trim());
     if (duePaisa > 0 && !identified) throw new BadRequestException('a due (credit) sale needs an identified customer');
 
@@ -676,11 +686,14 @@ export class PosService {
           senderName: customer.name,
           senderPhone: customer.phone,
           fulfillmentType: FulfillmentType.COUNTER,
+          promisedBy: promisedFor,
           branchId: dto.branchId ?? shift.registerId ?? null,
           posShift: { connect: { id: shift.id } },
           isGift: dto.isGift ?? false,
-          salesStatus: SalesStatus.completed, // walk-in take-away — settled at the counter
-          deliveryStatus: DeliveryStatus.delivered,
+          /*  DEC-POS-022 — a walk-in is settled the moment it is rung up; an
+              advance order is only placed, and completes when it is handed over.  */
+          salesStatus: isAdvance ? SalesStatus.placed : SalesStatus.completed,
+          deliveryStatus: isAdvance ? DeliveryStatus.unassigned : DeliveryStatus.delivered,
           zone: DeliveryZone.COUNTER,
           address: 'Counter sale',
           paymentMethod: PaymentMethod.counter,
@@ -718,11 +731,13 @@ export class PosService {
       /*  legacy Product.stockQty decrement (DEC-INV-015 stage 1 — still the enforcing
           copy) — only for the legacy product lines. An item line's stock leaves
           through Inventory alone (DEC-POS-018), which is the whole point.  */
-      for (const l of dto.lines) {
-        if (!l.productId) continue;
-        const p = pMap.get(l.productId);
-        if (p && p.stockMode === 'MANUAL') {
-          await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
+      if (!isAdvance) {
+        for (const l of dto.lines) {
+          if (!l.productId) continue;
+          const p = pMap.get(l.productId);
+          if (p && p.stockMode === 'MANUAL') {
+            await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
+          }
         }
       }
 
@@ -741,7 +756,7 @@ export class PosService {
     await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'sales', label: `POS sale ${orderNo} · ${customer.name}`, actorName });
 
     // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
-    try {
+    if (!isAdvance) try {
       const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty })) });
       if (r.skipped.length) {
         await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
@@ -754,7 +769,9 @@ export class PosService {
     // POS-REV-5 — awaited and flagged. This is the cash register: a sale that never
     // posts takes its revenue, its VAT and its cost of goods with it, and the day
     // still looks like it balanced.
-    await this.book(order.id, `POS sale ${orderNo}`, () => this.finance.onPosSale(order.id), actorName);
+    /*  DEC-POS-022 — no goods have moved, so there is no revenue and no cost of
+        goods yet; only the money that came in is booked below.  */
+    if (!isAdvance) await this.book(order.id, `POS sale ${orderNo}`, () => this.finance.onPosSale(order.id), actorName);
     const tenders = await this.prisma.db.paymentTransaction.findMany({ where: { orderId: order.id } });
     for (const t of tenders) {
       await this.book(order.id, `${t.method} tender on ${orderNo}`, () => this.finance.onPaymentRecorded(t.id), actorName);
@@ -821,6 +838,84 @@ export class PosService {
    * money is a question. Cash belongs to the drawer it physically entered — the shift
    * open NOW.
    */
+  /* ------------------------------------------------ advance orders (DEC-POS-022) */
+
+  /** what is promised and not yet handed over, soonest first */
+  async advanceOrders() {
+    const rows = await this.prisma.db.order.findMany({
+      where: {
+        fulfillmentType: FulfillmentType.COUNTER,
+        salesStatus: SalesStatus.placed,
+        promisedBy: { not: null },
+      },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        lines: { select: { id: true, name: true, qty: true, unitPaisa: true } },
+      },
+      orderBy: { promisedBy: 'asc' },
+    });
+    return rows.map((o) => ({
+      id: o.id,
+      orderNo: o.orderNo,
+      placedAt: o.placedAt.toISOString(),
+      promisedBy: o.promisedBy ? o.promisedBy.toISOString() : null,
+      customerName: o.customer?.name ?? o.senderName,
+      customerPhone: o.customer?.phone ?? o.senderPhone,
+      totalPaisa: o.totalPaisa,
+      paidPaisa: o.paidPaisa,
+      duePaisa: Math.max(0, o.totalPaisa - (o.paidPaisa - o.refundPaisa)),
+      lines: o.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, unitPaisa: l.unitPaisa })),
+    }));
+  }
+
+  /**
+   * The day came: the goods leave now, the rest of the money is taken now, and
+   * only now does the sale become revenue. Everything the walk-in path does at
+   * the counter, an advance order does here instead (DEC-POS-022).
+   */
+  async handOverAdvance(orderId: string, dto: { payments?: PosPaymentDto[]; actorName?: string }) {
+    const actorName = dto.actorName ?? 'Cashier';
+    const o = await this.prisma.db.order.findFirst({
+      where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER },
+      include: { lines: { select: { productId: true, qty: true, ...({ itemId: true } as object) } } },
+    });
+    if (!o) throw new NotFoundException('advance order not found');
+    if (o.salesStatus !== SalesStatus.placed) throw new BadRequestException('this order has already been handed over');
+
+    /*  take whatever is still owed first — one dialog, same rules as any other
+        money that comes in (POS-REV-6 validation lives in collectDue)  */
+    if (dto.payments?.length) {
+      await this.collectDue({ orderId: o.id, payments: dto.payments, actorName });
+    }
+
+    await this.prisma.db.order.update({
+      where: { id: o.id },
+      data: {
+        salesStatus: SalesStatus.completed,
+        deliveryStatus: DeliveryStatus.delivered,
+      },
+    });
+
+    // NOW the stock leaves (INV-RULE-001), the same call the walk-in path makes
+    try {
+      const r = await this.inventory.postSaleForOrder({
+        orderId: o.id, orderNo: o.orderNo, actor: actorName, direction: -1,
+        lines: o.lines.map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty })),
+      });
+      if (r.skipped.length) {
+        await this.audit.event({ entityType: 'Order', entityId: o.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
+      }
+    } catch (e) {
+      await this.audit.event({ entityType: 'Order', entityId: o.id, kind: 'system', label: `Inventory mirror failed: ${e instanceof Error ? e.message : 'error'}`, actorName });
+    }
+
+    // …and only now is it revenue and cost of goods
+    await this.book(o.id, `POS sale ${o.orderNo} (advance handed over)`, () => this.finance.onPosSale(o.id), actorName);
+    await this.audit.event({ entityType: 'Order', entityId: o.id, kind: 'sales', label: `Advance order ${o.orderNo} handed over`, actorName });
+
+    return this.prisma.db.order.findFirst({ where: { id: o.id } });
+  }
+
   async collectDue(dto: CollectDueDto) {
     const o = await this.prisma.db.order.findFirst({ where: { id: dto.orderId } });
     if (!o) throw new NotFoundException('order not found');

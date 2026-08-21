@@ -157,6 +157,8 @@ const GROUPS: Group[] = [
           { label: "Today / Shift", href: "/pos/shift" },
           { label: "Sales history", href: "/pos/sales" },
           { label: "Day-close", href: "/pos/day-close" },
+          // DEC-POS-022 — ordered today, taken later; the goods wait on the shelf
+          { label: "Advance orders", href: "/pos/advance" },
           { label: "Due board", href: "/pos/due" },
           { label: "Returns", href: "/returns?channel=counter" }, // the counter door, DEC-RTN-016
           { label: "Settings", href: "/pos/settings" },

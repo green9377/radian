@@ -4073,6 +4073,8 @@ export interface PosSaleInput {
   salespersonName?: string;
   /** DEC-POS-020 — the shop's own words about this sale */
   note?: string;
+  /** DEC-POS-022 — ordered today, taken later; stock waits for the hand-over */
+  advance?: { promisedFor: string };
   /** DEC-POS-018 — the counter sells items; productId is only the legacy path */
   lines: { itemId?: string; productId?: string; qty: number; unitPaisa?: number }[];
   discountPaisa?: number; discountApprovedBy?: string;
@@ -4122,6 +4124,17 @@ export const posListSales = (p?: { search?: string; days?: number }) => {
   return j<ApiPosSale[]>(`/pos/sales${q.toString() ? `?${q}` : ""}`);
 };
 export const posDue = () => j<ApiPosDue[]>(`/pos/due`);
+
+/** DEC-POS-022 — counter orders promised for a later day, soonest first */
+export interface ApiPosAdvance {
+  id: string; orderNo: string; placedAt: string; promisedBy: string | null;
+  customerName: string; customerPhone: string;
+  totalPaisa: number; paidPaisa: number; duePaisa: number;
+  lines: { id: string; name: string; qty: number; unitPaisa: number }[];
+}
+export const posAdvanceOrders = () => j<ApiPosAdvance[]>(`/pos/advance`);
+export const posHandOverAdvance = (id: string, b: { payments?: { method: string; amountPaisa: number }[] }) =>
+  j<unknown>(`/pos/advance/${id}/handover`, { method: "POST", body: JSON.stringify(b) });
 export const posCollectDue = (b: { orderId: string; payments: { method: string; amountPaisa: number }[] }) =>
   j<ApiPosSale>(`/pos/due/collect`, { method: "POST", body: JSON.stringify(b) });
 export const posDiscountRules = () => j<ApiPosDiscountRule[]>(`/pos/discount-rules`);

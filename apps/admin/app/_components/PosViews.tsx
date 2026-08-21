@@ -12,6 +12,9 @@ import {
   posCloseShift,
   posDue,
   posCollectDue,
+  posAdvanceOrders,
+  posHandOverAdvance,
+  type ApiPosAdvance,
   posSettings,
   posDiscountRules,
   updatePosSettings,
@@ -591,5 +594,149 @@ export function PosSettings() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ================= ADVANCE ORDERS (DEC-POS-022) ================= */
+
+/**
+ * Ordered today, taken later. The owner's three rules, 21 Aug:
+ *   · the stock leaves on the day it is handed over, not the day it is ordered
+ *   · whatever is paid today is an advance; the rest is a due like any other
+ *   · it waits here until "Hand over", which takes the rest and moves the stock
+ */
+export function PosAdvanceOrders() {
+  const [rows, setRows] = useState<ApiPosAdvance[]>([]);
+  const [open, setOpen] = useState<ApiPosAdvance | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = () => posAdvanceOrders().then(setRows).catch(() => setRows([]));
+  useEffect(() => { load(); }, []);
+
+  const days = (iso: string | null) => (iso ? Math.round((+new Date(iso) - Date.now()) / 86_400_000) : null);
+  const owed = rows.reduce((s, r) => s + r.duePaisa, 0);
+
+  return (
+    <div className={wrap}>
+      <Head title="Advance orders" sub="Ordered now, taken later. The goods stay on the shelf until the day comes — hand over here." />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 max-w-[560px]">
+        <Stat label="Waiting" value={String(rows.length)} tone="plum" />
+        <Stat label="Still to collect" value={formatTaka(owed)} tone="amber" />
+        <Stat label="Next one" value={rows[0]?.promisedBy ? new Date(rows[0].promisedBy).toLocaleDateString() : "—"} tone="orchid" />
+      </div>
+
+      <div className={card + " overflow-hidden"}>
+        <table className="w-full text-[13px]">
+          <thead>
+            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
+              <th className="px-4 py-2.5 font-medium">Bill</th>
+              <th className="px-4 py-2.5 font-medium">Customer</th>
+              <th className="px-4 py-2.5 font-medium">Taking it</th>
+              <th className="px-4 py-2.5 font-medium">What is on it</th>
+              <th className="px-4 py-2.5 font-medium text-right">Paid / still owed</th>
+              <th className="px-4 py-2.5 font-medium text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const d = days(r.promisedBy);
+              const late = d !== null && d < 0;
+              const today = d === 0;
+              return (
+                <tr key={r.id} className={"border-t border-lavender-deep " + (late ? "bg-[#fff4e2]" : today ? "bg-[#f2fbf5]" : "hover:bg-lavender/30")}>
+                  <td className="px-4 py-2.5">
+                    <Link href={`/orders/${r.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{r.orderNo}</Link>
+                    <div className="text-[11px] text-body-soft">ordered {new Date(r.placedAt).toLocaleDateString()}</div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="font-medium text-purple">{r.customerName}</div>
+                    <div className="text-[12px] text-body-soft">{r.customerPhone}</div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {r.promisedBy ? new Date(r.promisedBy).toLocaleDateString() : "—"}
+                    <div className={"text-[11.5px] " + (late ? "text-[#b45309] font-medium" : "text-body-soft")}>
+                      {d === null ? "" : late ? `${-d} day${-d === 1 ? "" : "s"} overdue` : today ? "today" : `in ${d} day${d === 1 ? "" : "s"}`}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-body-soft">
+                    {r.lines.slice(0, 3).map((l) => `${l.name} ×${l.qty}`).join(", ")}
+                    {r.lines.length > 3 ? ` +${r.lines.length - 3} more` : ""}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div>{formatTaka(r.paidPaisa)} of {formatTaka(r.totalPaisa)}</div>
+                    {r.duePaisa > 0 && <div className="text-[12px] text-[#b45309] font-medium">{formatTaka(r.duePaisa)} to collect</div>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button type="button" onClick={() => { setErr(null); setOpen(r); }}
+                      className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5">Hand over</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-body-soft">No advance order is waiting.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {open && <HandOver row={open} busy={busy} err={err}
+        onClose={() => setOpen(null)}
+        onDone={async (payments) => {
+          setBusy(true); setErr(null);
+          try {
+            await posHandOverAdvance(open.id, { payments });
+            setOpen(null);
+            await load();
+          } catch (e) {
+            setErr(e instanceof Error ? e.message : "Could not hand it over");
+          } finally { setBusy(false); }
+        }} />}
+    </div>
+  );
+}
+
+function HandOver({ row, busy, err, onClose, onDone }: {
+  row: ApiPosAdvance; busy: boolean; err: string | null;
+  onClose: () => void; onDone: (p: { method: string; amountPaisa: number }[]) => void;
+}) {
+  const pay = usePayRows(row.duePaisa);
+  const rest = pay.pays.filter((r) => r.amountPaisa > 0).map((r) => ({ method: r.method.toLowerCase(), amountPaisa: r.amountPaisa }));
+
+  /*  nothing left to collect: it is a hand-over, not a payment, so the dialog
+      says so and the button simply releases the goods  */
+  if (row.duePaisa === 0) {
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }} onClick={onClose}>
+        <div className="w-full max-w-[380px] rounded-[16px] text-white shadow-lift p-4"
+          style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Hand over</div>
+          <div className="text-[14px] font-medium mb-3">{row.orderNo} · {row.customerName}</div>
+          <div className="rounded-[12px] px-3 py-3 text-center mb-3" style={{ background: "rgba(127,224,168,.14)" }}>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: "#7fe0a8" }}>Already paid in full</div>
+            <div className="text-[26px] font-semibold font-display" style={{ color: "#bff3d5" }}>{formatTaka(row.totalPaisa)}</div>
+          </div>
+          <p className="text-[12px] text-[#c9a6e4] mt-0 mb-3">The stock leaves the shelf when you press this.</p>
+          {err && <div className="mb-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{err}</div>}
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10">Cancel</button>
+            <button type="button" disabled={busy} onClick={() => onDone([])}
+              className="flex-1 bg-white text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40">
+              <Icon name="check" size={17} /> {busy ? "Working…" : "Hand it over"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <PayDialog
+      title="Hand over" who={`${row.orderNo} · ${row.customerName}`}
+      owedPaisa={row.duePaisa} owedLabel="Still to collect"
+      note={`${formatTaka(row.paidPaisa)} paid in advance · the stock leaves when this is done`}
+      pay={pay} busy={busy} error={err}
+      confirmLabel="Take & hand over" leftLabel="Taking now"
+      dueAfterLabel="Still owed after this" clearedLabel="Settled"
+      onConfirm={() => onDone(rest)} onClose={onClose} />
   );
 }
