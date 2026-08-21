@@ -7,6 +7,7 @@ import { getOrder, adaptOrder, editOrder, formatTaka, genBg, getAddOns, type Api
 import { TONE, Panel, type Tone } from "./OrderViews";
 import ProductPicker from "./ProductPicker";
 import Icon from "./Icon";
+import { TakaInput } from "./MoneyBlock";
 
 /*
   Order Edit — one page, every edit option, price always visible on the right.
@@ -421,7 +422,7 @@ export default function OrderEditForm({ id }: { id: string }) {
                   {charges.map((c) => (
                     <div key={c.key} className="grid grid-cols-[minmax(0,1fr)_130px_34px] gap-2 items-center">
                       <input className="ipt h-[38px]" list="charge-presets" placeholder="What is it for?" value={c.label} onChange={(e) => patchCharge(c.key, { label: e.target.value })} />
-                      <input type="number" className="ipt h-[38px]" placeholder="৳" value={Math.round(c.paisa / 100)} onChange={(e) => patchCharge(c.key, { paisa: Math.round(Number(e.target.value)) * 100 })} />
+                      <TakaInput className="ipt h-[38px]" placeholder="৳" valuePaisa={c.paisa} onPaisa={(pz) => patchCharge(c.key, { paisa: pz })} />
                       <button type="button" onClick={() => setCharges((x) => x.filter((y) => y.key !== c.key))} className="w-[34px] h-[34px] grid place-items-center rounded-[9px] border bg-white" style={{ borderColor: TONE.rose.border, color: TONE.rose.text }}><Icon name="trash" size={15} /></button>
                     </div>
                   ))}

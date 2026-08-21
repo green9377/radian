@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
-import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -571,10 +571,10 @@ export default function PosSellView() {
 
                 {/*  POS-R15 — the price is the cashier's to change; the floor is the wall  */}
                 <div>
-                  <input type="number" min={0} className="ipt h-[34px] text-[13px] text-right"
-                    value={l.unitPaisa ? Math.round(l.unitPaisa / 100) : ""}
-                    placeholder={String(Math.round((l.product.pricePaisa ?? 0) / 100))}
-                    onChange={(e) => setUnit(l.key, Number(e.target.value) * 100)} />
+                  <TakaInput className="ipt h-[34px] text-[13px] text-right"
+                    valuePaisa={l.unitPaisa}
+                    placeholder={String((l.product.pricePaisa ?? 0) / 100)}
+                    onPaisa={(pz) => setUnit(l.key, pz)} />
                   {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
                     <div className="text-[11px] text-[#c0392b] mt-0.5">min {formatTaka(l.product.floorPricePaisa)}</div>
                   )}

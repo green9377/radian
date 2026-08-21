@@ -53,14 +53,18 @@ export interface MoneySum {
 }
 
 export function computeMoney(m: MoneyInput): MoneySum {
+  /*  taka → paisa is Math.round(taka * 100), NEVER Math.round(taka) * 100 —
+      the second form throws the paisa away before multiplying, which is how a
+      −0.42 round-off typed at the till applied as zero (owner, 21 Aug: "ghor
+      to type hoy but kaj to kre na").  */
   const discountPaisa = Math.min(
     m.discountMode === "pct"
       ? Math.round((m.subtotalPaisa * Math.min(100, Math.max(0, m.discountInput))) / 100)
-      : Math.round(Math.max(0, m.discountInput)) * 100,
+      : Math.round(Math.max(0, m.discountInput) * 100),
     m.subtotalPaisa,
   );
-  const chargesPaisa = m.charges.reduce((s, c) => s + Math.round(Math.max(0, c.amountTaka)) * 100, 0);
-  const adjustmentPaisa = m.adjSign * Math.round(Math.abs(m.adjustmentTaka)) * 100;
+  const chargesPaisa = m.charges.reduce((s, c) => s + Math.round(Math.max(0, c.amountTaka) * 100), 0);
+  const adjustmentPaisa = m.adjSign * Math.round(Math.abs(m.adjustmentTaka) * 100);
   const extraPaisa = chargesPaisa + adjustmentPaisa;
   const base = Math.max(0, m.subtotalPaisa - discountPaisa + extraPaisa);
   const vatPaisa = Math.round((base * m.taxRate) / 100);
@@ -79,7 +83,7 @@ export function computeMoney(m: MoneyInput): MoneySum {
 export function chargeNote(charges: ChargeRow[], adjustmentPaisa: number): string {
   const parts = charges
     .filter((c) => c.amountTaka > 0)
-    .map((c) => `${c.label.trim() || "Additional charge"} ${formatTaka(Math.round(c.amountTaka) * 100)}`);
+    .map((c) => `${c.label.trim() || "Additional charge"} ${formatTaka(Math.round(c.amountTaka * 100))}`);
   if (adjustmentPaisa !== 0) parts.push(`Adjustment ${adjustmentPaisa < 0 ? "−" : "+"} ${formatTaka(Math.abs(adjustmentPaisa))}`);
   return parts.join(" · ");
 }
@@ -336,9 +340,9 @@ export function MoneyBlock(p: MoneyBlockProps) {
 
         {door === "discount" && (
           <div className={editor}>
-            <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }} autoFocus
-              value={p.discountInput || ""} placeholder="0"
-              onChange={(e) => p.onDiscount(Math.max(0, Number(e.target.value)))} />
+            <TakaInput autoFocus className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }}
+              valuePaisa={Math.round(Math.max(0, p.discountInput) * 100)}
+              onPaisa={(pz) => p.onDiscount(pz / 100)} />
             <select className="ipt h-[36px] text-[12.5px]" style={{ width: 62, paddingLeft: 8, paddingRight: 4 }}
               value={p.discountMode} onChange={(e) => p.onDiscountMode(e.target.value === "pct" ? "pct" : "amt")}>
               <option value="amt">৳</option>
@@ -355,9 +359,9 @@ export function MoneyBlock(p: MoneyBlockProps) {
                 <input className="ipt h-[36px] text-[12.5px] flex-1 min-w-0" placeholder="What is this charge for?"
                   value={c.label}
                   onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, label: e.target.value } : x)))} />
-                <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 82 }}
-                  value={c.amountTaka || ""} placeholder="0"
-                  onChange={(e) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, amountTaka: Math.max(0, Number(e.target.value)) } : x)))} />
+                <TakaInput className="ipt h-[36px] text-[13px] text-right" style={{ width: 82 }}
+                  valuePaisa={Math.round(Math.max(0, c.amountTaka) * 100)}
+                  onPaisa={(pz) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, amountTaka: pz / 100 } : x)))} />
                 <button type="button" title="Remove this charge" className={`shrink-0 ${t.label} hover:text-[#ff9b9b]`}
                   onClick={() => p.onCharges(p.charges.filter((x) => x.id !== c.id))}>
                   <Icon name="trash" size={14} />
@@ -379,9 +383,9 @@ export function MoneyBlock(p: MoneyBlockProps) {
               <option value={1}>+</option>
               <option value={-1}>−</option>
             </select>
-            <input type="number" min={0} className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }} autoFocus
-              value={p.adjustmentTaka || ""} placeholder="0"
-              onChange={(e) => p.onAdjustment(Math.abs(Number(e.target.value)))} />
+            <TakaInput autoFocus className="ipt h-[36px] text-[13px] text-right" style={{ width: 88 }}
+              valuePaisa={Math.round(Math.abs(p.adjustmentTaka) * 100)}
+              onPaisa={(pz) => p.onAdjustment(pz / 100)} />
             <span className={`text-[11.5px] ${t.faint}`}>round-off</span>
           </div>
         )}
