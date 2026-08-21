@@ -154,6 +154,8 @@ export interface CancelOrderDto {
 }
 
 export interface ListOrderQuery {
+  /** DEC-RTN — include counter (POS) bills; the online lists leave them out */
+  includeCounter?: string;
   page?: string;
   pageSize?: string;
   search?: string;

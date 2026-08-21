@@ -254,6 +254,11 @@ export default function PosSellView() {
 
   // ---- money (DEC-POS-015/016) ----
   const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
+  /** POS-R16 — how much of this bill is being sold for less than it cost */
+  const underCostPaisa = lines.reduce((s, l) => {
+    const cost = l.product.costPaisa ?? 0;
+    return cost > 0 && l.unitPaisa > 0 && l.unitPaisa < cost ? s + (cost - l.unitPaisa) * l.qty : s;
+  }, 0);
   const moneyIn = { subtotalPaisa: subtotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate };
   const sum = computeMoney(moneyIn);
   const { discountPaisa, vatPaisa, discountPct } = sum;
@@ -549,6 +554,16 @@ export default function PosSellView() {
                   {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
                     <div className="text-[11px] text-[#c0392b] mt-0.5">min {formatTaka(l.product.floorPricePaisa)}</div>
                   )}
+                  {/*  POS-R16 (owner, 21 Aug) — selling under what it cost is
+                       allowed, but it must never happen quietly. The floor is
+                       still the only wall; this is the shop's own warning.  */}
+                  {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && l.unitPaisa > 0
+                    && l.unitPaisa < l.product.costPaisa
+                    && !(l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa) && (
+                    <div className="text-[11px] text-[#b45309] mt-0.5">
+                      under cost by {formatTaka(l.product.costPaisa - l.unitPaisa)}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-center">
@@ -602,6 +617,15 @@ export default function PosSellView() {
             {/*  Why the sale cannot go through, AT THE TOP. It used to sit under the
                  Complete button at the bottom of a tall panel, off the screen — the
                  owner filled a cart with a closed shift and saw nothing (20 Aug).  */}
+            {/*  POS-R16 — a loss is a decision, not an accident: the panel says
+                 how much of the bill is under cost before it is completed.  */}
+            {underCostPaisa > 0 && errors.length === 0 && (
+              <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
+                style={{ background: "rgba(240,180,106,.16)", color: "#f0b46a" }}>
+                {formatTaka(underCostPaisa)} under cost on this bill — selling at a loss.
+              </div>
+            )}
+
             {errors.length > 0 && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
                 style={{ background: "rgba(255,155,123,.14)", color: "#ffc9a8" }}>

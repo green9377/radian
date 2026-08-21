@@ -9,7 +9,7 @@
   (SALE_RETURN). Order.salesStatus is never mutated — a return is its own document.
 */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
@@ -197,15 +197,23 @@ export function NewReturn() {
 
   useEffect(() => { getReturnReasons().then(setReasons).catch(() => {}); }, []);
 
-  async function findOrders() {
+  /*  Counter bills are orders too (DEC-POS-001) but the online list hides them,
+      so searching a POS number found nothing at all (owner, 21 Aug). Returns
+      asks for both, and the screen offers the recent ones without a search.  */
+  const loadOrders = useCallback(async (search?: string) => {
     setErr("");
     try {
-      const res = await listOrders({ search: orderSearch });
-      setOrderHits(res.items.filter((o) => o.deliveryStatus === "delivered"));
-      if (res.items.length && !res.items.some((o) => o.deliveryStatus === "delivered"))
+      const res = await listOrders({ search, includeCounter: true });
+      const done = res.items.filter((o) => o.deliveryStatus === "delivered");
+      setOrderHits(done);
+      if (search && res.items.length && !done.length)
         setErr("Matching orders found, but none are delivered yet — only delivered orders can be returned.");
+      if (search && !res.items.length) setErr("Nothing matches that number, name or phone.");
     } catch (e) { setErr(msg(e, "Could not search orders")); }
-  }
+  }, []);
+  useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  async function findOrders() { await loadOrders(orderSearch.trim() || undefined); }
 
   async function pickOrder(id: string) {
     setErr("");
@@ -270,21 +278,42 @@ export function NewReturn() {
 
       {!el && (
         <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5 max-w-[720px]">
-          <label className="lbl">Find the delivered order</label>
+          <label className="lbl">Pick the delivered order</label>
+          {/*  two ways in, because a counter bill is remembered by its number and a
+               website order by the customer's name (owner, 21 Aug)  */}
+          <select className="ipt mt-1" value={el ? (el as EligibleOrder).order.id : ""}
+            onChange={(e) => e.target.value && pickOrder(e.target.value)}>
+            <option value="">Choose from the recent delivered orders…</option>
+            {orderHits.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.orderNo} · {o.customer?.name ?? o.senderName} · {formatTaka(o.totalPaisa)} · {new Date(o.placedAt).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
+
+          <label className="lbl mt-3">…or search for it</label>
           <div className="flex items-center gap-2 mt-1">
-            <input className="ipt" placeholder="Order no (RAD-…), customer name or phone"
+            <input className="ipt" placeholder="Order no (RAD-… or POS-…), customer name or phone"
               value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && findOrders()} />
             <button className="text-white text-[13px] px-4 py-2.5 rounded-[10px] shrink-0" style={{ background: ACCENT }} onClick={findOrders}>Search</button>
+            {orderSearch && (
+              <button className="text-[12.5px] underline shrink-0" onClick={() => { setOrderSearch(""); loadOrders(); }}>Clear</button>
+            )}
           </div>
+
           <div className="mt-3 divide-y divide-lavender-deep">
             {orderHits.map((o) => (
               <button key={o.id} onClick={() => pickOrder(o.id)}
                 className="w-full text-left py-2.5 px-1 hover:bg-[#faf6fd] flex items-center justify-between gap-3">
-                <span className="text-[13px]"><b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}</span>
+                <span className="text-[13px]">
+                  <b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}
+                  <span className="text-body-soft"> · {o.senderPhone || "—"}</span>
+                </span>
                 <span className="text-[12px] text-body-soft">{formatTaka(o.totalPaisa)} · paid {formatTaka(o.paidPaisa)}</span>
               </button>
             ))}
+            {orderHits.length === 0 && <div className="text-[12.5px] text-body-soft py-3">No delivered order to return yet.</div>}
           </div>
         </div>
       )}

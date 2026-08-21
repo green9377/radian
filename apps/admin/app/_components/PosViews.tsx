@@ -327,49 +327,91 @@ export function PosDayClose() {
 /* ================= DUE BOARD ================= */
 export function PosDueBoard() {
   const [rows, setRows] = useState<ApiPosDue[]>([]);
-  const [open, setOpen] = useState<ApiPosDue | null>(null);
+  const [open, setOpen] = useState<{ row: ApiPosDue; only?: string } | null>(null);
+  const [q, setQ] = useState("");
   useEffect(() => { posDue().then((r) => setRows(r)).catch(() => {}); }, []);
   const total = rows.reduce((s, r) => s + r.duePaisa, 0);
 
+  /*  BILL BY BILL (owner, 21 Aug: "order by order show krbe and customer
+      information shoho"). One customer with four unpaid bills is four rows —
+      each with its own number, date, age and Collect — because that is how the
+      shop chases money: "the 12th of last month is still open".  */
+  const bills = rows
+    .flatMap((r) => r.orders.map((o) => ({ row: r, o })))
+    .filter(({ row, o }) => {
+      const needle = q.trim().toLowerCase();
+      if (!needle) return true;
+      return row.name.toLowerCase().includes(needle)
+        || row.phone.includes(needle)
+        || o.orderNo.toLowerCase().includes(needle);
+    })
+    .sort((a, b) => +new Date(a.o.placedAt) - +new Date(b.o.placedAt));
+
+  const days = (iso: string) => Math.floor((Date.now() - +new Date(iso)) / 86_400_000);
+
   return (
     <div className={wrap}>
-      <Head title="Due board" sub="Known customers who owe on credit sales — collect and clear here." />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 max-w-[560px]">
+      <Head title="Due board" sub="Every unpaid counter bill, oldest first — who owes it, since when, and what is still open on it." />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 max-w-[760px]">
         <Stat label="Total outstanding" value={formatTaka(total)} tone="amber" />
+        <Stat label="Bills open" value={String(bills.length)} tone="plum" />
         <Stat label="Customers" value={String(rows.length)} tone="orchid" />
-        <Stat label="Oldest" value={rows.length ? new Date(rows[0].oldest).toLocaleDateString() : "—"} tone="plum" />
+        <Stat label="Oldest" value={bills.length ? `${days(bills[0].o.placedAt)} days` : "—"} tone="plum" />
       </div>
+
+      <div className="mb-3 max-w-[420px]">
+        <input className="ipt" placeholder="Search a bill number, name or phone…" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+
       <div className={card + " overflow-hidden"}>
         <table className="w-full text-[13px]">
           <thead>
             <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
+              <th className="px-4 py-2.5 font-medium">Bill</th>
               <th className="px-4 py-2.5 font-medium">Customer</th>
-              <th className="px-4 py-2.5 font-medium">Phone</th>
-              <th className="px-4 py-2.5 font-medium">Bills</th>
-              <th className="px-4 py-2.5 font-medium text-right">Due</th>
+              <th className="px-4 py-2.5 font-medium">Since</th>
+              <th className="px-4 py-2.5 font-medium text-right">Still owed</th>
               <th className="px-4 py-2.5 font-medium text-right">Action</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((d) => (
-              <tr key={d.customerId} className="border-t border-lavender-deep hover:bg-lavender/30">
-                <td className="px-4 py-2.5 font-medium text-purple">{d.name}</td>
-                <td className="px-4 py-2.5 text-body-soft">{d.phone}</td>
-                <td className="px-4 py-2.5 text-body-soft">{d.orders.length} · oldest {new Date(d.oldest).toLocaleDateString()}</td>
-                <td className="px-4 py-2.5 text-right font-medium text-[#b45309]">{formatTaka(d.duePaisa)}</td>
-                <td className="px-4 py-2.5 text-right">
-                  <button type="button" onClick={() => setOpen(d)} disabled={!d.orders.length}
-                    className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5 disabled:opacity-50">Collect</button>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-body-soft">No outstanding due.</td></tr>}
+            {bills.map(({ row, o }) => {
+              const age = days(o.placedAt);
+              return (
+                <tr key={o.id} className={"border-t border-lavender-deep " + (age >= 7 ? "bg-[#fff7ec]" : "hover:bg-lavender/30")}>
+                  <td className="px-4 py-2.5">
+                    <Link href={`/orders/${o.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{o.orderNo}</Link>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="font-medium text-purple">{row.name}</div>
+                    <div className="text-[12px] text-body-soft">
+                      {row.phone}
+                      {row.orders.length > 1 && <> · {row.orders.length} bills open · {formatTaka(row.duePaisa)} in all</>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-body-soft">
+                    {new Date(o.placedAt).toLocaleDateString()}
+                    <span className={age >= 7 ? "text-[#b45309] font-medium" : ""}> · {age === 0 ? "today" : `${age} days`}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#b45309]">{formatTaka(o.duePaisa)}</td>
+                  <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                    <button type="button" onClick={() => setOpen({ row, only: o.id })}
+                      className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5">Collect</button>
+                    {row.orders.length > 1 && (
+                      <button type="button" onClick={() => setOpen({ row })}
+                        className="text-[12px] text-purple border border-lavender-deep rounded-[8px] px-3 py-1.5 ml-1.5">All {formatTaka(row.duePaisa)}</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {bills.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-body-soft">{q ? "Nothing matches." : "No outstanding due."}</td></tr>}
           </tbody>
         </table>
       </div>
 
       {open && (
-        <CollectDue row={open} onClose={() => setOpen(null)}
+        <CollectDue row={open.row} onlyOrderId={open.only} onClose={() => setOpen(null)}
           onDone={async () => { setOpen(null); setRows(await posDue().catch(() => [])); }} />
       )}
     </div>
@@ -381,8 +423,12 @@ export function PosDueBoard() {
  * It used to be one button that assumed the whole amount in cash and shouted
  * through alert() when the server refused (owner, 21 Aug).
  */
-function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => void; onDone: () => void }) {
-  const pay = usePayRows(row.duePaisa);
+function CollectDue({ row, onlyOrderId, onClose, onDone }: {
+  row: ApiPosDue; onlyOrderId?: string; onClose: () => void; onDone: () => void;
+}) {
+  const bills = onlyOrderId ? row.orders.filter((o) => o.id === onlyOrderId) : row.orders;
+  const owed = bills.reduce((s, o) => s + o.duePaisa, 0);
+  const pay = usePayRows(owed);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -392,8 +438,7 @@ function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => v
       /*  oldest bill first — the shop's own habit, and it keeps the ageing
           report honest. Each bill takes from the methods in the order typed.  */
       const purses = pay.pays.filter((r) => r.amountPaisa > 0).map((r) => ({ method: r.method.toLowerCase(), left: r.amountPaisa }));
-      const bills = [...row.orders].sort((a, b) => +new Date(a.placedAt) - +new Date(b.placedAt));
-      for (const o of bills) {
+      for (const o of [...bills].sort((a, b) => +new Date(a.placedAt) - +new Date(b.placedAt))) {
         let need = o.duePaisa;
         const parts: { method: string; amountPaisa: number }[] = [];
         for (const purse of purses) {
@@ -414,8 +459,10 @@ function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => v
   return (
     <PayDialog
       title="Collect due" who={`${row.name} · ${row.phone}`}
-      owedPaisa={row.duePaisa} owedLabel="Owed"
-      note={`${row.orders.length} bill${row.orders.length === 1 ? "" : "s"} · oldest ${new Date(row.oldest).toLocaleDateString()}`}
+      owedPaisa={owed} owedLabel="Owed"
+      note={bills.length === 1
+        ? `${bills[0].orderNo} · ${new Date(bills[0].placedAt).toLocaleDateString()}`
+        : `${bills.length} bills · oldest ${new Date(row.oldest).toLocaleDateString()}`}
       pay={pay} busy={busy} error={err}
       confirmLabel="Collect" leftLabel="Taking now"
       onConfirm={collect} onClose={onClose} />

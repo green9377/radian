@@ -1331,8 +1331,11 @@ export function listOrders(params?: {
   salesStatus?: string;
   deliveryStatus?: string;
   needsAction?: string;
+  /** counter bills live in the same table; only Returns asks for them */
+  includeCounter?: boolean;
 }): Promise<Paged<ApiOrder>> {
   const q = new URLSearchParams({ pageSize: "100" });
+  if (params?.includeCounter) q.set("includeCounter", "true");
   if (params?.search) q.set("search", params.search);
   if (params?.salesStatus) q.set("salesStatus", params.salesStatus);
   if (params?.deliveryStatus) q.set("deliveryStatus", params.deliveryStatus);

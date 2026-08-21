@@ -126,7 +126,11 @@ export class OrdersService {
     // AUD-2 FIX — this is the ONLINE Sales list. POS counter sales live in the
     // same Order table (DEC-POS-001) but have their own screens; without this
     // filter they leak into online revenue/COD KPIs and double-count.
-    const where: Prisma.OrderWhereInput = { fulfillmentType: 'DELIVERY' };
+    /*  ...unless the caller says otherwise. Returns has to find a counter bill
+        too (owner, 21 Aug: searching a POS order number found nothing), and it
+        asks with includeCounter=true. The online lists never do.  */
+    const where: Prisma.OrderWhereInput =
+      q.includeCounter === 'true' ? {} : { fulfillmentType: 'DELIVERY' };
     if (q.search) {
       where.OR = [
         { orderNo: { contains: q.search, mode: 'insensitive' } },
