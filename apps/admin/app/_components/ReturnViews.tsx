@@ -189,6 +189,7 @@ export function NewReturn() {
   const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
   const [reasonId, setReasonId] = useState("");
   const [reasonNote, setReasonNote] = useState("");
+  const [help, setHelp] = useState(false);
   const [newReason, setNewReason] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
 
@@ -300,10 +301,33 @@ export function NewReturn() {
       <ItemPageHead
         eyebrow="Commerce · Returns & Refunds"
         title="New return"
-        blurb="Only a delivered order can be returned. Pick the order, choose the lines coming back and how each is handled, then set the resolution."
-        right={<Link href="/returns" className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep">← Back</Link>}
+        right={
+          <span className="flex items-center gap-2">
+            {/*  the words live behind a "?" (owner, 21 Aug: a screen full of
+                 explanation is a screen nobody reads)  */}
+            <button type="button" onClick={() => setHelp((v) => !v)} aria-label="What these mean"
+              className={"w-[34px] h-[34px] rounded-full border text-[15px] font-semibold " + (help
+                ? "border-orchid-mid bg-lavender text-purple"
+                : "border-lavender-deep text-body-soft hover:border-orchid-mid")}>?</button>
+            <Link href="/returns" className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep">← Back</Link>
+          </span>
+        }
       />
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
+
+      {help && (
+        <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 mb-4 text-[12.5px] text-body">
+          <div className="grid md:grid-cols-2 gap-x-6 gap-y-1.5">
+            <div><b className="text-purple">Back on the shelf</b> — sellable again, stock goes up.</div>
+            <div><b className="text-purple">Thrown away</b> — damaged or wilted; stock unchanged, the shop takes the loss.</div>
+            <div><b className="text-purple">Money back</b> — the value goes back the way it came in.</div>
+            <div><b className="text-purple">Store credit</b> — no money leaves; it waits in the customer&apos;s account.</div>
+            <div><b className="text-purple">Replacement</b> — same goods sent again, no money moves.</div>
+            <div><b className="text-purple">Keeps it, part back</b> — the customer keeps the goods, you return part of the price.</div>
+            <div className="md:col-span-2 text-body-soft">Only a delivered order can be returned, and a payout never passes what was collected.</div>
+          </div>
+        </div>
+      )}
 
       {!el && (
         <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5">
@@ -393,25 +417,24 @@ export function NewReturn() {
                               <button type="button" className="w-[32px] h-[36px] text-purple hover:bg-lavender/60"
                                 onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.min(l.returnableQty, d.qty + 1) } }))}>+</button>
                             </div>
-                            <div className="text-[11px] text-body-soft mt-1">of {l.returnableQty} that can come back</div>
+                            <div className="text-[11px] text-body-soft mt-1">of {l.returnableQty}</div>
                           </div>
 
                           {/*  RESTOCK / WRITE_OFF in words (owner, 21 Aug: "write off
                                mani ki") — and no cut-off dropdown  */}
-                          <div className="min-w-[280px]">
-                            <label className="lbl">What happens to the goods</label>
-                            <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="lbl">The goods</label>
+                            <div className="flex gap-1.5">
                               {([
-                                ["RESTOCK", "Back on the shelf", "Sellable again — stock goes up"],
-                                ["WRITE_OFF", "Thrown away", "Damaged or wilted — stock unchanged, the shop eats it"],
-                              ] as [ReturnRestockAction, string, string][]).map(([id, title, why]) => (
+                                ["RESTOCK", "Back on the shelf"],
+                                ["WRITE_OFF", "Thrown away"],
+                              ] as [ReturnRestockAction, string][]).map(([id, title]) => (
                                 <button key={id} type="button"
                                   onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: id } }))}
-                                  className={"text-left rounded-[10px] border px-3 py-2 " + (d.restockAction === id
-                                    ? "border-orchid-mid bg-lavender/60"
-                                    : "border-lavender-deep bg-white hover:border-orchid-mid")}>
-                                  <div className="text-[12.5px] font-medium text-purple">{title}</div>
-                                  <div className="text-[11px] text-body-soft leading-[1.4]">{why}</div>
+                                  className={"text-[12.5px] font-medium rounded-[9px] border px-3 h-[36px] " + (d.restockAction === id
+                                    ? "border-orchid-mid bg-lavender text-purple"
+                                    : "border-lavender-deep bg-white text-body-soft hover:border-orchid-mid")}>
+                                  {title}
                                 </button>
                               ))}
                             </div>
@@ -432,9 +455,8 @@ export function NewReturn() {
             })}
           </div>
 
-          {/*  the resolution rail — every choice says what it does to the money,
-               because "PARTIAL_COMPENSATION" tells a shopkeeper nothing
-               (owner, 21 Aug)  */}
+          {/*  the resolution rail — plain words instead of PARTIAL_COMPENSATION;
+               what each one does to the money lives behind the "?" above  */}
           <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-3">
             <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>What happens now</div>
 
@@ -472,19 +494,18 @@ export function NewReturn() {
 
             <div>
               <label className="lbl">How it is settled</label>
-              <div className="grid gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {([
-                  ["REFUND", "Money back", "The customer gets the goods' value back — cash, bKash, however it came in."],
-                  ["STORE_CREDIT", "Store credit", "No money leaves. The value sits in the customer's account for next time."],
-                  ["REPLACEMENT", "Replacement", "Same goods sent again. No money moves at all."],
-                  ["PARTIAL_COMPENSATION", "Keeps it, part money back", "The customer keeps the goods and you give back part of the price."],
-                ] as [ReturnResolution, string, string][]).map(([id, title, why]) => (
+                  ["REFUND", "Money back"],
+                  ["STORE_CREDIT", "Store credit"],
+                  ["REPLACEMENT", "Replacement"],
+                  ["PARTIAL_COMPENSATION", "Keeps it, part back"],
+                ] as [ReturnResolution, string][]).map(([id, title]) => (
                   <button key={id} type="button" onClick={() => setResolution(id)}
-                    className={"text-left rounded-[10px] border px-3 py-2.5 " + (resolution === id
-                      ? "border-orchid-mid bg-lavender/60"
-                      : "border-lavender-deep bg-white hover:border-orchid-mid")}>
-                    <div className="text-[13px] font-medium text-purple">{title}</div>
-                    <div className="text-[11.5px] text-body-soft leading-[1.45]">{why}</div>
+                    className={"text-[12.5px] font-medium rounded-[9px] border px-2.5 h-[38px] " + (resolution === id
+                      ? "border-orchid-mid bg-lavender text-purple"
+                      : "border-lavender-deep bg-white text-body-soft hover:border-orchid-mid")}>
+                    {title}
                   </button>
                 ))}
               </div>
@@ -494,7 +515,6 @@ export function NewReturn() {
               <div>
                 <label className="lbl">How much goes back (৳)</label>
                 <input className="ipt" type="number" value={compensationTk} onChange={(e) => setCompensationTk(e.target.value)} placeholder="e.g. 200" />
-                <div className="text-[11px] text-body-soft mt-1">The goods stay with the customer, so nothing comes back to stock.</div>
               </div>
             )}
 
@@ -504,17 +524,12 @@ export function NewReturn() {
                 <select className="ipt" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as ReturnRefundMethod)}>
                   {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase()}</option>)}
                 </select>
-                <div className="text-[11px] text-body-soft mt-1">You can still change this when you pay it out.</div>
               </div>
             )}
 
-            <div className="pt-2 border-t border-lavender-deep text-[13px]">
-              Goods coming back: <b>{formatTaka(selectedValue)}</b>
-              <div className="text-[11.5px] text-body-soft mt-0.5">
-                {resolution === "REPLACEMENT"
-                  ? "No money moves on a replacement."
-                  : `Whatever is paid out stops at what was collected (${formatTaka(el.refundableCap)}).`}
-              </div>
+            <div className="pt-2 border-t border-lavender-deep flex items-center justify-between text-[13px]">
+              <span className="text-body-soft">Goods coming back</span>
+              <b className="text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(selectedValue)}</b>
             </div>
             <button disabled={busy} onClick={submit}
               className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: ACCENT }}>
