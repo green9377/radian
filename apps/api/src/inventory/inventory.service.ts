@@ -773,7 +773,11 @@ export class InventoryService {
     returnId: string;
     returnNo: string;
     actor: string;
-    lines: { productId: string; qty: number }[];
+    /*  DEC-POS-018 / owner 21 Aug — a counter line has no Product, and this
+        method only ever spoke Product, so a returned counter item was silently
+        never restocked: the return completed, the money went back, the shelf
+        stayed empty. A line may now name EITHER.  */
+    lines: { productId?: string | null; itemId?: string | null; qty: number }[];
   }): Promise<{ posted: number; skipped: string[] }> {
     const warehouseId = await this.saleWarehouseId();
     const drafts: MovementDraft[] = [];
@@ -782,16 +786,21 @@ export class InventoryService {
 
     for (const l of params.lines) {
       if (l.qty <= 0) continue;
-      const product = await this.prisma.db.product.findFirst({
-        where: { id: l.productId },
-        select: { id: true, name: true, itemId: true },
-      });
-      if (!product?.itemId) {
-        skipped.push(product?.name ?? l.productId);
-        continue;
+      let itemId = l.itemId ?? null;
+      if (!itemId && l.productId) {
+        const product = await this.prisma.db.product.findFirst({
+          where: { id: l.productId },
+          select: { id: true, name: true, itemId: true },
+        });
+        if (!product?.itemId) {
+          skipped.push(product?.name ?? l.productId);
+          continue;
+        }
+        itemId = product.itemId;
       }
+      if (!itemId) { skipped.push('line with no item'); continue; }
       const item = await this.prisma.db.item.findFirst({
-        where: { id: product.itemId },
+        where: { id: itemId },
         select: {
           id: true, name: true, unitId: true, isStockTracked: true, itemType: true,
           assemblyMode: true, costMode: true, standardCostPaisa: true, computedCostPaisa: true,
@@ -802,7 +811,7 @@ export class InventoryService {
         },
       });
       if (!item || !item.isStockTracked || item.itemType === 'SERVICE') {
-        skipped.push(product.name);
+        skipped.push(item?.name ?? 'unknown item');
         continue;
       }
 

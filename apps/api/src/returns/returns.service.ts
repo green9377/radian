@@ -377,14 +377,14 @@ export class ReturnsService {
 
     const refundMethod = dto.refundMethod ?? r.refundMethod;
 
-    // 1) restock — ONLY lines the staff marked RESTOCK; fail-soft (never break the flow)
-    /*  DEC-POS-018 — Inventory's postSaleReturn still speaks Product. A counter line
-        has no Product, so it is left out of the automatic restock rather than being
-        guessed at; the Returns phase gives item lines their own path.  */
+    /*  1) restock — ONLY lines the staff marked RESTOCK; fail-soft (never break
+        the flow). Website lines come back by their Product, counter lines by the
+        Item itself (owner, 21 Aug: a completed counter return never reached the
+        shelf, because only the Product path existed).  */
     const restockLines = r.lines
       .filter((l) => l.restockAction === ReturnRestockAction.RESTOCK)
-      .map((l) => ({ productId: l.productId, qty: l.qty }))
-      .filter((l): l is { productId: string; qty: number } => !!l.productId);
+      .map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty }))
+      .filter((l) => !!l.productId || !!l.itemId);
     if (restockLines.length) {
       try {
         const res = await this.inventory.postSaleReturn({
