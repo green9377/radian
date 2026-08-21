@@ -189,6 +189,25 @@ export function NewReturn() {
   const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
   const [reasonId, setReasonId] = useState("");
   const [reasonNote, setReasonNote] = useState("");
+  const [newReason, setNewReason] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+
+  /*  a reason list nobody can add to is a list that goes stale (owner, 21 Aug) */
+  async function addReason() {
+    const label = reasonDraft.trim();
+    if (!label) return;
+    try {
+      const created = await createReturnReason({
+        code: label.toUpperCase().replace(/[^A-Z0-9]+/g, "_").slice(0, 24),
+        label,
+      });
+      const list = await getReturnReasons();
+      setReasons(list);
+      setReasonId(created.id);
+      setNewReason(false);
+      setReasonDraft("");
+    } catch (e) { setErr(msg(e, "Could not add that reason")); }
+  }
   const [resolution, setResolution] = useState<ReturnResolution>("REFUND");
   const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
   const [compensationTk, setCompensationTk] = useState("");
@@ -201,6 +220,15 @@ export function NewReturn() {
   /*  Counter bills are orders too (DEC-POS-001) but the online list hides them,
       so searching a POS number found nothing at all (owner, 21 Aug). Returns
       asks for both, and the screen offers the recent ones without a search.  */
+  const [returnedIds, setReturnedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    /*  an order that has already been returned still belongs in the list — a
+        second line can come back later — but it must SAY so (owner, 21 Aug)  */
+    listReturns()
+      .then((r) => setReturnedIds(new Set(r.items.map((x) => x.orderId))))
+      .catch(() => {});
+  }, []);
+
   const loadOrders = useCallback(async (search?: string) => {
     setErr("");
     try {
@@ -278,7 +306,7 @@ export function NewReturn() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
 
       {!el && (
-        <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5 max-w-[720px]">
+        <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5">
           <label className="lbl">Pick the delivered order</label>
           {/*  two ways in, because a counter bill is remembered by its number and a
                website order by the customer's name (owner, 21 Aug)  */}
@@ -288,6 +316,7 @@ export function NewReturn() {
             {orderHits.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.orderNo} · {o.customer?.name ?? o.senderName} · {formatTaka(o.totalPaisa)} · {new Date(o.placedAt).toLocaleDateString()}
+                {returnedIds.has(o.id) ? " · already returned once" : ""}
               </option>
             ))}
           </select>
@@ -310,6 +339,9 @@ export function NewReturn() {
                 <span className="text-[13px]">
                   <b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}
                   <span className="text-body-soft"> · {o.senderPhone || "—"}</span>
+                  {returnedIds.has(o.id) && (
+                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#fff4e6", color: "#b45309" }}>already returned once</span>
+                  )}
                 </span>
                 <span className="text-[12px] text-body-soft">{formatTaka(o.totalPaisa)} · paid {formatTaka(o.paidPaisa)}</span>
               </button>
@@ -332,75 +364,157 @@ export function NewReturn() {
             {el.lines.map((l) => {
               const d = drafts[l.orderLineId];
               const disabled = l.returnableQty <= 0;
+              const on = !!d?.checked && !disabled;
               return (
-                <div key={l.orderLineId} className={`px-4 py-3 border-b border-lavender-deep ${disabled ? "opacity-50" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <input type="checkbox" disabled={disabled} checked={d?.checked ?? false}
+                <div key={l.orderLineId} className={`px-4 py-3 border-b border-lavender-deep last:border-0 ${disabled ? "opacity-50" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    <input type="checkbox" className="mt-1" disabled={disabled} checked={d?.checked ?? false}
                       onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, checked: e.target.checked } }))} />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium">{l.name}
                         <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#fff4e6" : "#eef", color: l.productType === "CRAFTED" ? "#b45309" : "#3730a3" }}>{l.productType}</span>
                       </div>
-                      <div className="text-[12px] text-body-soft">{formatTaka(l.unitPaisa)} each · ordered {l.qty}{l.returnedQty > 0 ? ` · already returned ${l.returnedQty}` : ""}</div>
-                    </div>
-                    {d?.checked && !disabled && (
-                      <div className="flex items-center gap-2">
-                        <input type="number" min={1} max={l.returnableQty} className="ipt w-[70px]" value={d.qty}
-                          onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.max(1, Math.min(l.returnableQty, parseInt(e.target.value, 10) || 1)) } }))} />
-                        <select className="ipt w-[130px]" value={d.restockAction}
-                          onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: e.target.value as ReturnRestockAction } }))}>
-                          <option value="RESTOCK">Restock</option>
-                          <option value="WRITE_OFF">Write-off</option>
-                        </select>
+                      <div className="text-[12px] text-body-soft">
+                        {formatTaka(l.unitPaisa)} each · ordered {l.qty}
+                        {l.returnedQty > 0 ? ` · already returned ${l.returnedQty}` : ""}
+                        {disabled ? " · nothing left to return" : ""}
                       </div>
-                    )}
+
+                      {on && (
+                        <div className="mt-2.5 flex items-end gap-4 flex-wrap">
+                          <div>
+                            <label className="lbl">How many</label>
+                            <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden bg-white" style={{ width: 118 }}>
+                              <button type="button" className="w-[32px] h-[36px] text-purple hover:bg-lavender/60"
+                                onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.max(1, d.qty - 1) } }))}>–</button>
+                              <input className="flex-1 min-w-0 h-[36px] text-center text-[13px] font-medium text-purple outline-none border-0"
+                                value={d.qty}
+                                onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.max(1, Math.min(l.returnableQty, parseInt(e.target.value, 10) || 1)) } }))} />
+                              <button type="button" className="w-[32px] h-[36px] text-purple hover:bg-lavender/60"
+                                onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.min(l.returnableQty, d.qty + 1) } }))}>+</button>
+                            </div>
+                            <div className="text-[11px] text-body-soft mt-1">of {l.returnableQty} that can come back</div>
+                          </div>
+
+                          {/*  RESTOCK / WRITE_OFF in words (owner, 21 Aug: "write off
+                               mani ki") — and no cut-off dropdown  */}
+                          <div className="min-w-[280px]">
+                            <label className="lbl">What happens to the goods</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {([
+                                ["RESTOCK", "Back on the shelf", "Sellable again — stock goes up"],
+                                ["WRITE_OFF", "Thrown away", "Damaged or wilted — stock unchanged, the shop eats it"],
+                              ] as [ReturnRestockAction, string, string][]).map(([id, title, why]) => (
+                                <button key={id} type="button"
+                                  onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, restockAction: id } }))}
+                                  className={"text-left rounded-[10px] border px-3 py-2 " + (d.restockAction === id
+                                    ? "border-orchid-mid bg-lavender/60"
+                                    : "border-lavender-deep bg-white hover:border-orchid-mid")}>
+                                  <div className="text-[12.5px] font-medium text-purple">{title}</div>
+                                  <div className="text-[11px] text-body-soft leading-[1.4]">{why}</div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="ml-auto text-right">
+                            <div className="text-[11px] text-body-soft">This line</div>
+                            <div className="text-[15px] font-semibold text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>
+                              {formatTaka(l.unitPaisa * d.qty)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* resolution panel */}
+          {/*  the resolution rail — every choice says what it does to the money,
+               because "PARTIAL_COMPENSATION" tells a shopkeeper nothing
+               (owner, 21 Aug)  */}
           <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-3">
-            <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>Resolution</div>
+            <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>What happens now</div>
+
             <div>
-              <label className="lbl">Reason</label>
-              <select className="ipt" value={reasonId} onChange={(e) => {
-                setReasonId(e.target.value);
-                const r = reasons.find((x) => x.id === e.target.value);
-                if (r) setRefundMethod(r.defaultRefundMethod);
-              }}>
-                <option value="">— pick a reason —</option>
-                {reasons.map((r) => <option key={r.id} value={r.id}>{r.label}{r.requiresApproval ? " (needs approval)" : ""}</option>)}
-              </select>
+              <div className="flex items-center justify-between">
+                <label className="lbl">Why is it coming back</label>
+                <button type="button" className="text-[11.5px] text-purple underline" onClick={() => setNewReason((v) => !v)}>
+                  {newReason ? "Pick from the list" : "+ New reason"}
+                </button>
+              </div>
+              {newReason ? (
+                <div className="flex items-center gap-2">
+                  <input className="ipt" autoFocus placeholder="Name it — e.g. Wilted on arrival"
+                    value={reasonDraft} onChange={(e) => setReasonDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addReason()} />
+                  <button type="button" onClick={addReason} disabled={!reasonDraft.trim()}
+                    className="text-white text-[12.5px] px-3 py-2.5 rounded-[9px] shrink-0 disabled:opacity-40" style={{ background: ACCENT }}>Add</button>
+                </div>
+              ) : (
+                <select className="ipt" value={reasonId} onChange={(e) => {
+                  setReasonId(e.target.value);
+                  const r = reasons.find((x) => x.id === e.target.value);
+                  if (r) setRefundMethod(r.defaultRefundMethod);
+                }}>
+                  <option value="">— pick a reason —</option>
+                  {reasons.map((r) => <option key={r.id} value={r.id}>{r.label}{r.requiresApproval ? " (needs approval)" : ""}</option>)}
+                </select>
+              )}
             </div>
+
             <div>
               <label className="lbl">Note</label>
               <input className="ipt" value={reasonNote} onChange={(e) => setReasonNote(e.target.value)} placeholder="What happened…" />
             </div>
+
             <div>
-              <label className="lbl">Resolution type</label>
-              <select className="ipt" value={resolution} onChange={(e) => setResolution(e.target.value as ReturnResolution)}>
-                {RESOLUTIONS.map((r) => <option key={r} value={r}>{RESOLUTION_LABEL[r]}</option>)}
-              </select>
+              <label className="lbl">How it is settled</label>
+              <div className="grid gap-2">
+                {([
+                  ["REFUND", "Money back", "The customer gets the goods' value back — cash, bKash, however it came in."],
+                  ["STORE_CREDIT", "Store credit", "No money leaves. The value sits in the customer's account for next time."],
+                  ["REPLACEMENT", "Replacement", "Same goods sent again. No money moves at all."],
+                  ["PARTIAL_COMPENSATION", "Keeps it, part money back", "The customer keeps the goods and you give back part of the price."],
+                ] as [ReturnResolution, string, string][]).map(([id, title, why]) => (
+                  <button key={id} type="button" onClick={() => setResolution(id)}
+                    className={"text-left rounded-[10px] border px-3 py-2.5 " + (resolution === id
+                      ? "border-orchid-mid bg-lavender/60"
+                      : "border-lavender-deep bg-white hover:border-orchid-mid")}>
+                    <div className="text-[13px] font-medium text-purple">{title}</div>
+                    <div className="text-[11.5px] text-body-soft leading-[1.45]">{why}</div>
+                  </button>
+                ))}
+              </div>
             </div>
+
             {resolution === "PARTIAL_COMPENSATION" && (
               <div>
-                <label className="lbl">Compensation (৳)</label>
+                <label className="lbl">How much goes back (৳)</label>
                 <input className="ipt" type="number" value={compensationTk} onChange={(e) => setCompensationTk(e.target.value)} placeholder="e.g. 200" />
+                <div className="text-[11px] text-body-soft mt-1">The goods stay with the customer, so nothing comes back to stock.</div>
               </div>
             )}
+
             {resolution !== "REPLACEMENT" && (
               <div>
-                <label className="lbl">Refund method</label>
+                <label className="lbl">Which way the money goes back</label>
                 <select className="ipt" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as ReturnRefundMethod)}>
-                  {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m}</option>)}
+                  {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase()}</option>)}
                 </select>
+                <div className="text-[11px] text-body-soft mt-1">You can still change this when you pay it out.</div>
               </div>
             )}
+
             <div className="pt-2 border-t border-lavender-deep text-[13px]">
-              Selected goods value: <b>{formatTaka(selectedValue)}</b>
-              <div className="text-[11.5px] text-body-soft mt-0.5">Actual payout is capped at collected ({formatTaka(el.refundableCap)}) when you complete.</div>
+              Goods coming back: <b>{formatTaka(selectedValue)}</b>
+              <div className="text-[11.5px] text-body-soft mt-0.5">
+                {resolution === "REPLACEMENT"
+                  ? "No money moves on a replacement."
+                  : `Whatever is paid out stops at what was collected (${formatTaka(el.refundableCap)}).`}
+              </div>
             </div>
             <button disabled={busy} onClick={submit}
               className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: ACCENT }}>
