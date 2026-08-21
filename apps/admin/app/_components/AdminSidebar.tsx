@@ -94,10 +94,6 @@ const GROUPS: Group[] = [
           { label: "All orders", href: "/orders/list" },
           { label: "Needs action", href: "/orders/action" },
           { label: "Payments", href: "/orders/payments" },
-          // where an order came in through (DEC-SAL-001). The API has existed
-          // since Sales; there was never a screen, which is why foodpanda and
-          // Sugary had nowhere to be recorded.
-          { label: "Sales channels", href: "/orders/channels" },
           { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
           { label: "Recovery", href: "/orders/recovery" },
           { label: "Scheduled", href: "/orders/scheduled" },
@@ -559,6 +555,13 @@ const GROUPS: Group[] = [
 
           ⚠️ href-less parent, same reason as Delivery's work half: /delivery
           belongs to the fulfilment board's key.  */
+      /*  The channel master moved out of Orders on 21 Aug: this page books
+          WEBSITE orders only, and the channel a sale came through is now chosen
+          at the till (DEC-POS-019). The master itself is a setting, so it lives
+          with the other settings.  */
+      {
+        label: "Sales channels", href: "/orders/channels", icon: "store",
+      },
       {
         label: "Delivery setup", icon: "truck",
         subs: [
