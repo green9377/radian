@@ -24,6 +24,7 @@ import {
   type ReturnSettings, type ReturnResolution, type ReturnRefundMethod, type ReturnRestockAction,
   type ReturnStatus, type ApiOrder,
 } from "../_data/api";
+import { RefundDialog } from "./MoneyBlock";
 
 const REFUND_METHODS: ReturnRefundMethod[] = ["ORIGINAL", "CASH", "BKASH", "NAGAD", "CARD", "BANK", "STORE_CREDIT"];
 const RESOLUTIONS: ReturnResolution[] = ["REFUND", "REPLACEMENT", "PARTIAL_COMPENSATION", "STORE_CREDIT"];
@@ -393,6 +394,7 @@ export function ReturnDetail({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
   const [refundRef, setRefundRef] = useState("");
+  const [payoutOpen, setPayoutOpen] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   async function load() {
@@ -480,26 +482,16 @@ export function ReturnDetail({ id }: { id: string }) {
           </div>
 
           {canComplete && (
-            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-3">
-              <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>Complete return</div>
-              {r.resolution !== "REPLACEMENT" && (
-                <>
-                  <div>
-                    <label className="lbl">Refund method</label>
-                    <select className="ipt" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as ReturnRefundMethod)}>
-                      {REFUND_METHODS.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="lbl">Reference (optional)</label>
-                    <input className="ipt" value={refundRef} onChange={(e) => setRefundRef(e.target.value)} placeholder="bKash txn / bank ref" />
-                  </div>
-                </>
-              )}
-              <button disabled={busy} onClick={() => act(() => completeReturn(id, { refundMethod, refundReference: refundRef || undefined }), "Return completed")}
+            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4">
+              {/*  paying a refund is money leaving, so it goes through the house
+                   dialog like every other movement (CLAUDE.md §14)  */}
+              <button disabled={busy} onClick={() => setPayoutOpen(true)}
                 className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
-                {busy ? "Working…" : "Complete & pay out"}
+                {busy ? "Working…" : r.resolution === "REPLACEMENT" ? "Complete return" : "Complete & pay out"}
               </button>
+              <p className="text-[11.5px] text-body-soft mt-2 mb-0">
+                The payout is capped at what was actually collected (DEC-RTN-008).
+              </p>
             </div>
           )}
 
@@ -526,6 +518,27 @@ export function ReturnDetail({ id }: { id: string }) {
           )}
         </div>
       </div>
+
+      {payoutOpen && (
+        <RefundDialog
+          title="Refund the customer"
+          who={r.order?.orderNo}
+          amountPaisa={Math.min(r.returnValuePaisa, r.order?.paidPaisa ?? r.returnValuePaisa)}
+          amountLabel="Paying back"
+          note={`Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
+          methods={REFUND_METHODS.map((m) => ({
+            id: m,
+            label: m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m.charAt(0) + m.slice(1).toLowerCase(),
+          }))}
+          method={refundMethod} onMethod={(v) => setRefundMethod(v as ReturnRefundMethod)}
+          reference={refundRef} onReference={setRefundRef}
+          busy={busy} error={err || null} confirmLabel="Pay out"
+          onConfirm={async () => {
+            await act(() => completeReturn(id, { refundMethod, refundReference: refundRef || undefined }), "Return completed");
+            setPayoutOpen(false);
+          }}
+          onClose={() => setPayoutOpen(false)} />
+      )}
     </div>
   );
 }
