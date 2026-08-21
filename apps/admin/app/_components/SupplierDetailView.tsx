@@ -15,6 +15,7 @@ import {
 } from "../_data/api";
 import { SupplierAvatar, StatusPill } from "./SupplierViews";
 import { usePaymentMethods, BILL_TENDERS } from "./MoneyBlock";
+import { MethodChip } from "./BillUI";
 
 /*
   Supplier detail — profile · ledger · Pay (allocation confirm) · adjustment ·
@@ -99,14 +100,20 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
       {/* ---------------- balance strip ---------------- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea" },
-          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#0e8f74", bg: "#e7f5f1" },
-          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#470066", bg: "#f5eafb" },
-          { l: "Purchases", v: `${s.purchaseCount}${s.lastPurchaseAt ? ` · last ${fmtDate(s.lastPurchaseAt)}` : ""}`, c: "#2563a8", bg: "#e8f0fa" },
+          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#c0392b" : "#0e7a3d", bg: s.duePaisa > 0 ? "#fdecea" : "#eaf7ef", icon: "wallet" },
+          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#0e8f74", bg: "#e7f5f1", icon: "gem" },
+          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#470066", bg: "#f5eafb", icon: "cart" },
+          { l: "Purchases", v: String(s.purchaseCount), sub: s.lastPurchaseAt ? `last ${fmtDate(s.lastPurchaseAt)}` : "", c: "#2563a8", bg: "#e8f0fa", icon: "box" },
         ].map((k) => (
-          <div key={k.l} className="rounded-[14px] px-4 py-3" style={{ background: k.bg }}>
-            <span className="block text-[11.5px] font-medium" style={{ color: k.c }}>{k.l}</span>
-            <b className="block text-[16px] mt-0.5" style={{ color: k.c }}>{k.v}</b>
+          <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
+            <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
+              <Icon name={k.icon} size={16} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: k.c }}>{k.l}</span>
+              <b className="block text-[18px] leading-[1.2] font-display" style={{ color: k.c, fontVariantNumeric: "tabular-nums" }}>{k.v}</b>
+              {"sub" in k && k.sub ? <span className="block text-[10.5px]" style={{ color: k.c, opacity: 0.75 }}>{k.sub}</span> : null}
+            </span>
           </div>
         ))}
       </div>
@@ -135,48 +142,104 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
             </button>
           </div>
 
-          {/* ---------------- ledger ---------------- */}
+          {/* ---------------- ledger — a bank book you can actually read:
+               day headings, a coloured bead per event, the method as a chip,
+               and the running "owed after this" under every amount  ---------------- */}
           {tab === "ledger" && ledger && (
-            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-4">
-              {ledger.events.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing yet — the first purchase or opening due starts the story.</p>}
-              {ledger.events.map((e, i) => {
-                const m = KIND_META[e.kind] ?? KIND_META.ADJUSTMENT;
-                return (
-                  <div key={i} className="flex items-start gap-3 py-2.5 border-b border-lavender-deep/60 last:border-0">
-                    <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0 mt-0.5" style={{ background: m.bg, color: m.color }}>
-                      <Icon name={m.icon} size={14} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] text-body">
-                        {e.refId ? <Link className="font-medium underline" style={{ color: ACCENT }} href={`/purchases/${e.refId}`}>{e.label}</Link> : e.label}
-                      </span>
-                      <span className="block text-[11.5px] text-body-soft">
-                        {fmtDate(e.at)}
-                        {e.detail?.note ? ` · ${e.detail.note}` : ""}
-                        {e.kind === "PAYMENT" && e.detail?.allocations?.length
-                          ? ` · split over ${e.detail.allocations.length} entr${e.detail.allocations.length > 1 ? "ies" : "y"}`
-                          : ""}
-                        {e.kind === "RETURN" && e.detail
-                          ? ` · due cut ${formatTaka(e.detail.dueCutPaisa ?? 0)}${(e.detail.creditPaisa ?? 0) > 0 ? ` · credit ${formatTaka(e.detail.creditPaisa ?? 0)}` : ""}`
-                          : ""}
-                      </span>
-                    </span>
-                    <b className="text-[13px] shrink-0" style={{ color: e.amountPaisa >= 0 ? "#c0392b" : "#0e7a3d" }}>
-                      {e.amountPaisa >= 0 ? "+" : "−"}{formatTaka(Math.abs(e.amountPaisa))}
-                    </b>
-                  </div>
-                );
-              })}
-              {ledger.months.length > 1 && (
-                <div className="mt-4 pt-3 border-t border-lavender-deep/60">
-                  <b className="text-[12.5px] text-purple block mb-2">Month by month</b>
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
+              <div className="flex items-center justify-between pl-4 pr-4 py-2" style={{ background: "#470066" }}>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-white inline-flex items-center gap-2">
+                  <Icon name="book" size={13} /> Ledger
+                </span>
+                <span className="text-[11px] font-semibold text-white/90">
+                  {s.duePaisa > 0 ? `Owed now ${formatTaka(s.duePaisa)}` : "Nothing owed"}
+                </span>
+              </div>
+
+              <div className="px-4 py-3">
+                {ledger.events.length === 0 && (
+                  <p className="text-[13px] text-body-soft m-0 py-2">Nothing yet — the first purchase or opening due starts the story.</p>
+                )}
+                {(() => {
+                  /*  running balance: events arrive newest-first and each amount is
+                      signed against the due, so walking down the list unwinds it  */
+                  let bal = ledger.netDuePaisa;
+                  let lastDay = "";
+                  return ledger.events.map((e, i) => {
+                    const after = bal;
+                    bal -= e.amountPaisa;
+                    const m = KIND_META[e.kind] ?? KIND_META.ADJUSTMENT;
+                    const day = fmtDate(e.at);
+                    const showDay = day !== lastDay;
+                    lastDay = day;
+                    /*  the server label carries "(CASH)" — that becomes a chip  */
+                    const methodMatch = /\(([A-Z]+)\)\s*$/.exec(e.label);
+                    const label = e.label.replace(/\s*\([A-Z]+\)\s*$/, "").replace(/^Payment on /, "Paid ");
+                    return (
+                      <div key={i}>
+                        {showDay && (
+                          <div className={"flex items-center gap-2 " + (i === 0 ? "pt-1" : "pt-3")}>
+                            <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full"
+                              style={{ background: "#f7f1fb", color: "#470066" }}>{day}</span>
+                            <span className="flex-1 h-px" style={{ background: "#efe4f7" }} />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 py-2.5 border-b border-lavender-deep/50 last:border-0">
+                          <span className="w-[32px] h-[32px] rounded-full grid place-items-center shrink-0" style={{ background: m.bg, color: m.color }}>
+                            <Icon name={m.icon} size={14} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[13px] font-medium text-body">
+                                {e.refId
+                                  ? <Link className="hover:underline" style={{ color: ACCENT }} href={`/purchases/${e.refId}`}>{label}</Link>
+                                  : label}
+                              </span>
+                              {methodMatch && <MethodChip method={methodMatch[1]} />}
+                            </span>
+                            {(e.detail?.note || (e.kind === "PAYMENT" && (e.detail?.allocations?.length ?? 0) > 1) || e.kind === "RETURN") && (
+                              <span className="block text-[11.5px] text-body-soft mt-0.5">
+                                {e.detail?.note ? e.detail.note : ""}
+                                {e.kind === "PAYMENT" && (e.detail?.allocations?.length ?? 0) > 1
+                                  ? `${e.detail?.note ? " · " : ""}split over ${e.detail?.allocations?.length} bills` : ""}
+                                {e.kind === "RETURN" && e.detail
+                                  ? `${e.detail?.note ? " · " : ""}due cut ${formatTaka(e.detail.dueCutPaisa ?? 0)}${(e.detail.creditPaisa ?? 0) > 0 ? ` · credit ${formatTaka(e.detail.creditPaisa ?? 0)}` : ""}` : ""}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-right shrink-0">
+                            <b className="block text-[14px]" style={{ color: e.amountPaisa >= 0 ? "#c0392b" : "#0e7a3d", fontVariantNumeric: "tabular-nums" }}>
+                              {e.amountPaisa >= 0 ? "+" : "−"}{formatTaka(Math.abs(e.amountPaisa))}
+                            </b>
+                            <span className="block text-[10.5px] text-body-soft" style={{ fontVariantNumeric: "tabular-nums" }}>
+                              owed {formatTaka(Math.max(0, after))}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {ledger.months.length > 0 && (
+                <div className="px-4 py-3 border-t border-lavender-deep bg-[#fbf9fd]">
+                  <b className="text-[11px] font-semibold uppercase tracking-[0.05em] text-purple block mb-2">Month by month</b>
                   {ledger.months.map((m) => (
-                    <div key={m.month} className="flex items-center justify-between text-[12.5px] py-1">
-                      <span className="text-body-soft">{m.month}</span>
-                      <span className="flex gap-4">
-                        <span>bought <b>{formatTaka(m.bought)}</b></span>
-                        <span style={{ color: "#0e7a3d" }}>paid <b>{formatTaka(m.paid)}</b></span>
-                        {m.returned > 0 && <span style={{ color: "#b45309" }}>returned <b>{formatTaka(m.returned)}</b></span>}
+                    <div key={m.month} className="flex items-center justify-between text-[12px] py-1">
+                      <span className="font-semibold text-purple">{m.month}</span>
+                      <span className="flex gap-2">
+                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#f5eafb", color: "#470066" }}>
+                          bought <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.bought)}</b>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#eaf7ef", color: "#0e7a3d" }}>
+                          paid <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.paid)}</b>
+                        </span>
+                        {m.returned > 0 && (
+                          <span className="px-2 py-0.5 rounded-full" style={{ background: "#fdf1e8", color: "#b45309" }}>
+                            returned <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.returned)}</b>
+                          </span>
+                        )}
                       </span>
                     </div>
                   ))}
