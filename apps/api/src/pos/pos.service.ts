@@ -188,7 +188,21 @@ export class PosService {
 
   async updateSettings(patch: UpdatePosSettingsDto) {
     const s = await this.settings();
-    return this.prisma.db.posSetting.update({ where: { id: s.id }, data: patch });
+    /*  Take the fields by name, never the body as it stands. ActorInterceptor
+        stamps `actorName` onto every write body so the ledger records the real
+        person, and PosSetting has no such column — so passing the DTO straight
+        through made Prisma refuse ("Unknown argument actorName") and POS
+        settings could never be saved at all. Found 21 Aug while adding
+        DEC-POS-021; the bug was older than the feature.  */
+    const data: Prisma.PosSettingUpdateInput = {};
+    if (patch.openingFloatDefaultPaisa !== undefined) data.openingFloatDefaultPaisa = patch.openingFloatDefaultPaisa;
+    if (patch.defaultTaxRateBps !== undefined) data.defaultTaxRateBps = patch.defaultTaxRateBps;
+    if (patch.giftReceiptHidePrice !== undefined) data.giftReceiptHidePrice = patch.giftReceiptHidePrice;
+    if (patch.defaultCreditLimitPaisa !== undefined) data.defaultCreditLimitPaisa = patch.defaultCreditLimitPaisa;
+    if (patch.receiptHeader !== undefined) data.receiptHeader = patch.receiptHeader;
+    if (patch.receiptFooter !== undefined) data.receiptFooter = patch.receiptFooter;
+    if (patch.enabledMethods !== undefined) (data as { enabledMethods?: string[] }).enabledMethods = patch.enabledMethods;
+    return this.prisma.db.posSetting.update({ where: { id: s.id }, data });
   }
 
   /* ------------------------------------------------ registers */
