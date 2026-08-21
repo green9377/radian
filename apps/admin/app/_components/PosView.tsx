@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers } from "../_data/api";
-import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
+import { MoneyBlock, MoneyResult, PaymentLines, COUNTER_METHODS, computeMoney, chargeNote, usePayRows, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -84,6 +84,17 @@ export default function PosSellView() {
   const [shift, setShift] = useState<ApiPosShift | null>(null);
   const [saleErr, setSaleErr] = useState<string | null>(null);
   useEffect(() => { posCurrentShift().then(setShift).catch(() => {}); }, []);
+
+  /*  DEC-POS-021 — the counter offers only the methods the shop says it takes.  */
+  const [methods, setMethods] = useState(COUNTER_METHODS);
+  useEffect(() => {
+    posSettings()
+      .then((s) => {
+        const on = s.enabledMethods ?? [];
+        if (on.length) setMethods(COUNTER_METHODS.filter((m) => on.includes(m.id)));
+      })
+      .catch(() => {});
+  }, []);
   const shiftOpen = !!shift;
   const openingFloatPaisa = shift?.openingFloatPaisa ?? 0;
   async function openShift() {
@@ -631,7 +642,7 @@ export default function PosSellView() {
 
             <div className="px-4 shrink-0 pb-1">
               <div className="rounded-[12px] px-3 py-3" style={{ background: "rgba(255,255,255,.07)" }}>
-                <PaymentLines pay={pay} maxHeight={168} />
+                <PaymentLines pay={pay} methods={methods} maxHeight={168} />
               </div>
             </div>
 

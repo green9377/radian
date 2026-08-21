@@ -4620,6 +4620,10 @@ model PosSetting {
   defaultCreditLimitPaisa Int     @default(0)
   receiptHeader          String?
   receiptFooter          String?
+  /// DEC-POS-021 (owner, 21 Aug) — the methods this shop actually takes. The four
+  /// names used to be written into the screen, always "On", so switching one off
+  /// was impossible. Empty list = all of them.
+  enabledMethods         String[] @default([])
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

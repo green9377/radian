@@ -104,6 +104,8 @@ export interface UpdatePosSettingsDto {
   defaultCreditLimitPaisa?: number;
   receiptHeader?: string | null;
   receiptFooter?: string | null;
+  /** DEC-POS-021 — the methods the counter may take; empty = all */
+  enabledMethods?: string[];
 }
 
 export interface CreateRegisterDto {

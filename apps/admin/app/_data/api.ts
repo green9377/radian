@@ -4034,6 +4034,8 @@ export interface ApiPosSettings {
   defaultCreditLimitPaisa: number;
   receiptHeader: string | null;
   receiptFooter: string | null;
+  /** DEC-POS-021 — the methods this shop takes; empty means all of them */
+  enabledMethods?: string[];
 }
 export interface ApiPosRegister { id: string; code: string; name: string; branchId: string | null; isActive: boolean; }
 export interface ApiPosShift {

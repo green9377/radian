@@ -14,13 +14,14 @@ import {
   posCollectDue,
   posSettings,
   posDiscountRules,
+  updatePosSettings,
   type ApiPosSale,
   type ApiPosDue,
   type ApiPosShift,
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { PayDialog, usePayRows } from "./MoneyBlock";
+import { COUNTER_METHODS, PayDialog, usePayRows } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -424,11 +425,18 @@ function CollectDue({ row, onClose, onDone }: { row: ApiPosDue; onClose: () => v
 /* ================= SETTINGS ================= */
 export function PosSettings() {
   const [s, setS] = useState<ApiPosSettings | null>(null);
-  const [rules, setRules] = useState<{ cat: string; cap: string; appr: string }[]>([
-    { cat: "Fresh Flowers", cap: "Free (100%)", appr: "No" },
-    { cat: "Cakes", cap: "10%", appr: "Over 10%" },
-    { cat: "Gift Boxes", cap: "10%", appr: "Over 10%" },
-  ]);
+  const [savingMethods, setSavingMethods] = useState(false);
+  /*  no invented discount rules here either — an empty rule table means the
+      shop has not written one yet, and the screen should say exactly that  */
+  const [rules, setRules] = useState<{ cat: string; cap: string; appr: string }[]>([]);
+
+  const enabled = s?.enabledMethods ?? [];
+  async function saveMethods(next: string[]) {
+    setSavingMethods(true);
+    try { setS(await updatePosSettings({ enabledMethods: next })); }
+    catch { /* the screen keeps what it had; the next load tells the truth */ }
+    finally { setSavingMethods(false); }
+  }
   useEffect(() => {
     posSettings().then(setS).catch(() => {});
     posDiscountRules().then((r) => {
@@ -462,12 +470,31 @@ export function PosSettings() {
               <div className="flex items-center justify-between"><span className="text-body-soft">Default credit limit</span><span className="font-medium">{formatTaka(s?.defaultCreditLimitPaisa ?? 0)}</span></div>
             </div>
           </div>
+          {/*  DEC-POS-021 — the four names used to be written into this screen and
+               always shown as "On", so a shop that does not take cards had no way
+               to say so. They are the shop's now (PosSetting.enabledMethods).  */}
           <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-3">Payment methods</h3>
+            <h3 className="font-display text-[16px] text-purple m-0 mb-1">Payment methods</h3>
+            <p className="text-[12.5px] text-body-soft m-0 mb-3">What the counter may take. Switch one off and it disappears from the till.</p>
             <div className="flex gap-2 flex-wrap">
-              {["Cash", "bKash", "Nagad", "Card"].map((m) => (
-                <span key={m} className="text-[12.5px] font-medium bg-[#e9f9ef] text-[#0e7a3d] border border-[#c2ecd3] rounded-full px-3.5 py-1.5 inline-flex items-center gap-1.5"><Icon name="check" size={13} /> {m}</span>
-              ))}
+              {COUNTER_METHODS.map((m) => {
+                const on = !enabled.length || enabled.includes(m.id);
+                return (
+                  <button key={m.id} type="button" disabled={savingMethods}
+                    onClick={() => {
+                      const all = COUNTER_METHODS.map((x) => x.id);
+                      const cur = enabled.length ? enabled : all;
+                      const next = cur.includes(m.id) ? cur.filter((x) => x !== m.id) : [...cur, m.id];
+                      if (next.length === 0) return; // a till that takes nothing is not a till
+                      saveMethods(next);
+                    }}
+                    className={"text-[12.5px] font-medium rounded-full px-3.5 py-1.5 inline-flex items-center gap-1.5 border " + (on
+                      ? "bg-[#e9f9ef] text-[#0e7a3d] border-[#c2ecd3]"
+                      : "bg-white text-body-soft border-lavender-deep")}>
+                    <Icon name={on ? "check" : "alert"} size={13} /> {m.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
