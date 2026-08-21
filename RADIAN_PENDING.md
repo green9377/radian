@@ -37,6 +37,21 @@ warehouse rules, DEC-INV-018 sell-from-where.
 
 ---
 
+## 🧾 Bill pages + paisa (owner, 21 Aug evening — all shipped)
+
+- **Paisa can be typed** — every payment amount box is now `TakaInput`
+  (MoneyBlock): buffered text, two decimal places, "19.8" survives the redraw.
+  One component, so POS, purchases, due board and dialogs all got it at once.
+- **One bill face** — `BillUI.tsx` holds the purple `MoneyRail` (payable big,
+  arithmetic under, PAID/DUE tiles), `PaymentsCard` (purple header, coloured
+  method chips) and `BillTimeline` (icon beads on a thread). The purchase bill
+  and the counter bill both read from it, so they cannot drift apart.
+- Payment methods page restyled twice on feedback and settled: light tinted
+  headers per method colour, packed two columns, dialog editor with Save,
+  Bangladesh bank list + full bank fields, and delete for an untouched account.
+
+---
+
 ## ↩ Returns — what the owner found on 21 Aug (all shipped)
 
 | What was wrong | What it is now |
