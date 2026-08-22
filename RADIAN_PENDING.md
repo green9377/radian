@@ -37,6 +37,34 @@ warehouse rules, DEC-INV-018 sell-from-where.
 
 ---
 
+## ✅ PHASE 3 CLOSED — 22 Aug 2026
+
+Final sweep before hand-over, all green:
+
+- guards: no-bangla · split-stores · discount-window · registry drift (6/6) ·
+  `tsc --noEmit` on api and admin
+- every Phase-3 API door answered 200 through the live session (29 endpoints:
+  items, purchases, suppliers, inventory, reports, payment methods, POS, returns)
+- migrations on the demo database: all applied, none pending
+- the stocktake circle walked end to end for the first time: count sheet →
+  draft STK-000001 (1 differ, −৳20) → **Apply** → `ADJUSTMENT −1 rose — Green`
+  in the ledger with the note "Stocktake STK-000001"
+
+Gaps found in this sweep and fixed the same hour:
+
+- the stocktake sheet listed the WHOLE catalogue instead of that store's shelf
+  → now the shelf, plus "Found something else" for anything the ledger did not
+  expect
+- Opening stock opened an empty picker when a store had nothing left to open
+  → now says why, with the Adjust link
+- the last Bangla comments in `inventory.service.ts` / `.controller.ts` are
+  English (house rule 9)
+
+**Next:** Phase 4 — Product / Catalogue. Direction file:
+`RADIAN_PHASE4_DIRECTION.md`.
+
+---
+
 ## 📦 Phase 3 part C — Inventory (21 Aug night, shipped + self-tested)
 
 The owner's four points, all live:
@@ -147,7 +175,7 @@ unless the owner says so.
 | 0 | Baseline sweep + demo DB cleaned to config-only | done (18 Aug) |
 | 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
 | 2 | Masters — units, categories, colours/sizes, variants, supplier types, channels, delivery masters+setup | **CLOSED 19 Aug** |
-| 3 | Items → Purchase → Inventory | **IN PROGRESS** — part A (Items + the POS money screen) **CLOSED 21 Aug, owner-approved**; part B **Purchase** is next, then part C **Inventory**. Direction: `RADIAN_PHASE3_DIRECTION.md` |
+| 3 | Items → Purchase → Inventory | **CLOSED 22 Aug** — all three parts shipped and self-tested live; hand-over in `RADIAN_PHASE4_DIRECTION.md` |
 | 4–10 | Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
 
 Phase 2 closed with (all owner-tested and revised, live on demo):
