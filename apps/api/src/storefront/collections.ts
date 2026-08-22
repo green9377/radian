@@ -79,6 +79,31 @@ export class CollectionsService {
 
   async create(dto: CollectionDto) {
     const name = dto.name?.trim() || 'New collection';
+
+    /*  CAT-REV-1 — a deleted collection still owns its slug (@unique, and the
+        index ignores `deletedAt`). This one failed harder than the other
+        masters: `freeSlug` read through `prisma.db`, which hides the dead row,
+        so it handed back a slug that was already taken and the insert died on
+        a raw P2002 — a 500 with nothing readable on it.
+
+        Now the dead row is revived as the collection being created, and
+        `freeSlug` counts dead rows too so a numbered address is offered
+        instead of a crash.  */
+    const wanted = slugify(dto.slug || name);
+    const buried = await this.prisma.collection.findFirst({
+      where: { slug: wanted, deletedAt: { not: null } },
+      select: { id: true },
+    });
+    if (buried) {
+      await this.prisma.collectionProduct.deleteMany({ where: { collectionId: buried.id } });
+      const revived = await this.prisma.db.collection.update({
+        where: { id: buried.id },
+        data: { ...clean(dto), name, slug: wanted, deletedAt: null, isActive: dto.isActive ?? true },
+      });
+      await this.log(revived.id, 'CREATE', dto.actorName, revived.name);
+      return revived;
+    }
+
     const row = await this.prisma.db.collection.create({
       data: { ...clean(dto), name, slug: await this.freeSlug(dto.slug || name) },
     });
@@ -111,11 +136,12 @@ export class CollectionsService {
    * appended instead — "premium", then "premium-2".
    */
   private async freeSlug(raw: string, exceptId?: string): Promise<string> {
-    const base =
-      raw.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'collection';
+    const base = slugify(raw);
     for (let n = 0; n < 50; n++) {
       const candidate = n === 0 ? base : `${base}-${n + 1}`;
-      const taken = await this.prisma.db.collection.findFirst({
+      /*  CAT-REV-1 — the RAW client: a soft-deleted row still holds its slug in
+          the unique index, and reading through `prisma.db` reported it free.  */
+      const taken = await this.prisma.collection.findFirst({
         where: { slug: candidate, ...(exceptId ? { NOT: { id: exceptId } } : {}) },
         select: { id: true },
       });
@@ -143,6 +169,13 @@ interface CollectionFields {
   zone?: string | null;
   sortOrder?: number;
   isActive?: boolean;
+}
+
+/** One spelling of a web address, so create and freeSlug cannot disagree. */
+function slugify(raw: string): string {
+  return (
+    raw.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'collection'
+  );
 }
 
 function clean(dto: CollectionDto): CollectionFields {

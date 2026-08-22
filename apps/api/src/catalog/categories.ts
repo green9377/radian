@@ -91,6 +91,26 @@ export class CategoriesService {
   async create(dto: CategoryDto) {
     await this.ensureSlugFree(dto.slug);
     if (dto.parentId) await this.ensureExists(dto.parentId);
+
+    /*  CAT-REV-1 (22 Aug 2026) — a deleted category still owns its slug.
+        `slug` is @unique in the database and the index does not care about
+        `deletedAt`, while `prisma.db` hides the dead row. So the owner
+        deleted "teddy", saw it gone, typed it again and was told it already
+        exists — pointing at something he could not see or reach (categories
+        have no trash screen).
+
+        A deleted category is GUARANTEED EMPTY: `remove()` refuses while any
+        product or sub-category is attached. So the dead row is revived and
+        overwritten with what he just typed — the same result as a fresh row,
+        and no orphan left behind. Its old page content (FAQ, spec rows,
+        trust badges, craft cards) is cleared with it, otherwise the "new"
+        category would come back wearing the old one's words. */
+    const buried = await this.prisma.category.findFirst({
+      where: { slug: dto.slug, deletedAt: { not: null } },
+      select: { id: true },
+    });
+    if (buried) return this.reviveInto(buried.id, dto);
+
     const c = await this.prisma.db.category.create({
       data: {
         slug: dto.slug,
@@ -115,6 +135,47 @@ export class CategoriesService {
       },
     });
     await this.log(c.id, 'CREATE', dto.actorName, `Category "${c.name}" created`);
+    return c;
+  }
+
+  /** CAT-REV-1 — bring a deleted row back as the category being created. */
+  private async reviveInto(id: string, dto: CategoryDto) {
+    const c = await this.prisma.$transaction(async (tx) => {
+      await tx.categoryFaq.deleteMany({ where: { categoryId: id } });
+      await tx.categoryTrustBadge.deleteMany({ where: { categoryId: id } });
+      await tx.categorySpec.deleteMany({ where: { categoryId: id } });
+      return tx.category.update({
+        where: { id },
+        data: {
+          deletedAt: null,
+          slug: dto.slug,
+          name: dto.name,
+          parentId: dto.parentId ?? null,
+          sortOrder: dto.sortOrder,
+          isActive: dto.isActive ?? true,
+          description: dto.description ?? null,
+          summary: dto.summary ?? null,
+          imageUrl: dto.imageUrl ?? null,
+          iconUrl: dto.iconUrl ?? null,
+          bannerUrl: dto.bannerUrl ?? null,
+          bannerHeading: dto.bannerHeading ?? null,
+          sizeLabel: dto.sizeLabel ?? null,
+          metaTitle: dto.metaTitle ?? null,
+          metaDescription: dto.metaDescription ?? null,
+          ogTitle: dto.ogTitle ?? null,
+          ogDescription: dto.ogDescription ?? null,
+          ogImageUrl: dto.ogImageUrl ?? null,
+          showOnNavbar: dto.showOnNavbar ?? true,
+          isFeatured: dto.isFeatured ?? false,
+        },
+      });
+    });
+    await this.log(
+      c.id,
+      'CREATE',
+      dto.actorName,
+      `Category "${c.name}" created on the slug of a deleted one (CAT-REV-1)`,
+    );
     return c;
   }
 

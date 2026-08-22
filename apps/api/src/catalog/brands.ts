@@ -66,6 +66,41 @@ export class BrandsService {
 
   async create(dto: BrandDto) {
     await this.ensureSlugFree(dto.slug);
+
+    /*  CAT-REV-1 — a deleted brand still owns its slug (@unique index, which
+        ignores `deletedAt`, while `prisma.db` hides the row). Deleting a brand
+        and typing the same name again used to hit "already in use" pointing at
+        something invisible and unreachable. A deleted brand cannot hold
+        products, so the dead row is revived as the brand being created.  */
+    const buried = await this.prisma.brand.findFirst({
+      where: { slug: dto.slug, deletedAt: { not: null } },
+      select: { id: true },
+    });
+    if (buried) {
+      const revived = await this.prisma.db.brand.update({
+        where: { id: buried.id },
+        data: {
+          deletedAt: null,
+          slug: dto.slug,
+          name: dto.name,
+          logoUrl: dto.logoUrl ?? null,
+          description: dto.description ?? null,
+          metaTitle: dto.metaTitle ?? null,
+          metaDescription: dto.metaDescription ?? null,
+          isFeatured: dto.isFeatured ?? false,
+          sortOrder: dto.sortOrder,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.log(
+        revived.id,
+        'CREATE',
+        dto.actorName,
+        `Brand "${revived.name}" created on the slug of a deleted one (CAT-REV-1)`,
+      );
+      return revived;
+    }
+
     const b = await this.prisma.db.brand.create({
       data: {
         slug: dto.slug,

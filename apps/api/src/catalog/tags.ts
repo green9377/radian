@@ -60,6 +60,41 @@ export class TagsService {
     if (!dto.groupId) throw new BadRequestException('groupId is required');
     await this.ensureGroup(dto.groupId);
     await this.ensureSlugFree(dto.groupId, dto.slug);
+
+    /*  CAT-REV-1 — a deleted tag still owns its slug. The unique index here is
+        (groupId, slug) and it ignores `deletedAt`, while `prisma.db` hides the
+        row: deleting "Birthday" and adding it back to the same group hit
+        "already in use" pointing at something invisible. The dead row is
+        revived as the tag being created; its product links went with the
+        delete, so nothing old comes back attached.  */
+    const buried = await this.prisma.tag.findFirst({
+      where: { groupId: dto.groupId, slug: dto.slug, deletedAt: { not: null } },
+      select: { id: true },
+    });
+    if (buried) {
+      const revived = await this.prisma.db.tag.update({
+        where: { id: buried.id },
+        data: {
+          deletedAt: null,
+          slug: dto.slug,
+          name: dto.name,
+          groupId: dto.groupId,
+          imageUrl: dto.imageUrl ?? null,
+          sortOrder: dto.sortOrder,
+          isActive: dto.isActive ?? true,
+          isFeatured: dto.isFeatured ?? false,
+          products: { set: [] },
+        },
+      });
+      await this.log(
+        revived.id,
+        'CREATE',
+        dto.actorName,
+        `Tag "${revived.name}" created on the slug of a deleted one (CAT-REV-1)`,
+      );
+      return revived;
+    }
+
     const t = await this.prisma.db.tag.create({
       data: {
         slug: dto.slug,
