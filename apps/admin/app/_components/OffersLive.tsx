@@ -32,7 +32,6 @@ import {
   type ApiCategoryNode,
   type ApiProduct,
 } from "../_data/api";
-import { OFFERS as DEMO_OFFERS, LEADERBOARD as DEMO_LEADERBOARD } from "../_data/offers";
 
 const WRAP = "px-6 md:px-8 pt-7 pb-16 max-w-[1500px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const taka = (p: number) => `৳${(p / 100).toLocaleString("en-IN")}`;
@@ -659,27 +658,28 @@ export function OffersSettingsLive() {
   );
 }
 
-/* ================= OVERVIEW (live analytics, demo fallback) ================= */
+/* ================= OVERVIEW (live analytics — no fallback) ================= */
 export function OffersOverviewLive() {
   const [data, setData] = useState<ApiOfferAnalytics | null>(null);
-  const [demo, setDemo] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
-        const a = await offersAnalytics(30);
-        if (a.totals.redemptions === 0 && a.liveCount === 0) setDemo(true);
-        setData(a);
-      } catch { setDemo(true); }
+        /*  ⚠️ It used to flip to a made-up leaderboard whenever the real one
+            came back empty — "no offers yet" was shown as somebody else's
+            successful campaigns. That is the 19 Aug rule broken on a page the
+            owner opens: no screen may present invented data as real. A shop
+            with no redemptions shows zero, and says so.  */
+        setData(await offersAnalytics(30));
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Could not reach the offers engine.");
+      }
     })();
   }, []);
 
-  const rows = demo || !data
-    ? DEMO_LEADERBOARD.map((r) => ({ offerId: r.id, name: r.name, shape: r.shape as string, mechanism: "AUTOMATIC", code: null as string | null, redemptions: r.redemptions, revenuePaisa: r.revenuePaisa, discountPaisa: r.discountPaisa, newCustomers: r.newCustomers }))
-    : data.leaderboard;
-  const totals = demo || !data
-    ? rows.reduce((t, r) => ({ redemptions: t.redemptions + r.redemptions, revenuePaisa: t.revenuePaisa + r.revenuePaisa, discountPaisa: t.discountPaisa + r.discountPaisa, newCustomers: t.newCustomers + r.newCustomers }), { redemptions: 0, revenuePaisa: 0, discountPaisa: 0, newCustomers: 0 })
-    : data.totals;
+  const rows = data?.leaderboard ?? [];
+  const totals = data?.totals ?? { redemptions: 0, revenuePaisa: 0, discountPaisa: 0, newCustomers: 0 };
 
   return (
     <div className={WRAP}>
@@ -687,11 +687,14 @@ export function OffersOverviewLive() {
         <PageHead eyebrow="Offers & Promotions" title="Overview">
           How each offer is performing over the last 30 days.
         </PageHead>
-        <div className="flex items-center gap-3">
-          {demo && <DemoBadge />}
-          <Link href="/marketing/offers/list" className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft"><Icon name="plus" size={16} /> All offers</Link>
-        </div>
+        <Link href="/marketing/offers/list" className="bg-purple hover:bg-purple-deep text-white text-[14px] font-bold px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft"><Icon name="plus" size={16} /> All offers</Link>
       </div>
+
+      {err && (
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-semibold">
+          {err}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
@@ -745,13 +748,11 @@ export function OffersCouponsLive() {
   const [demo, setDemo] = useState(false);
   useEffect(() => {
     void (async () => {
+      /*  Same rule as Overview above: unreachable is unreachable. It used to
+          fill the table with invented codes, which is worse than an empty
+          screen — somebody would have read a code out to a customer.  */
       const r = await listOffersSafe();
-      if (r === null) { setDemo(true); setRows(DEMO_OFFERS.filter((o) => o.mechanism === "coupon").map((o) => ({
-        id: o.id, offerNo: "OFR-DEMO", name: o.name, mechanism: "COUPON" as const, shape: "SITEWIDE" as const,
-        status: "approved" as const, liveState: "active" as const, code: o.code ?? null,
-        discountType: "PERCENT" as const, discountValue: 0, combinable: false, priority: 0, scarcity: false,
-        bonusLines: [], belowCostFlag: false, redeemedCount: o.redeemed ?? 0, createdAt: "", updatedAt: "",
-      })) as ApiOffer[]); }
+      if (r === null) { setDemo(true); setRows([]); }
       else { setDemo(false); setRows(r.filter((o) => o.mechanism === "COUPON")); }
     })();
   }, []);

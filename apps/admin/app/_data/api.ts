@@ -4510,6 +4510,18 @@ export const offerAction = (id: string, action: "approve" | "decline" | "pause" 
   j<ApiOffer>(`/offers/${id}/${action}`, { method: "POST", body: JSON.stringify(b) });
 export const deleteOffer = (id: string) => j(`/offers/${id}`, { method: "DELETE" });
 export const offersAnalytics = (days = 30) => j<ApiOfferAnalytics>(`/offers/analytics?days=${days}`);
+
+/** DEC-OFR — one offer's own redemptions, newest first (max 200 from the API) */
+export interface ApiOfferRedemption {
+  id: string;
+  discountPaisa: number;
+  createdAt: string;
+  order?: { id: string; orderNo: string; totalPaisa: number; salesStatus: string; placedAt: string | null } | null;
+  customer?: { id: string; name: string | null; phone: string | null } | null;
+}
+export const offerRedemptions = (id: string) => j<ApiOfferRedemption[]>(`/offers/${id}/redemptions`);
+export const offerTimeline = (id: string) =>
+  j<{ id: string; kind: string; label: string; actorName: string | null; createdAt: string }[]>(`/offers/${id}/timeline`);
 export const offersApprovals = () => j<ApiOffer[]>(`/offers/approvals`);
 export const getOfferRedemptions = (id: string) =>
   j<{ id: string; discountPaisa: number; code?: string | null; freeDelivery: boolean; createdAt: string;
