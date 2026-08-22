@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
@@ -1534,25 +1535,85 @@ export function Sect({ title, hint, children }: { title: string; hint?: string; 
   );
 }
 
-/** the ⓘ. Pure CSS hover — no state, no portal, no library. */
+/**
+ * The ⓘ.
+ *
+ * ⚠️ IT USED TO BE PURE CSS, AND IT GOT SWALLOWED (owner, 22 Aug 2026: "icon
+ * click krle text gula vitor duke jay"). An absolutely-positioned bubble is
+ * clipped by any ancestor with `overflow-hidden` — which is every rounded card
+ * in this panel — so the explanation opened INSIDE the card and was cut in
+ * half. The same trap as `overflow-hidden` killing `position: sticky`, noted
+ * in RADIAN_PENDING; `position: fixed` does not escape it either, because a
+ * card with a hover transform becomes the containing block.
+ *
+ * So the bubble is rendered into `document.body` through a portal and placed
+ * from the icon's own screen position. Nothing can clip it now.
+ *
+ * It opens on hover AND on click/tap — on a phone there is no hover, so the
+ * old one was unreachable there.
+ */
 export function Info({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [box, setBox] = useState<{ top: number; left: number; below: boolean } | null>(null);
+
+  const place = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    // above by default; below when there is not room up there
+    const below = r.top < 110;
+    setBox({
+      top: below ? r.bottom + 8 : r.top - 8,
+      left: Math.min(Math.max(r.left + r.width / 2, 130), window.innerWidth - 130),
+      below,
+    });
+  };
+
+  useEffect(() => {
+    if (!box) return;
+    const close = () => setBox(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [box]);
+
   return (
-    <span className="relative inline-flex group align-middle">
+    <>
       <span
-        className="w-[15px] h-[15px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0"
-        style={{ background: "#efe4f7", color: "#7a5b8c" }}
+        ref={ref}
+        role="button"
+        tabIndex={0}
         aria-label={text}
+        className="w-[16px] h-[16px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0 select-none align-middle inline-grid"
+        style={{ background: "#efe4f7", color: "#7a5b8c" }}
+        onMouseEnter={place}
+        onMouseLeave={() => setBox(null)}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); box ? setBox(null) : place(); }}
+        onFocus={place}
+        onBlur={() => setBox(null)}
+        onKeyDown={(e) => { if (e.key === "Escape") setBox(null); }}
       >
         i
       </span>
-      <span
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+7px)] z-50 w-[230px]
-                   rounded-[10px] px-3 py-2 text-[12px] leading-snug text-white opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: "#2c0f3d", boxShadow: "0 6px 20px rgba(44,15,61,.28)" }}
-      >
-        {text}
-      </span>
-    </span>
+      {box &&
+        createPortal(
+          <span
+            className="pointer-events-none fixed z-[9999] w-[248px] rounded-[10px] px-3 py-2 text-[12px] leading-snug text-white"
+            style={{
+              top: box.top,
+              left: box.left,
+              transform: `translate(-50%, ${box.below ? "0" : "-100%"})`,
+              background: "#2c0f3d",
+              boxShadow: "0 8px 26px rgba(44,15,61,.34)",
+            }}
+          >
+            {text}
+          </span>,
+          document.body,
+        )}
+    </>
   );
 }
 

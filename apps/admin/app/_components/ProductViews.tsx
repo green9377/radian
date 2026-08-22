@@ -1619,6 +1619,8 @@ export function VariantAttributes() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   /** which list is open (picked from the left column) */
   const [selId, setSelId] = useState<string | null>(null);
+  /** a save that did NOT happen — never swallowed, always shown */
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -1645,7 +1647,14 @@ export function VariantAttributes() {
     if (demo || aid.length < 20) return; // demo/seed ids are short
     clearTimeout(valueTimers.current[aid]);
     valueTimers.current[aid] = setTimeout(() => {
-      setVariantValues(aid, toApiValues(values)).catch(() => {});
+      /*  A silent `.catch(() => {})` here is how typed options disappeared on
+          refresh with nothing on screen to warn anyone (22 Aug 2026).  */
+      setVariantValues(aid, toApiValues(values)).catch((e: unknown) =>
+        setSaveErr(
+          (e instanceof Error ? e.message : "Could not save these options.") +
+            " What you typed is on screen but NOT saved — try again.",
+        ),
+      );
     }, 500);
   };
 
@@ -1667,7 +1676,9 @@ export function VariantAttributes() {
             that goes through.
           */
           if (next.name.trim()) {
-            updateVariantAttribute(id, { name: next.name.trim(), displayMode: next.display }).catch(() => {});
+            updateVariantAttribute(id, { name: next.name.trim(), displayMode: next.display }).catch((e: unknown) =>
+              setSaveErr(e instanceof Error ? e.message : "Could not save that change."),
+            );
           }
         }
         return next;
@@ -1699,22 +1710,44 @@ export function VariantAttributes() {
   async function addAttr() {
     const n = newName.trim();
     if (!n) return;
-    if (demo) {
-      setAttrs((a) => [...a, { id: n.toLowerCase().replace(/\s+/g, "-"), name: n, display: newDisplay, values: [] }]);
-      setNewName("");
-      return;
-    }
+    /*  ⚠️ THE ROW THAT WAS NEVER SAVED (owner, 22 Aug 2026: "variant and
+        option a kono kichu create krle, add krle, pore abr refresh dile dekhi
+        nai").
+
+        This used to `catch {}` a failed create and put a made-up row on the
+        screen anyway, with a short local id. Everything then looked normal:
+        the list appeared, options could be typed into it — but `persistValues`
+        skips short ids, so not one keystroke ever reached the database, and
+        nothing on the screen said so. One refresh and the whole evening's work
+        was gone.
+
+        The API sleeps on the free tier and the first call after an idle spell
+        can take 30–50 seconds, so this was not rare. Now a failure is SHOWN
+        and nothing is invented — the same rule the owner set on 19 August: no
+        screen may present made-up data as if it were real.  */
+    setSaveErr(null);
     try {
       const created = await createVariantAttribute({ name: n, displayMode: newDisplay });
       setAttrs((a) => [...a, fromApiAttr(created)]);
-    } catch {
-      setAttrs((a) => [...a, { id: n.toLowerCase().replace(/\s+/g, "-"), name: n, display: newDisplay, values: [] }]);
+      setSelId(created.id);
+      setNewName("");
+    } catch (e) {
+      setSaveErr(
+        (e instanceof Error ? e.message : "Could not save that list.") +
+          " Nothing was created — try again in a moment.",
+      );
     }
-    setNewName("");
   }
   function removeAttr(id: string) {
     setAttrs((a) => a.filter((x) => x.id !== id));
-    if (!demo && id.length >= 20) deleteVariantAttribute(id).catch(() => {});
+    if (!demo && id.length >= 20) {
+      deleteVariantAttribute(id).catch((e: unknown) => {
+        setSaveErr(
+          (e instanceof Error ? e.message : "Could not delete that list.") +
+            " It is still there — refresh to see it.",
+        );
+      });
+    }
   }
 
   const totalValues = attrs.reduce((s, a) => s + a.values.length, 0);
@@ -1728,6 +1761,12 @@ export function VariantAttributes() {
       {img.err && (
         <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318]">
           {img.err}
+        </div>
+      )}
+      {saveErr && (
+        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318] flex items-center justify-between gap-3">
+          <span className="font-semibold">{saveErr}</span>
+          <button className="underline shrink-0 font-semibold" onClick={() => setSaveErr(null)}>Dismiss</button>
         </div>
       )}
 

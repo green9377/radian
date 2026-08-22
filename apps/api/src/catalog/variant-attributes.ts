@@ -47,7 +47,20 @@ export class VariantAttributesService {
   }
   async updateAttr(id: string, dto: Partial<AttrDto>) {
     await this.ensure(id);
-    return this.prisma.db.variantAttribute.update({ where: { id }, data: { name: dto.name, sortOrder: dto.sortOrder, isActive: dto.isActive } });
+    /*  ⚠️ `displayMode` was MISSING from this list until 22 Aug 2026, and that
+        is the whole reason Colour / Photo / Text never stuck. The screen sent
+        it on every switch, the API answered 200, and the column was never
+        written — so the mode came back to whatever it was on the next
+        refresh. Nothing errored anywhere; the value simply had no door in.  */
+    return this.prisma.db.variantAttribute.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        displayMode: dto.displayMode,
+        sortOrder: dto.sortOrder,
+        isActive: dto.isActive,
+      },
+    });
   }
   async removeAttr(id: string, actorName = 'Admin') {
     await this.ensure(id);
