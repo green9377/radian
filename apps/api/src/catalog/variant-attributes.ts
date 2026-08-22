@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   Variant template master (locked).
@@ -50,8 +51,12 @@ export class VariantAttributesService {
   }
   async removeAttr(id: string, actorName = 'Admin') {
     await this.ensure(id);
-    await this.prisma.db.variantAttribute.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, 'Variant attribute deleted (soft)');
+    await eraseOrBury(
+      () => this.prisma.variantAttribute.delete({ where: { id } }),
+      () => this.prisma.db.variantAttribute.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Variant Attribute',
+    );
+    await this.log(id, 'DELETE', actorName, 'Variant attribute deleted');
     return { id, deleted: true };
   }
 

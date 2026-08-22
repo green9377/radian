@@ -15,6 +15,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { claimBuried, stampedName } from '../common/revive-buried';
+import { eraseOrBury } from '../common/erase';
 
 /*
   ITEM ATTRIBUTE master — DEC-ITM-015 (rev 21 Jul 2026, sobuj).
@@ -139,8 +140,12 @@ export class ItemAttributesService {
         `"${a.name}" is still used by ${inUse} item(s). Remove the label from those items first.`,
       );
     }
-    await this.prisma.db.itemAttribute.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Item attribute "${a.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.itemAttribute.delete({ where: { id } }),
+      () => this.prisma.db.itemAttribute.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Item Attribute',
+    );
+    await this.log(id, 'DELETE', actorName, `Item attribute "${a.name}" deleted`);
     return { id, deleted: true };
   }
 

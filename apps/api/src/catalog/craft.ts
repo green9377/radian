@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   Craft points — the three "why buy from us" cards. Owner decision, 31 Jul 2026.
@@ -98,8 +99,12 @@ export class CraftService {
 
   async remove(id: string, actorName = 'Admin') {
     await this.ensure(id);
-    await this.prisma.db.craftPoint.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, 'Craft card deleted (soft)');
+    await eraseOrBury(
+      () => this.prisma.craftPoint.delete({ where: { id } }),
+      () => this.prisma.db.craftPoint.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Craft Point',
+    );
+    await this.log(id, 'DELETE', actorName, 'Craft card deleted');
     return { id, deleted: true };
   }
 

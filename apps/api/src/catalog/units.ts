@@ -17,6 +17,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { claimBuried } from '../common/revive-buried';
+import { eraseOrBury } from '../common/erase';
 
 /*
   Unit master (DEC-PRD-009, owner's final call 21 Jul, sobuj).
@@ -296,8 +297,12 @@ export class UnitsService {
       );
     }
 
-    await this.prisma.db.unit.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Unit "${u.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.unit.delete({ where: { id } }),
+      () => this.prisma.db.unit.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Unit',
+    );
+    await this.log(id, 'DELETE', actorName, `Unit "${u.name}" deleted`);
     return { id, deleted: true };
   }
 

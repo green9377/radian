@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // online sub-channel master — admin-configurable + custom (DEC-SAL-001)
 interface ChannelDto {
@@ -68,8 +69,12 @@ export class ChannelsService {
   async remove(id: string, actorName = 'Admin') {
     const c = await this.prisma.db.channel.findFirst({ where: { id } });
     if (!c) throw new NotFoundException('Channel not found');
-    await this.prisma.db.channel.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Channel "${c.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.channel.delete({ where: { id } }),
+      () => this.prisma.db.channel.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Channel',
+    );
+    await this.log(id, 'DELETE', actorName, `Channel "${c.name}" deleted`);
     return { id, deleted: true };
   }
 

@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // tag master — each tag belongs to a TagGroup and may carry an image.
 // Many-to-many with Product. DEC-PRD-002 rev (dynamic groups + per-tag image).
@@ -137,8 +138,12 @@ export class TagsService {
   async remove(id: string, actorName = 'Admin') {
     const t = await this.prisma.db.tag.findFirst({ where: { id } });
     if (!t) throw new NotFoundException('Tag not found');
-    await this.prisma.db.tag.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Tag "${t.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.tag.delete({ where: { id } }),
+      () => this.prisma.db.tag.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Tag',
+    );
+    await this.log(id, 'DELETE', actorName, `Tag "${t.name}" deleted`);
     return { id, deleted: true };
   }
 

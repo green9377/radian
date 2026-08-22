@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // admin-configurable brand master (DEC-PRD-008). FLAT — no parent-child (unlike Category).
 // Product ↔ Brand = SINGLE FK (one product, one brand — not m2m like Tag).
@@ -152,8 +153,12 @@ export class BrandsService {
     if (attached > 0) {
       await this.prisma.db.product.updateMany({ where: { brandId: id }, data: { brandId: null } });
     }
-    await this.prisma.db.brand.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Brand "${b.name}" deleted (soft)${attached ? ` — ${attached} product(s) un-branded` : ''}`);
+    await eraseOrBury(
+      () => this.prisma.brand.delete({ where: { id } }),
+      () => this.prisma.db.brand.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Brand',
+    );
+    await this.log(id, 'DELETE', actorName, `Brand "${b.name}" deleted${attached ? ` — ${attached} product(s) un-branded` : ''}`);
     return { id, deleted: true, unbranded: attached };
   }
 

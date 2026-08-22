@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -419,7 +420,11 @@ export class CapacityService {
 
   async remove(id: string, actorName = 'Admin') {
     await this.ensure(id);
-    await this.prisma.db.capacityGroup.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.capacityGroup.delete({ where: { id } }),
+      () => this.prisma.db.capacityGroup.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Capacity Group',
+    );
     await this.log(id, 'DELETE', actorName, 'Capacity team removed (soft)');
     return { id, deleted: true };
   }

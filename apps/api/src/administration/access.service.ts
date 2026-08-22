@@ -6,6 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { eraseOrBury } from '../common/erase';
 import { AuditService } from '../common/audit.service';
 import { REGISTRY } from './registry.def';
 
@@ -255,10 +256,16 @@ export class AccessService implements OnModuleInit {
         `${holders} still hold this position — move them elsewhere first`,
       );
 
-    await this.prisma.db.position.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    /*  DEC-GBL-007 — `Position.name` is unique, so a buried template used to
+        hold its own name hostage: delete "Cashier", make "Cashier" again, and
+        the system refused over a row nobody could see. Erased when no dead
+        account still points at it; buried only when one does, and then the
+        name is free again on the next create.  */
+    await eraseOrBury(
+      () => this.prisma.position.delete({ where: { id } }),
+      () => this.prisma.db.position.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Template',
+    );
     await this.audit.record({
       entityType: 'Position',
       entityId: id,

@@ -468,7 +468,7 @@ export class BundlesService {
   async remove(id: string, actorName = 'Admin') {
     await this.ensure(id);
     await this.prisma.db.bundle.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, 'Bundle deleted (soft)');
+    await this.log(id, 'DELETE', actorName, 'Bundle deleted');
     return { id, deleted: true };
   }
 

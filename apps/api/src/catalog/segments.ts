@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // CRM segment master — admin-configurable, many-to-many with Customer (DEC-CUS-001)
 interface SegmentDto {
@@ -68,8 +69,12 @@ export class SegmentsService {
   async remove(id: string, actorName = 'Admin') {
     const s = await this.prisma.db.segment.findFirst({ where: { id } });
     if (!s) throw new NotFoundException('Segment not found');
-    await this.prisma.db.segment.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Segment "${s.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.segment.delete({ where: { id } }),
+      () => this.prisma.db.segment.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Segment',
+    );
+    await this.log(id, 'DELETE', actorName, `Segment "${s.name}" deleted`);
     return { id, deleted: true };
   }
 

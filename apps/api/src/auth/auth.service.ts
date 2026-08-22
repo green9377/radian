@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { eraseOrBury } from '../common/erase';
 import { AuditService } from '../common/audit.service';
 
 /*  ACCESS — closes DEC-FIN-028.
@@ -278,8 +279,21 @@ export class AuthService {
     const u = await this.prisma.db.appUser.findUnique({ where: { id } });
     if (u?.role === 'OWNER' && owners <= 1)
       throw new BadRequestException('The last owner cannot be removed — someone has to hold the keys');
-    await this.prisma.db.appUser.update({ where: { id }, data: { deletedAt: new Date(), isActive: false } });
     await this.prisma.db.appSession.deleteMany({ where: { userId: id } });
+    /*  DEC-GBL-007 — an account that never did anything goes for real, so its
+        email is free again the same minute. One that wrote a message, took an
+        order or is tied to an employee record cannot go (the database refuses)
+        and is buried instead — and `invite()` then takes that buried row over
+        rather than refusing the address.  */
+    await eraseOrBury(
+      () => this.prisma.appUser.delete({ where: { id } }),
+      () =>
+        this.prisma.db.appUser.update({
+          where: { id },
+          data: { deletedAt: new Date(), isActive: false },
+        }),
+      'Account',
+    );
     return { ok: true };
   }
 }

@@ -16,6 +16,7 @@ import {
 import { TagDisplayStyle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // dynamic tag-group master. Occasions & Recipients are seeded system groups
 // (isSystem = true, cannot be deleted). Supersedes the fixed TagType enum. DEC-PRD-002 rev.
@@ -95,7 +96,11 @@ export class TagGroupsService {
     if (!g) throw new NotFoundException('Tag group not found');
     if (g.isSystem) throw new BadRequestException('system group (Occasions / Recipients) cannot be deleted');
     await this.prisma.db.tag.updateMany({ where: { groupId: id, deletedAt: null }, data: { deletedAt: new Date() } });
-    await this.prisma.db.tagGroup.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.tagGroup.delete({ where: { id } }),
+      () => this.prisma.db.tagGroup.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Tag Group',
+    );
     await this.log(id, 'DELETE', actorName, `Tag group "${g.name}" deleted (soft, with its tags)`);
     return { id, deleted: true };
   }

@@ -18,6 +18,7 @@ import { ItemType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { claimBuried } from '../common/revive-buried';
+import { eraseOrBury } from '../common/erase';
 
 /*
   ITEM TYPE master — DEC-ITM-017 (owner's ruling, 21 Jul: "type custom make korar option
@@ -206,8 +207,12 @@ export class ItemTypesService implements OnModuleInit {
       );
     }
 
-    await this.prisma.db.itemTypeMaster.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Item type "${t.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.itemTypeMaster.delete({ where: { id } }),
+      () => this.prisma.db.itemTypeMaster.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Item Type Master',
+    );
+    await this.log(id, 'DELETE', actorName, `Item type "${t.name}" deleted`);
     return { id, deleted: true };
   }
 

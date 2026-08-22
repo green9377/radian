@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*  The storefront's fixed top-level routes (apps/web/app/*). A category slug
     landing on one of these would shadow that page, because categories render
@@ -226,8 +227,12 @@ export class CategoriesService {
     if (!c) throw new NotFoundException('Category not found');
     if (c._count.products > 0 || c._count.children > 0)
       throw new BadRequestException('category has products or sub-categories — reassign them first');
-    await this.prisma.db.category.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Category "${c.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.category.delete({ where: { id } }),
+      () => this.prisma.db.category.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Category',
+    );
+    await this.log(id, 'DELETE', actorName, `Category "${c.name}" deleted`);
     return { id, deleted: true };
   }
 

@@ -16,6 +16,7 @@ import {
 import { AddOnRuleField, DiscountType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   Add-ons (locked, DEC-PRD-007).
@@ -124,8 +125,12 @@ export class AddOnsService {
     await this.ensure('addOn', id);
     // leaving every group it sits in is automatic — the join rows cascade
     await this.prisma.db.addOnGroupItem.deleteMany({ where: { addOnId: id } });
-    await this.prisma.db.addOn.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log('AddOn', id, 'DELETE', actorName, 'Add-on deleted (soft)');
+    await eraseOrBury(
+      () => this.prisma.addOn.delete({ where: { id } }),
+      () => this.prisma.db.addOn.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Add On',
+    );
+    await this.log('AddOn', id, 'DELETE', actorName, 'Add-on deleted');
     return { id, deleted: true };
   }
 
@@ -324,8 +329,12 @@ export class AddOnsService {
     // group takes its rules and membership with it
     await this.prisma.db.addOnRule.deleteMany({ where: { groupId: id } });
     await this.prisma.db.addOnGroupItem.deleteMany({ where: { groupId: id } });
-    await this.prisma.db.addOnGroup.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log('AddOnGroup', id, 'DELETE', actorName, 'Group deleted (soft)');
+    await eraseOrBury(
+      () => this.prisma.addOnGroup.delete({ where: { id } }),
+      () => this.prisma.db.addOnGroup.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Add On Group',
+    );
+    await this.log('AddOnGroup', id, 'DELETE', actorName, 'Group deleted');
     return { id, deleted: true };
   }
 
@@ -357,8 +366,12 @@ export class AddOnsService {
   }
   async removeRule(id: string, actorName = 'Admin') {
     await this.ensure('addOnRule', id);
-    await this.prisma.db.addOnRule.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log('AddOnRule', id, 'DELETE', actorName, 'Add-on rule deleted (soft)');
+    await eraseOrBury(
+      () => this.prisma.addOnRule.delete({ where: { id } }),
+      () => this.prisma.db.addOnRule.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Add On Rule',
+    );
+    await this.log('AddOnRule', id, 'DELETE', actorName, 'Add-on rule deleted');
     return { id, deleted: true };
   }
 

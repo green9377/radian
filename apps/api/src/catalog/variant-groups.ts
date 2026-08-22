@@ -15,6 +15,7 @@ import {
 import { VariantKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 // colour/flavour sibling group (DEC-PRD-003) — Product.variantGroupId এতে connect করে
 interface VariantGroupDto {
@@ -72,8 +73,12 @@ export class VariantGroupsService {
     if (!g) throw new NotFoundException('VariantGroup not found');
     if (g._count.products > 0)
       throw new BadRequestException('variant group still linked to products — unlink first');
-    await this.prisma.db.variantGroup.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `VariantGroup "${g.label}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.variantGroup.delete({ where: { id } }),
+      () => this.prisma.db.variantGroup.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Variant Group',
+    );
+    await this.log(id, 'DELETE', actorName, `VariantGroup "${g.label}" deleted`);
     return { id, deleted: true };
   }
 

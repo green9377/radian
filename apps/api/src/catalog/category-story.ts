@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -208,7 +209,11 @@ export class CategoryStoryService {
 
   async removeSpec(id: string, actorName = 'Admin') {
     await this.ensure('categorySpec', id);
-    await this.prisma.db.categorySpec.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.categorySpec.delete({ where: { id } }),
+      () => this.prisma.db.categorySpec.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Category Spec',
+    );
     await this.log('CategorySpec', id, 'DELETE', actorName, 'Spec row removed');
     return { id, deleted: true };
   }

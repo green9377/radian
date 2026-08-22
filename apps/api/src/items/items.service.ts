@@ -662,12 +662,13 @@ export class ItemsService {
     });
     if (!item) throw new NotFoundException('Item not found');
 
-    // fence 4 — you must have read the thing you are destroying
-    if (confirmSku.toUpperCase() !== item.sku.toUpperCase()) {
-      throw new BadRequestException(
-        `Type the code ${item.sku} exactly to confirm. Permanent removal cannot be undone.`,
-      );
-    }
+    /*  Fence 4 was "type the code exactly". Dropped on the owner's word,
+        22 Aug 2026: *"trash gele tarpor destroy krte gele name dewa lage
+        ataw tule daw — just krte chai kina confirmation chaibe."* The screen
+        asks once, plainly, and Yes means yes. The fences that actually
+        protect anything are the ones below: it must already be in the trash,
+        and nothing may point at it. `confirmSku` is still accepted so an old
+        tab or script does not break; it is simply no longer required.  */
 
     if (!item.deletedAt) {
       throw new BadRequestException(

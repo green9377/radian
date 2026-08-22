@@ -15,6 +15,7 @@ import {
   SalesStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { eraseOrBury } from '../common/erase';
 import { AuditService } from '../common/audit.service';
 import { OrdersService } from '../orders/orders.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
@@ -699,7 +700,11 @@ export class DeliveryService {
       where: { riderId: id, isActive: true, deletedAt: null },
     });
     if (open > 0) throw new BadRequestException(`rider has ${open} active assignment(s) — hand them over first`);
-    await this.prisma.db.rider.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.rider.delete({ where: { id } }),
+      () => this.prisma.db.rider.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Rider',
+    );
     return { id, deleted: true };
   }
 
@@ -741,7 +746,11 @@ export class DeliveryService {
   }
 
   async removeCourier(id: string) {
-    await this.prisma.db.courierService.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.courierService.delete({ where: { id } }),
+      () => this.prisma.db.courierService.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Courier Service',
+    );
     return { id, deleted: true };
   }
 
@@ -1000,7 +1009,11 @@ export class DeliveryService {
 
   /** DLV-R06 — deactivate/soft-delete never touches order snapshots. */
   async removeMethod(id: string) {
-    await this.prisma.db.deliveryMethod.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.deliveryMethod.delete({ where: { id } }),
+      () => this.prisma.db.deliveryMethod.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Delivery Method',
+    );
     await this.prisma.db.deliverySlot.updateMany({ where: { methodId: id }, data: { deletedAt: new Date() } });
     return { id, deleted: true };
   }

@@ -16,6 +16,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { eraseOrBury } from '../common/erase';
 
 /*
   ITEM CATEGORY master — DEC-ITM-007.
@@ -162,8 +163,12 @@ export class ItemCategoriesService {
       );
     }
 
-    await this.prisma.db.itemCategory.update({ where: { id }, data: { deletedAt: new Date() } });
-    await this.log(id, 'DELETE', actorName, `Item category "${g.name}" deleted (soft)`);
+    await eraseOrBury(
+      () => this.prisma.itemCategory.delete({ where: { id } }),
+      () => this.prisma.db.itemCategory.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Item Category',
+    );
+    await this.log(id, 'DELETE', actorName, `Item category "${g.name}" deleted`);
     return { id, deleted: true };
   }
 

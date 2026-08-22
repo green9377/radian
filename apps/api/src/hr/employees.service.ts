@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, EmployeeStatus, PayType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { eraseOrBury } from '../common/erase';
 import { AuditService } from '../common/audit.service';
 import { ACC2 } from '../finance/finance.service';
 import { dayOnly, hhmmToMinutes } from './attendance.service';
@@ -145,7 +146,11 @@ export class EmployeesService {
       throw new BadRequestException(
         `${inUse} ${inUse === 1 ? 'person holds' : 'people hold'} this role — switch it off instead, so their records keep making sense`,
       );
-    await this.prisma.db.employeeRole.update({ where: { id }, data: { deletedAt: new Date() } });
+    await eraseOrBury(
+      () => this.prisma.employeeRole.delete({ where: { id } }),
+      () => this.prisma.db.employeeRole.update({ where: { id }, data: { deletedAt: new Date() } }),
+      'Employee Role',
+    );
     await this.audit.record({ entityType: 'EmployeeRole', entityId: id, action: 'DELETE', actorName });
     return { id, deleted: true };
   }

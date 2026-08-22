@@ -118,13 +118,7 @@ export class PeopleService {
      *  still holds its place in the unique index.
      */
     const clash = await this.prisma.appUser.findFirst({ where: { email } });
-    if (clash) {
-      if (clash.deletedAt)
-        throw new BadRequestException(
-          `${email} belonged to ${clash.name}, who was removed. That address cannot be reused — the audit trail still points at that account. Use a different address.`,
-        );
-      throw new BadRequestException(`${email} already has an account`);
-    }
+    if (clash && !clash.deletedAt) throw new BadRequestException(`${email} already has an account`);
 
     /*  A template is REQUIRED (owner, 18 Aug 2026): an account that reaches
         nothing is a key ring with no keys — creating it is only confusion.
@@ -134,16 +128,40 @@ export class PeopleService {
     const pos = await this.prisma.db.position.findUnique({ where: { id: dto.positionId } });
     if (!pos) throw new BadRequestException('That template does not exist');
 
-    const user = await this.prisma.db.appUser.create({
-      data: {
-        name,
-        username: await this.freeUsername(email),
-        email,
-        passwordHash: null, // they choose it — see the class comment
-        positionId: dto.positionId ?? null,
-        role: 'STAFF', // the enum still exists; the position is what counts
-      },
-    });
+    /*  DEC-GBL-007 (22 Aug 2026) — the address comes back with the person.
+        This used to be a dead end: removing somebody and inviting the same
+        address again was refused with "that address cannot be reused", and
+        there was nothing the owner could do about it. Staff leave and come
+        back; a shop of 84 branches will hit this every month.
+
+        The removed account is taken over instead of a second one being made:
+        same row, same history, and the audit trail still reads true — it was
+        always this person's address. The password is cleared, so they must
+        set a new one from the fresh invite link; the old sessions and the old
+        invite link are dead already (removal kills them).  */
+    const user = clash
+      ? await this.prisma.appUser.update({
+          where: { id: clash.id },
+          data: {
+            deletedAt: null,
+            isActive: true,
+            name,
+            email,
+            passwordHash: null,
+            positionId: dto.positionId ?? null,
+            role: 'STAFF',
+          },
+        })
+      : await this.prisma.db.appUser.create({
+          data: {
+            name,
+            username: await this.freeUsername(email),
+            email,
+            passwordHash: null, // they choose it — see the class comment
+            positionId: dto.positionId ?? null,
+            role: 'STAFF', // the enum still exists; the position is what counts
+          },
+        });
 
     const link = await this.issue(user.id, 'INVITE');
 

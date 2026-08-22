@@ -46,11 +46,10 @@ export function ItemTrashView() {
     return q ? items.filter((i) => i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q)) : items;
   }, [items, query]);
 
-  /* ITM-R14 — the item queued for permanent destruction, and what the owner has typed
-     so far. Kept here rather than per row so only ONE can be open at a time: two open
-     confirm boxes is exactly how the wrong thing gets destroyed. */
+  /* ITM-R14 — the item queued for permanent destruction. Kept here rather than per
+     row so only ONE can be open at a time: two open confirm boxes is exactly how the
+     wrong thing gets destroyed. */
   const [purging, setPurging] = useState<ApiItem | null>(null);
-  const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function restore(i: ApiItem) {
@@ -63,10 +62,10 @@ export function ItemTrashView() {
     if (!purging) return;
     setBusy(true); setErr(null);
     try {
-      await purgeItem(purging.id, typed.trim());
+      await purgeItem(purging.id, purging.sku);
       setItems((p) => p.filter((x) => x.id !== purging.id));
       setOk(`“${purging.name}” is gone for good.`);
-      setPurging(null); setTyped("");
+      setPurging(null);
     } catch (e) { setErr(msg(e, "Could not destroy it.")); }
     finally { setBusy(false); }
   }
@@ -96,7 +95,6 @@ export function ItemTrashView() {
         <div className="divide-y divide-lavender-deep">
           {filtered.map((i) => {
             const open = purging?.id === i.id;
-            const matches = typed.trim().toUpperCase() === i.sku.toUpperCase();
             return (
               <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#d8cfe0"}` }}>
                 <div className="grid grid-cols-[44px_88px_minmax(0,1fr)_110px_100px_auto] items-center gap-2 px-4 py-2.5">
@@ -117,7 +115,7 @@ export function ItemTrashView() {
                     {/* the destructive action is deliberately the QUIETER of the two:
                         restoring should always look like the easier thing to do */}
                     <button
-                      onClick={() => { setPurging(open ? null : i); setTyped(""); setErr(null); }}
+                      onClick={() => { setPurging(open ? null : i); setErr(null); }}
                       title="Remove from the database for good"
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
                       style={open
@@ -128,8 +126,8 @@ export function ItemTrashView() {
                   </span>
                 </div>
 
-                {/* ITM-R14 — the confirm step. Inline rather than a modal: the row you are
-                    about to destroy stays visible right above what you are typing. */}
+                {/* ITM-R14 — the confirm step. Inline rather than a modal: the row you
+                    are about to destroy stays visible right above the question. */}
                 {open && (
                   <div className="px-4 pb-4 pt-1" style={{ background: "#fdf4f3" }}>
                     <div className="rounded-[12px] border p-4" style={{ borderColor: "#f0c8c2", background: "#fff" }}>
@@ -147,22 +145,19 @@ export function ItemTrashView() {
                             history all go with it. Restoring will no longer be possible.
                           </p>
 
-                          <div className="mt-3 flex items-end gap-2 flex-wrap">
-                            <label className="block">
-                              <span className="block text-[12.5px] font-bold mb-1.5" style={{ color: "#c0392b" }}>
-                                Type <span className="font-mono">{i.sku}</span> to confirm
-                              </span>
-                              <input
-                                className="ipt font-mono w-[280px] max-w-full" autoFocus
-                                placeholder={i.sku} value={typed}
-                                onChange={(e) => setTyped(e.target.value.toUpperCase())}
-                                onKeyDown={(e) => { if (e.key === "Enter" && matches) purge(); }}
-                              />
-                            </label>
-                            <button onClick={purge} disabled={!matches || busy}
+                          {/*  The typed-code box is gone (owner, 22 Aug 2026). It
+                               guarded nothing a plain Yes does not: the real fences
+                               are server-side — already in the trash, and nothing
+                               pointing at it.  */}
+                          <div className="mt-3 flex items-center gap-2 flex-wrap">
+                            <button onClick={purge} disabled={busy} autoFocus
                               className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] disabled:opacity-40"
                               style={{ background: "#c0392b" }}>
-                              {busy ? "Destroying…" : "Destroy for good"}
+                              {busy ? "Destroying…" : "Yes, destroy it"}
+                            </button>
+                            <button onClick={() => setPurging(null)} disabled={busy}
+                              className="text-[13px] font-semibold px-4 py-2.5 rounded-[10px] border border-lavender-deep text-body hover:bg-lavender">
+                              Cancel
                             </button>
                           </div>
                         </div>
