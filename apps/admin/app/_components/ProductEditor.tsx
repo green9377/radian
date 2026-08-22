@@ -4461,9 +4461,9 @@ No bundle products yet — add them on{" "}
                   <p className="text-[12.5px] text-[#8a5a00] mt-3 mb-0">{photoNote}</p>
                 )}
 
-                <span className="block text-[13px] text-body-soft mt-3">
-                  {photos.length}/{MAX_PHOTOS} · square 1:1 · any size, stored under{" "}
-                  {TARGET_MB} MB
+                <span className="flex items-center gap-1.5 text-[13px] text-body-soft mt-3">
+                  {photos.length}/{MAX_PHOTOS}
+                  <Info text={`Square photos, 1:1. Any size goes up — each is stored under ${TARGET_MB} MB. Drag to reorder; the first one is the main image.`} />
                 </span>
               </Card>
 
@@ -4692,7 +4692,7 @@ No bundle products yet — add them on{" "}
                             {outsideOn ? "✓ " : ""}Outside Dhaka — all Bangladesh
                           </button>
                           <span className="text-[12px] text-body-soft">
-                            {outsideOn ? "courier-safe" : "tick if a courier can carry it"}
+                            {outsideOn ? "courier-safe" : "not ticked"}
                           </span>
                         </div>
                         {outsideOn &&
@@ -6180,12 +6180,9 @@ No bundle products yet — add them on{" "}
                       checked={noIndex}
                       onChange={(e) => setNoIndex(e.target.checked)}
                     />
-                    <span>
+                    <span className="inline-flex items-center gap-1.5">
                       <b>Keep this page out of Google</b>
-                      <div className="text-[12.5px] text-body-soft">
-                        For a one-off corporate listing, or something only meant to be reached by a
-                        link you send. It stays on the site — it just will not be found by searching.
-                      </div>
+                      <Info text="For a one-off corporate listing, or something only meant to be reached by a link you send. It stays on the site — it just will not be found by searching." />
                     </span>
                   </label>
                 </div>
