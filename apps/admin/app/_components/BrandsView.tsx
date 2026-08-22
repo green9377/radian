@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Info } from "./ItemEditor";
 import {
   loadBrandsSafe, createBrand, updateBrand, deleteBrand,
   brandSlug, brandUrl, genBg, initials,
@@ -171,11 +172,12 @@ export default function BrandsView() {
             <span className="w-[9px] h-[9px] -rotate-45" style={{ borderRadius: "50% 50% 50% 0", background: `linear-gradient(150deg,${ACCENT},#cf43ea)` }} />
             Master data · brands
           </div>
-          <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Brands</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[720px]">
-            The makers behind your gifts — Ferrero Rocher, Cadbury, your own house label. Add a logo, feature the best on
-            the homepage, and attach a brand to any product. Flowers usually have none; that’s fine — brand is optional.
-          </p>
+          {/*  Page prose behind the ⓘ — the same sweep as Occasions & Tags
+               (owner, 22 Aug 2026).  */}
+          <div className="flex items-center gap-2 mt-1.5">
+            <h1 className="font-display text-[28px] text-purple m-0 leading-tight">Brands</h1>
+            <Info text="The makers behind your gifts — Ferrero Rocher, Cadbury, your own house label. Add a logo, feature the best on the homepage, attach a brand to any product. Flowers usually have none, and that is fine: a brand is optional." />
+          </div>
         </div>
         <Link href="/tags" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid shrink-0">Occasions &amp; Tags</Link>
       </div>
@@ -197,68 +199,130 @@ export default function BrandsView() {
       )}
       {loading && <div className="text-[13px] text-body-soft mb-4">Loading brands…</div>}
 
-      {/* stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/*  The same four cards as Occasions & Tags — brand family only: deep
+           purple, orchid, rose gold, soft purple. One house, one look.  */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Total brands", v: String(stats.total), c: "#7a2ea8", bg: "#f5eafb", icon: "tag" },
-          { l: "Featured", v: String(stats.featured), c: ACCENT, bg: ACCENT_BG, icon: "star" },
-          { l: "Empty (0 products)", v: String(stats.empty), c: stats.empty ? "#d98a0f" : "#12a172", bg: "#fbf1e2", icon: "bolt" },
-          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#b5642f" : "#12a172", bg: "#f6ece3", icon: "eye" },
+          { l: "Brands", v: stats.total, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "tag" },
+          { l: "Featured", v: stats.featured, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "star", tip: "Featured brands get a card on the homepage's Shop by Brand rail." },
+          { l: "Unused", v: stats.empty, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
+          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
-          <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
-            <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}><Icon name={k.icon} size={13} /></span>
-            <div className="font-display text-[23px] leading-none mt-2.5" style={{ color: k.c }}>{k.v}</div>
-            <div className="text-[11px] font-medium text-body mt-1.5">{k.l}</div>
+          <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
+            <div className="flex items-center justify-between gap-2">
+              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
+                style={{ background: k.edge, boxShadow: `0 3px 9px ${k.edge}45` }}>
+                <Icon name={k.icon} size={14} />
+              </span>
+              {k.tip && <Info text={k.tip} />}
+            </div>
+            <div className="font-display text-[27px] leading-none mt-3 tabular-nums" style={{ color: k.c }}>{k.v}</div>
+            <div className="text-[12px] font-semibold mt-1.5" style={{ color: k.c, opacity: 0.65 }}>{k.l}</div>
           </div>
         ))}
       </div>
 
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
-        {/* -------- LEFT: brand list -------- */}
-        <div className="xl:sticky xl:top-4 self-start space-y-2.5">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft pointer-events-none"><Icon name="search" size={15} /></span>
-            <input className="ipt ipt-icon w-full" placeholder="Search brands…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {/*  -------- LEFT: brand list --------
+             The deep purple chooser panel, the same one Occasions & Tags wears
+             (owner, 22 Aug 2026 — "same design style brand and variant a o kre
+             daw"). One panel, one language: the two panes stop competing, and
+             the selected row is the only light thing on the dark, which says
+             "you are here" without a ring or a border.  */}
+        <div className="xl:sticky xl:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
+          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
+            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
+              <Icon name="tag" size={14} />
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Brands</span>
+            <span className="ml-auto text-[12px] text-white/45">{sorted.length}</span>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="px-3 pb-1">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"><Icon name="search" size={15} /></span>
+              <input
+                className="w-full rounded-[10px] pl-9 pr-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
+                style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
+                placeholder="Search…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="px-3 py-3 space-y-1.5">
             {filtered.map((b, i) => {
               const on = b.id === selectedId;
               const count = b._count?.products ?? 0;
               return (
-                <div key={b.id} className={"grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[12px] border px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "ring-2 bg-white" : b.isActive ? "border-lavender-deep bg-white hover:bg-lavender/40" : "border-[#f0dcc4] bg-[#fbf5ef] hover:bg-[#f7efe7]")} style={on ? { borderColor: ACCENT, boxShadow: `0 0 0 2px ${ACCENT_BG}` } : undefined} onClick={() => setSelectedId(b.id)}>
-                  <LogoThumb b={b} size={38} />
+                <div key={b.id}
+                  className={"group/row grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "bg-white shadow-soft" : "hover:bg-white/10")}
+                  style={b.isActive ? undefined : { opacity: 0.6 }}
+                  onClick={() => setSelectedId(b.id)}>
+                  <LogoThumb b={b} size={36} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-medium text-[14px] text-purple truncate">{b.name}</span>
-                      {b.isFeatured && <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5" style={{ background: ACCENT_BG, color: ACCENT }}><Icon name="star" size={9} /> Featured</span>}
-                      {!b.isActive && <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+                      <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{b.name}</span>
+                      {b.isFeatured && (
+                        <span className="shrink-0" style={{ color: on ? ACCENT : "#e8c9ce" }} title="Featured on the homepage"><Icon name="star" size={12} /></span>
+                      )}
+                      {!b.isActive && (
+                        <span className="shrink-0" style={{ color: on ? "#b45309" : "rgba(255,255,255,.5)" }} title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
+                      )}
                     </div>
-                    <div className="text-[13px] text-body-soft truncate">/{b.slug} · {count} product{count === 1 ? "" : "s"}</div>
+                    <div className={"text-[12.5px] truncate " + (on ? "text-body-soft" : "text-white/45")}>
+                      /{b.slug} · {count} product{count === 1 ? "" : "s"}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/*  Tools appear on the row under the cursor, or on the chosen
+                       one. Four buttons on every row, always, is more furniture
+                       than the names themselves.  */}
+                  <div className={"flex items-center gap-0.5 shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
+                    onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col">
-                      <button onClick={() => move(b, "up")} disabled={i === 0 || !!query} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
-                      <button onClick={() => move(b, "down")} disabled={i === filtered.length - 1 || !!query} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
+                      <button onClick={() => move(b, "up")} disabled={i === 0 || !!query}
+                        className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move up">
+                        <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
+                      </button>
+                      <button onClick={() => move(b, "down")} disabled={i === filtered.length - 1 || !!query}
+                        className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move down">
+                        <Icon name="chevronDown" size={13} />
+                      </button>
                     </div>
-                    <button onClick={() => openEditor(b)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender" title="Edit brand"><Icon name="edit" size={14} /></button>
-                    <button onClick={() => remove(b)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-[#b42318] hover:bg-[#fbecec]" title="Delete brand"><Icon name="trash" size={14} /></button>
+                    <button onClick={() => openEditor(b)}
+                      className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center " + (on ? "text-purple hover:bg-lavender" : "text-white/70 hover:bg-white/15")} title="Edit brand">
+                      <Icon name="edit" size={14} />
+                    </button>
+                    <button onClick={() => remove(b)}
+                      className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center " + (on ? "text-[#b42318] hover:bg-[#fbecec]" : "text-[#f0a9a2] hover:bg-white/15")} title="Delete brand">
+                      <Icon name="trash" size={14} />
+                    </button>
                   </div>
                 </div>
               );
             })}
             {!loading && filtered.length === 0 && (
-              <div className="text-[13px] text-body-soft text-center py-6 border border-dashed border-lavender-deep rounded-[12px]">
-                {query ? "No brands match your search." : "No brands yet — add your first below."}
+              <div className="text-[13px] text-white/45 text-center py-7">
+                {query ? "Nothing matches" : "No brands yet"}
               </div>
             )}
           </div>
 
           {/* add brand */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1">
-            <input className="ipt" style={{ minHeight: 38 }} placeholder="New brand…" value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addBrand(); }} />
-            <button onClick={addBrand} disabled={!draft.trim()} className="text-white h-[38px] px-3 rounded-[10px] inline-flex items-center gap-1 text-[13px] font-medium shrink-0 disabled:opacity-50" style={{ background: ACCENT }}><Icon name="plus" size={15} /> Add</button>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 pb-3.5 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,.1)" }}>
+            <input
+              className="w-full rounded-[10px] px-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
+              style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
+              placeholder="New brand…" value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addBrand(); }} />
+            <button onClick={addBrand} disabled={!draft.trim()}
+              className="hover:bg-white hover:text-purple disabled:opacity-30 text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
+              style={{ background: ACCENT }} title="Add brand">
+              <Icon name="plus" size={16} />
+            </button>
           </div>
         </div>
 
@@ -275,8 +339,7 @@ export default function BrandsView() {
             />
           ) : (
             <div className="bg-white border border-dashed border-lavender-deep rounded-[18px] shadow-soft p-10 text-center">
-              <div className="font-display text-[18px] text-purple mb-1">{loading ? "Loading…" : "Pick a brand"}</div>
-              <p className="text-body-soft text-[13px]">{loading ? "" : "Choose a brand on the left to edit its logo, story and SEO."}</p>
+              <div className="font-display text-[18px] text-purple">{loading ? "Loading…" : "Pick a brand"}</div>
             </div>
           )}
         </div>

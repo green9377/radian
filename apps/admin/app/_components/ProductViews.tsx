@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Info } from "./ItemEditor";
 import { Switch as DSwitch } from "./DeliveryUI";
 import {
   listProducts,
@@ -1743,45 +1744,87 @@ export function VariantAttributes() {
         the Delivery module — list on the left, work on the right. One list at
         a time, and its options appear in their own faces: a big colour dot, a
         photo tile, or a small text pill. Edit opens only on click.
+
+        22 Aug 2026 — dressed in the house language the owner settled on for
+        Occasions & Tags and Brands: brand-coloured count cards on top, the
+        chooser as a deep purple panel.
       */}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
+        {[
+          { l: "Lists", v: attrs.length, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "layers" },
+          { l: "Options", v: totalValues, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "grid" },
+          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
+          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
+        ].map((k, i) => (
+          <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
+            <div className="flex items-center justify-between gap-2">
+              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
+                style={{ background: k.edge, boxShadow: `0 3px 9px ${k.edge}45` }}>
+                <Icon name={k.icon} size={14} />
+              </span>
+              {k.tip && <Info text={k.tip} />}
+            </div>
+            <div className="font-display text-[27px] leading-none mt-3 tabular-nums" style={{ color: k.c }}>{k.v}</div>
+            <div className="text-[12px] font-semibold mt-1.5" style={{ color: k.c, opacity: 0.65 }}>{k.l}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
 
-        {/* ── left: which list ── */}
-        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-2.5">
-          {attrs.map((a) => {
-            const on = a.id === openId;
-            return (
-              <button
-                key={a.id}
-                onClick={() => setSelId(a.id)}
-                className={`w-full flex items-center gap-2.5 rounded-[11px] px-3 py-2.5 mb-1 text-left transition-colors ${
-                  on ? "bg-purple text-white" : "hover:bg-lavender/70"
-                }`}
-              >
-                <span
-                  className={`w-7 h-7 rounded-[9px] grid place-items-center shrink-0 ${
-                    on ? "bg-white/20 text-white" : "bg-lavender text-purple"
+        {/* ── left: which list — the house chooser panel ── */}
+        <div className="lg:sticky lg:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
+          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
+            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
+              <Icon name="layers" size={14} />
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Lists</span>
+            <span className="ml-auto text-[12px] text-white/45">{attrs.length}</span>
+          </div>
+
+          <div className="px-3 pb-3 space-y-1.5">
+            {attrs.map((a) => {
+              const on = a.id === openId;
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => setSelId(a.id)}
+                  className={`w-full flex items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 text-left transition-colors ${
+                    on ? "bg-white shadow-soft" : "hover:bg-white/10"
                   }`}
                 >
-                  <Icon name={a.display === "SWATCH" ? "sparkle" : a.display === "PHOTO" ? "photo" : "hash"} size={14} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className={`block text-[13.5px] font-semibold truncate ${on ? "text-white" : "text-purple"}`}>
-                    {a.name || "Untitled"}
+                  <span
+                    className="w-[30px] h-[30px] rounded-[9px] grid place-items-center shrink-0"
+                    style={on ? { background: "#6d3a9c", color: "#fff" } : { background: "rgba(255,255,255,.14)", color: "#fff" }}
+                  >
+                    <Icon name={a.display === "SWATCH" ? "sparkle" : a.display === "PHOTO" ? "photo" : "hash"} size={15} />
                   </span>
-                  <span className={`block text-[11.5px] ${on ? "text-white/70" : "text-body-soft"}`}>
-                    {a.values.length} option{a.values.length === 1 ? "" : "s"}
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[14px] font-medium truncate ${on ? "text-purple" : "text-white"}`}>
+                      {a.name || "Untitled"}
+                    </span>
+                    <span className={`block text-[12.5px] ${on ? "text-body-soft" : "text-white/45"}`}>
+                      {a.values.length} option{a.values.length === 1 ? "" : "s"}
+                    </span>
                   </span>
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+            {attrs.length === 0 && (
+              <div className="text-[13px] text-white/45 text-center py-7">No lists yet</div>
+            )}
+          </div>
 
           {/*  new list — at the bottom, small. Just a name: the mode is picked on
               the right AFTER opening it (owner, 19 Aug — no mode buttons here).  */}
-          <div className="border-t border-lavender-deep mt-2 pt-2.5 px-1">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 pb-3.5 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,.1)" }}>
             <input
-              className="ipt h-[38px] text-[13px]"
+              className="w-full rounded-[10px] px-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
+              style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
               placeholder="New list — Scent…"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -1790,9 +1833,10 @@ export function VariantAttributes() {
             <button
               onClick={addAttr}
               disabled={!newName.trim()}
-              className="w-full mt-2 bg-lavender hover:bg-orchid-soft text-purple text-[12.5px] font-semibold py-2 rounded-[9px] disabled:opacity-40 inline-flex items-center justify-center gap-1.5"
+              className="bg-orchid hover:bg-white hover:text-purple disabled:opacity-30 text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
+              title="Add list"
             >
-              <Icon name="plus" size={14} /> Add list
+              <Icon name="plus" size={16} />
             </button>
           </div>
         </div>
