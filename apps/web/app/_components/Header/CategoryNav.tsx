@@ -7,7 +7,7 @@ import type { Zone } from "../Header/Header";
 import { getShopCategories } from "../../_data/shop";
 
 /*
-  Category nav — Header-এর নিচের সারি।
+  Category nav — the row under the header.
 
   LIVE as of 30 Jul 2026. THIS WAS THE BUG ON THIS PAGE: the labels below were
   hard-coded, so a category added in the admin panel never reached the menu —
@@ -32,6 +32,8 @@ import { getShopCategories } from "../../_data/shop";
 interface NavItem {
   label: string;
   href: string;
+  /** the category's 96×96 symbol (Card art → Icon) — shown beside the name */
+  iconUrl?: string | null;
   /** hidden in the nationwide zone — nothing here ships by courier */
   dhakaOnly?: boolean;
   hot?: boolean;
@@ -63,6 +65,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
           .map((c) => ({
             label: c.name,
             href: `/categories/${c.slug}`,
+            iconUrl: c.iconUrl,
             dhakaOnly: c.nationwideCount === 0,
           })),
       );
@@ -92,7 +95,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
             key={cat.href}
             href={cat.href}
             aria-current={active ? "page" : undefined}
-            className={`whitespace-nowrap pb-0.5 border-b-2 transition-colors font-medium text-[14.5px] ${
+            className={`whitespace-nowrap pb-0.5 border-b-2 transition-colors font-medium text-[14.5px] inline-flex items-center gap-1.5 ${
               active
                 ? "text-purple font-semibold border-orchid"
                 : cat.hot
@@ -100,6 +103,16 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
                   : "text-body border-transparent hover:text-orchid"
             }`}
           >
+            {/* alt="" — the name is right beside it; a reader announcing the
+                image twice would only repeat the label */}
+            {cat.iconUrl && (
+              <img
+                src={cat.iconUrl}
+                alt=""
+                loading="lazy"
+                className="w-[18px] h-[18px] object-contain shrink-0"
+              />
+            )}
             {cat.label}
           </Link>
         );
