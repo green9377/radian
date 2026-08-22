@@ -37,6 +37,43 @@ price → stock → variants → tags → collections → add-ons → offers →
 
 ---
 
+## 🎟 Offers made real (22 Aug)
+
+The owner asked whether free-delivery rules exist. They do — and the engine is
+better than the screens were.
+
+**What the engine already does** (verified live: two offers created, submitted
+and approved through the API, then removed):
+
+- free delivery **on chosen products** · **above a spend** · **on a first
+  order** — the product/category gate runs BEFORE the free-delivery branch, so
+  a product offer only fires when that product is in the cart
+- % or flat money off · max-discount cap · coupon codes · category · **payment
+  method** · per-customer and total limits · start/end dates
+- the cart's own **"spend ৳X more"** bar, and an **approval gate** when a
+  discount would sell below cost
+
+**What was wrong, and is fixed:**
+
+| | |
+|---|---|
+| ⚠️ **Overview invented a leaderboard** whenever the real one came back empty — a shop with no offers was shown somebody else's successful campaigns. On a page the owner opens. | gone; zero is shown as zero |
+| Coupons filled its table with invented codes when the API was unreachable | says it cannot reach the API instead |
+| **Performance** (`/perf/[id]`) was entirely mock — invented redeemers, revenue, ROI | rebuilt on `/offers/:id` + `/redemptions` + `/timeline` + `/analytics` |
+| **Templates** offered BOGO, tiered, free-gift and bundle — **shapes the engine cannot pay**, so pressing one would have promised what checkout could never honour | eight presets, all from the six real shapes; pressing one CREATES a real draft and opens it |
+| Five mock screens (`OffersOverview`, `OffersView`, `OffersCoupons`, `OffersApprovals`, `OffersSettings`) + `_data/offers.ts` | deleted — they were orphans, wired to no route |
+
+⚠️ **My own error, recorded so it is not repeated:** I first told the owner
+"7 of 8 offer pages are mock". That was counted by COMPONENT, not by ROUTE —
+six pages were already live. Count what the router reaches, not what exists in
+the folder.
+
+**Still open (owner's call):** zone-specific free delivery (Dhaka vs courier),
+free delivery on one delivery TYPE only, repeating windows (every Friday), and
+offer profitability over time.
+
+---
+
 ## 🔍 Master audit — Occasions & Tags · Brands · Variants (22 Aug)
 
 The owner asked for the four master screens to be read for logical and
