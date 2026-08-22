@@ -175,12 +175,35 @@ stopped every sales return on 21 August.
    return, payment, stock movement, payroll keep `deletedAt` and their
    numbers, and their number generators already step over a taken one.
 
-One helper carries the rule for everybody: `apps/api/src/common/erase.ts`
-(`eraseOrBury`). Applied to categories, brands, tags, tag groups, units,
-channels, segments, item types, item categories, item attributes, variant
-attributes and groups, capacity groups, add-ons and their groups and rules,
-craft points, category story rows, riders, courier services, delivery methods
-and slots, employee roles, access templates, and staff accounts.
+**Two halves, and BOTH are machine-wide — not a list anyone keeps by hand.**
+
+1. **Deleting** — `apps/api/src/common/erase.ts` (`eraseOrBury`), applied to
+   every master's `remove()`: categories, brands, tags, tag groups, units,
+   channels, segments, item types, item categories, item attributes, variant
+   attributes and groups, capacity groups, add-ons and their groups and rules,
+   craft points, category story rows, riders, courier services, delivery
+   methods and slots, employee roles, access templates, staff accounts.
+
+2. **Creating** — `apps/api/src/prisma/clear-buried-keys.extension.ts`, a
+   Prisma extension on `create` for **$allModels**. On a P2002 it asks whether
+   the row holding the key is already buried; if it is, and nothing points at
+   it, that row is erased and the create runs again. A live clash still errors
+   normally, and a buried-but-referenced row keeps the caller's own message.
+
+   ⚠️ **Why an extension and not another per-service guard.** Half 2 was first
+   written by hand in four services — and the owner hit the identical wall an
+   hour later on Variants & options, which was not on that list: *"akoi vul
+   barbar kn krso tmi."* `soft-delete.extension.ts` already carries the same
+   lesson about its own hand-kept list. A rule that must hold for twenty-odd
+   masters, plus every master built after today, belongs in one place that
+   cannot be forgotten.
+
+**Also fixed in the same pass:** `VariantAttribute.displayMode` had no door
+into the database — `updateAttr` never wrote the column, so Colour / Photo /
+Text switched on screen and reverted on refresh. And the Variants screen
+answered a failed create by putting a MADE-UP row on screen with a local id;
+every option typed into it was client-only and vanished on refresh, silently.
+Failures are shown now, and nothing is invented (the 19 Aug rule).
 
 **Also gone:** Destroy no longer asks the owner to type the item's code. It
 asks once, plainly, and Yes means yes — the fences that actually protect
