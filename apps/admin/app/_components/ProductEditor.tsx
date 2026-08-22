@@ -2280,6 +2280,28 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       is where category-wide questions are written now, and the storefront
       already shows those under the product's own.  */
 
+  /*  What each tab still owes before this product can go live.
+      The list mirrors `assertPublishReady` on the API (products.service.ts) —
+      the same six gates, read here so the owner sees them BEFORE pressing
+      Publish instead of after. Sections that hold no gate stay blank rather
+      than showing a tick they did not earn.  */
+  const sectionState: Partial<Record<SecId, "todo" | "done">> = {
+    basics: name.trim() && topCatId && skuV.trim() ? "done" : "todo",
+    media: photos.length > 0 ? "done" : "todo",
+    delivery: delivTypeIds.length > 0 ? "done" : "todo",
+    price: Number(sell) > 0 ? "done" : "todo",
+  };
+  /*  The named gates, so the Publish button can say what it is waiting for
+      rather than refusing and explaining afterwards.  */
+  const publishMissing = [
+    !name.trim() && "a name",
+    !topCatId && "a category",
+    !skuV.trim() && "a SKU",
+    Number(sell) > 0 ? null : "a price",
+    photos.length === 0 && "a photo",
+    delivTypeIds.length === 0 && "a delivery type",
+  ].filter((x): x is string => typeof x === "string");
+
   return (
     <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
       {/* top bar */}
@@ -2309,18 +2331,31 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           type="button"
           onClick={() => handleSave(false)}
           disabled={saving}
-          className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-orchid text-purple disabled:opacity-50"
+          className="border-2 border-lavender-deep bg-white text-[14px] px-5 py-3 rounded-[12px] font-bold hover:border-orchid text-purple disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save draft"}
         </button>
+        {/*  Bold and clear (CLAUDE.md §16). It also says what it is waiting
+             for: the API refuses a publish that is missing any of six things,
+             and the owner used to learn which one only by pressing and
+             reading the refusal. The ⓘ names them all; the rail shows which
+             tab they live on.  */}
         <button
           type="button"
           onClick={() => handleSave(true)}
-          disabled={saving}
-          className="bg-purple hover:bg-purple-deep text-white text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft disabled:opacity-50"
+          disabled={saving || publishMissing.length > 0}
+          title={publishMissing.length ? `Still needs ${publishMissing.join(", ")}` : "Put it on the website"}
+          className="bg-purple hover:bg-purple-deep text-white text-[14px] px-6 py-3 rounded-[12px] font-bold inline-flex items-center gap-2 shadow-soft disabled:opacity-40"
         >
           <Icon name="check" size={17} /> {saving ? "Saving…" : "Publish"}
         </button>
+        {publishMissing.length > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#8a5a00] shrink-0">
+            <span className="w-[7px] h-[7px] rounded-full" style={{ background: "#f0a323" }} />
+            {publishMissing.length} to go
+            <Info text={`Publishing needs ${publishMissing.join(", ")}. The amber dots on the left show which section each one is in.`} />
+          </span>
+        )}
       </div>
 
       {saveErr && (
@@ -2348,24 +2383,61 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       )}
 
       <div className="flex gap-6 items-start">
-        {/* section nav */}
-        <nav className="w-[196px] shrink-0 sticky top-[84px] hidden md:block">
-          {visibleSections.map(([id, label, icon]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setSec(id)}
-              className={
-                "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[11px] text-[13.5px] mb-1 text-left transition-colors " +
-                (sec === id
-                  ? "bg-white text-purple font-medium shadow-soft border border-lavender-deep"
-                  : "text-body-soft hover:bg-white/60 hover:text-purple")
-              }
-            >
-              <Icon name={icon} size={18} />
-              {label}
-            </button>
-          ))}
+        {/*  ── section nav — the house chooser panel (owner, 22 Aug 2026) ──
+             Deep purple, like Occasions & Tags, Brands and Variants. The
+             chosen section is the only light thing on it, which says "you are
+             here" without a border.
+
+             AND IT NOW ANSWERS THE QUESTION THE FORM KEPT RAISING. Six things
+             must be filled in before a product can publish, they are spread
+             over four tabs, and until now the only way to find out which one
+             was missing was to press Publish and read the refusal. The rail
+             carries a small amber dot on any section still holding something
+             back, and a tick when that section is done — so the answer is on
+             screen the whole time, in the place the eye already goes.  */}
+        <nav className="w-[208px] shrink-0 sticky top-[84px] hidden md:block rounded-[18px] shadow-soft overflow-hidden"
+          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
+            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
+              <Icon name="layers" size={14} />
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Sections</span>
+          </div>
+
+          <div className="px-3 pb-3.5 space-y-1">
+            {visibleSections.map(([id, label, icon]) => {
+              const on = sec === id;
+              const state = sectionState[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSec(id)}
+                  className={
+                    "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-[12px] text-[13.5px] text-left transition-colors " +
+                    (on ? "bg-white shadow-soft" : "hover:bg-white/10")
+                  }
+                >
+                  <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0"
+                    style={on ? { background: "#6d3a9c", color: "#fff" } : { background: "rgba(255,255,255,.13)", color: "#fff" }}>
+                    <Icon name={icon} size={15} />
+                  </span>
+                  <span className={"flex-1 min-w-0 truncate font-medium " + (on ? "text-purple" : "text-white")}>
+                    {label}
+                  </span>
+                  {state === "todo" && (
+                    <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: "#f0a323" }}
+                      title="Something here is still needed before this can be published" />
+                  )}
+                  {state === "done" && (
+                    <span className="shrink-0" style={{ color: on ? "#12a172" : "#7fd8b4" }} title="Ready to publish">
+                      <Icon name="check" size={13} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* main column */}
