@@ -81,6 +81,25 @@ export class InventoryController {
     return this.svc.issueReasons(purpose);
   }
 
+  @Patch('issue-reasons/:id')
+  updateIssueReason(
+    @Param('id') id: string,
+    @Body() dto: { label?: string },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.updateIssueReason(id, dto, actor ?? 'Admin');
+  }
+
+  @Delete('issue-reasons/:id')
+  deleteIssueReason(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.svc.deleteIssueReason(id, actor ?? 'Admin');
+  }
+
+  @Get('reports/issue-analysis')
+  issueAnalysis(@Query('days') days?: string) {
+    return this.svc.issueAnalysis(days ? Math.max(1, parseInt(days, 10)) : 30);
+  }
+
   @Post('issue-reasons')
   addIssueReason(
     @Body() dto: { purpose?: string; label?: string },

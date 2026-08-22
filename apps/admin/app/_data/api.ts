@@ -3565,6 +3565,28 @@ export const getIssueReasons = (purpose: "WASTAGE" | "GIFT") =>
   j<ApiIssueReason[]>(`/inventory/issue-reasons?purpose=${purpose}`);
 export const addIssueReason = (purpose: "WASTAGE" | "GIFT", label: string) =>
   j<ApiIssueReason>(`/inventory/issue-reasons`, { method: "POST", body: JSON.stringify({ purpose, label }) });
+export const updateIssueReason = (id: string, label: string) =>
+  j<ApiIssueReason>(`/inventory/issue-reasons/${id}`, { method: "PATCH", body: JSON.stringify({ label }) });
+export const deleteIssueReason = (id: string) =>
+  j<{ ok: boolean }>(`/inventory/issue-reasons/${id}`, { method: "DELETE" });
+
+/** the Wastage & Gift analysis — every angle in one call */
+export interface IssueAnalysis {
+  days: number;
+  totalWastagePaisa: number;
+  totalGiftPaisa: number;
+  entryCount: number;
+  series: { date: string; wastagePaisa: number; giftPaisa: number }[];
+  byMonth: { month: string; wastagePaisa: number; giftPaisa: number }[];
+  byReason: { reason: string; kind: string; paisa: number; count: number }[];
+  byWarehouse: { name: string; wastagePaisa: number; giftPaisa: number }[];
+  byItem: {
+    itemId: string; name: string; sku: string; imageUrl: string | null; unitName: string | null;
+    wastagePaisa: number; giftPaisa: number; wastageQtyMilli: number; giftQtyMilli: number;
+  }[];
+}
+export const getIssueAnalysis = (days = 30) =>
+  j<IssueAnalysis>(`/inventory/reports/issue-analysis?days=${days}`);
 
 export const patchInvSettings = (dto: Partial<Omit<InvSettings, "id">>) =>
   j<InvSettings>(`/inventory/settings`, { method: "PATCH", body: JSON.stringify(dto) });

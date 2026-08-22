@@ -9,7 +9,8 @@ import {
 } from "./ItemUI";
 import { ItemPicker } from "./PurchaseNewView";
 import {
-  listItems, formatTaka, fmtQty, toMilli, getIssueReasons, addIssueReason,
+  listItems, formatTaka, fmtQty, toMilli, getIssueReasons, addIssueReason, updateIssueReason, deleteIssueReason,
+  getIssueAnalysis, type IssueAnalysis, type ApiIssueReason,
   loadInvWarehousesSafe, loadInvTransfersSafe, loadInvIssuesSafe,
   postInvOpening, postInvTransfer, postInvIssue, postInvAdjust,
   type ApiItem, type ApiWarehouse, type InvIssue, type InvStockRow, type InvTransfer,
@@ -178,9 +179,6 @@ function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have
         lines.length === 0 ? <div className="mt-1">{nothingLeft}</div> : null
       ) : (
         <>
-          {lines.length === 0 && (
-            <p className="text-[13px] text-body-soft mt-1 mb-2">Nothing on the sheet yet — press <b>Add items</b> and pick from your shelf.</p>
-          )}
           <button type="button" onClick={() => setPickOpen(true)}
             className="text-[12.5px] font-medium inline-flex items-center gap-1.5 mt-1"
             style={{ color: ACCENT }}>
@@ -542,6 +540,9 @@ export function InvTransferView() {
 export function InvIssueView() {
   const { items, byId, whs, isDemo, reload } = useInvBase();
   const [kind, setKind] = useState<"WASTAGE" | "GIFT">("WASTAGE");
+  /*  Entry writes the loss; Analysis reads it back from every angle
+      (owner, 22 Aug: "sob angle theke jen analysis kra jay")  */
+  const [tab, setTab] = useState<"entry" | "analysis">("entry");
   const [warehouseId, setWarehouseId] = useState("");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
@@ -587,14 +588,16 @@ export function InvIssueView() {
 
   /*  DEC-GBL-004 — the reasons are the shop's, not the screen's. A list nobody
       can add to goes stale (the same lesson as return reasons, same day).  */
-  const [reasonRows, setReasonRows] = useState<{ WASTAGE: string[]; GIFT: string[] }>({ WASTAGE: [], GIFT: [] });
+  const [reasonRows, setReasonRows] = useState<{ WASTAGE: ApiIssueReason[]; GIFT: ApiIssueReason[] }>({ WASTAGE: [], GIFT: [] });
   const [newReasonOpen, setNewReasonOpen] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
+  const [editReason, setEditReason] = useState<{ id: string; label: string } | null>(null);
+  const [armDelete, setArmDelete] = useState("");
   useEffect(() => {
     (async () => {
       try {
         const [w, g] = await Promise.all([getIssueReasons("WASTAGE"), getIssueReasons("GIFT")]);
-        setReasonRows({ WASTAGE: w.map((r) => r.label), GIFT: g.map((r) => r.label) });
+        setReasonRows({ WASTAGE: w, GIFT: g });
       } catch { /* the chips simply stay empty; free-text note still works */ }
     })();
   }, []);
@@ -602,10 +605,29 @@ export function InvIssueView() {
     const label = reasonDraft.trim();
     if (!label) return;
     try {
-      await addIssueReason(kind, label);
-      setReasonRows((m) => ({ ...m, [kind]: [...m[kind], label] }));
+      const row = await addIssueReason(kind, label);
+      setReasonRows((m) => ({ ...m, [kind]: [...m[kind], row] }));
       setReason(label); setReasonDraft(""); setNewReasonOpen(false);
     } catch (e) { setErr(msg(e, "Could not add that reason")); }
+  }
+  async function renameReason() {
+    if (!editReason) return;
+    const label = editReason.label.trim();
+    if (!label) return;
+    try {
+      await updateIssueReason(editReason.id, label);
+      setReasonRows((m) => ({ ...m, [kind]: m[kind].map((r) => (r.id === editReason.id ? { ...r, label } : r)) }));
+      if (reasonRows[kind].find((r) => r.id === editReason.id)?.label === reason) setReason(label);
+      setEditReason(null);
+    } catch (e) { setErr(msg(e, "Could not rename that reason")); }
+  }
+  async function removeReason(id: string) {
+    if (armDelete !== id) { setArmDelete(id); window.setTimeout(() => setArmDelete(""), 2500); return; }
+    try {
+      await deleteIssueReason(id);
+      setReasonRows((m) => ({ ...m, [kind]: m[kind].filter((r) => r.id !== id) }));
+      setArmDelete("");
+    } catch (e) { setErr(msg(e, "Could not delete that reason")); }
   }
   const reasons = reasonRows[kind];
   const totalPaisa = validLines(lines).reduce((s, l) => {
@@ -646,6 +668,22 @@ export function InvIssueView() {
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && <OkBar text={ok} onClose={() => setOk("")} />}
 
+      <div className="flex items-center gap-2 mb-4">
+        {([["entry", "New entry"], ["analysis", "Analysis"]] as const).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className="text-[13px] font-medium px-4 py-2 rounded-[10px] border"
+            style={tab === id
+              ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
+              : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "analysis" && <IssueAnalysisView />}
+
+      {tab === "entry" && (
+      <>
       <ActionShell
         sheet={
           <>
@@ -669,15 +707,39 @@ export function InvIssueView() {
 
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-lavender-deep">
               <span className="text-[12.5px] text-body-soft mr-1">Why</span>
-              {reasons.map((r) => (
-                <button key={r} type="button" onClick={() => setReason(r)}
-                  className="text-[12.5px] font-medium px-3 py-1.5 rounded-full border transition-colors"
-                  style={reason === r
-                    ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                    : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
-                  {r}
-                </button>
-              ))}
+              {reasons.map((r) =>
+                editReason?.id === r.id ? (
+                  <span key={r.id} className="flex items-center gap-1">
+                    <input className="ipt h-[30px] text-[12.5px]" style={{ width: 150 }} autoFocus
+                      value={editReason.label}
+                      onChange={(e) => setEditReason({ id: r.id, label: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === "Enter") renameReason(); if (e.key === "Escape") setEditReason(null); }} />
+                    <button type="button" onClick={renameReason}
+                      className="text-white text-[11.5px] font-medium px-2 h-[30px] rounded-[8px]" style={{ background: ACCENT }}>Save</button>
+                  </span>
+                ) : (
+                  /*  the pencil and the cross live INSIDE the chip and only show
+                      on hover (owner, 22 Aug: "icon ar pichone mouse dile dekha
+                      jabe") — the row stays clean until you reach for it  */
+                  <span key={r.id} className="group inline-flex items-center rounded-full border transition-colors"
+                    style={reason === r.label
+                      ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
+                      : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+                    <button type="button" onClick={() => setReason(r.label)}
+                      className="text-[12.5px] font-medium pl-3 pr-1.5 py-1.5">{r.label}</button>
+                    <span className="hidden group-hover:inline-flex items-center pr-1.5 gap-0.5">
+                      <button type="button" title="Rename"
+                        onClick={() => setEditReason({ id: r.id, label: r.label })}
+                        className="p-0.5 opacity-70 hover:opacity-100"><Icon name="edit" size={11} /></button>
+                      <button type="button" title={armDelete === r.id ? "Press again to delete" : "Delete"}
+                        onClick={() => removeReason(r.id)}
+                        className={"px-0.5 text-[13px] leading-none " + (armDelete === r.id ? "text-[#ff8a8a] font-bold" : "opacity-70 hover:opacity-100")}>
+                        ×
+                      </button>
+                    </span>
+                  </span>
+                ),
+              )}
               {newReasonOpen ? (
                 <span className="flex items-center gap-1.5">
                   <input className="ipt h-[32px] text-[12.5px]" style={{ width: 180 }} autoFocus
@@ -776,6 +838,200 @@ export function InvIssueView() {
           </div>
         ))}
       </DataTable>
+      </>
+      )}
+    </div>
+  );
+}
+
+/*  ============================================================ ANALYSIS
+    The loss, read back from every angle: by day, by item, by reason, by
+    store, by month — value and count, wastage red, gift pink.  */
+
+const W_RED = "#c0392b";
+const G_PINK = "#cf43ea";
+
+function IssueAnalysisView() {
+  const [days, setDays] = useState(30);
+  const [a, setA] = useState<IssueAnalysis | null>(null);
+  useEffect(() => {
+    getIssueAnalysis(days).then(setA).catch(() => setA(null));
+  }, [days]);
+
+  if (!a) return <p className="text-[13px] text-body-soft">Loading…</p>;
+
+  const total = a.totalWastagePaisa + a.totalGiftPaisa;
+  const maxDay = Math.max(1, ...a.series.map((d) => d.wastagePaisa + d.giftPaisa));
+  const topItems = a.byItem.slice(0, 8);
+  const maxItem = Math.max(1, ...topItems.map((i) => i.wastagePaisa + i.giftPaisa));
+  const maxReason = Math.max(1, ...a.byReason.map((r) => r.paisa));
+  const card = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
+  const head = (label: string) => (
+    <div className="pl-4 pr-3 py-2" style={{ background: ACCENT }}>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-white">{label}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        {[7, 30, 90, 365].map((d) => (
+          <button key={d} onClick={() => setDays(d)}
+            className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border"
+            style={days === d
+              ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
+              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+            {d === 365 ? "1 year" : `${d} days`}
+          </button>
+        ))}
+      </div>
+
+      {/* ---- the four numbers ---- */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { l: "Wasted", v: formatTaka(a.totalWastagePaisa), c: W_RED, bg: "#fdecea", icon: "trash" },
+          { l: "Gifted", v: formatTaka(a.totalGiftPaisa), c: G_PINK, bg: "#fbeafe", icon: "heart" },
+          { l: "Total lost", v: formatTaka(total), c: "#470066", bg: "#f5eafb", icon: "chart" },
+          { l: "Entries", v: String(a.entryCount), c: "#2563a8", bg: "#e8f0fa", icon: "layers" },
+        ].map((k) => (
+          <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
+            <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
+              <Icon name={k.icon} size={16} />
+            </span>
+            <span>
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: k.c }}>{k.l}</span>
+              <b className="block text-[18px] font-display leading-[1.2]" style={{ color: k.c, fontVariantNumeric: "tabular-nums" }}>{k.v}</b>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        {/* ---- day by day ---- */}
+        <div className={card + " overflow-hidden"}>
+          {head("Day by day")}
+          <div className="px-4 py-4">
+            {a.series.length === 0 && <p className="text-[13px] text-body-soft m-0">Nothing in this window.</p>}
+            <div className="flex items-end gap-[3px]" style={{ height: 140 }}>
+              {a.series.map((d) => {
+                const w = Math.round((d.wastagePaisa / maxDay) * 128);
+                const g = Math.round((d.giftPaisa / maxDay) * 128);
+                return (
+                  <div key={d.date} className="flex-1 flex flex-col justify-end items-stretch group relative" style={{ minWidth: 6 }}
+                    title={`${d.date} — wastage ${formatTaka(d.wastagePaisa)} · gift ${formatTaka(d.giftPaisa)}`}>
+                    <span style={{ height: g, background: G_PINK, borderRadius: "3px 3px 0 0" }} />
+                    <span style={{ height: w, background: W_RED, borderRadius: g ? 0 : "3px 3px 0 0" }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3 text-[11.5px] text-body-soft">
+              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: W_RED }} /> Wastage</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: G_PINK }} /> Gift</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ---- month by month ---- */}
+        <div className={card + " overflow-hidden"}>
+          {head("Month by month")}
+          <div className="px-4 py-3">
+            {a.byMonth.length === 0 && <p className="text-[13px] text-body-soft m-0 py-1">Nothing yet.</p>}
+            {a.byMonth.map((m) => (
+              <div key={m.month} className="flex items-center justify-between py-2 border-b border-lavender-deep/50 last:border-0">
+                <b className="text-[13px] text-purple">{m.month}</b>
+                <span className="flex gap-2 text-[12px]">
+                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#fdecea", color: W_RED }}>
+                    wasted <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.wastagePaisa)}</b>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#fbeafe", color: G_PINK }}>
+                    gifted <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.giftPaisa)}</b>
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {a.byWarehouse.length > 0 && (
+            <>
+              {head("Store by store")}
+              <div className="px-4 py-3">
+                {a.byWarehouse.map((w) => (
+                  <div key={w.name} className="flex items-center justify-between py-1.5 text-[12.5px]">
+                    <span className="text-body">{w.name}</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                      <b style={{ color: W_RED }}>{formatTaka(w.wastagePaisa)}</b>
+                      <span className="text-body-soft"> · </span>
+                      <b style={{ color: G_PINK }}>{formatTaka(w.giftPaisa)}</b>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ---- which item bleeds ---- */}
+        <div className={card + " overflow-hidden"}>
+          {head("Which item, how much")}
+          <div className="px-4 py-3">
+            {topItems.length === 0 && <p className="text-[13px] text-body-soft m-0 py-1">Nothing yet.</p>}
+            {topItems.map((i) => {
+              const sum = i.wastagePaisa + i.giftPaisa;
+              return (
+                <div key={i.itemId} className="py-2 border-b border-lavender-deep/50 last:border-0">
+                  <div className="flex items-center gap-2.5">
+                    <ItemThumb item={i} size={30} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12.5px] font-medium text-body truncate">{i.name}</span>
+                      <span className="block text-[10.5px] text-body-soft">
+                        {i.wastageQtyMilli > 0 ? `wasted ${fmtQty(i.wastageQtyMilli)}` : ""}
+                        {i.wastageQtyMilli > 0 && i.giftQtyMilli > 0 ? " · " : ""}
+                        {i.giftQtyMilli > 0 ? `gifted ${fmtQty(i.giftQtyMilli)}` : ""}
+                        {i.unitName ? ` ${i.unitName}` : ""}
+                      </span>
+                    </span>
+                    <b className="text-[13px] shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(sum)}</b>
+                  </div>
+                  <div className="flex mt-1.5 rounded-full overflow-hidden" style={{ height: 7, background: "#f2eef6" }}>
+                    <span style={{ width: `${(i.wastagePaisa / maxItem) * 100}%`, background: W_RED }} />
+                    <span style={{ width: `${(i.giftPaisa / maxItem) * 100}%`, background: G_PINK }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ---- why ---- */}
+        <div className={card + " overflow-hidden"}>
+          {head("Why — reason by reason")}
+          <div className="px-4 py-3">
+            {a.byReason.length === 0 && <p className="text-[13px] text-body-soft m-0 py-1">Nothing yet.</p>}
+            {a.byReason.map((r) => (
+              <div key={`${r.kind}:${r.reason}`} className="py-2 border-b border-lavender-deep/50 last:border-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12.5px] text-body min-w-0 truncate">
+                    {r.reason}
+                    <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle"
+                      style={r.kind === "WASTAGE"
+                        ? { background: "#fdecea", color: W_RED }
+                        : { background: "#fbeafe", color: G_PINK }}>
+                      {r.kind === "WASTAGE" ? "WASTE" : "GIFT"}
+                    </span>
+                  </span>
+                  <span className="text-[12px] text-body-soft shrink-0">
+                    {r.count}× · <b className="text-body" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(r.paisa)}</b>
+                  </span>
+                </div>
+                <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 6, background: "#f2eef6" }}>
+                  <span className="block h-full" style={{ width: `${(r.paisa / maxReason) * 100}%`, background: r.kind === "WASTAGE" ? W_RED : G_PINK }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

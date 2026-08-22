@@ -333,6 +333,33 @@ export class InventoryService {
     }
   }
 
+  async updateIssueReason(id: string, patch: { label?: string }, actor: string) {
+    const t = this.reasonTable;
+    if (!t) throw new BadRequestException('Reasons are not set up yet');
+    const label = (patch.label ?? '').trim();
+    if (!label) throw new BadRequestException('Give the reason a name');
+    const tt = t as unknown as { update(a: unknown): Promise<unknown> };
+    try {
+      const row = await tt.update({ where: { id }, data: { label } });
+      await this.audit.record({ entityType: 'ReasonMaster', entityId: id, action: 'UPDATE', actorName: actor });
+      return row;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')
+        throw new BadRequestException('That reason already exists');
+      throw e;
+    }
+  }
+
+  /*  Deleting a reason is safe: an issue stores the reason as TEXT on its own
+      row, so history keeps the word even after the chip is gone.  */
+  async deleteIssueReason(id: string, actor: string) {
+    const t = this.reasonTable as unknown as { update(a: unknown): Promise<unknown> } | undefined;
+    if (!t) throw new BadRequestException('Reasons are not set up yet');
+    await t.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.audit.record({ entityType: 'ReasonMaster', entityId: id, action: 'DELETE', actorName: actor });
+    return { ok: true };
+  }
+
   private async nextNo(prefix: 'TRF' | 'WST' | 'GFT' | 'STK', skip = 0): Promise<string> {
     let lastNo: string | undefined;
     if (prefix === 'TRF') {
@@ -2139,6 +2166,78 @@ export class InventoryService {
       totalGiftPaisa: issues
         .filter((i) => i.kind === 'GIFT')
         .reduce((s, x) => s + x.totalValuePaisa, 0),
+    };
+  }
+
+  /**
+   * The Wastage & Gift analysis (owner, 22 Aug): which item bleeds the most,
+   * which reason, which store, which day and month — value AND count, split by
+   * kind. One query with lines, shaped here; the screen only draws.
+   */
+  async issueAnalysis(days = 30) {
+    const from = new Date(Date.now() - days * 24 * 3600 * 1000);
+    from.setHours(0, 0, 0, 0);
+    const issues = await this.prisma.db.stockIssue.findMany({
+      where: { createdAt: { gte: from }, status: 'POSTED' },
+      include: {
+        lines: { include: { item: { select: { id: true, name: true, sku: true, imageUrl: true, unit: { select: { name: true } } } } } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const whs = await this.prisma.db.warehouse.findMany({ select: { id: true, name: true } });
+    const whName = new Map(whs.map((w) => [w.id, w.name] as const));
+
+    const series = new Map<string, { wastagePaisa: number; giftPaisa: number }>();
+    const byMonth = new Map<string, { wastagePaisa: number; giftPaisa: number }>();
+    const byReason = new Map<string, { kind: string; paisa: number; count: number }>();
+    const byWarehouse = new Map<string, { wastagePaisa: number; giftPaisa: number }>();
+    const byItem = new Map<string, {
+      itemId: string; name: string; sku: string; imageUrl: string | null; unitName: string | null;
+      wastagePaisa: number; giftPaisa: number; wastageQtyMilli: number; giftQtyMilli: number;
+    }>();
+
+    for (const i of issues) {
+      const day = i.createdAt.toISOString().slice(0, 10);
+      const month = day.slice(0, 7);
+      const w = i.kind === 'WASTAGE';
+      const bump = (m: Map<string, { wastagePaisa: number; giftPaisa: number }>, k: string, v: number) => {
+        const row = m.get(k) ?? { wastagePaisa: 0, giftPaisa: 0 };
+        if (w) row.wastagePaisa += v; else row.giftPaisa += v;
+        m.set(k, row);
+      };
+      bump(series, day, i.totalValuePaisa);
+      bump(byMonth, month, i.totalValuePaisa);
+      bump(byWarehouse, whName.get(i.warehouseId) ?? '?', i.totalValuePaisa);
+      const rk = `${i.kind}:${i.reason ?? 'No reason given'}`;
+      const rr = byReason.get(rk) ?? { kind: i.kind, paisa: 0, count: 0 };
+      rr.paisa += i.totalValuePaisa; rr.count += 1;
+      byReason.set(rk, rr);
+      for (const l of i.lines) {
+        const it = byItem.get(l.itemId) ?? {
+          itemId: l.itemId, name: l.item.name, sku: l.item.sku,
+          imageUrl: l.item.imageUrl ?? null, unitName: l.item.unit?.name ?? null,
+          wastagePaisa: 0, giftPaisa: 0, wastageQtyMilli: 0, giftQtyMilli: 0,
+        };
+        if (w) { it.wastagePaisa += l.valuePaisa; it.wastageQtyMilli += l.qtyMilli; }
+        else { it.giftPaisa += l.valuePaisa; it.giftQtyMilli += l.qtyMilli; }
+        byItem.set(l.itemId, it);
+      }
+    }
+
+    return {
+      days,
+      totalWastagePaisa: issues.filter((i) => i.kind === 'WASTAGE').reduce((s2, x) => s2 + x.totalValuePaisa, 0),
+      totalGiftPaisa: issues.filter((i) => i.kind === 'GIFT').reduce((s2, x) => s2 + x.totalValuePaisa, 0),
+      entryCount: issues.length,
+      series: [...series.entries()].map(([date, v]) => ({ date, ...v })),
+      byMonth: [...byMonth.entries()].map(([month, v]) => ({ month, ...v })),
+      byReason: [...byReason.entries()]
+        .map(([k, v]) => ({ reason: k.split(':').slice(1).join(':'), ...v }))
+        .sort((a, b) => b.paisa - a.paisa),
+      byWarehouse: [...byWarehouse.entries()].map(([name, v]) => ({ name, ...v })),
+      byItem: [...byItem.values()].sort(
+        (a, b) => b.wastagePaisa + b.giftPaisa - (a.wastagePaisa + a.giftPaisa),
+      ),
     };
   }
 
