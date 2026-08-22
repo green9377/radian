@@ -36,6 +36,8 @@ interface NavItem {
   iconUrl?: string | null;
   /** hidden in the nationwide zone — nothing here ships by courier */
   dhakaOnly?: boolean;
+  /** nothing published under it yet — a menu entry that leads to an empty page */
+  empty?: boolean;
   hot?: boolean;
 }
 
@@ -67,6 +69,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
             href: `/${c.slug}`,
             iconUrl: c.iconUrl,
             dhakaOnly: c.nationwideCount === 0,
+            empty: c.productCount === 0,
           })),
       );
     });
@@ -75,7 +78,14 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
     };
   }, []);
 
-  const visible = nav.filter((c) => zone !== "bangladesh" || !c.dhakaOnly);
+  /*  An EMPTY category is not put in the menu (22 Aug 2026). `showOnNavbar`
+      says the owner WANTS it there; nothing published under it yet means
+      pressing it lands the shopper on a page with no products — the worst
+      thing a menu can do. It appears by itself the moment the first product
+      goes live, so nothing has to be remembered.  */
+  const visible = nav.filter(
+    (c) => !c.empty && (zone !== "bangladesh" || !c.dhakaOnly),
+  );
 
   // An empty <nav> still occupies its padding, so the header keeps a blank
   // strip under it and reads as a rendering fault. Common in the nationwide

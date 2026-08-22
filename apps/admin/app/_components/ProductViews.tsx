@@ -1923,7 +1923,16 @@ export function VariantAttributes() {
                 })}
               </div>
               <button
-                onClick={() => { removeAttr(open.id); setSelId(null); }}
+                /*  It asked NOTHING before 22 Aug 2026 — one click and a whole
+                    colour list with all its options was gone, with no way back.
+                    Every other delete in the panel asks once; this one did not.  */
+                onClick={() => {
+                  const n = open.values.length;
+                  const what = `Delete the “${open.name || "Untitled"}” list${n ? ` and its ${n} option${n === 1 ? "" : "s"}` : ""}?`;
+                  if (!confirm(what)) return;
+                  removeAttr(open.id);
+                  setSelId(null);
+                }}
                 title="Delete this list"
                 className="w-9 h-9 grid place-items-center rounded-[10px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
               >
