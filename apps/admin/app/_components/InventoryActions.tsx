@@ -1118,6 +1118,9 @@ export function InvStocktakeView() {
   const [warehouseId, setWarehouseId] = useState("");
   const [counting, setCounting] = useState(false);
   const [rows, setRows] = useState<InvStockRow[]>([]);
+  /** everything countable — the pool "Found something else" picks from */
+  const [allRows, setAllRows] = useState<InvStockRow[]>([]);
+  const [foundOpen, setFoundOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1139,8 +1142,18 @@ export function InvStocktakeView() {
     setBusy(true); setErr("");
     try {
       const r = await loadInvStockSafe();
-      // MAKE_TO_ORDER never holds stock — nothing to count (DEC-ITM-004)
-      setRows(r.rows.filter((x) => x.assemblyMode !== "MAKE_TO_ORDER"));
+      /*  The sheet is THIS store's shelf, not the whole catalogue (owner,
+          22 Aug — the same rule as the pickers). MAKE_TO_ORDER never holds
+          stock (DEC-ITM-004). Anything the ledger says is 0 here is left out;
+          if it turns up on the shelf anyway, "Found something else" adds it.  */
+      setAllRows(r.rows.filter((x) => x.assemblyMode !== "MAKE_TO_ORDER"));
+      setRows(
+        r.rows.filter(
+          (x) =>
+            x.assemblyMode !== "MAKE_TO_ORDER" &&
+            (x.perWarehouse.find((p) => p.warehouseId === warehouseId)?.qtyMilli ?? 0) !== 0,
+        ),
+      );
       setCounts({});
       setCounting(true);
     } finally { setBusy(false); }
@@ -1256,11 +1269,39 @@ export function InvStocktakeView() {
             })}
           </div>
 
+          {/*  the shelf sometimes holds what the ledger says is not there —
+               a returned item nobody logged, a box found behind the counter  */}
+          <button type="button" onClick={() => setFoundOpen(true)}
+            className="text-[12.5px] font-medium inline-flex items-center gap-1.5 mt-3"
+            style={{ color: ACCENT }}>
+            <Icon name="plus" size={12} /> Found something else
+          </button>
+
           <div className="flex items-center gap-3 mt-4 pt-3 border-t border-lavender-deep">
             <span className="text-[12.5px] text-body-soft shrink-0">Note</span>
             <input className="ipt w-full" placeholder="e.g. Weekly count"
               value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+
+          {foundOpen && (
+            <ItemPicker
+              title="Found on the shelf"
+              items={allRows
+                .filter((r) => !rows.some((x) => x.itemId === r.itemId))
+                .map((r) => ({
+                  id: r.itemId, sku: r.sku, name: r.name, imageUrl: r.imageUrl ?? null,
+                  itemType: "RAW", unit: { name: r.unitName },
+                } as unknown as ApiItem))}
+              onClose={() => setFoundOpen(false)}
+              onDone={(picked) => {
+                const add = picked
+                  .map((p) => allRows.find((r) => r.itemId === p.item.id))
+                  .filter((r): r is InvStockRow => !!r);
+                setRows([...rows, ...add]);
+                setFoundOpen(false);
+              }}
+            />
+          )}
         </div>
 
         <div className="grid gap-3">
