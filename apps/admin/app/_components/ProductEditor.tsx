@@ -268,7 +268,7 @@ function StoryPhone({
 }) {
   const taka = (v: string) => "৳ " + (Number(v) || 0).toLocaleString("en-IN");
   return (
-    <div className="w-[300px] shrink-0 hidden xl:block sticky top-[84px]">
+    <div className="w-[320px] shrink-0 hidden lg:block sticky top-[84px]">
       <div className="text-[11px] font-bold tracking-[0.07em] uppercase text-purple/55 mb-2 px-1">
         What the customer sees
       </div>
@@ -6520,8 +6520,11 @@ No bundle products yet — add them on{" "}
           </div>
         </div>
 
-        {/* live preview */}
-        <aside className="w-[300px] shrink-0 sticky top-[84px] hidden lg:block">
+        {/*  ⚠️ Hidden on the story tab. That tab grew its OWN preview — the
+             phone the owner picked — and two previews of the same product,
+             side by side, is exactly the crowding this whole sweep is about.
+             One picture of the shop at a time.  */}
+        <aside className={"w-[300px] shrink-0 sticky top-[84px] " + (sec === "story" ? "hidden" : "hidden lg:block")}>
           <div className="text-[13px] text-body-soft font-medium uppercase tracking-[0.06em] mb-2.5 px-1">
             Live preview
           </div>
