@@ -38,16 +38,21 @@ const rnd = () => Math.random().toString(36).slice(2, 9);
 type Group = UiTagGroup;
 type Tag = UiTag;
 
-type GroupTheme = { c: string; bg: string; icon: string };
+/*  The palette is the BRAND's, not a rainbow (owner, 22 Aug 2026: "color jen
+    amder brand color ar maje hoy"). Every group wears purple, orchid, pink or
+    rose gold — four shades of one family, so the page reads as one thing while
+    the groups stay apart. `c` inks the icon and the name, `bg` is the tint the
+    card sits on, `edge` is the coloured spine down its left side.  */
+type GroupTheme = { c: string; bg: string; edge: string; icon: string };
 const SYSTEM_THEME: Record<string, GroupTheme> = {
-  occasions: { c: "#8b3fb0", bg: "#f3e8fb", icon: "sparkle" },
-  recipients: { c: "#b5642f", bg: "#f8efe8", icon: "user" },
+  occasions: { c: "#7a2ea8", bg: "#f6ecfb", edge: "#a94fd0", icon: "sparkle" },
+  recipients: { c: "#a4566a", bg: "#fbeef0", edge: "#c9788a", icon: "user" },
 };
 const CUSTOM_THEMES: GroupTheme[] = [
-  { c: "#6d3a9c", bg: "#f2e9fb", icon: "tag" },
-  { c: "#b5546b", bg: "#fbecef", icon: "heart" },
-  { c: "#7a4fd0", bg: "#eee9fc", icon: "star" },
-  { c: "#9c4dab", bg: "#f7e9fb", icon: "grid" },
+  { c: "#470066", bg: "#f3ebf8", edge: "#6d3a9c", icon: "tag" },
+  { c: "#b76e79", bg: "#fbf0f1", edge: "#d29aa2", icon: "heart" },
+  { c: "#8b3fb0", bg: "#f7eafc", edge: "#cf43ea", icon: "star" },
+  { c: "#5c3b8a", bg: "#efebf9", edge: "#8b6fc4", icon: "grid" },
 ];
 
 /** background style for a tile/thumb — uploaded image if present, else gradient */
@@ -309,15 +314,16 @@ export default function TagsView() {
 
       {/*  Four tall coloured boxes became one quiet strip. They are a glance, not
            the subject of the page — the tags are.  */}
-      <div className="inline-flex items-stretch flex-wrap gap-0 rounded-[14px] border border-lavender-deep bg-white shadow-soft overflow-hidden mb-6">
+      <div className="inline-flex items-stretch flex-wrap gap-0 rounded-[14px] border border-lavender-deep shadow-soft overflow-hidden mb-6"
+        style={{ background: "linear-gradient(180deg,#ffffff,#fdfaff)" }}>
         {[
-          { l: "Groups", v: stats.groups, c: "#7a2ea8" },
+          { l: "Groups", v: stats.groups, c: "#470066" },
           { l: "Tags", v: stats.tags, c: "#8b3fb0" },
-          { l: "Unused", v: stats.empty, c: stats.empty ? "#d98a0f" : "#12a172", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
-          { l: "Hidden", v: stats.hidden, c: stats.hidden ? "#b5642f" : "#12a172", tip: "Groups and tags switched off. They stay in the admin and disappear from the shop." },
+          { l: "Unused", v: stats.empty, c: stats.empty ? "#b76e79" : "#12a172", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
+          { l: "Hidden", v: stats.hidden, c: stats.hidden ? "#b76e79" : "#12a172", tip: "Groups and tags switched off. They stay in the admin and disappear from the shop." },
         ].map((k, i) => (
           <div key={i} className={"px-5 py-2.5 flex items-center gap-2.5 " + (i ? "border-l border-lavender-deep" : "")}>
-            <span className="font-display text-[22px] leading-none" style={{ color: k.c }}>{k.v}</span>
+            <span className="font-display text-[22px] leading-none tabular-nums" style={{ color: k.c }}>{k.v}</span>
             <span className="text-[12px] font-medium text-body-soft inline-flex items-center gap-1">
               {k.l}
               {k.tip && <Info text={k.tip} />}
@@ -327,80 +333,85 @@ export default function TagsView() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
-        {/*  ---------------- LEFT: group list ----------------
-             A DEEP PANEL, not a column of loose cards (owner, 22 Aug 2026:
-             "group section ta alada color kro"). The two panes were both white
-             on lavender, so the eye had to work out which side it was on. Dark
-             purple here says "this is the chooser" in one glance, and the
-             selected row is the only light thing on it — the strongest possible
-             signal for "you are here", with no ring or border needed.  */}
-        <div className="xl:sticky xl:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
-          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
-          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
-            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
-              <Icon name="layers" size={14} />
-            </span>
-            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Groups</span>
-            <span className="ml-auto text-[12px] text-white/45">{sortedGroups.length}</span>
+        {/*  ---------------- LEFT: group cards ----------------
+             Cards again, in brand colours (owner, 22 Aug 2026 — the dark panel
+             was tried and turned down: "age jevabe card style a chilo sevabe
+             kro, oita sundor"). Each card wears its group's own shade of the
+             brand family with a coloured spine down the left. The chosen one
+             lifts: full tint, a thicker spine, a ring and a real shadow — it
+             comes forward rather than merely being outlined.  */}
+        <div className="xl:sticky xl:top-4 self-start space-y-2.5">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-[11px] font-bold tracking-[0.09em] uppercase text-purple/55">Groups</span>
+            <span className="h-px flex-1 bg-lavender-deep" />
+            <span className="text-[11.5px] font-semibold text-purple/40 tabular-nums">{sortedGroups.length}</span>
           </div>
 
-          <div className="px-3 pb-3 space-y-1.5">
-            {sortedGroups.map((g, gi) => {
-              const th = themeFor(g);
-              const on = g.id === selectedId;
-              const count = tagsOf(g.id).length;
-              return (
-                <div key={g.id}
-                  className={"group/row grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "bg-white shadow-soft" : "hover:bg-white/10")}
-                  onClick={() => setSelectedId(g.id)}>
-                  <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
-                    style={{ background: on ? th.c : "rgba(255,255,255,.14)" }}>
-                    <Icon name={th.icon} size={15} />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{g.name}</span>
-                      {!g.isActive && (
-                        <span className="shrink-0" title="Hidden from the storefront">
-                          <Icon name="eye" size={12} className={on ? "text-[#b45309]" : "text-white/50"} />
-                        </span>
-                      )}
-                    </div>
-                    <div className={"text-[12.5px] " + (on ? "text-body-soft" : "text-white/45")}>
-                      {count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}
-                    </div>
+          {sortedGroups.map((g, gi) => {
+            const th = themeFor(g);
+            const on = g.id === selectedId;
+            const count = tagsOf(g.id).length;
+            return (
+              <div key={g.id}
+                className={"group/row relative grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[14px] pl-3.5 pr-2.5 py-3 cursor-pointer overflow-hidden transition-all " +
+                  (on ? "shadow-soft" : "hover:-translate-y-px hover:shadow-soft")}
+                style={{
+                  background: on ? th.bg : "#fff",
+                  border: `1px solid ${on ? th.edge : "var(--color-lavender-deep)"}`,
+                  boxShadow: on ? `0 0 0 3px ${th.bg}, 0 6px 18px rgba(71,0,102,.10)` : undefined,
+                  opacity: g.isActive ? 1 : 0.72,
+                }}
+                onClick={() => setSelectedId(g.id)}>
+                {/* the spine — the group's colour, thicker when chosen */}
+                <span className="absolute left-0 top-0 bottom-0 transition-all"
+                  style={{ width: on ? 5 : 3, background: th.edge }} />
+
+                <span className="w-[34px] h-[34px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
+                  style={on
+                    ? { background: th.edge, color: "#fff" }
+                    : { background: th.bg, color: th.c }}>
+                  <Icon name={th.icon} size={16} />
+                </span>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-[14.5px] truncate" style={{ color: on ? th.c : "var(--color-purple)" }}>{g.name}</span>
+                    {!g.isActive && (
+                      <span className="shrink-0 text-[#b45309]" title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
+                    )}
                   </div>
-                  {/*  The arrows only appear on the row under the cursor. Two of
-                       them on every row, all the time, is more furniture than the
-                       names themselves.  */}
-                  <div className={"flex flex-col shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
-                    onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => moveGroup(g, "up")} disabled={gi === 0}
-                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move up">
-                      <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
-                    </button>
-                    <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1}
-                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move down">
-                      <Icon name="chevronDown" size={13} />
-                    </button>
+                  <div className="text-[12.5px] text-body-soft mt-0.5">
+                    {count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/*  The arrows only appear on the row under the cursor, or on the
+                     chosen one. Two of them on every card, always, is more
+                     furniture than the names themselves.  */}
+                <div className={"flex flex-col shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
+                  onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => moveGroup(g, "up")} disabled={gi === 0}
+                    className="text-body-soft hover:text-purple disabled:opacity-20 leading-none" title="Move up">
+                    <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
+                  </button>
+                  <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1}
+                    className="text-body-soft hover:text-purple disabled:opacity-20 leading-none" title="Move down">
+                    <Icon name="chevronDown" size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
           {/* add group */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 pb-3.5 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,.1)" }}>
-            <input
-              className="w-full rounded-[10px] px-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
-              style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
-              placeholder="New group…" value={groupDraft}
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-0.5">
+            <input className="ipt" style={{ minHeight: 40 }} placeholder="New group…" value={groupDraft}
               onChange={(e) => setGroupDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addGroup(); }} />
             <button onClick={addGroup} disabled={!groupDraft.trim()}
-              className="bg-orchid hover:bg-white hover:text-purple disabled:opacity-30 text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
+              className="bg-purple hover:bg-purple-deep disabled:opacity-30 text-white h-[40px] w-[40px] rounded-[11px] grid place-items-center shrink-0 transition-colors"
               title="Add group">
-              <Icon name="plus" size={16} />
+              <Icon name="plus" size={17} />
             </button>
           </div>
         </div>
@@ -466,17 +477,22 @@ function GroupManager({
   const missingImages = isCard ? tags.filter((t) => !t.img).length : 0;
 
   return (
-    <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
-      {/* group header */}
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b border-lavender-deep" style={{ background: theme.bg }}>
-        <span className="w-[38px] h-[38px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: theme.c }}><Icon name={theme.icon} size={19} /></span>
+    <div className="bg-white rounded-[18px] shadow-soft overflow-hidden" style={{ border: `1px solid ${theme.edge}40` }}>
+      {/*  The header wears the group's colour as a soft wash with its spine at
+           the top, so the right pane and the chosen card on the left are
+           visibly the same object.  */}
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b relative"
+        style={{ background: `linear-gradient(135deg,${theme.bg},#ffffff)`, borderColor: `${theme.edge}33` }}>
+        <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
+        <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0"
+          style={{ background: theme.edge, boxShadow: `0 4px 12px ${theme.edge}45` }}><Icon name={theme.icon} size={19} /></span>
         <div className="min-w-0">
           {editingGroup ? (
             <input autoFocus className="ipt" style={{ minHeight: 34, maxWidth: 280 }} value={editingName} onChange={(e) => onEditName(e.target.value)} onBlur={onCommitEdit} onKeyDown={(e) => { if (e.key === "Enter") onCommitEdit(); if (e.key === "Escape") onCancelEdit(); }} />
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={() => onStartEdit(g.id, g.name)} className="font-display text-[19px] leading-tight hover:opacity-80" style={{ color: theme.c }} title="Rename group">{g.name}</button>
-              {g.isSystem && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70 text-body-soft border border-white inline-flex items-center gap-1"><Icon name="shield" size={11} /> System</span>}
+              <button onClick={() => onStartEdit(g.id, g.name)} className="font-display text-[21px] leading-tight hover:opacity-80" style={{ color: theme.c }} title="Rename group">{g.name}</button>
+              {g.isSystem && <span className="shrink-0 opacity-45" style={{ color: theme.c }} title="Built in — this group cannot be deleted"><Icon name="shield" size={13} /></span>}
             </div>
           )}
           <div className="text-[13px] text-body-soft mt-0.5">{tags.length} tag{tags.length === 1 ? "" : "s"}</div>
@@ -493,19 +509,27 @@ function GroupManager({
         </div>
       </div>
 
-      {/*  Show-as: the sentence explaining each choice moved behind the ⓘ. The
-           two buttons say what they are; a paragraph beside them said it twice. */}
-      <div className="px-5 py-3 border-b border-lavender-deep bg-white flex items-center gap-2.5 flex-wrap">
-        <span className="text-[12.5px] font-medium text-body inline-flex items-center gap-1.5">
+      {/*  Show-as: a proper two-way switch in the group's own colour, not two
+           quiet grey words (owner, 22 Aug — "ata color kro and r bold design
+           kro"). The chosen half carries the colour and a lifted white knob
+           behind it, so which one is on is obvious across the room. The
+           sentence that used to explain each choice sits behind the ⓘ.  */}
+      <div className="px-5 py-3.5 border-b border-lavender-deep flex items-center gap-3 flex-wrap"
+        style={{ background: "linear-gradient(180deg,#ffffff,#fdfaff)" }}>
+        <span className="text-[11px] font-bold tracking-[0.07em] uppercase text-purple/60 inline-flex items-center gap-1.5">
           Show as
-          <Info text="Chips are small pill buttons and need no picture. Image cards show each tag as a photo tile — good for occasions the customer recognises by sight." />
+          <Info text="Chips are small pill buttons and need no picture. Image cards show each tag as a photo tile — good for occasions a customer recognises by sight." />
         </span>
-        <div className="inline-flex rounded-[10px] border border-lavender-deep p-0.5">
+        <div className="inline-flex rounded-[12px] p-1 gap-1" style={{ background: theme.bg, border: `1px solid ${theme.edge}33` }}>
           {(["CHIP", "CARD"] as TagDisplayStyle[]).map((s) => {
             const on = g.displayStyle === s;
             return (
-              <button key={s} onClick={() => onSetStyle(s)} className={"text-[12.5px] font-semibold px-3 py-1.5 rounded-[8px] inline-flex items-center gap-1.5 " + (on ? "text-white" : "text-body-soft hover:text-purple")} style={on ? { background: theme.c } : undefined}>
-                <Icon name={s === "CARD" ? "photo" : "tag"} size={13} /> {s === "CARD" ? "Image cards" : "Chips"}
+              <button key={s} onClick={() => onSetStyle(s)}
+                className={"text-[13px] font-bold px-3.5 py-2 rounded-[9px] inline-flex items-center gap-2 transition-all " + (on ? "text-white" : "hover:bg-white/70")}
+                style={on
+                  ? { background: theme.edge, boxShadow: `0 3px 10px ${theme.edge}55` }
+                  : { color: theme.c }}>
+                <Icon name={s === "CARD" ? "photo" : "tag"} size={14} /> {s === "CARD" ? "Image cards" : "Chips"}
               </button>
             );
           })}
@@ -533,7 +557,11 @@ function GroupManager({
             {tags.map((t, i) => {
               const editing = editingId === t.id;
               return (
-                <div key={t.id} className={"grid items-center gap-2.5 rounded-[12px] border px-2.5 py-2 " + (isCard ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]") + " " + (t.isActive ? "bg-white border-lavender-deep" : "bg-[#fbf5ef] border-[#f0dcc4]")}>
+                <div key={t.id}
+                  className={"group/tag grid items-center gap-2.5 rounded-[12px] border px-2.5 py-2 transition-colors " + (isCard ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}
+                  style={t.isActive
+                    ? { background: "#fff", borderColor: "var(--color-lavender-deep)" }
+                    : { background: "#fbf7fc", borderColor: "#ead9f2", opacity: 0.75 }}>
                   {isCard && (
                     <div className="relative shrink-0">
                       <button onClick={() => onPickImage(t)} disabled={uploadingId === t.id} className="w-[48px] h-[48px] rounded-[10px] relative overflow-hidden group border border-lavender-deep block" style={tileBg(t)} title={t.img ? "Click to replace image" : "Click to upload an image"}>
@@ -571,12 +599,18 @@ function GroupManager({
 
                   {!editing && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <div className="flex flex-col">
-                        <button onClick={() => onMoveTag(t, "up")} disabled={i === 0} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
-                        <button onClick={() => onMoveTag(t, "down")} disabled={i === tags.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
+                      {/*  Reorder, rename and delete stay out of sight until the
+                           cursor is on the row. On a group of twenty tags, sixty
+                           permanent little buttons is all anyone could see. The
+                           switch stays — it shows STATE, not an action.  */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover/tag:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex flex-col">
+                          <button onClick={() => onMoveTag(t, "up")} disabled={i === 0} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
+                          <button onClick={() => onMoveTag(t, "down")} disabled={i === tags.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
+                        </div>
+                        <button onClick={() => onStartEdit(t.id, t.name)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender" title="Rename"><Icon name="edit" size={14} /></button>
+                        <button onClick={() => onRemoveTag(t)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-[#b42318] hover:bg-[#fbecec]" title="Delete"><Icon name="trash" size={14} /></button>
                       </div>
-                      <button onClick={() => onStartEdit(t.id, t.name)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender" title="Rename"><Icon name="edit" size={14} /></button>
-                      <button onClick={() => onRemoveTag(t)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-[#b42318] hover:bg-[#fbecec]" title="Delete"><Icon name="trash" size={14} /></button>
                       <Switch on={t.isActive} onClick={() => onToggleTag(t)} />
                     </div>
                   )}
