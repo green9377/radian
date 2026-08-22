@@ -148,6 +148,51 @@ WASTAGE | GIFT), seeded from the lists that lived in the screen; the Wastage &
 Gift page reads it and carries "+ New reason" inline. Returns keeps its own
 richer table (approval flags, refund defaults) — folding it in stays open.
 
+## E2. DEC-GBL-007 — delete means delete (owner, 22 Aug 2026) — SHIPPED
+
+> **The owner's words:** *"ja delete krbo ta delete hbe, jodi kono information
+> tar gaye use na hoy… tmi jodi blo evabe mucha thik hbe na, tahole okey
+> thakbe — but abr krle jen auto create hoy, evabe jen badha na dey."*
+
+**The disease.** Every master was soft-deleted: the row stayed with
+`deletedAt` set. But `slug`, `email`, `code` and `name` are UNIQUE INDEXES and
+an index does not care that a row is dead, while every list reads through
+`prisma.db`, which hides dead rows. So a thing was deleted, vanished from the
+screen, and then refused to be created again — over a row nobody could see or
+reach. Hit live on categories ("teddy"), on staff accounts (the same email
+refused with "that address cannot be reused"), and it was the same fault that
+stopped every sales return on 21 August.
+
+**The rule now.**
+
+1. A **master** with nothing pointing at it is **erased** — the row goes, its
+   owned children (a category's FAQ, a collection's membership rows) go with
+   it through the schema's cascades. Nothing holds the name hostage.
+2. A master that IS still pointed at cannot be erased; the database refuses
+   and it is **buried** instead — and then **creating it again revives that
+   row** rather than refusing. Never a dead end, either way.
+3. **Business documents are untouched** (house rule 5): order, purchase, sale,
+   return, payment, stock movement, payroll keep `deletedAt` and their
+   numbers, and their number generators already step over a taken one.
+
+One helper carries the rule for everybody: `apps/api/src/common/erase.ts`
+(`eraseOrBury`). Applied to categories, brands, tags, tag groups, units,
+channels, segments, item types, item categories, item attributes, variant
+attributes and groups, capacity groups, add-ons and their groups and rules,
+craft points, category story rows, riders, courier services, delivery methods
+and slots, employee roles, access templates, and staff accounts.
+
+**Also gone:** Destroy no longer asks the owner to type the item's code. It
+asks once, plainly, and Yes means yes — the fences that actually protect
+anything are server-side (must already be in the trash, nothing pointing at
+it). The product trash had already dropped its typed word on 6 August; items
+had not.
+
+**Verified live on demo:** a category created → deleted → created again under
+the same name, with nothing left in the database afterwards.
+
+---
+
 ## F. Still open
 
 1. **B (rest)** — New order reading the Delivery module instead of its own fee
