@@ -1859,19 +1859,29 @@ export function VariantAttributes() {
                 value={open.name}
                 onChange={(e) => setAttr(open.id, { name: e.target.value })}
               />
-              <div className="inline-flex bg-lavender rounded-[10px] p-1 gap-1 ml-auto">
-                {(["SWATCH", "PHOTO", "TEXT"] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setAttr(open.id, { display: d })}
-                    title={DISPLAY_HINT[d]}
-                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors ${
-                      open.display === d ? "bg-white text-purple shadow-soft" : "text-body-soft hover:text-purple"
-                    }`}
-                  >
-                    {DISPLAY_LABEL[d]}
-                  </button>
-                ))}
+              {/*  The same bold coloured switch as Occasions & Tags' Chips /
+                   Image cards — the owner approved that one and asked for it
+                   here (22 Aug 2026). Buttons in this house are bold and
+                   clear: the live half carries the colour, an icon and a
+                   shadow, so which mode is on reads across the room.  */}
+              <div className="inline-flex rounded-[12px] p-1 gap-1 ml-auto" style={{ background: "#f3ebf8", border: "1px solid #6d3a9c33" }}>
+                {(["SWATCH", "PHOTO", "TEXT"] as const).map((d) => {
+                  const on = open.display === d;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setAttr(open.id, { display: d })}
+                      title={DISPLAY_HINT[d]}
+                      className={`text-[13px] font-bold px-3.5 py-2 rounded-[9px] inline-flex items-center gap-2 transition-all ${on ? "text-white" : "hover:bg-white/70"}`}
+                      style={on
+                        ? { background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                        : { color: "#470066" }}
+                    >
+                      <Icon name={d === "SWATCH" ? "sparkle" : d === "PHOTO" ? "photo" : "hash"} size={14} />
+                      {DISPLAY_LABEL[d]}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={() => { removeAttr(open.id); setSelId(null); }}

@@ -420,7 +420,7 @@ function BrandEditor({
         <LogoThumb b={previewBrand} size={44} />
         <div className="min-w-0">
           <div className="font-display text-[19px] leading-tight truncate" style={{ color: "#7a3f49" }}>{name || "Untitled brand"}</div>
-          <div className="text-[13px] text-body-soft mt-0.5">{count} product{count === 1 ? "" : "s"} · {brand.isActive ? "visible" : "hidden"} on the storefront</div>
+          <div className="text-[13px] text-body-soft mt-0.5">{count} product{count === 1 ? "" : "s"}</div>
         </div>
         <button onClick={onDelete} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#b42318] bg-white/70 hover:bg-white shrink-0" title="Delete brand"><Icon name="trash" size={15} /></button>
       </div>
@@ -429,7 +429,10 @@ function BrandEditor({
         {/* logo + basics */}
         <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr] gap-5">
           <div>
-            <div className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft mb-1.5">Logo</div>
+            <div className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft mb-1.5 flex items-center gap-1.5">
+              Logo
+              <Info text="PNG or SVG on a transparent background looks best. Up to 10 MB." />
+            </div>
             <button onClick={() => fileRef.current?.click()} className="w-[128px] h-[128px] rounded-[16px] border border-lavender-deep grid place-items-center overflow-hidden relative group bg-white" title={logoUrl ? "Click to replace" : "Click to upload a logo"} style={logoUrl ? { backgroundImage: `url(${logoUrl})`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" } : { background: genBg(slug || name) }}>
               {!logoUrl && <span className="font-display text-[34px]" style={{ color: "#7a3f49" }}>{initials(name || "?")}</span>}
               <span className={`absolute inset-0 grid place-items-center text-white transition ${imgBusy ? "bg-black/45 opacity-100" : "bg-black/0 group-hover:bg-black/30 opacity-0 group-hover:opacity-100"}`}>
@@ -438,7 +441,6 @@ function BrandEditor({
             </button>
             {logoUrl && <button onClick={() => setLogoUrl(null)} className="text-[11.5px] text-[#b42318] hover:underline mt-1.5 inline-flex items-center gap-1"><Icon name="trash" size={12} /> Remove</button>}
             {imgErr && <div className="text-[11px] text-[#b42318] mt-1">{imgErr}</div>}
-            <p className="text-[13px] text-body-soft mt-1.5 leading-snug">PNG or SVG on a transparent background looks best. Up to 10 MB.</p>
           </div>
 
           <div className="space-y-3.5">
@@ -447,29 +449,34 @@ function BrandEditor({
               <input className="ipt w-full mt-1" value={name} onChange={(e) => onName(e.target.value)} placeholder="e.g. Ferrero Rocher" />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Page address (slug)</span>
+              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft inline-flex items-center gap-1.5">
+                Page address
+                <Info text="The brand's own address on the shop. Changing it breaks any link already shared or advertised." />
+              </span>
               <input className="ipt w-full mt-1" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="ferrero-rocher" />
-              <span className="text-[13px] text-body-soft mt-1 inline-block">Customers reach it at <span className="font-mono text-purple">/brands/{brandSlug(slug) || "…"}</span></span>
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Short description</span>
-              <textarea className="ipt w-full mt-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One or two lines shown on the brand’s page. Optional." />
+              <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft inline-flex items-center gap-1.5">
+                Short description
+                <Info text="One or two lines shown at the top of the brand's own page on the shop." />
+              </span>
+              <textarea className="ipt w-full mt-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
             </label>
           </div>
         </div>
 
         {/* switches */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <SwitchRow icon="star" tint={ACCENT} bg={ACCENT_BG} title="Featured brand" sub="Show in the homepage “Shop by Brand” strip" on={brand.isFeatured} onToggle={onToggleFeatured} />
-          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="Visible on storefront" sub={brand.isActive ? "Customers can see and filter by it" : "Hidden — not shown to customers"} on={brand.isActive} onToggle={onToggleActive} />
+          <SwitchRow icon="star" tint={ACCENT} bg={ACCENT_BG} title="Featured brand" sub="On — this brand gets a card in the homepage’s “Shop by Brand” strip." on={brand.isFeatured} onToggle={onToggleFeatured} />
+          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="Visible on storefront" sub="On — customers can see this brand and filter by it. Off — it stays here in the admin and disappears from the shop." on={brand.isActive} onToggle={onToggleActive} />
         </div>
 
         {/* SEO */}
         <div className="rounded-[14px] border border-lavender-deep overflow-hidden">
           <div className="px-4 py-2.5 bg-lavender/40 border-b border-lavender-deep flex items-center gap-2">
             <Icon name="chart" size={14} className="text-purple" />
-            <span className="text-[12.5px] font-semibold text-purple">Search &amp; social (SEO)</span>
-            <span className="text-[13px] text-body-soft">— optional, helps Google find the brand page</span>
+            <span className="text-[12.5px] font-semibold text-purple">Search &amp; social</span>
+            <Info text="Optional. What Google shows for this brand's page. Left empty, the shop writes a sensible line from the name. Social shares use the logo and the meta title — no separate image needed." />
           </div>
           <div className="p-4 space-y-3.5">
             <label className="block">
@@ -486,16 +493,22 @@ function BrandEditor({
               </div>
               <textarea className="ipt w-full mt-1" rows={2} value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="A sentence describing this brand’s gifts, for search results." />
             </label>
-            <p className="text-[13px] text-body-soft">Social shares use the logo + meta title — no separate image needed.</p>
           </div>
         </div>
 
         {/* actions */}
         <div className="flex items-center gap-3 flex-wrap pt-1">
-          <button onClick={save} disabled={!dirty || !name.trim()} className="text-white text-[13.5px] font-semibold px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 disabled:opacity-50" style={{ background: ACCENT }}>
-            <Icon name="check" size={16} /> {dirty ? "Save changes" : "Saved"}
+          {/*  Buttons are BOLD and clear — the owner's standing rule, 22 Aug 2026.  */}
+          <button onClick={save} disabled={!dirty || !name.trim()}
+            className="text-white text-[14px] font-bold px-6 py-3 rounded-[12px] inline-flex items-center gap-2 disabled:opacity-40 transition-all"
+            style={{ background: ACCENT, boxShadow: dirty ? `0 5px 16px ${ACCENT}55` : "none" }}>
+            <Icon name="check" size={17} /> {dirty ? "Save changes" : "Saved"}
           </button>
-          <a href={brandUrl(brandSlug(slug) || brand.slug)} target="_blank" rel="noreferrer" className="text-[13px] text-purple font-medium inline-flex items-center gap-1.5 hover:text-orchid"><Icon name="eye" size={15} /> View on site</a>
+          <a href={brandUrl(brandSlug(slug) || brand.slug)} target="_blank" rel="noreferrer"
+            className="text-[14px] font-bold px-5 py-3 rounded-[12px] border-2 inline-flex items-center gap-2 transition-colors hover:bg-lavender"
+            style={{ borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}>
+            <Icon name="eye" size={16} /> View on site
+          </a>
         </div>
       </div>
 
@@ -528,14 +541,17 @@ function BrandEditor({
   );
 }
 
+/*  The explaining line under each switch is now its ⓘ, and the card itself
+    carries the answer: tinted and coloured when on, plain when off. Two lines
+    of grey saying what the switch already says is the thing the owner keeps
+    striking out.  */
 function SwitchRow({ icon, tint, bg, title, sub, on, onToggle }: { icon: string; tint: string; bg: string; title: string; sub: string; on: boolean; onToggle: () => void }) {
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[12px] border border-lavender-deep px-3.5 py-3">
+    <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 rounded-[12px] border px-3.5 py-3 transition-colors"
+      style={on ? { borderColor: tint, background: bg } : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
       <span className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: on ? tint : "#c9b7d6" }}><Icon name={icon} size={16} /></span>
-      <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold text-purple">{title}</div>
-        <div className="text-[13px] text-body-soft leading-snug">{sub}</div>
-      </div>
+      <div className="text-[13.5px] font-bold" style={{ color: on ? tint : "var(--color-purple)" }}>{title}</div>
+      <Info text={sub} />
       <Switch on={on} tint={tint} onClick={onToggle} />
     </div>
   );
