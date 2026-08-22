@@ -6,6 +6,37 @@
 
 ---
 
+## 🌐 Phase 4 OPEN — Product / Catalogue (22 Aug)
+
+**DEC-WEB-010 — Flat URLs, the FlowerAura pattern (owner's choice, 22 Aug).**
+A category lives at the ROOT (`/fresh-flower`, sub at `/fresh-flower/roses`),
+a product under `/p/<slug>`. Shipped and walked live the same day:
+
+- routes moved: `app/categories/[slug]` → `app/[slug]`, `app/products/[slug]`
+  → `app/p/[slug]`; every internal link, the sitemap and the admin's
+  storefront links follow
+- **301s for every old shape** in `next.config.ts`: this site's own
+  `/categories/*` and `/products/*`, AND the old shop's `/category/*` and
+  `/product/*` (radianbd.com) — so on domain-move day nothing 404s.
+  ⚠️ That mapping only holds if imported products KEEP their radianbd slug.
+- reserved-slug guard in the categories API: a slug that names a fixed page
+  (cart, faq, journal, p, …) is refused with a plain message
+- trap fixed on the way: `buildSubCategoryConfigs` parsed hrefs expecting
+  `["categories", parent, sub]` — the prefix removal would have silently
+  produced ZERO sub-configs
+- verified live: `/categories/fresh-flower` → `/fresh-flower` (renders),
+  `/category/fresh-flower` → same, `/products/x` → `/p/x`
+
+Also live: the category icon (Card art → Icon) finally renders — beside each
+name in the storefront's category nav. It never rendered anywhere before.
+
+Phase 4 testing runs with the owner step by step; the demo catalogue was found
+EMPTY (Phase 0 wipe cleaned Category/Product; Items survived) — the owner is
+rebuilding it by hand as the tests walk: categories → product → publish →
+price → stock → variants → tags → collections → add-ons → offers → perso → SEO.
+
+---
+
 ## 🧾 Phase 3 part B — Purchase (21 Aug)
 
 Walked the whole circle on demo myself before handing it over: PUR-000006
