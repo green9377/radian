@@ -181,6 +181,58 @@ function youtubeId(v: string): string | null {
    Owner's pick, 22 Aug 2026 ("B + D together"). Five groups behind a bold chip
    rail, and the customer's page standing beside them, wired both ways.        */
 
+
+/* ═══════════ Variants tab — the same chip rail as Product story ═══════════
+   Five cards doing five different jobs sat in one column; only the first is
+   about variants at all. Grouped 22 Aug 2026, in the language the owner
+   approved.                                                                */
+
+type VarG = "options" | "bundles" | "why" | "upgrades" | "addons";
+
+const VAR_GROUPS: { id: VarG; label: string }[] = [
+  { id: "options", label: "Colours & sizes" },
+  { id: "bundles", label: "Bundles" },
+  { id: "upgrades", label: "Upgrades" },
+  { id: "addons", label: "Add-ons" },
+  { id: "why", label: "Why buy from us" },
+];
+
+function VarChips({
+  value, onChange, filled,
+}: { value: VarG; onChange: (g: VarG) => void; filled: Record<VarG, boolean> }) {
+  return (
+    <div className="flex gap-2 flex-wrap mb-4">
+      {VAR_GROUPS.map((g) => {
+        const on = value === g.id;
+        return (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => onChange(g.id)}
+            className={
+              "text-[13.5px] font-bold px-4 py-2.5 rounded-[11px] border transition-all inline-flex items-center gap-2 " +
+              (on ? "text-white" : "bg-white hover:bg-lavender/60")
+            }
+            style={on
+              ? { background: "#3b1152", borderColor: "#3b1152", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
+              : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
+          >
+            {g.label}
+            {filled[g.id] && (
+              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#e9a8f5" : "#12a172" }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function VarGroup({ id, open, children }: { id: VarG; open: VarG; children: React.ReactNode }) {
+  if (id !== open) return null;
+  return <>{children}</>;
+}
+
 type StoryG = "nature" | "signal" | "perso" | "trust" | "inside";
 
 const STORY_GROUPS: { id: StoryG; label: string }[] = [
@@ -492,21 +544,25 @@ function Chips({
     <div className="flex flex-wrap gap-2">
       {all.map((c) => {
         const on = value.includes(c);
-        const onCls = gold
-          ? "bg-rosegold border-rosegold text-white"
-          : "bg-purple border-purple text-white";
+        /*  Bold, with a tick, and a shadow when it is on (CLAUDE.md §16). It
+            used to be a medium-weight pill that only changed colour, so a
+            picked tag and an unpicked one read almost the same from a step
+            back — on a row of twelve, that is the whole point of the row.  */
+        const ink = gold ? "#b76e79" : "#6d3a9c";
         return (
           <button
             key={c}
             type="button"
             onClick={() => onToggle(c)}
             className={
-              "text-[13px] px-3.5 py-2 rounded-full border font-medium capitalize transition-colors " +
-              (on
-                ? onCls
-                : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+              "text-[13px] px-3.5 py-2 rounded-full border-2 font-bold capitalize transition-all inline-flex items-center gap-1.5 " +
+              (on ? "text-white" : "bg-white hover:bg-lavender/50")
             }
+            style={on
+              ? { background: ink, borderColor: ink, boxShadow: `0 3px 10px ${ink}55` }
+              : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
           >
+            {on && <Icon name="check" size={13} />}
             {labels?.[c] ?? c.replace(/-/g, " ")}
           </button>
         );
@@ -1281,6 +1337,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [natureLabel, setNatureLabel] = useState(detail?.nature.label ?? "");
   /** which part of the story is open — the chip rail and the phone share it */
   const [storyGroup, setStoryGroup] = useState<StoryG>("nature");
+  /** the same idea on the Variants tab, whose five cards do five jobs */
+  const [varGroup, setVarGroup] = useState<VarG>("options");
   /*  Every part of the phone is a door into the section that owns it, and —
       when that section is the story — into the right group as well.  */
   const goto = (section: SecId, group?: StoryG) => {
@@ -2382,6 +2440,18 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     delivery: delivTypeIds.length > 0 ? "done" : "todo",
     price: Number(sell) > 0 ? "done" : "todo",
   };
+  /*  A green dot on a chip means that group already holds something, so an
+      untouched group is visible without opening it. "Why buy" cannot be read
+      from here — its rows live in CraftEditor against the API — so it never
+      claims a dot rather than claiming a false one.  */
+  const varFilled: Record<VarG, boolean> = {
+    options: variants.length > 0,
+    bundles: (bundleList?.items.length ?? 0) > 0,
+    why: false,
+    upgrades: myUpgrades.length > 0,
+    addons: manualGroupIds.length > 0 || matchedAddonGroups.length > 0,
+  };
+
   /*  Which story groups hold anything — the chip shows a soft dot when full,
       so an empty group is visible without opening it.  */
   const storyFilled: Record<StoryG, boolean> = {
@@ -4947,9 +5017,14 @@ No bundle products yet — add them on{" "}
             </>
           )}
 
-          {/* VARIANTS / SIZES / UPGRADES */}
+          {/*  ── VARIANTS, grouped 22 Aug 2026 ──────────────────────────────
+               Five cards in one column — options, bundles, why-buy, upgrades,
+               add-ons — and only the first is about variants at all. The same
+               chip rail Product story uses: one job on screen at a time, and
+               a green dot on the groups that already hold something.  */}
           {sec === "variants" && (
             <>
+              <VarChips value={varGroup} onChange={setVarGroup} filled={varFilled} />
               {/*
                 ⚠️ There used to be a purple box here that explained all
                 four of Variant / Size / Upgrade / Add-ons in four lines —
@@ -4978,6 +5053,7 @@ No bundle products yet — add them on{" "}
                 that.
                 ═══════════════════════════════════════════════════════════════
               */}
+              <VarGroup id="options" open={varGroup}>
               <Card
                 icon="sparkle"
                 /*  ⚠️ Kept deliberately short — owner, 2 Aug:
@@ -5184,6 +5260,7 @@ No bundle products yet — add them on{" "}
                   </>
                 )}
               </Card>
+              </VarGroup>
 
               {/*
                 ═══════════════════════════════════════════════════════════════
@@ -5220,6 +5297,7 @@ No bundle products yet — add them on{" "}
                 control before Save would collect choices with nowhere to put
                 them.
               */}
+              <VarGroup id="bundles" open={varGroup}>
               <Card
                 icon="tag"
                 title="Bundles"
@@ -5324,12 +5402,14 @@ No bundle products yet — add them on{" "}
                   </>
                 )}
               </Card>
+              </VarGroup>
 
               {/*
                 Craft cards. Almost always left empty here — the story belongs
                 to the category and is written once there. This is the escape
                 hatch for the one product with a different one.
               */}
+              <VarGroup id="why" open={varGroup}>
               <Card
                 icon="sparkle"
                 title="Why buy from us"
@@ -5346,7 +5426,9 @@ No bundle products yet — add them on{" "}
                   </p>
                 )}
               </Card>
+              </VarGroup>
 
+              <VarGroup id="upgrades" open={varGroup}>
               <Card
                 icon="box"
                 title="Upgrade products"
@@ -5419,7 +5501,9 @@ No bundle products yet — add them on{" "}
                     DEC-PRD-020 the storefront never even read this.  */}
 
               </Card>
+              </VarGroup>
 
+              <VarGroup id="addons" open={varGroup}>
               <Card
                 icon="tag"
                 title="Add-ons"
@@ -5506,6 +5590,7 @@ No bundle products yet — add them on{" "}
                   </>
                 )}
               </Card>
+              </VarGroup>
             </>
           )}
 
@@ -5557,28 +5642,45 @@ No bundle products yet — add them on{" "}
                   );
                 }
 
-                return [...byGroup.entries()].map(([key, g], i) => (
-                  <Card
-                    key={key}
-                    icon="hash"
-                    title={g.name}
-                    hint={
-                      i === 0
-                        ? "The Gift Finder and these pages filter by them."
-                        : undefined
-                    }
-                  >
-                    <Chips
-                      all={g.tags.map((t) => t.slug)}
-                      labels={Object.fromEntries(g.tags.map((t) => [t.slug, t.name]))}
-                      value={tagSel}
-                      onToggle={(v) => toggle(tagSel, v, setTagSel)}
-                      /*  gold from the second group onward — one same-colour
-                          chip row after another doesn't read as separate.  */
-                      gold={i % 2 === 1}
-                    />
+                /*  ── One card, one row per group (22 Aug 2026) ──
+                    Every group used to get a card of its own, so four groups
+                    meant four headings, four boxes and a page of scrolling to
+                    tick six words. They are rows now: the group name on the
+                    left, its chips on the right, a count that fills in as you
+                    tick. The whole tab fits on one screen.  */
+                return (
+                  <Card icon="hash" title="Tags"
+                    tip="Tags are how a customer finds this product — the Gift Finder, the occasion pages and the filters all read them. Make new ones in Occasions & Tags; whatever you add there appears here straight away.">
+                    <div className="divide-y divide-lavender-deep -my-1">
+                      {[...byGroup.entries()].map(([key, g]) => {
+                        const picked = g.tags.filter((t) => tagSel.includes(t.slug)).length;
+                        return (
+                          <div key={key} className="grid grid-cols-1 md:grid-cols-[168px_1fr] gap-3 md:gap-4 py-4 items-start">
+                            <div className="flex items-center gap-2 md:pt-1">
+                              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0"
+                                style={picked
+                                  ? { background: "#6d3a9c", color: "#fff" }
+                                  : { background: "#f3ebf8", color: "#6d3a9c" }}>
+                                <Icon name="hash" size={14} />
+                              </span>
+                              <span className="text-[14px] font-bold text-purple truncate">{g.name}</span>
+                              {picked > 0 && (
+                                <span className="text-[11.5px] font-bold px-2 py-[2px] rounded-full tabular-nums"
+                                  style={{ background: "#f3ebf8", color: "#6d3a9c" }}>{picked}</span>
+                              )}
+                            </div>
+                            <Chips
+                              all={g.tags.map((t) => t.slug)}
+                              labels={Object.fromEntries(g.tags.map((t) => [t.slug, t.name]))}
+                              value={tagSel}
+                              onToggle={(v) => toggle(tagSel, v, setTagSel)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </Card>
-                ));
+                );
               })()}
             </>
           )}
