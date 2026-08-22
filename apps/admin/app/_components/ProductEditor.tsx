@@ -4788,13 +4788,18 @@ No bundle products yet — add them on{" "}
                               : [...delivTypeIds, t.id],
                           )
                         }
+                        /*  Bold, and it says which state it is in (CLAUDE.md
+                            §16). A ticked speed carries the colour, a tick and
+                            a shadow; an unticked one stays quiet.  */
                         className={
-                          "text-[13px] px-3.5 py-2 rounded-full border font-medium transition-colors " +
-                          (on
-                            ? "bg-purple border-purple text-white"
-                            : "bg-white border-lavender-deep text-body hover:border-orchid-mid")
+                          "text-[13.5px] px-4 py-2.5 rounded-[11px] border-2 font-bold transition-all inline-flex items-center gap-1.5 " +
+                          (on ? "text-white" : "bg-white text-purple hover:border-orchid-mid")
                         }
+                        style={on
+                          ? { background: "#6d3a9c", borderColor: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                          : { borderColor: "var(--color-lavender-deep)" }}
                       >
+                        {on && <Icon name="check" size={14} />}
                         {t.name}
                       </button>
                     );
@@ -4813,16 +4818,24 @@ No bundle products yet — add them on{" "}
                   );
                   return (
                     <div className="flex flex-col gap-3">
-                      {/* ── box 1 · Inside Dhaka — always sells ── */}
-                      <div className="rounded-[14px] border border-lavender-deep bg-white p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span
-                            className="text-[13px] px-3.5 py-1.5 rounded-full font-semibold bg-purple text-white cursor-default select-none"
-                            title="Every product sells inside Dhaka — this is home."
-                          >
-                            ✓ Inside Dhaka
+                      {/*  ── box 1 · Inside Dhaka — always sells ──
+                           A zone is the biggest decision on this tab, so it
+                           gets a real head: a coloured icon tile, the name at
+                           heading size, and the count of speeds picked. The
+                           grey words that used to sit beside it ("always on")
+                           are the ⓘ now.  */}
+                      <div className="rounded-[16px] border-2 p-4"
+                        style={{ borderColor: "#6d3a9c", background: "linear-gradient(135deg,#f6f0fa,#fff)" }}>
+                        <div className="flex items-center gap-2.5 mb-3.5">
+                          <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-white shrink-0"
+                            style={{ background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }}>
+                            <Icon name="check" size={17} />
                           </span>
-                          <span className="text-[12px] text-body-soft">always on</span>
+                          <span className="font-display font-bold text-[17px] text-purple">Inside Dhaka</span>
+                          <Info text="Every product sells inside Dhaka — this is home, and it cannot be switched off." />
+                          <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#6d3a9c" }}>
+                            {dhakaTypes.filter((t) => delivTypeIds.includes(t.id)).length}/{dhakaTypes.length}
+                          </span>
                         </div>
                         {dhakaTypes.length ? (
                           <div className="flex flex-wrap gap-2">{dhakaTypes.map(chip)}</div>
@@ -4833,14 +4846,12 @@ No bundle products yet — add them on{" "}
 
                       {/* ── box 2 · Outside Dhaka — optional ── */}
                       <div
-                        className={
-                          "rounded-[14px] border p-4 transition-colors " +
-                          (outsideOn
-                            ? "border-lavender-deep bg-white"
-                            : "border-dashed border-lavender-deep bg-lavender/30")
-                        }
+                        className="rounded-[16px] border-2 p-4 transition-colors"
+                        style={outsideOn
+                          ? { borderColor: "#b76e79", background: "linear-gradient(135deg,#fbeef0,#fff)" }
+                          : { borderColor: "var(--color-lavender-deep)", borderStyle: "dashed", background: "#fcfaff" }}
                       >
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2.5 mb-3.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -4855,18 +4866,24 @@ No bundle products yet — add them on{" "}
                                   ),
                                 );
                             }}
-                            className={
-                              "text-[13px] px-3.5 py-1.5 rounded-full font-semibold transition-colors " +
-                              (outsideOn
-                                ? "bg-purple text-white"
-                                : "bg-white border border-lavender-deep text-body hover:border-orchid-mid")
-                            }
+                            className="w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0 transition-colors"
+                            style={outsideOn
+                              ? { background: "#b76e79", color: "#fff", boxShadow: "0 3px 10px #b76e7955" }
+                              : { background: "#fff", color: "#b3a8bb", border: "2px solid var(--color-lavender-deep)" }}
+                            title={outsideOn ? "Ticked — a courier can carry it" : "Tick if a courier can carry it"}
                           >
-                            {outsideOn ? "✓ " : ""}Outside Dhaka — all Bangladesh
+                            <Icon name={outsideOn ? "check" : "plus"} size={17} />
                           </button>
-                          <span className="text-[12px] text-body-soft">
-                            {outsideOn ? "courier-safe" : "not ticked"}
+                          <span className="font-display font-bold text-[17px]"
+                            style={{ color: outsideOn ? "#8a4350" : "var(--color-purple)" }}>
+                            All Bangladesh
                           </span>
+                          <Info text="Tick this when a courier can carry the product. Fresh cream, live plants and inflated balloons do not survive a two-day run — leave it off for those." />
+                          {outsideOn && (
+                            <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#8a4350" }}>
+                              {courierTypes.filter((t) => delivTypeIds.includes(t.id)).length}/{courierTypes.length}
+                            </span>
+                          )}
                         </div>
                         {outsideOn &&
                           (courierTypes.length ? (
@@ -4903,18 +4920,26 @@ No bundle products yet — add them on{" "}
                   </div>
                 )}
 
-                <div className="bg-lavender rounded-[12px] px-4 py-3 text-[13px] text-purple mt-4">
+                {/*  What the customer will actually be offered, in one line.
+                     Empty is a real state and it is worth flagging in amber:
+                     the product still publishes, but only on a scheduled day,
+                     and that only shows up at checkout much later.  */}
+                <div className="rounded-[12px] px-4 py-3 mt-4 flex items-center gap-2.5 flex-wrap"
+                  style={delivTypeIds.length === 0
+                    ? { background: "#fff6e5", border: "1px solid #f0d9a8" }
+                    : { background: "var(--color-lavender)" }}>
                   {delivTypeIds.length === 0 ? (
                     <>
-                      Nothing picked — this product will only go out on a
-                      scheduled day, not on any of the fast options.
+                      <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: "#f0a323" }} />
+                      <span className="text-[13px] font-bold" style={{ color: "#8a5a00" }}>Scheduled day only</span>
+                      <Info text="Nothing is ticked, so the fast options never appear at checkout. The product still publishes — it just goes out on a chosen day." />
                     </>
                   ) : (
                     <>
-                      {delivTypes
-                        .filter((t) => delivTypeIds.includes(t.id))
-                        .map((t) => t.name)
-                        .join(" + ")}
+                      <Icon name="truck" size={15} className="text-purple shrink-0" />
+                      <span className="text-[13px] font-bold text-purple">
+                        {delivTypes.filter((t) => delivTypeIds.includes(t.id)).map((t) => t.name).join(" · ")}
+                      </span>
                     </>
                   )}
                 </div>
@@ -6585,6 +6610,17 @@ No bundle products yet — add them on{" "}
                       : "nothing listed"}
                     {faqs.filter((f) => f.q.trim()).length > 0 &&
                       ` · ${faqs.filter((f) => f.q.trim()).length} question(s)`}
+                  </span>
+                </Hot>
+
+                <Hot on={sec === "delivery"} onPick={() => goto("delivery")}>
+                  <span className="flex items-center gap-1.5">
+                    <Icon name="truck" size={13} className="text-body-soft shrink-0" />
+                    <span className="text-[11.5px] text-body-soft truncate">
+                      {delivTypeIds.length
+                        ? delivTypes.filter((t) => delivTypeIds.includes(t.id)).map((t) => t.name).join(" · ")
+                        : "Scheduled day only"}
+                    </span>
                   </span>
                 </Hot>
 
