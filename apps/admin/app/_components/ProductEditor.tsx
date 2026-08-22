@@ -325,25 +325,32 @@ function Seg<T extends string>({
         card with a lake of empty purple beside it, which is most of what made
         this screen feel scattered. A control should be as wide as its
         choices.  */
-    <div className="inline-flex self-start w-fit bg-lavender rounded-[11px] p-[4px] gap-[4px] flex-wrap">
-      {options.map((o) => (
-        <button
-          key={o.v}
-          type="button"
-          disabled={o.disabled}
-          onClick={() => onChange(o.v)}
-          className={
-            "text-[13px] px-4 py-2 rounded-[8px] font-medium transition-colors " +
-            (o.disabled
-              ? "text-body-soft/50 cursor-not-allowed"
-              : value === o.v
-                ? "bg-white text-purple shadow-soft"
-                : "text-body-soft hover:text-purple")
-          }
-        >
-          {o.label}
-        </button>
-      ))}
+    /*  BOLD and clear (CLAUDE.md §16, owner 22 Aug 2026). The live half wore
+        white on lavender, which read as "slightly lighter" rather than "this
+        one is on". It carries the brand purple now, with a shadow, exactly
+        like the Chips / Image cards switch he approved.  */
+    <div className="inline-flex self-start w-fit rounded-[12px] p-[4px] gap-[4px] flex-wrap"
+      style={{ background: "#f3ebf8", border: "1px solid #6d3a9c33" }}>
+      {options.map((o) => {
+        const on = value === o.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            disabled={o.disabled}
+            onClick={() => onChange(o.v)}
+            className={
+              "text-[13px] px-4 py-2 rounded-[9px] font-bold transition-all " +
+              (o.disabled ? "opacity-40 cursor-not-allowed" : on ? "text-white" : "hover:bg-white/70")
+            }
+            style={on && !o.disabled
+              ? { background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+              : { color: "#470066" }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -376,7 +383,7 @@ function Sw({
           }
         />
       </span>
-      <span>{children}</span>
+      <span className="font-semibold text-purple">{children}</span>
     </button>
   );
 }
@@ -2667,11 +2674,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       just had no switch, so nobody could ever turn them on.
                       Caught in the 3 Aug audit.  */}
                   <div className="flex flex-col gap-2 justify-center">
+                    {/*  The half-sentence after each name is the ⓘ now — a
+                         switch that explains itself twice is the thing the
+                         owner keeps striking out (22 Aug 2026).  */}
                     <Sw on={isBest} onToggle={() => setIsBest(!isBest)}>
-                      Bestseller — shows on the Bestsellers shelf
+                      Bestseller <Info text="On — this product appears on the homepage's Bestsellers shelf." />
                     </Sw>
                     <Sw on={isNew} onToggle={() => setIsNew(!isNew)}>
-                      New arrival — shows the “New” tag
+                      New arrival <Info text="On — this product wears the “New” tag on its card." />
                     </Sw>
                   </div>
                 </div>
@@ -2717,8 +2727,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     setHasVariants(false);
                   }}
                   options={[
-                    { v: "NO", label: "No — one version only" },
-                    { v: "YES", label: "Yes — it has variants" },
+                    { v: "NO", label: "One version" },
+                    { v: "YES", label: "Has variants" },
                   ]}
                 />
               </Card>
