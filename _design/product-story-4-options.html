@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian — Product story, four layouts</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#470066; --purple-deep:#320049; --panel:#3b1152; --panel2:#2a0b3d;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#a94fd0;
+    --lav:#f7f1fb; --lav-deep:#efe4f7; --rose:#b76e79; --rose-soft:#fbeef0;
+    --body:#3f3547; --soft:#8a7c94; --ok:#12a172; --amber:#f0a323;
+    --plum:#6d3a9c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lav);font-family:Inter,system-ui,sans-serif;color:var(--body)}
+  .disp{font-family:Fraunces,Georgia,serif}
+  .switch{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--lav-deep);
+          padding:14px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .switch b{font-family:Fraunces,serif;font-size:17px;color:var(--purple);margin-right:8px}
+  .sw{border:2px solid var(--lav-deep);background:#fff;color:var(--purple);font-weight:700;font-size:13.5px;
+      padding:9px 16px;border-radius:11px;cursor:pointer;font-family:inherit}
+  .sw.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 4px 14px rgba(109,58,156,.35)}
+  .page{display:none;padding:22px}
+  .page.on{display:block}
+  .shell{display:flex;gap:22px;align-items:flex-start;max-width:1500px}
+
+  /* left purple rail — the house chooser */
+  .rail{width:208px;flex:0 0 208px;border-radius:18px;overflow:hidden;
+        background:linear-gradient(168deg,var(--panel),var(--panel2));box-shadow:0 6px 20px rgba(71,0,102,.13)}
+  .rail h4{margin:0;padding:16px 16px 10px;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;
+           color:rgba(255,255,255,.65);font-weight:700}
+  .rw{display:flex;align-items:center;gap:10px;margin:0 12px 4px;padding:10px;border-radius:12px;color:#fff;font-size:13.5px;font-weight:500}
+  .rw .ic{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.13);display:grid;place-items:center;font-size:13px}
+  .rw.sel{background:#fff;color:var(--purple)}
+  .rw.sel .ic{background:var(--plum);color:#fff}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+  .tick{color:#7fd8b4;font-weight:700;font-size:13px}
+  .rw.sel .tick{color:var(--ok)}
+
+  .main{flex:1;min-width:0}
+  .card{background:#fff;border:1px solid var(--lav-deep);border-radius:16px;box-shadow:0 2px 10px rgba(71,0,102,.05)}
+  .ch{display:flex;align-items:center;gap:11px;padding:16px 18px}
+  .ci{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:15px}
+  .ct{font-family:Fraunces,serif;font-weight:600;font-size:17.5px;color:var(--purple)}
+  .i{width:16px;height:16px;border-radius:50%;background:#efe4f7;color:#7a5b8c;font-size:10px;font-weight:700;
+     display:inline-grid;place-items:center;cursor:help}
+  .cb{padding:0 18px 18px}
+  input,textarea{width:100%;font:inherit;font-size:14px;padding:11px 13px;border:1px solid var(--lav-deep);
+                 border-radius:11px;background:#fff;color:var(--body)}
+  input::placeholder,textarea::placeholder{color:#b3a8bb}
+  .lbl{font-size:13px;font-weight:700;color:var(--body);margin-bottom:7px;display:flex;gap:6px;align-items:center}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .state{font-size:12.5px;color:var(--soft)}
+  .chip{font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--rose-soft);color:#8a4350}
+  .muted{color:var(--soft);font-size:12.5px}
+
+  /* A — rows */
+  .row{background:#fff;border:1px solid var(--lav-deep);border-radius:14px;margin-bottom:8px;overflow:hidden}
+  .rh{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+  .rh .nm{font-size:15px;font-weight:700;color:var(--purple);flex:1}
+  .row.open{border-color:var(--plum);box-shadow:0 0 0 3px #f3ebf8}
+  .row.open .rh{background:linear-gradient(135deg,#f6f0fa,#fff)}
+  .rbody{padding:2px 16px 18px}
+
+  /* B — chip rail */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip2{font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:11px;border:1px solid var(--lav-deep);
+         background:#fff;color:var(--purple);cursor:pointer}
+  .chip2.on{background:var(--panel);border-color:var(--panel);color:#fff;box-shadow:0 4px 14px rgba(59,17,82,.3)}
+
+  /* D — preview led */
+  .phone{width:290px;flex:0 0 290px;border-radius:26px;border:9px solid #2a0b3d;background:#fff;overflow:hidden;
+         box-shadow:0 10px 30px rgba(42,11,61,.25)}
+  .shot{height:190px;background:linear-gradient(150deg,#f7dbe4,#e9c6dc)}
+  .pv{padding:14px}
+  .hot{border:1.5px dashed transparent;border-radius:10px;padding:6px;margin:-6px -6px 4px;cursor:pointer}
+  .hot:hover{border-color:var(--orchid);background:#fdf5ff}
+  .hot.act{border-color:var(--plum);background:#f6f0fa}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;color:#7a2ea8;background:#f6ecfb;padding:3px 8px;border-radius:99px}
+  h1{font-family:Fraunces,serif;font-size:26px;color:var(--purple);margin:0}
+  .sub{font-size:12.5px;color:var(--soft);margin-top:2px}
+  .btn{font-weight:700;font-size:14px;padding:11px 20px;border-radius:12px;border:0;cursor:pointer;font-family:inherit}
+  .btnP{background:var(--purple);color:#fff}
+  .btnS{background:#fff;color:var(--purple);border:2px solid var(--lav-deep)}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .note{max-width:1500px;margin:0 auto 16px;font-size:13.5px;color:var(--soft);line-height:1.65}
+  .note b{color:var(--purple)}
+</style>
+</head>
+<body>
+
+<div class="switch">
+  <b>Product story — layouts</b>
+  <button class="sw on" data-p="e">★ B + D together</button>
+  <button class="sw" data-p="a">A · Rows that open</button>
+  <button class="sw" data-p="b">B · Purple chip rail</button>
+  <button class="sw" data-p="c">C · Two columns</button>
+  <button class="sw" data-p="d">D · Preview-led</button>
+</div>
+
+<!-- ══════════════ E — B + D ══════════════ -->
+<div class="page on" id="p-e">
+  <div class="note"><b>B + D together.</b> The chip rail groups the eight cards into five; the customer's page stands beside them and lights up the part being edited. Press a part of the phone and the matching chip opens — press a chip and the phone scrolls to it. Two ways into the same thing.</div>
+  <div class="shell">
+    <div class="rail">
+      <h4>Sections</h4>
+      <div class="rw"><span class="ic">◱</span><span style="flex:1">Basics</span><span class="tick">✓</span></div>
+      <div class="rw"><span class="ic">▤</span><span style="flex:1">Stock</span></div>
+      <div class="rw"><span class="ic">◨</span><span style="flex:1">Photos</span><span class="dot"></span></div>
+      <div class="rw"><span class="ic">⇛</span><span style="flex:1">Delivery</span><span class="dot"></span></div>
+      <div class="rw"><span class="ic">#</span><span style="flex:1">Tags</span></div>
+      <div class="rw sel"><span class="ic">▦</span><span style="flex:1">Product story</span></div>
+      <div class="rw"><span class="ic">⌕</span><span style="flex:1">Search</span></div>
+      <div class="rw"><span class="ic">৳</span><span style="flex:1">Pricing</span><span class="dot"></span></div>
+    </div>
+
+    <div class="main">
+      <div class="topbar"><h1 class="disp">Product story</h1><span class="i">i</span></div>
+
+      <div class="chips" id="e-chips">
+        <span class="chip2 on" data-g="nature">Nature</span>
+        <span class="chip2" data-g="signal">Sales signal</span>
+        <span class="chip2" data-g="perso">Personalise</span>
+        <span class="chip2" data-g="trust">Trust</span>
+        <span class="chip2" data-g="inside">Inside &amp; FAQ</span>
+      </div>
+
+      <div class="egroup" data-g="nature">
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#534AB7">▦</span><span class="ct">Nature line</span><span class="i">i</span></div>
+          <div class="cb"><div class="grid2">
+            <div><div class="lbl">Kind</div><input placeholder="fresh / artificial / live plant"></div>
+            <div><div class="lbl">The line on the page</div><input value="100% Fresh Flowers"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="egroup" data-g="signal" hidden>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#a94fd0">★</span><span class="ct">Sales signal</span><span class="i">i</span></div>
+          <div class="cb"><div class="grid2">
+            <div><div class="lbl">Window</div><input value="This month"></div>
+            <div><div class="lbl">Starting count</div><input value="120"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="egroup" data-g="perso" hidden>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:var(--plum)">✎</span><span class="ct">Let the customer add something</span><span class="i">i</span></div>
+          <div class="cb"><div class="grid2">
+            <div><div class="lbl">A message they type <span class="i">i</span></div><input placeholder="Name on the cake"></div>
+            <div><div class="lbl">A photo they upload <span class="i">i</span></div><input placeholder="Photo for the mug"></div>
+          </div></div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#1D9E75">✆</span><span class="ct">“Want this customised?” box</span><span class="i">i</span></div>
+          <div class="cb"><input placeholder="Want this customised?"></div>
+        </div>
+      </div>
+
+      <div class="egroup" data-g="trust" hidden>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:var(--rose)">✔</span><span class="ct">Trust badges</span><span class="i">i</span></div>
+          <div class="cb"><span class="chip">2-Hour Delivery</span> <span class="chip">Fresh</span> <span class="chip">+ add</span></div>
+        </div>
+      </div>
+
+      <div class="egroup" data-g="inside" hidden>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#7a2ea8">☰</span><span class="ct">What's inside</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">24 roses · wrap · card</div></div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#888780">?</span><span class="ct">Before you order</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">No questions yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone" style="position:sticky;top:86px">
+      <div class="shot"></div>
+      <div class="pv">
+        <div class="hot act" data-g="nature"><span class="tag">100% Fresh Flowers</span></div>
+        <div style="font-family:Fraunces,serif;font-size:18px;color:var(--purple);margin:8px 0 2px">Velvet Red — 24 Roses</div>
+        <div style="font-size:19px;font-weight:700;color:var(--purple)">৳ 2,450</div>
+        <div class="hot" data-g="signal" style="margin-top:12px"><div class="muted" style="font-weight:700;color:var(--body)">120 sold this month</div></div>
+        <div class="hot" data-g="perso" style="margin-top:10px"><div class="muted" style="font-weight:700;color:var(--body)">Name on the cake</div><div class="muted">customer types it</div></div>
+        <div class="hot" data-g="trust" style="margin-top:10px;display:flex;gap:6px"><span class="chip">2-Hour</span><span class="chip">Fresh</span></div>
+        <div class="hot" data-g="inside" style="margin-top:10px"><div class="muted" style="font-weight:700;color:var(--body)">What's inside</div><div class="muted">24 roses · wrap · card</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ A ══════════════ -->
+<div class="page" id="p-a">
+  <div class="note"><b>A — Rows that open.</b> Eight cards become eight bold rows. Each shows its own state on the right, so a full one and an empty one are told apart without opening either. One opens at a time.</div>
+  <div class="shell">
+    <div class="rail">
+      <h4>Sections</h4>
+      <div class="rw"><span class="ic">◱</span><span style="flex:1">Basics</span><span class="tick">✓</span></div>
+      <div class="rw"><span class="ic">▤</span><span style="flex:1">Stock</span></div>
+      <div class="rw"><span class="ic">◨</span><span style="flex:1">Photos</span><span class="dot"></span></div>
+      <div class="rw"><span class="ic">⇛</span><span style="flex:1">Delivery</span><span class="dot"></span></div>
+      <div class="rw"><span class="ic">#</span><span style="flex:1">Tags</span></div>
+      <div class="rw sel"><span class="ic">▦</span><span style="flex:1">Product story</span></div>
+      <div class="rw"><span class="ic">⌕</span><span style="flex:1">Search</span></div>
+      <div class="rw"><span class="ic">৳</span><span style="flex:1">Pricing</span><span class="dot"></span></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><h1 class="disp">Product story</h1><span class="i">i</span></div>
+
+      <div class="row"><div class="rh"><span class="ci" style="background:#534AB7">▦</span><span class="nm">Nature line</span><span class="state">100% Fresh Flowers</span><span class="muted">▾</span></div></div>
+
+      <div class="row"><div class="rh"><span class="ci" style="background:#a94fd0">★</span><span class="nm">Sales signal</span><span class="state">Month · 120</span><span class="muted">▾</span></div></div>
+
+      <div class="row open">
+        <div class="rh"><span class="ci" style="background:var(--plum)">✎</span><span class="nm">Let the customer add something</span><span class="muted">▴</span></div>
+        <div class="rbody">
+          <div class="grid2">
+            <div><div class="lbl">A message they type <span class="i">i</span></div><input placeholder="Name on the cake"></div>
+            <div><div class="lbl">A photo they upload <span class="i">i</span></div><input placeholder="Photo for the mug"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row"><div class="rh"><span class="ci" style="background:#1D9E75">✆</span><span class="nm">“Want this customised?” box</span><span class="state">off</span><span class="muted">▾</span></div></div>
+      <div class="row"><div class="rh"><span class="ci" style="background:var(--rose)">✔</span><span class="nm">Trust badges</span><span class="state">3 set</span><span class="muted">▾</span></div></div>
+      <div class="row"><div class="rh"><span class="ci" style="background:#7a2ea8">☰</span><span class="nm">What's inside</span><span class="state">4 rows</span><span class="muted">▾</span></div></div>
+      <div class="row"><div class="rh"><span class="ci" style="background:#888780">?</span><span class="nm">Before you order (FAQ)</span><span class="state">empty</span><span class="muted">▾</span></div></div>
+      <div class="row"><div class="rh"><span class="ci" style="background:#888780">⊘</span><span class="nm">When nationwide isn't available</span><span class="state">empty</span><span class="muted">▾</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ B ══════════════ -->
+<div class="page" id="p-b">
+  <div class="note"><b>B — Purple chip rail inside the tab.</b> The eight cards fall into five groups. The outer rail chooses the tab; this inner one chooses the group. One idea on screen at a time.</div>
+  <div class="shell">
+    <div class="rail">
+      <h4>Sections</h4>
+      <div class="rw"><span class="ic">◱</span><span style="flex:1">Basics</span><span class="tick">✓</span></div>
+      <div class="rw"><span class="ic">◨</span><span style="flex:1">Photos</span><span class="dot"></span></div>
+      <div class="rw sel"><span class="ic">▦</span><span style="flex:1">Product story</span></div>
+      <div class="rw"><span class="ic">৳</span><span style="flex:1">Pricing</span><span class="dot"></span></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><h1 class="disp">Product story</h1><span class="i">i</span></div>
+      <div class="chips">
+        <span class="chip2 on">Nature</span><span class="chip2">Personalise</span>
+        <span class="chip2">Trust</span><span class="chip2">Inside</span><span class="chip2">FAQ</span>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ci" style="background:#534AB7">▦</span><span class="ct">Nature line</span><span class="i">i</span></div>
+        <div class="cb">
+          <div class="grid2">
+            <div><div class="lbl">Kind</div><input placeholder="fresh / artificial / live plant"></div>
+            <div><div class="lbl">The line on the page</div><input placeholder="100% Fresh Flowers"></div>
+          </div>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="ch"><span class="ci" style="background:#a94fd0">★</span><span class="ct">Sales signal</span><span class="i">i</span></div>
+        <div class="cb"><div class="grid2">
+          <div><div class="lbl">Window</div><input value="This month" readonly></div>
+          <div><div class="lbl">Starting count</div><input placeholder="120"></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ C ══════════════ -->
+<div class="page" id="p-c">
+  <div class="note"><b>C — Two columns.</b> Nothing hides. The page is half as tall, small cards sit side by side, and what is filled in shows as chips on the card face.</div>
+  <div class="shell">
+    <div class="rail">
+      <h4>Sections</h4>
+      <div class="rw"><span class="ic">◱</span><span style="flex:1">Basics</span><span class="tick">✓</span></div>
+      <div class="rw sel"><span class="ic">▦</span><span style="flex:1">Product story</span></div>
+      <div class="rw"><span class="ic">৳</span><span style="flex:1">Pricing</span><span class="dot"></span></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><h1 class="disp">Product story</h1><span class="i">i</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#534AB7">▦</span><span class="ct">Nature line</span><span class="i">i</span></div>
+          <div class="cb"><input placeholder="100% Fresh Flowers"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:var(--rose)">✔</span><span class="ct">Trust badges</span><span class="i">i</span></div>
+          <div class="cb"><span class="chip">2-Hour Delivery</span> <span class="chip">Fresh</span> <span class="chip">+ add</span></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:var(--plum)">✎</span><span class="ct">Customer adds</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">Message · off &nbsp;·&nbsp; Photo · off</div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#7a2ea8">☰</span><span class="ct">What's inside</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">4 rows</div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#888780">?</span><span class="ct">Before you order</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">No questions yet</div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ci" style="background:#888780">⊘</span><span class="ct">Nationwide note</span><span class="i">i</span></div>
+          <div class="cb"><div class="muted">empty</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ D ══════════════ -->
+<div class="page" id="p-d">
+  <div class="note"><b>D — Preview-led.</b> The customer's page sits on the left. Press any part of it and that part opens on the right. You edit what you are looking at, instead of guessing which box feeds which line.</div>
+  <div class="shell">
+    <div class="rail">
+      <h4>Sections</h4>
+      <div class="rw"><span class="ic">◱</span><span style="flex:1">Basics</span><span class="tick">✓</span></div>
+      <div class="rw sel"><span class="ic">▦</span><span style="flex:1">Product story</span></div>
+      <div class="rw"><span class="ic">৳</span><span style="flex:1">Pricing</span><span class="dot"></span></div>
+    </div>
+
+    <div class="phone">
+      <div class="shot"></div>
+      <div class="pv">
+        <div class="hot act"><span class="tag">100% Fresh Flowers</span></div>
+        <div style="font-family:Fraunces,serif;font-size:18px;color:var(--purple);margin:8px 0 2px">Velvet Red — 24 Roses</div>
+        <div style="font-size:19px;font-weight:700;color:var(--purple)">৳ 2,450</div>
+        <div class="hot" style="margin-top:12px"><div class="muted" style="font-weight:700;color:var(--body)">120 sold this month</div></div>
+        <div class="hot" style="margin-top:10px;display:flex;gap:6px"><span class="chip">2-Hour</span><span class="chip">Fresh</span></div>
+        <div class="hot" style="margin-top:10px"><div class="muted" style="font-weight:700;color:var(--body)">What's inside</div><div class="muted">24 roses · wrap · card</div></div>
+        <div class="hot" style="margin-top:10px"><div class="muted" style="font-weight:700;color:var(--body)">Before you order</div><div class="muted">nothing added</div></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="topbar"><h1 class="disp">Nature line</h1><span class="i">i</span></div>
+      <div class="card">
+        <div class="cb" style="padding-top:18px">
+          <div class="grid2">
+            <div><div class="lbl">Kind</div><input placeholder="fresh / artificial"></div>
+            <div><div class="lbl">The line on the page</div><input value="100% Fresh Flowers"></div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px">
+            <button class="btn btnP">Save</button>
+            <button class="btn btnS">Next part ▸</button>
+          </div>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:14px">Press another part of the page on the left to edit it.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.sw').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')});
+      document.querySelectorAll('.page').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');
+      document.getElementById('p-'+b.dataset.p).classList.add('on');
+      window.scrollTo({top:0});
+    };
+  });
+  document.querySelectorAll('#p-a .rh').forEach(function(h){
+    h.onclick=function(){
+      var r=h.parentElement, was=r.classList.contains('open');
+      document.querySelectorAll('#p-a .row').forEach(function(x){x.classList.remove('open')});
+      if(!was) r.classList.add('open');
+    };
+  });
+  function eShow(g){
+    document.querySelectorAll('#p-e .chip2').forEach(function(c){c.classList.toggle('on', c.dataset.g===g)});
+    document.querySelectorAll('#p-e .egroup').forEach(function(x){x.hidden = x.dataset.g!==g});
+    document.querySelectorAll('#p-e .hot').forEach(function(x){x.classList.toggle('act', x.dataset.g===g)});
+  }
+  document.querySelectorAll('#p-e .chip2').forEach(function(c){ c.onclick=function(){ eShow(c.dataset.g) } });
+  document.querySelectorAll('#p-e .hot').forEach(function(h){ h.onclick=function(){ eShow(h.dataset.g) } });
+
+  document.querySelectorAll('#p-d .hot').forEach(function(h){
+    h.onclick=function(){
+      document.querySelectorAll('#p-d .hot').forEach(function(x){x.classList.remove('act')});
+      h.classList.add('act');
+    };
+  });
+</script>
+</body>
+</html>

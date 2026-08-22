@@ -176,6 +176,157 @@ function youtubeId(v: string): string | null {
     all on a phone. `Info` is the same one every other master screen uses: it
     opens on hover AND on tap, and it is drawn outside the card so no rounded
     corner can clip it.  */
+
+/* ═══════════ Product story — the chip rail, the groups, the phone ═══════════
+   Owner's pick, 22 Aug 2026 ("B + D together"). Five groups behind a bold chip
+   rail, and the customer's page standing beside them, wired both ways.        */
+
+type StoryG = "nature" | "signal" | "perso" | "trust" | "inside";
+
+const STORY_GROUPS: { id: StoryG; label: string }[] = [
+  { id: "nature", label: "Nature" },
+  { id: "signal", label: "Sales signal" },
+  { id: "perso", label: "Personalise" },
+  { id: "trust", label: "Trust" },
+  { id: "inside", label: "Inside & FAQ" },
+];
+
+function StoryChips({
+  value, onChange, filled,
+}: {
+  value: StoryG;
+  onChange: (g: StoryG) => void;
+  /** a soft dot marks a group that already holds something */
+  filled: Record<StoryG, boolean>;
+}) {
+  return (
+    <div className="flex gap-2 flex-wrap mb-4">
+      {STORY_GROUPS.map((g) => {
+        const on = value === g.id;
+        return (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => onChange(g.id)}
+            className={
+              "text-[13.5px] font-bold px-4 py-2.5 rounded-[11px] border transition-all inline-flex items-center gap-2 " +
+              (on ? "text-white" : "bg-white hover:bg-lavender/60")
+            }
+            style={on
+              ? { background: "#3b1152", borderColor: "#3b1152", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
+              : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
+          >
+            {g.label}
+            {filled[g.id] && (
+              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#e9a8f5" : "#12a172" }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StoryGroup({ id, open, children }: { id: StoryG; open: StoryG; children: React.ReactNode }) {
+  if (id !== open) return null;
+  return <>{children}</>;
+}
+
+/** one tappable part of the phone — pressing it opens that group on the left */
+function Hot({
+  g, on, onPick, children,
+}: { g: StoryG; on: boolean; onPick: (g: StoryG) => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(g)}
+      className={
+        "w-full text-left rounded-[10px] px-2 py-1.5 border transition-colors " +
+        (on ? "border-purple bg-lavender" : "border-transparent hover:border-orchid-mid hover:bg-orchid-soft/50")
+      }
+      style={{ borderStyle: "dashed" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StoryPhone({
+  group, onPick, photo, name, price, nature, sold, perso, badges, inside, faqs,
+}: {
+  group: StoryG;
+  onPick: (g: StoryG) => void;
+  photo?: string;
+  name: string;
+  price: string;
+  nature: string;
+  sold: string;
+  perso: string | null;
+  badges: string[];
+  inside: string[];
+  faqs: number;
+}) {
+  const taka = (v: string) => "৳ " + (Number(v) || 0).toLocaleString("en-IN");
+  return (
+    <div className="w-[300px] shrink-0 hidden xl:block sticky top-[84px]">
+      <div className="text-[11px] font-bold tracking-[0.07em] uppercase text-purple/55 mb-2 px-1">
+        What the customer sees
+      </div>
+      <div className="rounded-[26px] overflow-hidden bg-white"
+        style={{ border: "9px solid #2a0b3d", boxShadow: "0 10px 30px rgba(42,11,61,.22)" }}>
+        <div className="h-[170px] bg-cover bg-center"
+          style={photo ? { backgroundImage: `url(${photo})` } : { background: "linear-gradient(150deg,#f7dbe4,#e9c6dc)" }} />
+        <div className="p-3 space-y-1">
+          <Hot g="nature" on={group === "nature"} onPick={onPick}>
+            {nature ? (
+              <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#f6ecfb", color: "#7a2ea8" }}>
+                {nature}
+              </span>
+            ) : (
+              <span className="text-[11.5px] text-body-soft">No nature line</span>
+            )}
+          </Hot>
+
+          <div className="px-2 pt-1">
+            <div className="font-display text-[16px] text-purple leading-tight">{name || "Product name"}</div>
+            <div className="text-[17px] font-bold text-purple mt-0.5">{taka(price)}</div>
+          </div>
+
+          <Hot g="signal" on={group === "signal"} onPick={onPick}>
+            <span className="text-[12px] font-semibold text-body">
+              {sold ? `${sold} sold this month` : "No sales signal"}
+            </span>
+          </Hot>
+
+          <Hot g="perso" on={group === "perso"} onPick={onPick}>
+            <span className="text-[12px] font-semibold text-body">{perso ?? "No personalisation"}</span>
+          </Hot>
+
+          <Hot g="trust" on={group === "trust"} onPick={onPick}>
+            {badges.length ? (
+              <span className="flex gap-1 flex-wrap">
+                {badges.slice(0, 3).map((b, i) => (
+                  <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{b}</span>
+                ))}
+              </span>
+            ) : (
+              <span className="text-[11.5px] text-body-soft">No trust badges</span>
+            )}
+          </Hot>
+
+          <Hot g="inside" on={group === "inside"} onPick={onPick}>
+            <span className="block text-[12px] font-semibold text-body">What&apos;s inside</span>
+            <span className="block text-[11.5px] text-body-soft truncate">
+              {inside.length ? inside.slice(0, 4).join(" · ") : "nothing listed"}
+              {faqs > 0 && ` · ${faqs} question${faqs === 1 ? "" : "s"}`}
+            </span>
+          </Hot>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Tip({ why }: { why: string }) {
   return (
     <span className="ml-2 align-middle inline-flex">
@@ -1197,6 +1348,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     detail?.nature.type ?? "fresh",
   );
   const [natureLabel, setNatureLabel] = useState(detail?.nature.label ?? "");
+  /** which part of the story is open — the chip rail and the phone share it */
+  const [storyGroup, setStoryGroup] = useState<StoryG>("nature");
   const [salesLabel, setSalesLabel] = useState(src?.meta ?? "");
   /**
    * DEC-PRD-025 — each window's own starting number. The owner's own
@@ -2291,6 +2444,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     delivery: delivTypeIds.length > 0 ? "done" : "todo",
     price: Number(sell) > 0 ? "done" : "todo",
   };
+  /*  Which story groups hold anything — the chip shows a soft dot when full,
+      so an empty group is visible without opening it.  */
+  const storyFilled: Record<StoryG, boolean> = {
+    nature: !!natureLabel.trim(),
+    signal: !!(seedToday || seedWeek || seedMonth || seedAll),
+    perso: persoText || persoImage || customiseOn,
+    trust: trust.some((t) => t.label.trim()),
+    inside: spec.some((r) => r.item.trim()) || faqs.some((f) => f.q.trim()),
+  };
+
   /*  The named gates, so the Publish button can say what it is waiting for
       rather than refusing and explaining afterwards.  */
   const publishMissing = [
@@ -5457,9 +5620,23 @@ No bundle products yet — add them on{" "}
             </>
           )}
 
-          {/* STORY */}
+          {/*  ── STORY, rebuilt 22 Aug 2026 (owner picked "B + D together") ──
+               Eight cards in one column was the longest, greyest screen in the
+               panel. Two things fix it, and they turn out to help each other:
+
+                 B — the eight fall into FIVE groups behind a bold chip rail,
+                     so one idea is on screen at a time.
+                 D — the customer's page stands beside them and lights up the
+                     part being edited.
+
+               And they are wired BOTH ways: press a chip and that part of the
+               phone lights; press a part of the phone and its chip opens. The
+               owner stops having to guess which box feeds which line.  */}
           {sec === "story" && (
-            <>
+            <div className="flex gap-5 items-start">
+              <div className="flex-1 min-w-0">
+              <StoryChips value={storyGroup} onChange={setStoryGroup} filled={storyFilled} />
+              <StoryGroup id="nature" open={storyGroup}>
               <Card icon="book" title="Nature line" tip="The one-line promise at the top of the product page — “100% Fresh Flowers”.">
                 <div className={gridCls}>
                   <Field label="Type" note="Pick a quick option or type your own">
@@ -5494,6 +5671,7 @@ No bundle products yet — add them on{" "}
                   </Field>
                 </div>
               </Card>
+              </StoryGroup>
               {/*
                 ═══════════════════════════════════════════════════════════════
                 DEC-PRD-025 — owner, 2 Aug 2026:
@@ -5510,6 +5688,7 @@ No bundle products yet — add them on{" "}
                 counting only genuine orders, and staying silent below 10.
                 ═══════════════════════════════════════════════════════════════
               */}
+              <StoryGroup id="signal" open={storyGroup}>
               <Card
                 icon="star"
                 title="Sales signal"
@@ -5602,6 +5781,7 @@ No bundle products yet — add them on{" "}
                   .
                 </p>
               </Card>
+              </StoryGroup>
               {/*
                 ═══════════════════════════════════════════════════════════════
                 DEC-PRD-026 — owner, 2 Aug 2026: *"for our customizable
@@ -5616,6 +5796,7 @@ No bundle products yet — add them on{" "}
                 image along.
                 ═══════════════════════════════════════════════════════════════
               */}
+              <StoryGroup id="perso" open={storyGroup}>
               <Card
                 icon="edit"
                 title="Let the customer add something"
@@ -5752,7 +5933,9 @@ No bundle products yet — add them on{" "}
                   )}
                 </div>
               </Card>
+              </StoryGroup>
 
+              <StoryGroup id="trust" open={storyGroup}>
               <Card
                 icon="check"
                 title="Trust badges"
@@ -5974,6 +6157,8 @@ No bundle products yet — add them on{" "}
                     DEC-PRD-023, and it lives in Categories. So the promise
                     line was removed.  */}
               </Card>
+              </StoryGroup>
+              <StoryGroup id="inside" open={storyGroup}>
               <Card
                 icon="book"
                 title="What's inside"
@@ -6127,7 +6312,23 @@ No bundle products yet — add them on{" "}
                   placeholder="Available inside Dhaka only."
                 />
               </Card>
-            </>
+              </StoryGroup>
+              </div>
+
+              <StoryPhone
+                group={storyGroup}
+                onPick={setStoryGroup}
+                photo={photos[0]}
+                name={name}
+                price={sell}
+                nature={natureLabel}
+                sold={seedMonth}
+                perso={persoText || persoImage ? (persoTextLabel || persoImageLabel || "Add your own") : null}
+                badges={trust.map((t) => t.label).filter(Boolean)}
+                inside={spec.map((r) => r.item).filter(Boolean)}
+                faqs={faqs.length}
+              />
+            </div>
           )}
 
           {/*  SEO-D01 — what Google and WhatsApp see.
