@@ -15,7 +15,7 @@ import type {
   Inventory — HTTP surface. RADIAN_INVENTORY_MODULE_ARCHITECTURE.md (22 Jul 2026).
 
   ⚠️ ROUTE ORDER: static paths MUST sit above param routes — same Nest trap as
-  /products/analytics (§১০.৩) and the purchases controller.
+  /products/analytics (§10.3) and the purchases controller.
 
   ⚠️ INV-RULE-002: there is deliberately NO update/delete endpoint for movements —
   the ledger is immutable. Do not add one.

@@ -783,7 +783,7 @@ export class InventoryService {
      ───────────────────────────────────────────────────────────────────────── */
   private async takeFromWhereverItIs(drafts: MovementDraft[]): Promise<MovementDraft[]> {
     const out: MovementDraft[] = [];
-    /*  একই item দুই line-এ থাকলে দ্বিতীয়টা যেন প্রথমটার কাটা মাল আবার না গোনে  */
+    /*  the same item on two lines: the second must not count the stock the first one already took  */
     const spent = new Map<string, number>();
 
     for (const d of drafts) {
@@ -1369,7 +1369,8 @@ export class InventoryService {
 
     const moved = await this.prisma.inventoryMovement.count({ where: { warehouseId: id } });
     if (moved > 0) {
-      /*  একবার ledger-এ নাম উঠে গেলে সারি মুছলে পুরনো movement অনাথ হয়ে যায়।  */
+      /*  once the name is in the ledger, deleting the row orphans every old
+          movement that points at it  */
       throw new BadRequestException(
         `"${wh.name}" already has ${moved} stock movement(s) in its history — close it instead of deleting, so the old records still make sense`,
       );
@@ -1386,9 +1387,9 @@ export class InventoryService {
   }
 
   /**
-   * ওনার রায় (১০ আগস্ট): মাল রেখে গুদাম বন্ধ করা যাবে না — সতর্ক করে নয়,
-   * সরাসরি আটকে। কারণ বন্ধ গুদামের মাল হিসাব থেকে উবে যায়, আর তখন টাকার
-   * অঙ্কটাই মিথ্যা বলে।
+   * Owner's ruling (10 Aug): a store holding stock cannot be closed — refused
+   * outright, not warned about. Stock inside a closed store vanishes from the
+   * count, and then the money figure itself is a lie.
    */
   private async assertClosable(wh: { id: string; name: string }) {
     const held = await this.prisma.inventoryStock.findMany({
