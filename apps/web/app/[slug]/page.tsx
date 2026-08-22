@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { getCategoryConfig } from "../../_data/categories";
-import { toCategoryConfig, toProduct } from "../../_data/categoryApi";
-import { getCategoryPage, getShopProducts } from "../../_data/shop";
-import CategorySections from "../../_components/Category/CategorySections";
-import Reviews from "../../_components/GBE/Reviews";
-import VisitStore from "../../_components/GBE/VisitStore";
+import { getCategoryConfig } from "../_data/categories";
+import { toCategoryConfig, toProduct } from "../_data/categoryApi";
+import { getCategoryPage, getShopProducts } from "../_data/shop";
+import CategorySections from "../_components/Category/CategorySections";
+import Reviews from "../_components/GBE/Reviews";
+import VisitStore from "../_components/GBE/VisitStore";
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -25,7 +25,7 @@ import VisitStore from "../../_components/GBE/VisitStore";
   Now the slug is asked of the API. Anything the shop creates works, anything
   it deactivates stops working, and neither needs a developer.
 
-  WHY THIS IS A SERVER COMPONENT (D-CAT-05). "ঢাকায় ফুল ডেলিভারি" lands here,
+  WHY THIS IS A SERVER COMPONENT (D-CAT-05). A "flower delivery in Dhaka" search lands here,
   not on the homepage — this is the page Google actually indexes, and a page
   that assembles itself in the browser hands it an empty shell. The zone comes
   from a cookie so the server can pick the right products before rendering;

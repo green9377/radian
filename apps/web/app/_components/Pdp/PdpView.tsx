@@ -1050,12 +1050,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 still takes money.
               */}
               {/*  backHref used to be `/${catSlug}` - no such route exists. The
-                  category page lives at `/categories/<slug>` (the breadcrumb
+                  category page lives at `/<slug>` (the breadcrumb
                   writes it that way itself). So "See what else we have" led
                   nowhere but a 404.  */}
               {soldOut ? (
                 <SoldOut
-                  backHref={`/categories/${detail.crumb.catSlug}`}
+                  backHref={`/${detail.crumb.catSlug}`}
                   hasRelated={(detail.crossProducts ?? []).length > 0}
                 />
               ) : (

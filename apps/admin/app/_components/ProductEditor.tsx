@@ -2465,7 +2465,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                   >
                     <div className="flex items-stretch rounded-[11px] border border-lavender-deep overflow-hidden bg-white">
                       <span className="px-3.5 grid place-items-center text-[13px] text-body-soft bg-lavender/60 border-r border-lavender-deep whitespace-nowrap">
-                        {WEB_HOST}/products/
+                        {WEB_HOST}/p/
                       </span>
                       <input
                         className="flex-1 min-w-0 h-[44px] px-3 text-[13.5px] outline-none"

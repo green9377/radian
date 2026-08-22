@@ -109,7 +109,7 @@ export default function ProductCard({
     <div className="bg-white rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift relative">
       {/* Image */}
       <Link
-        href={`/products/${product.slug}`}
+        href={`/p/${product.slug}`}
         className="block aspect-square relative overflow-hidden"
         style={{ background: product.bg }}
       >
@@ -133,7 +133,7 @@ export default function ProductCard({
 
       {/* Body */}
       <div className="px-3 sm:px-[19px] pt-4 pb-4 sm:pb-5">
-        <Link href={`/products/${product.slug}`}>
+        <Link href={`/p/${product.slug}`}>
           <h3 className="text-[15.5px] font-medium text-ink whitespace-nowrap overflow-hidden text-ellipsis">
             {product.name}
           </h3>

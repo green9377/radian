@@ -3,23 +3,24 @@ import { getSiteSeo } from "./_data/seo";
 import { getShopCategories, getShopProducts } from "./_data/shop";
 
 /*
-  /sitemap.xml — Google-কে দোকানের মানচিত্র, আসল catalogue থেকে।
+  /sitemap.xml — the shop's map for Google, built from the REAL catalogue.
 
-  এতদিন ছিলই না — মালিকের SEO settings-এ "sitemap" switch ছিল, আর switch-টা
-  একটা অস্তিত্বহীন ফাইলের দিকে দেখাত। এখন প্রতিটা published product আর
-  category এখান দিয়ে Google-এ পৌঁছায়; admin-এ নতুন product তুললে পরের
-  crawl-এই সে মানচিত্রে।
+  It simply did not exist for a while — the owner's SEO settings had a
+  "sitemap" switch pointing at a file that was never there. Now every
+  published product and category reaches Google through here; a product
+  added in the admin is on the map by the next crawl.
 
-  ⚠️ যা ইচ্ছা করেই নেই: cart/checkout/account (robots-এও বন্ধ), আর mock-এর
-  কোনো পাতা। sitemap-এ মিথ্যা ঠিকানা দিলে Google আস্থা হারায় — খালি সত্যিটাই
-  দামি।
+  ⚠️ Deliberately absent: cart/checkout/account (blocked in robots too), and
+  any mock page. A sitemap with false addresses costs Google's trust — only
+  the truth is worth listing.
 
-  ⚠️ `sitemapEnabled` false হলে খালি তালিকা — switch-টা এখন সত্যিই কিছু বন্ধ
-  করে।
+  ⚠️ `sitemapEnabled` false → an empty list — the switch finally switches
+  something.
 */
 
-/*  ⚠️ আসল domain env থেকে — deployment-এর দিন `NEXT_PUBLIC_SITE_URL` বসালেই
-    sitemap নতুন ঠিকানায়। hardcode থাকলে ভুল domain-এর মানচিত্র Google-এ যেত।  */
+/*  ⚠️ The real domain comes from env — on deployment day, setting
+    `NEXT_PUBLIC_SITE_URL` re-addresses the whole sitemap. Hardcoded, the
+    wrong domain's map would have gone to Google.  */
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL || "https://radianbd.com").replace(/\/$/, "");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -40,21 +41,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [cats, prods] = await Promise.all([
     getShopCategories(),
-    /*  ৬০-এর সীমা `/shop/products`-এর নিজের; catalogue বড় হলে এখানে
-        pagination বসবে — আজকের দোকানে এক পাতাই যথেষ্ট।  */
+    /*  The limit of 60 is `/shop/products`' own cap; when the catalogue
+        outgrows it, pagination goes here — today one page holds the shop.  */
     getShopProducts({ limit: 60 }),
   ]);
 
   const catPages: MetadataRoute.Sitemap = (cats ?? []).flatMap((c) => [
-    { url: `${BASE}/categories/${c.slug}`, changeFrequency: "daily" as const },
+    { url: `${BASE}/${c.slug}`, changeFrequency: "daily" as const },
     ...c.children.map((s) => ({
-      url: `${BASE}/categories/${c.slug}/${s.slug}`,
+      url: `${BASE}/${c.slug}/${s.slug}`,
       changeFrequency: "daily" as const,
     })),
   ]);
 
   const productPages: MetadataRoute.Sitemap = (prods?.items ?? []).map((p) => ({
-    url: `${BASE}/products/${p.slug}`,
+    url: `${BASE}/p/${p.slug}`,
     changeFrequency: "daily" as const,
   }));
 

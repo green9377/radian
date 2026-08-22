@@ -48,7 +48,7 @@ export default function CategoryBanner({
         {config.parent && (
           <>
             <Link
-              href={`/categories/${config.parent.slug}`}
+              href={`/${config.parent.slug}`}
               className="transition-colors hover:text-orchid"
             >
               {config.parent.label}

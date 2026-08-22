@@ -88,7 +88,7 @@ const BANNERS: Record<"dhaka" | "bangladesh", HeroBanner[]> = {
       h1Accent: "all 64 districts",
       lead: "Courier-safe chocolates, hampers and gift boxes — packed with care in Dhaka, delivered anywhere in Bangladesh in 1–3 days.",
       cta1: { label: "Shop nationwide gifts", href: "/products" },
-      cta2: { label: "See what ships nationwide", href: "/categories/chocolates" },
+      cta2: { label: "See what ships nationwide", href: "/chocolates" },
       proof: ["All 64 districts", "Courier-safe packing", "★ 4.9 on Google"],
       float1: { icon: "truck", title: "Ordered from Dhaka", sub: "Delivered to Sylhet · 2 days" },
       float2: { icon: "gift", title: '"Arrived perfectly packed"', sub: "Gift hamper, Chattogram" },

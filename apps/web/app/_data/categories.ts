@@ -4,19 +4,19 @@ import type { Zone } from "../_store/useZoneStore";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  Category page config — একটাই template, সব category এই config-এ চলে।
+  Category page config — one template; every category runs on this config.
 
-  ⚠️ TEMPORARY HOME — Ecommerce module lock হলে এটা DB-তে যাবে
-     (CategoryPageConfig table)। তখন শুধু getCategoryConfig() এর ভেতরটা
-     fetch() হবে — কোনো component-এ হাত পড়বে না।
+  ⚠️ TEMPORARY HOME — once the Ecommerce module locks, this moves to the DB
+     (CategoryPageConfig table). Only the inside of getCategoryConfig()
+     becomes a fetch() — no component gets touched.
 
-  নিয়ম (গুরুত্বপূর্ণ):
-   - Section-এর ORDER নিচের SLOTS array-তে একবার লেখা। কোনো category
-     সেটা বদলাতে পারে না — শুধু on/off আর content বদলাতে পারে।
-     কারণ: 14টা section যেকোনো order-এ = অগণিত combination, QA অসম্ভব,
-     আর একটা খারাপ order পুরো page-এর conversion নষ্ট করে।
-   - Content (heading, eyebrow, tile, FAQ) প্রতি category-তে আলাদা — স্বাভাবিক।
-   - Section লাগবে না → সেই slot-এ `false`।
+  Rules (important):
+   - Section ORDER is written ONCE, in the SLOTS array below. No category
+     may change it — only switch sections on/off and change content.
+     Why: 14 sections in any order = countless combinations, impossible to
+     QA, and one bad order kills the whole page's conversion.
+   - Content (heading, eyebrow, tiles, FAQ) differs per category — normal.
+   - Don't need a section → `false` in that slot.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -35,7 +35,7 @@ export type SectionKey =
   | "giftFinder"
   | "faq";
 
-/** Product rail-এর rule — products.ts এর flag গুলোর সাথে ম্যাপ করা */
+/** Product rail rule — mapped onto the flags in products.ts */
 export type ProductRule =
   | "bestseller" // best
   | "express" // exp
@@ -101,7 +101,7 @@ export interface CategoryConfig {
   slug: string;
   cat: ProductCategory;
   sub?: string;
-  /** Occasion page হলে এই tag — সব category জুড়ে occ filter, cat উপেক্ষা করে */
+  /** On an occasion page this tag filters ACROSS categories, ignoring cat */
   occ?: Occasion;
   parent?: { label: string; slug: string };
   label: string;
@@ -138,7 +138,7 @@ export interface CategoryConfig {
   faqs: Faq[];
 }
 
-/* ═══════════════ SECTION ORDER — একবার, সবার জন্য ═══════════════ */
+/* ═══════════════ SECTION ORDER — once, for everyone ═══════════════ */
 
 export type SlotKey =
   | "banner"
@@ -215,7 +215,7 @@ export const SLOTS: { slot: SlotKey; base: CategorySection }[] = [
 
 type SlotOverrides = Partial<Record<SlotKey, Partial<CategorySection> | false>>;
 
-/** Order fixed। Category শুধু content দেয়, বা `false` দিয়ে section বন্ধ করে। */
+/** Order is fixed. A category only supplies content, or turns a section off with `false`. */
 function makeSections(overrides: SlotOverrides): CategorySection[] {
   return SLOTS.map(({ slot, base }) => {
     const o = overrides[slot];
@@ -234,32 +234,32 @@ const OCCASIONS: Tile[] = [
 ];
 
 const budgets = (slug: string): BudgetTile[] => [
-  { kicker: "Thoughtful", label: "Under ৳1,500", href: `/categories/${slug}?max=1500`, bg: "linear-gradient(160deg,#F4E9F7,#DFC9EC)" },
-  { kicker: "Most loved", label: "৳1,500 – ৳3,000", href: `/categories/${slug}?min=1500&max=3000`, bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
-  { kicker: "Premium", label: "৳3,000 – ৳6,000", href: `/categories/${slug}?min=3000&max=6000`, bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-  { kicker: "Luxury", label: "৳6,000 +", href: `/categories/${slug}?min=6000`, bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
+  { kicker: "Thoughtful", label: "Under ৳1,500", href: `/${slug}?max=1500`, bg: "linear-gradient(160deg,#F4E9F7,#DFC9EC)" },
+  { kicker: "Most loved", label: "৳1,500 – ৳3,000", href: `/${slug}?min=1500&max=3000`, bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
+  { kicker: "Premium", label: "৳3,000 – ৳6,000", href: `/${slug}?min=3000&max=6000`, bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+  { kicker: "Luxury", label: "৳6,000 +", href: `/${slug}?min=6000`, bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
 ];
 
 const ALL_CATEGORIES: Record<string, Tile> = {
-  "fresh-flowers": { label: "Fresh Flowers", sub: "Hand-arranged daily", href: "/categories/fresh-flowers", bg: "linear-gradient(160deg,#F6E3F3,#EAC3E6)" },
-  cakes: { label: "Cakes", sub: "Baked fresh daily", href: "/categories/cakes", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-  "flower-combos": { label: "Flower Combos", sub: "Flowers + cake + card", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-  chocolates: { label: "Chocolates", sub: "Premium boxes", href: "/categories/chocolates", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
-  plants: { label: "Plants", sub: "Gifts that grow", href: "/categories/plants", bg: "linear-gradient(160deg,#E7F2E7,#CBE3CE)" },
-  personalised: { label: "Personalised", sub: "Made only for them", href: "/categories/personalised", bg: "linear-gradient(160deg,#F3E7F8,#E1C9F1)" },
-  "balloon-bouquets": { label: "Balloon Bouquets", sub: "Float their heart", href: "/categories/balloon-bouquets", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
-  "gift-boxes": { label: "Gift Boxes", sub: "Curated with love", href: "/categories/gift-boxes", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
+  "fresh-flowers": { label: "Fresh Flowers", sub: "Hand-arranged daily", href: "/fresh-flowers", bg: "linear-gradient(160deg,#F6E3F3,#EAC3E6)" },
+  cakes: { label: "Cakes", sub: "Baked fresh daily", href: "/cakes", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+  "flower-combos": { label: "Flower Combos", sub: "Flowers + cake + card", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+  chocolates: { label: "Chocolates", sub: "Premium boxes", href: "/chocolates", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
+  plants: { label: "Plants", sub: "Gifts that grow", href: "/plants", bg: "linear-gradient(160deg,#E7F2E7,#CBE3CE)" },
+  personalised: { label: "Personalised", sub: "Made only for them", href: "/personalised", bg: "linear-gradient(160deg,#F3E7F8,#E1C9F1)" },
+  "balloon-bouquets": { label: "Balloon Bouquets", sub: "Float their heart", href: "/balloon-bouquets", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+  "gift-boxes": { label: "Gift Boxes", sub: "Curated with love", href: "/gift-boxes", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
 };
 
-/** নিজেরটা বাদ দিয়ে ৪টা cross-sell tile */
+/** Four cross-sell tiles, its own category excluded */
 const crossSell = (self: string, picks: string[]): Tile[] =>
   picks.filter((p) => p !== self).slice(0, 4).map((p) => ALL_CATEGORIES[p]);
 
 const FLOWER_COMBOS: Tile[] = [
-  { label: "Flowers + Cake", sub: "From ৳2,890", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-  { label: "Flowers + Chocolates", sub: "From ৳2,450", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
-  { label: "Flowers + Balloons", sub: "From ৳2,190", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
-  { label: "All Combos", sub: "8 hampers", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+  { label: "Flowers + Cake", sub: "From ৳2,890", href: "/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+  { label: "Flowers + Chocolates", sub: "From ৳2,450", href: "/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
+  { label: "Flowers + Balloons", sub: "From ৳2,190", href: "/flower-combos", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+  { label: "All Combos", sub: "8 hampers", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
 ];
 
 const DELIVERY_FAQ: Faq[] = [
@@ -314,31 +314,31 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Flowers — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Roses", sub: "24 designs", href: "/categories/fresh-flowers/roses", bg: "linear-gradient(160deg,#F8E4E8,#EFC5CF)" },
-      { label: "Tuberose", sub: "9 designs", href: "/categories/fresh-flowers/tuberose", bg: "linear-gradient(160deg,#F2ECF6,#DED2EA)" },
-      { label: "Gerbera", sub: "12 designs", href: "/categories/fresh-flowers/gerbera", bg: "linear-gradient(160deg,#FBEFDD,#F2D9AE)" },
-      { label: "Lilies", sub: "11 designs", href: "/categories/fresh-flowers/lilies", bg: "linear-gradient(160deg,#F6F2FA,#E3DCEC)" },
-      { label: "Orchids", sub: "8 designs", href: "/categories/fresh-flowers/orchids", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-      { label: "Carnation", sub: "10 designs", href: "/categories/fresh-flowers/carnation", bg: "linear-gradient(160deg,#FBE7EE,#EFC5D4)" },
-      { label: "Sunflower", sub: "6 designs", href: "/categories/fresh-flowers/sunflower", bg: "linear-gradient(160deg,#FCF0D6,#F0DA9C)" },
-      { label: "Mixed Blooms", sub: "18 designs", href: "/categories/fresh-flowers/mixed", bg: "linear-gradient(160deg,#F4E9F7,#DFC9EC)" },
+      { label: "Roses", sub: "24 designs", href: "/fresh-flowers/roses", bg: "linear-gradient(160deg,#F8E4E8,#EFC5CF)" },
+      { label: "Tuberose", sub: "9 designs", href: "/fresh-flowers/tuberose", bg: "linear-gradient(160deg,#F2ECF6,#DED2EA)" },
+      { label: "Gerbera", sub: "12 designs", href: "/fresh-flowers/gerbera", bg: "linear-gradient(160deg,#FBEFDD,#F2D9AE)" },
+      { label: "Lilies", sub: "11 designs", href: "/fresh-flowers/lilies", bg: "linear-gradient(160deg,#F6F2FA,#E3DCEC)" },
+      { label: "Orchids", sub: "8 designs", href: "/fresh-flowers/orchids", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Carnation", sub: "10 designs", href: "/fresh-flowers/carnation", bg: "linear-gradient(160deg,#FBE7EE,#EFC5D4)" },
+      { label: "Sunflower", sub: "6 designs", href: "/fresh-flowers/sunflower", bg: "linear-gradient(160deg,#FCF0D6,#F0DA9C)" },
+      { label: "Mixed Blooms", sub: "18 designs", href: "/fresh-flowers/mixed", bg: "linear-gradient(160deg,#F4E9F7,#DFC9EC)" },
     ],
     attributes: [
-      { label: "Bouquet", sub: "Classic wrap", href: "/categories/fresh-flowers?style=bouquet", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
-      { label: "Flower Box", sub: "Signature", href: "/categories/fresh-flowers?style=box", bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
-      { label: "Vase", sub: "Ready to place", href: "/categories/fresh-flowers?style=vase", bg: "linear-gradient(160deg,#F2ECF6,#DED2EA)" },
-      { label: "Basket", sub: "Grand gesture", href: "/categories/fresh-flowers?style=basket", bg: "linear-gradient(160deg,#FBEFDD,#F2D9AE)" },
-      { label: "Heart Shape", sub: "Romantic", href: "/categories/fresh-flowers?style=heart", bg: "linear-gradient(160deg,#F3DCE3,#E0B4C4)" },
-      { label: "Standing Spray", sub: "Corporate", href: "/categories/fresh-flowers?style=standing", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
+      { label: "Bouquet", sub: "Classic wrap", href: "/fresh-flowers?style=bouquet", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
+      { label: "Flower Box", sub: "Signature", href: "/fresh-flowers?style=box", bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
+      { label: "Vase", sub: "Ready to place", href: "/fresh-flowers?style=vase", bg: "linear-gradient(160deg,#F2ECF6,#DED2EA)" },
+      { label: "Basket", sub: "Grand gesture", href: "/fresh-flowers?style=basket", bg: "linear-gradient(160deg,#FBEFDD,#F2D9AE)" },
+      { label: "Heart Shape", sub: "Romantic", href: "/fresh-flowers?style=heart", bg: "linear-gradient(160deg,#F3DCE3,#E0B4C4)" },
+      { label: "Standing Spray", sub: "Corporate", href: "/fresh-flowers?style=standing", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
     ],
     occasions: OCCASIONS,
     colours: [
-      { label: "Red", sub: "Love & passion", swatch: "#C7263C", href: "/categories/fresh-flowers?colour=red" },
-      { label: "Pink", sub: "Admiration", swatch: "#E88BB4", href: "/categories/fresh-flowers?colour=pink" },
-      { label: "White", sub: "Purity & peace", swatch: "#F2ECF6", href: "/categories/fresh-flowers?colour=white" },
-      { label: "Yellow", sub: "Joy & friendship", swatch: "#E9B93A", href: "/categories/fresh-flowers?colour=yellow" },
-      { label: "Purple", sub: "Grace & luxury", swatch: "#8A45B8", href: "/categories/fresh-flowers?colour=purple" },
-      { label: "Mixed", sub: "A bit of everything", swatch: "linear-gradient(135deg,#C7263C,#E9B93A 45%,#8A45B8)", href: "/categories/fresh-flowers?colour=mixed" },
+      { label: "Red", sub: "Love & passion", swatch: "#C7263C", href: "/fresh-flowers?colour=red" },
+      { label: "Pink", sub: "Admiration", swatch: "#E88BB4", href: "/fresh-flowers?colour=pink" },
+      { label: "White", sub: "Purity & peace", swatch: "#F2ECF6", href: "/fresh-flowers?colour=white" },
+      { label: "Yellow", sub: "Joy & friendship", swatch: "#E9B93A", href: "/fresh-flowers?colour=yellow" },
+      { label: "Purple", sub: "Grace & luxury", swatch: "#8A45B8", href: "/fresh-flowers?colour=purple" },
+      { label: "Mixed", sub: "A bit of everything", swatch: "linear-gradient(135deg,#C7263C,#E9B93A 45%,#8A45B8)", href: "/fresh-flowers?colour=mixed" },
     ],
     budgets: budgets("fresh-flowers"),
     combos: FLOWER_COMBOS,
@@ -370,7 +370,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       attributeGrid: { eyebrow: "Shop by size", heading: "What Size Do You Need?", subheading: "Count the people, then pick." },
       occasionGrid: { heading: "Cakes For The Moment" },
       readyToday: { subheading: "Baked, boxed, and out the door within the hour." },
-      colourGrid: false, // ← কেক-এ colour অর্থহীন
+      colourGrid: false, // ← colour is meaningless on a cake
       productGrid: { heading: "All Cakes" },
       comboRail: { heading: "Cakes, Plus Flowers", subheading: "One gift, one delivery, one very good surprise." },
       deliveryBand: { heading: "Cakes That Arrive While It Still Matters" },
@@ -378,29 +378,29 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Cakes — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Chocolate", sub: "Always safe", href: "/categories/cakes/chocolate", bg: "linear-gradient(160deg,#F0E2D8,#DCC0AC)" },
-      { label: "Red Velvet", sub: "Crowd favourite", href: "/categories/cakes/red-velvet", bg: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" },
-      { label: "Vanilla", sub: "Light & classic", href: "/categories/cakes/vanilla", bg: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" },
-      { label: "Fruit Cake", sub: "Fresh & light", href: "/categories/cakes/fruit", bg: "linear-gradient(160deg,#F2F0DC,#DCD9A8)" },
-      { label: "Photo Cake", sub: "Personalised", href: "/categories/cakes/photo", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-      { label: "Bento Cake", sub: "Small & cute", href: "/categories/cakes/bento", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+      { label: "Chocolate", sub: "Always safe", href: "/cakes/chocolate", bg: "linear-gradient(160deg,#F0E2D8,#DCC0AC)" },
+      { label: "Red Velvet", sub: "Crowd favourite", href: "/cakes/red-velvet", bg: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" },
+      { label: "Vanilla", sub: "Light & classic", href: "/cakes/vanilla", bg: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" },
+      { label: "Fruit Cake", sub: "Fresh & light", href: "/cakes/fruit", bg: "linear-gradient(160deg,#F2F0DC,#DCD9A8)" },
+      { label: "Photo Cake", sub: "Personalised", href: "/cakes/photo", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Bento Cake", sub: "Small & cute", href: "/cakes/bento", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
     ],
     attributes: [
-      { label: "0.5 kg", sub: "2–4 people", href: "/categories/cakes?size=0.5", bg: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" },
-      { label: "1 kg", sub: "5–8 people", href: "/categories/cakes?size=1", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-      { label: "1.5 kg", sub: "10–12 people", href: "/categories/cakes?size=1.5", bg: "linear-gradient(160deg,#F0E2D8,#DCC0AC)" },
-      { label: "2 kg", sub: "15+ people", href: "/categories/cakes?size=2", bg: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" },
-      { label: "Tiered", sub: "Big celebrations", href: "/categories/cakes?size=tiered", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-      { label: "Bento", sub: "Just for one", href: "/categories/cakes?size=bento", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+      { label: "0.5 kg", sub: "2–4 people", href: "/cakes?size=0.5", bg: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" },
+      { label: "1 kg", sub: "5–8 people", href: "/cakes?size=1", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+      { label: "1.5 kg", sub: "10–12 people", href: "/cakes?size=1.5", bg: "linear-gradient(160deg,#F0E2D8,#DCC0AC)" },
+      { label: "2 kg", sub: "15+ people", href: "/cakes?size=2", bg: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" },
+      { label: "Tiered", sub: "Big celebrations", href: "/cakes?size=tiered", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Bento", sub: "Just for one", href: "/cakes?size=bento", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
     ],
     occasions: OCCASIONS,
     colours: [],
     budgets: budgets("cakes"),
     combos: [
-      { label: "Cake + Flowers", sub: "From ৳2,890", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
-      { label: "Cake + Balloons", sub: "From ৳2,190", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
-      { label: "Cake + Teddy", sub: "From ৳2,350", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
-      { label: "All Combos", sub: "8 hampers", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Cake + Flowers", sub: "From ৳2,890", href: "/flower-combos", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
+      { label: "Cake + Balloons", sub: "From ৳2,190", href: "/flower-combos", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+      { label: "Cake + Teddy", sub: "From ৳2,350", href: "/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
+      { label: "All Combos", sub: "8 hampers", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
     ],
     crossSell: crossSell("cakes", ["fresh-flowers", "balloon-bouquets", "chocolates", "gift-boxes"]),
     faqs: [
@@ -434,23 +434,23 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       readyToday: { subheading: "Built and boxed, out the door within the hour." },
       colourGrid: false,
       productGrid: { heading: "All Combos" },
-      comboRail: false, // ← এটাই combo page, আবার combo দেখানোর মানে নেই
+      comboRail: false, // ← this IS the combo page; showing combos again is pointless
       deliveryBand: { heading: "Combos That Arrive While It Still Matters" },
       giftFinder: { heading: "Not Sure Which Combo To Send?", subheading: "Tell us who it's for and your budget — we'll pick the pairing that lands." },
       faq: { heading: "Combos — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Flowers + Cake", sub: "Most ordered", href: "/categories/flower-combos/flowers-cake", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-      { label: "Flowers + Chocolate", sub: "Courier-safe", href: "/categories/flower-combos/flowers-chocolate", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
-      { label: "Flowers + Balloons", sub: "Bright & loud", href: "/categories/flower-combos/flowers-balloon", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
-      { label: "Cake + Teddy", sub: "Kids favourite", href: "/categories/flower-combos/cake-teddy", bg: "linear-gradient(160deg,#F6EBE2,#E9D2BE)" },
-      { label: "Luxury Hampers", sub: "The full surprise", href: "/categories/flower-combos/luxury", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Flowers + Cake", sub: "Most ordered", href: "/flower-combos/flowers-cake", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+      { label: "Flowers + Chocolate", sub: "Courier-safe", href: "/flower-combos/flowers-chocolate", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
+      { label: "Flowers + Balloons", sub: "Bright & loud", href: "/flower-combos/flowers-balloon", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+      { label: "Cake + Teddy", sub: "Kids favourite", href: "/flower-combos/cake-teddy", bg: "linear-gradient(160deg,#F6EBE2,#E9D2BE)" },
+      { label: "Luxury Hampers", sub: "The full surprise", href: "/flower-combos/luxury", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
     ],
     attributes: [
-      { label: "Petite", sub: "Under ৳2,000", href: "/categories/flower-combos?scale=petite", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
-      { label: "Classic", sub: "৳2,000–3,500", href: "/categories/flower-combos?scale=classic", bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
-      { label: "Grand", sub: "৳3,500–6,000", href: "/categories/flower-combos?scale=grand", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
-      { label: "Luxury", sub: "৳6,000 +", href: "/categories/flower-combos?scale=luxury", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
+      { label: "Petite", sub: "Under ৳2,000", href: "/flower-combos?scale=petite", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
+      { label: "Classic", sub: "৳2,000–3,500", href: "/flower-combos?scale=classic", bg: "linear-gradient(160deg,#F7E7F1,#E7C6DE)" },
+      { label: "Grand", sub: "৳3,500–6,000", href: "/flower-combos?scale=grand", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Luxury", sub: "৳6,000 +", href: "/flower-combos?scale=luxury", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
     ],
     occasions: OCCASIONS,
     colours: [],
@@ -492,16 +492,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Chocolates — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Imported", sub: "Lindt, Ferrero", href: "/categories/chocolates/imported", bg: "linear-gradient(160deg,#EFE1D4,#D9BFA6)" },
-      { label: "Handmade", sub: "Made in Dhaka", href: "/categories/chocolates/handmade", bg: "linear-gradient(160deg,#F2E6DE,#DCC3B0)" },
-      { label: "Chocolate Bouquet", sub: "Flowers, but edible", href: "/categories/chocolates/bouquet", bg: "linear-gradient(160deg,#F4E8E2,#E0C7B8)" },
-      { label: "Hampers", sub: "The big one", href: "/categories/chocolates/hamper", bg: "linear-gradient(160deg,#EFE3EC,#D5BFD2)" },
+      { label: "Imported", sub: "Lindt, Ferrero", href: "/chocolates/imported", bg: "linear-gradient(160deg,#EFE1D4,#D9BFA6)" },
+      { label: "Handmade", sub: "Made in Dhaka", href: "/chocolates/handmade", bg: "linear-gradient(160deg,#F2E6DE,#DCC3B0)" },
+      { label: "Chocolate Bouquet", sub: "Flowers, but edible", href: "/chocolates/bouquet", bg: "linear-gradient(160deg,#F4E8E2,#E0C7B8)" },
+      { label: "Hampers", sub: "The big one", href: "/chocolates/hamper", bg: "linear-gradient(160deg,#EFE3EC,#D5BFD2)" },
     ],
     attributes: [
-      { label: "Small Box", sub: "Under ৳1,000", href: "/categories/chocolates?size=small", bg: "linear-gradient(160deg,#F6EEDD,#E5D2AC)" },
-      { label: "Medium Box", sub: "৳1,000–2,000", href: "/categories/chocolates?size=medium", bg: "linear-gradient(160deg,#F3E7DD,#E3CBB6)" },
-      { label: "Large Box", sub: "৳2,000–3,500", href: "/categories/chocolates?size=large", bg: "linear-gradient(160deg,#EFE1D4,#D9BFA6)" },
-      { label: "Hamper", sub: "৳3,500 +", href: "/categories/chocolates?size=hamper", bg: "linear-gradient(160deg,#E8DDD5,#CBB29E)" },
+      { label: "Small Box", sub: "Under ৳1,000", href: "/chocolates?size=small", bg: "linear-gradient(160deg,#F6EEDD,#E5D2AC)" },
+      { label: "Medium Box", sub: "৳1,000–2,000", href: "/chocolates?size=medium", bg: "linear-gradient(160deg,#F3E7DD,#E3CBB6)" },
+      { label: "Large Box", sub: "৳2,000–3,500", href: "/chocolates?size=large", bg: "linear-gradient(160deg,#EFE1D4,#D9BFA6)" },
+      { label: "Hamper", sub: "৳3,500 +", href: "/chocolates?size=hamper", bg: "linear-gradient(160deg,#E8DDD5,#CBB29E)" },
     ],
     occasions: OCCASIONS,
     colours: [],
@@ -543,27 +543,27 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Plants — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Indoor", sub: "Low light, low effort", href: "/categories/plants/indoor", bg: "linear-gradient(160deg,#E7F2E7,#CBE3CE)" },
-      { label: "Air Purifying", sub: "Cleans the air", href: "/categories/plants/air-purifying", bg: "linear-gradient(160deg,#E3EEE4,#C3DCC7)" },
-      { label: "Succulents", sub: "Almost no care", href: "/categories/plants/succulents", bg: "linear-gradient(160deg,#EAF1E6,#CBDCC2)" },
-      { label: "Flowering", sub: "Green + colour", href: "/categories/plants/flowering", bg: "linear-gradient(160deg,#EDF3EC,#CFE0CE)" },
-      { label: "Bonsai", sub: "Statement piece", href: "/categories/plants/bonsai", bg: "linear-gradient(160deg,#E5EDE3,#C2D4BF)" },
-      { label: "Lucky Bamboo", sub: "Housewarming", href: "/categories/plants/lucky-bamboo", bg: "linear-gradient(160deg,#E9F2EE,#C7DED4)" },
+      { label: "Indoor", sub: "Low light, low effort", href: "/plants/indoor", bg: "linear-gradient(160deg,#E7F2E7,#CBE3CE)" },
+      { label: "Air Purifying", sub: "Cleans the air", href: "/plants/air-purifying", bg: "linear-gradient(160deg,#E3EEE4,#C3DCC7)" },
+      { label: "Succulents", sub: "Almost no care", href: "/plants/succulents", bg: "linear-gradient(160deg,#EAF1E6,#CBDCC2)" },
+      { label: "Flowering", sub: "Green + colour", href: "/plants/flowering", bg: "linear-gradient(160deg,#EDF3EC,#CFE0CE)" },
+      { label: "Bonsai", sub: "Statement piece", href: "/plants/bonsai", bg: "linear-gradient(160deg,#E5EDE3,#C2D4BF)" },
+      { label: "Lucky Bamboo", sub: "Housewarming", href: "/plants/lucky-bamboo", bg: "linear-gradient(160deg,#E9F2EE,#C7DED4)" },
     ],
     attributes: [
-      { label: "Ceramic Pot", sub: "Clean & modern", href: "/categories/plants?pot=ceramic", bg: "linear-gradient(160deg,#F1F4F6,#D4DCE2)" },
-      { label: "Terracotta", sub: "Warm & classic", href: "/categories/plants?pot=terracotta", bg: "linear-gradient(160deg,#F4E5DC,#E0BFA9)" },
-      { label: "Desk Size", sub: "Office friendly", href: "/categories/plants?pot=desk", bg: "linear-gradient(160deg,#EDF1E4,#D2DBBE)" },
-      { label: "Floor Plant", sub: "Fills a corner", href: "/categories/plants?pot=floor", bg: "linear-gradient(160deg,#E4EFE6,#C0D8C6)" },
+      { label: "Ceramic Pot", sub: "Clean & modern", href: "/plants?pot=ceramic", bg: "linear-gradient(160deg,#F1F4F6,#D4DCE2)" },
+      { label: "Terracotta", sub: "Warm & classic", href: "/plants?pot=terracotta", bg: "linear-gradient(160deg,#F4E5DC,#E0BFA9)" },
+      { label: "Desk Size", sub: "Office friendly", href: "/plants?pot=desk", bg: "linear-gradient(160deg,#EDF1E4,#D2DBBE)" },
+      { label: "Floor Plant", sub: "Fills a corner", href: "/plants?pot=floor", bg: "linear-gradient(160deg,#E4EFE6,#C0D8C6)" },
     ],
     occasions: OCCASIONS,
     colours: [],
     budgets: budgets("plants"),
     combos: [
-      { label: "Plant + Chocolates", sub: "From ৳1,890", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
-      { label: "Plant + Card", sub: "From ৳990", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
-      { label: "Plant + Cake", sub: "From ৳2,390", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-      { label: "All Combos", sub: "8 hampers", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Plant + Chocolates", sub: "From ৳1,890", href: "/flower-combos", bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)" },
+      { label: "Plant + Card", sub: "From ৳990", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
+      { label: "Plant + Cake", sub: "From ৳2,390", href: "/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+      { label: "All Combos", sub: "8 hampers", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
     ],
     crossSell: crossSell("plants", ["fresh-flowers", "gift-boxes", "personalised", "chocolates"]),
     faqs: [
@@ -601,18 +601,18 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Personalised — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Photo Mugs", sub: "From ৳590", href: "/categories/personalised/mugs", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
-      { label: "Photo Frames", sub: "Engraved wood", href: "/categories/personalised/frames", bg: "linear-gradient(160deg,#F2E9DF,#DCC9B4)" },
-      { label: "Name Lamps", sub: "Glows their name", href: "/categories/personalised/lamps", bg: "linear-gradient(160deg,#EFE7F8,#D6C2EE)" },
-      { label: "Cushions", sub: "Photo printed", href: "/categories/personalised/cushions", bg: "linear-gradient(160deg,#F8E7EE,#EBC6D6)" },
-      { label: "Photo Albums", sub: "Up to 40 photos", href: "/categories/personalised/albums", bg: "linear-gradient(160deg,#EDE8F5,#CFC5E8)" },
-      { label: "Engraved", sub: "Keychains & plaques", href: "/categories/personalised/engraved", bg: "linear-gradient(160deg,#EEF0F5,#CCD2E0)" },
+      { label: "Photo Mugs", sub: "From ৳590", href: "/personalised/mugs", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
+      { label: "Photo Frames", sub: "Engraved wood", href: "/personalised/frames", bg: "linear-gradient(160deg,#F2E9DF,#DCC9B4)" },
+      { label: "Name Lamps", sub: "Glows their name", href: "/personalised/lamps", bg: "linear-gradient(160deg,#EFE7F8,#D6C2EE)" },
+      { label: "Cushions", sub: "Photo printed", href: "/personalised/cushions", bg: "linear-gradient(160deg,#F8E7EE,#EBC6D6)" },
+      { label: "Photo Albums", sub: "Up to 40 photos", href: "/personalised/albums", bg: "linear-gradient(160deg,#EDE8F5,#CFC5E8)" },
+      { label: "Engraved", sub: "Keychains & plaques", href: "/personalised/engraved", bg: "linear-gradient(160deg,#EEF0F5,#CCD2E0)" },
     ],
     attributes: [
-      { label: "A Photo", sub: "Upload any image", href: "/categories/personalised?with=photo", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
-      { label: "Their Name", sub: "Printed or engraved", href: "/categories/personalised?with=name", bg: "linear-gradient(160deg,#EFE7F8,#D6C2EE)" },
-      { label: "A Message", sub: "Your words, kept", href: "/categories/personalised?with=message", bg: "linear-gradient(160deg,#F5EDF8,#DFCCEC)" },
-      { label: "A Date", sub: "The day it happened", href: "/categories/personalised?with=date", bg: "linear-gradient(160deg,#EEF0F5,#CCD2E0)" },
+      { label: "A Photo", sub: "Upload any image", href: "/personalised?with=photo", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
+      { label: "Their Name", sub: "Printed or engraved", href: "/personalised?with=name", bg: "linear-gradient(160deg,#EFE7F8,#D6C2EE)" },
+      { label: "A Message", sub: "Your words, kept", href: "/personalised?with=message", bg: "linear-gradient(160deg,#F5EDF8,#DFCCEC)" },
+      { label: "A Date", sub: "The day it happened", href: "/personalised?with=date", bg: "linear-gradient(160deg,#EEF0F5,#CCD2E0)" },
     ],
     occasions: OCCASIONS,
     colours: [],
@@ -655,33 +655,33 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Balloons — Frequently Asked" },
     }),
     subCategories: [
-      { label: "Birthday", sub: "Party ready", href: "/categories/balloon-bouquets/birthday", bg: "linear-gradient(160deg,#F9EAF3,#F0CBE2)" },
-      { label: "Number", sub: "Any age", href: "/categories/balloon-bouquets/number", bg: "linear-gradient(160deg,#F8EDE6,#EACFBE)" },
-      { label: "Letter", sub: "Spell their name", href: "/categories/balloon-bouquets/letter", bg: "linear-gradient(160deg,#F3EAF9,#D9C6EE)" },
-      { label: "Love & Hearts", sub: "Midnight ready", href: "/categories/balloon-bouquets/love", bg: "linear-gradient(160deg,#F8E0E7,#EEBECB)" },
-      { label: "Congratulations", sub: "Promotions & wins", href: "/categories/balloon-bouquets/congrats", bg: "linear-gradient(160deg,#EDF3E8,#CFE0C6)" },
+      { label: "Birthday", sub: "Party ready", href: "/balloon-bouquets/birthday", bg: "linear-gradient(160deg,#F9EAF3,#F0CBE2)" },
+      { label: "Number", sub: "Any age", href: "/balloon-bouquets/number", bg: "linear-gradient(160deg,#F8EDE6,#EACFBE)" },
+      { label: "Letter", sub: "Spell their name", href: "/balloon-bouquets/letter", bg: "linear-gradient(160deg,#F3EAF9,#D9C6EE)" },
+      { label: "Love & Hearts", sub: "Midnight ready", href: "/balloon-bouquets/love", bg: "linear-gradient(160deg,#F8E0E7,#EEBECB)" },
+      { label: "Congratulations", sub: "Promotions & wins", href: "/balloon-bouquets/congrats", bg: "linear-gradient(160deg,#EDF3E8,#CFE0C6)" },
     ],
     attributes: [
-      { label: "Small Bunch", sub: "5–7 balloons", href: "/categories/balloon-bouquets?scale=small", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
-      { label: "Bouquet", sub: "10–15 balloons", href: "/categories/balloon-bouquets?scale=bouquet", bg: "linear-gradient(160deg,#F9EAF3,#F0CBE2)" },
-      { label: "Room Set", sub: "25+ balloons", href: "/categories/balloon-bouquets?scale=room", bg: "linear-gradient(160deg,#F6EBF6,#E1C7E4)" },
-      { label: "Full Arch", sub: "Photo-wall scale", href: "/categories/balloon-bouquets?scale=arch", bg: "linear-gradient(160deg,#F3EAF9,#D9C6EE)" },
+      { label: "Small Bunch", sub: "5–7 balloons", href: "/balloon-bouquets?scale=small", bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)" },
+      { label: "Bouquet", sub: "10–15 balloons", href: "/balloon-bouquets?scale=bouquet", bg: "linear-gradient(160deg,#F9EAF3,#F0CBE2)" },
+      { label: "Room Set", sub: "25+ balloons", href: "/balloon-bouquets?scale=room", bg: "linear-gradient(160deg,#F6EBF6,#E1C7E4)" },
+      { label: "Full Arch", sub: "Photo-wall scale", href: "/balloon-bouquets?scale=arch", bg: "linear-gradient(160deg,#F3EAF9,#D9C6EE)" },
     ],
     occasions: OCCASIONS,
     colours: [
-      { label: "Rose Gold", sub: "Elegant & warm", swatch: "#B76E79", href: "/categories/balloon-bouquets?colour=rose-gold" },
-      { label: "Red", sub: "Love & drama", swatch: "#C7263C", href: "/categories/balloon-bouquets?colour=red" },
-      { label: "Pink", sub: "Soft & sweet", swatch: "#E88BB4", href: "/categories/balloon-bouquets?colour=pink" },
-      { label: "Blue", sub: "Cool & calm", swatch: "#5B8AC7", href: "/categories/balloon-bouquets?colour=blue" },
-      { label: "Chrome", sub: "Modern & shiny", swatch: "linear-gradient(135deg,#C9CFD8,#8E97A6)", href: "/categories/balloon-bouquets?colour=chrome" },
-      { label: "Pastel Mix", sub: "Soft rainbow", swatch: "linear-gradient(135deg,#F2CBDD,#E9B93A 50%,#9FD3C7)", href: "/categories/balloon-bouquets?colour=pastel" },
+      { label: "Rose Gold", sub: "Elegant & warm", swatch: "#B76E79", href: "/balloon-bouquets?colour=rose-gold" },
+      { label: "Red", sub: "Love & drama", swatch: "#C7263C", href: "/balloon-bouquets?colour=red" },
+      { label: "Pink", sub: "Soft & sweet", swatch: "#E88BB4", href: "/balloon-bouquets?colour=pink" },
+      { label: "Blue", sub: "Cool & calm", swatch: "#5B8AC7", href: "/balloon-bouquets?colour=blue" },
+      { label: "Chrome", sub: "Modern & shiny", swatch: "linear-gradient(135deg,#C9CFD8,#8E97A6)", href: "/balloon-bouquets?colour=chrome" },
+      { label: "Pastel Mix", sub: "Soft rainbow", swatch: "linear-gradient(135deg,#F2CBDD,#E9B93A 50%,#9FD3C7)", href: "/balloon-bouquets?colour=pastel" },
     ],
     budgets: budgets("balloon-bouquets"),
     combos: [
-      { label: "Balloons + Cake", sub: "From ৳2,190", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
-      { label: "Balloons + Flowers", sub: "From ৳2,190", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
-      { label: "Birthday Triple", sub: "From ৳3,490", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#FAE9F1,#F0CBDE)" },
-      { label: "All Combos", sub: "8 hampers", href: "/categories/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
+      { label: "Balloons + Cake", sub: "From ৳2,190", href: "/flower-combos", bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)" },
+      { label: "Balloons + Flowers", sub: "From ৳2,190", href: "/flower-combos", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
+      { label: "Birthday Triple", sub: "From ৳3,490", href: "/flower-combos", bg: "linear-gradient(160deg,#FAE9F1,#F0CBDE)" },
+      { label: "All Combos", sub: "8 hampers", href: "/flower-combos", bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)" },
     ],
     crossSell: crossSell("balloon-bouquets", ["cakes", "fresh-flowers", "personalised", "gift-boxes"]),
     faqs: [
@@ -720,16 +720,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       faq: { heading: "Gift Boxes — Frequently Asked" },
     }),
     subCategories: [
-      { label: "For Her", sub: "Self-care sets", href: "/categories/gift-boxes/for-her", bg: "linear-gradient(160deg,#F7E9F2,#E4C6DA)" },
-      { label: "For Him", sub: "Grooming & snacks", href: "/categories/gift-boxes/for-him", bg: "linear-gradient(160deg,#E9EDF3,#C8D0DE)" },
-      { label: "Corporate", sub: "Bulk welcome", href: "/categories/gift-boxes/corporate", bg: "linear-gradient(160deg,#F0EBE2,#D5CBB6)" },
-      { label: "Self-Care", sub: "Calm & unwind", href: "/categories/gift-boxes/self-care", bg: "linear-gradient(160deg,#F3EEE6,#DCD1BE)" },
+      { label: "For Her", sub: "Self-care sets", href: "/gift-boxes/for-her", bg: "linear-gradient(160deg,#F7E9F2,#E4C6DA)" },
+      { label: "For Him", sub: "Grooming & snacks", href: "/gift-boxes/for-him", bg: "linear-gradient(160deg,#E9EDF3,#C8D0DE)" },
+      { label: "Corporate", sub: "Bulk welcome", href: "/gift-boxes/corporate", bg: "linear-gradient(160deg,#F0EBE2,#D5CBB6)" },
+      { label: "Self-Care", sub: "Calm & unwind", href: "/gift-boxes/self-care", bg: "linear-gradient(160deg,#F3EEE6,#DCD1BE)" },
     ],
     attributes: [
-      { label: "Thank You", sub: "Under ৳2,000", href: "/categories/gift-boxes?scale=thanks", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
-      { label: "Classic", sub: "৳2,000–3,500", href: "/categories/gift-boxes?scale=classic", bg: "linear-gradient(160deg,#F7E9F2,#E4C6DA)" },
-      { label: "Premium", sub: "৳3,500–6,000", href: "/categories/gift-boxes?scale=premium", bg: "linear-gradient(160deg,#F0EBE2,#D5CBB6)" },
-      { label: "Luxury", sub: "৳6,000 +", href: "/categories/gift-boxes?scale=luxury", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
+      { label: "Thank You", sub: "Under ৳2,000", href: "/gift-boxes?scale=thanks", bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)" },
+      { label: "Classic", sub: "৳2,000–3,500", href: "/gift-boxes?scale=classic", bg: "linear-gradient(160deg,#F7E9F2,#E4C6DA)" },
+      { label: "Premium", sub: "৳3,500–6,000", href: "/gift-boxes?scale=premium", bg: "linear-gradient(160deg,#F0EBE2,#D5CBB6)" },
+      { label: "Luxury", sub: "৳6,000 +", href: "/gift-boxes?scale=luxury", bg: "linear-gradient(160deg,#F1DFE6,#DDB8C6)" },
     ],
     occasions: OCCASIONS,
     colours: [],
@@ -747,11 +747,11 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
 
 export const CATEGORY_SLUGS = Object.keys(CATEGORY_CONFIGS);
 
-/* ═══════════════ SUB-CATEGORY — parent থেকে derive ═══════════════
-   নতুন sub হাতে লিখতে হয় না — parent-এর subCategories tile থেকেই তৈরি।
-   categoryProducts() ইতিমধ্যে config.sub দিয়ে filter করে।
-   Section order + content parent থেকে inherit; শুধু কয়েকটা heading sub-specific।
-   এক template, শূন্য নতুন component (D1)। */
+/* ═══════════════ SUB-CATEGORY — derived from the parent ═══════════════
+   A new sub is never written by hand — it is built from the parent's
+   subCategories tiles. categoryProducts() already filters by config.sub.
+   Section order + content inherit from the parent; only a few headings are
+   sub-specific. One template, zero new components (D1). */
 function subCategoryConfig(
   parent: CategoryConfig,
   subKey: string,
@@ -759,9 +759,9 @@ function subCategoryConfig(
 ): CategoryConfig {
   const count = PRODUCTS.filter((p) => p.cat === parent.cat && p.sub === subKey).length;
 
-  // Lean page — sub-category মানে parent-এর নকল browse page নয়।
-  // শুধু banner + এই sub-এর সব product। বাকি সব discovery rail OFF।
-  // (GBE: Reviews → VisitStore route-এ, Footer layout-এ)
+  // Lean page — a sub-category is not a copy of the parent's browse page.
+  // Just the banner + every product of this sub. All discovery rails OFF.
+  // (GBE: Reviews → VisitStore live on the route, Footer in the layout)
   const sections = makeSections({
     banner: false,
     subCategoryRail: false,
@@ -791,7 +791,7 @@ function subCategoryConfig(
       title: `${subLabel} — ${parent.label} Delivery in Dhaka | Radian`,
       description: parent.seo.description,
     },
-    // sibling rail — নিজের tile বাদ
+    // sibling rail — its own tile excluded
     subCategories: parent.subCategories.filter(
       (t) => !t.href.split("?")[0].endsWith(`/${subKey}`)
     ),
@@ -799,15 +799,19 @@ function subCategoryConfig(
   };
 }
 
-/** প্রতি parent-এর subCategories tile থেকে সব sub-config auto-generate।
-    Key = "parentSlug/subKey" — একই subKey দুই parent-এ থাকলেও collision নেই। */
+/** Auto-generate every sub-config from each parent's subCategories tiles.
+    Key = "parentSlug/subKey" — the same subKey under two parents cannot collide. */
 function buildSubCategoryConfigs(): Record<string, CategoryConfig> {
   const out: Record<string, CategoryConfig> = {};
   for (const parent of Object.values(CATEGORY_CONFIGS)) {
     for (const tile of parent.subCategories) {
-      const path = tile.href.split("?")[0].split("/").filter(Boolean); // ["categories", parentSlug, subKey]
-      if (path.length < 3 || path[0] !== "categories") continue;
-      const subKey = path[2];
+      /*  Flat URLs (22 Aug 2026): a sub tile links to /parentSlug/subKey.
+          The old shape ["categories", parentSlug, subKey] would silently
+          produce ZERO sub-configs after the prefix went away — this parser
+          must always match whatever the tiles' hrefs actually are.  */
+      const path = tile.href.split("?")[0].split("/").filter(Boolean); // [parentSlug, subKey]
+      if (path.length < 2 || path[0] !== parent.slug) continue;
+      const subKey = path[1];
       out[`${parent.slug}/${subKey}`] = subCategoryConfig(parent, subKey, tile.label);
     }
   }
@@ -821,13 +825,13 @@ export const SUBCATEGORY_PARAMS = Object.keys(SUBCATEGORY_CONFIGS).map((k) => {
   return { slug, sub };
 });
 
-/* ═══════════════ OCCASIONS — cross-category, occ tag দিয়ে filter ═══════════════
-   শুধু data-ওয়ালা ৮টা occasion (product tag আছে এমন)।
-   subCategoryRail = "Shop by category", occasionGrid = অন্য occasion।
-   attribute/colour/combo/crossSell OFF — cross-category page-এ অর্থহীন। */
+/* ═══════════════ OCCASIONS — cross-category, filtered by occ tag ═══════════════
+   Only the 8 occasions that HAVE data (products carrying the tag).
+   subCategoryRail = "Shop by category", occasionGrid = the other occasions.
+   attribute/colour/combo/crossSell OFF — meaningless on a cross-category page. */
 type OccasionDef = {
   slug: string; // canonical URL slug
-  occ: Occasion; // products.ts এর tag
+  occ: Occasion; // the tag in products.ts
   label: string;
   h1: string;
   lead: string;
@@ -926,12 +930,12 @@ function occasionConfig(def: OccasionDef): CategoryConfig {
     bg: o.bg,
   }));
 
-  // "…Gifts"/"…Gift" suffix বাদ দিয়ে ছোট নাম — Gift Finder heading-এ
+  // The short name minus the "…Gifts"/"…Gift" suffix — for the Gift Finder heading
   const shortName = def.label.replace(/ Gifts?$/, "");
 
   return {
     slug: def.slug,
-    cat: "flowers", // placeholder — occ branch দিয়ে filter, cat ব্যবহার হয় না
+    cat: "flowers", // placeholder — the occ branch does the filtering; cat is never used
     occ: def.occ,
     label: def.label,
     h1: def.h1,
@@ -971,7 +975,7 @@ const OCCASION_CONFIGS: Record<string, CategoryConfig> = Object.fromEntries(
   OCCASION_DEFS.map((d) => [d.slug, occasionConfig(d)])
 );
 
-/** পুরনো/বিকল্প slug → canonical। এতে কোনো link 404 হয় না। */
+/** Old/alternative slug → canonical. No link ever 404s because of a rename. */
 const OCCASION_ALIASES: Record<string, string> = {
   "love-romance": "love",
   "get-well": "get-well-soon",
@@ -980,9 +984,9 @@ const OCCASION_ALIASES: Record<string, string> = {
 
 export const OCCASION_PARAMS = Object.keys(OCCASION_CONFIGS).map((slug) => ({ slug }));
 
-/* ═══════════════ /occasions index — সব canonical occasion, product count সহ ═══════════════
-   ⇄ SWAP HERE — Ecommerce lock হলে এই list server থেকে আসবে।
-   শুধু data-ওয়ালা occasion (OCCASION_DEFS) — খালি occasion কখনো দেখাই না। */
+/* ═══════════════ /occasions index — every canonical occasion, with product count ═══════════════
+   ⇄ SWAP HERE — once Ecommerce locks, this list comes from the server.
+   Only occasions WITH data (OCCASION_DEFS) — an empty occasion is never shown. */
 export interface OccasionListItem {
   slug: string;
   label: string;
@@ -1002,33 +1006,33 @@ export const OCCASION_LIST: OccasionListItem[] = OCCASION_DEFS.map((d) => ({
 /* ═══════════════ data access ═══════════════ */
 
 /**
- * ⇄ SWAP HERE — Ecommerce module lock হলে শুধু এই function বদলাবে:
+ * ⇄ SWAP HERE — when the Ecommerce module locks, ONLY this function changes:
  *
  *   const res = await fetch(`${API_URL}/storefront/category/${slug}`, {
  *     next: { revalidate: 300 },
  *   });
  *   return res.ok ? res.json() : null;
  *
- * Component গুলো জানবেই না যে কিছু বদলেছে।
+ * The components never learn that anything changed.
  */
 export function getCategoryConfig(slug: string): CategoryConfig | null {
   return CATEGORY_CONFIGS[slug] ?? null;
 }
 
-/** ⇄ SWAP HERE — Ecommerce lock হলে fetch() হবে */
+/** ⇄ SWAP HERE — becomes a fetch() once Ecommerce locks */
 export function getSubCategoryConfig(slug: string, sub: string): CategoryConfig | null {
   return SUBCATEGORY_CONFIGS[`${slug}/${sub}`] ?? null;
 }
 
-/** ⇄ SWAP HERE — alias resolve করে canonical occasion config দেয় */
+/** ⇄ SWAP HERE — resolves the alias and returns the canonical occasion config */
 export function getOccasionConfig(slug: string): CategoryConfig | null {
   const canonical = OCCASION_ALIASES[slug] ?? slug;
   return OCCASION_CONFIGS[canonical] ?? null;
 }
 
-/** এই page-এর সব product (zone filter সহ)।
-    Occasion page হলে occ tag দিয়ে সব category জুড়ে filter;
-    নইলে cat (+ sub থাকলে sub) দিয়ে — আগের মতোই। */
+/** Every product of this page (zone filter applied).
+    On an occasion page: filter across ALL categories by the occ tag;
+    otherwise by cat (+ sub when present) — as before. */
 export function categoryProducts(config: CategoryConfig, zone: Zone | null): Product[] {
   if (config.occ) {
     const occ = config.occ;
@@ -1039,7 +1043,7 @@ export function categoryProducts(config: CategoryConfig, zone: Zone | null): Pro
   );
 }
 
-/** কোন rail-এ কোন product যাবে — সব rule একই জায়গায় */
+/** Which product goes on which rail — every rule in one place */
 export function selectProducts(
   products: Product[],
   opts: { rule?: ProductRule; productSlugs?: string[]; count?: number }

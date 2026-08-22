@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { getSubCategoryConfig } from "../../../_data/categories";
-import { toCategoryConfig, toProduct } from "../../../_data/categoryApi";
-import { getCategoryPage, getShopProducts } from "../../../_data/shop";
-import CategorySections from "../../../_components/Category/CategorySections";
-import Reviews from "../../../_components/GBE/Reviews";
-import VisitStore from "../../../_components/GBE/VisitStore";
+import { getSubCategoryConfig } from "../../_data/categories";
+import { toCategoryConfig, toProduct } from "../../_data/categoryApi";
+import { getCategoryPage, getShopProducts } from "../../_data/shop";
+import CategorySections from "../../_components/Category/CategorySections";
+import Reviews from "../../_components/GBE/Reviews";
+import VisitStore from "../../_components/GBE/VisitStore";
 
 /*
   Sub-category route — the category page's younger brother, connected 31 Jul.
@@ -17,7 +17,7 @@ import VisitStore from "../../../_components/GBE/VisitStore";
 
    · LEAN. Banner and grid only — D42/D43. Somebody who pressed Roses wants
      roses, not a fresh set of rails offering lilies.
-   · The parent in the URL must be the real parent. `/categories/cakes/roses`
+   · The parent in the URL must be the real parent. `/cakes/roses`
      is checked and 404s instead of quietly rendering roses under Cakes, which
      would give the same products two addresses and split them in Google.
 */
@@ -64,7 +64,7 @@ export default async function SubCategoryPage({
   /*
     The same filters the parent page reads — 2 Aug 2026.
 
-    They were not read here at all, so `/categories/fresh-flowers/roses?colour=red`
+    They were not read here at all, so `/fresh-flowers/roses?colour=red`
     quietly showed every rose. Nobody links there from the shop, but people
     share addresses, and an address that ignores half of itself is a link that
     lies about what it will show. Lean means fewer SECTIONS (D42/D43), not a

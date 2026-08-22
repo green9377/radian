@@ -12,13 +12,13 @@ import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
 
 /*
-  একটাই route — ৭১টা product এখান দিয়ে যায়।
-  নতুন product = _data/products.ts-এ একটা entry। এই file-এ হাত পড়বে না।
+  One route — every product page goes through here.
+  Lives at /p/<slug> since the flat-URL decision (owner, 22 Aug 2026).
 
-  Page background tinted, content white card-এ — content zone আর খালি জায়গা
-  আলাদা দেখায় (FlowerAura pattern)।
+  Page background tinted, content on a white card — the content zone and the
+  empty space read as different things (FlowerAura pattern).
 
-  Footer layout.tsx-এ আছে। GBE order (locked): Reviews → Visit Store → Footer.
+  The footer is in layout.tsx. GBE order (locked): Reviews → Visit Store → Footer.
 */
 
 type Params = { slug: string };
@@ -48,34 +48,36 @@ export async function generateMetadata({
 
   /*
     ═══════════════════════════════════════════════════════════════════════════
-    DEC-PRD-024 — Search & sharing tab এখান দিয়েই Google-এ পৌঁছায়।
+    DEC-PRD-024 — the Search & sharing tab reaches Google THROUGH HERE.
 
-    মালিক, ২ আগস্ট ২০২৬: *"এই page-এ কি Google-এর সাথে connect করা? যেভাবে
-    লিখব সেভাবে Google-এ published হবে? আর image-এর কীসের link দেব বুঝলাম না।"*
+    The owner, 2 Aug 2026: *"Is this page connected to Google? Will it be
+    published on Google the way I write it? And I don't understand what link
+    to give for the image."*
 
-    ⚠️ উত্তর ছিল **না**। ছয়টা ঘর admin-এ লেখা যেত, API পাঠাতও, কিন্তু এই
-    function সেগুলো পড়তই না — নিজে নাম আর একটা বাঁধা বাক্য দিয়ে title
-    বানাত। অর্থাৎ মালিক যা-ই লিখুন, Google দেখত অন্য কিছু। ঠিক এই ভুলটাই
-    upgrade আর variant swatch-এ হয়েছিল: admin ছিল, API ছিল, পড়ার জায়গা ছিল না।
+    ⚠️ The answer was **no**. The six fields could be typed in the admin and
+    the API sent them, but this function never read them — it built the title
+    itself from the name and a fixed sentence. Whatever the owner wrote,
+    Google saw something else. The exact mistake upgrades and variant
+    swatches had: the admin existed, the API existed, nothing read them.
 
-    ⚠️ প্রতিটা ঘর খালি রাখা যায়, আর তখন নিচের fallback চলে — মালিককে ৭১টা
-    product-এ ছয়টা করে ঘর ভরতে বলা মানে সেগুলো কখনো ভরা হবে না।
+    ⚠️ Every field may stay empty, and then the fallbacks below run — telling
+    the owner to fill six fields on every product means they never get filled.
     ═══════════════════════════════════════════════════════════════════════════
   */
   const seo = detail.seo;
   const price = formatTaka(detail.product.pricePaisa);
 
   const title = seo?.title?.trim() || `${detail.product.name} — ${price} | Radian`;
-  /*  ⚠️ fallback-এ "2 hours" ছিল — অবসরপ্রাপ্ত প্রতিশ্রুতিটার শেষ লুকানো
-      কপি, সরাসরি Google-এর snippet-এ। Fallback গতির নাম নেয় না।  */
+  /*  ⚠️ The fallback used to say "2 hours" — the last hidden copy of a
+      retired promise, straight into Google's snippet. Fallbacks name no speed.  */
   const description =
     seo?.description?.trim() ||
     `${detail.nature.label}. ${detail.crumb.catLabel} delivered fast inside Dhaka, nationwide in 1–3 days.`;
 
-  /*  WhatsApp/Facebook-এ যে ছবিটা যায়। মালিকের দেওয়া ছবি → নাহলে
-      product-এর প্রথম ছবি। ⚠️ gallery-র entry CSS হতে পারে
-      (`linear-gradient(...)`), তাই শুধু সত্যিকারের `url(...)` থেকেই
-      ঠিকানাটা বের করা হয় — নাহলে share card-এ ভাঙা ছবির চিহ্ন যেত।  */
+  /*  The picture that travels to WhatsApp/Facebook. The owner's chosen image
+      → else the product's first photo. ⚠️ A gallery entry can be CSS
+      (`linear-gradient(...)`), so the address is only pulled from a real
+      `url(...)` — otherwise the share card carried a broken-image mark.  */
   const firstPhoto = detail.gallery.find((g) => g.startsWith("url("));
   const shareImage =
     seo?.ogImageUrl?.trim() || firstPhoto?.slice(4, firstPhoto.indexOf(")")) || undefined;
@@ -83,8 +85,8 @@ export async function generateMetadata({
   return {
     title,
     description,
-    /*  ⚠️ "Keep this page out of Google" — `follow: true` রাখা হয়, কারণ
-        মালিক page-টা লুকাতে চান, তার ভেতরের link-গুলোকে নয়।  */
+    /*  ⚠️ "Keep this page out of Google" — `follow: true` stays, because the
+        owner wants the PAGE hidden, not the links inside it.  */
     ...(seo?.noIndex ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title: seo?.ogTitle?.trim() || title,
@@ -122,7 +124,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
             Home
           </Link>
           <span className="text-lavender-deep">›</span>
-          <Link href={`/categories/${detail.crumb.catSlug}`} className="hover:text-orchid">
+          <Link href={`/${detail.crumb.catSlug}`} className="hover:text-orchid">
             {detail.crumb.catLabel}
           </Link>
           <span className="text-lavender-deep">›</span>

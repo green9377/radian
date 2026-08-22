@@ -384,7 +384,7 @@ export default function AboutView() {
       {/* ── CTA ── */}
       <div className="text-center mb-4">
         <Link
-          href="/categories/fresh-flowers"
+          href="/fresh-flowers"
           className="inline-flex items-center gap-2 px-9 py-[15px] bg-purple text-white rounded-full font-medium text-[15px] transition-all duration-300 hover:bg-purple-deep hover:-translate-y-[2px] hover:shadow-lift"
         >
           Explore our flowers

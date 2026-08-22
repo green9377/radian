@@ -239,7 +239,7 @@ export default function LiveChat({ open, onClose }: { open: boolean; onClose: ()
                       {m.products.map((p) => (
                         <a
                           key={p.slug}
-                          href={`/products/${p.slug}`}
+                          href={`/p/${p.slug}`}
                           target="_blank"
                           rel="noopener"
                           className="shrink-0 w-[150px] bg-white border border-purple/10 rounded-2xl overflow-hidden hover:shadow-md transition"

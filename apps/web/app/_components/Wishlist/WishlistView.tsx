@@ -84,7 +84,7 @@ export default function WishlistView() {
         </p>
         <div className="flex flex-wrap justify-center gap-3 mt-6">
           <Link
-            href="/categories/fresh-flowers"
+            href="/fresh-flowers"
             className="h-[48px] px-7 inline-flex items-center rounded-[14px] bg-purple text-white font-semibold text-[14px] hover:bg-purple-deep transition-colors"
           >
             Shop fresh flowers

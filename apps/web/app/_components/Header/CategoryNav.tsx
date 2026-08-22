@@ -41,14 +41,14 @@ interface NavItem {
 
 /** Rendered only if the API cannot be reached — see `_data/shop.ts`. */
 const FALLBACK: NavItem[] = [
-  { label: "Flowers", href: "/categories/fresh-flowers" },
-  { label: "Cakes", href: "/categories/cakes", dhakaOnly: true },
-  { label: "Combos", href: "/categories/flower-combos" },
-  { label: "Chocolates", href: "/categories/chocolates" },
-  { label: "Plants", href: "/categories/plants" },
-  { label: "Balloons", href: "/categories/balloon-bouquets", dhakaOnly: true },
-  { label: "Gift Boxes", href: "/categories/gift-boxes" },
-  { label: "Personalised", href: "/categories/personalised" },
+  { label: "Flowers", href: "/fresh-flowers" },
+  { label: "Cakes", href: "/cakes", dhakaOnly: true },
+  { label: "Combos", href: "/flower-combos" },
+  { label: "Chocolates", href: "/chocolates" },
+  { label: "Plants", href: "/plants" },
+  { label: "Balloons", href: "/balloon-bouquets", dhakaOnly: true },
+  { label: "Gift Boxes", href: "/gift-boxes" },
+  { label: "Personalised", href: "/personalised" },
 ];
 
 export default function CategoryNav({ zone }: { zone: Zone | null }) {
@@ -64,7 +64,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
           .filter((c) => c.showOnNavbar)
           .map((c) => ({
             label: c.name,
-            href: `/categories/${c.slug}`,
+            href: `/${c.slug}`,
             iconUrl: c.iconUrl,
             dhakaOnly: c.nationwideCount === 0,
           })),

@@ -66,7 +66,7 @@ export default function CartLine({
   onSwitchToDhaka: () => void;
 }) {
   const { item, detail, product, size, variant, bundles, addons, nextSize, held } = line;
-  const href = `/products/${product.slug}`;
+  const href = `/p/${product.slug}`;
 
   const upgradeCost = nextSize ? nextSize.pricePaisa - size.pricePaisa : 0;
 

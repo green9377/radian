@@ -129,7 +129,7 @@ export function CrossSell({
             className="rounded-[16px] border border-lavender-deep overflow-hidden text-center"
           >
             <Link
-              href={`/products/${x.slug}`}
+              href={`/p/${x.slug}`}
               className="block aspect-[1/0.8]"
               style={{ background: x.bg }}
               aria-label={x.name}
@@ -175,7 +175,7 @@ export function EmptyCart() {
 
       <div className="flex flex-wrap justify-center gap-3 mt-6">
         <Link
-          href="/categories/fresh-flowers"
+          href="/fresh-flowers"
           className="h-[48px] px-7 inline-flex items-center rounded-[14px] bg-purple text-white font-semibold text-[14px] hover:bg-purple-deep transition-colors"
         >
           Shop fresh flowers

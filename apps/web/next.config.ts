@@ -1,16 +1,16 @@
 import type { NextConfig } from "next";
 
-/*  ডেমো-তালা。
+/*  Demo lock.
 
-    robots.txt একটা ভদ্র অনুরোধ — মানা না মানা crawler-এর ইচ্ছা。
-    `X-Robots-Tag` HTTP header তার চেয়ে শক্ত: Google/Bing এটা মানতে বাধ্য,
-    আর এটা প্রতিটা response-এর সাথে যায় — robots.txt কেউ পড়ুক বা না পড়ুক。
+    robots.txt is a polite request — honouring it is the crawler's choice.
+    The `X-Robots-Tag` HTTP header is stronger: Google/Bing must obey it,
+    and it travels with every response whether or not anyone reads robots.txt.
 
-    দুটো একসাথে রাখলাম, কারণ ডেমো একবার index হয়ে গেলে সরাতে সপ্তাহ লাগে,
-    আর আসল দোকান চালু হলে সে নিজের ডেমোর সাথেই প্রতিযোগিতা করবে。
+    Both are kept, because once a demo gets indexed it takes weeks to remove,
+    and the real shop would then compete with its own demo.
 
-    Vercel-এর demo project-এ `NEXT_PUBLIC_DEMO_MODE=true` বসাবেন。
-    Real project-এ ওটা থাকবেই না — তাই header-ও বসবে না。  */
+    Set `NEXT_PUBLIC_DEMO_MODE=true` on the Vercel demo project.
+    The real project never carries it — so the header never appears there.  */
 const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 const nextConfig: NextConfig = {
@@ -23,6 +23,28 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
+    ];
+  },
+
+  /*  Flat URLs (owner, 22 Aug 2026 — FlowerAura pattern).
+
+      A category lives at /fresh-flower, a sub-category at /fresh-flower/roses,
+      a product at /p/pink-lily-bouquet. Static routes (cart, faq, journal…)
+      always win over the dynamic [slug] segment, and the API refuses a slug
+      that collides with one of them (reserved-slug guard).
+
+      The first two blocks retire this site's own old shape. The last two are
+      the OLD SHOP's shape (radianbd.com used /category/x and /product/x) —
+      wired now so that on the day the domain moves, every old link, ad and
+      Google result lands on the right page with a 301. That mapping only
+      works if imported products KEEP their radianbd.com slug.  */
+  async redirects() {
+    return [
+      { source: "/categories/:slug", destination: "/:slug", permanent: true },
+      { source: "/categories/:slug/:sub", destination: "/:slug/:sub", permanent: true },
+      { source: "/products/:slug", destination: "/p/:slug", permanent: true },
+      { source: "/category/:slug", destination: "/:slug", permanent: true },
+      { source: "/product/:slug", destination: "/p/:slug", permanent: true },
     ];
   },
 };

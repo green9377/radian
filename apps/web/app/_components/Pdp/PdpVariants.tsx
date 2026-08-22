@@ -270,7 +270,7 @@ export function VariantRow({ group }: { group: VariantGroup }) {
           return isColour ? (
             <Link
               key={o.slug}
-              href={`/products/${o.slug}`}
+              href={`/p/${o.slug}`}
               aria-label={o.label}
               title={o.label}
               className={`${shape} ring-1 ring-lavender-deep ring-offset-2 transition-transform hover:scale-110`}
@@ -279,7 +279,7 @@ export function VariantRow({ group }: { group: VariantGroup }) {
           ) : (
             <Link
               key={o.slug}
-              href={`/products/${o.slug}`}
+              href={`/p/${o.slug}`}
               title={o.label}
               className={`${shape} border-[1.5px] border-lavender-deep bg-white block transition-all hover:border-orchid-mid hover:-translate-y-[2px]`}
             >

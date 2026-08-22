@@ -169,7 +169,7 @@ export default async function ReviewsPage() {
                           {r.context}
                           {r.context && r.product ? " · " : ""}
                           {r.product && (
-                            <Link href={`/products/${r.product.slug}`} className="text-orchid hover:underline">
+                            <Link href={`/p/${r.product.slug}`} className="text-orchid hover:underline">
                               {r.product.name}
                             </Link>
                           )}

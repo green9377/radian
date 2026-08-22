@@ -21,8 +21,8 @@ const COLS: { heading: string; links: { label: string; href: string }[] }[] = [
   {
     heading: "Shop",
     links: [
-      { label: "Fresh Flowers", href: "/categories/fresh-flowers" },
-      { label: "Cakes & Combos", href: "/categories/cakes" },
+      { label: "Fresh Flowers", href: "/fresh-flowers" },
+      { label: "Cakes & Combos", href: "/cakes" },
       { label: "Occasions", href: "/occasions" },
       { label: "Budget Gifts", href: "/collections/under-1000" },
       { label: "Corporate Gifting", href: "/occasions/corporate" },

@@ -17,7 +17,19 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 
-// admin-configurable category master (DEC-PRD-001), ২ স্তর (parentId self-FK)
+/*  The storefront's fixed top-level routes (apps/web/app/*). A category slug
+    landing on one of these would shadow that page, because categories render
+    flat at the root. "p" is the product prefix, "admin" and "shop" are kept
+    back for safety.  */
+const RESERVED_SLUGS = new Set([
+  'about', 'account', 'api', 'cart', 'categories', 'checkout', 'collections',
+  'contact', 'delivery-info', 'faq', 'journal', 'occasions', 'order-success',
+  'p', 'pay', 'privacy-policy', 'products', 'refund-policy', 'review',
+  'reviews', 'search', 'sitemap.xml', 'robots.txt', 'terms', 'track',
+  'wishlist', 'admin', 'shop', 'category', 'product',
+]);
+
+// admin-configurable category master (DEC-PRD-001), two levels (parentId self-FK)
 interface CategoryDto {
   slug: string;
   name: string;
@@ -232,6 +244,15 @@ export class CategoriesService {
     if (!c) throw new NotFoundException('Category not found');
   }
   private async ensureSlugFree(slug: string, exceptId?: string) {
+    /*  Flat URLs (owner, 22 Aug 2026): a category lives at the ROOT of the
+        storefront — radianbd.com/<slug>. The fixed pages live there too, so a
+        category named "cart" would shadow the cart. The list mirrors
+        apps/web/app's top-level routes; update it when a new page is born.  */
+    if (RESERVED_SLUGS.has(slug)) {
+      throw new BadRequestException(
+        `"${slug}" is a fixed page on the website — pick another slug`,
+      );
+    }
     const dupe = await this.prisma.db.category.findFirst({ where: { slug }, select: { id: true } });
     if (dupe && dupe.id !== exceptId) throw new BadRequestException(`slug "${slug}" already in use`);
   }

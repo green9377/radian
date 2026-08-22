@@ -257,13 +257,13 @@ function ItemGrid({
         >
           <div className="flex items-start gap-3">
             <Link
-              href={`/products/${e.product.slug}`}
+              href={`/p/${e.product.slug}`}
               className="w-16 h-16 rounded-[14px] shrink-0"
               style={{ background: e.product.bg }}
             />
             <div className="min-w-0 flex-1">
               <Link
-                href={`/products/${e.product.slug}`}
+                href={`/p/${e.product.slug}`}
                 className="block text-[13px] font-semibold text-purple leading-snug line-clamp-2 hover:text-orchid transition-colors"
               >
                 {e.product.name}

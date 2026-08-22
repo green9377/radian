@@ -40,7 +40,7 @@ import {
 */
 
 /* live domain follows the deploy — demo shows demo, radianbd.com shows itself */
-const WEB = `${WEB_BASE}/category/`;
+const WEB = `${WEB_BASE}/`;
 const real = (v?: string | null) => (v && !v.startsWith("blob:") ? v : null);
 const sendUrl = (v: string | null) => (v && !v.startsWith("blob:") ? v : undefined);
 
