@@ -6,7 +6,7 @@ import Icon from "./Icon";
 import { Info } from "./ItemEditor";
 import {
   loadBrandsSafe, createBrand, updateBrand, deleteBrand,
-  brandSlug, brandUrl, genBg, initials,
+  brandSlug, genBg, initials,
   uploadImage, uploadItemImage,
   type ApiBrand, type BrandWrite,
 } from "../_data/api";
@@ -14,11 +14,17 @@ import {
 /*
   Master Data · Brands — LIVE flat manager.
 
-    LEFT  : every brand as a selectable row (logo, name, product count,
-            featured star, sort, active switch) + inline "add brand".
-    RIGHT : the selected brand — logo upload, name, slug, description, the
-            featured/visible switches, a compact SEO block, and a storefront
-            "Shop by Brand" preview.
+    LEFT  : every brand as a selectable row (logo, name, product count, sort)
+            + inline "add brand".
+    RIGHT : the selected brand — logo upload, name, code, description.
+
+  ⚠️ 22 Aug 2026 — brand is an ADMIN LABEL today. The owner parked the
+  storefront half ("brand ar apatot amra kaj krbo na, amder frontend a
+  dekhabo na"), and this screen was promising three things the shop does not
+  have: a "View on site" link to a 404, a "Featured" switch feeding a
+  homepage strip that was never built, and an SEO block writing Google text
+  for a page nobody can open. All three are parked here, not deleted — the
+  columns keep their values for the day brand pages ship.
 
   Brand is FLAT (no parent-child, unlike Category) and Product ↔ Brand is a
   single optional FK (unlike Tag's m2m). Demo fallback ONLY when the API is
@@ -176,7 +182,7 @@ export default function BrandsView() {
                (owner, 22 Aug 2026).  */}
           <div className="flex items-center gap-2 mt-1.5">
             <h1 className="font-display text-[28px] text-purple m-0 leading-tight">Brands</h1>
-            <Info text="The makers behind your gifts — Ferrero Rocher, Cadbury, your own house label. Add a logo, feature the best on the homepage, attach a brand to any product. Flowers usually have none, and that is fine: a brand is optional." />
+            <Info text="The makers behind your gifts — Ferrero Rocher, Cadbury, your own house label. Attach a brand to any product to group and find them here. Flowers usually have none, and that is fine: a brand is optional. NOTE: brands are an admin label today — nothing about them shows on the shop yet (owner's call, 22 Aug 2026)." />
           </div>
         </div>
         <Link href="/tags" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid shrink-0">Occasions &amp; Tags</Link>
@@ -204,7 +210,7 @@ export default function BrandsView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
           { l: "Brands", v: stats.total, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "tag" },
-          { l: "Featured", v: stats.featured, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "star", tip: "Featured brands get a card on the homepage's Shop by Brand rail." },
+          { l: "On products", v: stats.total - stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "star", tip: "Brands at least one product carries." },
           { l: "Unused", v: stats.empty, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
           { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
@@ -265,9 +271,6 @@ export default function BrandsView() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{b.name}</span>
-                      {b.isFeatured && (
-                        <span className="shrink-0" style={{ color: on ? ACCENT : "#e8c9ce" }} title="Featured on the homepage"><Icon name="star" size={12} /></span>
-                      )}
                       {!b.isActive && (
                         <span className="shrink-0" style={{ color: on ? "#b45309" : "rgba(255,255,255,.5)" }} title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
                       )}
@@ -451,14 +454,14 @@ function BrandEditor({
             <label className="block">
               <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft inline-flex items-center gap-1.5">
                 Page address
-                <Info text="The brand's own address on the shop. Changing it breaks any link already shared or advertised." />
+                <Info text="The brand's short code, used as its address the day brand pages go live on the shop. Kept unique so two brands can never collide." />
               </span>
               <input className="ipt w-full mt-1" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="ferrero-rocher" />
             </label>
             <label className="block">
               <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft inline-flex items-center gap-1.5">
                 Short description
-                <Info text="One or two lines shown at the top of the brand's own page on the shop." />
+                <Info text="One or two lines about the maker — for your own reference until brand pages go live on the shop." />
               </span>
               <textarea className="ipt w-full mt-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
             </label>
@@ -466,35 +469,21 @@ function BrandEditor({
         </div>
 
         {/* switches */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <SwitchRow icon="star" tint={ACCENT} bg={ACCENT_BG} title="Featured brand" sub="On — this brand gets a card in the homepage’s “Shop by Brand” strip." on={brand.isFeatured} onToggle={onToggleFeatured} />
-          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="Visible on storefront" sub="On — customers can see this brand and filter by it. Off — it stays here in the admin and disappears from the shop." on={brand.isActive} onToggle={onToggleActive} />
+        {/*  "Featured brand" is gone from this screen (owner, 22 Aug 2026:
+             *"brand ar apatot amra kaj krbo na, amder frontend a dekhabo na"*).
+             It offered a card on a homepage strip that does not exist, next to
+             a "View on site" link that 404'd and an SEO block writing Google
+             text for a page nobody can open. The COLUMN stays — the day brand
+             pages ship, the switch comes back and no data was lost.  */}
+        <div className="grid grid-cols-1 gap-3">
+          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="In use" sub="Off — this brand stops being offered when you file a product under a brand. Nothing about brands reaches the shop yet." on={brand.isActive} onToggle={onToggleActive} />
         </div>
 
-        {/* SEO */}
-        <div className="rounded-[14px] border border-lavender-deep overflow-hidden">
-          <div className="px-4 py-2.5 bg-lavender/40 border-b border-lavender-deep flex items-center gap-2">
-            <Icon name="chart" size={14} className="text-purple" />
-            <span className="text-[12.5px] font-semibold text-purple">Search &amp; social</span>
-            <Info text="Optional. What Google shows for this brand's page. Left empty, the shop writes a sensible line from the name. Social shares use the logo and the meta title — no separate image needed." />
-          </div>
-          <div className="p-4 space-y-3.5">
-            <label className="block">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Meta title</span>
-                <span className={"text-[11px] " + (metaTitle.length > 60 ? "text-[#b45309]" : "text-body-soft")}>{metaTitle.length}/60</span>
-              </div>
-              <input className="ipt w-full mt-1" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder={`Buy ${name || "brand"} gifts in Bangladesh — Radian`} />
-            </label>
-            <label className="block">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft">Meta description</span>
-                <span className={"text-[11px] " + (metaDescription.length > 160 ? "text-[#b45309]" : "text-body-soft")}>{metaDescription.length}/160</span>
-              </div>
-              <textarea className="ipt w-full mt-1" rows={2} value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="A sentence describing this brand’s gifts, for search results." />
-            </label>
-          </div>
-        </div>
+        {/*  The Search & social block is parked with the rest of the
+             storefront-facing brand work (owner, 22 Aug 2026). It wrote a meta
+             title and description for /brands/<slug> — an address that returns
+             404 today. The COLUMNS stay and keep whatever was typed; the boxes
+             come back with the brand page.  */}
 
         {/* actions */}
         <div className="flex items-center gap-3 flex-wrap pt-1">
@@ -504,39 +493,14 @@ function BrandEditor({
             style={{ background: ACCENT, boxShadow: dirty ? `0 5px 16px ${ACCENT}55` : "none" }}>
             <Icon name="check" size={17} /> {dirty ? "Save changes" : "Saved"}
           </button>
-          <a href={brandUrl(brandSlug(slug) || brand.slug)} target="_blank" rel="noreferrer"
-            className="text-[14px] font-bold px-5 py-3 rounded-[12px] border-2 inline-flex items-center gap-2 transition-colors hover:bg-lavender"
-            style={{ borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}>
-            <Icon name="eye" size={16} /> View on site
-          </a>
+
         </div>
       </div>
 
-      {/* storefront preview */}
-      <div className="border-t border-lavender-deep bg-lavender/30 px-5 py-4">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] uppercase text-purple mb-3"><Icon name="eye" size={13} /> How customers see it</div>
-        <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 items-center">
-          {/* shop-by-brand tile */}
-          <div className="bg-white rounded-[16px] shadow-soft border border-white/60 p-4 w-[160px] text-center">
-            <div className="w-[72px] h-[72px] mx-auto rounded-[14px] grid place-items-center overflow-hidden" style={logoUrl ? { backgroundImage: `url(${logoUrl})`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", background: "#fff" } : { background: genBg(slug || name) }}>
-              {!logoUrl && <span className="font-display text-[24px]" style={{ color: "#7a3f49" }}>{initials(name || "?")}</span>}
-            </div>
-            <div className="text-[13px] font-semibold text-purple mt-2.5 truncate">{name || "Brand"}</div>
-            <div className="text-[13px] text-body-soft">{count} product{count === 1 ? "" : "s"}</div>
-          </div>
-          {/* brand page header */}
-          <div className="bg-white rounded-[16px] shadow-soft border border-white/60 p-4">
-            <div className="flex items-center gap-3">
-              <LogoThumb b={previewBrand} size={40} />
-              <div className="min-w-0">
-                <div className="font-display text-[17px] text-purple truncate">{name || "Brand"}</div>
-                <div className="text-[13px] text-body-soft line-clamp-2">{description || "Brand description appears here."}</div>
-              </div>
-            </div>
-            {!brand.isActive && <div className="text-[11.5px] text-[#b45309] mt-2 inline-flex items-center gap-1"><Icon name="eye" size={12} /> Hidden — this page is not shown to customers right now.</div>}
-          </div>
-        </div>
-      </div>
+      {/*  The "How customers see it" preview is parked too — it showed a
+           Shop-by-Brand tile and a brand-page header, neither of which exists
+           on the shop. A preview of something that is not there is the most
+           convincing lie a screen can tell (owner, 22 Aug 2026).  */}
     </div>
   );
 }

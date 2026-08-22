@@ -278,7 +278,8 @@ export class ShopCatalogService {
     */
     const [cat, sections] = await Promise.all([
       this.prisma.db.category.findFirst({
-        where: { slug, isActive: true },
+        // DEC-PRD-043 — the root page; a sub is reached through its parent
+        where: { slug, parentId: null, isActive: true },
         select: {
           id: true,
           slug: true,
@@ -795,8 +796,12 @@ export class ShopCatalogService {
   /** null = the slug names nothing live, so the answer is an empty list */
   private async categoryIds(slug?: string, sub?: string): Promise<string[] | null> {
     if (!slug) return [];
+    /*  DEC-PRD-043 — a ROOT category, and only a root. Since a slug is now
+        unique per parent, "roses" can also be a sub of something; without
+        `parentId: null` this lookup could answer /roses with a sub-category
+        that has its own address at /fresh-flower/roses.  */
     const cat = await this.prisma.db.category.findFirst({
-      where: { slug, isActive: true },
+      where: { slug, parentId: null, isActive: true },
       select: { id: true, children: { where: { isActive: true, deletedAt: null }, select: { id: true, slug: true } } },
     });
     if (!cat) return null;

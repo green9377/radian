@@ -90,7 +90,7 @@ export class CategoriesService {
   }
 
   async create(dto: CategoryDto) {
-    await this.ensureSlugFree(dto.slug);
+    await this.ensureSlugFree(dto.slug, undefined, dto.parentId ?? null);
     if (dto.parentId) await this.ensureExists(dto.parentId);
 
     /*  CAT-REV-1 (22 Aug 2026) — a deleted category still owns its slug.
@@ -107,7 +107,7 @@ export class CategoriesService {
         trust badges, craft cards) is cleared with it, otherwise the "new"
         category would come back wearing the old one's words. */
     const buried = await this.prisma.category.findFirst({
-      where: { slug: dto.slug, deletedAt: { not: null } },
+      where: { slug: dto.slug, parentId: dto.parentId ?? null, deletedAt: { not: null } },
       select: { id: true },
     });
     if (buried) return this.reviveInto(buried.id, dto);
@@ -182,7 +182,18 @@ export class CategoriesService {
 
   async update(id: string, dto: Partial<CategoryDto>) {
     await this.ensureExists(id);
-    if (dto.slug) await this.ensureSlugFree(dto.slug, id);
+    /*  DEC-PRD-043 — the parent decides which names are taken, so a MOVE
+        (new parentId) has to be judged against the parent it is moving to,
+        not the one it is leaving.  */
+    if (dto.slug !== undefined || dto.parentId !== undefined) {
+      const cur = await this.prisma.db.category.findFirst({
+        where: { id },
+        select: { slug: true, parentId: true },
+      });
+      const nextSlug = dto.slug ?? cur?.slug ?? '';
+      const nextParent = dto.parentId !== undefined ? dto.parentId : (cur?.parentId ?? null);
+      if (nextSlug) await this.ensureSlugFree(nextSlug, id, nextParent);
+    }
     if (dto.parentId) {
       if (dto.parentId === id) throw new BadRequestException('category cannot be its own parent');
       await this.ensureExists(dto.parentId);
@@ -309,18 +320,33 @@ export class CategoriesService {
     const c = await this.prisma.db.category.findFirst({ where: { id }, select: { id: true } });
     if (!c) throw new NotFoundException('Category not found');
   }
-  private async ensureSlugFree(slug: string, exceptId?: string) {
+  private async ensureSlugFree(slug: string, exceptId?: string, parentId?: string | null) {
     /*  Flat URLs (owner, 22 Aug 2026): a category lives at the ROOT of the
         storefront — radianbd.com/<slug>. The fixed pages live there too, so a
         category named "cart" would shadow the cart. The list mirrors
         apps/web/app's top-level routes; update it when a new page is born.  */
-    if (RESERVED_SLUGS.has(slug)) {
+    /*  Only a ROOT category can shadow a fixed page: a sub-category lives at
+        /parent/sub, where nothing else lives (DEC-PRD-043).  */
+    if (!parentId && RESERVED_SLUGS.has(slug)) {
       throw new BadRequestException(
         `"${slug}" is a fixed page on the website — pick another slug`,
       );
     }
-    const dupe = await this.prisma.db.category.findFirst({ where: { slug }, select: { id: true } });
-    if (dupe && dupe.id !== exceptId) throw new BadRequestException(`slug "${slug}" already in use`);
+    /*  DEC-PRD-043 — inside this parent only. "Roses" may live under Fresh
+        Flowers and under Artificial Flowers at the same time; they are two
+        different addresses. Only two ROOT categories may not share a name,
+        because those two would fight over the same address at the root.  */
+    const dupe = await this.prisma.db.category.findFirst({
+      where: { slug, parentId: parentId ?? null },
+      select: { id: true },
+    });
+    if (dupe && dupe.id !== exceptId) {
+      throw new BadRequestException(
+        parentId
+          ? `"${slug}" already exists inside this category`
+          : `"${slug}" is already a top-level category`,
+      );
+    }
   }
   private async log(id: string, action: 'CREATE' | 'UPDATE' | 'DELETE', actorName = 'Admin', label: string) {
     await this.audit.record({ entityType: ENTITY, entityId: id, action, actorName });

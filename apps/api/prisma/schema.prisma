@@ -94,9 +94,26 @@ enum ActivityKind {
 /// "Everything is admin-configurable", so a table rather than an enum
 /// (DEC-PRD-001).
 model Category {
-  id        String     @id @default(cuid())
-  slug      String     @unique
-  name      String
+  id String @id @default(cuid())
+
+  /// DEC-PRD-043 (owner, 22 Aug 2026) — the slug is unique WITHIN ITS PARENT,
+  /// not across the whole tree.
+  ///
+  /// It was globally unique, so "roses" could exist exactly once in the shop.
+  /// A flower shop wants Fresh Flowers → Roses AND Artificial Flowers → Roses,
+  /// and with flat URLs (DEC-WEB-010) those are two different addresses
+  /// anyway: /fresh-flower/roses and /artificial-flower/roses. The old rule
+  /// was stricter than the URLs required, and it forced invented names.
+  ///
+  /// ⚠️ TWO indexes are needed, not one. `@@unique([parentId, slug])` does not
+  /// constrain top-level categories, because Postgres treats every NULL as
+  /// distinct — two roots called "roses" would slip through and fight over
+  /// radianbd.com/roses. The migration therefore also creates a PARTIAL unique
+  /// index on `slug WHERE "parentId" IS NULL`, which Prisma cannot express in
+  /// this file. If this model is ever rebuilt from scratch, that index must be
+  /// carried over by hand.
+  slug String
+  name String
   parentId  String? // null = top-level; set means it is a sub-category
   parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryTree")
@@ -156,6 +173,9 @@ model Category {
   updatedAt DateTime   @updatedAt
   deletedAt DateTime?
 
+  /// DEC-PRD-043 — see the note on `slug`. The root case is covered by a
+  /// partial index created in the migration.
+  @@unique([parentId, slug])
   @@index([parentId])
 }
 
