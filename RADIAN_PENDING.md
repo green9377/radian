@@ -37,6 +37,45 @@ price → stock → variants → tags → collections → add-ons → offers →
 
 ---
 
+## 🔍 Master audit — Occasions & Tags · Brands · Variants (22 Aug)
+
+The owner asked for the four master screens to be read for logical and
+systemic faults, not just looked at. Four found:
+
+| # | Finding | State |
+|---|---|---|
+| 1 | **Brand reaches the storefront NOWHERE** — no `/brands/[slug]` page, no brand filter, not on the PDP, no "Shop by Brand" rail. Yet the admin offered "View on site" (404), a Featured switch feeding a strip that was never built, and a full SEO block writing Google text for a page nobody can open | **Parked** on the owner's call — *"brand ar apatot amra kaj krbo na, amder frontend a dekhabo na."* All three removed from the screen; the COLUMNS keep their values for the day brand pages ship |
+| 2 | **Category slug was globally unique** — "Roses" could exist once in the whole shop, so Fresh Flowers → Roses and Artificial Flowers → Roses was impossible, forcing invented names | **Fixed — DEC-PRD-043** |
+| 3 | Deleting a variant list asked NOTHING — one click took a colour list and every option in it | **Fixed** |
+| 4 | An EMPTY category still appeared in the shop menu, so a shopper pressing it landed on a page with no products | **Fixed** — it returns by itself when the first product goes live |
+
+Checked and found CORRECT (not faults): featuring a tag/category on the
+homepage belongs to Storefront → Homepage, not the tag master; custom tag
+groups do filter properly through `?tag=`; the storefront hides inactive tags,
+groups and categories everywhere it reads them.
+
+### DEC-PRD-043 — a category slug is unique inside its parent
+
+Flat URLs made the old rule pointless: a sub already lives at
+`/parent/sub`, so two subs under different parents can share a name.
+
+⚠️ **TWO indexes, not one.** `@@unique([parentId, slug])` does not constrain
+top-level rows, because Postgres counts every NULL as distinct — two roots
+called "roses" would slip through and fight over `radianbd.com/roses`. The
+migration adds a PARTIAL unique index on `slug WHERE "parentId" IS NULL`,
+which Prisma cannot express in `schema.prisma`. If Category is ever rebuilt,
+that index must be carried over by hand.
+
+Everything that resolved a category by slug alone now pins `parentId: null`
+for the root lookup — otherwise `/roses` could answer with a sub-category that
+already has its own address.
+
+**Verified live:** "rose" created under teddy while "rose" already sits under
+Fresh flower (201), and a second "rose" inside Fresh flower still refused
+("rose" already exists inside this category).
+
+---
+
 ## 🧾 Phase 3 part B — Purchase (21 Aug)
 
 Walked the whole circle on demo myself before handing it over: PUR-000006
