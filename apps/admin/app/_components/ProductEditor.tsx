@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PRODUCTS } from "../_data/products";
 import { getProductDetail } from "../_data/productDetails";
+import { Info } from "./ItemEditor";
 import Icon from "./Icon";
 import BundleEditor from "./BundleEditor";
 import CraftEditor from "./CraftEditor";
@@ -170,13 +171,15 @@ function youtubeId(v: string): string | null {
  * the first time. Inside the `?` it costs nothing until the moment it's
  * needed, and is right there when it is.
  */
+/*  The house ⓘ (CLAUDE.md §17). This used to be a `?` carrying a native
+    `title`, which meant a half-second wait, an OS-styled box, and nothing at
+    all on a phone. `Info` is the same one every other master screen uses: it
+    opens on hover AND on tap, and it is drawn outside the card so no rounded
+    corner can clip it.  */
 function Tip({ why }: { why: string }) {
   return (
-    <span
-      title={why}
-      className="inline-grid place-items-center w-[18px] h-[18px] rounded-full bg-lavender text-purple text-[11px] font-bold cursor-help align-middle ml-2 shrink-0"
-    >
-      ?
+    <span className="ml-2 align-middle inline-flex">
+      <Info text={why} />
     </span>
   );
 }
@@ -271,34 +274,33 @@ function Card({
 }: {
   icon?: string;
   title: React.ReactNode;
-  /** always-visible line under the heading — use sparingly */
+  /**
+   * ⚠️ NO LONGER A VISIBLE LINE (owner, 22 Aug 2026: "add product page a joto
+   * barti ajebaje text ache sob remove kro"). Twenty cards each carrying a
+   * grey sentence under its heading is most of what made this page tiring —
+   * and it is the exact thing the house rule strikes out (CLAUDE.md §17).
+   *
+   * The prop stays so twenty call sites did not have to be rewritten, but the
+   * words now go where every other explanation goes: behind the ⓘ.
+   */
   hint?: string;
-  /** the same words, hidden behind a `?`. Prefer this. */
+  /** the same words, behind the ⓘ */
   tip?: string;
   children: React.ReactNode;
 }) {
+  const why = tip ?? hint;
   return (
     <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-6 mb-5">
-      {/*  ⚠️ without a hint the row is center-aligned with less gap — owner's
-          instruction: the page should feel bold, not "alemelo" [cluttered].
-          The explanation lives in the `?`.  */}
-      <div className={`flex gap-3 ${hint ? "items-start mb-4" : "items-center mb-3.5"}`}>
+      <div className="flex gap-3 items-center mb-3.5">
         {icon && (
           <span className="w-9 h-9 rounded-[11px] bg-orchid-soft text-purple grid place-items-center shrink-0">
             <Icon name={icon} size={19} />
           </span>
         )}
-        <div>
-          <h3 className="font-display font-bold text-[17.5px] text-purple m-0 leading-tight tracking-[-0.01em]">
-            {title}
-            {tip && <Tip why={tip} />}
-          </h3>
-          {hint && (
-            <p className="text-body-soft text-[13px] mt-1 mb-0 leading-relaxed">
-              {hint}
-            </p>
-          )}
-        </div>
+        <h3 className="font-display font-bold text-[17.5px] text-purple m-0 leading-tight tracking-[-0.01em]">
+          {title}
+          {why && <Tip why={why} />}
+        </h3>
       </div>
       {children}
     </div>
@@ -431,6 +433,7 @@ function Field({
   children,
 }: {
   label?: React.ReactNode;
+  /** the line that used to sit UNDER the box — now the ⓘ beside the label */
   note?: string;
   full?: boolean;
   children: React.ReactNode;
@@ -438,12 +441,16 @@ function Field({
   return (
     <div className={"flex flex-col gap-2 " + (full ? "col-span-full" : "")}>
       {label && (
-        <label className="text-[13.5px] font-semibold text-body tracking-[0.01em]">
+        <label className="text-[13.5px] font-semibold text-body tracking-[0.01em] flex items-center gap-1.5">
           {label}
+          {note && <Info text={note} />}
         </label>
       )}
       {children}
-      {note && <span className="text-[13px] text-body-soft">{note}</span>}
+      {/*  A field with no label still needs somewhere for its note to live.  */}
+      {note && !label && (
+        <span className="self-start"><Info text={note} /></span>
+      )}
     </div>
   );
 }
@@ -739,13 +746,13 @@ function Where({
     staff: "bg-lavender text-purple border-lavender-deep",
     off: "bg-[#f4f4f6] text-[#6b6b76] border-[#dedee4]",
   }[kind];
+  /*  The chip carried a native `title` and a grey "?" — half a second of
+      waiting, an OS-styled box, and nothing at all on a phone. It is the house
+      ⓘ now, like everywhere else (22 Aug 2026).  */
   return (
-    <span
-      title={why}
-      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-[3px] rounded-full border cursor-help ${style}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-[3px] rounded-full border ${style}`}>
       {children}
-      <span className="opacity-45 font-normal">?</span>
+      <Info text={why} />
     </span>
   );
 }
@@ -2281,14 +2288,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           <h1 className="font-display text-[22px] text-purple m-0 truncate leading-tight">
             {slug ? name || "Edit product" : "Add product"}
           </h1>
+          {/*  "New product — fill in and publish" said nothing the big title
+               above did not (owner, 22 Aug 2026). Only the star legend stays:
+               three words that decode a mark used all over the form.
+               8 Aug 2026 — the live URL used to sit here as a long raw
+               address; the owner moved it onto the Live Preview card
+               instead (the preview's product name is the link now).  */}
           <p className="text-body-soft text-[12.5px] m-0">
-            {slug ? "Editing product" : "New product — fill in and publish"}
-            {"  "}
-            <span className="text-[#c0392b] font-bold">*</span>
-            <span className="text-body-soft"> = required to publish</span>
-            {/*  8 Aug 2026 — the live URL used to sit here as a long raw
-                address; the owner moved it onto the Live Preview card
-                instead (the preview's product name is the link now).  */}
+            <span className="text-[#c0392b] font-bold">*</span> required to publish
           </p>
         </div>
         <button
@@ -2316,7 +2323,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       )}
       {savedMsg && (
         <div className="bg-[#eaf7ef] border border-[#a8d9bc] text-[#0f7d55] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-2">
-          <Icon name="check" size={15} /> {savedMsg} You're still on this product — keep editing, or go back to All products when you're done.
+          {/*  The lecture that followed every save is gone (owner, 22 Aug
+               2026). It appeared on EVERY save and told him where he already
+               was.  */}
+          <Icon name="check" size={15} /> {savedMsg}
           {slugV && (
             <a
               href={storefrontUrl(slugV)}
@@ -3829,11 +3839,9 @@ No bundle products yet — add them on{" "}
                         there is no SMS/WhatsApp gateway, so nothing sends
                         itself yet (PENDING F11).  */}
                     {linkedItem?.supplier && (
-                      <p className="text-[13px] text-body-soft mt-3 mb-0">
-                        When an order comes in, the vendor still has to be messaged by
-                        hand from their supplier page. Automatic sending waits on the
-                        WhatsApp gateway.
-                      </p>
+                      <div className="mt-3">
+                        <Info text="When an order comes in, the vendor still has to be messaged by hand from their supplier page. Automatic sending waits on the WhatsApp gateway." />
+                      </div>
                     )}
                                     </div>
                 )}
