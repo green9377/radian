@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { softDeleteExtension } from './soft-delete.extension';
+import { clearBuriedKeysExtension } from './clear-buried-keys.extension';
 
 /**
  * PrismaService — একমাত্র DB access point (One Data One Owner-এর technical base)।
@@ -25,7 +26,12 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
-  readonly db = this.$extends(softDeleteExtension);
+  /*  DEC-GBL-007 — `clearBuriedKeys` goes on TOP of soft-delete, and it is
+      handed the RAW client on purpose: the row it has to find is the one
+      soft-delete hides.  */
+  readonly db = this.$extends(softDeleteExtension).$extends(
+    clearBuriedKeysExtension(this),
+  );
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
