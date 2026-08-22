@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Icon from "./Icon";
 import {
   WRAP, ACCENT, ItemPageHead, DemoBar, DataTable, ItemThumb, Modal, Field,
@@ -88,7 +89,7 @@ function WhPills({ whs, value, onChange, exclude }: {
     the till and the purchase form use (owner, 21 Aug: "pick an item a click
     krle jen pos ar purchases ar moto ase") — a dropdown of bare names made
     staff guess which rose was which. A chosen line shows its face and stays.  */
-function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have }: {
+function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have, nothingLeft }: {
   lines: Line[];
   setLines: (l: Line[]) => void;
   /** what the picker offers — already filtered to what this screen may touch */
@@ -98,6 +99,8 @@ function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have
   showExpiry?: boolean;
   /** Transfer only — how much the source store holds, so you cannot move air */
   have?: { label: string; qtyMilliOf: (itemId: string) => number };
+  /** shown INSTEAD of the Add button when the picker would open empty */
+  nothingLeft?: React.ReactNode;
 }) {
   const [pickOpen, setPickOpen] = useState(false);
   const patch = (key: number, p: Partial<Line>) =>
@@ -168,14 +171,23 @@ function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have
           </div>
         );
       })}
-      {lines.length === 0 && (
-        <p className="text-[13px] text-body-soft mt-1 mb-2">Nothing on the sheet yet — press <b>Add items</b> and pick from your shelf.</p>
+      {items.filter((i) => !lines.some((l) => l.itemId === i.id)).length === 0 && nothingLeft ? (
+        /*  an empty picker reads as a bug (owner, 21 Aug: "main storeroom
+            select krle kon item ase na kn?") — so when there is truly nothing
+            left to offer, the screen says WHY instead of opening a blank list  */
+        lines.length === 0 ? <div className="mt-1">{nothingLeft}</div> : null
+      ) : (
+        <>
+          {lines.length === 0 && (
+            <p className="text-[13px] text-body-soft mt-1 mb-2">Nothing on the sheet yet — press <b>Add items</b> and pick from your shelf.</p>
+          )}
+          <button type="button" onClick={() => setPickOpen(true)}
+            className="text-[12.5px] font-medium inline-flex items-center gap-1.5 mt-1"
+            style={{ color: ACCENT }}>
+            <Icon name="plus" size={12} /> Add items
+          </button>
+        </>
       )}
-      <button type="button" onClick={() => setPickOpen(true)}
-        className="text-[12.5px] font-medium inline-flex items-center gap-1.5 mt-1"
-        style={{ color: ACCENT }}>
-        <Icon name="plus" size={12} /> Add items
-      </button>
 
       {pickOpen && (
         <ItemPicker
@@ -340,7 +352,15 @@ export function InvOpeningView() {
               <WhPills whs={whs.filter((w) => w.isActive)} value={warehouseId} onChange={setWarehouseId} />
             </SheetBar>
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} items={openable} byId={byId} showExpiry showValue />
+              <LinesEditor lines={lines} setLines={setLines} items={openable} byId={byId} showExpiry showValue
+                nothingLeft={
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
+                    Every item already moves in <b>{whName}</b>, so there is nothing left to open here —
+                    an opening only STARTS a ledger (DEC-INV-012). To correct a count, use{" "}
+                    <Link href="/inventory/stock" className="font-semibold underline">Adjust on the Stock board</Link>;
+                    a brand-new item appears here as soon as it is created.
+                  </div>
+                } />
             </div>
             <SheetNote value={note} onChange={setNote} placeholder="e.g. First count, 10 Aug morning" />
           </>
