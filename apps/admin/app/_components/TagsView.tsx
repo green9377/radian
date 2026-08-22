@@ -608,11 +608,15 @@ function Preview({ group, theme, tags }: { group: Group; theme: GroupTheme; tags
   if (!group.isActive) return <div className="text-[13px] text-body-soft">This group is hidden — it won’t appear on the storefront.</div>;
   if (!tags.length) return <div className="text-[13px] text-body-soft">No visible tags to show.</div>;
   if (group.displayStyle === "CARD") {
+    /*  A FIXED tile width, not a fraction of the pane. With `grid-cols-4` two
+        tags filled half the screen with two enormous pictures — nothing like
+        what the shopper sees. The storefront tile is small; the preview has to
+        be small, or it is not a preview.  */
     return (
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+      <div className="flex flex-wrap gap-2.5">
         {tags.slice(0, 8).map((t) => (
-          <div key={t.id} className="text-center">
-            <div className="rounded-t-[38px] rounded-b-[12px] shadow-soft" style={{ ...tileBg(t), aspectRatio: "4 / 4.6" }} />
+          <div key={t.id} className="text-center w-[92px]">
+            <div className="rounded-t-[34px] rounded-b-[12px] shadow-soft" style={{ ...tileBg(t), aspectRatio: "4 / 4.6" }} />
             <div className="text-[11.5px] font-medium text-purple mt-1.5 truncate">{t.name}</div>
           </div>
         ))}
