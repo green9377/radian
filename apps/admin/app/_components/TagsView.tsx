@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Info } from "./ItemEditor";
 import { placeholderBg } from "../_data/tagGroupDemo";
 import {
   loadTagsSafe,
@@ -271,18 +272,20 @@ export default function TagsView() {
     <div className={WRAP}>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={onFileChosen} />
 
-      {/* header */}
-      <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
+      {/*  The page prose is gone (owner, 22 Aug 2026) — "odorkari sob text remove
+           kro ba icon ar maje hide kre daw". What it said now lives behind the ⓘ
+           beside the title, where it is there for whoever wants it and silent
+           for everyone else.  */}
+      <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
         <div>
           <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.08em] uppercase text-orchid">
             <span className="w-[9px] h-[9px] -rotate-45 bg-gradient-to-br from-orchid to-rosegold" style={{ borderRadius: "50% 50% 50% 0" }} />
-            Classification · occasions &amp; tags
+            Classification
           </div>
-          <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Occasions &amp; Tags</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[720px]">
-            Pick a group on the left, manage its tags on the right — one group at a time. Occasions &amp; Recipients are
-            built in; add your own groups like Bouquet Style whenever you need.
-          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <h1 className="font-display text-[28px] text-purple m-0 leading-tight">Occasions &amp; Tags</h1>
+            <Info text="Pick a group on the left, manage its tags on the right. Occasions and Recipients are built in; add your own groups — Bouquet Style, Colour Mood — whenever you need." />
+          </div>
         </div>
         <Link href="/categories" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid shrink-0">Categories</Link>
       </div>
@@ -304,54 +307,101 @@ export default function TagsView() {
       )}
       {loading && <div className="text-[13px] text-body-soft mb-4">Loading tags…</div>}
 
-      {/* stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/*  Four tall coloured boxes became one quiet strip. They are a glance, not
+           the subject of the page — the tags are.  */}
+      <div className="inline-flex items-stretch flex-wrap gap-0 rounded-[14px] border border-lavender-deep bg-white shadow-soft overflow-hidden mb-6">
         {[
-          { l: "Tag groups", v: String(stats.groups), c: "#7a2ea8", bg: "#f5eafb", icon: "layers" },
-          { l: "Total tags", v: String(stats.tags), c: "#8b3fb0", bg: "#f3e8fb", icon: "tag" },
-          { l: "Empty (0 products)", v: String(stats.empty), c: stats.empty ? "#d98a0f" : "#12a172", bg: "#fbf1e2", icon: "bolt" },
-          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#b5642f" : "#12a172", bg: "#f6ece3", icon: "eye" },
+          { l: "Groups", v: stats.groups, c: "#7a2ea8" },
+          { l: "Tags", v: stats.tags, c: "#8b3fb0" },
+          { l: "Unused", v: stats.empty, c: stats.empty ? "#d98a0f" : "#12a172", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
+          { l: "Hidden", v: stats.hidden, c: stats.hidden ? "#b5642f" : "#12a172", tip: "Groups and tags switched off. They stay in the admin and disappear from the shop." },
         ].map((k, i) => (
-          <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
-            <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}><Icon name={k.icon} size={13} /></span>
-            <div className="font-display text-[23px] leading-none mt-2.5" style={{ color: k.c }}>{k.v}</div>
-            <div className="text-[11px] font-medium text-body mt-1.5">{k.l}</div>
+          <div key={i} className={"px-5 py-2.5 flex items-center gap-2.5 " + (i ? "border-l border-lavender-deep" : "")}>
+            <span className="font-display text-[22px] leading-none" style={{ color: k.c }}>{k.v}</span>
+            <span className="text-[12px] font-medium text-body-soft inline-flex items-center gap-1">
+              {k.l}
+              {k.tip && <Info text={k.tip} />}
+            </span>
           </div>
         ))}
       </div>
 
-
       <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
-        {/* ---------------- LEFT: group list ---------------- */}
-        <div className="xl:sticky xl:top-4 self-start space-y-2">
-          <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-body-soft px-1 mb-1">Groups</div>
-          {sortedGroups.map((g, gi) => {
-            const th = themeFor(g);
-            const on = g.id === selectedId;
-            const count = tagsOf(g.id).length;
-            return (
-              <div key={g.id} className={"grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[12px] border px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "border-orchid ring-2 ring-orchid-soft bg-orchid-soft" : g.isActive ? "border-lavender-deep bg-white hover:bg-lavender/40" : "border-[#f0dcc4] bg-[#fbf5ef] hover:bg-[#f7efe7]")} onClick={() => setSelectedId(g.id)}>
-                <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: th.c }}><Icon name={th.icon} size={15} /></span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-medium text-[14px] text-purple truncate">{g.name}</span>
-                    {g.isSystem && <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-lavender text-body-soft">System</span>}
-                    {!g.isActive && <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+        {/*  ---------------- LEFT: group list ----------------
+             A DEEP PANEL, not a column of loose cards (owner, 22 Aug 2026:
+             "group section ta alada color kro"). The two panes were both white
+             on lavender, so the eye had to work out which side it was on. Dark
+             purple here says "this is the chooser" in one glance, and the
+             selected row is the only light thing on it — the strongest possible
+             signal for "you are here", with no ring or border needed.  */}
+        <div className="xl:sticky xl:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
+          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
+            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
+              <Icon name="layers" size={14} />
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Groups</span>
+            <span className="ml-auto text-[12px] text-white/45">{sortedGroups.length}</span>
+          </div>
+
+          <div className="px-3 pb-3 space-y-1.5">
+            {sortedGroups.map((g, gi) => {
+              const th = themeFor(g);
+              const on = g.id === selectedId;
+              const count = tagsOf(g.id).length;
+              return (
+                <div key={g.id}
+                  className={"group/row grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "bg-white shadow-soft" : "hover:bg-white/10")}
+                  onClick={() => setSelectedId(g.id)}>
+                  <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
+                    style={{ background: on ? th.c : "rgba(255,255,255,.14)" }}>
+                    <Icon name={th.icon} size={15} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{g.name}</span>
+                      {!g.isActive && (
+                        <span className="shrink-0" title="Hidden from the storefront">
+                          <Icon name="eye" size={12} className={on ? "text-[#b45309]" : "text-white/50"} />
+                        </span>
+                      )}
+                    </div>
+                    <div className={"text-[12.5px] " + (on ? "text-body-soft" : "text-white/45")}>
+                      {count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}
+                    </div>
                   </div>
-                  <div className="text-[13px] text-body-soft">{count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}</div>
+                  {/*  The arrows only appear on the row under the cursor. Two of
+                       them on every row, all the time, is more furniture than the
+                       names themselves.  */}
+                  <div className={"flex flex-col shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
+                    onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => moveGroup(g, "up")} disabled={gi === 0}
+                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move up">
+                      <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
+                    </button>
+                    <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1}
+                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move down">
+                      <Icon name="chevronDown" size={13} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => moveGroup(g, "up")} disabled={gi === 0} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move up"><span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span></button>
-                  <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
           {/* add group */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1">
-            <input className="ipt" style={{ minHeight: 38 }} placeholder="New group…" value={groupDraft} onChange={(e) => setGroupDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addGroup(); }} />
-            <button onClick={addGroup} disabled={!groupDraft.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-50 text-white h-[38px] px-3 rounded-[10px] inline-flex items-center gap-1 text-[13px] font-medium shrink-0"><Icon name="plus" size={15} /> Add</button>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 pb-3.5 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,.1)" }}>
+            <input
+              className="w-full rounded-[10px] px-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
+              style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
+              placeholder="New group…" value={groupDraft}
+              onChange={(e) => setGroupDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addGroup(); }} />
+            <button onClick={addGroup} disabled={!groupDraft.trim()}
+              className="bg-orchid hover:bg-white hover:text-purple disabled:opacity-30 text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
+              title="Add group">
+              <Icon name="plus" size={16} />
+            </button>
           </div>
         </div>
 
@@ -384,8 +434,7 @@ export default function TagsView() {
             />
           ) : (
             <div className="bg-white border border-dashed border-lavender-deep rounded-[18px] shadow-soft p-10 text-center">
-              <div className="font-display text-[18px] text-purple mb-1">{loading ? "Loading…" : "Pick a group"}</div>
-              <p className="text-body-soft text-[13px]">{loading ? "" : "Choose a group on the left to manage its tags."}</p>
+              <div className="font-display text-[18px] text-purple">{loading ? "Loading…" : "Pick a group"}</div>
             </div>
           )}
         </div>
@@ -430,47 +479,55 @@ function GroupManager({
               {g.isSystem && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70 text-body-soft border border-white inline-flex items-center gap-1"><Icon name="shield" size={11} /> System</span>}
             </div>
           )}
-          <div className="text-[13px] text-body-soft mt-0.5">{tags.length} tag{tags.length === 1 ? "" : "s"} · {g.isActive ? "visible" : "hidden"} on the storefront</div>
+          <div className="text-[13px] text-body-soft mt-0.5">{tags.length} tag{tags.length === 1 ? "" : "s"}</div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {g.isSystem ? (
-            <span className="text-[13px] text-body-soft inline-flex items-center gap-1 opacity-60" title="System group — can’t be deleted"><Icon name="shield" size={13} /></span>
+            <span className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-body-soft opacity-50" title="Built in — this group cannot be deleted"><Icon name="shield" size={15} /></span>
           ) : (
             <button onClick={onDeleteGroup} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#b42318] bg-white/70 hover:bg-white" title="Delete group"><Icon name="trash" size={15} /></button>
           )}
-          <label className="text-[13px] text-body-soft flex items-center gap-1.5 cursor-pointer select-none" onClick={onToggleGroup}>
-            {g.isActive ? "Visible" : "Hidden"}
-            <Switch on={g.isActive} onClick={onToggleGroup} />
-          </label>
+          {/*  The word beside the switch is gone — the switch already says it,
+               and its title carries the meaning for anyone unsure.  */}
+          <Switch on={g.isActive} onClick={onToggleGroup} />
         </div>
       </div>
 
-      {/* show-as choice */}
-      <div className="px-5 py-3.5 border-b border-lavender-deep bg-white flex items-center gap-3 flex-wrap">
-        <span className="text-[12.5px] font-medium text-body">Show on the site as</span>
+      {/*  Show-as: the sentence explaining each choice moved behind the ⓘ. The
+           two buttons say what they are; a paragraph beside them said it twice. */}
+      <div className="px-5 py-3 border-b border-lavender-deep bg-white flex items-center gap-2.5 flex-wrap">
+        <span className="text-[12.5px] font-medium text-body inline-flex items-center gap-1.5">
+          Show as
+          <Info text="Chips are small pill buttons and need no picture. Image cards show each tag as a photo tile — good for occasions the customer recognises by sight." />
+        </span>
         <div className="inline-flex rounded-[10px] border border-lavender-deep p-0.5">
           {(["CHIP", "CARD"] as TagDisplayStyle[]).map((s) => {
             const on = g.displayStyle === s;
             return (
               <button key={s} onClick={() => onSetStyle(s)} className={"text-[12.5px] font-semibold px-3 py-1.5 rounded-[8px] inline-flex items-center gap-1.5 " + (on ? "text-white" : "text-body-soft hover:text-purple")} style={on ? { background: theme.c } : undefined}>
-                <Icon name={s === "CARD" ? "photo" : "tag"} size={13} /> {s === "CARD" ? "Image cards" : "Simple chips"}
+                <Icon name={s === "CARD" ? "photo" : "tag"} size={13} /> {s === "CARD" ? "Image cards" : "Chips"}
               </button>
             );
           })}
         </div>
-        <span className="text-[13px] text-body-soft">{isCard ? "Each tag shows as a tile — click its image to upload." : "Small pill buttons — no image needed."}</span>
       </div>
 
       {isCard && missingImages > 0 && (
         <div className="mx-3.5 mt-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[10px] px-3 py-2 text-[12px] flex items-center gap-2">
-          <Icon name="photo" size={14} /> {missingImages} tag{missingImages === 1 ? "" : "s"} still {missingImages === 1 ? "needs" : "need"} an image — they’ll show a placeholder until you upload one.
+          <Icon name="photo" size={14} /> {missingImages} tag{missingImages === 1 ? "" : "s"} without an image
+          <Info text="Until a picture is uploaded, those tiles show a coloured placeholder on the storefront." />
         </div>
       )}
 
       {/* tag list */}
       <div className="p-3.5">
         {tags.length === 0 ? (
-          <div className="text-[13px] text-body-soft text-center py-8">No tags here yet — add your first below.</div>
+          <div className="text-center py-10">
+            <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center mx-auto mb-2.5" style={{ background: theme.bg, color: theme.c }}>
+              <Icon name="tag" size={19} />
+            </span>
+            <div className="text-[13.5px] text-body-soft">Nothing in this group yet</div>
+          </div>
         ) : (
           <div className="space-y-1.5">
             {tags.map((t, i) => {
@@ -500,8 +557,14 @@ function GroupManager({
                     ) : (
                       <div className="flex items-center gap-2 flex-wrap">
                         <button onClick={() => onStartEdit(t.id, t.name)} className="font-medium text-[14px] text-purple truncate hover:text-orchid text-left" title="Rename">{t.name}</button>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={t.products === 0 ? { background: "#fbe4cd", color: "#b45309" } : { background: theme.bg, color: theme.c }}>{t.products} product{t.products === 1 ? "" : "s"}</span>
-                        {!t.isActive && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+                        {/*  Just the number. "0 products" on every row of a new
+                             shop was a wall of orange saying nothing useful.  */}
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
+                          style={t.products === 0 ? { background: "#f4eef8", color: "#8a7c94" } : { background: theme.bg, color: theme.c }}
+                          title={`${t.products} product${t.products === 1 ? "" : "s"} carry this tag`}>
+                          {t.products}
+                        </span>
+                        {!t.isActive && <span className="shrink-0 text-[#b45309]" title="Hidden from the storefront"><Icon name="eye" size={12} /></span>}
                       </div>
                     )}
                   </div>
@@ -525,14 +588,16 @@ function GroupManager({
 
         {/* add tag */}
         <div className="grid grid-cols-[1fr_auto] items-center gap-2 mt-3 pt-3 border-t border-lavender-deep">
-          <input className="ipt" style={{ minHeight: 38 }} placeholder={`Add a tag to ${g.name}…`} value={draft} onChange={(e) => onDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onAddTag(); }} />
-          <button onClick={onAddTag} disabled={!draft.trim()} className="text-white text-[13px] font-medium px-4 h-[38px] rounded-[10px] inline-flex items-center gap-1.5 disabled:opacity-50 shrink-0" style={{ background: theme.c }}><Icon name="plus" size={15} /> Add tag</button>
+          <input className="ipt" style={{ minHeight: 38 }} placeholder={`Add to ${g.name}…`} value={draft} onChange={(e) => onDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onAddTag(); }} />
+          <button onClick={onAddTag} disabled={!draft.trim()} className="text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center disabled:opacity-40 shrink-0" style={{ background: theme.c }} title="Add tag"><Icon name="plus" size={16} /></button>
         </div>
       </div>
 
       {/* storefront preview */}
-      <div className="border-t border-lavender-deep bg-lavender/30 px-5 py-4">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] uppercase text-purple mb-2.5"><Icon name="eye" size={13} /> How customers see it</div>
+      <div className="border-t border-lavender-deep px-5 py-4" style={{ background: "linear-gradient(180deg,#faf6fd,#f4ecfa)" }}>
+        <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] uppercase text-purple/70 mb-2.5">
+          <Icon name="eye" size={13} /> On the site
+        </div>
         <Preview group={g} theme={theme} tags={tags.filter((t) => t.isActive)} />
       </div>
     </div>
