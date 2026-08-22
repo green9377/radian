@@ -422,6 +422,15 @@ export function InvTransferView() {
   const stockInFrom = (itemId: string) =>
     stock.find((r) => r.itemId === itemId)?.perWarehouse.find((p) => p.warehouseId === fromId)?.qtyMilli ?? 0;
 
+  /*  the picker offers only what the source store actually holds (owner,
+      22 Aug: "jekhane je product ache sekhane jen tai dekhay") — a transfer
+      of goods that are not there is written blind and lands negative  */
+  const transferable = useMemo(
+    () => items.filter((i) => stockInFrom(i.id) > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, stock, fromId],
+  );
+
   async function save() {
     const ls = validLines(lines);
     if (!ls.length || !fromId || !toId || fromId === toId) return;
@@ -471,8 +480,14 @@ export function InvTransferView() {
               </span>
             </SheetBar>
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} items={items} byId={byId}
-                have={{ label: `In ${fromName || "source"}`, qtyMilliOf: stockInFrom }} />
+              <LinesEditor lines={lines} setLines={setLines} items={transferable} byId={byId}
+                have={{ label: `In ${fromName || "source"}`, qtyMilliOf: stockInFrom }}
+                nothingLeft={
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
+                    <b>{fromName || "This store"}</b> holds nothing to move. Goods appear here
+                    once a purchase lands there or a count puts them there.
+                  </div>
+                } />
             </div>
             <SheetNote value={note} onChange={setNote} placeholder="e.g. Morning restock for the shop floor" />
           </>
@@ -545,6 +560,20 @@ export function InvIssueView() {
       setWarehouseId(shop.id);
     }
   }, [whs, warehouseId]);
+
+  /*  same rule as Transfer (owner, 22 Aug): only what THIS store holds can be
+      wasted or gifted out of it  */
+  const [stock, setStock] = useState<InvStockRow[]>([]);
+  useEffect(() => {
+    (async () => { try { setStock((await loadInvStockSafe()).rows); } catch { setStock([]); } })();
+  }, []);
+  const stockHere = (itemId: string) =>
+    stock.find((r) => r.itemId === itemId)?.perWarehouse.find((p) => p.warehouseId === warehouseId)?.qtyMilli ?? 0;
+  const issuable = useMemo(
+    () => items.filter((i) => stockHere(i.id) > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, stock, warehouseId],
+  );
 
   async function loadHistory(k = histKind) {
     const [r, all] = await Promise.all([
@@ -668,7 +697,13 @@ export function InvIssueView() {
             </div>
 
             <div className="px-4 py-3">
-              <LinesEditor lines={lines} setLines={setLines} items={items} byId={byId} showValue />
+              <LinesEditor lines={lines} setLines={setLines} items={issuable} byId={byId} showValue
+                have={{ label: "In store", qtyMilliOf: stockHere }}
+                nothingLeft={
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
+                    This store holds nothing right now — there is nothing to waste or give away from it.
+                  </div>
+                } />
             </div>
             <SheetNote value={note} onChange={setNote}
               placeholder={kind === "WASTAGE" ? "e.g. Morning sorting" : "e.g. Sent to client office"} />
