@@ -314,104 +314,112 @@ export default function TagsView() {
 
       {/*  Four tall coloured boxes became one quiet strip. They are a glance, not
            the subject of the page — the tags are.  */}
-      <div className="inline-flex items-stretch flex-wrap gap-0 rounded-[14px] border border-lavender-deep shadow-soft overflow-hidden mb-6"
-        style={{ background: "linear-gradient(180deg,#ffffff,#fdfaff)" }}>
+      {/*  Cards, as the owner asked (22 Aug) — but the brand's own family, not
+           four unrelated colours: deep purple, orchid, rose gold. Each carries
+           its icon in the tint, the number large, and any explanation behind
+           the ⓘ rather than as a second line of grey.  */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Groups", v: stats.groups, c: "#470066" },
-          { l: "Tags", v: stats.tags, c: "#8b3fb0" },
-          { l: "Unused", v: stats.empty, c: stats.empty ? "#b76e79" : "#12a172", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
-          { l: "Hidden", v: stats.hidden, c: stats.hidden ? "#b76e79" : "#12a172", tip: "Groups and tags switched off. They stay in the admin and disappear from the shop." },
+          { l: "Groups", v: stats.groups, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "layers" },
+          { l: "Tags", v: stats.tags, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "tag" },
+          { l: "Unused", v: stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
+          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Groups and tags switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
-          <div key={i} className={"px-5 py-2.5 flex items-center gap-2.5 " + (i ? "border-l border-lavender-deep" : "")}>
-            <span className="font-display text-[22px] leading-none tabular-nums" style={{ color: k.c }}>{k.v}</span>
-            <span className="text-[12px] font-medium text-body-soft inline-flex items-center gap-1">
-              {k.l}
+          <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
+            <div className="flex items-center justify-between gap-2">
+              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
+                style={{ background: k.edge, boxShadow: `0 3px 9px ${k.edge}45` }}>
+                <Icon name={k.icon} size={14} />
+              </span>
               {k.tip && <Info text={k.tip} />}
-            </span>
+            </div>
+            <div className="font-display text-[27px] leading-none mt-3 tabular-nums" style={{ color: k.c }}>{k.v}</div>
+            <div className="text-[12px] font-semibold mt-1.5" style={{ color: k.c, opacity: 0.65 }}>{k.l}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
-        {/*  ---------------- LEFT: group cards ----------------
-             Cards again, in brand colours (owner, 22 Aug 2026 — the dark panel
-             was tried and turned down: "age jevabe card style a chilo sevabe
-             kro, oita sundor"). Each card wears its group's own shade of the
-             brand family with a coloured spine down the left. The chosen one
-             lifts: full tint, a thicker spine, a ring and a real shadow — it
-             comes forward rather than merely being outlined.  */}
-        <div className="xl:sticky xl:top-4 self-start space-y-2.5">
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-[11px] font-bold tracking-[0.09em] uppercase text-purple/55">Groups</span>
-            <span className="h-px flex-1 bg-lavender-deep" />
-            <span className="text-[11.5px] font-semibold text-purple/40 tabular-nums">{sortedGroups.length}</span>
+        {/*  ---------------- LEFT: group list ----------------
+             A DEEP PURPLE PANEL, not a column of loose cards. The owner asked
+             for it on 22 Aug, I misread a later note and turned it back into
+             cards, and he put it straight: "group section ta ager motii purple
+             a kro."
+
+             It earns its place: the two panes were both white on lavender, so
+             the eye had to work out which side it was on. Dark purple says
+             "this is the chooser" in one glance, and the selected row is the
+             only light thing on it — the strongest possible signal for "you
+             are here", with no ring or border needed.  */}
+        <div className="xl:sticky xl:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
+          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
+            <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
+              <Icon name="layers" size={14} />
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.08em] uppercase text-white/70">Groups</span>
+            <span className="ml-auto text-[12px] text-white/45">{sortedGroups.length}</span>
           </div>
 
-          {sortedGroups.map((g, gi) => {
-            const th = themeFor(g);
-            const on = g.id === selectedId;
-            const count = tagsOf(g.id).length;
-            return (
-              <div key={g.id}
-                className={"group/row relative grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[14px] pl-3.5 pr-2.5 py-3 cursor-pointer overflow-hidden transition-all " +
-                  (on ? "shadow-soft" : "hover:-translate-y-px hover:shadow-soft")}
-                style={{
-                  background: on ? th.bg : "#fff",
-                  border: `1px solid ${on ? th.edge : "var(--color-lavender-deep)"}`,
-                  boxShadow: on ? `0 0 0 3px ${th.bg}, 0 6px 18px rgba(71,0,102,.10)` : undefined,
-                  opacity: g.isActive ? 1 : 0.72,
-                }}
-                onClick={() => setSelectedId(g.id)}>
-                {/* the spine — the group's colour, thicker when chosen */}
-                <span className="absolute left-0 top-0 bottom-0 transition-all"
-                  style={{ width: on ? 5 : 3, background: th.edge }} />
-
-                <span className="w-[34px] h-[34px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
-                  style={on
-                    ? { background: th.edge, color: "#fff" }
-                    : { background: th.bg, color: th.c }}>
-                  <Icon name={th.icon} size={16} />
-                </span>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-semibold text-[14.5px] truncate" style={{ color: on ? th.c : "var(--color-purple)" }}>{g.name}</span>
-                    {!g.isActive && (
-                      <span className="shrink-0 text-[#b45309]" title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
-                    )}
+          <div className="px-3 pb-3 space-y-1.5">
+            {sortedGroups.map((g, gi) => {
+              const th = themeFor(g);
+              const on = g.id === selectedId;
+              const count = tagsOf(g.id).length;
+              return (
+                <div key={g.id}
+                  className={"group/row grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 cursor-pointer transition-colors " + (on ? "bg-white shadow-soft" : "hover:bg-white/10")}
+                  onClick={() => setSelectedId(g.id)}>
+                  <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
+                    style={{ background: on ? th.c : "rgba(255,255,255,.14)" }}>
+                    <Icon name={th.icon} size={15} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{g.name}</span>
+                      {!g.isActive && (
+                        <span className="shrink-0" title="Hidden from the storefront">
+                          <Icon name="eye" size={12} className={on ? "text-[#b45309]" : "text-white/50"} />
+                        </span>
+                      )}
+                    </div>
+                    <div className={"text-[12.5px] " + (on ? "text-body-soft" : "text-white/45")}>
+                      {count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}
+                    </div>
                   </div>
-                  <div className="text-[12.5px] text-body-soft mt-0.5">
-                    {count} tag{count === 1 ? "" : "s"} · {g.displayStyle === "CARD" ? "cards" : "chips"}
+                  {/*  The arrows only appear on the row under the cursor. Two of
+                       them on every row, all the time, is more furniture than the
+                       names themselves.  */}
+                  <div className={"flex flex-col shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
+                    onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => moveGroup(g, "up")} disabled={gi === 0}
+                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move up">
+                      <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
+                    </button>
+                    <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1}
+                      className={"disabled:opacity-20 leading-none " + (on ? "text-body-soft hover:text-purple" : "text-white/60 hover:text-white")} title="Move down">
+                      <Icon name="chevronDown" size={13} />
+                    </button>
                   </div>
                 </div>
-
-                {/*  The arrows only appear on the row under the cursor, or on the
-                     chosen one. Two of them on every card, always, is more
-                     furniture than the names themselves.  */}
-                <div className={"flex flex-col shrink-0 transition-opacity " + (on ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")}
-                  onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => moveGroup(g, "up")} disabled={gi === 0}
-                    className="text-body-soft hover:text-purple disabled:opacity-20 leading-none" title="Move up">
-                    <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
-                  </button>
-                  <button onClick={() => moveGroup(g, "down")} disabled={gi === sortedGroups.length - 1}
-                    className="text-body-soft hover:text-purple disabled:opacity-20 leading-none" title="Move down">
-                    <Icon name="chevronDown" size={13} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
           {/* add group */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-0.5">
-            <input className="ipt" style={{ minHeight: 40 }} placeholder="New group…" value={groupDraft}
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 pb-3.5 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,.1)" }}>
+            <input
+              className="w-full rounded-[10px] px-3 text-[13px] text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-orchid/60"
+              style={{ minHeight: 38, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}
+              placeholder="New group…" value={groupDraft}
               onChange={(e) => setGroupDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addGroup(); }} />
             <button onClick={addGroup} disabled={!groupDraft.trim()}
-              className="bg-purple hover:bg-purple-deep disabled:opacity-30 text-white h-[40px] w-[40px] rounded-[11px] grid place-items-center shrink-0 transition-colors"
+              className="bg-orchid hover:bg-white hover:text-purple disabled:opacity-30 text-white h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 transition-colors"
               title="Add group">
-              <Icon name="plus" size={17} />
+              <Icon name="plus" size={16} />
             </button>
           </div>
         </div>
