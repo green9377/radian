@@ -232,14 +232,21 @@ function StoryGroup({ id, open, children }: { id: StoryG; open: StoryG; children
   return <>{children}</>;
 }
 
-/** one tappable part of the phone — pressing it opens that group on the left */
+/**
+ * One tappable part of the phone.
+ *
+ * It began as a story-tab device and became the whole form's map (22 Aug
+ * 2026): whatever part of the customer's page you press, the editor opens the
+ * section that owns it. So it no longer knows about story groups — the caller
+ * says where to go.
+ */
 function Hot({
-  g, on, onPick, children,
-}: { g: StoryG; on: boolean; onPick: (g: StoryG) => void; children: React.ReactNode }) {
+  on, onPick, children,
+}: { on: boolean; onPick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
-      onClick={() => onPick(g)}
+      onClick={onPick}
       className={
         "w-full text-left rounded-[10px] px-2 py-1.5 border transition-colors " +
         (on ? "border-purple bg-lavender" : "border-transparent hover:border-orchid-mid hover:bg-orchid-soft/50")
@@ -248,82 +255,6 @@ function Hot({
     >
       {children}
     </button>
-  );
-}
-
-function StoryPhone({
-  group, onPick, photo, name, price, nature, sold, perso, badges, inside, faqs,
-}: {
-  group: StoryG;
-  onPick: (g: StoryG) => void;
-  photo?: string;
-  name: string;
-  price: string;
-  nature: string;
-  sold: string;
-  perso: string | null;
-  badges: string[];
-  inside: string[];
-  faqs: number;
-}) {
-  const taka = (v: string) => "৳ " + (Number(v) || 0).toLocaleString("en-IN");
-  return (
-    <div className="w-[320px] shrink-0 hidden lg:block sticky top-[84px]">
-      <div className="text-[11px] font-bold tracking-[0.07em] uppercase text-purple/55 mb-2 px-1">
-        What the customer sees
-      </div>
-      <div className="rounded-[26px] overflow-hidden bg-white"
-        style={{ border: "9px solid #2a0b3d", boxShadow: "0 10px 30px rgba(42,11,61,.22)" }}>
-        <div className="h-[170px] bg-cover bg-center"
-          style={photo ? { backgroundImage: `url(${photo})` } : { background: "linear-gradient(150deg,#f7dbe4,#e9c6dc)" }} />
-        <div className="p-3 space-y-1">
-          <Hot g="nature" on={group === "nature"} onPick={onPick}>
-            {nature ? (
-              <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#f6ecfb", color: "#7a2ea8" }}>
-                {nature}
-              </span>
-            ) : (
-              <span className="text-[11.5px] text-body-soft">No nature line</span>
-            )}
-          </Hot>
-
-          <div className="px-2 pt-1">
-            <div className="font-display text-[16px] text-purple leading-tight">{name || "Product name"}</div>
-            <div className="text-[17px] font-bold text-purple mt-0.5">{taka(price)}</div>
-          </div>
-
-          <Hot g="signal" on={group === "signal"} onPick={onPick}>
-            <span className="text-[12px] font-semibold text-body">
-              {sold ? `${sold} sold this month` : "No sales signal"}
-            </span>
-          </Hot>
-
-          <Hot g="perso" on={group === "perso"} onPick={onPick}>
-            <span className="text-[12px] font-semibold text-body">{perso ?? "No personalisation"}</span>
-          </Hot>
-
-          <Hot g="trust" on={group === "trust"} onPick={onPick}>
-            {badges.length ? (
-              <span className="flex gap-1 flex-wrap">
-                {badges.slice(0, 3).map((b, i) => (
-                  <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{b}</span>
-                ))}
-              </span>
-            ) : (
-              <span className="text-[11.5px] text-body-soft">No trust badges</span>
-            )}
-          </Hot>
-
-          <Hot g="inside" on={group === "inside"} onPick={onPick}>
-            <span className="block text-[12px] font-semibold text-body">What&apos;s inside</span>
-            <span className="block text-[11.5px] text-body-soft truncate">
-              {inside.length ? inside.slice(0, 4).join(" · ") : "nothing listed"}
-              {faqs > 0 && ` · ${faqs} question${faqs === 1 ? "" : "s"}`}
-            </span>
-          </Hot>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1350,6 +1281,13 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [natureLabel, setNatureLabel] = useState(detail?.nature.label ?? "");
   /** which part of the story is open — the chip rail and the phone share it */
   const [storyGroup, setStoryGroup] = useState<StoryG>("nature");
+  /*  Every part of the phone is a door into the section that owns it, and —
+      when that section is the story — into the right group as well.  */
+  const goto = (section: SecId, group?: StoryG) => {
+    setSec(section);
+    if (group) setStoryGroup(group);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [salesLabel, setSalesLabel] = useState(src?.meta ?? "");
   /**
    * DEC-PRD-025 — each window's own starting number. The owner's own
@@ -5633,8 +5571,7 @@ No bundle products yet — add them on{" "}
                phone lights; press a part of the phone and its chip opens. The
                owner stops having to guess which box feeds which line.  */}
           {sec === "story" && (
-            <div className="flex gap-5 items-start">
-              <div className="flex-1 min-w-0">
+            <>
               <StoryChips value={storyGroup} onChange={setStoryGroup} filled={storyFilled} />
               <StoryGroup id="nature" open={storyGroup}>
               <Card icon="book" title="Nature line" tip="The one-line promise at the top of the product page — “100% Fresh Flowers”.">
@@ -6313,22 +6250,7 @@ No bundle products yet — add them on{" "}
                 />
               </Card>
               </StoryGroup>
-              </div>
-
-              <StoryPhone
-                group={storyGroup}
-                onPick={setStoryGroup}
-                photo={photos[0]}
-                name={name}
-                price={sell}
-                nature={natureLabel}
-                sold={seedMonth}
-                perso={persoText || persoImage ? (persoTextLabel || persoImageLabel || "Add your own") : null}
-                badges={trust.map((t) => t.label).filter(Boolean)}
-                inside={spec.map((r) => r.item).filter(Boolean)}
-                faqs={faqs.length}
-              />
-            </div>
+            </>
           )}
 
           {/*  SEO-D01 — what Google and WhatsApp see.
@@ -6520,17 +6442,27 @@ No bundle products yet — add them on{" "}
           </div>
         </div>
 
-        {/*  ⚠️ Hidden on the story tab. That tab grew its OWN preview — the
-             phone the owner picked — and two previews of the same product,
-             side by side, is exactly the crowding this whole sweep is about.
-             One picture of the shop at a time.  */}
-        <aside className={"w-[300px] shrink-0 sticky top-[84px] " + (sec === "story" ? "hidden" : "hidden lg:block")}>
-          <div className="text-[13px] text-body-soft font-medium uppercase tracking-[0.06em] mb-2.5 px-1">
-            Live preview
+        {/*  ── ONE preview, on every tab (owner, 22 Aug 2026) ──────────────
+             There were briefly two: the old "Live preview" card and the phone
+             built for the story tab. His verdict — *"2 ta jinis aksathe
+             moteo valo lagche na"* — and he is right, so they became one.
+
+             It is also the MAP of the form now. Every part of the page is a
+             door: press the photo and Photos opens, press the price and
+             Pricing opens, press the trust badges and the story tab opens on
+             Trust. The owner stops hunting for which box feeds which line —
+             he presses the line.  */}
+        <aside className="w-[320px] shrink-0 sticky top-[84px] hidden lg:block">
+          <div className="text-[11px] text-purple/55 font-bold uppercase tracking-[0.07em] mb-2 px-1">
+            What the customer sees
           </div>
-          <div className="bg-white border border-lavender-deep rounded-[18px] shadow-lift overflow-hidden">
-            <div
-              className="relative h-[190px] bg-cover bg-center"
+          <div className="bg-white rounded-[26px] overflow-hidden"
+            style={{ border: "9px solid #2a0b3d", boxShadow: "0 10px 30px rgba(42,11,61,.22)" }}>
+            <button
+              type="button"
+              onClick={() => goto("media")}
+              title="Edit the photos"
+              className="relative h-[180px] w-full bg-cover bg-center block"
               style={
                 previewIsPhoto
                   ? { backgroundImage: `url(${previewBg})` }
@@ -6550,8 +6482,17 @@ No bundle products yet — add them on{" "}
               <span className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/85 grid place-items-center text-rosegold">
                 <Icon name="heart" size={17} />
               </span>
-            </div>
+            </button>
             <div className="p-4">
+              <Hot on={sec === "story" && storyGroup === "nature"} onPick={() => goto("story", "nature")}>
+                {natureLabel ? (
+                  <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#f6ecfb", color: "#7a2ea8" }}>
+                    {natureLabel}
+                  </span>
+                ) : (
+                  <span className="text-[11.5px] text-body-soft">No nature line</span>
+                )}
+              </Hot>
               {/*  8 Aug 2026 (owner) — the preview's name IS the link to the
                   live page. One click from "what it looks like" to "what it
                   actually is". Only once the product exists on the API.  */}
@@ -6608,10 +6549,51 @@ No bundle products yet — add them on{" "}
               </div>
               <button
                 type="button"
-                className="w-full mt-3.5 bg-purple text-white text-[13.5px] font-medium py-2.5 rounded-[11px]"
+                onClick={() => goto("price")}
+                title="Edit the price"
+                className="w-full mt-3.5 bg-purple text-white text-[13.5px] font-bold py-2.5 rounded-[11px]"
               >
                 Add to cart
               </button>
+
+              <div className="mt-3 pt-3 border-t border-lavender-deep space-y-1">
+                <Hot on={sec === "story" && storyGroup === "perso"} onPick={() => goto("story", "perso")}>
+                  <span className="text-[12px] font-semibold text-body">
+                    {persoText || persoImage
+                      ? persoTextLabel || persoImageLabel || "Add your own"
+                      : "No personalisation"}
+                  </span>
+                </Hot>
+
+                <Hot on={sec === "story" && storyGroup === "trust"} onPick={() => goto("story", "trust")}>
+                  {trust.some((t) => t.label.trim()) ? (
+                    <span className="flex gap-1 flex-wrap">
+                      {trust.filter((t) => t.label.trim()).slice(0, 3).map((t, i) => (
+                        <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{t.label}</span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="text-[11.5px] text-body-soft">No trust badges</span>
+                  )}
+                </Hot>
+
+                <Hot on={sec === "story" && storyGroup === "inside"} onPick={() => goto("story", "inside")}>
+                  <span className="block text-[12px] font-semibold text-body">What&apos;s inside</span>
+                  <span className="block text-[11.5px] text-body-soft truncate">
+                    {spec.some((r) => r.item.trim())
+                      ? spec.filter((r) => r.item.trim()).slice(0, 4).map((r) => r.item).join(" · ")
+                      : "nothing listed"}
+                    {faqs.filter((f) => f.q.trim()).length > 0 &&
+                      ` · ${faqs.filter((f) => f.q.trim()).length} question(s)`}
+                  </span>
+                </Hot>
+
+                <Hot on={sec === "tags"} onPick={() => goto("tags")}>
+                  <span className="text-[11.5px] text-body-soft">
+                    {tagSel.length > 0 ? `${tagSel.length} tag(s)` : "No tags"}
+                  </span>
+                </Hot>
+              </div>
             </div>
           </div>
 
