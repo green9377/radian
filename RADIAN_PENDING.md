@@ -6,6 +6,80 @@
 
 ---
 
+## 🔗 What a category gives a product — the audit (23 Aug)
+
+Owner: *"category te badges, what's inside, why buy from us — agula sobei
+create krle automatic product upload page a kaj krche. but faq kaj kre na."*
+
+Seven things travel from a category to a product. Each was checked in the code,
+in the database and on the live page. **Two were broken and are fixed; one lie
+on the admin's own preview is fixed too.**
+
+| what | product form shows it | live page climbs to the parent |
+|---|---|---|
+| Trust badges | ✅ | ✅ product → category → parent |
+| What's inside | ✅ | ✅ |
+| Why buy from us (craft) | ⚠️ says so, does not show them | ✅ |
+| **FAQ** | ❌ → **✅ fixed** | ❌ → **✅ fixed** |
+| **Bundles** | ⚠️ says so, does not show them | ❌ → **✅ fixed** |
+| Size heading | n/a | ✅ |
+| Capacity group | n/a | n/a (workshop only) |
+
+**FAQ — why he was right.** `categoryFaqs()` asked for the product's own
+category and stopped there. Every product in this shop sits in a SUB-category
+(Fresh flower › rose) and his question was written on the parent, so it existed,
+was live, and reached nothing. Badges, specs and craft cards all walked the
+ladder; this one line did not. FAQ **adds up** (product + sub-category +
+parent), a question written twice shows once.
+
+**Bundles — the same gap, one table over.** Found while fixing the FAQ. No
+bundle existed yet, so nobody had seen it fail. Bundles REPLACE, like craft
+points: the product's own, else its category's, else the parent's.
+
+**The admin's preview was lying.** A product inheriting three badges and three
+spec rows was described as *"No trust badges · nothing listed"* — on the panel
+headed "What the customer sees". It counted the product's OWN rows only. It now
+counts what the category gives, and the FAQ card shows the inherited questions
+with a door to Categories.
+
+**Walked live:** the question `what your payment method` now appears under
+"Before You Order" on `/p/red-rose-without-variant…`, and the product form says
+"ALSO ON THE PAGE · FROM FRESH FLOWER".
+
+⚠️ **Still loose:** `CraftEditor` and `BundleEditor` both TELL the product it
+inherits but do not show what. Worth the same treatment as the FAQ panel.
+
+---
+
+## 📋 DEC-PRD-046 — several "What's inside" lists per category (owner, 23 Aug)
+
+*"onk time dekha jay akta category te 4-5 ta thakle subida hoy."* One flower
+category sells a rose bouquet, a mixed bouquet and a basket.
+
+**His two rulings:**
+
+- *"template show krbe, jeta mon chaibe seta select krbe"* — the lists are
+  shown on the product and he picks
+- *"template je product a use hobe seta kokhono change hbe na... template change
+  hole product a tar effect porar kono mani nai"* — **picking COPIES.** A
+  template is a starting point, never a live link.
+
+**Built:** `CategorySpecTemplate` + `CategorySpec.templateId`; the migration
+gives every category that has rows one list named "Standard" holding exactly
+those rows, so no product page moved. Categories → What's inside is chips now
+(New list · rename in place · Remove list). The product form shows the
+ready-made lists when there is more than one; pressing one drops its rows in as
+the product's own. The storefront's fallback takes the FIRST list only —
+concatenating them would print a bouquet and a basket in one table.
+
+**Walked live:** made a second list "Gift basket · Chocolate box / 1 box" on
+Fresh flower, opened the product, pressed it — the rows landed as the product's
+own and the banner turned to "This product's own — it replaces Fresh flower's".
+
+⚠️ That test list is still on Fresh flower; remove it whenever you like.
+
+---
+
 ## 🧩 DEC-PRD-045 — Size × Colour on one product (owner, 23 Aug)
 
 **What he asked for:** *"amr akta product ache jekhane lage ache mediam ache abr
