@@ -443,8 +443,43 @@ export type MethodState = { ok: true } | { ok: false; reason: string };
    that each take two days are made in parallel by different hands; they do not
    take six. Adding them would push every mixed basket weeks out.
 */
-export function cartLeadDays(items: { leadTimeDays?: number | null }[]): number {
-  return items.reduce((max, i) => Math.max(max, i.leadTimeDays ?? 0), 0);
+export function cartLeadDays(
+  items: {
+    leadTimeDays?: number | null;
+    /*  DEC-PDP-09 — a PRE_ORDER line carries the day the shop expects to have
+        it. Same idea as a lead time, only written as a date instead of a
+        number of days.  */
+    availability?: { state: string; backOn?: string | null } | null;
+  }[],
+  now = new Date(),
+): number {
+  /*  ⚠️ PRE-ORDER USED TO BE INVISIBLE HERE (owner, 23 Aug 2026). The product
+      page said "we start sending these from 5 Sep", and then checkout offered
+      TODAY, because only `leadTimeDays` reached this function. A shop that
+      promises a date on one screen and takes an order for tomorrow on the next
+      has already broken the promise before anybody packs anything.
+
+      A pre-order date is just another floor under the same door, so it is
+      turned into days-from-today and folded into the very same number every
+      date chip, method rule and final check already obeys. Nothing else in
+      checkout had to learn a new idea.
+
+      The largest wins, not the sum — the owner's rule of 1 August: one
+      address, one journey, the slowest thing sets the pace.  */
+  const midnightToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return items.reduce((max, i) => {
+    const lead = i.leadTimeDays ?? 0;
+    let waitDays = 0;
+    const backOn = i.availability?.state === "PRE_ORDER" ? i.availability.backOn : null;
+    if (backOn) {
+      const d = new Date(backOn);
+      if (!Number.isNaN(d.getTime())) {
+        const target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        waitDays = Math.max(0, Math.round((target - midnightToday) / 86400000));
+      }
+    }
+    return Math.max(max, lead, waitDays);
+  }, 0);
 }
 
 /* ─────────────────── WHAT SPEEDS THIS BASKET CAN TAKE ───────────────────

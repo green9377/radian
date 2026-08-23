@@ -343,6 +343,19 @@ export default function CheckoutView() {
     [cart],
   );
 
+  /*  Which line is a pre-order, and from when — so step 4 can say WHY the
+      early dates are shut. "Some dates are closed" makes a customer hunt;
+      "Velvet Red is a pre-order, we start sending from 5 Sep" lets them
+      decide in one read whether to wait or drop it.  */
+  const preorder = useMemo(() => {
+    if (!cart) return null;
+    for (const l of cart.lines) {
+      const a = l.detail?.availability;
+      if (a?.state === "PRE_ORDER") return { name: l.detail.product.name, backOn: a.backOn };
+    }
+    return null;
+  }, [cart]);
+
   /*
     Which fast options survive this basket. INTERSECTION — owner's ruling,
     1 Aug 2026: the rule every product agrees on is the one that wins. One
@@ -625,6 +638,7 @@ export default function CheckoutView() {
               <Q4When
                 subtotalPaisa={totals.subtotalPaisa}
                 leadDays={leadDays}
+                preorder={preorder}
                 speeds={speeds}
                 liveMethods={liveMethods}
               />

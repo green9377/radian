@@ -245,6 +245,11 @@ interface Resolved {
   /** the whole line's share of the bundle discount */
   discountPaisa: number;
   held: boolean;
+  /*  DEC-PDP-10 — how soon this line can leave. `leadTimeDays` is the
+      workshop's answer, `backOn` the pre-order's. Carried here so the server
+      can hold the date to the same floor the checkout screen shows.  */
+  leadTimeDays: number | null;
+  backOn: string | null;
   /** the bundle picks, each its own order line so stock deducts (DEC-MOD-003) */
   extras: {
     productId: string;
@@ -299,6 +304,29 @@ export class CheckoutService {
    * small the answer is a batch endpoint, not a cache here, because a cache is
    * exactly the stale price this whole design exists to avoid.
    */
+  /**
+   * The first day this basket can go out, as YYYY-MM-DD — or null when it can
+   * go today. The largest floor wins, never the sum: three things that each
+   * take two days are made by different hands, not one after another.
+   */
+  private earliestDateFor(lines: Resolved[]): string | null {
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let best: string | null = null;
+    const today = new Date();
+    for (const l of lines) {
+      const floors: string[] = [];
+      if (l.leadTimeDays && l.leadTimeDays > 0) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + l.leadTimeDays);
+        floors.push(iso(d));
+      }
+      if (l.backOn) floors.push(l.backOn.slice(0, 10));
+      for (const f of floors) if (!best || f > best) best = f;
+    }
+    return best && best > iso(today) ? best : null;
+  }
+
   private async resolve(items: CheckoutItemIn[], zone: DeliveryZone) {
     if (!items?.length) throw new BadRequestException('cart is empty');
 
@@ -419,6 +447,8 @@ export class CheckoutService {
         grossUnitPaisa: basePaisa + addonPaisa,
         discountPaisa: mainDiscount,
         held: zone === DeliveryZone.BANGLADESH && d.zone === 'dhaka',
+        leadTimeDays: d.leadTimeDays ?? null,
+        backOn: d.availability.state === 'PRE_ORDER' ? d.availability.backOn : null,
         extras,
       });
     }
@@ -906,6 +936,29 @@ export class CheckoutService {
       trail and the activity timeline all happen inside this one call — which
       is the entire reason this file is thin.
     */
+    /*  ⚠️ THE DATE IS CHECKED HERE TOO (23 Aug 2026). The screen closes the
+        early chips, but `date` still arrives as a plain string from a browser,
+        and until today nothing on this side looked at it — so a pre-ordered
+        product could be booked for this afternoon by anything that skipped the
+        screen.
+
+        The owner found the visible half: the product page promised "we start
+        sending these from 5 Sep" and checkout offered today. The invisible
+        half was that the server would have accepted it.
+
+        Same rule as the screen, in one place: the largest floor in the basket
+        wins (his ruling of 1 August — one address, one journey, the slowest
+        thing sets the pace).  */
+    const earliest = this.earliestDateFor(active);
+    if (earliest && dto.date && dto.date < earliest) {
+      const late = active.find((l) => l.backOn && l.backOn.slice(0, 10) > (dto.date ?? ''));
+      throw new BadRequestException(
+        late
+          ? `${late.name} is a pre-order — the earliest we can send this order is ${earliest}.`
+          : `This order needs longer to make — the earliest date is ${earliest}.`,
+      );
+    }
+
     const order = await this.orders.create({
       customerId: customer.id,
       channelId: channel.id,

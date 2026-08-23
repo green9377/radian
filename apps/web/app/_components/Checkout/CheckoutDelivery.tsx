@@ -210,6 +210,7 @@ export function Q3Where({
 export function Q4When({
   subtotalPaisa,
   leadDays = 0,
+  preorder = null,
   speeds,
   liveMethods,
 }: {
@@ -219,6 +220,8 @@ export function Q4When({
       looking for it itself, or two screens end up disagreeing about the same
       date.  */
   leadDays?: number;
+  /** the pre-ordered line, when the basket holds one — for the note below */
+  preorder?: { name: string; backOn: string | null } | null;
   /*  Which fast options EVERY item in the cart allows. Computed once in
       CheckoutView, which owns the resolved cart — this component must not go
       looking for it itself, or two screens end up disagreeing.  */
@@ -488,15 +491,39 @@ export function Q4When({
         );
       })()}
 
+      {/*  ⚠️ TWO REASONS, TWO SENTENCES (23 Aug 2026). A pre-order used to
+           close the early dates while this note still said "made to order",
+           which explains nothing to somebody who ordered a plain product that
+           the shop simply does not have yet.  */}
       {leadDays > 0 && (
         <div className="mt-4 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3.5 flex gap-3">
           <Icon name="clock" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0 mt-[1px]" />
           <p className="text-[13px] text-[#8A5A00] leading-snug">
-            This order is made to order — we need{" "}
-            <b>
-              {leadDays} day{leadDays === 1 ? "" : "s"}
-            </b>{" "}
-            before it can go out, so the earliest dates are closed.
+            {preorder ? (
+              <>
+                <b>{preorder.name}</b> is a pre-order
+                {preorder.backOn ? (
+                  <>
+                    {" "}— we start sending these from{" "}
+                    <b>
+                      {new Date(preorder.backOn).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                      })}
+                    </b>
+                  </>
+                ) : null}
+                , so the earlier dates are closed.
+              </>
+            ) : (
+              <>
+                This order is made to order — we need{" "}
+                <b>
+                  {leadDays} day{leadDays === 1 ? "" : "s"}
+                </b>{" "}
+                before it can go out, so the earliest dates are closed.
+              </>
+            )}
           </p>
         </div>
       )}
