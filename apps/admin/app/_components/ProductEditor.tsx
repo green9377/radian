@@ -7305,26 +7305,48 @@ No bundle products yet — add them on{" "}
                   </span>
                 </Hot>
 
+                {/*  ⚠️ THE PREVIEW HAS TO COUNT WHAT THE CATEGORY GIVES (23 Aug
+                    2026). It used to read the product's OWN rows only, so a
+                    product inheriting three badges and three spec rows was
+                    described as "No trust badges · nothing listed" — on the
+                    one panel that claims to be what the customer sees. The
+                    page was right; the preview was lying about it.  */}
                 <Hot on={sec === "story" && storyGroup === "trust"} onPick={() => goto("story", "trust")}>
-                  {trust.some((t) => t.label.trim()) ? (
-                    <span className="flex gap-1 flex-wrap">
-                      {trust.filter((t) => t.label.trim()).slice(0, 3).map((t, i) => (
-                        <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{t.label}</span>
-                      ))}
-                    </span>
-                  ) : (
-                    <span className="text-[11.5px] text-body-soft">No trust badges</span>
-                  )}
+                  {(() => {
+                    const shown = trust.some((t) => t.label.trim())
+                      ? trust.filter((t) => t.label.trim()).map((t) => t.label)
+                      : catTrust.map((t) => t.label).filter((l) => l.trim());
+                    return shown.length > 0 ? (
+                      <span className="flex gap-1 flex-wrap">
+                        {shown.slice(0, 3).map((label, i) => (
+                          <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{label}</span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="text-[11.5px] text-body-soft">No trust badges</span>
+                    );
+                  })()}
                 </Hot>
 
                 <Hot on={sec === "story" && storyGroup === "inside"} onPick={() => goto("story", "inside")}>
                   <span className="block text-[12px] font-semibold text-body">What&apos;s inside</span>
                   <span className="block text-[11.5px] text-body-soft truncate">
-                    {spec.some((r) => r.item.trim())
-                      ? spec.filter((r) => r.item.trim()).slice(0, 4).map((r) => r.item).join(" · ")
-                      : "nothing listed"}
-                    {faqs.filter((f) => f.q.trim()).length > 0 &&
-                      ` · ${faqs.filter((f) => f.q.trim()).length} question(s)`}
+                    {(() => {
+                      /*  The product's own list replaces the category's; the
+                          category's applies when the product has none — the
+                          same ladder the website walks.  */
+                      const rows = spec.some((r) => r.item.trim())
+                        ? spec.filter((r) => r.item.trim()).map((r) => r.item)
+                        : catSpec.map((r) => r.item).filter((x) => x.trim());
+                      /*  FAQ ADDS UP, so both are counted.  */
+                      const qs = faqs.filter((f) => f.q.trim()).length + catFaq.length;
+                      return (
+                        <>
+                          {rows.length > 0 ? rows.slice(0, 4).join(" · ") : "nothing listed"}
+                          {qs > 0 && ` · ${qs} question(s)`}
+                        </>
+                      );
+                    })()}
                   </span>
                 </Hot>
 
