@@ -1109,11 +1109,25 @@ export class ProductDetailService {
         firstList(p.category.specRows),
         firstList(p.category.parent?.specRows),
       ),
-      /*  The product's own answers come first: "does this bouquet last a week"
-          beats "how does delivery work" when somebody is holding a card.  */
+      /*  ── DEC-PRD-047 · FAQ REPLACES, it no longer adds up (23 Aug 2026) ──
+          Owner: *"nirdisto product a FAQ change hote pare, but ta krar kon
+          option nai. new add and edit and delete option thaka uchit, ar jonno
+          category te newa dorkar nai. abr akhane change krle category te
+          change hbe amn o na."*
+
+          He wants the category's questions brought onto the product and
+          edited there. The moment that is possible, adding up stops working:
+          copy three questions in, change one word, and the page would print
+          all three twice.
+
+          So FAQ now follows the rule the other two inherited things already
+          follow, and this page is back to ONE idea of inheritance:
+              the product's own if it has any, else the category's ladder.
+          Nothing is lost — "Use these and edit" copies them in first.  */
       faqs: [
-        ...p.faqs.map((f) => ({ ...f, scope: 'product' as const })),
-        ...catFaqs.map((f) => ({ ...f, scope: 'category' as const })),
+        ...(p.faqs.length > 0
+          ? p.faqs.map((f) => ({ ...f, scope: 'product' as const }))
+          : catFaqs.map((f) => ({ ...f, scope: 'category' as const }))),
       ],
       /*  DEC-PRD-023 - the same ladder. Badges with no label are dropped, just
           as craft points are: press "Add a badge", write nothing, walk away,

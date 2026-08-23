@@ -51,6 +51,32 @@ inherits but do not show what. Worth the same treatment as the FAQ panel.
 
 ---
 
+## ❓ DEC-PRD-047 — FAQ is edited on the product, and REPLACES (owner, 23 Aug)
+
+*"faq select ar kon option nai. select krte gele abr category page a niye jay.
+just nirdisto product a FAQ change hote pare but ta krar kon option nai. new add
+and edit and delete option thaka uchit, ar jonno category te newa dorkar nai.
+abr akhane change krle category te change hbe amn o na."*
+
+The FAQ panel added the day before only SHOWED the inherited questions and sent
+him to Categories to change them. Now it is the same panel badges and "What's
+inside" use: **Use these and edit** copies the category's questions onto the
+product, where each can be reworded, added to or thrown away — and the category
+is not touched. **Clear all and go back to <category>'s** undoes it.
+
+⚠️ **The rule changed with it, and this is worth knowing.** FAQ used to ADD UP:
+a product's own questions AND the category's, both on the page. That cannot
+survive copying — take three in, change one word, and the page prints all three
+twice. So the product's own now REPLACE the category's, exactly as the other two
+inherited things do. One rule on this screen instead of two.
+
+**What that means for what exists:** a product that already has its own
+question no longer also shows the category's. On the demo that is
+`rose - has varint…` (1 own question). Press "Use these and edit" there and both
+become its own.
+
+---
+
 ## 📋 DEC-PRD-046 — several "What's inside" lists per category (owner, 23 Aug)
 
 *"onk time dekha jay akta category te 4-5 ta thakle subida hoy."* One flower

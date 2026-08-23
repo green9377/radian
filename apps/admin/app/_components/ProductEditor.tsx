@@ -6927,7 +6927,7 @@ No bundle products yet — add them on{" "}
               <Card
                 icon="book"
                 title="FAQ — shows as “Before You Order”"
-                tip="This product’s own questions. The category’s are shown too, underneath these — they add up, they do not replace."
+                tip="This product’s own questions. The category’s are shown below until you write one here — press “Use these and edit” to bring them in and change them, and the category is not touched."
               >
                 {/*  ⚠️ FAQ is the only one that **adds up** — the product's
                     own first, then the category's. Badges and "What's
@@ -6941,45 +6941,40 @@ No bundle products yet — add them on{" "}
                     answers on a real product page, with no screen anywhere to
                     author real ones. Category → FAQ is that screen now, and
                     those answers already appear under these.  */}
-                {/*  ── what the category already puts on the page ────────────
-                    Owner, 23 Aug 2026: *"faq kaj kre na. akhane faq add krar
-                    poreo product upload page a asche na."*
+                {/*  ── DEC-PRD-047 · the category's questions, taken and edited ──
+                    Owner, 23 Aug 2026: *"faq select ar kon option nai. select
+                    krte gele abr category page a niye jay. just nirdisto
+                    product a FAQ change hote pare but ta krar kon option nai.
+                    new add and edit and delete option thaka uchit, ar jonno
+                    category te newa dorkar nai. abr akhane change krle
+                    category te change hbe amn o na."*
 
-                    Two separate faults behind that. The server one is fixed
-                    (`categoryFaqs` asked only for the product's own category
-                    and every product here sits in a sub-category — the answer
-                    was on the parent). The other is this screen: badges and
-                    "What's inside" both show what the category gives, FAQ
-                    showed nothing at all, so there was no way to tell a
-                    working question from a lost one.
+                    So the panel is the same one badges and "What's inside"
+                    use: press once, the questions land below as this
+                    product's own, and every one can be reworded or thrown
+                    away without touching the category.
 
-                    No "Use these and edit" button, on purpose — these are not
-                    a starting point to copy. They are already on the page,
-                    underneath whatever is typed above.  */}
-                {catFaq.length > 0 && (
-                  <div className="border border-lavender-deep bg-lavender/40 rounded-[12px] p-3 mb-3">
-                    <div className="flex items-center gap-2 flex-wrap mb-2.5">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
-                        Also on the page · from {storyFrom || "the category"}
-                      </span>
-                      <Info text="Questions written on the category. They show underneath this product's own — these two add up, they do not replace each other. Change them in Categories → FAQ." />
-                      <Link
-                        href="/categories"
-                        className="ml-auto text-[12.5px] font-bold text-orchid hover:underline"
-                      >
-                        Edit in Categories
-                      </Link>
+                    ⚠️ THE RULE CHANGED WITH IT. FAQ used to ADD UP — the
+                    product's own and then the category's, both on the page.
+                    That cannot survive copying: take three questions, change
+                    one word, and the page prints all three twice. So the
+                    product's own now REPLACE the category's, exactly as the
+                    other two do, and this screen is back to one rule instead
+                    of two.  */}
+                <FromCategory
+                  from={storyFrom}
+                  count={catFaq.length}
+                  hasOwn={faqs.length > 0}
+                  onCopy={() => setFaqs(catFaq.map((f) => ({ q: f.question, a: f.answer })))}
+                  onClear={() => setFaqs([])}
+                >
+                  {catFaq.map((f) => (
+                    <div key={f.id} className="text-[13px]">
+                      <b className="font-semibold text-purple block">{f.question}</b>
+                      <span className="text-body-soft line-clamp-2">{f.answer}</span>
                     </div>
-                    <div className="grid gap-2 opacity-80">
-                      {catFaq.map((f) => (
-                        <div key={f.id} className="text-[13px]">
-                          <b className="font-bold text-purple block">{f.question}</b>
-                          <span className="text-body-soft line-clamp-2">{f.answer}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </FromCategory>
                 <div className="flex flex-col gap-2.5">
                   {faqs.map((r, i) => (
                     <div
@@ -7393,8 +7388,10 @@ No bundle products yet — add them on{" "}
                       const rows = spec.some((r) => r.item.trim())
                         ? spec.filter((r) => r.item.trim()).map((r) => r.item)
                         : catSpec.map((r) => r.item).filter((x) => x.trim());
-                      /*  FAQ ADDS UP, so both are counted.  */
-                      const qs = faqs.filter((f) => f.q.trim()).length + catFaq.length;
+                      /*  DEC-PRD-047 — FAQ replaces now, like everything else
+                          here, so it is one count or the other, never both.  */
+                      const own = faqs.filter((f) => f.q.trim()).length;
+                      const qs = own > 0 ? own : catFaq.length;
                       return (
                         <>
                           {rows.length > 0 ? rows.slice(0, 4).join(" · ") : "nothing listed"}
