@@ -51,6 +51,45 @@ inherits but do not show what. Worth the same treatment as the FAQ panel.
 
 ---
 
+## 💜 DEC-WEB-011 — the promise band (owner picked option D, 23 Aug)
+
+*"why buy from us ata product upload page a jay nai."* → I showed three
+placements, he refused all three: *"3 tar kono tai valo lagche na. tmi arektu
+dekhba kivabe kothay bosale amder brand ar jonno and customer convert ar jonno
+valo hbe."* He was right to refuse.
+
+**The real fault was not the place, it was the repetition.** Side by side:
+
+| trust badge | why-buy card |
+|---|---|
+| freshness gurnaty | freshnes |
+| 2 hours delievry · inside dhaka | very fast velievry in dhaka city |
+
+Two masters, two screens, one message. A fourth band of the same promises makes
+the page longer and the brand thinner — a brand that repeats itself sounds
+unsure. So they were given different jobs instead.
+
+- **`WhyBuy.tsx`** — a full-width band in the brand purple, straight under the
+  buy box, with the shop's name in the heading and the **real Google rating**
+  beneath it. The colour break is the point: it is the only part of the page
+  that is Radian speaking rather than another product widget, and it lands
+  where a hesitating shopper's eye goes next. No cards written → no band. No
+  rating entered → no rating line. No address is invented.
+- **trust badges quietened** to a row of small facts beside the photo — the
+  glance, not a second promise
+- the buried copy at the bottom of the spec accordion is **gone**
+- the admin's tip said *"the three cards under the price"*, which is where the
+  BADGES are. It now names the band.
+
+**Walked live** on `/p/red-rose-without-variant…`: the band sits under the buy
+card, `freshnes` and `gurnaty of money back` in it, `★ 4.2 from 59 verified
+Google reviews · Read them on Google →` under the rule.
+
+⚠️ Two half-written cards now show at full size. `gurnaysjfgsdgfhjgfjh` had
+somewhere to hide before; it does not any more.
+
+---
+
 ## 🚪 A tab that hid itself took four cards with it (owner, 23 Aug)
 
 *"why buy from us ata product upload page a jay nai."*
