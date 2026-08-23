@@ -98,14 +98,27 @@ export function ChannelsView() {
                 ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>on</span>
                 : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#f1eef4", color: "#8a7b96" }}>off</span>}
             </span>
-            <span className="flex items-center justify-end gap-1">
-              <button onClick={() => void toggle(c)}
-                className="text-[12px] font-medium px-2.5 py-1 rounded-[8px] border border-lavender-deep text-purple hover:border-orchid">
-                {c.isActive ? "Switch off" : "Switch on"}
-              </button>
-              <button onClick={() => void remove(c)}
-                className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Remove"><Icon name="trash" size={15} /></button>
-            </span>
+            {/*  DEC-CHN-001 — the website is the shop itself, not a channel
+                 anybody set up. A channel answers "where did this hand-written
+                 sale come from" — Foodpanda, WhatsApp, a walk-in. The website
+                 needs no answer: every order it takes is online by definition.
+                 So its row carries no buttons; deleting it once left the demo
+                 unable to take a single order.  */}
+            {c.slug === "website" ? (
+              <span className="flex items-center justify-end gap-1.5 text-body-soft" title="The shop's own website — every online order is filed under it">
+                <Icon name="shield" size={14} />
+                <span className="text-[12px] font-semibold">Built in</span>
+              </span>
+            ) : (
+              <span className="flex items-center justify-end gap-1">
+                <button onClick={() => void toggle(c)}
+                  className="text-[12px] font-medium px-2.5 py-1 rounded-[8px] border border-lavender-deep text-purple hover:border-orchid">
+                  {c.isActive ? "Switch off" : "Switch on"}
+                </button>
+                <button onClick={() => void remove(c)}
+                  className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Remove"><Icon name="trash" size={15} /></button>
+              </span>
+            )}
           </div>
         ))}
         {rows.length === 0 && (

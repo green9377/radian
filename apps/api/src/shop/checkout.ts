@@ -305,6 +305,52 @@ export class CheckoutService {
    * exactly the stale price this whole design exists to avoid.
    */
   /**
+   * DEC-CHN-001 (owner, 23 Aug 2026) — the website is not something you set up.
+   *
+   * The owner's words: *"sale channel ta kra hoiche amder POS ar jonno... kintu
+   * atar sathe amder website ar to kon somporko nai. website ar setup ar kichu
+   * nai to."*
+   *
+   * He is right, and the shape was wrong. A CHANNEL is a POS idea: when a sale
+   * is written up by hand at the counter, somebody has to say where it came
+   * from — Foodpanda, Sugary, WhatsApp, or a walk-in. The website is not one of
+   * those answers; it is the system itself. Every order it takes is online by
+   * definition, which is exactly the split the shop's numbers are built on:
+   * what the website did, and what we did by hand.
+   *
+   * So the storefront stopped ASKING for it. The row still exists because the
+   * two-way analysis needs every order to name its source, but it is a system
+   * row: found, revived if somebody deleted it, created if it was never there.
+   * The owner is never shown a task about it.
+   *
+   * ⚠️ Same trap as DEC-INV-016, and the same fix. That one said "No active
+   * warehouse — run the inventory seed", which was a developer's instruction
+   * wearing an error's clothes. This one said "website sales channel is not set
+   * up — ask an admin", to the shopper, at the moment of paying. A demo shop
+   * sat unable to take a single order because a master row had been deleted.
+   */
+  private async ensureWebsiteChannel() {
+    const live = await this.prisma.db.channel.findFirst({ where: { slug: 'website' } });
+    if (live) {
+      return live.isActive
+        ? live
+        : this.prisma.db.channel.update({ where: { id: live.id }, data: { isActive: true } });
+    }
+    /*  RAW client: a deleted row still owns the unique slug, and it is the one
+        `prisma.db` hides (DEC-GBL-007).  */
+    const buried = await this.prisma.channel.findFirst({ where: { slug: 'website' } });
+    if (buried) {
+      return this.prisma.channel.update({
+        where: { id: buried.id },
+        data: { deletedAt: null, isActive: true, name: buried.name || 'Website' },
+      });
+    }
+    return this.prisma.db.channel.create({
+      data: { slug: 'website', name: 'Website', sortOrder: 0, isActive: true },
+    });
+  }
+
+  /**
    * The first day this basket can go out, as YYYY-MM-DD — or null when it can
    * go today. The largest floor wins, never the sum: three things that each
    * take two days are made by different hands, not one after another.
@@ -885,11 +931,7 @@ export class CheckoutService {
       active.map((l) => l.slug), // DEC-DLV-011
     );
 
-    const channel = await this.prisma.db.channel.findFirst({
-      where: { slug: 'website', isActive: true },
-    });
-    if (!channel)
-      throw new BadRequestException('website sales channel is not set up — ask an admin');
+    const channel = await this.ensureWebsiteChannel();
 
     const customer = await this.findOrCreateCustomer(
       dto.senderName,

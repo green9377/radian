@@ -58,6 +58,13 @@ export class ChannelsService {
   async update(id: string, dto: Partial<ChannelDto>) {
     await this.ensureExists(id);
     if (dto.slug) await this.ensureSlugFree(dto.slug, id);
+    /*  DEC-CHN-001 — renaming its slug would orphan every online order from
+        the source it was filed under. The NAME may be changed freely.  */
+    const cur = await this.prisma.db.channel.findFirst({ where: { id }, select: { slug: true } });
+    if (cur?.slug === 'website' && dto.slug && dto.slug !== 'website')
+      throw new BadRequestException('The website channel keeps its address — online orders are filed under it.');
+    if (cur?.slug === 'website' && dto.isActive === false)
+      throw new BadRequestException('The website cannot be switched off here — unpublish products instead.');
     const c = await this.prisma.db.channel.update({
       where: { id },
       data: { slug: dto.slug, name: dto.name, sortOrder: dto.sortOrder, isActive: dto.isActive },
@@ -69,6 +76,15 @@ export class ChannelsService {
   async remove(id: string, actorName = 'Admin') {
     const c = await this.prisma.db.channel.findFirst({ where: { id } });
     if (!c) throw new NotFoundException('Channel not found');
+    /*  DEC-CHN-001 — the website is the system, not a channel somebody set up,
+        and every online order names it as its source. Deleting it once already
+        left the demo shop unable to take a single order. The storefront now
+        puts it back by itself, but refusing here is the honest half: it says
+        why, instead of quietly undoing his click.  */
+    if (c.slug === 'website')
+      throw new BadRequestException(
+        'Website is the shop itself, not a channel you manage — every online order is filed under it. It cannot be removed.',
+      );
     await eraseOrBury(
       () => this.prisma.channel.delete({ where: { id } }),
       () => this.prisma.db.channel.update({ where: { id }, data: { deletedAt: new Date() } }),
