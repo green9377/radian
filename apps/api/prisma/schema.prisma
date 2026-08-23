@@ -169,6 +169,12 @@ model Category {
   /// a sentence nobody chose.
   craftTitle String?
 
+  /// DEC-WEB-011 — the small line above that heading ("WHY BUY FROM US").
+  /// Editable for the same reason and caught the same way, one message later:
+  /// *"Why buy from us — ataw jen customizable hoy sevabe thik kro."* Blank
+  /// draws nothing; the two lines stand or fall on their own.
+  craftKicker String?
+
   /// Which capacity group the work for this category eats into. A Product is
   /// never asked separately; it only displays the group it falls into
   /// (owner, 1 Aug 2026).

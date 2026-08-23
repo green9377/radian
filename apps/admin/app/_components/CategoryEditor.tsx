@@ -81,6 +81,9 @@ export default function CategoryEditor({
       same day: *"why from us a frontend ja ja show krche agula kichui to
       akhane customizible option show krse na."* Blank shows no heading.  */
   const [craftTitle, setCraftTitle] = useState(node?.craftTitle ?? "");
+  /*  The small line above it. Same rule, same reason — the owner asked for
+      this one a message after the heading.  */
+  const [craftKicker, setCraftKicker] = useState(node?.craftKicker ?? "");
 
   const [image, setImage] = useState<string | null>(real(node?.imageUrl));
   const [icon, setIcon] = useState<string | null>(real(node?.iconUrl));
@@ -150,6 +153,7 @@ export default function CategoryEditor({
             sits over. Same reason as `sizeLabel`: it belongs to the KIND of
             thing this category sells.  */
         craftTitle: craftTitle.trim() || null,
+        craftKicker: craftKicker.trim() || null,
         /*
           ⚠️ THE PAGE'S OWN FIELDS ARE NOT SENT FROM HERE, and that is the
           point of the split rather than an omission.
@@ -317,23 +321,34 @@ export default function CategoryEditor({
                       it is shown HERE, over the cards it belongs to, because
                       that is where the owner is looking when he thinks about
                       what the band says.  */}
-                  <Field label="Heading over the cards">
-                    <input
-                      className="ipt"
-                      placeholder={
-                        parentId
-                          ? "Leave empty to use the parent's"
-                          : "Why Dhaka sends flowers with Radian"
-                      }
-                      value={craftTitle}
-                      onChange={(e) => setCraftTitle(e.target.value)}
-                    />
-                    <Hint>
-                      The line above these cards in the purple band on a product page. Leave it
-                      empty and the band shows the cards with no heading. Saved with{" "}
-                      <b className="font-bold text-purple">Save category</b>.
-                    </Hint>
-                  </Field>
+                  <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,220px)_1fr] gap-4">
+                    <Field label="Small line above">
+                      <input
+                        className="ipt"
+                        placeholder={parentId ? "The parent's" : "WHY BUY FROM US"}
+                        value={craftKicker}
+                        onChange={(e) => setCraftKicker(e.target.value)}
+                      />
+                      <Hint>The little line in capitals. Empty = none.</Hint>
+                    </Field>
+                    <Field label="Heading over the cards">
+                      <input
+                        className="ipt"
+                        placeholder={
+                          parentId
+                            ? "Leave empty to use the parent's"
+                            : "Why Dhaka sends flowers with Radian"
+                        }
+                        value={craftTitle}
+                        onChange={(e) => setCraftTitle(e.target.value)}
+                      />
+                      <Hint>Empty = the band shows the cards with no heading.</Hint>
+                    </Field>
+                  </div>
+                  <p className="text-[12.5px] text-body-soft mt-2 mb-0">
+                    Both lines sit in the purple band on a product page, above these cards. Saved
+                    with <b className="font-bold text-purple">Save category</b>.
+                  </p>
                   <div className="mt-5 pt-5 border-t border-lavender-deep">
                     <CraftEditor owner={{ categoryId: node.id }} />
                   </div>

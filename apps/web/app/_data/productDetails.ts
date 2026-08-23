@@ -294,6 +294,8 @@ export interface ProductDetail {
   craft: CraftPoint[];
   /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
   craftTitle?: string | null;
+  /** DEC-WEB-011 — the small line above it. Blank = none drawn. */
+  craftKicker?: string | null;
   faqs: Faq[];
   custom: { title: string; sub: string };
   crossSlugs: string[];

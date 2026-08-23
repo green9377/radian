@@ -47,6 +47,8 @@ interface CategoryDto {
   sizeLabel?: string | null;
   /** DEC-WEB-011 — the heading over the promise band on a product page */
   craftTitle?: string | null;
+  /** DEC-WEB-011 — the small line above that heading */
+  craftKicker?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;
@@ -129,6 +131,7 @@ export class CategoriesService {
         bannerHeading: dto.bannerHeading,
         sizeLabel: dto.sizeLabel,
         craftTitle: dto.craftTitle,
+        craftKicker: dto.craftKicker,
         metaTitle: dto.metaTitle,
         metaDescription: dto.metaDescription,
         ogTitle: dto.ogTitle,
@@ -165,6 +168,7 @@ export class CategoriesService {
           bannerHeading: dto.bannerHeading ?? null,
           sizeLabel: dto.sizeLabel ?? null,
           craftTitle: dto.craftTitle ?? null,
+          craftKicker: dto.craftKicker ?? null,
           metaTitle: dto.metaTitle ?? null,
           metaDescription: dto.metaDescription ?? null,
           ogTitle: dto.ogTitle ?? null,
@@ -218,6 +222,7 @@ export class CategoriesService {
         bannerHeading: dto.bannerHeading,
         sizeLabel: dto.sizeLabel,
         craftTitle: dto.craftTitle,
+        craftKicker: dto.craftKicker,
         metaTitle: dto.metaTitle,
         metaDescription: dto.metaDescription,
         ogTitle: dto.ogTitle,

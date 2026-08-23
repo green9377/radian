@@ -38,11 +38,14 @@ import Icon from "./PdpIcons";
   moment after the buy box.
 
   ── Every word here belongs to the shop ─────────────────────────────────────
-  The heading arrives as a prop, written on the category (Categories → Why buy
-  from us). It shipped hardcoded and was wrong to: house rule 7 says no
-  business value lives in code, and a headline on a shop page is as much a
-  business value as a price. Blank draws no heading — never a sentence the
-  shop did not choose.
+  BOTH LINES arrive as props, written on the category (Categories → Why buy
+  from us): the heading and the small kicker above it. They shipped hardcoded
+  and were wrong to — house rule 7 says no business value lives in code, and
+  wording on a shop page is as much a business value as a price. He caught
+  them one after the other, and he was right both times.
+
+  Blank draws nothing. A default sentence would be the same fault with a
+  softer name: something the shop never chose, on its pages.
 
   ── The rating line is real or it is absent ─────────────────────────────────
   The Google figures come from the same endpoint the review rail uses, and the
@@ -58,6 +61,7 @@ import Icon from "./PdpIcons";
 export default function WhyBuy({
   craft,
   title,
+  kicker,
 }: {
   craft: { icon: string; title: string; text: string }[];
   /**
@@ -71,6 +75,12 @@ export default function WhyBuy({
    * softer name: something the shop never chose, appearing on its pages.
    */
   title?: string | null;
+  /**
+   * DEC-WEB-011 — the small line above the heading. Editable for the same
+   * reason and caught the same way, one message later: *"Why buy from us —
+   * ataw jen customizable hoy sevabe thik kro."* Blank draws nothing.
+   */
+  kicker?: string | null;
 }) {
   const [google, setGoogle] = useState<{
     rating: number;
@@ -93,6 +103,7 @@ export default function WhyBuy({
   const cards = craft.filter((c) => c.title.trim());
   if (cards.length === 0) return null;
   const heading = title?.trim() || "";
+  const eyebrow = kicker?.trim() || "";
 
   return (
     <section className="relative overflow-hidden rounded-[28px] mb-10 bg-[linear-gradient(120deg,#3b1152,#5c2079_55%,#7a2a94)] text-white px-6 sm:px-9 py-8 sm:py-10">
@@ -105,15 +116,22 @@ export default function WhyBuy({
       />
 
       <div className="relative">
+        {/*  The two lines stand or fall on their own — write one, get one.
+            The bottom margin belongs to whichever is last, so a band with a
+            kicker and no heading does not float.  */}
+        {eyebrow ? (
+          <div
+            className={`text-[11px] font-bold tracking-[0.24em] uppercase text-[#e9a8f5] ${
+              heading ? "mb-2" : "mb-6 sm:mb-7"
+            }`}
+          >
+            {eyebrow}
+          </div>
+        ) : null}
         {heading ? (
-          <>
-            <div className="text-[11px] font-bold tracking-[0.24em] uppercase text-[#e9a8f5] mb-2">
-              Why buy from us
-            </div>
-            <h2 className="font-display text-[clamp(21px,2.4vw,27px)] font-medium leading-tight m-0 mb-6 sm:mb-7">
-              {heading}
-            </h2>
-          </>
+          <h2 className="font-display text-[clamp(21px,2.4vw,27px)] font-medium leading-tight m-0 mb-6 sm:mb-7">
+            {heading}
+          </h2>
         ) : null}
 
         {/*  Two cards must not stretch to half the screen each — `max-w` keeps

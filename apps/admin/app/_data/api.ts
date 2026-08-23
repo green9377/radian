@@ -1976,6 +1976,8 @@ export interface ApiCategoryNode {
   sizeLabel?: string | null;
   /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
   craftTitle?: string | null;
+  /** DEC-WEB-011 — the small line above it. Blank = none drawn. */
+  craftKicker?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;
@@ -2004,6 +2006,8 @@ export interface CategoryWrite {
   sizeLabel?: string | null;
   /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
   craftTitle?: string | null;
+  /** DEC-WEB-011 — the small line above it. Blank = none drawn. */
+  craftKicker?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;

@@ -158,6 +158,8 @@ export interface ApiProductDetail {
   craft: { icon: string; title: string; text: string }[];
   /** DEC-WEB-011 — the promise band's heading, written on the category. */
   craftTitle?: string | null;
+  /** DEC-WEB-011 — the small line above it, written on the category. */
+  craftKicker?: string | null;
   cutoffMinutesLeft: { dhaka: number | null; nationwide: number | null };
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
   ordersThisMonth: number | null;
@@ -520,6 +522,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         by the shop or not shown at all.  */
     craft: a.craft.map((c) => ({ icon: asIconName(c.icon), title: c.title, text: c.text })),
     craftTitle: a.craftTitle ?? null,
+    craftKicker: a.craftKicker ?? null,
     cutoffMinutesLeft: a.cutoffMinutesLeft,
     /*  No template fallback, unlike the craft cards. A stale sentence about
         how flowers are wrapped costs nothing; a cashback offer the shop is not
