@@ -1008,12 +1008,32 @@ const pairCls = "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-7";
  * Nothing from the master is copied and kept here — otherwise changing
  * "Red"'s colour would leave the old one sitting in the product.
  */
+/** DEC-PRD-045 — one value inside a combination */
+interface VariantPart {
+  valueId: string;
+  label: string;
+  swatch: string | null;
+  imageUrl: string | null;
+  attributeId: string;
+  attribute: string;
+}
+
 interface VariantRow {
+  /*  DEC-PRD-045 — a row is a COMBINATION now ("Medium × Red"), so the id of
+      one value no longer identifies it. `key` is the sorted value ids joined
+      with "|" — the same string the server files the row under — and it is
+      what every other tab keys its per-variant section on.  */
+  key: string;
+  /** every value in this combination, in list order (Size first, then Colour) */
+  parts: VariantPart[];
+  /** the lead value — the first axis. The server files the row under it. */
   variantValueId: string;
+  /** "Medium · Red" — one name for the whole combination */
   label: string;
   swatch: string | null;
   /** the master's image — shown when this product hasn't set its own */
   masterImage: string | null;
+  /** "Size · Colour" — which lists this row is made of */
   attribute: string;
   /** this product's own image for this colour */
   imageUrl: string;
@@ -1032,6 +1052,31 @@ interface VariantRow {
   discType: "NONE" | "FLAT" | "PERCENT";
   discValue: string;
   isActive: boolean;
+}
+
+/*  DEC-PRD-045 — the key the server files a combination under: the value ids,
+    sorted, joined with "|". Sorted so that Red+Medium and Medium+Red are one
+    and the same thing, whichever order the screen happened to build them in. */
+function comboKeyOf(valueIds: string[]): string {
+  return [...valueIds].sort().join("|");
+}
+
+/*  Build a variant row out of its parts. Everything the row shows — its one
+    name, its swatch, its fallback photo — is derived here, in one place, so
+    a one-list product and a two-list product cannot drift apart.  */
+function rowFromParts(parts: VariantPart[], rest: Omit<VariantRow, "key" | "parts" | "variantValueId" | "label" | "swatch" | "masterImage" | "attribute">): VariantRow {
+  return {
+    key: comboKeyOf(parts.map((p) => p.valueId)),
+    parts,
+    variantValueId: parts[0]?.valueId ?? "",
+    label: parts.map((p) => p.label).join(" · "),
+    /*  the first part that actually has a colour — on "Medium × Red" that is
+        Red, and a size has no swatch to offer.  */
+    swatch: parts.find((p) => p.swatch)?.swatch ?? null,
+    masterImage: parts.find((p) => p.imageUrl)?.imageUrl ?? null,
+    attribute: parts.map((p) => p.attribute).join(" · "),
+    ...rest,
+  };
 }
 
 /** what the customer ends up paying for one variant, in paisa */
@@ -1504,14 +1549,21 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       more. Photo, stock and price each live on their own tab, so nothing
       needs opening.  */
   const [vBusy, setVBusy] = useState<string | null>(null);
-  //  DEC-PRD-031 — shown when a value from a SECOND list is clicked
-  const [vMixWarn, setVMixWarn] = useState<string | null>(null);
 
-  /**
-   * Which variant template is open. `null` = opens whichever one already
-   * has a value picked (`pickedAttrId`), otherwise none.
-   */
+  /*  ── DEC-PRD-045 · which lists, and which values in each ────────────────
+      Owner, 23 Aug 2026: a bouquet in three sizes, every size in three
+      colours. Two lists at once, and nine things to sell.
+
+      `variants` stays the truth about what is SOLD; this holds what was
+      TICKED, which is what the pairs are built from. They are rewritten
+      together in `applyPicks`, never by an effect — an effect would have to
+      know whether the product had finished loading, and getting that wrong
+      empties a saved product on open.  */
+  const [axisPicks, setAxisPicks] = useState<Record<string, string[]>>({});
+  /** which list's values are showing. `null` = the first one that has picks */
   const [vAttrOpen, setVAttrOpen] = useState<string | null>(null);
+  /** which pair card is open. Only one at a time — the rest stay one line. */
+  const [openPair, setOpenPair] = useState<string | null>(null);
 
   /** DEC-DLV-008 — the deliveries this product can go by, as ids */
   const [delivTypeIds, setDelivTypeIds] = useState<string[]>([]);
@@ -1738,6 +1790,84 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     vAttrs.find((a) =>
       a.values.some((v) => (variantValueId ? v.id === variantValueId : v.label === variantLabel && !!variantLabel)),
     )?.id ?? null;
+
+  /*  ── DEC-PRD-045 · the lists in play, in the master's own order ─────────
+      Size before Colour on every screen, because that is the order the master
+      keeps them in. Left to the order they were clicked, the same product
+      would read "Red · Medium" one day and "Medium · Red" the next.  */
+  const liveAttrs = vAttrs
+    .filter((a) => a.isActive !== false && a.values.some((v) => v.isActive))
+    .slice()
+    .sort((x, y) => x.sortOrder - y.sortOrder || x.name.localeCompare(y.name));
+
+  /*  Every combination of what is ticked. Three sizes and three colours make
+      nine rows; one list of three makes three, which is the shape this screen
+      always had.
+
+      A row that already exists keeps everything typed into it — its price,
+      its photo, its item — because it is found again by its key. So
+      un-ticking a colour by mistake and ticking it back costs nothing.  */
+  function rebuildPairs(picks: Record<string, string[]>, cur: VariantRow[]): VariantRow[] {
+    const axes = liveAttrs.filter((a) => (picks[a.id] ?? []).length > 0);
+    if (axes.length === 0) return [];
+
+    let combos: VariantPart[][] = [[]];
+    for (const a of axes) {
+      const chosen = a.values
+        .filter((v) => v.isActive && (picks[a.id] ?? []).includes(v.id))
+        .slice()
+        .sort((p, q) => p.sortOrder - q.sortOrder || p.label.localeCompare(q.label));
+      combos = combos.flatMap((c) =>
+        chosen.map((v) => [
+          ...c,
+          {
+            valueId: v.id,
+            label: v.label,
+            swatch: v.swatch ?? null,
+            imageUrl: v.imageUrl ?? null,
+            attributeId: a.id,
+            attribute: a.name,
+          },
+        ]),
+      );
+    }
+
+    const byKey = new Map(cur.map((r) => [r.key, r]));
+    const BLANK = {
+      imageUrl: "",
+      stockQty: "0",
+      itemId: null,
+      itemLabel: null,
+      price: "",
+      discType: "NONE" as const,
+      discValue: "",
+      isActive: true,
+    };
+    return combos.map((parts) => {
+      const old = byKey.get(comboKeyOf(parts.map((p) => p.valueId)));
+      return rowFromParts(
+        parts,
+        old
+          ? {
+              imageUrl: old.imageUrl,
+              stockQty: old.stockQty,
+              itemId: old.itemId,
+              itemLabel: old.itemLabel,
+              price: old.price,
+              discType: old.discType,
+              discValue: old.discValue,
+              isActive: old.isActive,
+            }
+          : BLANK,
+      );
+    });
+  }
+
+  /** tick or untick one value, and rebuild what is on sale in the same breath */
+  function applyPicks(next: Record<string, string[]>) {
+    setAxisPicks(next);
+    setVariants((cur) => rebuildPairs(next, cur));
+  }
   const [addonBundle, setAddonBundle] = useState<AddOnBundle | null>(null);
   const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
 
@@ -1913,12 +2043,34 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               break.  */
           setDelivTypeIds((p.deliveryTypes ?? []).map((d) => d.typeId));
           setVariants(
-            (p.variants ?? []).map((v) => ({
-              variantValueId: v.variantValueId,
-              label: v.variantValue?.label ?? "",
-              swatch: v.variantValue?.swatch ?? null,
-              masterImage: v.variantValue?.imageUrl ?? null,
-              attribute: v.variantValue?.attribute?.name ?? "",
+            (p.variants ?? []).map((v) => {
+              /*  DEC-PRD-045 — rebuild the combination from its values, in
+                  the master's own order so Size always reads before Colour.
+                  A row saved before that decision has no `values`, and then
+                  its one lead value stands in — so an old product opens
+                  exactly as it always did.  */
+              const parts: VariantPart[] = ((v.values ?? []).length
+                ? (v.values ?? []).map((pv) => pv.variantValue)
+                : v.variantValue
+                  ? [{ ...v.variantValue, sortOrder: 0 }]
+                  : []
+              )
+                .slice()
+                .sort(
+                  (a, b) =>
+                    (a.attribute?.sortOrder ?? 0) - (b.attribute?.sortOrder ?? 0) ||
+                    (a.attribute?.name ?? "").localeCompare(b.attribute?.name ?? "") ||
+                    (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+                )
+                .map((val) => ({
+                  valueId: val.id,
+                  label: val.label,
+                  swatch: val.swatch ?? null,
+                  imageUrl: val.imageUrl ?? null,
+                  attributeId: val.attribute?.id ?? "",
+                  attribute: val.attribute?.name ?? "",
+                }));
+              return rowFromParts(parts, {
               imageUrl: v.imageUrl ?? "",
               stockQty: String(v.stockQty ?? 0),
               itemId: v.itemId ?? null,
@@ -1933,8 +2085,27 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     ? String((v.discountValue ?? 0) / 100)
                     : "",
               isActive: v.isActive,
-            })),
+              });
+            }),
           );
+          /*  DEC-PRD-045 — what was ticked, read back out of what was saved.
+              Without this the chips would open empty on a saved product and
+              the first click would wipe the grid.  */
+          const picks: Record<string, string[]> = {};
+          for (const v of p.variants ?? []) {
+            const vals = (v.values ?? []).length
+              ? (v.values ?? []).map((pv) => pv.variantValue)
+              : v.variantValue
+                ? [v.variantValue]
+                : [];
+            for (const val of vals) {
+              const attrId = val.attribute?.id;
+              if (!attrId) continue;
+              if (!picks[attrId]) picks[attrId] = [];
+              if (!picks[attrId].includes(val.id)) picks[attrId].push(val.id);
+            }
+          }
+          setAxisPicks(picks);
           //  an existing product answers the Basics question by what it has
           setHasVariants((p.variants ?? []).length > 0);
 
@@ -2232,7 +2403,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       /*  DEC-PRD-012 — sending an empty array is correct: if the owner
           removed all of them, the product simply has no variants.  */
       variants: variants.map((v, i) => ({
+        /*  DEC-PRD-045 — the lead value stays, because the server files the
+            row under it; `valueIds` is the combination itself.  */
         variantValueId: v.variantValueId,
+        valueIds: v.parts.map((p) => p.valueId),
         imageUrl: v.imageUrl.trim() || null,
         stockQty: parseInt(v.stockQty || "0") || 0,
         /*  DEC-PRD-015 — if it exists in Inventory, this id is the source
@@ -3196,7 +3370,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       return;
                     }
                     setVariants([]);
-                    setVMixWarn(null);
+                    setAxisPicks({});
+                    setOpenPair(null);
                     setHasVariants(false);
                   }}
                   options={[
@@ -3622,7 +3797,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                         .filter((v) => v.price.trim())
                         .map((v) => (
                           <div
-                            key={v.variantValueId}
+                            key={v.key}
                             className="flex items-center justify-between gap-3 py-0.5"
                           >
                             <span className="text-body">{v.label}</span>
@@ -3792,7 +3967,7 @@ No bundle products yet — add them on{" "}
                     <div className="flex flex-col gap-2">
                       {variants.map((v) => (
                         <div
-                          key={v.variantValueId}
+                          key={v.key}
                           className="flex items-center gap-3 border border-lavender-deep rounded-[12px] bg-white px-3 py-2.5 flex-wrap"
                         >
                           <span className="flex items-center gap-2 min-w-[130px]">
@@ -3815,7 +3990,7 @@ No bundle products yet — add them on{" "}
                               onChange={(e) =>
                                 setVariants((cur) =>
                                   cur.map((x) =>
-                                    x.variantValueId === v.variantValueId
+                                    x.key === v.key
                                       ? { ...x, price: e.target.value.replace(/[^0-9.]/g, "") }
                                       : x,
                                   ),
@@ -3837,7 +4012,7 @@ No bundle products yet — add them on{" "}
                                 onChange={(e) =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === v.variantValueId
+                                      x.key === v.key
                                         ? { ...x, discType: e.target.value as VariantRow["discType"] }
                                         : x,
                                     ),
@@ -3858,7 +4033,7 @@ No bundle products yet — add them on{" "}
                                   onChange={(e) =>
                                     setVariants((cur) =>
                                       cur.map((x) =>
-                                        x.variantValueId === v.variantValueId
+                                        x.key === v.key
                                           ? { ...x, discValue: e.target.value.replace(/[^0-9.]/g, "") }
                                           : x,
                                       ),
@@ -4541,7 +4716,7 @@ No bundle products yet — add them on{" "}
                     <div className="flex flex-col gap-2">
                       {variants.map((v) => (
                         <div
-                          key={v.variantValueId}
+                          key={v.key}
                           className="flex items-center gap-3 border border-lavender-deep rounded-[12px] bg-white px-3 py-2.5 flex-wrap"
                         >
                           <span className="flex items-center gap-2 min-w-[130px]">
@@ -4564,7 +4739,7 @@ No bundle products yet — add them on{" "}
                                 onClick={() =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === v.variantValueId
+                                      x.key === v.key
                                         ? { ...x, itemId: null, itemLabel: null }
                                         : x,
                                     ),
@@ -4586,7 +4761,7 @@ No bundle products yet — add them on{" "}
                                 onChange={(e) =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === v.variantValueId
+                                      x.key === v.key
                                         ? { ...x, stockQty: e.target.value }
                                         : x,
                                     ),
@@ -4597,7 +4772,7 @@ No bundle products yet — add them on{" "}
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setVItemFor(vItemFor === v.variantValueId ? null : v.variantValueId);
+                                  setVItemFor(vItemFor === v.key ? null : v.key);
                                   setVItemQ("");
                                 }}
                                 className="ml-auto text-[12.5px] px-2.5 py-1.5 rounded-[9px] border border-dashed border-orchid-mid text-orchid bg-white hover:bg-orchid-soft/40"
@@ -4617,7 +4792,7 @@ No bundle products yet — add them on{" "}
                             <div className="text-[12.5px] text-body-soft">
                               Which stockroom item holds{" "}
                               <b className="font-semibold text-purple">
-                                {variants.find((x) => x.variantValueId === vItemFor)?.label}
+                                {variants.find((x) => x.key === vItemFor)?.label}
                               </b>
                               ?
                             </div>
@@ -4653,7 +4828,7 @@ No bundle products yet — add them on{" "}
                                 onClick={() => {
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === vItemFor
+                                      x.key === vItemFor
                                         ? { ...x, itemId: it.id, itemLabel: `${it.name} · ${it.sku}` }
                                         : x,
                                     ),
@@ -4966,7 +5141,7 @@ No bundle products yet — add them on{" "}
                       {variants.map((v) => {
                         const shown = v.imageUrl || v.masterImage;
                         return (
-                          <div key={v.variantValueId} style={{ width: 116 }}>
+                          <div key={v.key} style={{ width: 116 }}>
                             <label className="block cursor-pointer">
                               <span
                                 className="block w-full h-[92px] rounded-[12px] border border-lavender-deep bg-cover bg-center grid place-items-center text-body-soft hover:border-orchid transition-colors"
@@ -4976,7 +5151,7 @@ No bundle products yet — add them on{" "}
                                     : { background: v.swatch || "#f6f2fa" }
                                 }
                               >
-                                {vBusy === v.variantValueId ? (
+                                {vBusy === v.key ? (
                                   <span className="text-[11px] font-semibold">Uploading…</span>
                                 ) : (
                                   !shown && <Icon name="plus" size={18} />
@@ -4986,12 +5161,12 @@ No bundle products yet — add them on{" "}
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp,image/avif"
                                 className="hidden"
-                                disabled={vBusy === v.variantValueId}
+                                disabled={vBusy === v.key}
                                 onChange={async (e) => {
                                   const f = e.target.files?.[0];
                                   e.target.value = "";
                                   if (!f) return;
-                                  setVBusy(v.variantValueId);
+                                  setVBusy(v.key);
                                   try {
                                     /*  ⚠️ 1:1 isn't forced here — that's a rule
                                         only for product photos (owner). The 1 MB
@@ -4999,7 +5174,7 @@ No bundle products yet — add them on{" "}
                                     const url = await uploadItemImage(f, "products", 1600);
                                     setVariants((cur) =>
                                       cur.map((x) =>
-                                        x.variantValueId === v.variantValueId ? { ...x, imageUrl: url } : x,
+                                        x.key === v.key ? { ...x, imageUrl: url } : x,
                                       ),
                                     );
                                   } catch {
@@ -5019,7 +5194,7 @@ No bundle products yet — add them on{" "}
                                 onClick={() =>
                                   setVariants((cur) =>
                                     cur.map((x) =>
-                                      x.variantValueId === v.variantValueId ? { ...x, imageUrl: "" } : x,
+                                      x.key === v.key ? { ...x, imageUrl: "" } : x,
                                     ),
                                   )
                                 }
@@ -5349,188 +5524,305 @@ No bundle products yet — add them on{" "}
                   </p>
                 ) : (
                   <>
-                    {/* ── which list ── */}
+                    {/*  ── which lists ─────────────────────────────────────
+                        DEC-PRD-045 — more than one may be on at once. Before
+                        23 Aug this was a one-of-many chooser, and that is
+                        exactly what made Size × Colour impossible.  */}
                     <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-2">
-                      Which list
+                      Which lists
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {vAttrs
-                        .filter((a) => a.values.some((v) => v.isActive))
-                        .map((a) => {
-                          const on = (vAttrOpen ?? pickedAttrId) === a.id;
-                          /*  How many of THIS list are already on the product —
-                              shown as a badge so the owner sees at a glance which
-                              lists have picks, without opening each one (8 Aug 2026).  */
-                          const picked = a.values.filter((val) =>
-                            variants.some((v) => v.variantValueId === val.id),
-                          ).length;
-                          return (
-                            <button
-                              key={a.id}
-                              type="button"
-                              onClick={() => setVAttrOpen(on ? null : a.id)}
-                              className={`inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-2 rounded-full border transition-colors ${
-                                on
-                                  ? "bg-purple border-purple text-white"
-                                  : "bg-white border-lavender-deep text-body hover:border-orchid"
-                              }`}
-                            >
-                              {a.name}
-                              {picked > 0 && (
-                                <span
-                                  className={`inline-grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold ${
-                                    on ? "bg-white/25 text-white" : "bg-orchid-soft text-purple"
-                                  }`}
-                                >
-                                  {picked}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
+                    <div className="flex flex-wrap gap-2">
+                      {liveAttrs.map((a) => {
+                        const picked = (axisPicks[a.id] ?? []).length;
+                        const on = picked > 0;
+                        const open = (vAttrOpen ?? liveAttrs.find((x) => (axisPicks[x.id] ?? []).length > 0)?.id ?? null) === a.id;
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => setVAttrOpen(a.id)}
+                            className={`inline-flex items-center gap-2 text-[13.5px] font-bold px-4 py-2.5 rounded-[12px] border-2 transition-all ${
+                              open
+                                ? "bg-purple border-purple text-white shadow-[0_4px_14px_rgba(71,0,102,.3)]"
+                                : on
+                                  ? "bg-orchid-soft border-orchid-mid text-purple"
+                                  : "bg-white border-lavender-deep text-purple hover:border-orchid"
+                            }`}
+                          >
+                            {a.name}
+                            {on && (
+                              <span
+                                className={`inline-grid place-items-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11.5px] font-extrabold ${
+                                  open ? "bg-white/25 text-white" : "bg-white text-purple"
+                                }`}
+                              >
+                                {picked}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    {/* ── pick the ones this product comes in ── */}
+                    {/* ── the open list's values ── */}
                     {(() => {
-                      const openId = vAttrOpen ?? pickedAttrId;
-                      const a = vAttrs.find((x) => x.id === openId);
+                      const openId =
+                        vAttrOpen ??
+                        liveAttrs.find((x) => (axisPicks[x.id] ?? []).length > 0)?.id ??
+                        null;
+                      const a = liveAttrs.find((x) => x.id === openId);
                       if (!a) return null;
+                      const mine = axisPicks[a.id] ?? [];
                       return (
-                        <div className="mt-4 pt-4 border-t border-lavender-deep flex flex-wrap gap-1.5">
-                          {/*  DEC-PRD-031 — one product, ONE list. Values from a
-                              second list are blocked with a message: "12 stems"
-                              and "Pink" in one flat row read as alternatives of
-                              each other, which is meaningless to a customer.
-                              A colour range = its own list or its own product.  */}
-                          {a.values
-                            .filter((val) => val.isActive)
-                            .map((val) => {
-                              const on = variants.some((v) => v.variantValueId === val.id);
-                              return (
-                                <button
-                                  key={val.id}
-                                  type="button"
-                                  onClick={() => {
-                                    if (!on && variants.length > 0 && variants[0].attribute !== a.name) {
-                                      setVMixWarn(
-                                        `This product already uses the "${variants[0].attribute}" list — one list per product. Remove those picks first to switch to "${a.name}".`,
-                                      );
-                                      return;
+                        <div className="mt-4 pt-4 border-t border-lavender-deep">
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+                              {a.name} — which ones
+                            </div>
+                            <Info text="Tick every one this product comes in. With a second list ticked too, every pair of the two becomes its own thing to sell, with its own price and its own stock." />
+                            {mine.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => applyPicks({ ...axisPicks, [a.id]: [] })}
+                                className="ml-auto text-[12.5px] font-bold text-body-soft hover:text-[#c0392b]"
+                              >
+                                Clear {a.name}
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {a.values
+                              .filter((val) => val.isActive)
+                              .map((val) => {
+                                const on = mine.includes(val.id);
+                                return (
+                                  <button
+                                    key={val.id}
+                                    type="button"
+                                    onClick={() =>
+                                      applyPicks({
+                                        ...axisPicks,
+                                        [a.id]: on
+                                          ? mine.filter((x) => x !== val.id)
+                                          : [...mine, val.id],
+                                      })
                                     }
-                                    setVMixWarn(null);
-                                    setVariants((cur) =>
+                                    className={`inline-flex items-center gap-2 text-[13.5px] font-bold px-3.5 py-2 rounded-full border-2 transition-all ${
                                       on
-                                        ? cur.filter((v) => v.variantValueId !== val.id)
-                                        : [
-                                            ...cur,
-                                            {
-                                              variantValueId: val.id,
-                                              label: val.label,
-                                              swatch: val.swatch ?? null,
-                                              masterImage: val.imageUrl ?? null,
-                                              attribute: a.name,
-                                              imageUrl: "",
-                                              stockQty: "0",
-                                              itemId: null,
-                                              itemLabel: null,
-                                              price: "",
-                                              discType: "NONE",
-                                              discValue: "",
-                                              isActive: true,
-                                            },
-                                          ],
-                                    );
-                                  }}
-                                  className={`inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                                    on
-                                      ? "bg-purple border-purple text-white"
-                                      : "bg-white border-lavender-deep text-body hover:border-orchid"
-                                  }`}
-                                >
-                                  {val.swatch && (
-                                    <span className="w-[15px] h-[15px] rounded-full border border-white/40" style={{ background: val.swatch }} />
-                                  )}
-                                  {val.label}
-                                </button>
-                              );
-                            })}
+                                        ? "bg-purple border-purple text-white shadow-[0_3px_10px_rgba(71,0,102,.25)]"
+                                        : "bg-white border-lavender-deep text-body hover:border-orchid"
+                                    }`}
+                                  >
+                                    {val.swatch && (
+                                      <span
+                                        className="w-[15px] h-[15px] rounded-full border border-white/50"
+                                        style={{ background: val.swatch }}
+                                      />
+                                    )}
+                                    {val.label}
+                                    {on && <Icon name="check" size={12} />}
+                                  </button>
+                                );
+                              })}
+                          </div>
                         </div>
                       );
                     })()}
 
-                    {vMixWarn && (
-                      <p className="mt-3 mb-0 text-[13px] text-[#9a3412] bg-[#fff3e8] border border-[#f6c9a8] rounded-[10px] px-3 py-2">
-                        {vMixWarn}
-                      </p>
-                    )}
+                    {/*  ── the things to sell ───────────────────────────────
+                        Owner, 23 Aug 2026, choosing this layout: *"c. but card
+                        gula jen dropdown hoy"* — a card per pair, and each one
+                        shut until it is wanted.
 
-                    {/*  ── what is picked ──────────────────────────────────
-                        Names only. Owner, 8 Aug 2026: *"just ta select krar
-                        option thakbe, image and stock and price agula kichui
-                        thakbe na"* — each variant's photo now lives in Photos,
-                        its count in Stock, its price in Pricing, beside the
-                        product's own. One tab, one kind of work.  */}
+                        Shut, a card is one line: the pair, its price, its
+                        count, and whether it sells. Nine of them fit on a
+                        screen. Open, it holds the two numbers that belong to
+                        the pair itself; the photo and the stockroom item stay
+                        on their own tabs (owner, 8 Aug), one press away.  */}
                     {variants.length > 0 && (
                       <div className="mt-5 pt-5 border-t border-lavender-deep">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-2.5">
-                          {variants.length} on this product
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+                            {variants.length} to sell
+                          </div>
+                          <Info text="One line for each thing a customer can actually order. Open one to give it its own price. Off keeps everything typed but takes that one off the website." />
+                          {variants.length > 1 && (
+                            <span className="ml-auto text-[12px] font-bold text-body-soft">
+                              {variants.filter((v) => v.isActive).length} live
+                            </span>
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {variants.map((v) => (
-                            <span
-                              key={v.variantValueId}
-                              className={`inline-flex items-center gap-2 rounded-full border pl-3 pr-1.5 py-1 text-[13px] ${
-                                v.isActive
-                                  ? "border-lavender-deep bg-white text-purple"
-                                  : "border-lavender-deep bg-[#f4f1f7] text-body-soft"
-                              }`}
-                            >
-                              {v.swatch && (
-                                <span
-                                  className="w-[13px] h-[13px] rounded-full border border-lavender-deep"
-                                  style={{ background: v.swatch }}
-                                />
-                              )}
-                              <b className="font-medium">{v.label}</b>
-                              {/*  OFF keeps the row and its numbers but takes it
-                                  off the website — the honest way to pause one
-                                  colour without losing what was typed.  */}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setVariants((cur) =>
-                                    cur.map((x) =>
-                                      x.variantValueId === v.variantValueId
-                                        ? { ...x, isActive: !x.isActive }
-                                        : x,
-                                    ),
-                                  )
-                                }
-                                className={`text-[10.5px] font-bold px-1.5 py-0.5 rounded-full ${
-                                  v.isActive ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#eae6ef] text-body-soft"
+
+                        <div className="flex flex-col gap-2">
+                          {variants.map((v) => {
+                            const open = openPair === v.key;
+                            const counted = v.itemId
+                              ? v.itemLabel ?? "Counted in Inventory"
+                              : `${parseInt(v.stockQty, 10) || 0} in stock`;
+                            return (
+                              <div
+                                key={v.key}
+                                className={`rounded-[14px] border-2 bg-white overflow-hidden transition-all ${
+                                  open
+                                    ? "border-plum shadow-[0_0_0_3px_#f3ebf8]"
+                                    : v.isActive
+                                      ? "border-lavender-deep"
+                                      : "border-lavender-deep bg-[#faf8fb]"
                                 }`}
                               >
-                                {v.isActive ? "ON" : "OFF"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setVariants((cur) =>
-                                    cur.filter((x) => x.variantValueId !== v.variantValueId),
-                                  )
-                                }
-                                aria-label={`Remove ${v.label}`}
-                                className="w-[20px] h-[20px] grid place-items-center rounded-full text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
-                              >
-                                <Icon name="trash" size={12} />
-                              </button>
-                            </span>
-                          ))}
+                                {/* ── shut: one line ── */}
+                                <div className="flex items-center gap-3 px-3 py-2.5 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenPair(open ? null : v.key)}
+                                    className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+                                  >
+                                    <span
+                                      className="w-[38px] h-[38px] rounded-[10px] border border-lavender-deep bg-lavender shrink-0 bg-cover bg-center grid place-items-center text-body-soft"
+                                      style={
+                                        v.imageUrl || v.masterImage
+                                          ? { backgroundImage: `url(${v.imageUrl || v.masterImage})` }
+                                          : undefined
+                                      }
+                                    >
+                                      {!v.imageUrl && !v.masterImage && <Icon name="photo" size={14} />}
+                                    </span>
+                                    {v.swatch && (
+                                      <span
+                                        className="w-[14px] h-[14px] rounded-full border border-lavender-deep shrink-0"
+                                        style={{ background: v.swatch }}
+                                      />
+                                    )}
+                                    <b
+                                      className={`text-[14px] font-bold truncate ${
+                                        v.isActive ? "text-purple" : "text-body-soft"
+                                      }`}
+                                    >
+                                      {v.label}
+                                    </b>
+                                  </button>
+
+                                  <span className="text-[13px] font-bold text-purple whitespace-nowrap">
+                                    {v.price.trim() ? `৳${v.price}` : "base price"}
+                                  </span>
+                                  <span className="text-[12.5px] text-body-soft whitespace-nowrap hidden sm:inline">
+                                    {counted}
+                                  </span>
+
+                                  {/*  Off keeps the row and its numbers but takes
+                                      it off the website — the honest way to pause
+                                      one pair without losing what was typed.  */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setVariants((cur) =>
+                                        cur.map((x) =>
+                                          x.key === v.key ? { ...x, isActive: !x.isActive } : x,
+                                        ),
+                                      )
+                                    }
+                                    className={`text-[11px] font-extrabold px-2.5 py-1.5 rounded-full ${
+                                      v.isActive
+                                        ? "bg-[#e8f6ef] text-[#0f7d55]"
+                                        : "bg-[#eae6ef] text-body-soft"
+                                    }`}
+                                  >
+                                    {v.isActive ? "ON" : "OFF"}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenPair(open ? null : v.key)}
+                                    aria-label={open ? `Close ${v.label}` : `Open ${v.label}`}
+                                    className="w-[26px] h-[26px] grid place-items-center rounded-[8px] text-purple hover:bg-orchid-soft"
+                                  >
+                                    <Icon name={open ? "chevronUp" : "chevronDown"} size={14} />
+                                  </button>
+                                </div>
+
+                                {/* ── open: what belongs to this pair alone ── */}
+                                {open && (
+                                  <div className="px-3 pb-3.5 pt-1 border-t border-lavender-deep bg-[linear-gradient(135deg,#f9f6fc,#fff)]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                      <div>
+                                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-body mb-1.5">
+                                          Its own price
+                                          <Info text="Leave it empty and the product's own price applies. Fill it and this pair charges its own — which is what a larger size usually needs." />
+                                        </div>
+                                        <input
+                                          className="ipt text-[13.5px]"
+                                          style={{ minHeight: 40 }}
+                                          type="number"
+                                          min={0}
+                                          placeholder="Product price"
+                                          value={v.price}
+                                          onChange={(e) =>
+                                            setVariants((cur) =>
+                                              cur.map((x) =>
+                                                x.key === v.key ? { ...x, price: e.target.value } : x,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-body mb-1.5">
+                                          How many
+                                          <Info text="Typed by hand here. Link a stockroom item on the Stock tab instead and the warehouse count rules — this box is then not read at all." />
+                                        </div>
+                                        {v.itemId ? (
+                                          <div className="flex items-center gap-2 border border-lavender-deep rounded-[11px] bg-white px-3 h-[40px]">
+                                            <Icon name="box" size={13} />
+                                            <span className="text-[13px] text-body-soft truncate flex-1 min-w-0">
+                                              {v.itemLabel ?? "item linked"}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <input
+                                            className="ipt text-[13.5px]"
+                                            style={{ minHeight: 40 }}
+                                            type="number"
+                                            min={0}
+                                            value={v.stockQty}
+                                            onChange={(e) =>
+                                              setVariants((cur) =>
+                                                cur.map((x) =>
+                                                  x.key === v.key
+                                                    ? { ...x, stockQty: e.target.value }
+                                                    : x,
+                                                ),
+                                              )
+                                            }
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => goto("media")}
+                                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-purple hover:border-orchid"
+                                      >
+                                        <Icon name="photo" size={12} />
+                                        Its photo
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => goto("stock")}
+                                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-purple hover:border-orchid"
+                                      >
+                                        <Icon name="box" size={12} />
+                                        {v.itemId ? "Change the item" : "Count from Inventory"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-                          Photo, stock and price for each one are in the Photos,
-                          Stock and Pricing tabs.
-                        </p>
                       </div>
                     )}
                   </>

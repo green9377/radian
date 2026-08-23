@@ -86,6 +86,19 @@ const FULL_INCLUDE = {
           attribute: { select: { id: true, name: true, displayMode: true } },
         },
       },
+      /*  DEC-PRD-045 — every value in this combination. One row for a plain
+          colour list, two for Size × Colour. The editor rebuilds its grid
+          from exactly this.  */
+      values: {
+        include: {
+          variantValue: {
+            select: {
+              id: true, label: true, swatch: true, imageUrl: true, sortOrder: true,
+              attribute: { select: { id: true, name: true, displayMode: true, sortOrder: true } },
+            },
+          },
+        },
+      },
       /*  DEC-PRD-015 — which Item holds this colour's stock. Both the name and
           the code are needed, because the editor writes it out after picking —
           showing someone an id helps nobody.  */
@@ -1246,25 +1259,75 @@ export class ProductsService {
     if (rows === undefined) return;
     const now = new Date();
 
-    /*  DEC-PRD-031 (owner, 8 Aug 2026) — one product, ONE list. "12 stems"
-        and "Pink" on the same product render as alternatives of each other
-        on the PDP, which no customer can make sense of. The admin blocks
-        this too; the rule lives here because rules live on the server.  */
-    if (rows.length > 1) {
-      const vals = await this.prisma.db.variantValue.findMany({
-        where: { id: { in: rows.map((r) => r.variantValueId) } },
-        select: { attributeId: true },
-      });
-      if (new Set(vals.map((v) => v.attributeId)).size > 1) {
-        throw new BadRequestException(
-          'A product can use only ONE variant list (e.g. Stem count OR Colour, not both).',
-        );
+    /*  ── DEC-PRD-045 · a row is a COMBINATION ────────────────────────────
+        The owner, 23 August 2026, on a bouquet that comes in three sizes and
+        every size in three colours: nine things to sell, "each pair its own
+        price, its own stock, its own item".
+
+        This replaced DEC-PRD-031 ("one product, ONE list"), which existed
+        because a flat row of "12 stems · Pink · Large" reads as three
+        alternatives of each other and means nothing to a customer. That
+        reasoning still holds — and it is answered by giving each LIST its own
+        row of buttons on the page, not by allowing only one list.
+
+        What is still refused, because the grid would be ragged and some pair
+        would have no price anywhere:
+          · two values from the SAME list inside one combination
+            (Small and Medium cannot both be one thing)
+          · rows that do not all use the same lists
+            (one row Size×Colour and the next Size only)  */
+    const combos = rows.map((r) => {
+      const ids = r.valueIds?.length ? r.valueIds : [r.variantValueId];
+      return [...new Set(ids.filter(Boolean))];
+    });
+    const everyId = [...new Set(combos.flat())];
+    const values = await this.prisma.db.variantValue.findMany({
+      where: { id: { in: everyId } },
+      select: { id: true, attributeId: true, sortOrder: true, attribute: { select: { sortOrder: true, name: true } } },
+    });
+    const byId = new Map(values.map((v) => [v.id, v]));
+
+    const missing = everyId.filter((id) => !byId.has(id));
+    if (missing.length) {
+      throw new BadRequestException('One of the chosen options no longer exists — reopen the product and pick again.');
+    }
+
+    let shape: string | null = null;
+    for (const ids of combos) {
+      const attrs = ids.map((id) => byId.get(id)!.attributeId);
+      if (new Set(attrs).size !== attrs.length) {
+        throw new BadRequestException('One combination uses the same list twice — a thing cannot be both Small and Medium.');
+      }
+      const thisShape = [...attrs].sort().join('|');
+      if (shape === null) shape = thisShape;
+      else if (shape !== thisShape) {
+        throw new BadRequestException('Every combination has to use the same lists — either all of them carry a size and a colour, or none do.');
       }
     }
 
-    const keep = rows.map((r) => r.variantValueId);
+    /*  The LEAD value: the axis that comes first in the master's own order,
+        so "Medium × Red" is always filed under Medium and never under Red,
+        whichever way round the form happened to send them.  */
+    const leadOf = (ids: string[]) =>
+      [...ids].sort((a, b) => {
+        const x = byId.get(a)!;
+        const y = byId.get(b)!;
+        return (
+          x.attribute.sortOrder - y.attribute.sortOrder ||
+          x.attribute.name.localeCompare(y.attribute.name) ||
+          x.sortOrder - y.sortOrder
+        );
+      })[0];
+
+    /*  Sorted so that Red+Medium and Medium+Red are recognised as the same
+        pair. This column exists only to let the database refuse a duplicate —
+        a unique index cannot span a child table's rows, but it can span one
+        column here.  */
+    const keyOf = (ids: string[]) => [...ids].sort().join('|');
+    const keep = combos.map(keyOf);
+
     await this.prisma.db.productVariant.updateMany({
-      where: { productId, deletedAt: null, variantValueId: { notIn: keep.length ? keep : ['—'] } },
+      where: { productId, deletedAt: null, comboKey: { notIn: keep.length ? keep : ['—'] } },
       data: { deletedAt: now },
     });
 
@@ -1307,13 +1370,30 @@ export class ProductsService {
         isActive: r.isActive ?? true,
         deletedAt: null,
       };
-      /*  If the same value was deleted before it is brought back rather than
-          created afresh — `@@unique([productId, variantValueId])` demands it,
-          and it keeps old orders' links intact.  */
-      await this.prisma.db.productVariant.upsert({
-        where: { productId_variantValueId: { productId, variantValueId: r.variantValueId } },
-        create: { productId, variantValueId: r.variantValueId, ...data },
-        update: data,
+      /*  If the same combination was deleted before it is brought back rather
+          than created afresh — `@@unique([productId, comboKey])` demands it,
+          and it keeps old orders' links intact. A soft-deleted row still
+          holds its key (the trap of 21 Aug), so reviving is the only shape
+          that works here.  */
+      const ids = combos[i];
+      const comboKey = keyOf(ids);
+      const lead = leadOf(ids);
+      const saved = await this.prisma.db.productVariant.upsert({
+        where: { productId_comboKey: { productId, comboKey } },
+        create: { productId, comboKey, variantValueId: lead, ...data },
+        update: { ...data, variantValueId: lead },
+        select: { id: true },
+      });
+
+      /*  DEC-PRD-045 — the values this row is made of. Rewritten whole: the
+          set is small, and working out which one changed costs more than
+          writing two rows.  */
+      await this.prisma.db.productVariantValue.deleteMany({
+        where: { productVariantId: saved.id, variantValueId: { notIn: ids } },
+      });
+      await this.prisma.db.productVariantValue.createMany({
+        data: ids.map((variantValueId) => ({ productVariantId: saved.id, variantValueId })),
+        skipDuplicates: true,
       });
     }
   }

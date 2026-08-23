@@ -52,9 +52,26 @@ export const storefrontUrl = (slug: string) => `${WEB_BASE}/p/${slug}`;
 export const WEB_HOST = WEB_BASE.replace(/^https?:\/\//, "");
 
 /** DEC-PRD-012 — one variant of one product */
+/** DEC-PRD-045 — one value inside a combination */
+export interface ApiVariantValueRef {
+  id: string;
+  label: string;
+  swatch: string | null;
+  imageUrl: string | null;
+  sortOrder?: number;
+  attribute: { id: string; name: string; displayMode: string; sortOrder?: number };
+}
+
 export interface ApiProductVariant {
   id: string;
+  /** the LEAD value — the axis the row is filed under */
   variantValueId: string;
+  /**
+   * DEC-PRD-045 — every value this row is made of. Two entries for
+   * "Medium × Red". Absent on a row written before 23 August 2026, and then
+   * `variantValue` alone stands in.
+   */
+  values?: { variantValue: ApiVariantValueRef }[];
   /** its own image. Empty = the product's main image. */
   imageUrl?: string | null;
   stockQty: number;
@@ -68,13 +85,7 @@ export interface ApiProductVariant {
   discountValue?: number;
   sortOrder: number;
   isActive: boolean;
-  variantValue?: {
-    id: string;
-    label: string;
-    swatch: string | null;
-    imageUrl: string | null;
-    attribute: { id: string; name: string; displayMode: string };
-  };
+  variantValue?: ApiVariantValueRef;
 }
 
 export interface ApiProduct {

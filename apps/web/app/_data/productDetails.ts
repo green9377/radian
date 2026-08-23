@@ -109,9 +109,27 @@ export interface VariantGroup {
  * them, and it will be on one product page. Each with its own image and
  * stock."*
  */
+/** DEC-PRD-045 — one value inside a combination */
+export interface VariantPart {
+  valueId: string;
+  label: string;
+  /** "Size" / "Colour" — the heading of the row this button belongs in */
+  attribute: string;
+  attributeId: string;
+  displayMode: string;
+  swatch: string | null;
+  imageUrl: string | null;
+}
+
 export interface PickedVariant {
   /** the ProductVariant row's id — this is what goes into the cart */
   id: string;
+  /**
+   * DEC-PRD-045 — the values this one is made of. One part for a plain colour
+   * product; two for "Medium × Red", and then the page draws one row of
+   * buttons per list instead of one flat row of nine.
+   */
+  parts?: VariantPart[];
   label: string;
   /** "Colour" / "Flavour" / "Weight" — sits in the heading */
   attribute: string;

@@ -114,6 +114,19 @@ export interface ApiProductDetail {
   /** DEC-PRD-012 — variants inside one page, each with its own photo, price and stock */
   variants: {
     id: string;
+    /**
+     * DEC-PRD-045 — the values this one is made of, so the page can draw a
+     * row of buttons per list. One part on a single-list product.
+     */
+    parts?: {
+      valueId: string;
+      label: string;
+      attribute: string;
+      attributeId: string;
+      displayMode: string;
+      swatch: string | null;
+      imageUrl: string | null;
+    }[];
     label: string;
     attribute: string;
     displayMode: string;

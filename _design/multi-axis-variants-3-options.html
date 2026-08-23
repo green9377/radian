@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian — Two axes on one product (Size × Colour), three layouts</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#470066; --panel:#3b1152; --panel2:#2a0b3d;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd;
+    --lav:#f7f1fb; --lav-deep:#efe4f7; --rose:#b76e79; --rose-soft:#fbeef0;
+    --body:#3f3547; --soft:#8a7c94; --ok:#12a172; --amber:#f0a323; --red:#c0392b;
+    --plum:#6d3a9c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lav);font-family:Inter,system-ui,sans-serif;color:var(--body)}
+  .disp{font-family:Fraunces,Georgia,serif}
+
+  .switch{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--lav-deep);
+          padding:14px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .switch b{font-family:Fraunces,serif;font-size:17px;color:var(--purple);margin-right:8px}
+  .sw{border:2px solid var(--lav-deep);background:#fff;color:var(--purple);font-weight:700;font-size:13.5px;
+      padding:9px 16px;border-radius:11px;cursor:pointer;font-family:inherit}
+  .sw.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 4px 14px rgba(109,58,156,.35)}
+  .sw .star{color:#ffd85e}
+
+  .page{display:none;padding:22px}
+  .page.on{display:block}
+  .shell{display:flex;gap:22px;align-items:flex-start;max-width:1560px}
+  .main{flex:1;min-width:0}
+
+  .card{background:#fff;border:1px solid var(--lav-deep);border-radius:16px;box-shadow:0 2px 10px rgba(71,0,102,.05);margin-bottom:16px}
+  .ch{display:flex;align-items:center;gap:11px;padding:16px 18px}
+  .ci{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:15px;background:var(--plum)}
+  .ct{font-family:Fraunces,serif;font-weight:600;font-size:17.5px;color:var(--purple)}
+  .i{width:16px;height:16px;border-radius:50%;background:#efe4f7;color:#7a5b8c;font-size:10px;font-weight:700;
+     display:inline-grid;place-items:center;cursor:help}
+  .cb{padding:0 18px 18px}
+  .kick{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orchid);margin-bottom:9px}
+  .hr{border-top:1px solid var(--lav-deep);margin:18px 0}
+
+  input{font:inherit;font-size:13.5px;padding:9px 11px;border:1px solid var(--lav-deep);border-radius:10px;background:#fff;color:var(--body);width:100%}
+  input::placeholder{color:#b3a8bb}
+
+  /* list picker chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .lchip{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;padding:9px 15px;border-radius:11px;
+         border:2px solid var(--lav-deep);background:#fff;color:var(--purple);cursor:pointer;font-family:inherit}
+  .lchip.on{background:var(--panel);border-color:var(--panel);color:#fff;box-shadow:0 4px 14px rgba(59,17,82,.3)}
+  .lchip .cnt{min-width:20px;height:20px;padding:0 5px;border-radius:99px;display:inline-grid;place-items:center;
+              font-size:11.5px;font-weight:800;background:var(--orchid-soft);color:var(--purple)}
+  .lchip.on .cnt{background:rgba(255,255,255,.25);color:#fff}
+  .lchip.off{opacity:.75}
+
+  .vchip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:7px 13px;border-radius:99px;
+         border:1.5px solid var(--lav-deep);background:#fff;color:var(--body);cursor:pointer;font-family:inherit}
+  .vchip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+  .sw-dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+
+  /* the matrix */
+  .tblwrap{overflow-x:auto;border:1px solid var(--lav-deep);border-radius:14px}
+  table{border-collapse:collapse;width:100%;min-width:820px}
+  th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--panel);
+     text-align:left;padding:11px 12px;font-weight:800;white-space:nowrap}
+  td{padding:9px 12px;border-top:1px solid var(--lav-deep);font-size:13.5px;vertical-align:middle}
+  tr.off td{background:#faf8fb;opacity:.5}
+  tr:hover td{background:#fdfaff}
+  .pair{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--purple);white-space:nowrap}
+  .x{color:#c9bcd2;font-weight:600}
+  .thumb{width:36px;height:36px;border-radius:9px;background:linear-gradient(150deg,#f7dbe4,#e9c6dc);border:1px solid var(--lav-deep);
+         display:grid;place-items:center;font-size:13px;color:#b78aa8;cursor:pointer;flex:0 0 36px}
+  .toggle{width:40px;height:23px;border-radius:99px;background:var(--ok);position:relative;cursor:pointer;border:0;display:inline-block}
+  .toggle::after{content:"";position:absolute;top:3px;left:20px;width:17px;height:17px;border-radius:50%;background:#fff}
+  .toggle.no{background:#d6cddd}
+  .toggle.no::after{left:3px}
+  .money input{max-width:110px}
+  .qty input{max-width:78px}
+  .itemsel{font:inherit;font-size:13px;padding:9px 10px;border:1px solid var(--lav-deep);border-radius:10px;background:#fff;color:var(--body);max-width:190px}
+  .badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px}
+  .b-ok{background:#e8f6ef;color:#0f7d55}
+  .b-no{background:#fdecee;color:var(--red)}
+  .b-amber{background:#fff5e3;color:#8a5a08}
+
+  /* bulk bar */
+  .bulk{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#f6f0fa,#fff);
+        border:1px solid var(--lav-deep);border-radius:13px;padding:11px 13px;margin-bottom:12px}
+  .bulk .lb{font-size:12px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.06em}
+  .bulk input{max-width:120px}
+  .btn{border:0;font-family:inherit;font-weight:800;font-size:13px;padding:9px 15px;border-radius:11px;cursor:pointer;
+       background:var(--plum);color:#fff;box-shadow:0 4px 14px rgba(109,58,156,.35)}
+  .btn.ghost{background:#fff;color:var(--purple);border:2px solid var(--lav-deep);box-shadow:none}
+
+  /* B — grouped */
+  .grp{border:1px solid var(--lav-deep);border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+  .gh{display:flex;align-items:center;gap:12px;padding:12px 15px;background:linear-gradient(135deg,#f6f0fa,#fff);cursor:pointer}
+  .gh .nm{font-family:Fraunces,serif;font-size:16.5px;font-weight:600;color:var(--purple);flex:1}
+  .gb{padding:4px 15px 14px}
+  .kid{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--lav-deep)}
+  .kid .who{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--body);font-size:13.5px;min-width:120px}
+
+  /* C — cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .vcard{border:1px solid var(--lav-deep);border-radius:15px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(71,0,102,.05)}
+  .vcard.off{opacity:.55}
+  .vshot{height:104px;background:linear-gradient(150deg,#f7dbe4,#e9c6dc);display:grid;place-items:center;color:#b78aa8;font-size:12px;cursor:pointer}
+  .vbody{padding:11px 12px}
+  .vtitle{font-weight:800;color:var(--purple);font-size:14px;display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .vrow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .vrow span{font-size:11.5px;font-weight:700;color:var(--soft);min-width:44px;text-transform:uppercase;letter-spacing:.05em}
+
+  /* storefront phone */
+  .phone{width:298px;flex:0 0 298px;border-radius:26px;border:9px solid #2a0b3d;background:#fff;overflow:hidden;
+         box-shadow:0 10px 30px rgba(42,11,61,.25);position:sticky;top:78px}
+  .shot{height:186px;background:linear-gradient(150deg,#f7dbe4,#e9c6dc);display:grid;place-items:center;color:#b78aa8;font-size:12px}
+  .pv{padding:14px}
+  .pv h3{font-family:Fraunces,serif;font-size:18px;color:var(--purple);margin:0 0 4px}
+  .price{font-size:21px;font-weight:800;color:var(--purple)}
+  .was{font-size:13px;color:var(--soft);text-decoration:line-through;margin-left:7px}
+  .axis{margin-top:13px}
+  .axis .an{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);margin-bottom:7px}
+  .opt{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:10px;
+       border:1.5px solid var(--lav-deep);background:#fff;color:var(--body);cursor:pointer;margin:0 6px 6px 0;font-family:inherit}
+  .opt.on{border-color:var(--purple);background:#f6f0fa;color:var(--purple);box-shadow:0 0 0 2px #efe4f7}
+  .opt.dead{opacity:.4;text-decoration:line-through;cursor:not-allowed}
+  .cta{margin-top:14px;width:100%;border:0;background:var(--purple);color:#fff;font-weight:800;font-size:14px;padding:12px;border-radius:12px;font-family:inherit}
+  .note{font-size:11.5px;color:var(--soft);margin-top:8px}
+
+  .why{background:linear-gradient(135deg,#f6f0fa,#fff);border:1px solid var(--lav-deep);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+  .why b{color:var(--purple);font-family:Fraunces,serif;font-size:15.5px}
+  .why ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;line-height:1.65}
+  .why li{margin-bottom:3px}
+  .good{color:var(--ok);font-weight:700}
+  .bad{color:var(--red);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="switch">
+  <b>Size × Colour on one product</b>
+  <button class="sw on" data-p="a">A · The grid</button>
+  <button class="sw" data-p="b">B · Grouped by size</button>
+  <button class="sw" data-p="c">C · A card per pair</button>
+  <button class="sw" data-p="shop">The customer's side</button>
+</div>
+
+<!-- ══════════════════════ A — THE GRID ══════════════════════ -->
+<div class="page on" id="p-a">
+<div class="shell">
+  <div class="main">
+
+    <div class="why">
+      <b>A · The grid</b> — pick two lists, and every pair appears as one line. Nine lines, nine prices, nine stocks.
+      <ul>
+        <li><span class="good">Strong:</span> everything visible at once — no pair can be forgotten, and a wrong price stands out because its neighbours are right there.</li>
+        <li><span class="good">Strong:</span> the top bar fills all nine at once, then only the ones that differ get touched.</li>
+        <li><span class="bad">Weak:</span> a wide table. Three sizes × five colours = fifteen lines, and it starts to scroll.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ci">✦</div><div class="ct">Which lists this product comes in</div><span class="i">i</span></div>
+      <div class="cb">
+        <div class="chips">
+          <button class="lchip on">Size <span class="cnt">3</span></button>
+          <button class="lchip on">Colour <span class="cnt">3</span></button>
+          <button class="lchip off">Flavour</button>
+          <button class="lchip off">Weight</button>
+        </div>
+
+        <div class="hr"></div>
+        <div class="kick">Size — which ones</div>
+        <div class="chips" style="margin-bottom:14px">
+          <button class="vchip on">Small ✓</button>
+          <button class="vchip on">Medium ✓</button>
+          <button class="vchip on">Large ✓</button>
+          <button class="vchip">Extra large</button>
+        </div>
+        <div class="kick">Colour — which ones</div>
+        <div class="chips">
+          <button class="vchip on"><span class="sw-dot" style="background:#d64b6a"></span>Red ✓</button>
+          <button class="vchip on"><span class="sw-dot" style="background:#f2b8cd"></span>Pink ✓</button>
+          <button class="vchip on"><span class="sw-dot" style="background:#fff"></span>White ✓</button>
+          <button class="vchip"><span class="sw-dot" style="background:#f4d06f"></span>Yellow</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ci">▦</div><div class="ct">9 pairs to sell</div><span class="i">i</span>
+        <span style="margin-left:auto" class="badge b-amber">2 still need a price</span></div>
+      <div class="cb">
+        <div class="bulk">
+          <span class="lb">Fill all nine</span>
+          <input placeholder="Price ৳" />
+          <input placeholder="Stock" />
+          <button class="btn">Apply to all</button>
+          <button class="btn ghost">Clear</button>
+        </div>
+
+        <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th style="width:34px"></th><th>Pair</th><th>Photo</th><th>Price</th><th>Was</th><th>Stock item</th><th>Stock</th><th>Sells</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#d64b6a"></span>Small <span class="x">×</span> Red</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input value="1,200" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-RED-S · 40 left</option></select></td>
+              <td><span class="badge b-ok">40</span></td>
+              <td><span class="badge b-ok">Live</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#f2b8cd"></span>Small <span class="x">×</span> Pink</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input value="1,200" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-PINK-S · 12 left</option></select></td>
+              <td><span class="badge b-ok">12</span></td>
+              <td><span class="badge b-ok">Live</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#fff"></span>Small <span class="x">×</span> White</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input value="1,150" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-WHT-S · 0 left</option></select></td>
+              <td><span class="badge b-no">0</span></td>
+              <td><span class="badge b-no">Sold out</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#d64b6a"></span>Medium <span class="x">×</span> Red</div></td>
+              <td><div class="thumb">🌹</div></td>
+              <td class="money"><input value="1,850" /></td>
+              <td class="money"><input value="2,100" /></td>
+              <td><select class="itemsel"><option>ROSE-RED-M · 25 left</option></select></td>
+              <td><span class="badge b-ok">25</span></td>
+              <td><span class="badge b-ok">Live</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#f2b8cd"></span>Medium <span class="x">×</span> Pink</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input value="1,850" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-PINK-M · 18 left</option></select></td>
+              <td><span class="badge b-ok">18</span></td>
+              <td><span class="badge b-ok">Live</span></td></tr>
+
+            <tr class="off"><td><span class="toggle no"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#fff"></span>Medium <span class="x">×</span> White</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>— not chosen —</option></select></td>
+              <td>—</td>
+              <td><span class="badge">Not sold</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#d64b6a"></span>Large <span class="x">×</span> Red</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input value="2,600" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-RED-L · 9 left</option></select></td>
+              <td><span class="badge b-ok">9</span></td>
+              <td><span class="badge b-ok">Live</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#f2b8cd"></span>Large <span class="x">×</span> Pink</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input placeholder="Price ৳" style="border-color:#e0a1a1;background:#fff8f8" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>ROSE-PINK-L · 6 left</option></select></td>
+              <td><span class="badge b-ok">6</span></td>
+              <td><span class="badge b-amber">Needs price</span></td></tr>
+
+            <tr><td><span class="toggle"></span></td>
+              <td><div class="pair"><span class="sw-dot" style="background:#fff"></span>Large <span class="x">×</span> White</div></td>
+              <td><div class="thumb">＋</div></td>
+              <td class="money"><input placeholder="Price ৳" style="border-color:#e0a1a1;background:#fff8f8" /></td>
+              <td class="money"><input placeholder="—" /></td>
+              <td><select class="itemsel"><option>— not chosen —</option></select></td>
+              <td>—</td>
+              <td><span class="badge b-amber">Needs price</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="shot">Medium · Red</div>
+    <div class="pv">
+      <h3>Red Rose Bouquet</h3>
+      <div><span class="price">৳1,850</span><span class="was">৳2,100</span></div>
+      <div class="axis"><div class="an">Size</div>
+        <button class="opt">Small</button><button class="opt on">Medium</button><button class="opt">Large</button>
+      </div>
+      <div class="axis"><div class="an">Colour</div>
+        <button class="opt on"><span class="sw-dot" style="background:#d64b6a"></span>Red</button>
+        <button class="opt"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</button>
+        <button class="opt dead"><span class="sw-dot" style="background:#fff"></span>White</button>
+      </div>
+      <button class="cta">Add to cart</button>
+      <div class="note">25 in stock · delivery today</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════ B — GROUPED ══════════════════════ -->
+<div class="page" id="p-b">
+<div class="shell">
+  <div class="main">
+    <div class="why">
+      <b>B · Grouped by size</b> — the first list becomes the heading, the second list sits inside it. Open one size at a time.
+      <ul>
+        <li><span class="good">Strong:</span> never wide, never scrolls sideways. Works on a phone.</li>
+        <li><span class="good">Strong:</span> reads the way the shop thinks — “the medium ones cost this much.”</li>
+        <li><span class="bad">Weak:</span> only one group is open, so you cannot compare Small · Red against Large · Red without closing and opening.</li>
+        <li><span class="bad">Weak:</span> the two lists are not equal any more — one is the parent. Swapping them later is a re-type.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ci">▤</div><div class="ct">Three sizes, three colours in each</div><span class="i">i</span></div>
+      <div class="cb">
+
+        <div class="grp">
+          <div class="gh"><span class="badge b-ok">3 live</span><span class="nm">Small</span><span class="muted" style="font-size:12.5px;color:#8a7c94">from ৳1,150</span><span style="color:#8a7c94">▾</span></div>
+        </div>
+
+        <div class="grp">
+          <div class="gh" style="background:var(--panel);color:#fff">
+            <span class="badge b-ok">2 live</span>
+            <span class="nm" style="color:#fff">Medium</span>
+            <span style="font-size:12.5px;color:rgba(255,255,255,.7)">from ৳1,850</span><span>▴</span>
+          </div>
+          <div class="gb">
+            <div class="kid">
+              <div class="who"><span class="sw-dot" style="background:#d64b6a"></span>Red</div>
+              <div class="thumb">🌹</div>
+              <div class="money" style="flex:1"><input value="1,850" /></div>
+              <select class="itemsel"><option>ROSE-RED-M · 25</option></select>
+              <span class="toggle"></span>
+            </div>
+            <div class="kid">
+              <div class="who"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</div>
+              <div class="thumb">＋</div>
+              <div class="money" style="flex:1"><input value="1,850" /></div>
+              <select class="itemsel"><option>ROSE-PINK-M · 18</option></select>
+              <span class="toggle"></span>
+            </div>
+            <div class="kid" style="opacity:.55">
+              <div class="who"><span class="sw-dot" style="background:#fff"></span>White</div>
+              <div class="thumb">＋</div>
+              <div class="money" style="flex:1"><input placeholder="—" /></div>
+              <select class="itemsel"><option>— not chosen —</option></select>
+              <span class="toggle no"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="gh"><span class="badge b-amber">2 need a price</span><span class="nm">Large</span><span style="font-size:12.5px;color:#8a7c94">from ৳2,600</span><span style="color:#8a7c94">▾</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="shot">Medium · Red</div>
+    <div class="pv">
+      <h3>Red Rose Bouquet</h3>
+      <div><span class="price">৳1,850</span></div>
+      <div class="axis"><div class="an">Size</div>
+        <button class="opt">Small</button><button class="opt on">Medium</button><button class="opt">Large</button></div>
+      <div class="axis"><div class="an">Colour</div>
+        <button class="opt on"><span class="sw-dot" style="background:#d64b6a"></span>Red</button>
+        <button class="opt"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</button>
+        <button class="opt dead"><span class="sw-dot" style="background:#fff"></span>White</button></div>
+      <button class="cta">Add to cart</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════ C — CARDS ══════════════════════ -->
+<div class="page" id="p-c">
+<div class="shell">
+  <div class="main">
+    <div class="why">
+      <b>C · A card per pair</b> — every combination is a tile with its photo on top.
+      <ul>
+        <li><span class="good">Strong:</span> the photo leads. For a flower shop that is the thing that actually sells, and a missing photo is impossible to miss.</li>
+        <li><span class="bad">Weak:</span> nine tiles fill the screen, and the prices no longer sit in one column — you cannot scan them.</li>
+        <li><span class="bad">Weak:</span> filling nine prices means nine separate stops. The grid does it in one bar.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ci">▧</div><div class="ct">9 pairs</div><span class="i">i</span></div>
+      <div class="cb">
+        <div class="cards">
+          <div class="vcard"><div class="vshot">🌹 photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#d64b6a"></span>Small × Red</div>
+            <div class="vrow"><span>Price</span><input value="1,200" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>ROSE-RED-S · 40</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle"></span></div>
+          </div></div>
+
+          <div class="vcard"><div class="vshot">＋ add photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#f2b8cd"></span>Small × Pink</div>
+            <div class="vrow"><span>Price</span><input value="1,200" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>ROSE-PINK-S · 12</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle"></span></div>
+          </div></div>
+
+          <div class="vcard"><div class="vshot">＋ add photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#fff"></span>Small × White</div>
+            <div class="vrow"><span>Price</span><input value="1,150" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>ROSE-WHT-S · 0</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle"></span></div>
+          </div></div>
+
+          <div class="vcard"><div class="vshot">🌹 photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#d64b6a"></span>Medium × Red</div>
+            <div class="vrow"><span>Price</span><input value="1,850" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>ROSE-RED-M · 25</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle"></span></div>
+          </div></div>
+
+          <div class="vcard off"><div class="vshot">＋ add photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#fff"></span>Medium × White</div>
+            <div class="vrow"><span>Price</span><input placeholder="—" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>— none —</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle no"></span></div>
+          </div></div>
+
+          <div class="vcard"><div class="vshot">＋ add photo</div><div class="vbody">
+            <div class="vtitle"><span class="sw-dot" style="background:#d64b6a"></span>Large × Red</div>
+            <div class="vrow"><span>Price</span><input value="2,600" /></div>
+            <div class="vrow"><span>Item</span><select class="itemsel" style="max-width:100%"><option>ROSE-RED-L · 9</option></select></div>
+            <div class="vrow"><span>Sells</span><span class="toggle"></span></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="shot">Medium · Red</div>
+    <div class="pv">
+      <h3>Red Rose Bouquet</h3>
+      <div><span class="price">৳1,850</span></div>
+      <div class="axis"><div class="an">Size</div>
+        <button class="opt">Small</button><button class="opt on">Medium</button><button class="opt">Large</button></div>
+      <div class="axis"><div class="an">Colour</div>
+        <button class="opt on"><span class="sw-dot" style="background:#d64b6a"></span>Red</button>
+        <button class="opt"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</button>
+        <button class="opt dead"><span class="sw-dot" style="background:#fff"></span>White</button></div>
+      <button class="cta">Add to cart</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════ SHOP SIDE ══════════════════════ -->
+<div class="page" id="p-shop">
+<div class="shell" style="max-width:1100px">
+  <div class="main">
+    <div class="why">
+      <b>The customer's side is the same in all three</b> — the admin layout is only how the shop types the numbers in.
+      What reaches the customer is one page with two rows of buttons.
+      <ul>
+        <li>Choosing <b>Medium</b> then <b>Red</b> lands on one exact pair — its own price, its own photo, its own stock.</li>
+        <li>A pair that is not sold, or has run out, <b>greys out in the second row</b> the moment the first is chosen. The customer can never
+            pick a combination the shop cannot ship.</li>
+        <li>Nothing goes into the cart until both rows are answered. The <b>Add to cart</b> button stays asleep until then.</li>
+        <li>The cart, the order, the invoice, the sales report all already work “by variant” — they need no change at all.</li>
+      </ul>
+    </div>
+
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div class="phone" style="position:static">
+        <div class="shot">Nothing chosen yet</div>
+        <div class="pv">
+          <h3>Red Rose Bouquet</h3>
+          <div><span class="price">৳1,150 – ৳2,600</span></div>
+          <div class="axis"><div class="an">Size · choose one</div>
+            <button class="opt">Small</button><button class="opt">Medium</button><button class="opt">Large</button></div>
+          <div class="axis"><div class="an">Colour · choose one</div>
+            <button class="opt"><span class="sw-dot" style="background:#d64b6a"></span>Red</button>
+            <button class="opt"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</button>
+            <button class="opt"><span class="sw-dot" style="background:#fff"></span>White</button></div>
+          <button class="cta" style="background:#d6cddd;color:#fff">Choose size and colour</button>
+          <div class="note">A price range until both are chosen.</div>
+        </div>
+      </div>
+
+      <div class="phone" style="position:static">
+        <div class="shot">Large · chosen</div>
+        <div class="pv">
+          <h3>Red Rose Bouquet</h3>
+          <div><span class="price">৳2,600</span></div>
+          <div class="axis"><div class="an">Size</div>
+            <button class="opt">Small</button><button class="opt">Medium</button><button class="opt on">Large</button></div>
+          <div class="axis"><div class="an">Colour</div>
+            <button class="opt on"><span class="sw-dot" style="background:#d64b6a"></span>Red</button>
+            <button class="opt"><span class="sw-dot" style="background:#f2b8cd"></span>Pink</button>
+            <button class="opt dead"><span class="sw-dot" style="background:#fff"></span>White</button></div>
+          <button class="cta">Add to cart</button>
+          <div class="note">Only 9 left · white is not made in large</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+  document.querySelectorAll('.sw').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')});
+      document.querySelectorAll('.page').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');
+      document.getElementById('p-'+b.dataset.p).classList.add('on');
+      window.scrollTo(0,0);
+    });
+  });
+  document.querySelectorAll('.toggle').forEach(function(t){
+    t.addEventListener('click',function(){t.classList.toggle('no')});
+  });
+</script>
+</body>
+</html>

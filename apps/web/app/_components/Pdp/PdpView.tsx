@@ -399,6 +399,21 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   */
   const anyVariantStock = vList.some((v) => v.stockQty > 0);
   const variantOut = anyVariantStock && !!variant && variant.stockQty === 0;
+
+  /*  ── DEC-PRD-045 · a two-list product must be answered ────────────────
+      With one list, choosing nothing has always been allowed: the product's
+      own price and photo stand, and the shop sends the plain thing.
+
+      With two lists there is no plain thing. Nine pairs exist, each with its
+      own price and its own item in the warehouse, and an order naming none of
+      them cannot be picked off a shelf. So the buttons wait until a pair is
+      chosen — and because the pair carries the price, waiting is also the
+      only honest way to show one.  */
+  const axisCount = new Set(
+    vList.flatMap((v) => (v.parts?.length ? v.parts.map((p) => p.attributeId) : [])),
+  ).size;
+  const needsPick = axisCount > 1 && !variant;
+
   const soldOut = detail.availability?.state === "OUT_OF_STOCK" || variantOut;
   const preorder =
     detail.availability?.state === "PRE_ORDER"
@@ -410,7 +425,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
         nothing should reach here — but `addLine` is also what the sticky bar
         and any future shortcut call, and a cart line for something we do not
         have becomes a real order later. Cheap to check, expensive to miss.  */
-    if (soldOut) return;
+    if (soldOut || needsPick) return;
     addLine(currentLine());
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -426,7 +441,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     CtaRow, so no separate guard is needed here.
   */
   function buyNow() {
-    if (soldOut) return;
+    if (soldOut || needsPick) return;
     addLine(currentLine());
     router.push("/checkout");
   }
@@ -1065,6 +1080,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   total={total}
                   added={added}
                   preorder={preorder}
+                  needsPick={needsPick}
                   onAddToCart={addToCart}
                   onBuyNow={buyNow}
                 />
@@ -1120,6 +1136,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           added={added}
           soldOut={soldOut}
           preorder={!!preorder}
+          needsPick={needsPick}
           onAddToCart={addToCart}
           onBuyNow={buyNow}
         />

@@ -8,7 +8,7 @@ import {
   SoldOutMode,
 } from '@prisma/client';
 
-/* child input shapes (Product owns) — সব দাম paisa integer */
+/* child input shapes (Product owns) — every price is a paisa integer */
 export interface ProductImageInput {
   url: string;
   sortOrder?: number;
@@ -32,12 +32,13 @@ export interface ProductFaqInput {
 export interface ProductTrustBadgeInput {
   icon: string;
   /**
-   * DEC-PRD-030 — নিজের আপলোড করা icon-এর ঠিকানা। ভরা থাকলে `icon`-এর
-   * জায়গা নেয়।
+   * DEC-PRD-030 — the address of an uploaded icon. When filled it takes the
+   * place of `icon`.
    *
-   * ⚠️ কলামটা ২ আগস্ট থেকেই ছিল, কিন্তু এই DTO-তে না থাকায় কখনো লেখা
-   * হয়নি। ধরা পড়ল যখন category-র badge product-এ কপি করার পথ বানানো
-   * হলো: মালিকের upload করা icon কপি হয়ে stock icon-এ নেমে যেত।
+   * ⚠️ The column existed from 2 August, but it was missing from this DTO, so
+   * it was never written. It surfaced while building the path that copies a
+   * category's badge onto a product: the owner's uploaded icon came down the
+   * wire as a stock icon.
    */
   iconUrl?: string | null;
   label: string;
@@ -45,22 +46,36 @@ export interface ProductTrustBadgeInput {
   sortOrder?: number;
 }
 
-/** DEC-PRD-012 — এক product-এর একটা variant */
+/** DEC-PRD-012 / DEC-PRD-045 — one thing a product can be sold as */
 export interface ProductVariantInput {
-  /** Variants & options master-এর মান (লাল / চকলেট / ২ কেজি) */
+  /**
+   * The LEAD value — the first axis, the one the row is filed under.
+   * Kept because every read that predates DEC-PRD-045 goes through it.
+   */
   variantValueId: string;
-  /** নিজের ছবি। খালি = product-এর মূল ছবিই থাকে। */
+  /**
+   * DEC-PRD-045 — every value in this combination, the lead one included.
+   * ["Medium", "Red"] is one thing to sell, with one price and one stock.
+   *
+   * Missing or empty means a plain single-axis row, and then it is read as
+   * `[variantValueId]` — which is exactly what every product saved before
+   * 23 August 2026 sends.
+   */
+  valueIds?: string[];
+  /** Its own photo. Blank leaves the product's main photo in place. */
   imageUrl?: string | null;
-  /** নিজের মজুদ — হাতে গোনা (Manual)। Inventory-তে থাকলে `itemId` চলে। */
+  /** Its own stock, counted by hand (Manual). With Inventory, `itemId` rules. */
   stockQty?: number;
   /**
-   * DEC-PRD-015 — এই রঙের নিজের stockroom Item। `null` = নিজের Item নেই,
-   * তখন product-এর Item-ই ধরা হয়। id দিয়ে, SKU লেখা দিয়ে নয় (DEC-ITM-021)।
+   * DEC-PRD-015 — this combination's own stockroom Item. `null` means it has
+   * none, and then the product's own Item is used. By id, never by SKU text
+   * (DEC-ITM-021).
    */
   itemId?: string | null;
-  /** ঐচ্ছিক। `null` = product-এর মূল দাম — মালিকের নিয়ম, রঙে এক দাম। */
+  /** Optional. `null` = the product's own price — the owner's rule: a colour
+   *  change keeps the price, a size or flavour change need not. */
   pricePaisa?: number | null;
-  /** DEC-PRD-032 — এই variant-এর নিজের ছাড়। PERCENT = basis point, FLAT = পয়সা। */
+  /** DEC-PRD-032 — this row's own discount. PERCENT = basis points, FLAT = paisa. */
   discountType?: 'NONE' | 'FLAT' | 'PERCENT';
   discountValue?: number;
   sortOrder?: number;
@@ -99,13 +114,13 @@ export interface CreateProductDto {
    *  costs the workshop no time and never fills a day. */
   makeMinutes?: number | null;
   /**
-   * DEC-PDP-09 — মজুদ শূন্য হলে কী হবে। মালিক প্রতি product-এ ঠিক করেন;
-   * product type থেকে আন্দাজ করা হয় না।
+   * DEC-PDP-09 — what happens when stock reaches zero. The owner decides it
+   * per product; it is never guessed from the product type.
    */
   soldOutMode?: SoldOutMode;
   /**
-   * PRE_ORDER হলে মালিকের লেখা "Expected back on"। ISO date string in, `null`
-   * clears it. lead time থেকে হিসাব করা হয় না — মালিক নিজে লিখে দেন।
+   * On PRE_ORDER, the "Expected back on" the owner wrote. ISO date string in,
+   * `null` clears it. Never worked out from lead time — he types it himself.
    */
   preorderDate?: string | null;
   tagIds?: string[];
@@ -135,8 +150,9 @@ export interface CreateProductDto {
   discountType?: DiscountType;
   discountValue?: number; // FLAT=paisa; PERCENT=basis points (1000=10%)
   /**
-   * DEC-PRD-028 — ছাড়টা কবে থেকে কবে পর্যন্ত। ISO date string, `null` = খালি।
-   * দুটোই খালি মানে ছাড় এখনই চলছে, শেষ নেই (আগের আচরণ)।
+   * DEC-PRD-028 — from when to when the discount runs. ISO date string,
+   * `null` = blank. Both blank means it is running now with no end — the
+   * behaviour that came before these two columns.
    */
   discountStartsAt?: string | null;
   discountEndsAt?: string | null;
@@ -152,12 +168,12 @@ export interface CreateProductDto {
   stockQty?: number;
   showStock?: boolean;
 
-  // sales counter (seed only; auto +1 Sales module-এ)
+  // sales counter (seed only; the Sales module adds +1 by itself)
   salesCount?: number;
 
   /**
-   * DEC-PRD-025 — প্রতি সময়ের নিজের শুরুর সংখ্যা, আর কোনটা এখন চলবে।
-   * দেখানো সংখ্যা = ওই সময়ের seed + ওই সময়ের সত্যিকারের order।
+   * DEC-PRD-025 — a starting number per window, and which window is showing.
+   * What the page displays = that window's seed + that window's real orders.
    */
   salesSeedToday?: number;
   salesSeedWeek?: number;
@@ -166,8 +182,9 @@ export interface CreateProductDto {
   salesWindow?: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
 
   /**
-   * DEC-PRD-026 — গ্রাহক এই product-এ নিজের লেখা বা ছবি দিতে পারবে কি না।
-   * দুটোই বন্ধ থাকলে product page-এ ওই অংশটাই আঁকা হয় না।
+   * DEC-PRD-026 — whether the customer may add their own words or photo to
+   * this product. With both off, that part of the product page is not drawn
+   * at all.
    */
   persoTitle?: string | null;
   persoText?: boolean;
@@ -178,7 +195,7 @@ export interface CreateProductDto {
   persoImageLabel?: string | null;
   persoImageHint?: string | null;
 
-  /** DEC-PRD-027 — "Want this customised?" সবুজ বাক্স, product-প্রতি */
+  /** DEC-PRD-027 — the green "Want this customised?" box, per product */
   customiseOn?: boolean;
   customiseTitle?: string | null;
   customiseSub?: string | null;
@@ -209,30 +226,31 @@ export interface CreateProductDto {
   variantValueId?: string | null;
 
   /**
-   * DEC-PRD-012 — এই product-এর রঙ / ফ্লেভার / মাপগুলো, প্রতিটার নিজের ছবি,
-   * মজুদ আর (ঐচ্ছিক) দাম নিয়ে।
+   * DEC-PRD-012 / DEC-PRD-045 — everything this product can be sold as, each
+   * with its own photo, its own stock and (optionally) its own price.
    *
-   * ⚠️ `undefined` = form কিছু বলেনি, আগেরগুলো থাক। `[]` = মালিক সব তুলে
-   * দিয়েছেন, তখন product-টার কোনো variant নেই আর page-এ ওই অংশটাই দেখা
-   * যায় না। দুটো আলাদা রাখতেই হবে — নাহলে "সব তুলে দেওয়া" কখনো save হবে না,
-   * ঠিক যেভাবে ১ আগস্টে ছবি হারিয়ে যাচ্ছিল।
+   * ⚠️ `undefined` = the form said nothing, so leave what is there. `[]` =
+   * the owner removed them all, and then the product has no variants and that
+   * part of the page is not drawn. The two must stay apart — otherwise
+   * "removed them all" would never save, exactly the way photos were being
+   * lost on 1 August.
    */
   variants?: ProductVariantInput[];
 
   /**
-   * DEC-DLV-008 — কোন কোন delivery-তে এই product যেতে পারে, id দিয়ে।
-   * নামগুলো Delivery module-এর, আর সংযোগ id-র — লেখার নয়।
+   * DEC-DLV-008 — which deliveries this product can go on, by id. The names
+   * belong to the Delivery module, and the link is by id, never by text.
    *
-   * ⚠️ `undefined` = form কিছু বলেনি, আগেরটাই থাক। `[]` = মালিক সব তুলে
-   * দিয়েছেন, তখন product শুধু schedule করা দিনে যাবে। দুটো আলাদা রাখতেই
-   * হবে, নাহলে "সব তুলে দেওয়া" কখনো save হবে না।
+   * ⚠️ `undefined` = the form said nothing, leave what is there. `[]` = the
+   * owner removed them all, and then the product only goes on a scheduled
+   * day. The two must stay apart, or "removed them all" would never save.
    */
   deliveryTypeIds?: string[];
 
   /**
-   * ⚠️ পুরনো তিনটা — DEC-DLV-008-এর পর `deliveryTypeIds`-ই আসল উত্তর।
-   * এগুলো এখনো লেখা হয় শুধু storefront-এর জন্য, যতক্ষণ না সেটা নতুন
-   * টেবিলে সরে (ধাপ ৪)। তারপর এই তিনটা লাইনই মুছে যাবে।
+   * ⚠️ The old three. Since DEC-DLV-008 the real answer is `deliveryTypeIds`.
+   * These are still written, only for the storefront, until it moves onto the
+   * new table (step 4). Then all three lines go.
    */
   supportsExpress?: boolean;
   supportsSameDay?: boolean;
@@ -250,7 +268,7 @@ export interface CreateProductDto {
   faqs?: ProductFaqInput[];
   trustBadges?: ProductTrustBadgeInput[];
 
-  actorName?: string; // audit: কে করছে
+  actorName?: string; // audit: who is doing it
 }
 
 export type UpdateProductDto = Partial<CreateProductDto>;

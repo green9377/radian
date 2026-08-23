@@ -9,6 +9,7 @@ import type {
   PickedVariant,
   SizeOption,
   VariantGroup,
+  VariantPart,
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
 import { BlkTitle } from "./PdpBuyBar";
@@ -66,159 +67,226 @@ export function VariantPicker({
 }) {
   const active = variants.find((v) => v.id === activeId);
 
-  /*  The heading is the owner's list name — "Colour", "Flavour", "Weight".
-      They all belong to one list, so the first is enough.  */
-  const heading = variants[0]?.attribute || "Choose";
-
   /*  ⚠️ Stock only closes the door when at least one of them has stock. All
       zeroes means the fields have not been filled in yet — and then none of
       them is called "Sold out". PdpView uses this exact same condition, so the
       two places say the same thing.  */
   const anyStock = variants.some((v) => v.stockQty > 0);
 
-  /*  What the master asked to show. Everything on one list is of the same
-      kind, so this is read once.  */
-  const mode = variants[0]?.displayMode ?? "SWATCH";
-  const asSwatch = mode === "SWATCH";
-  const asPhoto = mode === "PHOTO";
+  /*  ── DEC-PRD-045 · one row of buttons per list ────────────────────────
+      A product in three sizes and three colours arrives here as nine
+      variants. Drawn flat that is nine buttons reading "Small · Red",
+      "Small · Pink" … which nobody can choose from. Drawn as two rows it is
+      three buttons and three buttons, and the pair between them is the
+      thing being bought.
+
+      A product with one list has one part per variant, so this produces
+      exactly one row — the screen it always was.  */
+  const partsOf = (v: PickedVariant): VariantPart[] =>
+    v.parts?.length
+      ? v.parts
+      : [
+          {
+            valueId: v.id,
+            label: v.label,
+            attribute: v.attribute,
+            attributeId: v.attribute,
+            displayMode: v.displayMode,
+            swatch: v.swatch,
+            imageUrl: v.imageUrl,
+          },
+        ];
+
+  /*  The lists, in the order the first variant carries them — which is the
+      master's own order, set on the server.  */
+  const axes: { id: string; name: string; displayMode: string; values: VariantPart[] }[] = [];
+  for (const v of variants) {
+    for (const p of partsOf(v)) {
+      let axis = axes.find((a) => a.id === p.attributeId);
+      if (!axis) {
+        axis = { id: p.attributeId, name: p.attribute, displayMode: p.displayMode, values: [] };
+        axes.push(axis);
+      }
+      if (!axis.values.some((x) => x.valueId === p.valueId)) axis.values.push(p);
+    }
+  }
+
+  /** what is chosen right now, per list */
+  const chosen = new Map<string, string>();
+  if (active) for (const p of partsOf(active)) chosen.set(p.attributeId, p.valueId);
+
+  /*  Every variant that would still be reachable if this one value were
+      chosen and the OTHER lists kept their current answer. Empty means the
+      shop does not sell that combination — the button goes quiet rather than
+      leading to a dead end (the fault every two-axis shop has to answer).  */
+  const reachable = (axisId: string, valueId: string) =>
+    variants.filter((v) => {
+      const parts = partsOf(v);
+      if (!parts.some((p) => p.attributeId === axisId && p.valueId === valueId)) return false;
+      return parts.every(
+        (p) => p.attributeId === axisId || !chosen.has(p.attributeId) || chosen.get(p.attributeId) === p.valueId,
+      );
+    });
+
+  /*  Pressing a button keeps every other list where it is. When that exact
+      pair is not sold, the nearest one carrying the pressed value is taken
+      instead — in stock first, so a press never lands on "Sold out" while a
+      live pair exists.  */
+  const pickValue = (axisId: string, valueId: string) => {
+    const near = reachable(axisId, valueId);
+    const pool = near.length
+      ? near
+      : variants.filter((v) => partsOf(v).some((p) => p.attributeId === axisId && p.valueId === valueId));
+    const target = pool.find((v) => v.stockQty > 0) ?? pool[0];
+    if (target) onPick(target.id);
+  };
 
   return (
-    <section className="mb-6">
-      <div className="flex items-baseline gap-2 mb-3">
-        <b className="text-[14px] font-bold text-ink">{heading}</b>
-        {active && (
-          <span className="text-[13px] text-body-soft">
-            — {active.label}
-            {/*  The chip above gives the whole product's total (6 + 4 = 10).
-                The number for the colour actually being bought belongs here,
-                because this is where the decision is made — reading "10 left"
-                and then asking for 8 red ones ends in disappointment.  */}
-            {showStock && active.stockQty > 0 && (
-              <span className="text-body-soft"> · {active.stockQty} left</span>
-            )}
-          </span>
-        )}
-      </div>
+    <>
+      {axes.map((axis) => {
+        const asSwatch = axis.displayMode === "SWATCH";
+        const asPhoto = axis.displayMode === "PHOTO";
+        const here = chosen.get(axis.id);
+        const chosenLabel = axis.values.find((x) => x.valueId === here)?.label;
 
-      <div className={`flex flex-wrap ${asSwatch ? "gap-3" : "gap-2.5"}`}>
-        {variants.map((v) => {
-          const on = v.id === activeId;
-          const out = anyStock && v.stockQty === 0;
-          const dearer = v.pricePaisa !== basePaisa;
-
-          /*
-            ⚠️ The round colour button shows the **colour**, not the photo —
-            owner, 9 Aug 2026 (translated): *"if you select a colour and give an
-            image, the frontend shows that image instead of the colour's name
-            and colour, which is a problem for the customer."*
-
-            He was right. When a photo existed it used to go on the round
-            button, leaving three near-identical little images side by side —
-            no way to tell which was pink and which was white from a 10-pixel
-            thumbnail. A button for choosing a colour will show the colour; the
-            variant's photo changes the big image above, which is where it is
-            actually useful.
-
-            A photo only goes here when the list is of the PHOTO kind (flavour,
-            pattern) — where there is no colour to show at all.
-          */
-          const fill = asSwatch
-            ? v.swatch || "#DDC9EC"
-            : v.imageUrl
-              ? `url(${v.imageUrl}) center/cover`
-              : v.swatch || "#DDC9EC";
-
-          /*
-            ⚠️ A photo is never required — the owner's rule, 2 Aug 2026:
-            *"ami chai eta requirement na hok"* ("I want this not to be a
-            requirement").
-
-            Even when the list is of the PHOTO kind, a value with no photo sits
-            there with just its name. Otherwise an empty purple square would
-            appear in "Standard"'s place and the customer would think the image
-            had failed to load.
-          */
-          const withPhoto = asPhoto && !!v.imageUrl;
-
-          if (asSwatch) {
-            return (
-              <button
-                key={v.id}
-                onClick={() => !out && onPick(v.id)}
-                disabled={out}
-                aria-current={on}
-                title={out ? `${v.label} — sold out` : v.label}
-                className={`relative w-11 h-11 rounded-full transition-transform ${
-                  on
-                    ? "ring-2 ring-orchid ring-offset-2"
-                    : "ring-1 ring-lavender-deep ring-offset-2 hover:scale-110"
-                } ${out ? "opacity-40 cursor-not-allowed hover:scale-100" : ""}`}
-                style={{ background: fill }}
-              >
-                {on && !out && (
-                  <span className="absolute inset-0 grid place-items-center">
-                    <Icon name="check" className="w-4 h-4 text-white drop-shadow" />
-                  </span>
-                )}
-                {/*  Sold out is shown with a strike — fading alone looks the
-                    same as "not selected".  */}
-                {out && (
-                  <span className="absolute inset-0 grid place-items-center">
-                    <span className="block w-full h-[1.5px] bg-white/90 rotate-45" />
-                  </span>
-                )}
-              </button>
-            );
-          }
-
-          return (
-            <button
-              key={v.id}
-              onClick={() => !out && onPick(v.id)}
-              disabled={out}
-              aria-current={on}
-              className={`text-left rounded-[12px] border-[1.5px] overflow-hidden bg-white transition-all duration-200 ${
-                withPhoto ? "w-[86px]" : "px-4 py-2.5"
-              } ${
-                on ? "border-orchid bg-orchid-soft" : "border-lavender-deep hover:border-orchid-mid"
-              } ${out ? "opacity-45 cursor-not-allowed" : "active:scale-[0.97]"}`}
-            >
-              {withPhoto && <span className="block aspect-square" style={{ background: fill }} />}
-              <span className={withPhoto ? "block px-1.5 pt-1.5 pb-2" : "block"}>
-                <span
-                  className={`block text-[13px] font-semibold truncate ${
-                    on ? "text-purple" : "text-ink"
-                  } ${out ? "line-through" : ""}`}
-                >
-                  {v.label}
-                </span>
-                {/*  The price is printed only when it really differs. Print
-                    the same number four times under four same-priced colours
-                    and the eye stops reading it — and then nobody sees the one
-                    that genuinely is different either.  */}
-                {/*  DEC-PRD-032 — this one's own offer, struck price beside it.
-                    Only where the shop actually set one; a derived "was" price
-                    is how the ৳1,418 nonsense happened (8 Aug 2026).  */}
-                <span className="block text-[11.5px] text-body-soft">
-                  {out ? (
-                    "Sold out"
-                  ) : dearer ? (
-                    <>
-                      {formatTaka(v.pricePaisa)}
-                      {v.wasPaisa ? (
-                        <span className="line-through opacity-60 ml-1">{formatTaka(v.wasPaisa)}</span>
-                      ) : null}
-                    </>
-                  ) : (
-                    ""
+        return (
+          <section className="mb-6" key={axis.id}>
+            <div className="flex items-baseline gap-2 mb-3">
+              <b className="text-[14px] font-bold text-ink">{axis.name}</b>
+              {chosenLabel && (
+                <span className="text-[13px] text-body-soft">
+                  — {chosenLabel}
+                  {/*  The chip above gives the whole product's total (6 + 4 = 10).
+                      The number for the exact thing being bought belongs here,
+                      because this is where the decision is made — reading "10 left"
+                      and then asking for 8 red ones ends in disappointment.  */}
+                  {showStock && axes.length === 1 && active && active.stockQty > 0 && (
+                    <span className="text-body-soft"> · {active.stockQty} left</span>
                   )}
                 </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
+              )}
+            </div>
+
+            <div className={`flex flex-wrap ${asSwatch ? "gap-3" : "gap-2.5"}`}>
+              {axis.values.map((val) => {
+                const on = here === val.valueId;
+                const near = reachable(axis.id, val.valueId);
+                /*  Not sold in this combination at all, or sold and run out.
+                    Both end the same way for the customer, so both look the
+                    same: the button is there, and it is shut.  */
+                const out =
+                  near.length === 0 || (anyStock && near.every((v) => v.stockQty === 0));
+                /*  Only worth printing on a single-list product. With two
+                    lists a price belongs to the PAIR, and printing it under
+                    one half of the pair is how a page tells a lie.  */
+                const only = axes.length === 1 ? near[0] : null;
+                const dearer = !!only && only.pricePaisa !== basePaisa;
+
+                /*
+                  ⚠️ The round colour button shows the **colour**, not the photo —
+                  owner, 9 Aug 2026 (translated): *"if you select a colour and give an
+                  image, the frontend shows that image instead of the colour's name
+                  and colour, which is a problem for the customer."*
+
+                  A photo only goes here when the list is of the PHOTO kind (flavour,
+                  pattern) — where there is no colour to show at all.
+                */
+                const fill = asSwatch
+                  ? val.swatch || "#DDC9EC"
+                  : val.imageUrl
+                    ? `url(${val.imageUrl}) center/cover`
+                    : val.swatch || "#DDC9EC";
+
+                /*
+                  ⚠️ A photo is never required — the owner's rule, 2 Aug 2026:
+                  *"ami chai eta requirement na hok"*. A value with no photo sits
+                  there with just its name; an empty purple square would read as an
+                  image that failed to load.
+                */
+                const withPhoto = asPhoto && !!val.imageUrl;
+
+                if (asSwatch) {
+                  return (
+                    <button
+                      key={val.valueId}
+                      onClick={() => !out && pickValue(axis.id, val.valueId)}
+                      disabled={out}
+                      aria-current={on}
+                      title={out ? `${val.label} — not available` : val.label}
+                      className={`relative w-11 h-11 rounded-full transition-transform ${
+                        on
+                          ? "ring-2 ring-orchid ring-offset-2"
+                          : "ring-1 ring-lavender-deep ring-offset-2 hover:scale-110"
+                      } ${out ? "opacity-40 cursor-not-allowed hover:scale-100" : ""}`}
+                      style={{ background: fill }}
+                    >
+                      {on && !out && (
+                        <span className="absolute inset-0 grid place-items-center">
+                          <Icon name="check" className="w-4 h-4 text-white drop-shadow" />
+                        </span>
+                      )}
+                      {/*  Shut is shown with a strike — fading alone looks the
+                          same as "not selected".  */}
+                      {out && (
+                        <span className="absolute inset-0 grid place-items-center">
+                          <span className="block w-full h-[1.5px] bg-white/90 rotate-45" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={val.valueId}
+                    onClick={() => !out && pickValue(axis.id, val.valueId)}
+                    disabled={out}
+                    aria-current={on}
+                    className={`text-left rounded-[12px] border-[1.5px] overflow-hidden bg-white transition-all duration-200 ${
+                      withPhoto ? "w-[86px]" : "px-4 py-2.5"
+                    } ${
+                      on ? "border-orchid bg-orchid-soft" : "border-lavender-deep hover:border-orchid-mid"
+                    } ${out ? "opacity-45 cursor-not-allowed" : "active:scale-[0.97]"}`}
+                  >
+                    {withPhoto && <span className="block aspect-square" style={{ background: fill }} />}
+                    <span className={withPhoto ? "block px-1.5 pt-1.5 pb-2" : "block"}>
+                      <span
+                        className={`block text-[13px] font-semibold truncate ${
+                          on ? "text-purple" : "text-ink"
+                        } ${out ? "line-through" : ""}`}
+                      >
+                        {val.label}
+                      </span>
+                      {/*  The price is printed only when it really differs. Print
+                          the same number four times under four same-priced colours
+                          and the eye stops reading it — and then nobody sees the one
+                          that genuinely is different either.  */}
+                      {/*  DEC-PRD-032 — this one's own offer, struck price beside it.
+                          Only where the shop actually set one; a derived "was" price
+                          is how the ৳1,418 nonsense happened (8 Aug 2026).  */}
+                      <span className="block text-[11.5px] text-body-soft">
+                        {out ? (
+                          "Sold out"
+                        ) : dearer && only ? (
+                          <>
+                            {formatTaka(only.pricePaisa)}
+                            {only.wasPaisa ? (
+                              <span className="line-through opacity-60 ml-1">{formatTaka(only.wasPaisa)}</span>
+                            ) : null}
+                          </>
+                        ) : (
+                          ""
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </>
   );
 }
 

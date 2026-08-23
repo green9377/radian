@@ -6,6 +6,51 @@
 
 ---
 
+## 🧩 DEC-PRD-045 — Size × Colour on one product (owner, 23 Aug)
+
+**তাঁর কথা:** *"amr akta product ache jekhane lage ache mediam ache abr small o
+ache abr protta size ar ar color o ache"* — তিন size, প্রতিটায় তিন রং。 আর তিনি
+নিশ্চিত করেছেন: **প্রতিটা জোড়ার নিজের দাম, নিজের stock, warehouse-এ নিজের item**。
+
+**যে দেয়ালে আটকেছিল:** `ProductVariant` সারি ধরত একটাই মান, আর
+`@@unique([productId, variantValueId])` মানে এক product-এ "Medium" একবারই — তাই
+Medium×Red আর Medium×Pink কখনো একসাথে থাকতে পারত না。 এজন্যই পর্দায়
+"Which list" এসে একটাই বাছতে বলত。
+
+**যা হলো — সারি এখন "মান" নয়, "জোড়া":**
+
+- নতুন table `ProductVariantValue` — এক সারিতে যত মান লাগে (Medium + Red)
+- `comboKey` কলাম (সাজানো value-id, `|` দিয়ে জোড়া) আর
+  `@@unique([productId, comboKey])`; পুরনো unique উঠে গেছে
+- migration `20260823120000_variant_combinations` প্রতিটা পুরনো সারিকে
+  **এক-মানের জোড়া** বানিয়ে দেয় — তাই এক-list-এর পুরনো product একটুও বদলায়নি
+- server নিয়ম: এক জোড়ায় একই list দুবার নয় · সব সারি একই list-গুলো ব্যবহার করবে
+  (নাহলে grid এবড়োখেবড়ো, কোনো জোড়ার দাম কোথাও থাকে না)
+- `ProductVariantValue` **soft-delete skip তালিকায়** যোগ করা হয়েছে ওই দিনই —
+  REV-RTN-4 ফাঁদ (deletedAt নেই এমন table filter করলে API boot-ই করে না)
+
+**Admin — মালিকের বাছাই "C, but card gula jen dropdown hoy":**
+Which lists (একাধিক চালু) → প্রতিটা list-এর মান বাছা → নিচে প্রতিটা জোড়া
+**একটা করে বন্ধ কার্ড**: ছবি · নাম · দাম · কত আছে · ON/OFF。 খুললে ভেতরে ওই
+জোড়ার নিজের দাম আর সংখ্যা; ছবি আর Inventory item নিজেদের tab-এ (৮ আগস্টের নিয়ম),
+এক চাপে。 আগের সব tab-এর per-variant অংশ এখন `variantValueId` নয়, **`key`**
+(comboKey) ধরে চলে。
+
+**Storefront:** `PdpVariants` প্রতি list-এ **একটা করে সারি** আঁকে。 এক list-এর
+product-এ ঠিক আগের মতোই একটাই সারি。 যে জোড়া বিক্রি হয় না বা ফুরিয়েছে সেটা
+দ্বিতীয় সারিতে **নিজেই নিভে যায়** — গ্রাহক এমন জোড়া বাছতেই পারবে না。
+দুই list থাকলে জোড়া না বাছা পর্যন্ত **Add to cart / Buy Now ঘুমিয়ে থাকে**
+("Choose an option first") — কারণ ৯টা জোড়ার আলাদা দাম আর আলাদা item, জোড়া না
+বললে order গুদাম থেকে তোলাই যায় না。
+
+**অক্ষত:** cart · checkout · order · invoice · finance — সব আগে থেকেই "variant
+ধরে" চলত, একটা লাইনও বদলায়নি。 receipt-এ নাম যাবে "Medium · Red"。
+
+⚠️ **বাকি:** `RUN_TESTS.bat` এখনো চালানো হয়নি (sandbox-এ DB নেই) — মালিকের
+মেশিনে চালাতে হবে。
+
+---
+
 ## 🌐 Phase 4 OPEN — Product / Catalogue (22 Aug)
 
 **DEC-WEB-010 — Flat URLs, the FlowerAura pattern (owner's choice, 22 Aug).**

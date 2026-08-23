@@ -1920,9 +1920,30 @@ model ProductVariant {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  /// Which value - from the Variants & options master (Red / Chocolate / 2 kg)
+  /// ── DEC-PRD-045 · a row is a COMBINATION, not a value ──────────────────
+  /// The owner, 23 August 2026: *"suppose I have a product that comes in
+  /// large, medium and small, and every size comes in every colour"* — nine
+  /// things to sell, and he confirmed each pair carries its own price, its
+  /// own stock and its own Item in the warehouse.
+  ///
+  /// So this row is now "Medium x Red", and the values it is made of live in
+  /// `values` below. `variantValueId` stays as the LEAD value — the first
+  /// axis, the one the row is filed under — because every read that predates
+  /// this change goes through it, and a row with no lead value would have
+  /// meant touching all of them at once.
   variantValueId String
   variantValue   VariantValue @relation(fields: [variantValueId], references: [id])
+
+  /// Every value in this combination, the lead one included. One value for a
+  /// plain single-axis product, two for Size x Colour, more if a product ever
+  /// needs a third axis — nothing here caps it.
+  values ProductVariantValue[]
+
+  /// The value ids of this combination, sorted and joined with "|". It exists
+  /// only so the database itself can refuse a duplicate pair: a unique index
+  /// cannot be built across rows of a child table, but it can be built on
+  /// this one column. Never shown, never parsed for meaning.
+  comboKey String @default("")
 
   /// This variant's own photo. Blank leaves the product's main photo in place.
   imageUrl String? @db.Text
@@ -1984,9 +2005,28 @@ model ProductVariant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@unique([productId, variantValueId])
+  /*  DEC-PRD-045 — the pair is what must be unique now, not the value. The
+      old `@@unique([productId, variantValueId])` is exactly what made two
+      axes impossible: it allowed "Medium" once per product, so Medium x Red
+      and Medium x Pink could never both exist.  */
+  @@unique([productId, comboKey])
   @@index([itemId])
   @@index([productId])
+  @@index([variantValueId])
+}
+
+/// DEC-PRD-045 — one value inside one combination. Three rows here make
+/// "Medium x Red x Gift box" one thing to sell.
+model ProductVariantValue {
+  id String @id @default(cuid())
+
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  variantValueId String
+  variantValue   VariantValue @relation(fields: [variantValueId], references: [id])
+
+  @@unique([productVariantId, variantValueId])
   @@index([variantValueId])
 }
 
@@ -2005,6 +2045,9 @@ model VariantValue {
 
   /// DEC-PRD-012 - every use of this value inside a product
   productVariants ProductVariant[]
+
+  /// DEC-PRD-045 - every combination this value takes part in
+  variantMembers ProductVariantValue[]
 
   @@unique([attributeId, label])
 }

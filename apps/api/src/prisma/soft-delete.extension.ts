@@ -131,6 +131,11 @@ const NO_SOFT_DELETE = new Set([
   // membership rows live and die with their collection, like every other
   // parent-owned line table above
   'CollectionProduct',
+  // DEC-PRD-045 — the values inside one variant combination. A tick row,
+  // born and dying with its ProductVariant (onDelete: Cascade), so it has no
+  // deletedAt. Named here the day the table was written, not after the API
+  // refused to boot.
+  'ProductVariantValue',
   // Footer & More panel (31 Jul 2026) — links, social profiles and payment
   // badges are edited or removed outright, never soft-deleted. Added here at
   // the same time as the tables, rather than after the API refused to boot.

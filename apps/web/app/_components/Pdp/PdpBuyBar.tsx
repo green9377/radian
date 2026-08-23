@@ -7,11 +7,12 @@ import { formatTaka } from "../../_data/products";
 import Icon from "./PdpIcons";
 
 /*
-  PDP-র ছোট টুকরোগুলো — CTA row, mobile sticky bar, section title, out-of-zone panel।
-  PdpView.tsx হালকা রাখতে আলাদা ফাইল।
+  The small pieces of the PDP — CTA row, mobile sticky bar, section title,
+  out-of-zone panel. Kept in their own file so PdpView.tsx stays light.
 
-  CTA নিয়ম: Buy Now = primary (default), Add to Cart = secondary।
-  Buy Now-ই বেশি রাজস্ব আনে — সেটাই default দেখতে হবে।
+  The CTA rule: Buy Now = primary (the default), Add to Cart = secondary.
+  Buy Now brings in more of the revenue, so that is the one that must look
+  like the default.
 */
 
 export function BlkTitle({ title, hint }: { title: string; hint?: string }) {
@@ -27,8 +28,8 @@ export function BlkTitle({ title, hint }: { title: string; hint?: string }) {
 
 /*
   ── PRE-ORDER WORDING (DEC-PDP-09) ─────────────────────────────────────────
-  মালিক, ১ আগস্ট ২০২৬: "stock 0 হলে order দেওয়া যাবে না। হয় stock out আসবে,
-  বা pre-order আসবে।"
+  The owner, 1 August 2026: "with stock at 0 no order can be placed. Either
+  it says sold out, or it becomes a pre-order."
 
   Pre-order still sells, so the buttons stay — but they must not lie by
   omission. "Buy Now" over something that is not on the shelf is the kind of
@@ -55,6 +56,7 @@ export function CtaRow({
   total,
   added,
   preorder,
+  needsPick,
   onAddToCart,
   onBuyNow,
 }: {
@@ -65,6 +67,13 @@ export function CtaRow({
   /** DEC-PDP-09 — set when the shop has none of it but will still take the
    *  order. `backOn` is already an ISO string, or null when no date was given. */
   preorder?: { backOn: string | null } | null;
+  /**
+   * DEC-PRD-045 — true while a product with two lists has no pair chosen.
+   * The buttons wait, and say what they are waiting for: nine pairs each have
+   * their own price and their own item, so an order naming none of them
+   * cannot be picked off a shelf.
+   */
+  needsPick?: boolean;
   onAddToCart: () => void;
   onBuyNow: () => void;
 }) {
@@ -112,30 +121,42 @@ export function CtaRow({
         {/* secondary */}
         <button
           onClick={onAddToCart}
+          disabled={needsPick}
           className={`flex-1 basis-0 min-w-[150px] h-[52px] inline-flex items-center justify-center gap-2 rounded-[14px] border-[1.5px] font-semibold text-[14.5px] transition-all duration-200 active:scale-[0.97] ${
-            added
-              ? "bg-[#E8F9EE] border-[#C4EED4] text-[#0E7A3D]"
-              : "bg-white border-purple text-purple hover:bg-lavender hover:-translate-y-[2px]"
+            needsPick
+              ? "bg-white border-lavender-deep text-body-soft cursor-not-allowed active:scale-100"
+              : added
+                ? "bg-[#E8F9EE] border-[#C4EED4] text-[#0E7A3D]"
+                : "bg-white border-purple text-purple hover:bg-lavender hover:-translate-y-[2px]"
           }`}
         >
           <Icon name={added ? "check" : "cart"} className="w-[17px] h-[17px]" />
           {added ? "Added" : "Add to Cart"}
         </button>
 
-        {/* primary — default. Shine sweep + glow লুপ করে, hover লাগে না */}
+        {/* primary — the default. The shine sweep and glow loop on their own; no hover needed. */}
         <button
           onClick={onBuyNow}
-          className="animate-cta-glow flex-[1.25] basis-0 min-w-[170px] h-[52px] relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-[14px] bg-purple text-white font-semibold text-[14.5px] transition-transform duration-200 hover:bg-purple-deep hover:-translate-y-[2px] active:scale-[0.97] active:translate-y-0"
+          disabled={needsPick}
+          className={`flex-[1.25] basis-0 min-w-[170px] h-[52px] relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold text-[14.5px] transition-transform duration-200 ${
+            needsPick
+              ? "bg-[#d6cddd] text-white cursor-not-allowed"
+              : "animate-cta-glow bg-purple text-white hover:bg-purple-deep hover:-translate-y-[2px] active:scale-[0.97] active:translate-y-0"
+          }`}
         >
-          <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
-          <Icon name={preorder ? "clock" : "bolt"} className="w-4 h-4" />
-          {preorder ? "Pre-order" : "Buy Now"} · {formatTaka(total)}
+          {!needsPick && (
+            <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
+          )}
+          <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
+          {needsPick
+            ? "Choose an option first"
+            : `${preorder ? "Pre-order" : "Buy Now"} · ${formatTaka(total)}`}
         </button>
       </div>
 
       {/*  ⚠️ "No payment until you confirm" is dropped on a pre-order. Whether
           money is taken up front is the product's own advance rule (owner's
-          ruling: "product-এর advance rule যা বলে তাই"), so this page cannot
+          ruling: whatever the product's own advance rule says), so this page cannot
           promise either way — and promising the friendlier one would be the
           wrong guess to make.  */}
       <p className="text-center text-[12.5px] text-body-soft mt-3">
@@ -162,6 +183,7 @@ export function StickyBar({
   added,
   soldOut,
   preorder,
+  needsPick,
   onAddToCart,
   onBuyNow,
 }: {
@@ -172,6 +194,10 @@ export function StickyBar({
    *  but stops being a way to buy. */
   soldOut?: boolean;
   preorder?: boolean;
+  /**  DEC-PRD-045 — a two-list product with no pair chosen yet. The bar is
+   *   fixed to the bottom of the phone and does not scroll away, so it has to
+   *   wait for the same answer the CTA row waits for. */
+  needsPick?: boolean;
   onAddToCart: () => void;
   onBuyNow: () => void;
 }) {
@@ -205,22 +231,32 @@ export function StickyBar({
       </div>
       <button
         onClick={onAddToCart}
+        disabled={needsPick}
         aria-label="Add to cart"
         className={`w-[52px] h-[48px] shrink-0 grid place-items-center rounded-[14px] border-[1.5px] transition-all active:scale-[0.94] ${
-          added
-            ? "bg-[#E8F9EE] border-[#C4EED4] text-[#0E7A3D]"
-            : "bg-white border-purple text-purple"
+          needsPick
+            ? "bg-white border-lavender-deep text-body-soft active:scale-100"
+            : added
+              ? "bg-[#E8F9EE] border-[#C4EED4] text-[#0E7A3D]"
+              : "bg-white border-purple text-purple"
         }`}
       >
         <Icon name={added ? "check" : "cart"} className="w-5 h-5" />
       </button>
       <button
         onClick={onBuyNow}
-        className="animate-cta-glow relative overflow-hidden flex-1 h-[48px] inline-flex items-center justify-center gap-2 bg-purple text-white rounded-[14px] font-semibold text-[14.5px] transition-transform active:scale-[0.97]"
+        disabled={needsPick}
+        className={`relative overflow-hidden flex-1 h-[48px] inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold text-[14.5px] transition-transform ${
+          needsPick
+            ? "bg-[#d6cddd] text-white"
+            : "animate-cta-glow bg-purple text-white active:scale-[0.97]"
+        }`}
       >
-        <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
-        <Icon name={preorder ? "clock" : "bolt"} className="w-4 h-4" />
-        {preorder ? "Pre-order" : "Buy Now"}
+        {!needsPick && (
+          <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
+        )}
+        <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
+        {needsPick ? "Choose an option" : preorder ? "Pre-order" : "Buy Now"}
       </button>
     </div>
   );
@@ -228,7 +264,7 @@ export function StickyBar({
 
 /*
   ── OUT OF STOCK (DEC-PDP-09) ──────────────────────────────────────────────
-  মালিক, ১ আগস্ট ২০২৬: "stock 0 হলে order দেওয়া যাবে না।"
+  The owner, 1 August 2026: "with stock at 0 no order can be placed."
 
   Replaces the CTA row entirely rather than greying the buttons out. A disabled
   button is a door that looks open — people press it, nothing happens, and they
@@ -299,7 +335,7 @@ export function SoldOut({
   );
 }
 
-/** Zone mismatch — search/shared link দিয়ে user এখানে আসবেই */
+/** Zone mismatch — a search result or a shared link WILL land someone here */
 export function OutOfZone({ reason }: { reason: string }) {
   const { setZone } = useZoneStore();
   return (

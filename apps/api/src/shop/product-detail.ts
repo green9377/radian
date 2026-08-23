@@ -628,6 +628,23 @@ export class ProductDetailService {
                 attribute: { select: { name: true, displayMode: true } },
               },
             },
+            /*  DEC-PRD-045 — every value this row is made of, so the page can
+                draw one row of buttons per list instead of one flat row that
+                reads as "Medium or Red".  */
+            values: {
+              select: {
+                variantValue: {
+                  select: {
+                    id: true,
+                    label: true,
+                    swatch: true,
+                    imageUrl: true,
+                    sortOrder: true,
+                    attribute: { select: { id: true, name: true, displayMode: true, sortOrder: true } },
+                  },
+                },
+              },
+            },
           },
         },
         specRows: {
@@ -925,9 +942,42 @@ export class ProductDetailService {
         then the page keeps the product's main photo. Not changing the picture
         beats showing a white rose after somebody picked "red".
       */
-      variants: p.variants.map((v) => ({
+      variants: p.variants.map((v) => {
+        /*  DEC-PRD-045 — the parts of this combination, in the master's own
+            order so the Size row is always drawn above the Colour row. One
+            part for a plain colour product; the page then behaves exactly as
+            it did before, because one row of buttons is one row of buttons.
+
+            `values` can be empty only for a row written before the migration
+            ran, and then the lead value alone stands in — no page ever loses
+            its chooser over a half-finished deploy.  */
+        const parts = (v.values.length
+          ? v.values.map((pv) => pv.variantValue)
+          : []
+        )
+          .slice()
+          .sort(
+            (a, b) =>
+              a.attribute.sortOrder - b.attribute.sortOrder ||
+              a.attribute.name.localeCompare(b.attribute.name) ||
+              a.sortOrder - b.sortOrder,
+          )
+          .map((val) => ({
+            valueId: val.id,
+            label: val.label,
+            attribute: val.attribute.name,
+            attributeId: val.attribute.id,
+            displayMode: val.attribute.displayMode,
+            swatch: val.swatch,
+            imageUrl: val.imageUrl,
+          }));
+        return {
         id: v.id,
-        label: v.variantValue.label,
+        parts,
+        /*  The old single-value fields, still sent. A one-axis product reads
+            them exactly as before; a two-axis one gets "Medium · Red" here,
+            which is what the cart line and the receipt want to print.  */
+        label: parts.length > 1 ? parts.map((x) => x.label).join(' · ') : v.variantValue.label,
         attribute: v.variantValue.attribute.name,
         displayMode: v.variantValue.attribute.displayMode,
         swatch: v.variantValue.swatch,
@@ -956,7 +1006,8 @@ export class ProductDetailService {
             ? v.pricePaisa
             : null,
         stockQty: variantCount(v),
-      })),
+        };
+      }),
       sizes: p.sizes,
       /*  own heading → parent's → a plain word. Never blank: the size row
           would then open with a dash and nothing before it.  */
