@@ -46,6 +46,16 @@ product-এ ঠিক আগের মতোই একটাই সারি。 
 **অক্ষত:** cart · checkout · order · invoice · finance — সব আগে থেকেই "variant
 ধরে" চলত, একটা লাইনও বদলায়নি。 receipt-এ নাম যাবে "Medium · Red"。
 
+**নিজে হেঁটে দেখা (২৩ আগস্ট, demo):** `rose - has varint…` product-এ color আর
+size দুটোই চালু → `pink · large` (৳1,200 · 5) আর `red · large` (৳1,500 · 3)
+বানিয়ে Publish → DB-তে `ProductVariantValue`-এ দুটো করে সারি, comboKey ঠিক →
+দোকানের পাতায় **দুটো সারি** (color, size), red-এ চাপলে দাম ৳1,500, Buy Now-ও
+৳1,500 → Stock tab-এ দুটো জোড়াই আলাদা。
+
+⚠️ **মালিককে জানানোর মতো:** ওই product-টা এখন `large` একা নয়, **pink·large আর
+red·large** — আমার live যাচাইয়ের জন্য。 পুরনো `large` সারিটা (১০ stock)
+soft-delete হয়ে আছে。 চাইলে দুটো রং তুলে দিলেই আগের মতো。
+
 ⚠️ **বাকি:** `RUN_TESTS.bat` এখনো চালানো হয়নি (sandbox-এ DB নেই) — মালিকের
 মেশিনে চালাতে হবে。
 
