@@ -248,7 +248,10 @@ export class ProductsService {
       if (p.stockMode === 'MANUAL')
         return p.variants.length ? p.variants.reduce((n, v) => n + v.stockQty, 0) : p.stockQty;
       return p.variants.length
-        ? p.variants.reduce((n, v) => n + (v.itemId ? (funnelQty.get(v.itemId) ?? 0) : 0), 0)
+        ? p.variants.reduce(
+            (n, v) => n + (v.itemId ? (funnelQty.get(v.itemId) ?? 0) : v.stockQty),
+            0,
+          )
         : p.itemId
           ? (funnelQty.get(p.itemId) ?? 0)
           : 0;
@@ -456,9 +459,21 @@ export class ProductsService {
     const invQty = new Map(
       invSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
     );
-    const trackedQty = (p: { itemId: string | null; variants: { itemId: string | null }[] }) =>
+    /*  ⚠️ A variant with no item of its own falls back to ITS OWN typed
+        number — exactly what the storefront does (`product-detail.ts`,
+        variantCount). Reading it as zero instead was the second half of the
+        same bug: the owner's product is TRACKED with one unlinked variant
+        holding 10, and the row still said OUT. The admin and the shop have to
+        answer this question the same way or the number is worthless.  */
+    const trackedQty = (p: {
+      itemId: string | null;
+      variants: { itemId: string | null; stockQty: number }[];
+    }) =>
       p.variants.length > 0
-        ? p.variants.reduce((n, v) => n + (v.itemId ? (invQty.get(v.itemId) ?? 0) : 0), 0)
+        ? p.variants.reduce(
+            (n, v) => n + (v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty),
+            0,
+          )
         : p.itemId
           ? (invQty.get(p.itemId) ?? 0)
           : 0;
