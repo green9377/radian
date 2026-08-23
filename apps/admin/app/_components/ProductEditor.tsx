@@ -369,6 +369,7 @@ function NatureChips({
     try {
       await deleteNature(n.id);
       setRows(rows.filter((r) => r.id !== n.id));
+      close();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not remove that.");
     }
@@ -382,36 +383,45 @@ function NatureChips({
         </div>
       )}
 
+      {/*  ⚠️ NOT tiny circles hovering over the corner (owner, 23 Aug 2026:
+           "edit and delete button valo hoy nai"). Two 20px badges pinned at
+           -top-2 -right-2 sat ON the chip, clipped against its neighbour and
+           were a coin-toss to hit.
+
+           The pencil lives INSIDE the chip now, behind a hairline, and it only
+           appears on the chip under the cursor. Removing moved out of the row
+           entirely — it is a red button in the panel below, where there is room
+           to say what it does and no chance of hitting it by accident.  */}
       <div className="flex flex-wrap gap-2">
         {rows.map((n) => {
           const on = active.trim().toLowerCase() === n.name.trim().toLowerCase();
+          const being = editing === n.id;
           return (
-            <span key={n.id} className="group/nat relative inline-flex items-center">
+            <span key={n.id}
+              className="group/nat inline-flex items-stretch rounded-[11px] border-2 overflow-hidden transition-all"
+              style={on || being
+                ? { borderColor: "#6d3a9c", background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
               <button
                 type="button"
                 onClick={() => onPick(n)}
                 title={n.label}
-                className={
-                  "text-[13px] font-bold pl-3.5 pr-3.5 py-2 rounded-[11px] border-2 transition-all inline-flex items-center gap-1.5 " +
-                  (on ? "text-white" : "bg-white hover:bg-lavender/50")
-                }
-                style={on
-                  ? { background: "#6d3a9c", borderColor: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
-                  : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
+                className={"text-[13px] font-bold pl-3.5 pr-3 py-2 inline-flex items-center gap-1.5 " +
+                  (on || being ? "text-white" : "text-purple hover:bg-lavender/50")}
               >
                 {on && <Icon name="check" size={13} />}
                 {n.name}
               </button>
-              <span className="absolute -top-2 -right-2 hidden group-hover/nat:flex items-center gap-0.5">
-                <button type="button" onClick={() => startEdit(n)} title="Rename this kind"
-                  className="w-[20px] h-[20px] rounded-full bg-white border border-lavender-deep grid place-items-center text-purple shadow-sm">
-                  <Icon name="edit" size={11} />
-                </button>
-                <button type="button" onClick={() => void remove(n)} title="Remove from the list"
-                  className="w-[20px] h-[20px] rounded-full bg-white border border-lavender-deep grid place-items-center text-[#b42318] shadow-sm">
-                  <Icon name="trash" size={11} />
-                </button>
-              </span>
+              <button
+                type="button"
+                onClick={() => startEdit(n)}
+                title={`Rename “${n.name}” or change its line`}
+                className={"px-2.5 grid place-items-center border-l opacity-0 group-hover/nat:opacity-100 focus:opacity-100 transition-opacity " +
+                  (on || being ? "text-white/80 hover:text-white" : "text-body-soft hover:text-purple")}
+                style={{ borderColor: on || being ? "rgba(255,255,255,.28)" : "var(--color-lavender-deep)" }}
+              >
+                <Icon name="edit" size={13} />
+              </button>
             </span>
           );
         })}
@@ -440,15 +450,22 @@ function NatureChips({
                 onChange={(e) => setDraftLabel(e.target.value)} placeholder="100% Fresh Flowers" />
             </div>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-3.5 flex-wrap items-center">
             <button type="button" onClick={() => void save()}
-              className="bg-purple hover:bg-purple-deep text-white text-[13px] font-bold px-4 py-2 rounded-[10px]">
-              Save
+              className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-bold px-5 py-2.5 rounded-[11px]">
+              {adding ? "Add it" : "Save"}
             </button>
             <button type="button" onClick={close}
-              className="border-2 border-lavender-deep bg-white text-purple text-[13px] font-bold px-4 py-2 rounded-[10px]">
+              className="border-2 border-lavender-deep bg-white text-purple text-[13.5px] font-bold px-5 py-2.5 rounded-[11px] hover:border-orchid">
               Cancel
             </button>
+            {editing && (
+              <button type="button" onClick={() => void remove(rows.find((r) => r.id === editing)!)}
+                className="ml-auto border-2 bg-white text-[13.5px] font-bold px-5 py-2.5 rounded-[11px] inline-flex items-center gap-2 hover:bg-[#fdecea]"
+                style={{ borderColor: "#f0c8c2", color: "#b42318" }}>
+                <Icon name="trash" size={15} /> Remove this kind
+              </button>
+            )}
           </div>
         </div>
       )}
