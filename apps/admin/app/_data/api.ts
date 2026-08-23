@@ -2142,6 +2142,24 @@ export function brandSlug(name: string): string {
 /** storefront brand landing — "Shop by Brand" links here */
 export const brandUrl = (slug: string) => `${WEB_BASE}/brands/${slug}`;
 
+/* ── DEC-PRD-044 · the nature master ─────────────────────────────────────────
+   The kind of thing a product is ("Fresh flower") and the line the customer
+   reads for it ("100% Fresh Flowers"), so the sentence is written once and
+   not retyped on every product. */
+export interface ApiNature {
+  id: string;
+  name: string;
+  label: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+export const listNatures = () => j<ApiNature[]>(`/nature`);
+export const createNature = (b: { name: string; label: string; sortOrder?: number }) =>
+  j<ApiNature>(`/nature`, { method: "POST", body: JSON.stringify(b) });
+export const updateNature = (id: string, b: Partial<{ name: string; label: string; sortOrder: number; isActive: boolean }>) =>
+  j<ApiNature>(`/nature/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deleteNature = (id: string) => j(`/nature/${id}`, { method: "DELETE" });
+
 export const listBrands = () => j<ApiBrand[]>(`/brands`);
 export const createBrand = (b: BrandWrite & { slug: string; name: string }) =>
   j<ApiBrand>(`/brands`, { method: "POST", body: JSON.stringify(b) });

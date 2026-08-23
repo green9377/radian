@@ -3844,6 +3844,38 @@ model ItemExpiryLot {
 /// gift reasons were written into the screen, so the owner could never add
 /// "Vase cracked" without a deploy. One master, a purpose per row; Returns keeps
 /// its own richer table (approval flags, refund defaults) and may fold in later.
+/// DEC-PRD-044 (owner, 23 Aug 2026) — the nature line, as a list he owns.
+///
+/// It used to be five words hardcoded in the product form (fresh · artificial ·
+/// live plant · edible · handmade) beside a free-text label. So picking "fresh"
+/// filled nothing, and the shop's own sentence — "100% Fresh Flowers" — had to
+/// be retyped on every product, worded slightly differently each time. There
+/// was no way to add a sixth kind, rename one, or remove one.
+///
+/// His words: *"protibar fresh flower select krle se label text abar lekha
+/// lage, ja asole kono mane nai. abar egula edit and delete ar kono option
+/// nei."*
+///
+/// Now it is a master like every other (house rule 7): the kind, and the line
+/// that goes with it. A product may still overwrite the line for itself —
+/// picking one fills it in, it does not lock it.
+model NatureMaster {
+  id    String @id @default(cuid())
+  /// what the staff call it — "Fresh flower"
+  name  String
+  /// the sentence the customer reads — "100% Fresh Flowers"
+  label String
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name])
+}
+
 model ReasonMaster {
   id        String  @id @default(cuid())
   purpose   String // WASTAGE | GIFT

@@ -39,6 +39,7 @@ import {
   type ApiCategorySpec,
   listItems,
   getInvItemStock,
+  listNatures, createNature, updateNature, deleteNature, type ApiNature,
   listSuppliers,
   type ApiItem,
   type ApiSupplier,
@@ -307,6 +308,151 @@ function Hot({
     >
       {children}
     </button>
+  );
+}
+
+
+/* ═══════════ DEC-PRD-044 · the nature chips, kept from here ═══════════
+   The owner asked for the thing every other small master in this panel got
+   (DEC-GBL-004, the wastage reasons): the list is managed from the chips
+   themselves, not from a page nobody would find. Press one to use it, hover
+   to rename or remove it, and the last chip adds a new kind.               */
+
+function NatureChips({
+  rows, setRows, active, onPick,
+}: {
+  rows: ApiNature[];
+  setRows: (r: ApiNature[]) => void;
+  active: string;
+  onPick: (n: ApiNature) => void;
+}) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [draftLabel, setDraftLabel] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const startEdit = (n: ApiNature) => {
+    setEditing(n.id);
+    setAdding(false);
+    setDraftName(n.name);
+    setDraftLabel(n.label);
+  };
+  const startAdd = () => {
+    setEditing(null);
+    setAdding(true);
+    setDraftName("");
+    setDraftLabel("");
+  };
+  const close = () => { setEditing(null); setAdding(false); setErr(null); };
+
+  async function save() {
+    const name = draftName.trim();
+    const label = draftLabel.trim();
+    if (!name || !label) { setErr("A kind needs a name and the line the customer reads."); return; }
+    try {
+      if (adding) {
+        const created = await createNature({ name, label, sortOrder: rows.length });
+        setRows([...rows, created]);
+      } else if (editing) {
+        const saved = await updateNature(editing, { name, label });
+        setRows(rows.map((r) => (r.id === editing ? saved : r)));
+      }
+      close();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save that.");
+    }
+  }
+
+  async function remove(n: ApiNature) {
+    if (!confirm(`Remove “${n.name}” from the list? Products already using it keep their line.`)) return;
+    try {
+      await deleteNature(n.id);
+      setRows(rows.filter((r) => r.id !== n.id));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not remove that.");
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-lavender-deep">
+      {err && (
+        <div className="mb-3 rounded-[10px] border border-[#e0a1a1] bg-[#fdecea] px-3 py-2 text-[12.5px] font-semibold text-[#c0392b]">
+          {err}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {rows.map((n) => {
+          const on = active.trim().toLowerCase() === n.name.trim().toLowerCase();
+          return (
+            <span key={n.id} className="group/nat relative inline-flex items-center">
+              <button
+                type="button"
+                onClick={() => onPick(n)}
+                title={n.label}
+                className={
+                  "text-[13px] font-bold pl-3.5 pr-3.5 py-2 rounded-[11px] border-2 transition-all inline-flex items-center gap-1.5 " +
+                  (on ? "text-white" : "bg-white hover:bg-lavender/50")
+                }
+                style={on
+                  ? { background: "#6d3a9c", borderColor: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                  : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
+              >
+                {on && <Icon name="check" size={13} />}
+                {n.name}
+              </button>
+              <span className="absolute -top-2 -right-2 hidden group-hover/nat:flex items-center gap-0.5">
+                <button type="button" onClick={() => startEdit(n)} title="Rename this kind"
+                  className="w-[20px] h-[20px] rounded-full bg-white border border-lavender-deep grid place-items-center text-purple shadow-sm">
+                  <Icon name="edit" size={11} />
+                </button>
+                <button type="button" onClick={() => void remove(n)} title="Remove from the list"
+                  className="w-[20px] h-[20px] rounded-full bg-white border border-lavender-deep grid place-items-center text-[#b42318] shadow-sm">
+                  <Icon name="trash" size={11} />
+                </button>
+              </span>
+            </span>
+          );
+        })}
+
+        <button type="button" onClick={startAdd}
+          className="text-[13px] font-bold px-3.5 py-2 rounded-[11px] border-2 border-dashed inline-flex items-center gap-1.5 hover:bg-lavender/50"
+          style={{ borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}>
+          <Icon name="plus" size={14} /> Add a kind
+        </button>
+      </div>
+
+      {(adding || editing) && (
+        <div className="mt-3 rounded-[12px] border border-lavender-deep bg-lavender/40 p-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div className="text-[12px] font-bold text-purple mb-1.5">Kind</div>
+              <input className="ipt h-[40px]" value={draftName} autoFocus
+                onChange={(e) => setDraftName(e.target.value)} placeholder="Fresh flower" />
+            </div>
+            <div>
+              <div className="text-[12px] font-bold text-purple mb-1.5 flex items-center gap-1.5">
+                Line the customer reads
+                <Info text="This is what fills the Label text box above whenever this kind is picked." />
+              </div>
+              <input className="ipt h-[40px]" value={draftLabel}
+                onChange={(e) => setDraftLabel(e.target.value)} placeholder="100% Fresh Flowers" />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button type="button" onClick={() => void save()}
+              className="bg-purple hover:bg-purple-deep text-white text-[13px] font-bold px-4 py-2 rounded-[10px]">
+              Save
+            </button>
+            <button type="button" onClick={close}
+              className="border-2 border-lavender-deep bg-white text-purple text-[13px] font-bold px-4 py-2 rounded-[10px]">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1174,6 +1320,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   }, [vItemQ, vItemFor]);
 
   /*  The live figure. Read, never typed — that is the whole point of TRACKED.  */
+  /*  DEC-PRD-044 — the kinds. Failing quietly is right here: the two boxes
+      still work by hand, so a slow master must not stop somebody writing a
+      product.  */
+  useEffect(() => {
+    let alive = true;
+    listNatures()
+      .then((r) => alive && setNatures(r.filter((n) => n.isActive)))
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     if (!itemId) {
       setItemStock(null);
@@ -1376,6 +1533,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     detail?.nature.type ?? "fresh",
   );
   const [natureLabel, setNatureLabel] = useState(detail?.nature.label ?? "");
+  /** DEC-PRD-044 — the kinds, kept from the chips under the Nature card */
+  const [natures, setNatures] = useState<ApiNature[]>([]);
   /** which part of the story is open — the chip rail and the phone share it */
   const [storyGroup, setStoryGroup] = useState<StoryG>("nature");
   /** the same idea on the Variants tab, whose five cards do five jobs */
@@ -5788,29 +5947,21 @@ No bundle products yet — add them on{" "}
             <>
               <StoryChips value={storyGroup} onChange={setStoryGroup} filled={storyFilled} />
               <StoryGroup id="nature" open={storyGroup}>
-              <Card icon="book" title="Nature line" tip="The one-line promise at the top of the product page — “100% Fresh Flowers”.">
+              {/*  DEC-PRD-044 — the five kinds were hardcoded here and the line
+                   beside them was free text, so picking "fresh" filled nothing
+                   and "100% Fresh Flowers" was retyped, slightly differently,
+                   on every product. They are a master now: press one and BOTH
+                   boxes fill. The line stays editable — one bouquet in the
+                   fresh list may want "Cut This Morning".  */}
+              <Card icon="book" title="Nature line" tip="The one-line promise at the top of the product page — “100% Fresh Flowers”. Press a kind below and its line fills in; you can still change it for this product alone.">
                 <div className={gridCls}>
-                  <Field label="Type" note="Pick a quick option or type your own">
+                  <Field label="Type">
                     <input
                       className="ipt h-[44px]"
                       value={typeText}
                       onChange={(e) => setTypeText(e.target.value)}
                       placeholder="fresh / artificial / live plant / edible / custom…"
                     />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {["fresh", "artificial", "live plant", "edible", "handmade"].map(
-                        (t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => setTypeText(t)}
-                            className="text-[12px] px-2.5 py-1 rounded-full border border-lavender-deep bg-white hover:border-orchid-mid text-body capitalize"
-                          >
-                            {t}
-                          </button>
-                        ),
-                      )}
-                    </div>
                   </Field>
                   <Field label="Label text">
                     <input
@@ -5821,6 +5972,15 @@ No bundle products yet — add them on{" "}
                     />
                   </Field>
                 </div>
+                <NatureChips
+                  rows={natures}
+                  setRows={setNatures}
+                  active={typeText}
+                  onPick={(n) => {
+                    setTypeText(n.name);
+                    setNatureLabel(n.label);
+                  }}
+                />
               </Card>
               </StoryGroup>
               {/*

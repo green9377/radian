@@ -11,6 +11,7 @@ import { TagGroupsModule } from './catalog/tag-groups';
 import { TagsModule } from './catalog/tags';
 import { VariantGroupsModule } from './catalog/variant-groups';
 import { SegmentsModule } from './catalog/segments';
+import { NatureModule } from './catalog/nature';
 import { ChannelsModule } from './catalog/channels';
 import { AddOnsModule } from './catalog/addons';
 import { BundlesModule } from './catalog/bundles';
@@ -71,6 +72,7 @@ import { InboxModule } from './inbox/inbox';
     TagsModule,
     VariantGroupsModule,
     SegmentsModule,
+    NatureModule,
     ChannelsModule,
     AddOnsModule,
     BundlesModule,

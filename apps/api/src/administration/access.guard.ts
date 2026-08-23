@@ -107,6 +107,9 @@ export class AccessGuard implements CanActivate {
     'craft-points': 'products',
     'tag-groups': 'tags',
     'category-story': 'categories',
+    /*  DEC-PRD-044 — the nature master is edited from inside the product form,
+        so whoever may edit a product may keep the list.  */
+    nature: 'products',
     channels: 'orders',
     segments: 'customers',
     banners: 'storefront',
