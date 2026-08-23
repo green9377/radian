@@ -697,7 +697,20 @@ function Row({
   kicker?: string;
   label: string;
   chip?: React.ReactNode;
-  /** ONE short line. The result of what was typed, not a lecture. */
+  /**
+   * The result of what was typed — "Ready today", "Page shows Out of stock".
+   *
+   * ⚠️ IT NO LONGER SITS UNDER THE LABEL (owner, 23 Aug 2026: "ai page a
+   * ojotha onk text ache, agula remove kro or icon ar maje guchiye daw").
+   * Four rows on the Stock tab each carried one, and each was saying what the
+   * control beside it already said: a switch reading Off with "The page never
+   * mentions it" under it, a 0 DAYS box with "Ready today" under it. The
+   * control is the answer; the sentence was an echo.
+   *
+   * It is kept, behind the ⓘ, because on a row that is NOT at its default —
+   * "Page shows Pre-order · back on 30 Sep" — it says something the control
+   * cannot fit.
+   */
   hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -712,13 +725,38 @@ function Row({
         <div className="text-[15.5px] font-semibold text-ink inline-flex items-center gap-2 flex-wrap">
           {label}
           {chip}
+          {hint && <HintDot>{hint}</HintDot>}
         </div>
-        {hint && <div className="text-[13px] text-body-soft mt-1">{hint}</div>}
       </div>
       {/*  FIXED, never `flex-wrap`. See the note above — this is why the right
           side stopped moving about.  */}
       <div className="w-[230px] shrink-0 flex justify-end">{children}</div>
     </div>
+  );
+}
+
+/**
+ * A ⓘ whose content is a NODE, not a string — the row hints carry markup
+ * ("Page shows *Out of stock*"). `Info` takes text only, so this is the same
+ * dot with a hover bubble that can hold an element.
+ */
+function HintDot({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-flex group align-middle">
+      <span
+        className="w-[16px] h-[16px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0"
+        style={{ background: "#efe4f7", color: "#7a5b8c" }}
+      >
+        i
+      </span>
+      <span
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+7px)] z-[60] w-[230px]
+                   rounded-[10px] px-3 py-2 text-[12px] leading-snug text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: "#2c0f3d", boxShadow: "0 6px 20px rgba(44,15,61,.28)" }}
+      >
+        {children}
+      </span>
+    </span>
   );
 }
 
