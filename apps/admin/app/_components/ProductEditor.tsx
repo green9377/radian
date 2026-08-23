@@ -1562,8 +1562,6 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [axisPicks, setAxisPicks] = useState<Record<string, string[]>>({});
   /** which list's values are showing. `null` = the first one that has picks */
   const [vAttrOpen, setVAttrOpen] = useState<string | null>(null);
-  /** which pair card is open. Only one at a time — the rest stay one line. */
-  const [openPair, setOpenPair] = useState<string | null>(null);
 
   /** DEC-DLV-008 — the deliveries this product can go by, as ids */
   const [delivTypeIds, setDelivTypeIds] = useState<string[]>([]);
@@ -3371,7 +3369,6 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     }
                     setVariants([]);
                     setAxisPicks({});
-                    setOpenPair(null);
                     setHasVariants(false);
                   }}
                   options={[
@@ -5630,22 +5627,30 @@ No bundle products yet — add them on{" "}
                     })()}
 
                     {/*  ── the things to sell ───────────────────────────────
-                        Owner, 23 Aug 2026, choosing this layout: *"c. but card
-                        gula jen dropdown hoy"* — a card per pair, and each one
-                        shut until it is wanted.
+                        Owner, 23 Aug 2026, on the dropdown he had asked for
+                        the same morning: *"jehetu stock ar jonno stock a tab
+                        kaj kra jay abr price ar jonno price tab o kaj kra
+                        jay tahole ai tab agular r dokar nai. just akhane
+                        koyta product holo tai dekha gele hbe."*
 
-                        Shut, a card is one line: the pair, its price, its
-                        count, and whether it sells. Nine of them fit on a
-                        screen. Open, it holds the two numbers that belong to
-                        the pair itself; the photo and the stockroom item stay
-                        on their own tabs (owner, 8 Aug), one press away.  */}
+                        He is right, and it is the 8 August rule again: one
+                        tab, one kind of work. Price is typed on Pricing,
+                        stock on Stock, the photo on Photos. A second box for
+                        the same number is two doors onto one room — and the
+                        day they disagree, nobody knows which was meant.
+
+                        So this list ANSWERS ONE QUESTION: what did the ticks
+                        add up to. One line per thing a customer can order,
+                        with its price and count shown as they stand, and the
+                        one switch that lives nowhere else — whether it sells
+                        at all.  */}
                     {variants.length > 0 && (
                       <div className="mt-5 pt-5 border-t border-lavender-deep">
                         <div className="flex items-center gap-2 mb-2.5">
                           <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
                             {variants.length} to sell
                           </div>
-                          <Info text="One line for each thing a customer can actually order. Open one to give it its own price. Off keeps everything typed but takes that one off the website." />
+                          <Info text="What the ticks above added up to — one line for each thing a customer can order. Its price is set on Pricing, its count on Stock, its photo on Photos. Off keeps everything typed but takes that one off the website." />
                           {variants.length > 1 && (
                             <span className="ml-auto text-[12px] font-bold text-body-soft">
                               {variants.filter((v) => v.isActive).length} live
@@ -5655,170 +5660,69 @@ No bundle products yet — add them on{" "}
 
                         <div className="flex flex-col gap-2">
                           {variants.map((v) => {
-                            const open = openPair === v.key;
                             const counted = v.itemId
                               ? v.itemLabel ?? "Counted in Inventory"
                               : `${parseInt(v.stockQty, 10) || 0} in stock`;
                             return (
                               <div
                                 key={v.key}
-                                className={`rounded-[14px] border-2 bg-white overflow-hidden transition-all ${
-                                  open
-                                    ? "border-plum shadow-[0_0_0_3px_#f3ebf8]"
-                                    : v.isActive
-                                      ? "border-lavender-deep"
-                                      : "border-lavender-deep bg-[#faf8fb]"
+                                className={`flex items-center gap-3 flex-wrap rounded-[14px] border-2 border-lavender-deep px-3 py-2.5 ${
+                                  v.isActive ? "bg-white" : "bg-[#faf8fb]"
                                 }`}
                               >
-                                {/* ── shut: one line ── */}
-                                <div className="flex items-center gap-3 px-3 py-2.5 flex-wrap">
-                                  <button
-                                    type="button"
-                                    onClick={() => setOpenPair(open ? null : v.key)}
-                                    className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
-                                  >
-                                    <span
-                                      className="w-[38px] h-[38px] rounded-[10px] border border-lavender-deep bg-lavender shrink-0 bg-cover bg-center grid place-items-center text-body-soft"
-                                      style={
-                                        v.imageUrl || v.masterImage
-                                          ? { backgroundImage: `url(${v.imageUrl || v.masterImage})` }
-                                          : undefined
-                                      }
-                                    >
-                                      {!v.imageUrl && !v.masterImage && <Icon name="photo" size={14} />}
-                                    </span>
-                                    {v.swatch && (
-                                      <span
-                                        className="w-[14px] h-[14px] rounded-full border border-lavender-deep shrink-0"
-                                        style={{ background: v.swatch }}
-                                      />
-                                    )}
-                                    <b
-                                      className={`text-[14px] font-bold truncate ${
-                                        v.isActive ? "text-purple" : "text-body-soft"
-                                      }`}
-                                    >
-                                      {v.label}
-                                    </b>
-                                  </button>
-
-                                  <span className="text-[13px] font-bold text-purple whitespace-nowrap">
-                                    {v.price.trim() ? `৳${v.price}` : "base price"}
-                                  </span>
-                                  <span className="text-[12.5px] text-body-soft whitespace-nowrap hidden sm:inline">
-                                    {counted}
-                                  </span>
-
-                                  {/*  Off keeps the row and its numbers but takes
-                                      it off the website — the honest way to pause
-                                      one pair without losing what was typed.  */}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setVariants((cur) =>
-                                        cur.map((x) =>
-                                          x.key === v.key ? { ...x, isActive: !x.isActive } : x,
-                                        ),
-                                      )
-                                    }
-                                    className={`text-[11px] font-extrabold px-2.5 py-1.5 rounded-full ${
-                                      v.isActive
-                                        ? "bg-[#e8f6ef] text-[#0f7d55]"
-                                        : "bg-[#eae6ef] text-body-soft"
-                                    }`}
-                                  >
-                                    {v.isActive ? "ON" : "OFF"}
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setOpenPair(open ? null : v.key)}
-                                    aria-label={open ? `Close ${v.label}` : `Open ${v.label}`}
-                                    className="w-[26px] h-[26px] grid place-items-center rounded-[8px] text-purple hover:bg-orchid-soft"
-                                  >
-                                    <Icon name={open ? "chevronUp" : "chevronDown"} size={14} />
-                                  </button>
-                                </div>
-
-                                {/* ── open: what belongs to this pair alone ── */}
-                                {open && (
-                                  <div className="px-3 pb-3.5 pt-1 border-t border-lavender-deep bg-[linear-gradient(135deg,#f9f6fc,#fff)]">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                                      <div>
-                                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-body mb-1.5">
-                                          Its own price
-                                          <Info text="Leave it empty and the product's own price applies. Fill it and this pair charges its own — which is what a larger size usually needs." />
-                                        </div>
-                                        <input
-                                          className="ipt text-[13.5px]"
-                                          style={{ minHeight: 40 }}
-                                          type="number"
-                                          min={0}
-                                          placeholder="Product price"
-                                          value={v.price}
-                                          onChange={(e) =>
-                                            setVariants((cur) =>
-                                              cur.map((x) =>
-                                                x.key === v.key ? { ...x, price: e.target.value } : x,
-                                              ),
-                                            )
-                                          }
-                                        />
-                                      </div>
-
-                                      <div>
-                                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-body mb-1.5">
-                                          How many
-                                          <Info text="Typed by hand here. Link a stockroom item on the Stock tab instead and the warehouse count rules — this box is then not read at all." />
-                                        </div>
-                                        {v.itemId ? (
-                                          <div className="flex items-center gap-2 border border-lavender-deep rounded-[11px] bg-white px-3 h-[40px]">
-                                            <Icon name="box" size={13} />
-                                            <span className="text-[13px] text-body-soft truncate flex-1 min-w-0">
-                                              {v.itemLabel ?? "item linked"}
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <input
-                                            className="ipt text-[13.5px]"
-                                            style={{ minHeight: 40 }}
-                                            type="number"
-                                            min={0}
-                                            value={v.stockQty}
-                                            onChange={(e) =>
-                                              setVariants((cur) =>
-                                                cur.map((x) =>
-                                                  x.key === v.key
-                                                    ? { ...x, stockQty: e.target.value }
-                                                    : x,
-                                                ),
-                                              )
-                                            }
-                                          />
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2 mt-3">
-                                      <button
-                                        type="button"
-                                        onClick={() => goto("media")}
-                                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-purple hover:border-orchid"
-                                      >
-                                        <Icon name="photo" size={12} />
-                                        Its photo
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => goto("stock")}
-                                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-purple hover:border-orchid"
-                                      >
-                                        <Icon name="box" size={12} />
-                                        {v.itemId ? "Change the item" : "Count from Inventory"}
-                                      </button>
-                                    </div>
-                                  </div>
+                                <span
+                                  className="w-[38px] h-[38px] rounded-[10px] border border-lavender-deep bg-lavender shrink-0 bg-cover bg-center grid place-items-center text-body-soft"
+                                  style={
+                                    v.imageUrl || v.masterImage
+                                      ? { backgroundImage: `url(${v.imageUrl || v.masterImage})` }
+                                      : undefined
+                                  }
+                                >
+                                  {!v.imageUrl && !v.masterImage && <Icon name="photo" size={14} />}
+                                </span>
+                                {v.swatch && (
+                                  <span
+                                    className="w-[14px] h-[14px] rounded-full border border-lavender-deep shrink-0"
+                                    style={{ background: v.swatch }}
+                                  />
                                 )}
+                                <b
+                                  className={`text-[14px] font-bold truncate flex-1 min-w-0 ${
+                                    v.isActive ? "text-purple" : "text-body-soft"
+                                  }`}
+                                >
+                                  {v.label}
+                                </b>
+
+                                <span className="text-[13px] font-bold text-purple whitespace-nowrap">
+                                  {v.price.trim() ? `৳${v.price}` : "base price"}
+                                </span>
+                                <span className="text-[12.5px] text-body-soft whitespace-nowrap hidden sm:inline">
+                                  {counted}
+                                </span>
+
+                                {/*  Off keeps the row and its numbers but takes
+                                    it off the website — the honest way to pause
+                                    one pair without losing what was typed. It is
+                                    the only thing on this screen that belongs to
+                                    the pair and to no other tab.  */}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setVariants((cur) =>
+                                      cur.map((x) =>
+                                        x.key === v.key ? { ...x, isActive: !x.isActive } : x,
+                                      ),
+                                    )
+                                  }
+                                  className={`text-[11px] font-extrabold px-2.5 py-1.5 rounded-full ${
+                                    v.isActive
+                                      ? "bg-[#e8f6ef] text-[#0f7d55]"
+                                      : "bg-[#eae6ef] text-body-soft"
+                                  }`}
+                                >
+                                  {v.isActive ? "ON" : "OFF"}
+                                </button>
                               </div>
                             );
                           })}

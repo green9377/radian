@@ -8,56 +8,67 @@
 
 ## 🧩 DEC-PRD-045 — Size × Colour on one product (owner, 23 Aug)
 
-**তাঁর কথা:** *"amr akta product ache jekhane lage ache mediam ache abr small o
-ache abr protta size ar ar color o ache"* — তিন size, প্রতিটায় তিন রং。 আর তিনি
-নিশ্চিত করেছেন: **প্রতিটা জোড়ার নিজের দাম, নিজের stock, warehouse-এ নিজের item**。
+**What he asked for:** *"amr akta product ache jekhane lage ache mediam ache abr
+small o ache abr protta size ar ar color o ache"* — three sizes, each in three
+colours. He confirmed the rule himself: **every pair has its own price, its own
+stock, and its own item in the warehouse.**
 
-**যে দেয়ালে আটকেছিল:** `ProductVariant` সারি ধরত একটাই মান, আর
-`@@unique([productId, variantValueId])` মানে এক product-এ "Medium" একবারই — তাই
-Medium×Red আর Medium×Pink কখনো একসাথে থাকতে পারত না。 এজন্যই পর্দায়
-"Which list" এসে একটাই বাছতে বলত。
+**The wall it hit:** a `ProductVariant` row held ONE value, and
+`@@unique([productId, variantValueId])` allowed "Medium" only once per product —
+so Medium×Red and Medium×Pink could never both exist. That is why the screen
+asked "which list" and took only one.
 
-**যা হলো — সারি এখন "মান" নয়, "জোড়া":**
+**What changed — a row is a PAIR now, not a value:**
 
-- নতুন table `ProductVariantValue` — এক সারিতে যত মান লাগে (Medium + Red)
-- `comboKey` কলাম (সাজানো value-id, `|` দিয়ে জোড়া) আর
-  `@@unique([productId, comboKey])`; পুরনো unique উঠে গেছে
-- migration `20260823120000_variant_combinations` প্রতিটা পুরনো সারিকে
-  **এক-মানের জোড়া** বানিয়ে দেয় — তাই এক-list-এর পুরনো product একটুও বদলায়নি
-- server নিয়ম: এক জোড়ায় একই list দুবার নয় · সব সারি একই list-গুলো ব্যবহার করবে
-  (নাহলে grid এবড়োখেবড়ো, কোনো জোড়ার দাম কোথাও থাকে না)
-- `ProductVariantValue` **soft-delete skip তালিকায়** যোগ করা হয়েছে ওই দিনই —
-  REV-RTN-4 ফাঁদ (deletedAt নেই এমন table filter করলে API boot-ই করে না)
+- new table `ProductVariantValue` — one row holds as many values as the
+  combination needs (Medium + Red)
+- `comboKey` column (sorted value ids joined with `|`) and
+  `@@unique([productId, comboKey])`; the old unique is dropped
+- migration `20260823120000_variant_combinations` turns every existing row into
+  a **combination of one**, so a single-list product is untouched
+- server rules: the same list twice in one combination is refused, and every row
+  must use the same lists (otherwise the grid is ragged and some pair has no
+  price anywhere)
+- `ProductVariantValue` was added to the **soft-delete skip list** the same day —
+  the REV-RTN-4 trap (a table with no `deletedAt` stops the API booting)
 
-**Admin — মালিকের বাছাই "C, but card gula jen dropdown hoy":**
-Which lists (একাধিক চালু) → প্রতিটা list-এর মান বাছা → নিচে প্রতিটা জোড়া
-**একটা করে বন্ধ কার্ড**: ছবি · নাম · দাম · কত আছে · ON/OFF。 খুললে ভেতরে ওই
-জোড়ার নিজের দাম আর সংখ্যা; ছবি আর Inventory item নিজেদের tab-এ (৮ আগস্টের নিয়ম),
-এক চাপে。 আগের সব tab-এর per-variant অংশ এখন `variantValueId` নয়, **`key`**
-(comboKey) ধরে চলে。
+**Admin — he chose layout C:** Which lists (more than one at a time) → tick the
+values in each → underneath, **one line per pair**: photo · name · price · count
+· ON/OFF.
 
-**Storefront:** `PdpVariants` প্রতি list-এ **একটা করে সারি** আঁকে。 এক list-এর
-product-এ ঠিক আগের মতোই একটাই সারি。 যে জোড়া বিক্রি হয় না বা ফুরিয়েছে সেটা
-দ্বিতীয় সারিতে **নিজেই নিভে যায়** — গ্রাহক এমন জোড়া বাছতেই পারবে না。
-দুই list থাকলে জোড়া না বাছা পর্যন্ত **Add to cart / Buy Now ঘুমিয়ে থাকে**
-("Choose an option first") — কারণ ৯টা জোড়ার আলাদা দাম আর আলাদা item, জোড়া না
-বললে order গুদাম থেকে তোলাই যায় না。
+⚠️ He first asked for the card to open as a dropdown holding that pair's price
+and stock, then took it back the same session: *"jehetu stock ar jonno stock a
+tab kaj kra jay abr price ar jonno price tab o kaj kra jay tahole ai tab agular
+r dokar nai. just akhane koyta product holo tai dekha gele hbe."* Right, and it
+is the 8 August rule again — one tab, one kind of work. The list now answers one
+question: what the ticks added up to. The only control left on it is ON/OFF,
+which lives on no other tab.
 
-**অক্ষত:** cart · checkout · order · invoice · finance — সব আগে থেকেই "variant
-ধরে" চলত, একটা লাইনও বদলায়নি。 receipt-এ নাম যাবে "Medium · Red"。
+Every per-variant section on the other tabs now keys on **`key`** (the comboKey),
+not on `variantValueId`.
 
-**নিজে হেঁটে দেখা (২৩ আগস্ট, demo):** `rose - has varint…` product-এ color আর
-size দুটোই চালু → `pink · large` (৳1,200 · 5) আর `red · large` (৳1,500 · 3)
-বানিয়ে Publish → DB-তে `ProductVariantValue`-এ দুটো করে সারি, comboKey ঠিক →
-দোকানের পাতায় **দুটো সারি** (color, size), red-এ চাপলে দাম ৳1,500, Buy Now-ও
-৳1,500 → Stock tab-এ দুটো জোড়াই আলাদা。
+**Storefront:** `PdpVariants` draws **one row of buttons per list**. A one-list
+product gets exactly the one row it always had. A pair that is not sold, or has
+run out, **greys itself out** in the second row, so an unsellable combination
+cannot be reached. With two lists the buy buttons wait until a pair is chosen
+("Choose an option first") — nine pairs, nine prices, nine items; an order
+naming none of them cannot be picked off a shelf.
 
-⚠️ **মালিককে জানানোর মতো:** ওই product-টা এখন `large` একা নয়, **pink·large আর
-red·large** — আমার live যাচাইয়ের জন্য。 পুরনো `large` সারিটা (১০ stock)
-soft-delete হয়ে আছে。 চাইলে দুটো রং তুলে দিলেই আগের মতো。
+**Untouched:** cart · checkout · order · invoice · finance — all of them already
+worked by variant. The receipt prints "Medium · Red".
 
-⚠️ **বাকি:** `RUN_TESTS.bat` এখনো চালানো হয়নি (sandbox-এ DB নেই) — মালিকের
-মেশিনে চালাতে হবে。
+**Walked live (23 Aug, demo):** on `rose - has varint…` both color and size were
+switched on → `pink · large` (৳1,200 · 5) and `red · large` (৳1,500 · 3) saved
+and published → the DB holds two `ProductVariantValue` rows each with the right
+comboKey → the shop page shows **two rows** (color, size), pressing red moves the
+price to ৳1,500 and Buy Now with it → the Stock tab lists both pairs separately.
+
+⚠️ **Worth telling the owner:** that product is no longer `large` alone but
+**pink·large and red·large**, from this live check. The old `large` row (10 in
+stock) is soft-deleted. Un-ticking the two colours puts it back.
+
+⚠️ **Still open:** `RUN_TESTS.bat` has not been run (no DB in the sandbox) — it
+needs a run on the owner's machine.
 
 ---
 
