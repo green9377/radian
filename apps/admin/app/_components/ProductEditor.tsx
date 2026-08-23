@@ -5031,6 +5031,52 @@ No bundle products yet — add them on{" "}
                   </div>
                 )}
 
+                {/*  ── WHEN THE MAKING TIME BEATS THE SPEED (owner, 23 Aug 2026) ──
+                     His question: *"pre order hobe ba delivery date 5 day dilam,
+                     tarpor abar delivery option a giye same day, 3 hours agulao
+                     dilam — tahole bepar ta kivabe kaj korbe?"*
+
+                     Checkout already answers it correctly: a method with no
+                     date picker is shut while the basket needs days, and the
+                     shopper is told why. Nothing can be sold in 3 hours that
+                     takes 5 days to make.
+
+                     But the ADMIN never said so. He could tick 3 Hours and Same
+                     day on a 5-day product and reasonably believe he was
+                     offering them. A tick that can never fire is a promise the
+                     screen is making to him, not to the customer.  */}
+                {(() => {
+                  const waitDays = Math.max(0, Number(lead) || 0);
+                  const preorder = soldOutMode === "PRE_ORDER";
+                  if (!waitDays && !preorder) return null;
+                  /*  A "fast" type is one the shopper cannot pick a date on —
+                      exactly the test methodState() uses at checkout.  */
+                  const dead = delivTypes.filter(
+                    (t) =>
+                      delivTypeIds.includes(t.id) &&
+                      t.kind !== "COURIER" &&
+                      (t.timing === "FROM_CONFIRM" || t.timing === "TODAY_SLOT"),
+                  );
+                  if (!dead.length) return null;
+                  return (
+                    <div className="rounded-[12px] px-4 py-3 mt-4 flex items-start gap-2.5"
+                      style={{ background: "#fff6e5", border: "1px solid #f0d9a8" }}>
+                      <Icon name="clock" size={15} className="shrink-0 mt-[2px]" style={{ color: "#8a5a00" }} />
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-bold" style={{ color: "#8a5a00" }}>
+                          {dead.map((t) => t.name).join(" · ")} will not be offered
+                        </div>
+                        <div className="text-[12.5px] mt-0.5" style={{ color: "#8a5a00", opacity: 0.85 }}>
+                          {preorder
+                            ? "This is a pre-order, so nothing can go out the same day."
+                            : `This takes ${waitDays} day${waitDays === 1 ? "" : "s"} to make, so nothing can go out the same day.`}
+                          {" "}Schedule it and courier still work.
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/*  What the customer will actually be offered, in one line.
                      Empty is a real state and it is worth flagging in amber:
                      the product still publishes, but only on a scheduled day,
