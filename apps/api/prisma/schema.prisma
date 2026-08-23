@@ -168,6 +168,8 @@ model Category {
   /// product page in this category. Written once, inherited by every product.
   trustBadges CategoryTrustBadge[]
   specRows    CategorySpec[]
+  /// DEC-PRD-046 — the named "What's inside" lists this category offers
+  specTemplates CategorySpecTemplate[]
   offers    Offer[] // DEC-OFR — CATEGORY-shape offers reference (never own) this
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -230,10 +232,53 @@ model CategoryTrustBadge {
 ///
 /// Most products override this with their own ("24 sticks"), so the category
 /// version is only a starting point: anything written on the product wins.
+/// ═══════════════════════════════════════════════════════════════════════════
+/// DEC-PRD-046 — a category holds SEVERAL "What's inside" lists, each named
+///
+/// The owner, 23 August 2026:
+/// > *"what's inside a to akhon aktai template kra jay. onk time dekha jay
+/// >  akta category te 4-5 ta thakle subida hoy."*
+///
+/// One flower category sells a rose bouquet, a mixed bouquet and a basket —
+/// three different contents lists, all under Fresh flower. Until now the
+/// category held exactly one list, so two of the three had to be retyped on
+/// every product.
+///
+/// ⚠️ PICKING ONE COPIES IT. His words: *"template je product a use hobe seta
+/// kokhono change hbe na... template change hole product a tar effect porar
+/// kono mani nai."* So a template is a starting point, never a live link: the
+/// rows land on the product and belong to it from that moment. Editing the
+/// template later changes nothing that was already made from it.
+/// ═══════════════════════════════════════════════════════════════════════════
+model CategorySpecTemplate {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  /// what the shop calls it — "Rose bouquet", "Gift basket"
+  name String
+
+  rows CategorySpec[]
+
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([categoryId])
+}
+
 model CategorySpec {
   id         String   @id @default(cuid())
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  /// DEC-PRD-046 — which named list this row belongs to. Nullable only so the
+  /// migration can run before the backfill; every row has one afterwards.
+  templateId String?
+  template   CategorySpecTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   item String
   qty  String
@@ -246,6 +291,7 @@ model CategorySpec {
   deletedAt DateTime?
 
   @@index([categoryId])
+  @@index([templateId])
 }
 
 /// The five or six questions under a category page — "How long do roses last?",

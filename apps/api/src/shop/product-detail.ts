@@ -174,6 +174,23 @@ function pickList<T>(...lists: (readonly T[] | undefined)[]): T[] {
   return [];
 }
 
+/**
+ * DEC-PRD-046 — ONE named list out of the several a category may hold.
+ *
+ * The owner asked for four or five "What's inside" lists per category (a rose
+ * bouquet, a mixed one, a basket). A product that has written none of its own
+ * still shows the category's, and "the category's" has to mean exactly one of
+ * them or the page prints two contents tables joined end to end.
+ *
+ * The first one — the category's own order — is that one. Any other choice is
+ * the product's to make, and making it copies the rows onto the product.
+ */
+function firstList<T extends { templateId: string | null }>(rows: readonly T[] | undefined): T[] {
+  if (!rows || rows.length === 0) return [];
+  const first = rows[0].templateId;
+  return rows.filter((r) => r.templateId === first);
+}
+
 const BUNDLE_ADDS = {
   /*  The id is required - what was taken travels to the cart as this id, never
       as a name. Renaming a product would otherwise snap the cart line.  */
@@ -573,10 +590,23 @@ export class ProductDetailService {
                   orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
                   select: { icon: true, iconUrl: true, label: true, sub: true },
                 },
+                /*  DEC-PRD-046 — a category holds SEVERAL named lists now,
+                    so the rows of all of them arrive together and
+                    `firstList()` keeps only the first one's. Concatenating
+                    them would print a rose bouquet and a gift basket in one
+                    table.  */
                 specRows: {
-                  where: { deletedAt: null, isActive: true },
-                  orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
-                  select: { item: true, qty: true },
+                  where: {
+                    deletedAt: null,
+                    isActive: true,
+                    template: { is: { deletedAt: null, isActive: true } },
+                  },
+                  orderBy: [
+                    { template: { sortOrder: 'asc' as const } },
+                    { sortOrder: 'asc' as const },
+                    { createdAt: 'asc' as const },
+                  ],
+                  select: { item: true, qty: true, templateId: true },
                 },
               },
             },
@@ -588,10 +618,19 @@ export class ProductDetailService {
               orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
               select: { icon: true, iconUrl: true, label: true, sub: true },
             },
+            /*  DEC-PRD-046 — see the note on the parent's copy above.  */
             specRows: {
-              where: { deletedAt: null, isActive: true },
-              orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
-              select: { item: true, qty: true },
+              where: {
+                deletedAt: null,
+                isActive: true,
+                template: { is: { deletedAt: null, isActive: true } },
+              },
+              orderBy: [
+                { template: { sortOrder: 'asc' as const } },
+                { sortOrder: 'asc' as const },
+                { createdAt: 'asc' as const },
+              ],
+              select: { item: true, qty: true, templateId: true },
             },
           },
         },
@@ -1065,7 +1104,11 @@ export class ProductDetailService {
         would sit the category's "24 sticks" beside the product's "50 sticks",
         and the page itself could not tell the customer which to believe.
       */
-      spec: pickList(p.specRows, p.category.specRows, p.category.parent?.specRows),
+      spec: pickList(
+        p.specRows,
+        firstList(p.category.specRows),
+        firstList(p.category.parent?.specRows),
+      ),
       /*  The product's own answers come first: "does this bouquet last a week"
           beats "how does delivery work" when somebody is holding a card.  */
       faqs: [

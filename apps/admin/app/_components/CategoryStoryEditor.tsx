@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import Icon from "./Icon";
+import { Info } from "./ItemEditor";
 import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
 import {
   uploadImage,
@@ -10,10 +11,14 @@ import {
   addCategoryBadge,
   updateCategoryBadge,
   removeCategoryBadge,
-  listCategorySpecs,
   addCategorySpec,
   updateCategorySpec,
   removeCategorySpec,
+  /*  DEC-PRD-046 — a category holds several named "What's inside" lists.  */
+  listCategorySpecLists,
+  addCategorySpecList,
+  updateCategorySpecList,
+  removeCategorySpecList,
   listCategoryFaqs,
   addCategoryFaq,
   updateCategoryFaq,
@@ -21,6 +26,7 @@ import {
   type ApiCategoryFaq,
   type ApiCategoryTrustBadge,
   type ApiCategorySpec,
+  type ApiCategorySpecList,
 } from "../_data/api";
 
 /*
@@ -52,7 +58,10 @@ export default function CategoryStoryEditor({
   only?: "badges" | "inside" | "faqs";
 }) {
   const [badges, setBadges] = useState<ApiCategoryTrustBadge[]>([]);
-  const [specs, setSpecs] = useState<ApiCategorySpec[]>([]);
+  /*  DEC-PRD-046 — the named lists, each with its rows. The single `specs`
+      array is gone: "the category's list" is no longer one thing.  */
+  const [lists, setLists] = useState<ApiCategorySpecList[]>([]);
+  const [openList, setOpenList] = useState<string | null>(null);
   const [faqs, setFaqs] = useState<ApiCategoryFaq[]>([]);
   const [picking, setPicking] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -62,25 +71,46 @@ export default function CategoryStoryEditor({
     let alive = true;
     Promise.all([
       listCategoryBadges(categoryId),
-      listCategorySpecs(categoryId),
+      listCategorySpecLists(categoryId).catch(() => [] as ApiCategorySpecList[]),
       listCategoryFaqs(categoryId).catch(() => [] as ApiCategoryFaq[]),
     ])
       .then(([b, s, f]) => {
         if (!alive) return;
         setBadges(b);
-        setSpecs(s);
+        setLists(s);
+        /*  Open the first one, so the screen is never a row of chips with
+            nothing underneath them.  */
+        setOpenList((cur) => (s.some((x) => x.id === cur) ? cur : (s[0]?.id ?? null)));
         setFaqs(f);
       })
       .catch(() => {
         if (!alive) return;
         setBadges([]);
-        setSpecs([]);
+        setLists([]);
+        setOpenList(null);
         setFaqs([]);
       });
     return () => {
       alive = false;
     };
   }, [categoryId]);
+
+  const open = lists.find((t) => t.id === openList) ?? null;
+
+  function patchRow(listId: string, rowId: string, body: Partial<ApiCategorySpec>) {
+    setLists((r) =>
+      r.map((t) =>
+        t.id === listId
+          ? { ...t, rows: (t.rows ?? []).map((x) => (x.id === rowId ? { ...x, ...body } : x)) }
+          : t,
+      ),
+    );
+  }
+  function dropRow(listId: string, rowId: string) {
+    setLists((r) =>
+      r.map((t) => (t.id === listId ? { ...t, rows: (t.rows ?? []).filter((x) => x.id !== rowId) } : t)),
+    );
+  }
 
   function patchBadge(id: string, body: Partial<ApiCategoryTrustBadge>) {
     setBadges((r) => r.map((x) => (x.id === id ? { ...x, ...body } : x)));
@@ -263,74 +293,175 @@ export default function CategoryStoryEditor({
       </div>
       )}
 
-      {/* ─────────────── WHAT'S INSIDE ─────────────── */}
+      {/* ─────────────── WHAT'S INSIDE · the named lists (DEC-PRD-046) ─────── */}
       {(!only || only === "inside") && (
       <div className={only ? "" : "border-t border-lavender-deep pt-5"}>
-        <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
-          What&rsquo;s inside
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+            What&rsquo;s inside
+          </div>
+          <Info text="The table under “Before You Order”. Keep as many lists as this category needs — a rose bouquet and a gift basket hold different things. On a product you press one and its rows are copied there; changing the list afterwards does not touch products already made from it." />
         </div>
-        <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-          The table under &ldquo;Before You Order&rdquo;. A product with its own list uses that
-          instead.
-        </p>
 
-        <div className="flex flex-col gap-2">
-          {specs.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center gap-2.5 border border-lavender-deep rounded-[11px] bg-white px-3 py-2"
-            >
+        {/*  ── which list ──
+            Owner, 23 Aug 2026: *"what's inside a to akhon aktai template kra
+            jay. onk time dekha jay akta category te 4-5 ta thakle subida
+            hoy."* One category, several contents lists.  */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {lists.map((t) => {
+            const on = t.id === openList;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setOpenList(t.id)}
+                className={`inline-flex items-center gap-2 text-[13.5px] font-bold px-4 py-2.5 rounded-[12px] border-2 transition-all ${
+                  on
+                    ? "bg-purple border-purple text-white shadow-[0_4px_14px_rgba(71,0,102,.3)]"
+                    : "bg-white border-lavender-deep text-purple hover:border-orchid"
+                }`}
+              >
+                {t.name.trim() || "Untitled list"}
+                <span
+                  className={`inline-grid place-items-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11.5px] font-extrabold ${
+                    on ? "bg-white/25 text-white" : "bg-orchid-soft text-purple"
+                  }`}
+                >
+                  {(t.rows ?? []).length}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const t = await addCategorySpecList(categoryId, "");
+                setLists((r) => [...r, { ...t, rows: [] }]);
+                setOpenList(t.id);
+              } catch (e) {
+                setErr((e as Error).message);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 text-[13.5px] font-bold px-4 py-2.5 rounded-[12px] border-2 border-dashed border-orchid-mid bg-white text-orchid hover:bg-orchid-soft/40 transition-colors"
+          >
+            <Icon name="plus" size={15} /> New list
+          </button>
+        </div>
+
+        {open && (
+          <div className="rounded-[14px] border-2 border-lavender-deep bg-white overflow-hidden">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
               <input
-                className="ipt"
-                defaultValue={s.item}
-                placeholder="Red Rose (fresh cut)"
+                className="ipt font-bold text-purple flex-1 min-w-0"
+                style={{ minHeight: 40 }}
+                defaultValue={open.name}
+                key={`name-${open.id}`}
+                placeholder="Name this list — Rose bouquet"
                 onBlur={(e) => {
-                  if (e.target.value === s.item) return;
                   const v = e.target.value;
-                  setSpecs((r) => r.map((x) => (x.id === s.id ? { ...x, item: v } : x)));
-                  updateCategorySpec(s.id, { item: v }).catch(() => {});
+                  if (v === open.name) return;
+                  setLists((r) => r.map((x) => (x.id === open.id ? { ...x, name: v } : x)));
+                  updateCategorySpecList(open.id, { name: v }).catch((x: Error) => setErr(x.message));
                 }}
               />
-              <input
-                className="ipt"
-                style={{ width: 180 }}
-                defaultValue={s.qty}
-                placeholder="24 sticks"
-                onBlur={(e) => {
-                  if (e.target.value === s.qty) return;
-                  const v = e.target.value;
-                  setSpecs((r) => r.map((x) => (x.id === s.id ? { ...x, qty: v } : x)));
-                  updateCategorySpec(s.id, { qty: v }).catch(() => {});
-                }}
-              />
+              {/*  Removing a list takes its rows with it. Nothing that was
+                  already copied onto a product is touched — those rows belong
+                  to the product now.  */}
               <button
                 type="button"
                 onClick={() => {
-                  setSpecs((r) => r.filter((x) => x.id !== s.id));
-                  removeCategorySpec(s.id).catch(() => {});
+                  if (
+                    !window.confirm(
+                      `Remove “${open.name.trim() || "this list"}” and its ${(open.rows ?? []).length} row(s)? Products that already copied it keep what they have.`,
+                    )
+                  )
+                    return;
+                  const id = open.id;
+                  setLists((r) => r.filter((x) => x.id !== id));
+                  setOpenList(null);
+                  removeCategorySpecList(id).catch((e: Error) => setErr(e.message));
                 }}
-                className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#c0392b] shrink-0"
+                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#e0a1a1] hover:text-[#c0392b] shrink-0"
               >
-                <Icon name="trash" size={14} />
+                Remove list
               </button>
             </div>
-          ))}
-        </div>
 
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              const row = await addCategorySpec({ categoryId, item: "", qty: "" });
-              setSpecs((r) => [...r, row]);
-            } catch (e) {
-              setErr((e as Error).message);
-            }
-          }}
-          className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple border border-lavender-deep bg-white rounded-[10px] px-3 py-2 hover:border-orchid transition-colors"
-        >
-          <Icon name="plus" size={15} /> Add a row
-        </button>
+            <div className="p-3">
+              <div className="flex flex-col gap-2">
+                {(open.rows ?? []).map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-2.5 border border-lavender-deep rounded-[11px] bg-white px-3 py-2"
+                  >
+                    <input
+                      className="ipt"
+                      defaultValue={s.item}
+                      placeholder="Red Rose (fresh cut)"
+                      onBlur={(e) => {
+                        if (e.target.value === s.item) return;
+                        const v = e.target.value;
+                        patchRow(open.id, s.id, { item: v });
+                        updateCategorySpec(s.id, { item: v }).catch(() => {});
+                      }}
+                    />
+                    <input
+                      className="ipt"
+                      style={{ width: 180 }}
+                      defaultValue={s.qty}
+                      placeholder="24 sticks"
+                      onBlur={(e) => {
+                        if (e.target.value === s.qty) return;
+                        const v = e.target.value;
+                        patchRow(open.id, s.id, { qty: v });
+                        updateCategorySpec(s.id, { qty: v }).catch(() => {});
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        dropRow(open.id, s.id);
+                        removeCategorySpec(s.id).catch(() => {});
+                      }}
+                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#c0392b] shrink-0"
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const row = await addCategorySpec({
+                      categoryId,
+                      templateId: open.id,
+                      item: "",
+                      qty: "",
+                    });
+                    setLists((r) =>
+                      r.map((x) => (x.id === open.id ? { ...x, rows: [...(x.rows ?? []), row] } : x)),
+                    );
+                  } catch (e) {
+                    setErr((e as Error).message);
+                  }
+                }}
+                className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-bold text-purple border-2 border-lavender-deep bg-white rounded-[10px] px-3 py-2 hover:border-orchid transition-colors"
+              >
+                <Icon name="plus" size={15} /> Add a row
+              </button>
+            </div>
+          </div>
+        )}
+
+        {lists.length === 0 && (
+          <p className="text-[13px] text-body-soft m-0">
+            No list yet — press <b className="font-bold text-purple">New list</b>.
+          </p>
+        )}
       </div>
       )}
 

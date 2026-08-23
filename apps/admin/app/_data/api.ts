@@ -1796,6 +1796,8 @@ export interface ApiCategoryTrustBadge {
 export interface ApiCategorySpec {
   id: string;
   categoryId: string;
+  /** DEC-PRD-046 — which named list this row belongs to */
+  templateId?: string | null;
   item: string;
   qty: string;
   sortOrder: number;
@@ -1814,8 +1816,40 @@ export const updateCategoryBadge = (id: string, b: Record<string, unknown>) =>
 export const removeCategoryBadge = (id: string) =>
   j(`/category-story/trust/${id}`, { method: "DELETE" });
 
-export const listCategorySpecs = (categoryId: string) =>
-  j<ApiCategorySpec[]>(`/category-story/spec?categoryId=${encodeURIComponent(categoryId)}`);
+/**
+ * DEC-PRD-046 — a category holds SEVERAL named "What's inside" lists.
+ * Picking one on a product COPIES its rows; it is a starting point, never a
+ * live link (the owner's rule, 23 Aug 2026).
+ */
+export interface ApiCategorySpecList {
+  id: string;
+  categoryId: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  rows: ApiCategorySpec[];
+}
+
+export const listCategorySpecLists = (categoryId: string) =>
+  j<ApiCategorySpecList[]>(`/category-story/spec-lists?categoryId=${encodeURIComponent(categoryId)}`);
+export const addCategorySpecList = (categoryId: string, name?: string) =>
+  j<ApiCategorySpecList>(`/category-story/spec-lists`, {
+    method: "POST",
+    body: JSON.stringify({ categoryId, name }),
+  });
+export const updateCategorySpecList = (id: string, b: Record<string, unknown>) =>
+  j<ApiCategorySpecList>(`/category-story/spec-lists/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(b),
+  });
+export const removeCategorySpecList = (id: string) =>
+  j(`/category-story/spec-lists/${id}`, { method: "DELETE" });
+
+export const listCategorySpecs = (categoryId: string, templateId?: string) =>
+  j<ApiCategorySpec[]>(
+    `/category-story/spec?categoryId=${encodeURIComponent(categoryId)}` +
+      (templateId ? `&templateId=${encodeURIComponent(templateId)}` : ""),
+  );
 export const addCategorySpec = (b: Record<string, unknown>) =>
   j<ApiCategorySpec>(`/category-story/spec`, { method: "POST", body: JSON.stringify(b) });
 export const updateCategorySpec = (id: string, b: Record<string, unknown>) =>

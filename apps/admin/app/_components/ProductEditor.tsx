@@ -41,6 +41,9 @@ import {
       this screen too, otherwise the owner thinks nothing is set.  */
   listCategoryBadges,
   listCategorySpecs,
+  /*  DEC-PRD-046 — the category's named "What's inside" lists.  */
+  listCategorySpecLists,
+  type ApiCategorySpecList,
   /*  23 Aug 2026 — the FAQ was the one that showed nothing here, so the owner
       read it as broken. It always reached the website; this screen never
       said so.  */
@@ -1724,6 +1727,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       to the product's own rather than replacing it, so it has its own state
       and its own wording — the other two are a choice, this one is a fact.  */
   const [catFaq, setCatFaq] = useState<ApiCategoryFaq[]>([]);
+  /*  DEC-PRD-046 — every named "What's inside" list the category offers, so
+      the product can press the one it wants. Pressing COPIES the rows: the
+      owner's rule, 23 Aug 2026 — *"template je product a use hobe seta kokhono
+      change hbe na"*.  */
+  const [catLists, setCatLists] = useState<ApiCategorySpecList[]>([]);
   /** which category it came from — top if not a sub-category, kept as its own name */
   const [storyFrom, setStoryFrom] = useState("");
   const [oz, setOz] = useState(detail?.ozReason ?? "");
@@ -2280,6 +2288,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       setCatTrust([]);
       setCatSpec([]);
       setCatFaq([]);
+      setCatLists([]);
       setStoryFrom("");
       return;
     }
@@ -2310,29 +2319,33 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         );
       }
 
-      const [t1, s1] = await Promise.all([
+      const [t1, l1] = await Promise.all([
         listCategoryBadges(own).catch(() => []),
-        listCategorySpecs(own).catch(() => []),
+        listCategorySpecLists(own).catch(() => [] as ApiCategorySpecList[]),
       ]);
       if (!alive) return;
       const live = <T extends { isActive: boolean }>(xs: T[]) => xs.filter((x) => x.isActive);
       let trustRows = live(t1);
-      let specRows = live(s1);
+      let lists = live(l1);
       let from = own;
       /*  if the sub-category has nothing, fall back to its parent — an
           empty list means "nothing was said," not "there is nothing."  */
-      if (subCatId && topCatId && trustRows.length === 0 && specRows.length === 0) {
-        const [t2, s2] = await Promise.all([
+      if (subCatId && topCatId && trustRows.length === 0 && lists.length === 0) {
+        const [t2, l2] = await Promise.all([
           listCategoryBadges(topCatId).catch(() => []),
-          listCategorySpecs(topCatId).catch(() => []),
+          listCategorySpecLists(topCatId).catch(() => [] as ApiCategorySpecList[]),
         ]);
         if (!alive) return;
         trustRows = live(t2);
-        specRows = live(s2);
+        lists = live(l2);
         from = topCatId;
       }
       setCatTrust(trustRows);
-      setCatSpec(specRows);
+      setCatLists(lists);
+      /*  DEC-PRD-046 — what a product with no list of its own actually shows:
+          the FIRST list, the same one the website falls back to. Two lists
+          concatenated would print a bouquet and a basket in one table.  */
+      setCatSpec(live(lists[0]?.rows ?? []));
       setStoryFrom(nameOf(from));
     })();
     return () => {
@@ -6800,7 +6813,7 @@ No bundle products yet — add them on{" "}
               <Card
                 icon="book"
                 title="What's inside"
-                tip="The Item / Quantity table on the product page. The category’s list is shown below — press “Use these and edit” only when this one product needs a different list."
+                tip="The Item / Quantity table on the product page. The category keeps ready-made lists — press one and its rows land here as this product’s own. Changing that list in Categories afterwards does not touch this product."
               >
                 <FromCategory
                   from={storyFrom}
@@ -6816,6 +6829,48 @@ No bundle products yet — add them on{" "}
                     </div>
                   ))}
                 </FromCategory>
+
+                {/*  ── DEC-PRD-046 · the category's ready-made lists ─────────
+                    Owner, 23 Aug 2026: *"onk time dekha jay akta category te
+                    4-5 ta thakle subida hoy... template show krbe, jeta mon
+                    chaibe seta select krbe."*
+
+                    ⚠️ Pressing one COPIES it. His rule, in his words:
+                    *"template je product a use hobe seta kokhono change hbe
+                    na"* — so this is a starting point, never a live link. The
+                    first list is what a product showing nothing of its own
+                    already displays; the others are here to be taken.  */}
+                {catLists.length > 1 && (
+                  <div className="mb-3.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+                        Ready-made lists · from {storyFrom || "the category"}
+                      </div>
+                      <Info text="Press one and its rows are copied in below, as this product's own. Editing the list in Categories later does not change a product that already took it." />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {catLists.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() =>
+                            setSpec(
+                              (t.rows ?? [])
+                                .filter((r) => r.isActive)
+                                .map((r) => ({ item: r.item, qty: r.qty })),
+                            )
+                          }
+                          className="inline-flex items-center gap-2 text-[13.5px] font-bold px-4 py-2.5 rounded-[12px] border-2 border-lavender-deep bg-white text-purple hover:border-orchid transition-colors"
+                        >
+                          {t.name.trim() || "Untitled list"}
+                          <span className="inline-grid place-items-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11.5px] font-extrabold bg-orchid-soft text-purple">
+                            {(t.rows ?? []).filter((r) => r.isActive).length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-[1fr_170px_38px] gap-2.5 px-1 mb-1.5 text-[13px] text-body-soft font-medium">
                   <span>Item</span>
                   <span>Quantity</span>
