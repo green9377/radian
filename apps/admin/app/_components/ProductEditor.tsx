@@ -397,17 +397,27 @@ function NatureChips({
           const on = active.trim().toLowerCase() === n.name.trim().toLowerCase();
           const being = editing === n.id;
           return (
+            /*  ⚠️ CHOSEN AND BEING-EDITED MUST NOT LOOK THE SAME (owner, 23 Aug
+                2026: "aksathe 2 ta job select hoy?"). Both wore the same solid
+                purple, so opening the pencil on Edible made it look picked
+                while Fresh flower was the one actually on the product.
+
+                Chosen  = filled purple with a tick — this is the product's kind.
+                Editing = white with a purple ring — this one is open below.
+                One is an answer, the other is a workbench.  */
             <span key={n.id}
               className="group/nat inline-flex items-stretch rounded-[11px] border-2 overflow-hidden transition-all"
-              style={on || being
+              style={on
                 ? { borderColor: "#6d3a9c", background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
-                : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
+                : being
+                  ? { borderColor: "#6d3a9c", background: "#fff", boxShadow: "0 0 0 3px #f3ebf8" }
+                  : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
               <button
                 type="button"
                 onClick={() => onPick(n)}
                 title={n.label}
                 className={"text-[13px] font-bold pl-3.5 pr-3 py-2 inline-flex items-center gap-1.5 " +
-                  (on || being ? "text-white" : "text-purple hover:bg-lavender/50")}
+                  (on ? "text-white" : "text-purple hover:bg-lavender/50")}
               >
                 {on && <Icon name="check" size={13} />}
                 {n.name}
@@ -416,9 +426,12 @@ function NatureChips({
                 type="button"
                 onClick={() => startEdit(n)}
                 title={`Rename “${n.name}” or change its line`}
-                className={"px-2.5 grid place-items-center border-l opacity-0 group-hover/nat:opacity-100 focus:opacity-100 transition-opacity " +
-                  (on || being ? "text-white/80 hover:text-white" : "text-body-soft hover:text-purple")}
-                style={{ borderColor: on || being ? "rgba(255,255,255,.28)" : "var(--color-lavender-deep)" }}
+                /*  The pencil stays visible on the chip that is open, so the
+                    way back out is where the way in was.  */
+                className={"px-2.5 grid place-items-center border-l transition-opacity " +
+                  (being ? "opacity-100" : "opacity-0 group-hover/nat:opacity-100 focus:opacity-100 ") +
+                  (on ? "text-white/80 hover:text-white" : being ? "text-purple" : "text-body-soft hover:text-purple")}
+                style={{ borderColor: on ? "rgba(255,255,255,.28)" : "var(--color-lavender-deep)" }}
               >
                 <Icon name="edit" size={13} />
               </button>
