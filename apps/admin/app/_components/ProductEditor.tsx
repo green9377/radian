@@ -41,8 +41,13 @@ import {
       this screen too, otherwise the owner thinks nothing is set.  */
   listCategoryBadges,
   listCategorySpecs,
+  /*  23 Aug 2026 — the FAQ was the one that showed nothing here, so the owner
+      read it as broken. It always reached the website; this screen never
+      said so.  */
+  listCategoryFaqs,
   type ApiCategoryTrustBadge,
   type ApiCategorySpec,
+  type ApiCategoryFaq,
   listItems,
   getInvItemStock,
   listNatures, createNature, updateNature, deleteNature, type ApiNature,
@@ -1715,6 +1720,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   */
   const [catTrust, setCatTrust] = useState<ApiCategoryTrustBadge[]>([]);
   const [catSpec, setCatSpec] = useState<ApiCategorySpec[]>([]);
+  /*  The FAQ that the category already puts on this product's page. It ADDS
+      to the product's own rather than replacing it, so it has its own state
+      and its own wording — the other two are a choice, this one is a fact.  */
+  const [catFaq, setCatFaq] = useState<ApiCategoryFaq[]>([]);
   /** which category it came from — top if not a sub-category, kept as its own name */
   const [storyFrom, setStoryFrom] = useState("");
   const [oz, setOz] = useState(detail?.ozReason ?? "");
@@ -2270,12 +2279,37 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     if (!own) {
       setCatTrust([]);
       setCatSpec([]);
+      setCatFaq([]);
       setStoryFrom("");
       return;
     }
     const nameOf = (id: string) => apiCats.find((c) => c.id === id)?.name ?? "";
     let alive = true;
     (async () => {
+      /*  ── FAQ climbs and ADDS UP, so it is fetched apart from the ladder ──
+          The sub-category's questions AND the parent's both reach the page
+          (the server does the same in `categoryFaqs`), so there is no
+          "nearest non-empty" to work out here — take both, nearer first, and
+          drop a question written twice.  */
+      const faqRows = await Promise.all([
+        listCategoryFaqs(own).catch(() => [] as ApiCategoryFaq[]),
+        subCatId && topCatId
+          ? listCategoryFaqs(topCatId).catch(() => [] as ApiCategoryFaq[])
+          : Promise.resolve([] as ApiCategoryFaq[]),
+      ]);
+      if (alive) {
+        const seen = new Set<string>();
+        setCatFaq(
+          faqRows.flat().filter((f) => {
+            if (!f.isActive) return false;
+            const k = f.question.trim().toLowerCase();
+            if (!k || seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          }),
+        );
+      }
+
       const [t1, s1] = await Promise.all([
         listCategoryBadges(own).catch(() => []),
         listCategorySpecs(own).catch(() => []),
@@ -6852,6 +6886,45 @@ No bundle products yet — add them on{" "}
                     answers on a real product page, with no screen anywhere to
                     author real ones. Category → FAQ is that screen now, and
                     those answers already appear under these.  */}
+                {/*  ── what the category already puts on the page ────────────
+                    Owner, 23 Aug 2026: *"faq kaj kre na. akhane faq add krar
+                    poreo product upload page a asche na."*
+
+                    Two separate faults behind that. The server one is fixed
+                    (`categoryFaqs` asked only for the product's own category
+                    and every product here sits in a sub-category — the answer
+                    was on the parent). The other is this screen: badges and
+                    "What's inside" both show what the category gives, FAQ
+                    showed nothing at all, so there was no way to tell a
+                    working question from a lost one.
+
+                    No "Use these and edit" button, on purpose — these are not
+                    a starting point to copy. They are already on the page,
+                    underneath whatever is typed above.  */}
+                {catFaq.length > 0 && (
+                  <div className="border border-lavender-deep bg-lavender/40 rounded-[12px] p-3 mb-3">
+                    <div className="flex items-center gap-2 flex-wrap mb-2.5">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+                        Also on the page · from {storyFrom || "the category"}
+                      </span>
+                      <Info text="Questions written on the category. They show underneath this product's own — these two add up, they do not replace each other. Change them in Categories → FAQ." />
+                      <Link
+                        href="/categories"
+                        className="ml-auto text-[12.5px] font-bold text-orchid hover:underline"
+                      >
+                        Edit in Categories
+                      </Link>
+                    </div>
+                    <div className="grid gap-2 opacity-80">
+                      {catFaq.map((f) => (
+                        <div key={f.id} className="text-[13px]">
+                          <b className="font-bold text-purple block">{f.question}</b>
+                          <span className="text-body-soft line-clamp-2">{f.answer}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-col gap-2.5">
                   {faqs.map((r, i) => (
                     <div

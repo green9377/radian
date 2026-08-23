@@ -714,8 +714,8 @@ export class ProductDetailService {
       crossSell,
     ] = await Promise.all([
       this.rating(p.id),
-      this.categoryFaqs(p.category.id),
-      this.bundles(p.id, p.category.id),
+      this.categoryFaqs(p.category.id, p.category.parent?.id ?? null),
+      this.bundles(p.id, p.category.id, p.category.parent?.id ?? null),
       this.upgrades(p.id),
       this.prisma.db.companySetting.findFirst({ select: { publicPhone: true } }),
       this.craft(p.id, p.category.id, p.category.parent?.id ?? null),
@@ -1229,17 +1229,31 @@ export class ProductDetailService {
       so the second layer called "pick exactly these and pay this" has no job
       left. The two tables are still in the database (nothing is deleted);
       nobody reads them any more.  */
-  private async bundles(productId: string, categoryId: string) {
+  /*  ⚠️ CLIMBS TO THE PARENT TOO (23 Aug 2026) — found while fixing the FAQ,
+      the same fault one table over. Craft points, badges and "What's inside"
+      all walk product → category → parent; this stopped at the category. A
+      "+ Chocolates" card written on Fresh flower would have reached nothing,
+      because every product in this shop sits in a sub-category. No bundle
+      existed yet, so nobody had seen it fail.
+
+      Bundles REPLACE rather than add up, exactly as craft points do: the
+      product's own if it has any, else its category's, else the parent's.  */
+  private async bundles(productId: string, categoryId: string, parentCategoryId: string | null) {
     const rows = await this.prisma.db.bundle.findMany({
       where: {
         isActive: true,
-        OR: [{ productId }, { categoryId }],
+        OR: [
+          { productId },
+          { categoryId },
+          ...(parentCategoryId ? [{ categoryId: parentCategoryId }] : []),
+        ],
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: {
         id: true,
         label: true,
         productId: true,
+        categoryId: true,
         discountType: true,
         discountValue: true,
         isBest: true,
@@ -1253,7 +1267,13 @@ export class ProductDetailService {
     });
 
     const own = rows.filter((b) => b.productId !== null);
-    const list = own.length > 0 ? own : rows.filter((b) => b.productId === null);
+    const mine = rows.filter((b) => b.productId === null && b.categoryId === categoryId);
+    const list =
+      own.length > 0
+        ? own
+        : mine.length > 0
+          ? mine
+          : rows.filter((b) => b.productId === null && b.categoryId === parentCategoryId);
 
     /*
       Out of stock disappears rather than greys out — owner's rule, 31 Jul.
@@ -1658,13 +1678,42 @@ export class ProductDetailService {
     }));
   }
 
-  /** D-CAT-03 — "flowers, generally". Merged under the product's own answers. */
-  private categoryFaqs(categoryId: string) {
-    return this.prisma.db.categoryFaq.findMany({
-      where: { categoryId, isActive: true },
+  /**
+   * D-CAT-03 — "flowers, generally". Merged under the product's own answers.
+   *
+   * ⚠️ IT CLIMBS TO THE PARENT (23 Aug 2026). Owner: *"category te badges,
+   * what's inside, why buy from us — agula sobei create krle automatic product
+   * upload page a kaj krche. but faq kaj kre na."*
+   *
+   * He was right, and it was this one line. Every product in the shop sits in
+   * a SUB-category (Fresh flower › rose) and he had written the question on
+   * the parent, Fresh flower. Badges, "What's inside" and the why-buy cards
+   * all walk the ladder to the parent; this asked for one category and
+   * stopped. So the question existed, was live, and reached nothing.
+   *
+   * FAQ ADDS UP, it does not replace — that is already the rule between the
+   * product and its category, and the same rule simply carries one step
+   * further. The sub-category's answers come first, then the parent's, and a
+   * question written in both is shown once (the nearer wording wins).
+   */
+  private async categoryFaqs(categoryId: string, parentCategoryId: string | null) {
+    const ids = parentCategoryId ? [categoryId, parentCategoryId] : [categoryId];
+    const rows = await this.prisma.db.categoryFaq.findMany({
+      where: { categoryId: { in: ids }, isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { question: true, answer: true },
+      select: { question: true, answer: true, categoryId: true },
     });
+    const near = rows.filter((r) => r.categoryId === categoryId);
+    const far = rows.filter((r) => r.categoryId !== categoryId);
+    const seen = new Set<string>();
+    return [...near, ...far]
+      .filter((r) => {
+        const k = r.question.trim().toLowerCase();
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .map((r) => ({ question: r.question, answer: r.answer }));
   }
 
   /**
