@@ -204,6 +204,9 @@ export class ProductsService {
         discountValue: true,
         salesCount: true,
         stockQty: true,
+        stockMode: true,
+        itemId: true,
+        variants: { where: { deletedAt: null, isActive: true }, select: { itemId: true, stockQty: true } },
         isPublished: true,
         category: { select: { id: true, name: true } },
         /*  the real photo — the funnel rows showed a coloured tile for
@@ -216,6 +219,40 @@ export class ProductsService {
         },
       },
     });
+
+    /*  The funnel carried the same fault the product list did (23 Aug 2026):
+        it printed `stockQty` raw, so every TRACKED product read 0 here too.
+        One groupBy for the whole page, same as the list.  */
+    const funnelItemIds = [
+      ...new Set(
+        products.flatMap((p) => [
+          ...(p.itemId ? [p.itemId] : []),
+          ...p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
+        ]),
+      ),
+    ];
+    const funnelSums = funnelItemIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: funnelItemIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const funnelQty = new Map(
+      funnelSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    const stockOf = (p: {
+      stockMode: string; stockQty: number; itemId: string | null;
+      variants: { itemId: string | null; stockQty: number }[];
+    }) => {
+      if (p.stockMode === 'MANUAL')
+        return p.variants.length ? p.variants.reduce((n, v) => n + v.stockQty, 0) : p.stockQty;
+      return p.variants.length
+        ? p.variants.reduce((n, v) => n + (v.itemId ? (funnelQty.get(v.itemId) ?? 0) : 0), 0)
+        : p.itemId
+          ? (funnelQty.get(p.itemId) ?? 0)
+          : 0;
+    };
 
     const items = products.map((p) => {
       const a = map.get(p.id);
@@ -234,7 +271,7 @@ export class ProductsService {
         categoryId: p.category?.id ?? null,
         categoryName: p.category?.name ?? null,
         isPublished: p.isPublished,
-        stockQty: p.stockQty,
+        stockQty: stockOf(p),
         orders,
         cancelled: a?.cancelledIds.size ?? 0,
         delivered: a?.deliveredIds.size ?? 0,
@@ -388,7 +425,7 @@ export class ProductsService {
               corrected here before it is sent.  */
           variants: {
             where: { deletedAt: null, isActive: true },
-            select: { stockQty: true },
+            select: { stockQty: true, itemId: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -397,6 +434,34 @@ export class ProductsService {
       }),
       this.prisma.db.product.count({ where }),
     ]);
+
+    /*  One query for every linked item on the page — the product's own and
+        each variant's. Never N+1: a hundred rows must still be one round trip. */
+    const linkedItemIds = [
+      ...new Set(
+        items.flatMap((p) => [
+          ...(p.itemId ? [p.itemId] : []),
+          ...p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
+        ]),
+      ),
+    ];
+    const invSums = linkedItemIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linkedItemIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    /*  milli-units floor to whole pieces, the same way the product page does it */
+    const invQty = new Map(
+      invSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    const trackedQty = (p: { itemId: string | null; variants: { itemId: string | null }[] }) =>
+      p.variants.length > 0
+        ? p.variants.reduce((n, v) => n + (v.itemId ? (invQty.get(v.itemId) ?? 0) : 0), 0)
+        : p.itemId
+          ? (invQty.get(p.itemId) ?? 0)
+          : 0;
 
     return {
       /*
@@ -411,12 +476,24 @@ export class ProductsService {
       */
       items: items.map((p) =>
         this.withOffer(
-          /*  ⚠️ Manual only. Under TRACKED the count belongs to Inventory, and
-              the variants' hand-typed fields are not read at all
-              (DEC-PRD-015).  */
-          p.stockMode === 'MANUAL' && p.variants.length > 0
-            ? { ...p, stockQty: p.variants.reduce((n, v) => n + v.stockQty, 0) }
-            : p,
+          p.stockMode === 'MANUAL'
+            ? /*  DEC-PRD-014 — with variants, the variants' hand-typed fields
+                  add up to the product's answer.  */
+              p.variants.length > 0
+              ? { ...p, stockQty: p.variants.reduce((n, v) => n + v.stockQty, 0) }
+              : p
+            : /*  TRACKED — the count belongs to Inventory (DEC-PRD-015), and
+                  until 23 Aug 2026 this list never asked it. It returned the
+                  product's own `stockQty` column, which under TRACKED is never
+                  written, so every tracked product read 0 and the list stamped
+                  it "OUT" — while the shop itself showed the real number,
+                  because the storefront always did ask Inventory.
+
+                  The owner caught it on his first product: item Red-Rose held
+                  280 and the row said 0 OUT. A stock figure that is wrong in
+                  the admin and right on the website is worse than no figure —
+                  it is the one number he would reorder against.  */
+              { ...p, stockQty: trackedQty(p) },
         ),
       ),
       total,
