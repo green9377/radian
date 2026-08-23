@@ -839,7 +839,7 @@ export class ProductsService {
     `isPublished: true` is set.
   */
   private async assertPublishReady(
-    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; images?: { url: string }[]; variants?: ProductVariantInput[] },
+    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; deliveryTypeIds?: string[]; images?: { url: string }[]; variants?: ProductVariantInput[] },
     existing: {
       isPublished?: boolean;
       sellingPricePaisa?: number;
@@ -891,12 +891,36 @@ export class ProductsService {
       throw new BadRequestException('A product cannot be published without a SKU / product code.');
     }
 
-    const exp = dto.supportsExpress ?? existing?.supportsExpress ?? false;
-    const sd = dto.supportsSameDay ?? existing?.supportsSameDay ?? false;
-    const mn = dto.supportsMidnight ?? existing?.supportsMidnight ?? false;
-    if (!exp && !sd && !mn) {
+    /*  ⚠️ THIS GATE USED TO BE ABOUT THREE ENGLISH WORDS (fixed 22 Aug 2026).
+        It read `supportsExpress / SameDay / Midnight`, and those three are not
+        set by anybody — they are DERIVED in the product editor by matching the
+        delivery type's NAME against /hour|express/, /same/ and /midnight/.
+
+        The owner ticked his own two types, "Schedule it" and "National
+        delivery". Neither name contains any of those words, so all three
+        booleans came out false and publishing was refused — while the screen
+        showed the section as done, because two types really were ticked. The
+        screen was right and the gate was wrong.
+
+        It also contradicted two locked decisions at once: DEC-DLV-008 says the
+        delivery names come from the Delivery module and nothing is hardcoded,
+        and house rule 7 says no business value lives in code. A shop that
+        renames "Express" to "2 Hour Rush" would have had every publish blocked
+        with no way to find out why.
+
+        The rule the business actually wants: a published product must be
+        deliverable SOME way. So the gate now asks whether any delivery type is
+        linked at all. The three booleans are still written (the storefront's
+        speed filter reads them) — they are just no longer the judge.  */
+    const linkedTypes =
+      dto.deliveryTypeIds !== undefined
+        ? dto.deliveryTypeIds.length
+        : productId
+          ? await this.prisma.db.productDeliveryType.count({ where: { productId } })
+          : 0;
+    if (linkedTypes === 0) {
       throw new BadRequestException(
-        'Tick at least one delivery speed (Express / Same Day / Midnight) before publishing.',
+        'Pick at least one delivery type on the Delivery tab before publishing.',
       );
     }
 
