@@ -25,7 +25,16 @@ import {
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-type Owner = { categoryId: string; productId?: never } | { productId: string; categoryId?: never };
+type Owner =
+  | { categoryId: string; productId?: never }
+  | { productId: string; categoryId?: never }
+  /*  DEC-WEB-011 — a product that has never been saved has no id to own a
+      card, but it will still SHOW its category's cards the moment it is
+      published. Before 23 Aug this screen said "Save this product first" and
+      drew nothing, so the owner could not tell whether the category's cards
+      were reaching the product or not. With neither id the component goes
+      read-only: it shows what will appear, and offers nothing to press.  */
+  | { categoryId?: never; productId?: never };
 
 /*
   The owner picks, he cannot type — a name the storefront does not know would
@@ -72,9 +81,16 @@ export default function CraftEditor({
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const key = owner.productId ?? owner.categoryId;
+  /** nothing owns these yet — show the inherited ones and no controls */
+  const preview = !key;
 
   useEffect(() => {
     let alive = true;
+    if (preview) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     getCraftPoints(owner)
       .then((r) => alive && setRows(r))
@@ -173,14 +189,22 @@ export default function CraftEditor({
             <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
               On the page now · from {inheritedFrom}
             </span>
-            <button
-              type="button"
-              onClick={copyFromCategory}
-              disabled={copying}
-              className="border border-orchid bg-white text-orchid text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] hover:bg-orchid hover:text-white transition-colors disabled:opacity-50"
-            >
-              {copying ? "Copying…" : "Use these and edit"}
-            </button>
+            {/*  Nothing to copy onto until the product exists — the button
+                would create rows with no owner.  */}
+            {preview ? (
+              <span className="text-[12px] font-semibold text-body-soft">
+                Save the product to write its own
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={copyFromCategory}
+                disabled={copying}
+                className="border border-orchid bg-white text-orchid text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] hover:bg-orchid hover:text-white transition-colors disabled:opacity-50"
+              >
+                {copying ? "Copying…" : "Use these and edit"}
+              </button>
+            )}
           </div>
           <div className="grid gap-2 opacity-75">
             {inherited.map((c) => (
@@ -285,7 +309,12 @@ export default function CraftEditor({
 
       {/*  Three, because the storefront lays them out in a row of three. A
           fourth wraps onto its own line and looks like a mistake.  */}
-      {rows.length < 3 ? (
+      {preview ? (
+        <p className="text-[13px] text-body-soft m-0">
+          Save this product first to give it cards of its own — until then it shows the ones
+          above.
+        </p>
+      ) : rows.length < 3 ? (
         <button
           type="button"
           onClick={add}

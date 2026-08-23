@@ -154,6 +154,21 @@ model Category {
   /// to a plain "Size".
   sizeLabel String?
 
+  /// ── DEC-WEB-011 · the heading over the promise band ─────────────────────
+  /// The purple band under the buy box on a product page — "Why Dhaka sends
+  /// flowers with Radian". It used to be that exact sentence, WRITTEN IN THE
+  /// CODE, and the owner caught it the day it shipped (23 Aug 2026): *"why
+  /// from us a frontend ja ja show krche agula kichui to akhane customizible
+  /// option show krse na."* House rule 7 — no business wording lives in code.
+  ///
+  /// Category-level for the same reason `sizeLabel` is: what makes flowers
+  /// worth buying here is not what makes a teddy worth buying here. It climbs
+  /// to the parent exactly as the cards do.
+  ///
+  /// BLANK MEANS NO HEADING. The band then shows the cards alone rather than
+  /// a sentence nobody chose.
+  craftTitle String?
+
   /// Which capacity group the work for this category eats into. A Product is
   /// never asked separately; it only displays the group it falls into
   /// (owner, 1 Aug 2026).

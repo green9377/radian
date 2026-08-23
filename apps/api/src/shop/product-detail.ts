@@ -343,6 +343,9 @@ export interface ShopProductDetail {
   sizeLabel: string;
   /** the three "why buy from us" cards. Product's own, else its category's. */
   craft: { icon: string; title: string; text: string }[];
+  /** DEC-WEB-011 — the heading over the promise band. `null` = the shop wrote
+   *  none, and then the band shows its cards with no heading at all. */
+  craftTitle: string | null;
   /**
    * Minutes until today's order cut-off, per zone. Null = no cut-off there.
    *
@@ -573,6 +576,7 @@ export class ProductDetailService {
             slug: true,
             name: true,
             sizeLabel: true,
+            craftTitle: true,
             /*  the parent's heading is the fallback: "Roses" inherits "Bouquet
                 Size" from Fresh Flowers rather than making the owner type it
                 again on all forty-four sub-categories  */
@@ -582,6 +586,7 @@ export class ProductDetailService {
                 slug: true,
                 name: true,
                 sizeLabel: true,
+                craftTitle: true,
                 /*  DEC-PRD-023 - when a sub-category has none, the parent's are
                     used. The same ladder craft points climb:
                     product -> category -> parent.  */
@@ -1092,6 +1097,12 @@ export class ProductDetailService {
           }
         : null,
       craft,
+      /*  DEC-WEB-011 — the band's heading walks the same ladder its cards do:
+          the sub-category's words if it wrote any, else the parent's. Blank on
+          both means the band draws no heading, which is the honest answer when
+          nobody has yet decided what the shop should say.  */
+      craftTitle:
+        p.category.craftTitle?.trim() || p.category.parent?.craftTitle?.trim() || null,
       cutoffMinutesLeft,
       offers,
       ordersThisMonth,

@@ -140,7 +140,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
         {/*  The promise band — straight after the buy box, which is where a
             hesitating shopper looks next. See WhyBuy.tsx for why it is a
             coloured band and not three more white cards.  */}
-        <WhyBuy craft={detail.craft} />
+        <WhyBuy craft={detail.craft} title={detail.craftTitle} />
 
         <SpecFaq detail={detail} />
 

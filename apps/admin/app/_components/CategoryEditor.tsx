@@ -76,6 +76,11 @@ export default function CategoryEditor({
   const [showOnNavbar, setShowOnNavbar] = useState<boolean>(node?.showOnNavbar ?? true);
   const [isFeatured, setIsFeatured] = useState<boolean>(node?.isFeatured ?? false);
   const [sizeLabel, setSizeLabel] = useState(node?.sizeLabel ?? "");
+  /*  DEC-WEB-011 — the heading over the promise band on a product page. It
+      shipped as a sentence written in the code and the owner caught it the
+      same day: *"why from us a frontend ja ja show krche agula kichui to
+      akhane customizible option show krse na."* Blank shows no heading.  */
+  const [craftTitle, setCraftTitle] = useState(node?.craftTitle ?? "");
 
   const [image, setImage] = useState<string | null>(real(node?.imageUrl));
   const [icon, setIcon] = useState<string | null>(real(node?.iconUrl));
@@ -141,6 +146,10 @@ export default function CategoryEditor({
         /*  Owned here, not on the page screen: it is a property of the KIND of
             thing this category sells, not of how its page is laid out.  */
         sizeLabel: sizeLabel.trim() || null,
+        /*  DEC-WEB-011 — the band's heading, written here beside the cards it
+            sits over. Same reason as `sizeLabel`: it belongs to the KIND of
+            thing this category sells.  */
+        craftTitle: craftTitle.trim() || null,
         /*
           ⚠️ THE PAGE'S OWN FIELDS ARE NOT SENT FROM HERE, and that is the
           point of the split rather than an omission.
@@ -301,7 +310,35 @@ export default function CategoryEditor({
               {defTab === "badges" && <CategoryStoryEditor categoryId={node.id} only="badges" />}
               {defTab === "inside" && <CategoryStoryEditor categoryId={node.id} only="inside" />}
               {defTab === "faqs" && <CategoryStoryEditor categoryId={node.id} only="faqs" />}
-              {defTab === "why" && <CraftEditor owner={{ categoryId: node.id }} />}
+              {defTab === "why" && (
+                <div>
+                  {/*  DEC-WEB-011 — the heading the band carries. It lives on
+                      the category form (it is saved with Save category), but
+                      it is shown HERE, over the cards it belongs to, because
+                      that is where the owner is looking when he thinks about
+                      what the band says.  */}
+                  <Field label="Heading over the cards">
+                    <input
+                      className="ipt"
+                      placeholder={
+                        parentId
+                          ? "Leave empty to use the parent's"
+                          : "Why Dhaka sends flowers with Radian"
+                      }
+                      value={craftTitle}
+                      onChange={(e) => setCraftTitle(e.target.value)}
+                    />
+                    <Hint>
+                      The line above these cards in the purple band on a product page. Leave it
+                      empty and the band shows the cards with no heading. Saved with{" "}
+                      <b className="font-bold text-purple">Save category</b>.
+                    </Hint>
+                  </Field>
+                  <div className="mt-5 pt-5 border-t border-lavender-deep">
+                    <CraftEditor owner={{ categoryId: node.id }} />
+                  </div>
+                </div>
+              )}
               {defTab === "page" && (
                 <div>
                   <p className="text-[13px] text-body-soft mt-0 mb-3">Banner, wording and questions — set together on one screen.</p>

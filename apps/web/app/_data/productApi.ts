@@ -156,6 +156,8 @@ export interface ApiProductDetail {
   /** DEC-PRD-027 — the "Want this customised?" box, phone number included */
   customise: { title: string; sub: string; whatsapp: string | null } | null;
   craft: { icon: string; title: string; text: string }[];
+  /** DEC-WEB-011 — the promise band's heading, written on the category. */
+  craftTitle?: string | null;
   cutoffMinutesLeft: { dhaka: number | null; nationwide: number | null };
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
   ordersThisMonth: number | null;
@@ -517,6 +519,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         That is not stale copy, it is a false claim about the goods. Written
         by the shop or not shown at all.  */
     craft: a.craft.map((c) => ({ icon: asIconName(c.icon), title: c.title, text: c.text })),
+    craftTitle: a.craftTitle ?? null,
     cutoffMinutesLeft: a.cutoffMinutesLeft,
     /*  No template fallback, unlike the craft cards. A stale sentence about
         how flowers are wrapped costs nothing; a cashback offer the shop is not

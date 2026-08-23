@@ -45,6 +45,8 @@ interface CategoryDto {
   bannerHeading?: string | null;
   /** heading above the size chooser on a product page — "Bouquet Size" */
   sizeLabel?: string | null;
+  /** DEC-WEB-011 — the heading over the promise band on a product page */
+  craftTitle?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;
@@ -126,6 +128,7 @@ export class CategoriesService {
         bannerUrl: dto.bannerUrl,
         bannerHeading: dto.bannerHeading,
         sizeLabel: dto.sizeLabel,
+        craftTitle: dto.craftTitle,
         metaTitle: dto.metaTitle,
         metaDescription: dto.metaDescription,
         ogTitle: dto.ogTitle,
@@ -161,6 +164,7 @@ export class CategoriesService {
           bannerUrl: dto.bannerUrl ?? null,
           bannerHeading: dto.bannerHeading ?? null,
           sizeLabel: dto.sizeLabel ?? null,
+          craftTitle: dto.craftTitle ?? null,
           metaTitle: dto.metaTitle ?? null,
           metaDescription: dto.metaDescription ?? null,
           ogTitle: dto.ogTitle ?? null,
@@ -213,6 +217,7 @@ export class CategoriesService {
         bannerUrl: dto.bannerUrl,
         bannerHeading: dto.bannerHeading,
         sizeLabel: dto.sizeLabel,
+        craftTitle: dto.craftTitle,
         metaTitle: dto.metaTitle,
         metaDescription: dto.metaDescription,
         ogTitle: dto.ogTitle,

@@ -292,6 +292,8 @@ export interface ProductDetail {
   customise?: { title: string; sub: string; whatsapp: string | null } | null;
   spec: SpecRow[];
   craft: CraftPoint[];
+  /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
+  craftTitle?: string | null;
   faqs: Faq[];
   custom: { title: string; sub: string };
   crossSlugs: string[];

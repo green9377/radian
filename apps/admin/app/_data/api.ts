@@ -1974,6 +1974,8 @@ export interface ApiCategoryNode {
   bannerHeading?: string | null;
   /** heading above the size chooser on a product page — "Bouquet Size" */
   sizeLabel?: string | null;
+  /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
+  craftTitle?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;
@@ -2000,6 +2002,8 @@ export interface CategoryWrite {
   bannerHeading?: string | null;
   /** heading above the size chooser on a product page — "Bouquet Size" */
   sizeLabel?: string | null;
+  /** DEC-WEB-011 — the heading over the promise band. Blank = no heading. */
+  craftTitle?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogTitle?: string | null;

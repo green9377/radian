@@ -6839,17 +6839,16 @@ No bundle products yet — add them on{" "}
                 title="Why buy from us"
                 tip="The purple band on the product page, straight under the buy box — the one place the shop speaks in its own voice. Normally written once on the category; fill these in only if this product has its own story, and what you write here replaces the category’s."
               >
-                {apiProductId ? (
-                  <CraftEditor
-                    owner={{ productId: apiProductId }}
-                    inheritedFrom={craftFrom.name || undefined}
-                    inheritedFromId={craftFrom.id ?? undefined}
-                  />
-                ) : (
-                  <p className="text-[13.5px] text-body-soft m-0">
-                    Save this product first — a card has to belong to it.
-                  </p>
-                )}
+                {/*  DEC-WEB-011 — an unsaved product used to show the words
+                    "Save this product first" and nothing else, so there was no
+                    way to see whether the category's cards were reaching it.
+                    With no id CraftEditor goes read-only and shows what the
+                    page will carry.  */}
+                <CraftEditor
+                  owner={apiProductId ? { productId: apiProductId } : {}}
+                  inheritedFrom={craftFrom.name || undefined}
+                  inheritedFromId={craftFrom.id ?? undefined}
+                />
               </Card>
               </StoryGroup>
 

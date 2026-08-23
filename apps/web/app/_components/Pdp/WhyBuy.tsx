@@ -37,6 +37,13 @@ import Icon from "./PdpIcons";
   point — it stops the eye where a hesitating shopper's eye goes next, the
   moment after the buy box.
 
+  ── Every word here belongs to the shop ─────────────────────────────────────
+  The heading arrives as a prop, written on the category (Categories → Why buy
+  from us). It shipped hardcoded and was wrong to: house rule 7 says no
+  business value lives in code, and a headline on a shop page is as much a
+  business value as a price. Blank draws no heading — never a sentence the
+  shop did not choose.
+
   ── The rating line is real or it is absent ─────────────────────────────────
   The Google figures come from the same endpoint the review rail uses, and the
   line is dropped entirely when the shop has not entered them. An invented
@@ -50,8 +57,20 @@ import Icon from "./PdpIcons";
 
 export default function WhyBuy({
   craft,
+  title,
 }: {
   craft: { icon: string; title: string; text: string }[];
+  /**
+   * DEC-WEB-011 — the heading, written on the category. It shipped as the
+   * sentence "Why Dhaka sends flowers with Radian" hardcoded right here, and
+   * the owner caught it the same day: *"why from us a frontend ja ja show
+   * krche agula kichui to akhane customizible option show krse na."* House
+   * rule 7 — no business wording lives in code.
+   *
+   * Blank draws NO heading. A default sentence would be the same fault with a
+   * softer name: something the shop never chose, appearing on its pages.
+   */
+  title?: string | null;
 }) {
   const [google, setGoogle] = useState<{
     rating: number;
@@ -73,6 +92,7 @@ export default function WhyBuy({
       worse than no band: it reads as a section that failed to load.  */
   const cards = craft.filter((c) => c.title.trim());
   if (cards.length === 0) return null;
+  const heading = title?.trim() || "";
 
   return (
     <section className="relative overflow-hidden rounded-[28px] mb-10 bg-[linear-gradient(120deg,#3b1152,#5c2079_55%,#7a2a94)] text-white px-6 sm:px-9 py-8 sm:py-10">
@@ -85,12 +105,16 @@ export default function WhyBuy({
       />
 
       <div className="relative">
-        <div className="text-[11px] font-bold tracking-[0.24em] uppercase text-[#e9a8f5] mb-2">
-          Why buy from us
-        </div>
-        <h2 className="font-display text-[clamp(21px,2.4vw,27px)] font-medium leading-tight m-0 mb-6 sm:mb-7">
-          Why Dhaka sends flowers with Radian
-        </h2>
+        {heading ? (
+          <>
+            <div className="text-[11px] font-bold tracking-[0.24em] uppercase text-[#e9a8f5] mb-2">
+              Why buy from us
+            </div>
+            <h2 className="font-display text-[clamp(21px,2.4vw,27px)] font-medium leading-tight m-0 mb-6 sm:mb-7">
+              {heading}
+            </h2>
+          </>
+        ) : null}
 
         {/*  Two cards must not stretch to half the screen each — `max-w` keeps
             a pair looking deliberate instead of stranded.  */}
