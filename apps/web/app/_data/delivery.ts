@@ -656,13 +656,23 @@ export function dateOptions(
 ): DateOption[] {
   const out: DateOption[] = [];
 
-  /*  ⚠️ THE STRIP GROWS WITH THE LEAD TIME. Eight chips starting today means a
-      5-day product would show three usable dates and five dead ones — a strip
-      that is mostly grey reads as a broken page rather than a busy workshop.
-      Adding the lead days keeps the same number of REAL choices on offer.  */
-  const total = days + leadDays;
+  /*  ⚠️ THE STRIP STARTS AT THE FIRST DATE THAT WORKS (23 Aug 2026).
+      It used to start at today and pad the length by the wait, so the shopper
+      scrolled past every dead day to reach a live one. With a 5-day lead that
+      was five grey chips; with a PRE-ORDER five weeks out it was thirty-eight,
+      and the owner opened checkout to a wall of grey with the real dates
+      somewhere off the right edge. The strip looked broken, not busy.
 
-  for (let i = 0; i < total; i++) {
+      A few grey chips are worth keeping — they say "not today, and here is
+      how soon" — so up to three lead-in days are shown before the first live
+      one. Beyond that the wait is a sentence's job, not a scrollbar's: the
+      note above the strip already names the product and the date.  */
+  const LEAD_IN = 3;
+  const skip = Math.max(0, leadDays - LEAD_IN);
+  const total = days + Math.min(leadDays, LEAD_IN);
+
+  for (let n = 0; n < total; n++) {
+    const i = skip + n;
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     const isToday = i === 0;
@@ -693,8 +703,9 @@ export function dateOptions(
     });
   }
 
-  // "Tonight" is the wrong word for everything except midnight
-  if (!method.midnight && out[0]) out[0].label = "Today";
+  /*  "Tonight" is the wrong word for everything except midnight — and both
+      words are wrong when the strip no longer begins today.  */
+  if (!method.midnight && out[0]?.isToday) out[0].label = "Today";
 
   return out;
 }

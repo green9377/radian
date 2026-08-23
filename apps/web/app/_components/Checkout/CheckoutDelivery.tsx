@@ -473,6 +473,11 @@ export function Q4When({
         options — Schedule It is never gated.
       */}
       {(() => {
+        /*  ⚠️ NOT WHEN THE PRE-ORDER NOTE IS ALREADY SAYING IT (23 Aug 2026).
+            Both boxes named the same product for the same reason — one in
+            lavender, one in amber, stacked. Two notices about one fact read as
+            two problems.  */
+        if (preorder) return null;
         const blocked = (["express", "sameday", "midnight"] as const)
           .map((k) => spd[k])
           .filter((b) => !b.ok && b.blockedBy);
