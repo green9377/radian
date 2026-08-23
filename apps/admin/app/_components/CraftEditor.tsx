@@ -53,11 +53,20 @@ const ICONS = [
 export default function CraftEditor({
   owner,
   inheritedFrom,
+  inheritedFromId,
 }: {
   owner: Owner;
   inheritedFrom?: string;
+  /*  23 Aug 2026 — owner: *"why buy from us ata product upload page a jay
+      nai."* Half of that was the tab it hid behind; the other half was this
+      component saying "this product shows Fresh flower's cards" and then not
+      showing a single one. With the id it can fetch them and put them on the
+      screen, with one press to take them over.  */
+  inheritedFromId?: string;
 }) {
   const [rows, setRows] = useState<ApiCraftPoint[]>([]);
+  const [inherited, setInherited] = useState<ApiCraftPoint[]>([]);
+  const [copying, setCopying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -76,6 +85,50 @@ export default function CraftEditor({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  /*  What the category already puts on this product's page. Fetched only when
+      an id was handed down, so the category's own editor never asks.  */
+  useEffect(() => {
+    if (!inheritedFromId) {
+      setInherited([]);
+      return;
+    }
+    let alive = true;
+    getCraftPoints({ categoryId: inheritedFromId })
+      .then((r) => alive && setInherited(r.filter((x) => x.title.trim())))
+      .catch(() => alive && setInherited([]));
+    return () => {
+      alive = false;
+    };
+  }, [inheritedFromId]);
+
+  /*  Take the category's cards over. They are COPIED — the same rule "What's
+      inside" and the FAQ follow — so editing them here never reaches the
+      category, and the category's stop showing on this product because what
+      a product writes REPLACES what its category wrote.  */
+  async function copyFromCategory() {
+    setCopying(true);
+    setErr(null);
+    try {
+      const made: ApiCraftPoint[] = [];
+      for (const [i, c] of inherited.entries()) {
+        made.push(
+          await createCraftPoint({
+            ...owner,
+            icon: c.icon,
+            title: c.title,
+            text: c.text,
+            sortOrder: rows.length + i,
+          }),
+        );
+      }
+      setRows((r) => [...r, ...made]);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setCopying(false);
+    }
+  }
 
   function patch(id: string, body: Record<string, unknown>, optimistic: Partial<ApiCraftPoint>) {
     setRows((r) => r.map((x) => (x.id === id ? { ...x, ...optimistic } : x)));
@@ -110,17 +163,62 @@ export default function CraftEditor({
 
   return (
     <div>
-      {inheritedFrom && rows.length === 0 && (
+      {/*  ── what the category already puts on the page ──────────────────
+          The same panel badges, "What's inside" and the FAQ use. Before
+          23 Aug this said the cards were inherited and showed none of them,
+          so there was no way to tell a working card from a lost one.  */}
+      {inheritedFrom && rows.length === 0 && inherited.length > 0 && (
+        <div className="border border-lavender-deep bg-lavender/40 rounded-[12px] p-3 mb-3.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
+              On the page now · from {inheritedFrom}
+            </span>
+            <button
+              type="button"
+              onClick={copyFromCategory}
+              disabled={copying}
+              className="border border-orchid bg-white text-orchid text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] hover:bg-orchid hover:text-white transition-colors disabled:opacity-50"
+            >
+              {copying ? "Copying…" : "Use these and edit"}
+            </button>
+          </div>
+          <div className="grid gap-2 opacity-75">
+            {inherited.map((c) => (
+              <div key={c.id} className="flex items-start gap-2 text-[13px]">
+                <span className="text-purple shrink-0 mt-[2px]">
+                  <Icon name={c.icon} size={15} />
+                </span>
+                <span className="min-w-0">
+                  <b className="font-bold text-purple block">{c.title}</b>
+                  <span className="text-body-soft line-clamp-2">{c.text}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/*  Nothing anywhere — say so plainly rather than showing an empty
+          panel that looks broken.  */}
+      {inheritedFrom && rows.length === 0 && inherited.length === 0 && (
         <div className="flex items-start gap-2.5 bg-lavender/60 rounded-[11px] px-3 py-2.5 mb-3.5 text-[13px] text-body">
           <span className="text-purple shrink-0 mt-[1px]">
             <Icon name="layers" size={16} />
           </span>
           <span>
-            This product shows <b className="font-semibold text-purple">{inheritedFrom}</b>&rsquo;s
-            cards. Write your own here only if this one has a different story —
-            what you add <b className="font-semibold text-purple">replaces</b> the
-            category&rsquo;s.
+            <b className="font-semibold text-purple">{inheritedFrom}</b> has no cards written
+            yet, so this product shows none. Write them once on the category and every
+            product here gets them — or write this one&rsquo;s own below.
           </span>
+        </div>
+      )}
+
+      {inheritedFrom && rows.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-3.5 text-[12.5px]">
+          <span className="inline-flex items-center gap-1.5 bg-[#fff4e5] text-[#8a5a00] font-bold rounded-full px-2.5 py-1">
+            This product&rsquo;s own
+          </span>
+          <span className="text-body-soft">&mdash; it replaces {inheritedFrom}&rsquo;s.</span>
         </div>
       )}
 

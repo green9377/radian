@@ -202,22 +202,29 @@ function youtubeId(v: string): string | null {
    about variants at all. Grouped 22 Aug 2026, in the language the owner
    approved.                                                                */
 
-type VarG = "options" | "bundles" | "why" | "upgrades" | "addons";
+type VarG = "options" | "bundles" | "upgrades" | "addons";
 
 const VAR_GROUPS: { id: VarG; label: string }[] = [
   { id: "options", label: "Colours & sizes" },
   { id: "bundles", label: "Bundles" },
   { id: "upgrades", label: "Upgrades" },
   { id: "addons", label: "Add-ons" },
-  { id: "why", label: "Why buy from us" },
 ];
 
 function VarChips({
-  value, onChange, filled,
-}: { value: VarG; onChange: (g: VarG) => void; filled: Record<VarG, boolean> }) {
+  value, onChange, filled, hasVariants,
+}: {
+  value: VarG;
+  onChange: (g: VarG) => void;
+  filled: Record<VarG, boolean>;
+  /*  A product answering "One version" on Basics has no colours to pick, but
+      it still sells bundles, upgrades and add-ons. So the chip goes, the tab
+      stays.  */
+  hasVariants: boolean;
+}) {
   return (
     <div className="flex gap-2 flex-wrap mb-4">
-      {VAR_GROUPS.map((g) => {
+      {VAR_GROUPS.filter((g) => g.id !== "options" || hasVariants).map((g) => {
         const on = value === g.id;
         return (
           <button
@@ -248,13 +255,18 @@ function VarGroup({ id, open, children }: { id: VarG; open: VarG; children: Reac
   return <>{children}</>;
 }
 
-type StoryG = "nature" | "signal" | "perso" | "trust" | "inside";
+type StoryG = "nature" | "signal" | "perso" | "trust" | "why" | "inside";
 
 const STORY_GROUPS: { id: StoryG; label: string }[] = [
   { id: "nature", label: "Nature" },
   { id: "signal", label: "Sales signal" },
   { id: "perso", label: "Personalise" },
   { id: "trust", label: "Trust" },
+  /*  Moved here from the Variants tab, 23 Aug 2026 — owner: *"why buy from us
+      ata product upload page a jay nai."* It is page copy, and it belongs
+      beside the other page copy. Why it was unreachable: see the note on
+      `visibleSections`.  */
+  { id: "why", label: "Why buy from us" },
   { id: "inside", label: "Inside & FAQ" },
 ];
 
@@ -1263,11 +1275,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       item picker, 2 Aug).  */
   const [hasVariants, setHasVariants] = useState(false);
 
-  /*  The Variants tab only exists for a product that says it has them.
-      Everything that walks the tabs — the nav, the mobile dropdown,
-      Next/Back — walks THIS list, so a plain product never lands on a tab
-      that has nothing to ask.  */
-  const visibleSections = SECTIONS.filter(([id]) => id !== "variants" || hasVariants);
+  /*  ⚠️ THE VARIANTS TAB IS ALWAYS THERE NOW (23 Aug 2026).
+      Owner: *"why buy from us ata product upload page a jay nai."*
+
+      It was hidden whenever Basics said "One version" — and four cards were
+      hidden with it, only one of which is about variants at all: Bundles,
+      Upgrades, Add-ons and "Why buy from us". So a plain product could not be
+      given a bundle, an upgrade, an add-on or its own why-buy cards, and
+      nothing on screen said why. "Why buy from us" has moved to Product story
+      where it belongs; the other three stay here, and the "Colours & sizes"
+      chip is the only thing that hides.  */
+  const visibleSections = SECTIONS;
   const secIdx = visibleSections.findIndex(([id]) => id === sec);
   const goSec = (i: number) => {
     setSec(visibleSections[i][0]);
@@ -1639,6 +1657,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [storyGroup, setStoryGroup] = useState<StoryG>("nature");
   /** the same idea on the Variants tab, whose five cards do five jobs */
   const [varGroup, setVarGroup] = useState<VarG>("options");
+  /*  With no colours to pick, "Colours & sizes" is not offered, so the tab
+      opens on Bundles instead of a chip that is not there.  */
+  const varOpen: VarG = !hasVariants && varGroup === "options" ? "bundles" : varGroup;
   /*  Every part of the phone is a door into the section that owns it, and —
       when that section is the story — into the right group as well.  */
   const goto = (section: SecId, group?: StoryG) => {
@@ -1734,6 +1755,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [catLists, setCatLists] = useState<ApiCategorySpecList[]>([]);
   /** which category it came from — top if not a sub-category, kept as its own name */
   const [storyFrom, setStoryFrom] = useState("");
+  /*  The id behind `storyFrom` — the sub-category, or its parent when the
+      sub has nothing. CraftEditor needs it to show the cards it inherits,
+      not just to claim they exist.  */
+  const [storyFromId, setStoryFromId] = useState<string | null>(null);
   const [oz, setOz] = useState(detail?.ozReason ?? "");
 
   /* ⇄ SWAPPED: save/load via :4000 API */
@@ -2290,6 +2315,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       setCatFaq([]);
       setCatLists([]);
       setStoryFrom("");
+      setStoryFromId(null);
       return;
     }
     const nameOf = (id: string) => apiCats.find((c) => c.id === id)?.name ?? "";
@@ -2347,6 +2373,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           concatenated would print a bouquet and a basket in one table.  */
       setCatSpec(live(lists[0]?.rows ?? []));
       setStoryFrom(nameOf(from));
+      setStoryFromId(from);
     })();
     return () => {
       alive = false;
@@ -2911,10 +2938,21 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       untouched group is visible without opening it. "Why buy" cannot be read
       from here — its rows live in CraftEditor against the API — so it never
       claims a dot rather than claiming a false one.  */
+  /*  Craft points climb their own ladder on the server (product → category →
+      parent), and the sub-category almost never has any, so naming the sub
+      here would point at the wrong screen. Prefer whichever category the
+      other inherited things resolved to, falling back to the top one.
+
+      ⚠️ DECLARED HERE, below the state it reads. Put it up beside `varOpen`
+      and the editor goes white with "used before its declaration" — the
+      fourth time this file has been bitten by that.  */
+  const craftFrom: { id: string | null; name: string } = storyFromId
+    ? { id: storyFromId, name: storyFrom }
+    : { id: topCatId || null, name: catName };
+
   const varFilled: Record<VarG, boolean> = {
     options: variants.length > 0,
     bundles: (bundleList?.items.length ?? 0) > 0,
-    why: false,
     upgrades: myUpgrades.length > 0,
     addons: manualGroupIds.length > 0 || matchedAddonGroups.length > 0,
   };
@@ -2926,6 +2964,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     signal: !!(seedToday || seedWeek || seedMonth || seedAll),
     perso: persoText || persoImage || customiseOn,
     trust: trust.some((t) => t.label.trim()),
+    /*  "Why buy" cannot be read from here — its rows live in CraftEditor
+        against the API — so it never claims a dot rather than a false one.  */
+    why: false,
     inside: spec.some((r) => r.item.trim()) || faqs.some((f) => f.q.trim()),
   };
 
@@ -5580,7 +5621,7 @@ No bundle products yet — add them on{" "}
                a green dot on the groups that already hold something.  */}
           {sec === "variants" && (
             <>
-              <VarChips value={varGroup} onChange={setVarGroup} filled={varFilled} />
+              <VarChips value={varOpen} onChange={setVarGroup} filled={varFilled} hasVariants={hasVariants} />
               {/*
                 ⚠️ There used to be a purple box here that explained all
                 four of Variant / Size / Upgrade / Add-ons in four lines —
@@ -5609,7 +5650,7 @@ No bundle products yet — add them on{" "}
                 that.
                 ═══════════════════════════════════════════════════════════════
               */}
-              <VarGroup id="options" open={varGroup}>
+              <VarGroup id="options" open={varOpen}>
               <Card
                 icon="sparkle"
                 /*  ⚠️ Kept deliberately short — owner, 2 Aug:
@@ -5883,7 +5924,7 @@ No bundle products yet — add them on{" "}
                 control before Save would collect choices with nowhere to put
                 them.
               */}
-              <VarGroup id="bundles" open={varGroup}>
+              <VarGroup id="bundles" open={varOpen}>
               <Card
                 icon="tag"
                 title="Bundles"
@@ -5990,31 +6031,7 @@ No bundle products yet — add them on{" "}
               </Card>
               </VarGroup>
 
-              {/*
-                Craft cards. Almost always left empty here — the story belongs
-                to the category and is written once there. This is the escape
-                hatch for the one product with a different one.
-              */}
-              <VarGroup id="why" open={varGroup}>
-              <Card
-                icon="sparkle"
-                title="Why buy from us"
-                tip="The three cards under the price on the product page. Normally written once on the category — fill these in only if this product has its own story."
-              >
-                {apiProductId ? (
-                  <CraftEditor
-                    owner={{ productId: apiProductId }}
-                    inheritedFrom={catName || undefined}
-                  />
-                ) : (
-                  <p className="text-[13.5px] text-body-soft m-0">
-                    Save this product first — a card has to belong to it.
-                  </p>
-                )}
-              </Card>
-              </VarGroup>
-
-              <VarGroup id="upgrades" open={varGroup}>
+              <VarGroup id="upgrades" open={varOpen}>
               <Card
                 icon="box"
                 title="Upgrade products"
@@ -6089,7 +6106,7 @@ No bundle products yet — add them on{" "}
               </Card>
               </VarGroup>
 
-              <VarGroup id="addons" open={varGroup}>
+              <VarGroup id="addons" open={varOpen}>
               <Card
                 icon="tag"
                 title="Add-ons"
@@ -6809,6 +6826,33 @@ No bundle products yet — add them on{" "}
                     line was removed.  */}
               </Card>
               </StoryGroup>
+              {/*
+                Craft cards — page copy, so they sit beside the other page
+                copy (moved off the Variants tab, 23 Aug 2026). Almost always
+                left empty: the story belongs to the category and is written
+                once there. This is the escape hatch for the one product with
+                a different one.
+              */}
+              <StoryGroup id="why" open={storyGroup}>
+              <Card
+                icon="sparkle"
+                title="Why buy from us"
+                tip="The three cards under the price on the product page. Normally written once on the category — fill these in only if this product has its own story. What you write here replaces the category's."
+              >
+                {apiProductId ? (
+                  <CraftEditor
+                    owner={{ productId: apiProductId }}
+                    inheritedFrom={craftFrom.name || undefined}
+                    inheritedFromId={craftFrom.id ?? undefined}
+                  />
+                ) : (
+                  <p className="text-[13.5px] text-body-soft m-0">
+                    Save this product first — a card has to belong to it.
+                  </p>
+                )}
+              </Card>
+              </StoryGroup>
+
               <StoryGroup id="inside" open={storyGroup}>
               <Card
                 icon="book"
