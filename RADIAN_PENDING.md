@@ -51,6 +51,37 @@ inherits but do not show what. Worth the same treatment as the FAQ panel.
 
 ---
 
+## 🚪 A tab that hid itself took four cards with it (owner, 23 Aug)
+
+*"why buy from us ata product upload page a jay nai."*
+
+**The bigger fault:** the **Variants & options** tab only appeared when Basics
+said "Has variants". Four cards live on that tab and only ONE of them is about
+variants — **Bundles · Upgrades · Add-ons · Why buy from us**. So every product
+answering "One version" could not be given a bundle, an upgrade, an add-on or
+its own why-buy cards, and nothing on screen said why. Six of the seven products
+on the demo are "One version".
+
+- the tab is there always now; only the "Colours & sizes" chip hides, and the
+  tab opens on Bundles when there are no colours to pick
+- **Why buy from us moved to Product story**, beside Trust and Inside & FAQ —
+  it is page copy, and that is where he went looking
+
+**The second fault:** `CraftEditor` said *"this product shows Fresh flower's
+cards"* and showed none of them, so a working card and a lost one looked
+identical. It now shows them with **Use these and edit** (copies them onto the
+product, category untouched), and a category with none says so plainly instead
+of drawing an empty panel.
+
+**Walked live:** on `red rose without variant…` (One version) the Variants tab
+is now in the rail, and Product story → Why buy from us lists
+`freshnes` / `gurnaty of money back` under "ON THE PAGE NOW · FROM FRESH FLOWER".
+
+⚠️ **Same treatment still owed to `BundleEditor`** — it tells the product it
+inherits and does not show what.
+
+---
+
 ## ❓ DEC-PRD-047 — FAQ is edited on the product, and REPLACES (owner, 23 Aug)
 
 *"faq select ar kon option nai. select krte gele abr category page a niye jay.
