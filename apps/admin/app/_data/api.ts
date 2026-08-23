@@ -77,7 +77,7 @@ export interface ApiProductVariant {
   stockQty: number;
   /** DEC-PRD-015 — this colour's own stockroom Item. null = the product's. */
   itemId?: string | null;
-  item?: { id: string; sku: string; name: string } | null;
+  item?: { id: string; sku: string; name: string; imageUrl?: string | null } | null;
   /** optional. null = the product's base price (owner's rule: one price per colour). */
   pricePaisa?: number | null;
   /** DEC-PRD-032 — this variant's own discount. PERCENT = basis points, FLAT = paisa. */

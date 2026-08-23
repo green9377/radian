@@ -101,8 +101,9 @@ const FULL_INCLUDE = {
       },
       /*  DEC-PRD-015 — which Item holds this colour's stock. Both the name and
           the code are needed, because the editor writes it out after picking —
-          showing someone an id helps nobody.  */
-      item: { select: { id: true, sku: true, name: true } },
+          showing someone an id helps nobody. The photo comes too (DEC-ITM-012),
+          so a linked row looks the same here as in every other item list.  */
+      item: { select: { id: true, sku: true, name: true, imageUrl: true } },
     },
   },
 } satisfies Prisma.ProductInclude;

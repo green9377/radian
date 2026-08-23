@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { PRODUCTS } from "../_data/products";
 import { getProductDetail } from "../_data/productDetails";
 import { Info } from "./ItemEditor";
+/*  DEC-ITM-012 — the warehouse mugshot, drawn by the one component every
+    other item list uses. Owner, 23 Aug: *"inventory connect krte gle jen
+    avabe na. image show o baki sob jaygay jevabe ase sevabe jen ase"* — an
+    item picker that shows no photo is a different screen from every other
+    place items are listed, and the eye has to start again.  */
+import { ItemThumb } from "./ItemUI";
 import Icon from "./Icon";
 import BundleEditor from "./BundleEditor";
 import CraftEditor from "./CraftEditor";
@@ -1045,6 +1051,10 @@ interface VariantRow {
   itemId: string | null;
   /** the chosen Item's name/code — display only, not sent on save */
   itemLabel: string | null;
+  /** DEC-ITM-012 — the linked item's mugshot and code, so a linked row is
+   *  drawn the same way every other item list draws it. Display only. */
+  itemImage: string | null;
+  itemSku: string | null;
   /** empty = the product's base price */
   price: string;
   /*  DEC-PRD-032 — this variant's own discount, in the product's own shape.
@@ -1374,7 +1384,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
    */
   const [vItemFor, setVItemFor] = useState<string | null>(null);
   const [vItemQ, setVItemQ] = useState("");
-  const [vItemHits, setVItemHits] = useState<{ id: string; sku: string; name: string }[]>([]);
+  /*  The whole Item, not three of its fields — the photo and the vendor badge
+      have to come along, so this list looks like every other item list.  */
+  const [vItemHits, setVItemHits] = useState<ApiItem[]>([]);
 
   /*  DEC-PRD-015 — searching an Item for a variant. The exact same call
       (`listItems`) as the product's own search, so the two places never
@@ -1836,6 +1848,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       stockQty: "0",
       itemId: null,
       itemLabel: null,
+      itemImage: null,
+      itemSku: null,
       price: "",
       discType: "NONE" as const,
       discValue: "",
@@ -1851,6 +1865,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               stockQty: old.stockQty,
               itemId: old.itemId,
               itemLabel: old.itemLabel,
+              itemImage: old.itemImage,
+              itemSku: old.itemSku,
               price: old.price,
               discType: old.discType,
               discValue: old.discValue,
@@ -2073,6 +2089,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               stockQty: String(v.stockQty ?? 0),
               itemId: v.itemId ?? null,
               itemLabel: v.item ? `${v.item.name} · ${v.item.sku}` : null,
+              itemImage: v.item?.imageUrl ?? null,
+              itemSku: v.item?.sku ?? null,
               price: v.pricePaisa != null ? String(v.pricePaisa / 100) : "",
               discType: (v.discountType ?? "NONE") as VariantRow["discType"],
               /*  PERCENT is basis points on the server (1000 = 10%); the owner sees 10.  */
@@ -4470,6 +4488,9 @@ No bundle products yet — add them on{" "}
                               }}
                               className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left border-b border-lavender-deep last:border-0 hover:bg-lavender/60 transition-colors"
                             >
+                              {/*  DEC-ITM-012 — the same mugshot every other
+                                  item list draws. One picker, one look.  */}
+                              <ItemThumb item={{ sku: it.sku, name: it.name, imageUrl: it.imageUrl }} size={34} />
                               <div className="min-w-0 flex-1">
                                 <div className="text-[13.5px] font-medium text-purple truncate">
                                   {it.name}
@@ -4728,6 +4749,14 @@ No bundle products yet — add them on{" "}
 
                           {v.itemId ? (
                             <>
+                              {/*  DEC-ITM-012 — the linked item wearing its own
+                                  face, exactly as it appears in Inventory. A
+                                  line of text alone made this the one item list
+                                  in the admin with nothing to recognise.  */}
+                              <ItemThumb
+                                item={{ sku: v.itemSku ?? "", name: v.itemLabel ?? "item", imageUrl: v.itemImage }}
+                                size={30}
+                              />
                               <span className="text-[13px] text-body-soft flex-1 min-w-0 truncate">
                                 Counted in Inventory · {v.itemLabel ?? "item linked"}
                               </span>
@@ -4737,7 +4766,7 @@ No bundle products yet — add them on{" "}
                                   setVariants((cur) =>
                                     cur.map((x) =>
                                       x.key === v.key
-                                        ? { ...x, itemId: null, itemLabel: null }
+                                        ? { ...x, itemId: null, itemLabel: null, itemImage: null, itemSku: null }
                                         : x,
                                     ),
                                   )
@@ -4784,62 +4813,94 @@ No bundle products yet — add them on{" "}
                       {/*  DEC-PRD-015 — the Item search, at full width. Inside a
                           row an item's name would not even be readable.  */}
                       {vItemFor && (
-                        <div className="border border-lavender-deep rounded-[12px] p-3 bg-white">
-                          <div className="flex items-center justify-between gap-3 mb-2">
-                            <div className="text-[12.5px] text-body-soft">
+                        <div className="rounded-[14px] border-2 border-plum bg-white overflow-hidden shadow-[0_0_0_3px_#f3ebf8]">
+                          <div className="flex items-center gap-3 px-3.5 py-3 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
+                            <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white bg-plum shrink-0">
+                              <Icon name="box" size={14} />
+                            </span>
+                            <div className="text-[13.5px] font-bold text-purple flex-1 min-w-0 truncate">
                               Which stockroom item holds{" "}
-                              <b className="font-semibold text-purple">
-                                {variants.find((x) => x.key === vItemFor)?.label}
-                              </b>
-                              ?
+                              {variants.find((x) => x.key === vItemFor)?.label}?
                             </div>
+                            <Info text="The count comes from the stockroom once this is linked, and the box beside the name stops being read. By id, never by matching the code text." />
                             <button
                               type="button"
                               onClick={() => setVItemFor(null)}
-                              className="text-[12.5px] text-body-soft hover:text-purple"
+                              className="text-[12.5px] font-bold text-body-soft hover:text-purple shrink-0"
                             >
                               Close
                             </button>
                           </div>
-                          <input
-                            className="ipt h-[40px] mb-2"
-                            placeholder="Search by item code or name…"
-                            value={vItemQ}
-                            onChange={(e) => setVItemQ(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto">
-                            {vItemHits.length === 0 && (
-                              <div className="text-[13px] text-body-soft px-1 py-2">
-                                No item matches “{vItemQ || "…"}”. Make it in{" "}
-                                <Link href="/items/new" className="text-orchid font-medium hover:underline">
-                                  Items
-                                </Link>{" "}
-                                first.
-                              </div>
-                            )}
-                            {vItemHits.map((it) => (
-                              <button
-                                key={it.id}
-                                type="button"
-                                onClick={() => {
-                                  setVariants((cur) =>
-                                    cur.map((x) =>
-                                      x.key === vItemFor
-                                        ? { ...x, itemId: it.id, itemLabel: `${it.name} · ${it.sku}` }
-                                        : x,
-                                    ),
-                                  );
-                                  setVItemFor(null);
-                                }}
-                                className="flex items-center gap-3 border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
+
+                          <div className="p-3">
+                            <div className="flex items-center gap-2.5 flex-wrap mb-2.5">
+                              <input
+                                className="ipt h-[44px] flex-1 min-w-[200px]"
+                                placeholder="Search by item code or name…"
+                                value={vItemQ}
+                                onChange={(e) => setVItemQ(e.target.value)}
+                                autoFocus
+                              />
+                              {/*  The same door the product's own search has —
+                                  the item that is missing gets made without
+                                  losing the place here.  */}
+                              <Link
+                                href={`/items/new?name=${encodeURIComponent(name)}`}
+                                className="inline-flex items-center gap-2 text-[13px] font-bold text-purple border-2 border-lavender-deep bg-white rounded-[11px] px-3.5 h-[44px] hover:border-orchid transition-colors whitespace-nowrap"
                               >
-                                <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
-                                  {it.name}
-                                </span>
-                                <span className="text-[13px] text-body-soft font-mono">{it.sku}</span>
-                              </button>
-                            ))}
+                                <Icon name="plus" size={14} /> New item
+                              </Link>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5 max-h-[260px] overflow-y-auto">
+                              {vItemHits.length === 0 && (
+                                <div className="text-[13px] text-body-soft px-1 py-2">
+                                  No item matches “{vItemQ || "…"}”. Make it in{" "}
+                                  <Link href="/items/new" className="text-orchid font-bold hover:underline">
+                                    Items
+                                  </Link>{" "}
+                                  first.
+                                </div>
+                              )}
+                              {vItemHits.map((it) => (
+                                <button
+                                  key={it.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setVariants((cur) =>
+                                      cur.map((x) =>
+                                        x.key === vItemFor
+                                          ? {
+                                              ...x,
+                                              itemId: it.id,
+                                              itemLabel: `${it.name} · ${it.sku}`,
+                                              itemImage: it.imageUrl ?? null,
+                                              itemSku: it.sku,
+                                            }
+                                          : x,
+                                      ),
+                                    );
+                                    setVItemFor(null);
+                                  }}
+                                  className="flex items-center gap-3 border border-lavender-deep rounded-[12px] px-2.5 py-2 hover:border-orchid hover:bg-lavender/50 transition-colors text-left"
+                                >
+                                  <ItemThumb item={{ sku: it.sku, name: it.name, imageUrl: it.imageUrl }} size={34} />
+                                  <span className="flex-1 min-w-0">
+                                    <span className="block text-[13.5px] font-bold text-purple truncate">
+                                      {it.name}
+                                    </span>
+                                    <span className="block text-[12px] text-body-soft font-mono">
+                                      {it.sku}
+                                    </span>
+                                  </span>
+                                  {it.supplier && (
+                                    <span className="text-[11px] font-bold px-2 py-[3px] rounded-full border bg-[#fff6e5] text-[#8a5a00] border-[#f0d9a8] shrink-0">
+                                      {it.supplier.nickname || it.supplier.name}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -5670,15 +5731,21 @@ No bundle products yet — add them on{" "}
                                   v.isActive ? "bg-white" : "bg-[#faf8fb]"
                                 }`}
                               >
+                                {/*  Its own photo first, then the master value's,
+                                    then the stockroom item's mugshot — never a
+                                    blank square while a picture of the thing
+                                    exists somewhere.  */}
                                 <span
                                   className="w-[38px] h-[38px] rounded-[10px] border border-lavender-deep bg-lavender shrink-0 bg-cover bg-center grid place-items-center text-body-soft"
                                   style={
-                                    v.imageUrl || v.masterImage
-                                      ? { backgroundImage: `url(${v.imageUrl || v.masterImage})` }
+                                    v.imageUrl || v.masterImage || v.itemImage
+                                      ? { backgroundImage: `url(${v.imageUrl || v.masterImage || v.itemImage})` }
                                       : undefined
                                   }
                                 >
-                                  {!v.imageUrl && !v.masterImage && <Icon name="photo" size={14} />}
+                                  {!v.imageUrl && !v.masterImage && !v.itemImage && (
+                                    <Icon name="photo" size={14} />
+                                  )}
                                 </span>
                                 {v.swatch && (
                                   <span
