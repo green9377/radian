@@ -725,7 +725,10 @@ function Row({
         <div className="text-[15.5px] font-semibold text-ink inline-flex items-center gap-2 flex-wrap">
           {label}
           {chip}
-          {hint && <HintDot>{hint}</HintDot>}
+          {/*  Only when the row has no chip. A `Where` chip already carries its
+               own ⓘ, and two dots side by side is the clutter this was meant
+               to remove, not add.  */}
+          {hint && !chip && <HintDot>{hint}</HintDot>}
         </div>
       </div>
       {/*  FIXED, never `flex-wrap`. See the note above — this is why the right
