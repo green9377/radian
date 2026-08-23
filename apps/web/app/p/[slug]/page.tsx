@@ -6,6 +6,7 @@ import { fetchProductDetail } from "../../_data/productApi";
 import { formatTaka } from "../../_data/products";
 import PdpView from "../../_components/Pdp/PdpView";
 import SpecFaq from "../../_components/Pdp/SpecFaq";
+import WhyBuy from "../../_components/Pdp/WhyBuy";
 import RelatedRail from "../../_components/Pdp/RelatedRail";
 import ProductReviews from "../../_components/Pdp/ProductReviews";
 import Reviews from "../../_components/GBE/Reviews";
@@ -135,6 +136,11 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
         <div className="bg-white rounded-[28px] shadow-soft p-5 sm:p-8 lg:p-10 mb-10">
           <PdpView detail={detail} />
         </div>
+
+        {/*  The promise band — straight after the buy box, which is where a
+            hesitating shopper looks next. See WhyBuy.tsx for why it is a
+            coloured band and not three more white cards.  */}
+        <WhyBuy craft={detail.craft} />
 
         <SpecFaq detail={detail} />
 

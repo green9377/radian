@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian — Where the "Why buy from us" cards go</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#470066; --purple-deep:#320049; --panel:#3b1152;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#a94fd0;
+    --lav:#f7f1fb; --lav-deep:#efe4f7; --rose:#b76e79; --rose-soft:#fbeef0;
+    --ink:#2c2233; --body:#3f3547; --soft:#8a7c94; --ok:#0E7A3D; --plum:#6d3a9c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lav);font-family:Inter,system-ui,sans-serif;color:var(--body)}
+  .disp{font-family:Fraunces,Georgia,serif}
+
+  .switch{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--lav-deep);
+          padding:14px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .switch b{font-family:Fraunces,serif;font-size:17px;color:var(--purple);margin-right:8px}
+  .sw{border:2px solid var(--lav-deep);background:#fff;color:var(--purple);font-weight:800;font-size:13.5px;
+      padding:9px 16px;border-radius:11px;cursor:pointer;font-family:inherit}
+  .sw.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 4px 14px rgba(109,58,156,.35)}
+  .note{font-size:12.5px;color:var(--soft);margin-left:auto}
+
+  .page{display:none;padding:0 0 60px}
+  .page.on{display:block}
+
+  /* ── storefront chrome ── */
+  .topbar{background:linear-gradient(90deg,#3b1152,#5b1a7a);color:#fff;font-size:12.5px;text-align:center;padding:9px}
+  .topbar b{color:#ffd85e}
+  .nav{background:#fff;border-bottom:1px solid var(--lav-deep);padding:13px 26px;display:flex;align-items:center;gap:20px}
+  .logo{font-family:Fraunces,serif;letter-spacing:.22em;font-size:17px;color:var(--purple)}
+  .logo i{color:var(--orchid);font-style:normal}
+  .searchbox{flex:1;max-width:420px;background:var(--lav);border-radius:99px;padding:9px 16px;font-size:12.5px;color:#b3a8bb}
+  .navr{margin-left:auto;display:flex;gap:18px;font-size:11px;color:var(--soft);text-align:center}
+  .crumb{max-width:1160px;margin:0 auto;padding:14px 26px;font-size:12.5px;color:var(--soft)}
+  .crumb b{color:var(--purple);font-weight:600}
+
+  .card{max-width:1160px;margin:0 auto;background:#fff;border-radius:22px;padding:26px;display:flex;gap:28px;flex-wrap:wrap}
+  .gal{flex:1 1 380px;min-width:320px}
+  .shot{aspect-ratio:1/1;border-radius:18px;background:linear-gradient(150deg,#f0cfd8,#d9b7c9 60%,#c79ab5);
+        position:relative;display:grid;place-items:center;color:#fff;font-size:13px;letter-spacing:.1em}
+  .thumbs{display:flex;gap:9px;margin-top:12px}
+  .thumbs span{width:56px;height:56px;border-radius:11px;background:linear-gradient(150deg,#f0cfd8,#cfa6bf);border:2px solid transparent}
+  .thumbs span:first-child{border-color:var(--orchid)}
+
+  .buy{flex:1 1 400px;min-width:330px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:99px;margin:0 6px 10px 0}
+  .p-a{background:#f6e6fb;color:#8b2fae}.p-b{background:#e8f6ef;color:var(--ok)}
+  h1{font-family:Fraunces,serif;font-size:29px;line-height:1.15;color:var(--purple);margin:4px 0 8px;font-weight:500}
+  .sub{font-size:13.5px;color:var(--soft);margin-bottom:12px}
+  .stock{display:inline-flex;align-items:center;gap:7px;background:#e8f6ef;color:var(--ok);font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:99px}
+  .price{font-family:Fraunces,serif;font-size:36px;color:var(--purple);margin:14px 0 0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .was{font-size:17px;color:var(--soft);text-decoration:line-through}
+  .off{font-size:13px;font-weight:800;color:#c9761b}
+  .save{font-size:12px;font-weight:700;background:#e8f6ef;color:var(--ok);padding:4px 10px;border-radius:99px}
+  .clock{margin-top:14px;border:1.5px solid #F2D9A8;background:#FFF7E8;border-radius:14px;padding:11px 14px;font-size:12.5px;color:#8A5A00;font-weight:700}
+  .cta{display:flex;gap:10px;margin-top:16px;align-items:stretch;flex-wrap:wrap}
+  .qty{display:flex;align-items:center;border:1.5px solid var(--lav-deep);border-radius:14px;height:50px;background:#fff}
+  .qty span{width:38px;text-align:center;color:var(--purple);font-size:17px;line-height:47px;cursor:default}
+  .qty b{width:30px;text-align:center;color:var(--purple);font-size:14.5px}
+  .btn2{flex:1;min-width:140px;height:50px;border:1.5px solid var(--purple);border-radius:14px;background:#fff;color:var(--purple);
+        font-weight:700;font-size:14.5px;display:grid;place-items:center}
+  .btn1{flex:1.25;min-width:165px;height:50px;border:0;border-radius:14px;background:var(--purple);color:#fff;
+        font-weight:700;font-size:14.5px;display:grid;place-items:center}
+  .fine{text-align:center;font-size:12.5px;color:var(--soft);margin-top:11px}
+  .fine b{color:var(--ok)}
+
+  /* trust badges strip (already on the page) */
+  .badges{display:flex;gap:8px;margin-top:22px;padding-top:20px;border-top:1px solid var(--lav-deep);text-align:center}
+  .badge{flex:1}
+  .badge .ic{width:34px;height:34px;border-radius:50%;background:var(--lav);display:grid;place-items:center;margin:0 auto 7px;color:var(--orchid);font-size:15px}
+  .badge b{display:block;font-size:12.5px;color:var(--ink);font-weight:700}
+  .badge span{font-size:11px;color:var(--soft)}
+  .tag{position:absolute;top:-9px;left:0;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+       background:#eae6ef;color:var(--soft);padding:3px 8px;border-radius:99px}
+
+  /* ── the craft cards, in their three homes ── */
+  .craft{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .cc{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1.5px solid var(--lav-deep);border-radius:16px;padding:14px}
+  .cc .ic{width:38px;height:38px;border-radius:50%;background:var(--lav);display:grid;place-items:center;color:var(--orchid);flex:0 0 38px;font-size:16px}
+  .cc b{display:block;font-size:13.5px;color:var(--purple);font-weight:800;margin-bottom:2px}
+  .cc span{font-size:12.5px;color:var(--soft);line-height:1.45}
+
+  .whyblock{max-width:1160px;margin:16px auto 0;background:#fff;border-radius:22px;padding:24px 26px;position:relative}
+  .whyblock .hd{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+  .whyblock .hd h3{font-family:Fraunces,serif;font-size:20px;color:var(--purple);margin:0;font-weight:500}
+  .whyblock .hd em{font-style:normal;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--orchid);font-weight:700}
+
+  .sidewhy{margin-top:18px;padding-top:16px;border-top:1px solid var(--lav-deep);position:relative}
+  .sidewhy .cc{padding:11px 12px;margin-bottom:8px;border-radius:13px}
+  .sidewhy .cc .ic{width:32px;height:32px;flex:0 0 32px;font-size:14px}
+
+  /* before you order */
+  .byo{max-width:900px;margin:34px auto 0;text-align:center}
+  .byo em{font-style:normal;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--orchid);font-weight:700}
+  .byo h2{font-family:Fraunces,serif;font-size:29px;color:var(--purple);margin:8px 0 18px;font-weight:500}
+  .acc{background:#fff;border:1px solid var(--lav-deep);border-radius:18px;margin-bottom:10px;text-align:left;overflow:hidden}
+  .acc .sum{padding:15px 20px;font-size:15px;color:var(--purple);font-weight:500;display:flex;justify-content:space-between}
+  .acc .bd{padding:0 20px 20px}
+  table{width:100%;border-collapse:collapse;border:1px solid var(--lav-deep);border-radius:16px;overflow:hidden}
+  th{text-align:left;font-size:13.5px;color:var(--ink);padding:13px 18px;border-bottom:1px solid var(--lav-deep)}
+  td{padding:13px 18px;font-size:14px;border-bottom:1px solid var(--lav-deep)}
+  td:last-child{border-left:1px solid var(--lav-deep);color:var(--rose)}
+  tr.fresh td{background:#E8F9EE;color:var(--ok);font-weight:700}
+  tr:last-child td{border-bottom:0}
+  .buried{margin-top:16px;position:relative}
+  .buried .craft{grid-template-columns:1fr 1fr}
+  .buried .cc{opacity:.62}
+
+  .why{max-width:1160px;margin:0 auto 18px;padding:14px 20px;background:linear-gradient(135deg,#f6f0fa,#fff);
+       border:1px solid var(--lav-deep);border-radius:14px}
+  .why b{color:var(--purple);font-family:Fraunces,serif;font-size:15.5px}
+  .why ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;line-height:1.65}
+  .good{color:var(--ok);font-weight:700}
+  .bad{color:#c0392b;font-weight:700}
+  .mark{outline:2px dashed var(--orchid);outline-offset:6px;border-radius:18px}
+</style>
+</head>
+<body>
+
+<div class="switch">
+  <b>“Why buy from us” — where?</b>
+  <button class="sw on" data-p="a">A · Its own row, under the photo</button>
+  <button class="sw" data-p="b">B · Beside the price, under Buy Now</button>
+  <button class="sw" data-p="c">C · Where it is today</button>
+  <span class="note">The dashed outline marks the cards in question.</span>
+</div>
+
+<!-- ══════════════════ A ══════════════════ -->
+<div class="page on" id="p-a">
+  <div class="topbar"><b>⚡ 3 Hours Delivery</b> inside Dhaka · Midnight Delivery · Schedule it</div>
+  <div class="nav">
+    <span class="logo"><i>●</i> ghorerbazar</span>
+    <span class="searchbox">Search flowers, cakes and gifts</span>
+    <span class="navr"><span>Account</span><span>Track Order</span><span>Wishlist</span><span>Cart</span></span>
+  </div>
+  <div class="crumb">Home › Fresh flower › <b>red rose without variant</b></div>
+
+  <div class="why">
+    <b>A · Its own row, right under the photo and the buy buttons</b>
+    <ul>
+      <li><span class="good">Strong:</span> nobody has to open anything. Three cards, full width, read in one glance while the price is still on screen.</li>
+      <li><span class="good">Strong:</span> the shop's own promises get the room they deserve — icon, bold title, one line each.</li>
+      <li><span class="bad">Weak:</span> one more block before the reviews, so the page grows a little taller.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="gal">
+      <div class="shot">PRODUCT PHOTO</div>
+      <div class="thumbs"><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="buy">
+      <span class="pill p-a">⚡ Express Delivery</span><span class="pill p-b">🌿 100% fresh flower</span>
+      <h1>red rose without variant — manual stock</h1>
+      <div class="sub">i love this</div>
+      <span class="stock">● 100 in stock</span>
+      <div class="price">৳ 2,250 <span class="was">৳ 2,500</span> <span class="off">10% OFF</span> <span class="save">You save ৳ 250</span></div>
+      <div class="clock">🔥 Offer ends in &nbsp; 09 : 37 : 56</div>
+      <div class="cta">
+        <span class="qty"><span>−</span><b>1</b><span>+</span></span>
+        <span class="btn2">🛒 Add to Cart</span>
+        <span class="btn1">⚡ Buy Now · ৳ 2,250</span>
+      </div>
+      <div class="fine">Delivery date &amp; time slot on the next step. <b>No payment until you confirm.</b></div>
+    </div>
+
+    <div style="flex:1 1 100%">
+      <div class="badges">
+        <div class="badge"><div class="ic">🚚</div><b>2 hours delievry</b><span>inside dhaka</span></div>
+        <div class="badge"><div class="ic">🌿</div><b>freshness gurnaty</b><span>fresh flower</span></div>
+        <div class="badge"><div class="ic">🏬</div><b>real shop in Gulshan</b><span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="whyblock mark">
+    <span class="tag">Why buy from us</span>
+    <div class="hd"><em>Why Radian</em><h3>What you get, every time</h3></div>
+    <div class="craft">
+      <div class="cc"><div class="ic">🛡</div><div><b>freshnes</b><span>very fast velievry in dhaka city</span></div></div>
+      <div class="cc"><div class="ic">🏷</div><div><b>gurnaty of money back</b><span>gurnaysjfgsdgfhjgfjh</span></div></div>
+      <div class="cc" style="opacity:.5;border-style:dashed"><div class="ic">✨</div><div><b>a third card</b><span>whenever you write one</span></div></div>
+    </div>
+  </div>
+
+  <div class="byo">
+    <em>Everything you're wondering</em>
+    <h2>Before You Order</h2>
+    <div class="acc"><div class="sum">What's inside? — Full specification <span>⌄</span></div>
+      <div class="bd">
+        <table>
+          <tr><th>Item</th><th>Quantity</th></tr>
+          <tr class="fresh"><td>Product Type</td><td>100% fresh flower</td></tr>
+          <tr><td>Rose</td><td>25</td></tr>
+          <tr><td>zerbara</td><td>20</td></tr>
+          <tr><td>lily</td><td></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="acc"><div class="sum">what your payment method <span>⌄</span></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ B ══════════════════ -->
+<div class="page" id="p-b">
+  <div class="topbar"><b>⚡ 3 Hours Delivery</b> inside Dhaka · Midnight Delivery · Schedule it</div>
+  <div class="nav">
+    <span class="logo"><i>●</i> ghorerbazar</span>
+    <span class="searchbox">Search flowers, cakes and gifts</span>
+    <span class="navr"><span>Account</span><span>Track Order</span><span>Wishlist</span><span>Cart</span></span>
+  </div>
+  <div class="crumb">Home › Fresh flower › <b>red rose without variant</b></div>
+
+  <div class="why">
+    <b>B · In the buy column, straight under Buy Now</b>
+    <ul>
+      <li><span class="good">Strong:</span> it answers "why here and not somewhere cheaper" at the exact second the finger is over the button.</li>
+      <li><span class="bad">Weak:</span> the column is narrow, so the cards stack and the text has to stay short — a long line wraps to three.</li>
+      <li><span class="bad">Weak:</span> that column already holds the price, the countdown, the buttons and the small print. A fifth thing starts to crowd it.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="gal">
+      <div class="shot">PRODUCT PHOTO</div>
+      <div class="thumbs"><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="buy">
+      <span class="pill p-a">⚡ Express Delivery</span><span class="pill p-b">🌿 100% fresh flower</span>
+      <h1>red rose without variant — manual stock</h1>
+      <div class="sub">i love this</div>
+      <span class="stock">● 100 in stock</span>
+      <div class="price">৳ 2,250 <span class="was">৳ 2,500</span> <span class="off">10% OFF</span></div>
+      <div class="clock">🔥 Offer ends in &nbsp; 09 : 37 : 56</div>
+      <div class="cta">
+        <span class="qty"><span>−</span><b>1</b><span>+</span></span>
+        <span class="btn2">🛒 Add to Cart</span>
+        <span class="btn1">⚡ Buy Now · ৳ 2,250</span>
+      </div>
+      <div class="fine">Delivery date &amp; time slot on the next step. <b>No payment until you confirm.</b></div>
+
+      <div class="sidewhy mark">
+        <span class="tag">Why buy from us</span>
+        <div class="cc"><div class="ic">🛡</div><div><b>freshnes</b><span>very fast velievry in dhaka city</span></div></div>
+        <div class="cc"><div class="ic">🏷</div><div><b>gurnaty of money back</b><span>gurnaysjfgsdgfhjgfjh</span></div></div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 100%">
+      <div class="badges">
+        <div class="badge"><div class="ic">🚚</div><b>2 hours delievry</b><span>inside dhaka</span></div>
+        <div class="badge"><div class="ic">🌿</div><b>freshness gurnaty</b><span>fresh flower</span></div>
+        <div class="badge"><div class="ic">🏬</div><b>real shop in Gulshan</b><span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="byo">
+    <em>Everything you're wondering</em>
+    <h2>Before You Order</h2>
+    <div class="acc"><div class="sum">What's inside? — Full specification <span>⌄</span></div>
+      <div class="bd">
+        <table>
+          <tr><th>Item</th><th>Quantity</th></tr>
+          <tr class="fresh"><td>Product Type</td><td>100% fresh flower</td></tr>
+          <tr><td>Rose</td><td>25</td></tr>
+          <tr><td>zerbara</td><td>20</td></tr>
+          <tr><td>lily</td><td></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="acc"><div class="sum">what your payment method <span>⌄</span></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ C ══════════════════ -->
+<div class="page" id="p-c">
+  <div class="topbar"><b>⚡ 3 Hours Delivery</b> inside Dhaka · Midnight Delivery · Schedule it</div>
+  <div class="nav">
+    <span class="logo"><i>●</i> ghorerbazar</span>
+    <span class="searchbox">Search flowers, cakes and gifts</span>
+    <span class="navr"><span>Account</span><span>Track Order</span><span>Wishlist</span><span>Cart</span></span>
+  </div>
+  <div class="crumb">Home › Fresh flower › <b>red rose without variant</b></div>
+
+  <div class="why">
+    <b>C · Where they are today — the bottom of the specification table</b>
+    <ul>
+      <li>They are 1,400 pixels down, inside an accordion, under a table of stems and quantities. Small, grey, and after everything else.</li>
+      <li><span class="bad">Weak:</span> a shopper who does not open "What's inside" never sees them at all — and on a phone that is most shoppers.</li>
+      <li><span class="bad">Weak:</span> the admin says these are "the three cards under the price", which is where the TRUST BADGES are. Two different things, one description.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="gal">
+      <div class="shot">PRODUCT PHOTO</div>
+      <div class="thumbs"><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="buy">
+      <span class="pill p-a">⚡ Express Delivery</span><span class="pill p-b">🌿 100% fresh flower</span>
+      <h1>red rose without variant — manual stock</h1>
+      <div class="sub">i love this</div>
+      <span class="stock">● 100 in stock</span>
+      <div class="price">৳ 2,250 <span class="was">৳ 2,500</span> <span class="off">10% OFF</span></div>
+      <div class="clock">🔥 Offer ends in &nbsp; 09 : 37 : 56</div>
+      <div class="cta">
+        <span class="qty"><span>−</span><b>1</b><span>+</span></span>
+        <span class="btn2">🛒 Add to Cart</span>
+        <span class="btn1">⚡ Buy Now · ৳ 2,250</span>
+      </div>
+      <div class="fine">Delivery date &amp; time slot on the next step. <b>No payment until you confirm.</b></div>
+    </div>
+
+    <div style="flex:1 1 100%">
+      <div class="badges">
+        <div class="badge"><div class="ic">🚚</div><b>2 hours delievry</b><span>inside dhaka</span></div>
+        <div class="badge"><div class="ic">🌿</div><b>freshness gurnaty</b><span>fresh flower</span></div>
+        <div class="badge"><div class="ic">🏬</div><b>real shop in Gulshan</b><span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="byo">
+    <em>Everything you're wondering</em>
+    <h2>Before You Order</h2>
+    <div class="acc"><div class="sum">What's inside? — Full specification <span>⌃</span></div>
+      <div class="bd">
+        <table>
+          <tr><th>Item</th><th>Quantity</th></tr>
+          <tr class="fresh"><td>Product Type</td><td>100% fresh flower</td></tr>
+          <tr><td>Rose</td><td>25</td></tr>
+          <tr><td>zerbara</td><td>20</td></tr>
+          <tr><td>lily</td><td></td></tr>
+        </table>
+        <div class="buried mark">
+          <span class="tag">Why buy from us — here</span>
+          <div class="craft">
+            <div class="cc"><div class="ic">🛡</div><div><b>freshnes</b><span>very fast velievry in dhaka city</span></div></div>
+            <div class="cc"><div class="ic">🏷</div><div><b>gurnaty of money back</b><span>gurnaysjfgsdgfhjgfjh</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="acc"><div class="sum">what your payment method <span>⌄</span></div></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.sw').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')});
+      document.querySelectorAll('.page').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');
+      document.getElementById('p-'+b.dataset.p).classList.add('on');
+      window.scrollTo(0,0);
+    });
+  });
+</script>
+</body>
+</html>

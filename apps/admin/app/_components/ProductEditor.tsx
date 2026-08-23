@@ -6837,7 +6837,7 @@ No bundle products yet — add them on{" "}
               <Card
                 icon="sparkle"
                 title="Why buy from us"
-                tip="The three cards under the price on the product page. Normally written once on the category — fill these in only if this product has its own story. What you write here replaces the category's."
+                tip="The purple band on the product page, straight under the buy box — the one place the shop speaks in its own voice. Normally written once on the category; fill these in only if this product has its own story, and what you write here replaces the category’s."
               >
                 {apiProductId ? (
                   <CraftEditor

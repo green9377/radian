@@ -572,25 +572,36 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             </div>
           </div>
 
-          {/* trust - under the thumbnail row, all three weighted the same */}
-          <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-lavender-deep">
+          {/*  ── trust badges, quietened 23 Aug 2026 ─────────────────────
+              They used to be three large circles here, and the "Why buy from
+              us" cards said almost the same words somewhere else on the page
+              — "freshness gurnaty" against "freshnes", "2 hours delievry"
+              against "very fast delivery in dhaka city". Two masters, one
+              message, printed twice.
+
+              The two now have different jobs. These are the GLANCE: facts,
+              three words each, read while judging the price. The shop's
+              PROMISE is the coloured band under the buy box (`WhyBuy.tsx`),
+              and it is the loud one. Making both loud is what made the page
+              repeat itself.  */}
+          <div className="flex flex-wrap gap-x-5 gap-y-2.5 mt-5 pt-4 border-t border-lavender-deep">
             {detail.trust.map((t) => (
-              <div key={t.label} className="flex flex-col items-center text-center gap-1.5">
+              <div key={t.label} className="flex items-center gap-2 min-w-0">
                 {/*  DEC-PRD-023 - the shop's own uploaded icon wins when there
                     is one. `<img>` rather than `next/image`: the file can be
                     any size and can be an SVG, which next/image cannot
                     measure.  */}
-                <span className="w-10 h-10 rounded-full border-[1.5px] border-lavender-deep grid place-items-center text-purple overflow-hidden">
+                <span className="w-[22px] h-[22px] grid place-items-center text-orchid shrink-0 overflow-hidden">
                   {t.iconUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.iconUrl} alt="" className="w-[20px] h-[20px] object-contain" />
+                    <img src={t.iconUrl} alt="" className="w-[17px] h-[17px] object-contain" />
                   ) : (
-                    <Icon name={t.icon} className="w-[18px] h-[18px]" />
+                    <Icon name={t.icon} className="w-[16px] h-[16px]" />
                   )}
                 </span>
-                <b className="text-[13px] font-bold text-ink leading-tight">{t.label}</b>
-                <span className="text-[12px] text-body-soft font-light leading-tight">
-                  {t.sub}
+                <span className="min-w-0 text-[12.5px] leading-tight">
+                  <b className="font-bold text-ink">{t.label}</b>
+                  {t.sub ? <span className="text-body-soft font-light"> · {t.sub}</span> : null}
                 </span>
               </div>
             ))}

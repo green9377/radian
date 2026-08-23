@@ -108,25 +108,13 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
             </tbody>
           </table>
 
-          {/* craft strip — কেন আমাদেরটা আলাদা */}
-          <div className="grid md:grid-cols-3 gap-3.5 mt-5">
-            {detail.craft.map((c) => (
-              <div
-                key={c.title}
-                className="flex gap-3 items-start bg-white border border-lavender-deep rounded-[18px] px-4 py-4"
-              >
-                <span className="w-9 h-9 rounded-full bg-lavender grid place-items-center text-orchid shrink-0">
-                  <Icon name={c.icon} className="w-4 h-4" />
-                </span>
-                <div>
-                  <b className="block text-[13.5px] text-purple font-bold">{c.title}</b>
-                  <span className="text-[12.5px] text-body-soft font-light leading-snug">
-                    {c.text}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/*  ⚠️ THE CRAFT STRIP USED TO BE HERE and that was the whole
+              complaint (owner, 23 Aug 2026): *"why buy from us ata product
+              upload page a jay nai."* It rendered — at the bottom of this
+              table, inside a closed accordion, 1,400 pixels down the page.
+              It now has its own band straight under the buy box; see
+              `WhyBuy.tsx`, which also explains why a coloured band and not
+              three more white cards.  */}
         </div>
       </details>
 
