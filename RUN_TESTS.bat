@@ -1,16 +1,53 @@
 @echo off
-REM ═══════════════════════════════════════════════════════════════════
-REM  RADIAN REGRESSION SUITE — "সব ঠিক আছে কি না" এক click-এ
+REM ============================================================================
+REM  RADIAN REGRESSION SUITE - "is everything still working" in one click
 REM
-REM  আগে START_RADIAN.bat দিয়ে সব চালু থাকতে হবে।
-REM  Admin email/password জিজ্ঞেস করবে — তোমার machine-এই থাকে।
+REM  WHERE IT RUNS (changed 24 Aug 2026)
+REM  This pointed at http://localhost:4000, and the owner shut the local
+REM  server down on 17 August. So every run since then has failed to connect,
+REM  and 25 locked business rules went unchecked without anybody noticing -
+REM  the tool was not broken, its address was out of date.
 REM
-REM  গভীর পরীক্ষা (delivered→Finance পর্যন্ত):  RUN_TESTS.bat full
-REM ═══════════════════════════════════════════════════════════════════
+REM  It now runs against the DEMO deployment by default, which is where the
+REM  work actually lives. Demo is exactly the place for this: it writes real
+REM  test orders, and that is what demo data is for.
+REM
+REM    RUN_TESTS.bat            demo, the quick pass
+REM    RUN_TESTS.bat full       demo, deep (delivered -> Finance). Leaves one
+REM                             delivered test order behind, on purpose
+REM    RUN_TESTS.bat local      localhost:4000, if START_RADIAN.bat is running
+REM    RUN_TESTS.bat local full both
+REM
+REM  It will ask for the admin email/password. Those stay on this machine.
+REM
+REM  WARNING: never point this at the real shop. It places orders.
+REM ============================================================================
 cd /d "%~dp0"
 
-REM  আগে যেগুলোর ডেটাবেজ লাগে না — দু-সেকেন্ড。 এগুলো ভাঙা মানে দাম বা মজুদের
-REM  নিয়মই ভাঙা, তখন test order বসিয়ে লাভ নেই。
+set "DEMO_API=https://radian-api-qnt6.onrender.com"
+set "TARGET=%DEMO_API%"
+set "WHERE=DEMO"
+set "DEEP="
+
+REM  Both words are optional and may arrive in either order.
+for %%A in (%1 %2) do (
+  if /i "%%A"=="local" (
+    set "TARGET=http://localhost:4000"
+    set "WHERE=LOCALHOST"
+  )
+  if /i "%%A"=="full" set "DEEP=--full"
+)
+
+echo.
+echo   ---------------------------------------------------------------
+echo    Running against: %WHERE%
+echo    %TARGET%
+if defined DEEP echo    DEEP pass - this leaves a delivered test order behind
+echo   ---------------------------------------------------------------
+echo.
+
+REM  These need no database and take two seconds. If a locked rule about
+REM  pricing or stock is already broken, placing a test order proves nothing.
 node apps\api\scripts\no-bangla.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\split-stores.selftest.mjs
@@ -21,15 +58,25 @@ goto :rulesOk
 
 :ruleBroken
 echo.
-echo A locked rule is broken. Fix that before running the rest.
+echo   A locked rule is broken. Fix that before running the rest.
 pause
 exit /b 1
 
 :rulesOk
 
-if /i "%1"=="full" (
-  node apps\api\scripts\regression-suite.js --full
-) else (
-  node apps\api\scripts\regression-suite.js
+REM  The demo API sleeps on the free tier. The first request can take 30-50
+REM  seconds to wake it, and a suite that dies on a cold start looks exactly
+REM  like a suite that found a bug.
+if "%WHERE%"=="DEMO" (
+  echo   Waking the demo API - this can take up to a minute...
+  node -e "const u=process.argv[1]+'/health';(async()=>{for(let i=0;i<20;i++){try{const r=await fetch(u);if(r.ok){console.log('  awake');process.exit(0)}}catch{}await new Promise(r=>setTimeout(r,5000))}console.log('  no answer from the API - is the address right?');process.exit(1)})()" "%TARGET%"
+  if errorlevel 1 (
+    pause
+    exit /b 1
+  )
+  echo.
 )
+
+set "API=%TARGET%"
+node apps\api\scripts\regression-suite.js %DEEP%
 pause
