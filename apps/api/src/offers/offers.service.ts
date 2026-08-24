@@ -495,6 +495,29 @@ export class OffersService {
       return { offer: o, discountPaisa: off, freeDelivery: false };
     };
 
+    /*
+      ⚠️ WHAT AN OFFER IS WORTH — and free delivery is worth the delivery fee.
+
+      This comparison read `discountPaisa` alone. A FREE_DELIVERY offer scores
+      `discountPaisa: 0` and carries its value in `freeDelivery: true`, so it
+      lost to every money offer on the shop, always, by nought to anything.
+
+      Found live on 24 Aug 2026 with four test offers running: the product
+      page advertised "Free delivery on orders over ৳3,000" and the cart
+      charged the ৳150 anyway. Pause the money offers and it worked, which is
+      why it had never been noticed — one offer at a time hides it completely.
+
+      That matters more here than it would in most shops. Delivery IS Radian's
+      promise; free delivery is the promotion this shop is most likely to run,
+      and it was the one shape guaranteed to be thrown away.
+
+      The fix is the sum the code already knew how to write — twenty lines
+      below, the coupon-versus-automatic branch has always compared
+      `discountPaisa + (freeDelivery ? deliveryPaisa : 0)`. The knowledge was
+      there and was applied in one of the two places that needed it.
+    */
+    const worth = (s: Scored) => s.discountPaisa + (s.freeDelivery ? deliveryPaisa : 0);
+
     // best automatic
     let bestAuto: Scored | null = null;
     for (const o of candidates.filter((c) => c.mechanism === 'AUTOMATIC')) {
@@ -505,8 +528,8 @@ export class OffersService {
       }
       const better =
         !bestAuto ||
-        r.discountPaisa > bestAuto.discountPaisa ||
-        (r.discountPaisa === bestAuto.discountPaisa && r.offer.priority > bestAuto.offer.priority);
+        worth(r) > worth(bestAuto) ||
+        (worth(r) === worth(bestAuto) && r.offer.priority > bestAuto.offer.priority);
       if (better) {
         if (bestAuto) skipped.push({ name: bestAuto.offer.name, reason: 'beaten by a better automatic offer' });
         bestAuto = r;
@@ -546,8 +569,10 @@ export class OffersService {
       if (bestAuto.offer.combinable && couponScored.offer.combinable) {
         applied.push(bestAuto, couponScored);
       } else {
-        const autoVal = bestAuto.discountPaisa + (bestAuto.freeDelivery ? deliveryPaisa : 0);
-        const cpnVal = couponScored.discountPaisa + (couponScored.freeDelivery ? deliveryPaisa : 0);
+        /*  Same sum as `worth()` above — one helper now, so the two can never
+            drift into disagreeing about what an offer is worth.  */
+        const autoVal = worth(bestAuto);
+        const cpnVal = worth(couponScored);
         if (cpnVal >= autoVal) {
           applied.push(couponScored);
           skipped.push({ name: bestAuto.offer.name, reason: 'not combinable with the coupon' });
