@@ -753,23 +753,44 @@ export function OffersSettingsLive() {
         />
         {demo && <DemoBadge />}
       </div>
+      {/*  ⚠️ Two settings on a page this wide need a SHAPE, not just room.
+           Stretched across one card they were two controls marooned in white
+           — full width and still nothing to look at, which is the fault one
+           step on rather than fixed. They are cards now, sized to what they
+           hold, exactly like Products → Badge rules.  */}
       {loaded && (
-        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Guide tip="A percent this high or above cannot go live on its own — it waits on Approvals for a manager. Set it to the deepest discount you are happy for staff to publish without asking.">Approval threshold</Guide>
-              <input className="ipt max-w-[160px]" value={thresholdPct} onChange={(e) => setThresholdPct(e.target.value)} />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 mt-5">
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
+              <Guide tip="A percent this high or above cannot go live on its own — it waits on Approvals for a manager. Set it to the deepest discount you are happy for staff to publish without being asked.">Approval threshold</Guide>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  className="ipt tabular-nums font-semibold text-[17px]"
+                  style={{ minHeight: 42, maxWidth: 110 }}
+                  value={thresholdPct}
+                  onChange={(e) => setThresholdPct(e.target.value)}
+                />
+                <span className="text-[13px] font-semibold text-body-soft">% or deeper needs a sign-off</span>
+              </div>
             </div>
-            <div>
-              <Guide tip="Whether a brand-new offer starts life able to stack with others. Off is the safe answer: one offer at a time, the customer gets whichever is worth most.">New offers combinable by default</Guide>
-              <div className="pt-1.5"><Toggle on={defCombinable} onChange={setDefCombinable} /></div>
+
+            <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
+              <Guide tip="Whether a brand-new offer starts life able to stack with others. Off is the safe answer: one offer at a time, and the customer gets whichever is worth most — free delivery counted at the delivery fee.">New offers combine by default</Guide>
+              <div className="flex items-center gap-3" style={{ minHeight: 42 }}>
+                <Toggle on={defCombinable} onChange={setDefCombinable} />
+                <span className="text-[13px] font-semibold" style={{ color: defCombinable ? GO.c : "#8b7a99" }}>
+                  {defCombinable ? "They can stack" : "One offer at a time"}
+                </span>
+              </div>
             </div>
           </div>
+
           <div className="flex items-center gap-3 mt-5">
-            <button onClick={save} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-6 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft"><Icon name="check" size={16} /> Save settings</button>
+            <button onClick={save} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-bold px-6 py-3 rounded-full inline-flex items-center gap-2 shadow-soft"><Icon name="check" size={16} /> Save settings</button>
             {saved && <span className="text-[13px] font-semibold text-[#0f7d55]">Saved ✓</span>}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
