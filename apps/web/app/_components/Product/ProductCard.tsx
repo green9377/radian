@@ -64,6 +64,46 @@ function MoonIcon() {
   );
 }
 
+/*  ── DEC-PRD-050 · exactly two badges on a card, never three ──────────────
+
+    One is the DELIVERY PROMISE, top-left. It is the shop's biggest claim and
+    the reason somebody chooses Radian over the florist down the road, so it
+    never gives up its corner.
+
+    The other is the MERCHANDISING badge, bottom-left of the photograph, and
+    only one of the two can show: Best seller beats New. A product can rarely
+    be both anyway (a bouquet published last week has no 90-day sales behind
+    it), and when it is, "other people bought this" outsells "this is new".
+
+    Bottom-left and not top-right because top-right is the wishlist heart, and
+    a card with a pill in all three corners is the crowded screen the brief
+    forbids. Two badges on opposite corners of one photograph read as a
+    caption; three read as a sale rack.
+
+    FlowerAura, checked 24 Aug 2026, runs the same shape: a delivery pill and
+    at most one merchandising pill per card, never both merchandising ones. */
+function MerchBadge({ product }: { product: Product }) {
+  const base =
+    "absolute bottom-[12px] left-[13px] z-[4] inline-flex items-center gap-[5px] text-[10.5px] font-semibold tracking-[0.04em] rounded-full px-[10px] py-[5px] whitespace-nowrap shadow-[0_4px_14px_rgba(71,0,102,0.14)]";
+
+  if (product.best) {
+    /*  Rose gold, the accent colour, kept for this one thing on a card. It is
+        the only label here the shop has to have EARNED, and it should not
+        look like the same paint as the delivery promise.  */
+    return (
+      <span className={`${base} bg-[#FFF6EC] text-[#8A5A00] border border-[#EBD3B0]`}>
+        <span className="text-[11px] leading-none">★</span> Best seller
+      </span>
+    );
+  }
+  if (product.neu) {
+    return (
+      <span className={`${base} bg-lavender text-purple`}>New</span>
+    );
+  }
+  return null;
+}
+
 function Badge({ product, zone }: { product: Product; zone: Zone | null }) {
   const kind =
     zone === "bangladesh" && product.zone === "both"
@@ -114,6 +154,7 @@ export default function ProductCard({
         style={{ background: product.bg }}
       >
         <Badge product={product} zone={zone} />
+        <MerchBadge product={product} />
       </Link>
 
       {/* Wishlist */}

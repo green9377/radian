@@ -23,6 +23,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { paidPaisa } from '../common/discount-window';
 import { resolvePromisedBy } from './promise';
 import { AuditService } from '../common/audit.service';
+import { MerchService } from '../products/merch';
 import { InventoryService } from '../inventory/inventory.service';
 import { OffersService } from '../offers/offers.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
@@ -73,6 +74,10 @@ export class OrdersService {
       that one was sent, and the database can refuse a duplicate.
     */
     private readonly orderMessages: OrderMessagesService,
+    /*  DEC-PRD-050 — re-ranks Best seller after a delivery. Fail-soft by
+        construction (`recomputeQuietly`), like every other courtesy on this
+        path.  */
+    private readonly merch: MerchService,
   ) {}
 
   /**
@@ -659,6 +664,11 @@ export class OrdersService {
     await this.event(id, 'delivery', `Delivered`, actorName);
     if (outstanding > 0) await this.event(id, 'payment', `COD collected — ${outstanding} paisa`, actorName);
     await this.event(id, 'system', `Sales completed — salesCount +qty, Customer LTV +${o.totalPaisa} paisa`, actorName);
+    /*  DEC-PRD-050 — a completed sale is the only thing that can change who is
+        a best seller, so the ranking is redone here rather than on a nightly
+        job that could quietly stop running. Fire-and-forget and swallowed
+        inside: a badge is decoration, an order is a contract.  */
+    void this.merch.recomputeQuietly();
     void this.orderMessages
       .queue(id, OrderMessageKind.ORDER_DELIVERED)
       // DEC-WEB-008 — the review invite queues now, due 24h from now; the

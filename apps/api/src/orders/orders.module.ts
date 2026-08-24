@@ -7,6 +7,8 @@ import { FinanceModule } from '../finance/finance.module';
 import { CapacityModule } from '../catalog/capacity';
 import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
 import { MessagingModule } from '../messaging/messaging.controller';
+/*  DEC-PRD-050 — a delivered order re-ranks Best seller.  */
+import { MerchModule } from '../products/merch';
 
 /**
  * DEC-INV-015 stage 1 (22 Jul night): preparing/cancel post SALE movements to
@@ -15,7 +17,7 @@ import { MessagingModule } from '../messaging/messaging.controller';
  * flips (stage 3) and Product.stockQty becomes derived read-only.
  */
 @Module({
-  imports: [InventoryModule, OffersModule, FinanceModule, CapacityModule, WhatsAppCloudModule, MessagingModule],
+  imports: [InventoryModule, OffersModule, FinanceModule, CapacityModule, WhatsAppCloudModule, MessagingModule, MerchModule],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService], // DeliveryModule drives transitions through this (DEC-DLV-006)

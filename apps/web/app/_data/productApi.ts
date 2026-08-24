@@ -95,6 +95,11 @@ export interface ApiProductDetail {
   productType: "READYMADE" | "CRAFTED";
   nature: { type: "fresh" | "artificial"; label: string | null };
   prepaidOnly: boolean;
+  /** DEC-PRD-050 — earned by 90 days of real sales in this category */
+  bestSeller?: boolean;
+  /** the category it is a best seller IN — "Best seller in Fresh Flowers" */
+  bestSellerIn?: string | null;
+  newArrival?: boolean;
   leadTimeDays: number | null;
   supportsExpress: boolean;
   supportsSameDay: boolean;
@@ -294,10 +299,13 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         cart and checkout never showed a product's photo even when one had been
         uploaded.  */
     bg: a.images[0] ? `url(${a.images[0]}) center/cover` : PLACEHOLDER[0],
-    best: false,
+    /*  DEC-PRD-050 — the API answers this now; it was hardcoded false, so a
+        best seller in the cart or the wishlist lost its badge on the way.  */
+    best: a.bestSeller ?? false,
     exp: a.supportsExpress,
     sd: a.supportsSameDay,
     mn: a.supportsMidnight,
+    neu: a.newArrival ?? false,
     prepaidOnly: a.prepaidOnly,
   };
 
@@ -597,6 +605,11 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         express/same-day. Sent by the API all along; this line is what was
         missing.  */
     leadTimeDays: a.leadTimeDays,
+    /*  DEC-PRD-050 — the badges, straight through. The page draws them as a
+        quiet line beside the rating, never as a ribbon on the photograph.  */
+    bestSeller: a.bestSeller ?? false,
+    bestSellerIn: a.bestSellerIn ?? null,
+    newArrival: a.newArrival ?? false,
     stockLeft: a.stockQty,
     /*  DEC-PDP-09 — passed straight through, never recomputed here. The
         server owns "may they buy it"; the browser is the last place that

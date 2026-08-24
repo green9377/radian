@@ -144,8 +144,17 @@ export interface ApiProduct {
   zone: "DHAKA" | "NATIONWIDE";
   natureType: "FRESH" | "ARTIFICIAL";
   isPublished: boolean;
+  /*  ── DEC-PRD-050 · the badges are EARNED, not typed ────────────────────
+      `isBestSeller` is READ-ONLY here: the server works it out from real
+      delivered sales over the last 90 days, per category. `isNewArrival` is
+      computed at read time from `publishedAt`. Sending either back does
+      nothing — the form sends the two MODE fields instead.  */
   isBestSeller: boolean;
   isNewArrival: boolean;
+  bestSellerMode?: "AUTO" | "ALWAYS" | "NEVER";
+  newArrivalMode?: "AUTO" | "ALWAYS" | "NEVER";
+  /** when it first went live — what "new arrival" is measured from */
+  publishedAt?: string | null;
   category?: ApiCategory | null;
   brandId?: string | null; // single optional FK — Brand master
   unitId?: string | null; // display/selling unit — headline price suffix (DEC-PRD-009)
@@ -355,6 +364,52 @@ export const createBanner = (b: BannerWrite) =>
 export const updateBanner = (id: string, b: Partial<BannerWrite>) =>
   j<ApiBanner>(`/banners/${id}`, { method: "PATCH", body: JSON.stringify(b) });
 export const deleteBanner = (id: string) => j<{ ok: true }>(`/banners/${id}`, { method: "DELETE" });
+
+/*  ── DEC-PRD-050 · Best seller & New arrival rules ────────────────────────
+    One row for the whole shop. Every number here is the owner's to set —
+    house rule 7 — and there is deliberately NO ceiling on how many products
+    a category may badge: the percentage decides, and the percentage alone. */
+export interface ApiBadgeRules {
+  /** how far back real sales are counted */
+  bestSellerDays: number;
+  /** the top slice of its own category a product must be in */
+  bestSellerPercent: number;
+  /** the floor, so a small category is not left with nothing */
+  bestSellerMinCount: number;
+  /** how many real sales before a product is eligible at all */
+  bestSellerMinSales: number;
+  /** days since it went live */
+  newArrivalDays: number;
+  lastComputedAt: string | null;
+}
+
+/** one line per top-level category on the rules screen */
+export interface ApiBadgeRow {
+  id: string;
+  name: string;
+  /** live products in this category */
+  products: number;
+  /** what the percentage asks for */
+  target: number;
+  /** what the shop can actually fill — never more than `target` */
+  earned: number;
+  /** how many have enough real sales to qualify */
+  eligible: number;
+  /** forced on by hand */
+  pinned: number;
+  /** forced off by hand */
+  blocked: number;
+}
+
+export const getBadgeRules = () =>
+  j<{ rules: ApiBadgeRules; rows: ApiBadgeRow[] }>("/products/badge-rules");
+export const saveBadgeRules = (r: Partial<Omit<ApiBadgeRules, "lastComputedAt">>) =>
+  j<ApiBadgeRules>("/products/badge-rules", { method: "PATCH", body: JSON.stringify(r) });
+export const recomputeBadges = () =>
+  j<ApiBadgeRules & { bestSellers: number; changed: number }>(
+    "/products/badge-rules/recompute",
+    { method: "POST" },
+  );
 
 export interface ApiStorefrontSettings {
   heroRotateSeconds: number;

@@ -17,6 +17,8 @@ import { ShopCatalogModule, ShopCatalogService, type ShopProduct } from './catal
 import { availabilityOf, type Availability } from '../common/availability';
 import { paidPaisa, discountEndsMs, discountStartsMs } from '../common/discount-window';
 import { bareImageUrl } from '../common/image-url';
+/*  DEC-PRD-050 — one rule for "is this new", shared with grid and admin.  */
+import { isNewNow, MERCH_DEFAULTS } from '../products/merch';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -279,6 +281,11 @@ export interface ShopProductDetail {
   nature: { type: 'fresh' | 'artificial'; label: string | null };
   /** COD is refused on this product — a made-to-order thing already engraved */
   prepaidOnly: boolean;
+  /** DEC-PRD-050 — earned, never typed. See the payload for where it draws. */
+  bestSeller: boolean;
+  /** the category it is a best seller IN — "Best seller in Fresh Flowers" */
+  bestSellerIn: string | null;
+  newArrival: boolean;
   leadTimeDays: number | null;
   supportsExpress: boolean;
   supportsSameDay: boolean;
@@ -517,6 +524,24 @@ export class ProductDetailService {
     private readonly catalog: ShopCatalogService,
   ) {}
 
+  /*  DEC-PRD-050 — the one setting this page needs, read at most once a
+      minute. Same cache as the grid keeps, for the same reason.  */
+  private newDays = MERCH_DEFAULTS.newArrivalDays;
+  private newDaysAt = 0;
+
+  private async newArrivalDays(): Promise<number> {
+    if (Date.now() - this.newDaysAt < 60_000) return this.newDays;
+    this.newDaysAt = Date.now();
+    try {
+      const row = await this.prisma.db.merchSetting.findUnique({ where: { id: 'singleton' } });
+      if (row) this.newDays = row.newArrivalDays;
+    } catch {
+      /*  No settings row yet — the default stands rather than the product
+          page failing to render.  */
+    }
+    return this.newDays;
+  }
+
   async detail(slug: string): Promise<ShopProductDetail> {
     const p = await this.prisma.db.product.findFirst({
       where: { slug, ...LIVE },
@@ -542,6 +567,13 @@ export class ProductDetailService {
         supportsMidnight: true,
         nationwideMsg: true,
         showStock: true,
+        /*  DEC-PRD-050 — the two badges. They worked on the category grid and
+            never reached this page, so a bouquet the shop calls a best seller
+            in the listing said nothing about it once you opened it.  */
+        isBestSeller: true,
+        newArrivalMode: true,
+        publishedAt: true,
+        createdAt: true,
         /*  DEC-PRD-025/026/027 - the sales figure, personalisation and
             "Want this customised?" are all decisions the product makes for
             itself.  */
@@ -807,7 +839,22 @@ export class ProductDetailService {
         tagSlugs,
         manualGroupIds: p.manualAddOnGroups.map((g) => g.id),
       }),
-      this.crossSell(p.id, p.category.id, tagSlugs),
+      /*  DEC-PRD-051 — same category, nearest price. The price is worked out
+          here rather than inside, because the rail has to sit next to TODAY's
+          price, discount and all.  */
+      this.crossSell(
+        p.id,
+        p.category.id,
+        p.category.parent?.id ?? null,
+        tagSlugs,
+        paidPaisa({
+          sellingPricePaisa: p.sellingPricePaisa,
+          discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+          discountValue: p.discountValue,
+          discountStartsAt: p.discountStartsAt,
+          discountEndsAt: p.discountEndsAt,
+        }),
+      ),
     ]);
 
     /*
@@ -910,6 +957,20 @@ export class ProductDetailService {
         label: p.natureLabel,
       },
       prepaidOnly: p.advanceRequired,
+      /*  ── DEC-PRD-050 · the two badges, and where they belong ─────────────
+          On the GRID a badge earns its space: it is how one card is picked out
+          of twenty. On THIS page the shopper has already chosen — FlowerAura
+          carries a Best Seller ribbon all over its listings and puts none at
+          all on the product page (checked, 24 Aug 2026). So the storefront
+          draws these as one quiet line beside the rating, never as a ribbon
+          over the photograph.
+
+          `bestSellerIn` names the category on purpose. "Best seller" is a
+          boast; "Best seller in Fresh Flowers" is a fact with a scope, and it
+          is also the truth — the ranking IS per category.  */
+      bestSeller: p.isBestSeller,
+      bestSellerIn: p.isBestSeller ? (p.category.parent?.name ?? p.category.name) : null,
+      newArrival: isNewNow(p, await this.newArrivalDays()),
       leadTimeDays: p.leadTimeDays,
       supportsExpress: p.supportsExpress,
       supportsSameDay: p.supportsSameDay,
@@ -1951,35 +2012,97 @@ export class ProductDetailService {
   }
 
   /**
-   * "You may also like" — AUTO, the same answer D-CAT-02 gave on the category
-   * page: shared occasion, a DIFFERENT category, best sellers first.
+   * "You may also like" — DEC-PRD-051.
    *
-   * Different category on purpose. Six more bouquets under a bouquet is a
-   * shopper comparing instead of buying; a cake under a bouquet is a bigger
-   * order. This is the rule the mock `crossSellFor()` already used — kept, so
-   * connecting the page does not quietly change what it recommends.
+   * ⚠️ THIS RULE WAS THE OPPOSITE UNTIL 24 AUGUST 2026, and the old comment
+   * argued for it well enough that it is worth saying plainly why it was
+   * wrong. It required a DIFFERENT category ("six more bouquets is a shopper
+   * comparing instead of buying"), and it conceded that the rail may come back
+   * empty. It came back empty on every product this shop sells, because every
+   * product this shop sells is in one category. A rail that never renders is
+   * not a strict rule; it is a missing feature.
    *
-   * ⚠️ IT CAN COME BACK EMPTY, AND THAT IS ALLOWED. A shop selling only
-   * flowers has no other category to draw from. The rail then does not render
-   * at all — better than relaxing the rule and filling it with six more
-   * bouquets, which turns a buying decision back into a browsing one.
+   * The new rule is the one FlowerAura's "Similar Products" uses, checked on
+   * their own page the same day: SAME category, and a NEARBY PRICE. Under a
+   * ৳695 bouquet they show ৳595, ৳745, ৳795 — never ৳3,000, never ৳150.
    *
-   * The cards themselves are built by `ShopCatalogService`, the same builder
-   * the category grid uses, so a product looks the same wherever it appears.
+   * Why nearby price is the thing that matters: somebody looking at a ৳695
+   * bouquet has decided roughly what this gift is worth to them. Showing a
+   * ৳4,000 arrangement does not raise that budget, it just wastes the row.
+   * Showing a ৳150 one makes them wonder what is wrong with the ৳695. Six
+   * products they could actually swap to is a row that can be clicked.
+   *
+   * Order: nearest price first, best sellers breaking the tie. Shared occasion
+   * tags are a PREFERENCE, not a filter — they sort a product up, they never
+   * exclude one, because excluding on tags is how the old rule emptied itself.
+   *
+   * The cards are built by `ShopCatalogService`, the same builder the category
+   * grid uses, so a product looks identical wherever it appears.
    */
-  private async crossSell(productId: string, categoryId: string, tagSlugs: string[]) {
+  private async crossSell(
+    productId: string,
+    categoryId: string,
+    parentCategoryId: string | null,
+    tagSlugs: string[],
+    pricePaisaNow: number,
+  ) {
+    /*  Scope climbs to the parent, exactly like FAQ, bundles and craft cards
+        do (DEC-PRD-047). A shopper on a rose is happy to be shown a lily; the
+        sub-category is a shelf, the category is the shop's aisle.  */
+    const scope = parentCategoryId
+      ? { category: { OR: [{ id: categoryId }, { parentId: parentCategoryId }, { id: parentCategoryId }] } }
+      : { category: { OR: [{ id: categoryId }, { parentId: categoryId }] } };
+
     const rows = await this.prisma.db.product.findMany({
-      where: {
-        ...LIVE,
-        id: { not: productId },
-        categoryId: { not: categoryId },
-        ...(tagSlugs.length > 0 ? { tags: { some: { slug: { in: tagSlugs }, isActive: true } } } : {}),
+      where: { ...LIVE, id: { not: productId }, ...scope },
+      /*  A wide net, then ranked in memory: "nearest price" cannot be an
+          `orderBy`, and 60 rows of four columns is cheaper than the six
+          round-trips a banded query would take.  */
+      take: 60,
+      select: {
+        id: true,
+        sellingPricePaisa: true,
+        discountType: true,
+        discountValue: true,
+        discountStartsAt: true,
+        discountEndsAt: true,
+        isBestSeller: true,
+        salesCount: true,
+        tags: { where: { isActive: true, deletedAt: null }, select: { slug: true } },
       },
-      orderBy: [{ isBestSeller: 'desc' }, { salesCount: 'desc' }, { createdAt: 'desc' }],
-      take: 6,
-      select: { id: true },
     });
-    return this.catalog.cardsByIds(rows.map((r) => r.id));
+
+    const wanted = new Set(tagSlugs);
+    const ranked = rows
+      .map((r) => {
+        const price = paidPaisa({
+          sellingPricePaisa: r.sellingPricePaisa,
+          discountType: r.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+          discountValue: r.discountValue,
+          discountStartsAt: r.discountStartsAt,
+          discountEndsAt: r.discountEndsAt,
+        });
+        /*  Distance as a RATIO, not in taka. ৳300 apart means nothing on its
+            own — it is next door to a ৳3,000 arrangement and a different
+            world from a ৳400 one.  */
+        const gap =
+          pricePaisaNow > 0 ? Math.abs(price - pricePaisaNow) / pricePaisaNow : 0;
+        const sharesOccasion = r.tags.some((t) => wanted.has(t.slug));
+        return { id: r.id, gap, sharesOccasion, best: r.isBestSeller, sold: r.salesCount };
+      })
+      .sort(
+        (a, b) =>
+          /*  Same occasion first — a birthday shopper wants birthday things …  */
+          Number(b.sharesOccasion) - Number(a.sharesOccasion) ||
+          /*  … then closest in price …  */
+          a.gap - b.gap ||
+          /*  … and the badge only breaks a tie.  */
+          Number(b.best) - Number(a.best) ||
+          b.sold - a.sold,
+      )
+      .slice(0, 6);
+
+    return this.catalog.cardsByIds(ranked.map((r) => r.id));
   }
 }
 

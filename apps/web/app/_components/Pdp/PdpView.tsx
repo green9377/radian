@@ -674,7 +674,35 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             them true. It now comes from this product's own published reviews;
             with none, there is no star line at all, rather than zeros or
             borrowed stars.
+
+            ── DEC-PRD-050 · why the badges are a LINE here and not a ribbon ──
+            On a grid a badge earns its space: it is how one card is picked out
+            of twenty. Here the shopper has already chosen, and a ribbon over
+            the photograph would be the shop shouting at somebody who is
+            already listening. FlowerAura, checked 24 Aug 2026, badges its
+            listings heavily and puts nothing at all on the product page.
+
+            The wording names the category — "Best seller in Fresh Flowers".
+            "Best seller" alone is a boast; with a scope it is a fact, and it
+            is also literally what the ranking measured.
           */}
+          {(detail.bestSeller || detail.newArrival) && (
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              {detail.bestSeller ? (
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#8A5A00] bg-[#FFF6EC] border border-[#EBD3B0] rounded-full px-3 py-[5px]">
+                  <Icon name="star" className="w-3 h-3 fill-[#B8860B] stroke-none" />
+                  {detail.bestSellerIn
+                    ? `Best seller in ${detail.bestSellerIn}`
+                    : "Best seller"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-[12.5px] font-semibold text-purple bg-lavender rounded-full px-3 py-[5px]">
+                  New arrival
+                </span>
+              )}
+            </div>
+          )}
+
           {(detail.reviews.rating !== null || detail.reviews.live) && (
             <div className="flex items-center gap-2.5 flex-wrap mt-3 text-[13.5px] text-body-soft">
               {detail.reviews.rating !== null && (

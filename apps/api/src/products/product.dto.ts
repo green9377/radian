@@ -262,8 +262,12 @@ export interface CreateProductDto {
 
   // merchandising
   isPublished?: boolean;
-  isBestSeller?: boolean;
-  isNewArrival?: boolean;
+  /*  DEC-PRD-050 — the form sends the OVERRIDE, not the badge. `isBestSeller`
+      is a computed column now and is deliberately not accepted here: an
+      endpoint that lets a form claim "best seller" is an endpoint that lets
+      the shop make the claim without the sales behind it.  */
+  bestSellerMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
+  newArrivalMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
 
   // children
   images?: ProductImageInput[];

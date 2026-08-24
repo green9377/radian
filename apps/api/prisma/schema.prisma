@@ -1416,8 +1416,39 @@ model Product {
 
   // merchandising flags
   isPublished  Boolean @default(false)
+
+  /// ── DEC-PRD-050 · the two badges are EARNED, not typed ──────────────────
+  /// Owner, 24 August 2026. Until now both were plain checkboxes somebody
+  /// ticked, which means the shop's own claim ("Best seller") was only as
+  /// true as the last person who remembered to untick it.
+  ///
+  /// `isBestSeller` is now a COMPUTED CACHE — never write it from a form.
+  /// `MerchService.recompute()` owns it. It is stored rather than worked out
+  /// per request because three grids sort by it, and an aggregate over the
+  /// whole category cannot run on every card.
+  ///
+  /// The owner's override lives in `bestSellerMode` instead.
   isBestSeller Boolean @default(false)
+
+  /// AUTO = the rule decides · ALWAYS = badge it whatever the numbers say
+  /// (a new hero product on the day it launches) · NEVER = keep it off (a
+  /// corporate-only listing that would win on volume and mean nothing).
+  bestSellerMode BadgeMode @default(AUTO)
+  newArrivalMode BadgeMode @default(AUTO)
+
+  /// ⚠️ NOT a stored flag any more — "new" is a date question, and a stored
+  /// answer to a date question is wrong from the day after it is written.
+  /// The storefront works it out at read time from `publishedAt` and
+  /// `MerchSetting.newArrivalDays`. Kept only so old rows and the admin's
+  /// own list keep something to show until the next save.
   isNewArrival Boolean @default(false)
+
+  /// When this product first went LIVE, which is the only date a customer
+  /// would call "new". `createdAt` is when a draft was started — a bouquet
+  /// drafted in March and published in August is new in August.
+  /// Set by the service the first time `isPublished` turns true; null on
+  /// every row that predates this field, and those fall back to `createdAt`.
+  publishedAt DateTime?
 
   // children — Product owns (One Data One Owner)
   images      ProductImage[]
@@ -1453,11 +1484,72 @@ model Product {
   @@index([itemId])
   /// the colour grid asks "red things, in this category" — both columns, one index
   @@index([variantValueId, categoryId])
+  /// DEC-PRD-050 — three grids sort by the badge, and "new" is a date range
+  @@index([isBestSeller])
+  @@index([publishedAt])
 }
 
 enum ProductType {
   READYMADE
   CRAFTED
+}
+
+/// DEC-PRD-050 — how a merchandising badge is decided for one product.
+enum BadgeMode {
+  /// the shop rule decides (the normal case)
+  AUTO
+  /// always show it, whatever the numbers say
+  ALWAYS
+  /// never show it, however well it sells
+  NEVER
+}
+
+/// ── DEC-PRD-050 · the badge rules, one row for the whole shop ─────────────
+/// Owner, 24 August 2026, on being shown a fixed "top 10, capped at 12". He
+/// refused the cap outright: he does not accept a number that locks at
+/// twelve, and whatever the percentage works out to is what gets the badge.
+///
+/// So there is NO ceiling. The percentage is the rule and the percentage
+/// alone decides how many products carry the badge; a category with 500
+/// products and a 10% rule badges 50 of them, and that is the owner's call to
+/// make, not the code's.
+///
+/// Why a singleton and not a number in the code: house rule 7 — every
+/// business number the shop lives by is changeable from admin.
+model MerchSetting {
+  id String @id @default("singleton")
+
+  /// ── Best seller ────────────────────────────────────────────────────────
+  /// How far back real sales are counted. 90 days, the owner's choice, 24
+  /// August 2026: a lifetime total lets last Eid hold the badge all year and
+  /// a genuinely better bouquet can never climb past it.
+  bestSellerDays Int @default(90)
+
+  /// The top slice of its OWN CATEGORY a product must be in. Scope is the
+  /// category on purpose: shop-wide, every badge would land on fresh flowers
+  /// and a teddy bear could never earn one; sub-category, a shelf holding
+  /// four products would badge all four.
+  bestSellerPercent Int @default(10)
+
+  /// The floor, so a small category is not left with nothing. 10% of 12
+  /// products is one; three is a shelf, one is a fluke. This is a MINIMUM
+  /// only — it never trims the list, it only tops it up.
+  bestSellerMinCount Int @default(3)
+
+  /// How many real sales a product needs before it is eligible at all.
+  /// Without it, the top of a quiet category is whoever sold twice.
+  bestSellerMinSales Int @default(3)
+
+  /// ── New arrival ────────────────────────────────────────────────────────
+  /// Days since the product went live. 21, the owner's choice.
+  newArrivalDays Int @default(21)
+
+  /// When `recompute()` last ran, shown on the admin screen so nobody has to
+  /// wonder whether the numbers are today's.
+  lastComputedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum ProductZone {

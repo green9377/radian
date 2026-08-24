@@ -59,11 +59,18 @@ import { LayoutModule } from './storefront/layout';
 import { HomeContentModule } from './storefront/home-content';
 import { ContentModule } from './content/content.module';
 import { InboxModule } from './inbox/inbox';
+/*  DEC-PRD-050 — the Best seller / New arrival rules. Declared BEFORE
+    ProductsModule below is not required (different route prefix segment
+    beyond `products/`), but `products/badge-rules` and `products/:id` are
+    different controllers: this one must be registered first or `:id` would
+    swallow it.  */
+import { MerchModule } from './products/merch';
 
 @Module({
   imports: [
     PrismaModule,
     CommonModule,
+    MerchModule,
     ProductsModule,
     CategoriesModule,
     BrandsModule,

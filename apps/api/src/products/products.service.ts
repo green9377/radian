@@ -13,6 +13,8 @@ import {
   ProductVariantInput,
 } from './product.dto';
 import { paidPaisa } from '../common/discount-window';
+/*  DEC-PRD-050 — one rule for "is this new", shared with the storefront.  */
+import { isNewNow, MERCH_DEFAULTS, type BadgeMode } from './merch';
 
 const ENTITY = 'Product';
 
@@ -388,6 +390,7 @@ export class ProductsService {
   /* ---------------- read ---------------- */
 
   async list(q: ListProductQuery) {
+    await this.refreshNewDays(); // DEC-PRD-050
     const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(q.pageSize ?? '20', 10) || 20));
 
@@ -533,6 +536,7 @@ export class ProductsService {
   }
 
   async findOne(id: string) {
+    await this.refreshNewDays(); // DEC-PRD-050
     const product = await this.prisma.db.product.findFirst({
       where: { id },
       include: FULL_INCLUDE,
@@ -604,7 +608,18 @@ export class ProductsService {
 
     const actorName = dto.actorName ?? 'Admin';
 
-    await this.prisma.db.product.update({ where: { id }, data: this.buildUpdateData(dto) });
+    await this.prisma.db.product.update({
+      where: { id },
+      data: {
+        ...this.buildUpdateData(dto),
+        /*  DEC-PRD-050 — stamped ONCE, on the first time this product goes
+            live. Re-stamping on every save would make "New arrival" mean
+            "recently edited", and a bouquet would go new again every time
+            somebody fixed a typo in it.  */
+        publishedAt:
+          dto.isPublished && !existing.isPublished ? new Date() : undefined,
+      },
+    });
 
     /*
       ⚠️ THE CHILD ROWS WERE NEVER SAVED ON UPDATE — 1 Aug 2026.
@@ -1065,11 +1080,55 @@ export class ProductsService {
   >(p: T): T & { offerPricePaisa: number; marginPaisa: number | null } {
     const offer = paidPaisa(p);
     const cost = (p as unknown as { costPaisa?: number }).costPaisa;
+    /*  DEC-PRD-050 — "New arrival" is answered here, not read from the column.
+        A stored answer to a date question is wrong from the day after it is
+        written, so the admin gets the same live answer the shop shows.
+        Rows this wrapper is handed without the three fields (the Trash list,
+        the funnel projections) keep whatever they had.  */
+    const row = p as unknown as {
+      publishedAt?: Date | null;
+      createdAt?: Date;
+      newArrivalMode?: BadgeMode;
+    };
+    const live =
+      row.createdAt === undefined
+        ? {}
+        : {
+            isNewArrival: isNewNow(
+              {
+                publishedAt: row.publishedAt ?? null,
+                createdAt: row.createdAt,
+                newArrivalMode: row.newArrivalMode ?? 'AUTO',
+              },
+              this.newDays,
+            ),
+          };
     return {
       ...p,
+      ...live,
       offerPricePaisa: offer,
       marginPaisa: typeof cost === 'number' ? offer - cost : null,
     };
+  }
+
+  /*  How many days count as new. Read from `MerchSetting` and kept for a
+      minute so a page of sixty products does not ask sixty times; a badge
+      rule that is up to a minute stale has never hurt anybody, and the
+      alternative is threading an async call through every list mapper.  */
+  private newDays = MERCH_DEFAULTS.newArrivalDays;
+  private newDaysAt = 0;
+
+  private async refreshNewDays() {
+    if (Date.now() - this.newDaysAt < 60_000) return;
+    this.newDaysAt = Date.now();
+    try {
+      const row = await this.prisma.db.merchSetting.findUnique({ where: { id: 'singleton' } });
+      if (row) this.newDays = row.newArrivalDays;
+    } catch {
+      /*  Before the table exists (first boot on an un-migrated database) the
+          default stands. A missing setting must not take the product list
+          down with it.  */
+    }
   }
 
   private diff(before: Record<string, unknown>, patch: UpdateProductDto): Record<string, unknown> {
@@ -1180,8 +1239,14 @@ export class ProductsService {
       supportsSameDay: dto.supportsSameDay,
       supportsMidnight: dto.supportsMidnight,
       isPublished: dto.isPublished,
-      isBestSeller: dto.isBestSeller,
-      isNewArrival: dto.isNewArrival,
+      /*  DEC-PRD-050 — the badges are earned, not typed. What arrives from the
+          form is the owner's OVERRIDE (Auto / Always / Never); `isBestSeller`
+          itself is written only by `MerchService.recompute()`.  */
+      bestSellerMode: dto.bestSellerMode,
+      newArrivalMode: dto.newArrivalMode,
+      /*  The date a customer would call "new" is the day it went live, not the
+          day a draft was started.  */
+      publishedAt: dto.isPublished ? new Date() : undefined,
       images: dto.images?.length ? { create: dto.images } : undefined,
       sizes: dto.sizes?.length ? { create: dto.sizes } : undefined,
       specRows: dto.specRows?.length ? { create: dto.specRows } : undefined,
@@ -1592,8 +1657,9 @@ export class ProductsService {
       supportsSameDay: dto.supportsSameDay,
       supportsMidnight: dto.supportsMidnight,
       isPublished: dto.isPublished,
-      isBestSeller: dto.isBestSeller,
-      isNewArrival: dto.isNewArrival,
+      /*  DEC-PRD-050 — the override, never the badge itself.  */
+      bestSellerMode: dto.bestSellerMode,
+      newArrivalMode: dto.newArrivalMode,
     };
   }
 }

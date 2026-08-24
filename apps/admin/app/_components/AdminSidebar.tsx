@@ -193,6 +193,11 @@ const GROUPS: Group[] = [
           { label: "Catalog funnel", href: "/products/funnel" },
           { label: "Add-ons", href: "/products/addons" },
           { label: "Upgrades", href: "/products/upgrades" },
+          /*  DEC-PRD-050 — Best seller / New arrival are decided by numbers
+              now, and this is where the numbers are set. Filed under Products
+              rather than Storefront because "best seller" is a thing the owner
+              thinks about while looking at products.  */
+          { label: "Badge rules", href: "/products/badges" },
           { label: "Bulk actions", href: "/products/bulk" },
           { label: "Trash", href: "/products/trash" },
         ],

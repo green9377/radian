@@ -365,6 +365,20 @@ export interface ProductDetail {
    */
   leadTimeDays?: number | null;
   /**
+   * DEC-PRD-050 — the two merchandising badges, worked out on the server.
+   *
+   * They are EARNED, never typed: best seller is the top slice of this
+   * product's own category by real delivered sales over the last 90 days, and
+   * new arrival is a date question about when it went live. Both windows and
+   * the percentage are set in admin.
+   *
+   * Absent → treat as false. Only the mock omits them.
+   */
+  bestSeller?: boolean;
+  /** the category it is a best seller IN — "Best seller in Fresh Flowers" */
+  bestSellerIn?: string | null;
+  newArrival?: boolean;
+  /**
    * Which fast-delivery options this product can actually take, inside Dhaka.
    * Straight from the three tick-boxes on the admin's Delivery tab.
    *

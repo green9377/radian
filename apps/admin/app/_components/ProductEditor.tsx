@@ -1329,8 +1329,13 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /*  3 Aug audit — the two columns and the storefront's "Bestseller" shelf
       already existed; admin just never had a switch to set them. Nobody
       could ever turn it on.  */
+  /*  DEC-PRD-050 — READ-ONLY. What the shop's own rule decided today; the
+      form shows it and never sends it back.  */
   const [isBest, setIsBest] = useState(false);
   const [isNew, setIsNew] = useState(false);
+  /*  … and the owner's override, which is what the form does send.  */
+  const [bestMode, setBestMode] = useState<"AUTO" | "ALWAYS" | "NEVER">("AUTO");
+  const [newMode, setNewMode] = useState<"AUTO" | "ALWAYS" | "NEVER">("AUTO");
   const [advPartType, setAdvPartType] = useState<"PCT" | "FLAT">("PCT");
   const [advPartVal, setAdvPartVal] = useState("50");
 
@@ -2074,6 +2079,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           }
           setIsBest(!!p.isBestSeller);
           setIsNew(!!p.isNewArrival);
+          setBestMode(p.bestSellerMode ?? "AUTO"); // DEC-PRD-050
+          setNewMode(p.newArrivalMode ?? "AUTO");
 
           // stock & lead time
           if (p.stockMode) setStockMode(p.stockMode);
@@ -2548,8 +2555,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         };
       })(),
       isPublished: publish,
-      isBestSeller: isBest,
-      isNewArrival: isNew,
+      /*  DEC-PRD-050 — the override, never the badge. `isBestSeller` is the
+          server's own answer; sending it back would let a form claim a sales
+          record the shop does not have.  */
+      bestSellerMode: bestMode,
+      newArrivalMode: newMode,
       // SEO-D01 — null, not undefined, so clearing a field actually clears it
       metaTitle: metaTitle.trim() || null,
       metaDescription: metaDescription.trim() || null,
@@ -3431,20 +3441,71 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       storefront price suffix — no finance/order/POS effect. The
                       `unitId` field stays in the schema (harmless, always empty
                       now) so nothing downstream breaks.  */}
-                  {/*  DEC-PRD-032 — Bestseller and New arrival. The two
-                      columns and the homepage shelf already existed; admin
-                      just had no switch, so nobody could ever turn them on.
-                      Caught in the 3 Aug audit.  */}
-                  <div className="flex flex-col gap-2 justify-center">
-                    {/*  The half-sentence after each name is the ⓘ now — a
-                         switch that explains itself twice is the thing the
-                         owner keeps striking out (22 Aug 2026).  */}
-                    <Sw on={isBest} onToggle={() => setIsBest(!isBest)}>
-                      Bestseller <Info text="On — this product appears on the homepage's Bestsellers shelf." />
-                    </Sw>
-                    <Sw on={isNew} onToggle={() => setIsNew(!isNew)}>
-                      New arrival <Info text="On — this product wears the “New” tag on its card." />
-                    </Sw>
+                  {/*  ── DEC-PRD-050 · the badges are EARNED now ────────────
+                       These were two on/off switches (DEC-PRD-032), which
+                       made "Best seller" only as true as the last person who
+                       remembered to untick it. The shop works it out from
+                       real delivered sales instead — top slice of this
+                       product's own category over the last 90 days — and
+                       what is left here is the owner's OVERRIDE.
+
+                       Auto is the answer almost always. Always is for a hero
+                       product on its launch day, before it has any sales at
+                       all; Never is for something that would win on volume
+                       and mean nothing, like a corporate-only listing.
+
+                       The numbers themselves live on Products → Badge rules,
+                       one place for the whole shop (house rule 15).  */}
+                  <div className="flex flex-col gap-3.5 justify-center">
+                    <Field
+                      label={
+                        <>
+                          Best seller{" "}
+                          <Info text="Auto — the shop decides from real sales: the top slice of this product's own category over the last 90 days, set on Products → Badge rules. Always — carry the badge whatever the numbers say. Never — keep it off however well it sells." />
+                        </>
+                      }
+                    >
+                      <Seg
+                        value={bestMode}
+                        onChange={setBestMode}
+                        options={[
+                          { v: "AUTO", label: "Auto" },
+                          { v: "ALWAYS", label: "Always" },
+                          { v: "NEVER", label: "Never" },
+                        ]}
+                      />
+                      {/*  On Auto, the truthful thing to show is what the rule
+                           has actually decided today — not a switch position
+                           that decides nothing.  */}
+                      {bestMode === "AUTO" && (
+                        <span className="text-[12px] font-semibold mt-1.5" style={{ color: isBest ? "#8A5A00" : "#8b7a99" }}>
+                          {isBest ? "★ Earning the badge right now" : "Not in the top slice today"}
+                        </span>
+                      )}
+                    </Field>
+                    <Field
+                      label={
+                        <>
+                          New arrival{" "}
+                          <Info text="Auto — worn for the first few weeks after the product goes live; how many days is set on Products → Badge rules. Editing a live product does not make it new again." />
+                        </>
+                      }
+                    >
+                      <Seg
+                        value={newMode}
+                        onChange={setNewMode}
+                        options={[
+                          { v: "AUTO", label: "Auto" },
+                          { v: "ALWAYS", label: "Always" },
+                          { v: "NEVER", label: "Never" },
+                        ]}
+                      />
+                      {newMode === "AUTO" && (
+                        <span className="text-[12px] font-semibold mt-1.5" style={{ color: isNew ? "#8b3fb0" : "#8b7a99" }}>
+                          {isNew ? "Wearing the New tag right now" : "No longer new"}
+                        </span>
+                      )}
+                    </Field>
                   </div>
                 </div>
               </Card>

@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/auth.guard';
 import { LayoutModule, LayoutService } from '../storefront/layout';
 import { paidPaisa } from '../common/discount-window';
+/*  DEC-PRD-050 — one rule for "is this new", shared with the admin.  */
+import { isNewNow, MERCH_DEFAULTS } from '../products/merch';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -104,7 +106,12 @@ const CARD_SELECT = {
   supportsSameDay: true,
   supportsMidnight: true,
   isBestSeller: true,
-  isNewArrival: true,
+  /*  DEC-PRD-050 — "new" is worked out from these three, never read from the
+      `isNewArrival` column: a stored answer to a date question is wrong from
+      the day after it is written.  */
+  newArrivalMode: true,
+  publishedAt: true,
+  createdAt: true,
   advanceRequired: true,
   salesCount: true,
   leadTimeDays: true,
@@ -958,20 +965,44 @@ export class ShopCatalogService {
 
   private async toCards(rows: CardRow[]): Promise<ShopProduct[]> {
     if (rows.length === 0) return [];
-    const grouped = await this.prisma.db.review.groupBy({
-      by: ['productId'],
-      where: { productId: { in: rows.map((r) => r.id) }, status: 'PUBLISHED', deletedAt: null },
-      _avg: { rating: true },
-      _count: { _all: true },
-    });
+    const [grouped, newDays] = await Promise.all([
+      this.prisma.db.review.groupBy({
+        by: ['productId'],
+        where: { productId: { in: rows.map((r) => r.id) }, status: 'PUBLISHED', deletedAt: null },
+        _avg: { rating: true },
+        _count: { _all: true },
+      }),
+      this.newArrivalDays(),
+    ]);
     const byProduct = new Map(grouped.map((g) => [g.productId, g]));
-    return rows.map((r) => this.toCard(r, byProduct.get(r.id)));
+    return rows.map((r) => this.toCard(r, byProduct.get(r.id), newDays));
+  }
+
+  /*  DEC-PRD-050 — one row, read at most once a minute. A page of sixty cards
+      must not ask sixty times, and a badge rule up to a minute stale has
+      never hurt anybody.  */
+  private newDays = MERCH_DEFAULTS.newArrivalDays;
+  private newDaysAt = 0;
+
+  private async newArrivalDays(): Promise<number> {
+    if (Date.now() - this.newDaysAt < 60_000) return this.newDays;
+    this.newDaysAt = Date.now();
+    try {
+      const row = await this.prisma.db.merchSetting.findUnique({ where: { id: 'singleton' } });
+      if (row) this.newDays = row.newArrivalDays;
+    } catch {
+      /*  No settings row yet — the default stands rather than the shop
+          failing to draw a grid.  */
+    }
+    return this.newDays;
   }
 
   private toCard(
     r: CardRow,
     review?: { _avg: { rating: number | null }; _count: { _all: number } },
+    newDays: number = MERCH_DEFAULTS.newArrivalDays,
   ): ShopProduct {
+    const neu = isNewNow(r, newDays); // DEC-PRD-050
     const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
 
     /*  DEC-PRD-035 — every live variant priced → the card quotes the cheapest
@@ -1011,14 +1042,16 @@ export class ShopCatalogService {
       that sentence is a claim to a customer, not decoration. Nothing true to
       say → say nothing.
     */
+    /*  DEC-PRD-050 — "New arrival" used to be a fallback line here. The card
+        now carries a New pill on the photograph, and saying it twice on one
+        card is the crowding the brief forbids, so this line goes on to the
+        next true thing it has.  */
     const meta =
       r.salesCount > 0
         ? `${r.salesCount} sold`
-        : r.isNewArrival
-          ? 'New arrival'
-          : r.leadTimeDays
-            ? `Made to order · ${r.leadTimeDays} day${r.leadTimeDays === 1 ? '' : 's'}`
-            : (r.shortDesc ?? '');
+        : r.leadTimeDays
+          ? `Made to order · ${r.leadTimeDays} day${r.leadTimeDays === 1 ? '' : 's'}`
+          : (r.shortDesc ?? '');
 
     return {
       slug: r.slug,
@@ -1045,7 +1078,7 @@ export class ShopCatalogService {
       exp: r.supportsExpress,
       sd: r.supportsSameDay,
       mn: r.supportsMidnight,
-      neu: r.isNewArrival,
+      neu,
       occ: r.tags.filter((t) => t.group?.slug === 'occasions').map((t) => t.slug),
       rec: r.tags.filter((t) => t.group?.slug === 'recipients').map((t) => t.slug),
       prepaidOnly: r.advanceRequired,

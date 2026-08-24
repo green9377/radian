@@ -7,8 +7,15 @@ import { PRODUCTS, zoneFilter, type Product } from "../../_data/products";
 import ProductCard from "../Product/ProductCard";
 
 /*
-  Related / cross-sell rail — একের পর এক reveal হয় (stagger)।
-  Out-of-zone হলে heading বদলে courier-safe বিকল্প দেখায় — খালি হাতে ফেরত নয়।
+  "You may also like" — the rail under the product page. Cards reveal one
+  after another (stagger). Out of zone, the heading changes and courier-safe
+  alternatives take their place, rather than sending the shopper away empty.
+
+  DEC-PRD-051 — what fills it changed on 24 August 2026. The old rule wanted a
+  DIFFERENT category and came back empty on every product this shop sells; the
+  new one is the same category at a nearby price, which is what FlowerAura's
+  "Similar Products" does and what a shopper who has already picked a price
+  can actually act on. The server ranks it; this file only draws it.
 */
 
 export default function RelatedRail({
@@ -17,17 +24,16 @@ export default function RelatedRail({
   items,
 }: {
   slugs: string[];
-  /** product.zone === "dhaka" — All Bangladesh zone-এ এটা ডেলিভার করা যায় না */
+  /** product.zone === "dhaka" — this cannot be delivered in the All Bangladesh zone */
   dhakaOnly: boolean;
   /**
-   * ⚠️ দেওয়া হলে এটাই একমাত্র উৎস — mock `PRODUCTS` তখন ছোঁয়াই হয় না,
-   * খালি array হলেও নয়।
+   * ⚠️ WHEN GIVEN, THIS IS THE ONLY SOURCE — the mock `PRODUCTS` is not
+   * touched at all, not even when this arrives empty.
    *
-   * এই prop-টা আছে কারণ page এখন API থেকে পড়ে (31 Jul 2026)। নিচের দুটো
-   * শাখাই mock catalogue-এ slug খোঁজে; live page-এ সেটা মানে দোকানে নেই
-   * এমন ৪টা তোড়া দামসহ দেখানো। Cross-sell-এর জন্য product CARD লাগে,
-   * যেটা category page-এর `/shop/products` দেবে — সেটা এলে এখানে বসবে।
-   * ততক্ষণ `items={[]}` মানে সৎ ভাবে rail-টা না দেখানো।
+   * The prop exists because the page reads from the API now (31 Jul 2026).
+   * Both branches below look slugs up in the mock catalogue, which on a live
+   * page means showing four bouquets, with prices, that the shop does not
+   * stock. `items={[]}` is the honest answer: draw no rail.
    */
   items?: Product[];
 }) {
@@ -77,10 +83,14 @@ export default function RelatedRail({
       <div className="text-center mb-9">
         <div className="inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase text-orchid font-semibold mb-3.5">
           <span className="w-[9px] h-[9px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
-          {blocked ? "We can still make their day" : "Complete the moment"}
+          {blocked ? "We can still make their day" : "In the same spirit"}
         </div>
+        {/*  DEC-PRD-051 — "Pairs Beautifully With" was the old different-
+            category rule speaking: it promised a cake under a bouquet. The
+            rail now shows bouquets near the same price, and the heading has
+            to say what the row actually holds.  */}
         <h2 className="font-display text-[clamp(26px,3.4vw,40px)] font-medium text-purple leading-tight">
-          {blocked ? "Gifts We Deliver Nationwide" : "Pairs Beautifully With"}
+          {blocked ? "Gifts We Deliver Nationwide" : "You May Also Like"}
         </h2>
         {blocked && (
           <p className="text-body-soft mt-2.5 font-light">
