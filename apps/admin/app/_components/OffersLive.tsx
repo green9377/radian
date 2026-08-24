@@ -303,6 +303,15 @@ export function OffersListLive() {
                   <div className="font-medium text-purple leading-snug">{o.name}</div>
                   <div className="text-body-soft text-[11.5px]">{o.offerNo}{o.internalNote ? ` · ${o.internalNote}` : ""}</div>
                   {o.belowCostFlag && <div className="text-[11px] text-[#b45309] font-semibold mt-0.5">⚠ below-cost somewhere in target</div>}
+                  {/*  ⚠️ The whole reason the owner asked. An offer with no
+                       wording is live and invisible, and until now the list
+                       showed it exactly like one that works — same green
+                       Active chip, same everything.  */}
+                  {!o.publicTitle?.trim() && !o.benefitLine?.trim() && (o.liveState === "active" || o.liveState === "scheduled") && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold mt-1 px-2 py-0.5 rounded-full" style={{ background: AM.bg, color: AM.c }}>
+                      <Icon name="eye" size={11} /> not shown on the shop
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 align-top">
                   <span className={`inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full ${o.mechanism === "AUTOMATIC" ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-orchid-soft text-[#a021b8]"}`}>{o.mechanism === "AUTOMATIC" ? "Automatic" : "Coupon"}</span>
@@ -419,6 +428,20 @@ export function OfferEditorLive({ id }: { id: string }) {
   }, [prodQ, form.shape]);
 
   const save = async (submit: boolean) => {
+    /*  ⚠️ ONE CONFIRM, AND ONLY ON THE CASE THAT IS ALMOST ALWAYS A MISTAKE.
+        Submitting with no wording puts a live discount on the shop that the
+        shop cannot mention. The owner lost two offers to it before anybody
+        noticed, so it is worth a click — but it is NOT blocked: a silent
+        discount is a legitimate thing to want, and refusing to save it would
+        be inventing a rule he never asked for.  */
+    if (submit && !form.publicTitle.trim() && !form.benefitLine.trim()) {
+      const go = confirm(
+        "This offer has no Benefit line, so nothing about it will appear on the shop.\n\n" +
+          "It will still take the discount off the bill — customers just will not be told it exists.\n\n" +
+          "Go live anyway?",
+      );
+      if (!go) return;
+    }
     setSaving(true);
     setErr("");
     const body: Record<string, unknown> = {
@@ -604,6 +627,15 @@ export function OfferEditorLive({ id }: { id: string }) {
           {/* storefront copy */}
           <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5">
             <h3 className="font-display text-[16px] text-purple m-0 mb-3.5 flex items-center gap-2">What the customer reads <Info text="Everything on this card is shown on the shop. Nothing above it is." /></h3>
+            {/*  The same truth as the preview, said where the empty box is —
+                 a warning on the other side of the screen is a warning in the
+                 wrong place.  */}
+            {!form.publicTitle.trim() && !form.benefitLine.trim() && (
+              <div className="flex items-start gap-2.5 rounded-[12px] px-3.5 py-2.5 mb-4 text-[12.5px] font-semibold" style={{ background: AM.bg, color: AM.c }}>
+                <span className="shrink-0 mt-[1px]"><Icon name="alert" size={15} /></span>
+                <span>Fill in <b>Benefit line</b> or this offer never appears on the shop — it will discount the bill in silence.</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               <div><Guide tip="The offer's headline on the shop. Used when Benefit line is empty.">Public title</Guide><input className="ipt" value={form.publicTitle} onChange={(e) => set({ publicTitle: e.target.value })} /></div>
               <div><Guide tip="⚠ THE ONE THAT MATTERS. This exact sentence is what a customer reads under Offers Available on the product page. Leave this AND Public title blank and the discount still comes off the bill — but nothing is ever shown, so nobody knows to buy.">Benefit line</Guide><input className="ipt" value={form.benefitLine} onChange={(e) => set({ benefitLine: e.target.value })} /></div>
@@ -636,16 +668,46 @@ export function OfferEditorLive({ id }: { id: string }) {
         {/* live preview */}
         <div className="lg:sticky lg:top-4">
           <div className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft mb-2.5 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#0f7d55] ring-4 ring-[#d6f2e5]" /> Live storefront preview</div>
+          {/*  ── THE PREVIEW USED TO LIE — 24 Aug 2026 ──────────────────────
+               The owner made three offers and only one reached the shop:
+               *"offer create krlm 3 ta but show kre akta frontend a."*
+
+               Two of them had Public title and Benefit line empty, and the
+               shop only ever prints those (`product-detail.ts` drops an offer
+               with no wording — a nameless badge is not an offer). So they
+               discounted the bill and told nobody.
+
+               That part is by design. What was NOT is this panel: with both
+               boxes blank it fell back to the INTERNAL name and made up a
+               benefit line out of the percentage, drawing a complete, healthy
+               card. The one screen whose whole job is "here is what the
+               customer sees" was showing him something no customer would ever
+               see. He did not miss a warning — he was actively reassured.
+
+               It now shows the truth, and it is the loudest thing on the
+               page.                                                          */}
+          {!form.publicTitle.trim() && !form.benefitLine.trim() ? (
+            <div className="rounded-[28px] border-[1.5px] border-dashed p-5 text-center" style={{ borderColor: AM.edge, background: AM.bg }}>
+              <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white mx-auto" style={{ background: AM.edge }}>
+                <Icon name="eye" size={18} />
+              </span>
+              <div className="font-display text-[16px] mt-3 mb-1.5" style={{ color: AM.c }}>Nothing will be shown</div>
+              <div className="text-[12.5px] leading-relaxed" style={{ color: AM.c }}>
+                The discount still comes off the bill — but with no <b>Benefit line</b> the shop
+                has nothing to print, so no customer is ever told this offer exists.
+              </div>
+            </div>
+          ) : (
           <div className="rounded-[28px] border border-lavender-deep bg-gradient-to-b from-[#fbf5ff] to-[#f4ecfa] p-4">
             <div className="relative bg-white border border-[#efe1f6] rounded-[20px] p-4 shadow-soft overflow-hidden">
               <span className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orchid to-rosegold" />
               <span className="inline-block text-[11px] font-bold uppercase tracking-[0.03em] text-[#a021b8] bg-orchid-soft px-2.5 py-1 rounded-full">{form.mechanism === "COUPON" ? "Coupon" : "Automatic"} · {SHAPES_LIVE.find((s) => s.val === form.shape)?.label}</span>
-              <h3 className="font-display text-[18px] text-purple mt-3 mb-1.5 leading-tight">{form.publicTitle || form.name || "Offer title"}</h3>
+              {/*  ⚠️ `form.name` is NOT a fallback here any more. The internal
+                   name never reaches a customer, and printing it in a preview
+                   is how two live offers looked fine and showed nothing.  */}
+              <h3 className="font-display text-[18px] text-purple mt-3 mb-1.5 leading-tight">{form.publicTitle || form.benefitLine}</h3>
               <div className="text-[14.5px] font-bold text-orchid mb-1.5">
-                {form.benefitLine ||
-                  (form.shape === "FREE_DELIVERY" ? "Free delivery"
-                    : form.discountType === "PERCENT" ? `${form.discountPct || 0}% off`
-                    : `৳${form.discountTk || 0} off`)}
+                {form.benefitLine || form.publicTitle}
               </div>
               {form.description && <p className="text-[13px] text-body-soft m-0 mb-3 leading-relaxed">{form.description}</p>}
               {form.bonusLines.length > 0 && (<div className="mb-3 flex flex-col gap-1">{form.bonusLines.map((b, i) => (<div key={i} className="text-[11.5px] text-[#0f7d55] flex items-center gap-1.5"><Icon name="check" size={12} /> {b}</div>))}</div>)}
@@ -660,7 +722,7 @@ export function OfferEditorLive({ id }: { id: string }) {
               </div>
             </div>
           </div>
-          
+          )}
         </div>
       </div>
     </div>
