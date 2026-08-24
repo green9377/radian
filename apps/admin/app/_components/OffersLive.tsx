@@ -626,7 +626,18 @@ export function OfferEditorLive({ id }: { id: string }) {
 
           {/* storefront copy */}
           <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5">
-            <h3 className="font-display text-[16px] text-purple m-0 mb-3.5 flex items-center gap-2">What the customer reads <Info text="Everything on this card is shown on the shop. Nothing above it is." /></h3>
+            {/*  ⚠️ THE NAME MATTERS AND I TOOK IT OFF ONCE. This card was
+                 headed "Storefront Copy (Hormozi stack)". Clearing loose text
+                 off the screen, I renamed it and deleted the only label that
+                 said what the four boxes below are FOR — they are not four
+                 stray text fields, they are the offer stack DEC-OFR-007 put
+                 on the Offer on purpose. Put back, with the plain words
+                 first and the framework named after them.  */}
+            <h3 className="font-display text-[16px] text-purple m-0 mb-3.5 flex items-center gap-2">
+              What the customer reads
+              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-orchid bg-orchid-soft px-2 py-[3px] rounded-full">Hormozi stack</span>
+              <Info text="Everything on this card is shown on the shop; nothing above it is. The four boxes are an offer stack, not loose text: name it, say the outcome, pile on bonuses that answer the next objection, then take the risk off them with a guarantee. Products → Offers → Templates builds all four for you." />
+            </h3>
             {/*  The same truth as the preview, said where the empty box is —
                  a warning on the other side of the screen is a warning in the
                  wrong place.  */}
