@@ -3403,13 +3403,16 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                 title="How it is sold"
                 hint="These change the rules, not the words."
               >
-                {/*  The two toggles sit side by side because they are the same
-                    kind of question — one of two things — and reading them as
-                    a pair is faster than reading them as a stack.  */}
                 {/*  Status line removed 6 Aug 2026 (owner): it only mirrored
                     the publish/draft state that the top Save/Publish buttons
                     already set — no function here, just clutter.  */}
-                <div className={pairCls}>
+                {/*  ⚠️ NOT `pairCls` — one control, one column. This card held
+                    two things and used the two-column grid; when the badges
+                    moved out (DEC-PRD-050) the grid stayed, and a grid with
+                    one child in it is a card with a hole on the right. A
+                    single field does not need a column to be empty beside
+                    it.  */}
+                <div>
                   <Field
                     label={
                       <L
@@ -3441,73 +3444,115 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       storefront price suffix — no finance/order/POS effect. The
                       `unitId` field stays in the schema (harmless, always empty
                       now) so nothing downstream breaks.  */}
-                  {/*  ── DEC-PRD-050 · the badges are EARNED now ────────────
-                       These were two on/off switches (DEC-PRD-032), which
-                       made "Best seller" only as true as the last person who
-                       remembered to untick it. The shop works it out from
-                       real delivered sales instead — top slice of this
-                       product's own category over the last 90 days — and
-                       what is left here is the owner's OVERRIDE.
-
-                       Auto is the answer almost always. Always is for a hero
-                       product on its launch day, before it has any sales at
-                       all; Never is for something that would win on volume
-                       and mean nothing, like a corporate-only listing.
-
-                       The numbers themselves live on Products → Badge rules,
-                       one place for the whole shop (house rule 15).  */}
-                  <div className="flex flex-col gap-3.5 justify-center">
-                    <Field
-                      label={
-                        <>
-                          Best seller{" "}
-                          <Info text="Auto — the shop decides from real sales: the top slice of this product's own category over the last 90 days, set on Products → Badge rules. Always — carry the badge whatever the numbers say. Never — keep it off however well it sells." />
-                        </>
-                      }
-                    >
-                      <Seg
-                        value={bestMode}
-                        onChange={setBestMode}
-                        options={[
-                          { v: "AUTO", label: "Auto" },
-                          { v: "ALWAYS", label: "Always" },
-                          { v: "NEVER", label: "Never" },
-                        ]}
-                      />
-                      {/*  On Auto, the truthful thing to show is what the rule
-                           has actually decided today — not a switch position
-                           that decides nothing.  */}
-                      {bestMode === "AUTO" && (
-                        <span className="text-[12px] font-semibold mt-1.5" style={{ color: isBest ? "#8A5A00" : "#8b7a99" }}>
-                          {isBest ? "★ Earning the badge right now" : "Not in the top slice today"}
-                        </span>
-                      )}
-                    </Field>
-                    <Field
-                      label={
-                        <>
-                          New arrival{" "}
-                          <Info text="Auto — worn for the first few weeks after the product goes live; how many days is set on Products → Badge rules. Editing a live product does not make it new again." />
-                        </>
-                      }
-                    >
-                      <Seg
-                        value={newMode}
-                        onChange={setNewMode}
-                        options={[
-                          { v: "AUTO", label: "Auto" },
-                          { v: "ALWAYS", label: "Always" },
-                          { v: "NEVER", label: "Never" },
-                        ]}
-                      />
-                      {newMode === "AUTO" && (
-                        <span className="text-[12px] font-semibold mt-1.5" style={{ color: isNew ? "#8b3fb0" : "#8b7a99" }}>
-                          {isNew ? "Wearing the New tag right now" : "No longer new"}
-                        </span>
-                      )}
-                    </Field>
-                  </div>
                 </div>
+              </Card>
+
+              {/*
+                ── DEC-PRD-050 · the badges get their own card ────────────────
+
+                Owner, 24 Aug 2026: *"basic page a best selling je 2 ta tab
+                diso ai section ta thik kro — maje onk faka, dan paser niche."*
+
+                He is describing a real hole. The two badge switches were
+                dropped into the right-hand column of "How it is sold", which
+                is a two-column grid: Product type is one short control, the
+                badges were two stacked ones. So the left column ended half a
+                card tall with a void under it, and New arrival hung on its
+                own in the bottom-right corner.
+
+                Splitting them fixes the shape AND the filing. A badge is not
+                a selling rule — it changes no price, no advance, no
+                cancellation. It is how the product is DRESSED on a card, and
+                that deserves its own heading rather than a spare column in
+                somebody else's.
+
+                Both cards are now honest grids: one control on its own row
+                above, two matching controls side by side here. Nothing hangs.
+
+                WHAT THESE DO. They were on/off switches (DEC-PRD-032), which
+                made "Best seller" only as true as the last person who
+                remembered to untick it. The shop works it out from real
+                delivered sales now — top slice of this product's own category
+                over the last 90 days — and what is left here is the OVERRIDE.
+                Auto is the answer almost always; Always is a hero product on
+                its launch day, before it has sales; Never is something that
+                would win on volume and mean nothing.
+
+                The numbers live on Products → Badge rules, one place for the
+                whole shop (house rule 15) — and the link below is there
+                because a screen that obeys rules set elsewhere should say
+                where elsewhere is.
+              */}
+              <Card
+                icon="star"
+                title="How it is shown"
+                tip="Two labels the shop can put on this product's card. Both are worked out from real sales and real dates — these switches only overrule that for this one product. The numbers behind them are set once for the whole shop, on Products → Badge rules."
+              >
+                <div className={pairCls}>
+                  <Field
+                    label={
+                      <>
+                        Best seller{" "}
+                        <Info text="Auto — the shop decides from real sales: the top slice of this product's own category over the last 90 days. Always — carry the badge whatever the numbers say, for a hero product on its launch day. Never — keep it off however well it sells." />
+                      </>
+                    }
+                  >
+                    <Seg
+                      value={bestMode}
+                      onChange={setBestMode}
+                      options={[
+                        { v: "AUTO", label: "Auto" },
+                        { v: "ALWAYS", label: "Always" },
+                        { v: "NEVER", label: "Never" },
+                      ]}
+                    />
+                    {/*  On Auto, the truthful thing to show is what the rule
+                         has actually decided today — not a switch position
+                         that decides nothing.  */}
+                    {bestMode === "AUTO" && (
+                      <span
+                        className="text-[12px] font-semibold mt-1.5"
+                        style={{ color: isBest ? "#8A5A00" : "#8b7a99" }}
+                      >
+                        {isBest ? "★ Earning the badge right now" : "Not in the top slice today"}
+                      </span>
+                    )}
+                  </Field>
+                  <Field
+                    label={
+                      <>
+                        New arrival{" "}
+                        <Info text="Auto — worn for the first few weeks after the product goes LIVE. Editing a live product does not make it new again." />
+                      </>
+                    }
+                  >
+                    <Seg
+                      value={newMode}
+                      onChange={setNewMode}
+                      options={[
+                        { v: "AUTO", label: "Auto" },
+                        { v: "ALWAYS", label: "Always" },
+                        { v: "NEVER", label: "Never" },
+                      ]}
+                    />
+                    {newMode === "AUTO" && (
+                      <span
+                        className="text-[12px] font-semibold mt-1.5"
+                        style={{ color: isNew ? "#8b3fb0" : "#8b7a99" }}
+                      >
+                        {isNew ? "Wearing the New tag right now" : "No longer new"}
+                      </span>
+                    )}
+                  </Field>
+                </div>
+                <a
+                  href="/products/badges"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-5 text-[12.5px] font-bold text-purple hover:text-orchid"
+                >
+                  Badge rules for the whole shop ↗
+                </a>
               </Card>
 
               {/*
