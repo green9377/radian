@@ -1008,10 +1008,18 @@ export class OrdersService {
        break the locked rule. It is re-checked here after the lines change. */
     if (dto.addLines?.length && o.paymentMethod === PaymentMethod.cod) {
       const added = await this.prisma.db.product.findMany({ where: { id: { in: dto.addLines.map((l) => l.productId) } } });
+      /*  Staff read these, not customers — but plain words cost nothing and a
+          section number explains nothing to anybody. Locked §4 / DEC-PAY-001.  */
       const badType = added.find((p) => p.productType === ProductType.CRAFTED);
-      if (badType) throw new BadRequestException(`COD not allowed with a crafted item (${badType.name}) — locked §4`);
+      if (badType)
+        throw new BadRequestException(
+          `“${badType.name}” is made to order, so it cannot be added to a Cash on Delivery order.`,
+        );
       const badAdvance = added.find((p) => p.advanceRequired);
-      if (badAdvance) throw new BadRequestException(`COD not allowed with an advance-required product (${badAdvance.name})`);
+      if (badAdvance)
+        throw new BadRequestException(
+          `“${badAdvance.name}” needs advance payment, so it cannot be added to a Cash on Delivery order.`,
+        );
     }
 
     // per-line discount (money edit open until close) — raw unit price rewrite নয়
@@ -1236,16 +1244,55 @@ export class OrdersService {
     return 0;
   }
 
+  /**
+   * The COD rule — locked §4 / DEC-PAY-001. THE ONLY PLACE IT IS ENFORCED.
+   *
+   * ⚠️ A SECOND COPY LIVED IN `shop/checkout.ts` FOR HALF A DAY, 24 Aug 2026,
+   * and it was mine. The complaint that started it was real — the BROWSER's
+   * copy of the rule read the mock catalogue and always answered "no advance
+   * needed", so the website offered Cash on Delivery on made-to-order goods.
+   * The mistake was concluding the server did not enforce it either. It did,
+   * right here, on every channel: the storefront reaches this through
+   * `orders.create`, and so do the admin and the counter.
+   *
+   * So the second copy is gone and this one stayed, because a money rule with
+   * two implementations is a money rule that will disagree with itself — the
+   * same lesson as `ChannelSender` in CLAUDE.md.
+   *
+   * ⚠️ THESE SENTENCES ARE READ BY CUSTOMERS. This throws on the public
+   * checkout, so whatever is written here lands on a shopper's screen at the
+   * moment they press Place order. Until today the middle one said
+   * *"COD not allowed with a crafted line (locked §4)"* — a section number
+   * from an internal document, shown to somebody trying to buy flowers.
+   *
+   * Say what the shop cannot do, name the thing, and give the reason. The
+   * DEC id belongs in this comment, not on their screen.
+   */
   private assertCodAllowed(
     dto: CreateOrderDto,
     lines: Prisma.OrderLineCreateWithoutOrderInput[],
     pMap: Map<string, { advanceRequired?: boolean }>,
   ) {
-    if (dto.isGift) throw new BadRequestException('COD not allowed on gift orders (locked §4)');
-    if (lines.some((l) => l.productType === ProductType.CRAFTED))
-      throw new BadRequestException('COD not allowed with a crafted line (locked §4)');
-    const anyAdvance = dto.lines.some((l) => pMap.get(l.productId)?.advanceRequired);
-    if (anyAdvance) throw new BadRequestException('COD not allowed with an advance-required product');
+    if (dto.isGift)
+      throw new BadRequestException(
+        'Cash on Delivery is not available on a gift order — our rider would have to ask the receiver for money. Please pay online.',
+      );
+
+    const crafted = lines.find((l) => l.productType === ProductType.CRAFTED);
+    if (crafted)
+      throw new BadRequestException(
+        `“${crafted.name}” is made to order, so it cannot be Cash on Delivery. Please pay online.`,
+      );
+
+    const advanceLine = dto.lines.find((l) => pMap.get(l.productId)?.advanceRequired);
+    if (advanceLine) {
+      const name = lines.find((l) => l.product?.connect?.id === advanceLine.productId)?.name;
+      throw new BadRequestException(
+        name
+          ? `“${name}” needs advance payment, so Cash on Delivery is not available for this order.`
+          : 'One of these needs advance payment, so Cash on Delivery is not available for this order.',
+      );
+    }
   }
 
   private derivePaymentStatus(method: PaymentMethod, total: number, paid: number, refund: number, kind: string): PaymentStatus {

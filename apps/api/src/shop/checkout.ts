@@ -234,8 +234,12 @@ interface Resolved {
   /** DEC-PRD-014 — stock comes out of this variant's field, so the id goes on the line */
   variantId: string | null;
   variantLabel: string | null;
-  /** DEC-PAY-001 — made to order, so Cash on Delivery is refused on this line */
-  prepaidOnly: boolean;
+  /*  `prepaidOnly` was carried here for half a day to feed a COD check that
+      should never have been in this file — see the note further down. The
+      rule lives in `orders.service.assertCodAllowed`, which reads the product
+      itself, so nothing needs it on the line. The BROWSER still needs to know
+      (to grey the COD option out before anyone tries), and it gets it from
+      the product detail, where it has always been.  */
   /** DEC-PRD-048 — the shop demands a message / a photo on this product */
   persoTextRequired: boolean;
   persoImageRequired: boolean;
@@ -488,7 +492,6 @@ export class CheckoutService {
         sizeLabel: size?.label ?? null,
         variantId: variant?.id ?? null,
         variantLabel: variant?.label ?? null,
-        prepaidOnly: d.prepaidOnly === true,
         persoTextRequired: d.perso?.text?.required === true,
         persoImageRequired: d.perso?.image?.required === true,
         addonIdsPicked: picked.map((a) => a.id),
@@ -963,37 +966,28 @@ export class CheckoutService {
 
     /*
       ═══════════════════════════════════════════════════════════════════════
-      ⚠️ DEC-PAY-001 · THE COD RULE IS ENFORCED HERE, 24 August 2026.
+      ⚠️ THE COD RULE IS **NOT** ENFORCED HERE — and a copy of it stood in
+      this spot for half a day on 24 August 2026. Removed the same day.
 
-      The rule is locked since 14 July and was written down in
-      `apps/web/_data/payment.ts`:
+      The complaint was real: the BROWSER's copy of the rule
+      (`apps/web/_data/payment.ts`) looked each cart line up in the MOCK
+      catalogue, never found a real product, and therefore always answered
+      "no advance needed" — so the website offered Cash on Delivery on
+      made-to-order goods. That half is fixed, on the browser's side.
 
-        1. never on a gift order — a rider must not ask the receiver for money
-        2. never when an advance-required product is in the cart — a
-           made-to-order thing cancelled is a loss the shop carries alone
+      The mistake was concluding the SERVER did not enforce it either. It
+      does, and always did: `orders.create` → `assertCodAllowed`, which every
+      channel passes through — this endpoint, the admin, and the counter.
+      Adding a second copy here bought nothing and created the thing this
+      project keeps getting bitten by: one rule with two implementations,
+      free to drift apart. (`ChannelSender`, CLAUDE.md §5.)
 
-      It lived ONLY in the browser, and there it asked the mock catalogue, so
-      a real "Advance required" product never triggered it (fixed on that side
-      too). Either way a browser cannot be the keeper of a money rule: the
-      payload names the method, and this endpoint took the name on trust.
-
-      Refused rather than silently switched to online. Quietly changing how
-      somebody pays, after they pressed Place order, is worse than saying no.
+      So the rule lives in ONE place. If a COD refusal needs different words,
+      change them in `orders.service.assertCodAllowed` — the sentences there
+      are written for a customer, because this route is how a customer meets
+      them.
       ═══════════════════════════════════════════════════════════════════════
     */
-    if (dto.paymentMethod === 'cod') {
-      if (dto.isGift) {
-        throw new BadRequestException(
-          'Cash on Delivery is not available on a gift order — our rider would have to ask the receiver for money. Please pay online.',
-        );
-      }
-      const madeToOrder = active.find((l) => l.prepaidOnly);
-      if (madeToOrder) {
-        throw new BadRequestException(
-          `“${madeToOrder.name}” is made to order and needs advance payment, so Cash on Delivery is not available for this order.`,
-        );
-      }
-    }
 
     const method =
       dto.paymentMethod === 'cod' ? PaymentMethod.cod : PaymentMethod.online;
