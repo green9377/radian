@@ -6,6 +6,68 @@
 
 ---
 
+## ⭐ DEC-PRD-050 — Best seller and New arrival are EARNED (24 Aug)
+
+Both were checkboxes on the product form. That makes the shop's own claim only
+as true as the last person who remembered to untick it, which is the same
+offence as an invented review with a number on it.
+
+**The rules, all of them the owner's, all of them editable on
+Products → Badge rules:**
+
+| rule | value | why |
+|---|---|---|
+| window | **90 days** | lifetime lets last Eid hold the badge all year; a better bouquet could never climb past it |
+| scope | **the top-level category** | shop-wide, every badge lands on fresh flowers and a teddy earns none; by sub-category, a shelf of four badges all four |
+| how many | **top 10%, no ceiling** | his call: he refuses a number that locks at twelve. The percentage decides, so 10% of 500 badges 50 |
+| floor | **3 per category** | 10% of twelve products is one, and one is a fluke rather than a shelf. Tops up only — never trims |
+| eligibility | **≥ 3 real sales** | otherwise the top of a quiet category is whoever sold twice |
+| new arrival | **21 days from going LIVE** | `publishedAt`, not `createdAt` — a bouquet drafted in March and published in August is new in August |
+
+**What counts as a sale:** delivered order lines, by quantity. NOT
+`Product.salesCount`, which carries the owner's typed display seeds
+(DEC-PRD-025). A badge is a claim about what other customers did, so it may
+only be built out of what other customers actually did.
+
+**Stored vs computed.** `isBestSeller` is a cache — three grids sort by it and
+an aggregate over a category cannot run per card. `MerchService.recompute()`
+is the only writer, and it runs on a delivered order, on saving the rules and
+on the Re-rank button. **No cron, deliberately** — same reason `salesSeedAt`
+has none. "New" is NOT stored: a date question with a stored answer is wrong
+from the day after it is written, so it is worked out at read time.
+
+**Per product:** Auto / Always / Never, on Basics. Auto also says what the rule
+decided today, so the switch never pretends to decide something it does not.
+
+**Where they draw.** Grid: at most two badges per card — the delivery promise
+top-left (it never gives up its corner) and ONE merchandising pill bottom-left,
+Best seller beating New. Product page: a quiet line beside the rating, never a
+ribbon — FlowerAura, checked the same day, badges its listings heavily and puts
+nothing at all on the product page. The wording names the category ("Best
+seller in Fresh Flowers") because a boast with a scope is a fact.
+
+## 🔁 DEC-PRD-051 — "You may also like" rebuilt (24 Aug)
+
+The rule required a **different** category and conceded the rail could come
+back empty. It came back empty on every product this shop sells, because every
+product this shop sells is in one category. A rail that never renders is not a
+strict rule, it is a missing feature.
+
+Now: **same category (climbing to the parent), nearest price.** Ranked shared
+occasion → price distance as a ratio → best seller → units sold. FlowerAura's
+"Similar Products" does exactly this: under a ₹695 bouquet they show ₹595,
+₹745, ₹795 — never ₹3,000, never ₹150. Someone looking at a ৳695 bouquet has
+already decided roughly what this gift is worth; six products they could
+actually swap to is a row that can be clicked.
+
+Heading changed with it — "Pairs Beautifully With" was the old rule promising a
+cake under a bouquet.
+
+⚠️ **Not yet done:** nothing hand-picks this rail. If the owner ever wants to
+force a particular product into it, that is a new screen and a new decision.
+
+---
+
 ## 🔗 What a category gives a product — the audit (23 Aug)
 
 Owner: *"category te badges, what's inside, why buy from us — agula sobei

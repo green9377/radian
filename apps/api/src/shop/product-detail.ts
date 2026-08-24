@@ -2088,15 +2088,19 @@ export class ProductDetailService {
         const gap =
           pricePaisaNow > 0 ? Math.abs(price - pricePaisaNow) / pricePaisaNow : 0;
         const sharesOccasion = r.tags.some((t) => wanted.has(t.slug));
-        return { id: r.id, gap, sharesOccasion, best: r.isBestSeller, sold: r.salesCount };
+        /*  ⚠️ A shared occasion DISCOUNTS the distance; it is not a tier above
+            it. Sorted as two tiers, one tagged product at ten times the price
+            beat every untagged product sitting right next to it — which is
+            the ৳4,000 arrangement under a ৳400 bouquet this rule exists to
+            avoid. 0.6 is deliberately mild: a birthday tag is worth roughly
+            "a bit closer in price", not "any price at all".  */
+        const score = sharesOccasion ? gap * 0.6 : gap;
+        return { id: r.id, score, best: r.isBestSeller, sold: r.salesCount };
       })
       .sort(
         (a, b) =>
-          /*  Same occasion first — a birthday shopper wants birthday things …  */
-          Number(b.sharesOccasion) - Number(a.sharesOccasion) ||
-          /*  … then closest in price …  */
-          a.gap - b.gap ||
-          /*  … and the badge only breaks a tie.  */
+          a.score - b.score ||
+          /*  The badge only ever breaks a tie.  */
           Number(b.best) - Number(a.best) ||
           b.sold - a.sold,
       )
