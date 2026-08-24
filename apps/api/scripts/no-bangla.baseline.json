@@ -119,7 +119,7 @@
   "apps/api/src/inventory/inventory.dto.ts": 1,
   "apps/api/src/inventory/split-stores.ts": 2,
   "apps/api/src/items/items.controller.ts": 1,
-  "apps/api/src/main.ts": 28,
+  "apps/api/src/main.ts": 19,
   "apps/api/src/marketing/marketing.controller.ts": 3,
   "apps/api/src/orders/order.dto.ts": 22,
   "apps/api/src/orders/orders.service.ts": 56,

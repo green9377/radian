@@ -41,6 +41,18 @@ const NOT_PUBLIC = [
   '/returns',
   '/delivery/runs',
   '/customers',
+  /*  ⚠️ A QUOTE IS A READ THAT HAPPENS TO BE A POST — 24 Aug 2026.
+
+      It is a POST only because a cart does not fit in a query string, and it
+      changes nothing at all. The rule above caught it anyway, so every price
+      recalculation on the checkout screen was asking the shop to throw its
+      catalogue cache away. On a busy evening that is the whole shop rebuilt
+      on somebody else's keystrokes.
+
+      `/shop/checkout` itself stays OUT of this list: placing an order does
+      move stock, and the shop should hear about it.  */
+  '/shop/checkout/quote',
+  '/shop/checkout-lead',
 ];
 
 @Injectable()

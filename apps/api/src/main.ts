@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+/*  One list of our own addresses, shared with the cache ping — see the note in
+    that file for why it stopped being two.  */
+import { corsOrigins } from './common/web-origins';
 
 // BigInt (Customer.ltvPaisa) JSON-serialize safety net — নইলে response throw করে।
 // (service response-এ ltvPaisa Number-এ map করা হয়; এটা fallback।)
@@ -23,40 +26,6 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
     ⚠️ Production-এ এগুলোর একটাও সেট না থাকলে API চালু হবে কিন্তু admin/web
     ফাঁকা দেখাবে। তাই boot-এর সময় তালিকাটা log-এ ছাপা হয় — deploy-এর পরে
     log-এ "[CORS] allowed:" লাইনটা মিলিয়ে দেখুন।  */
-function corsOrigins(): string[] {
-  const trim = (s: string) => s.trim().replace(/\/+$/, '');
-  const fromEnv = [
-    process.env.PUBLIC_WEB_URL,
-    process.env.PUBLIC_ADMIN_URL,
-    ...(process.env.CORS_ORIGINS ?? '').split(','),
-  ]
-    .filter((v): v is string => Boolean(v && v.trim()))
-    .map(trim);
-
-  const localDev = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-  ];
-
-  /*  ৪ আগস্ট, demo deploy-এর রাতে শেখা: Render dashboard-এ env var-এর ঘরে
-      মান বসানো হয়েছে মনে হলেও save না-ও হতে পারে — form-টা মুখোশ-পরা
-      (masked) value দেখায়, তাই ভুলটা চোখেও পড়ে না। PUBLIC_WEB_URL সেভাবে
-      দু'বার হারিয়ে গ্রাহকের দোকান CORS-এ আটকে ফাঁকা হয়ে ছিল, অথচ API আর
-      admin দুটোই সুস্থ দেখাচ্ছিল।
-
-      Demo-র ঠিকানা দুটো স্থির ও প্রকাশ্য — এগুলো env-এর উপর নির্ভর না করে
-      এখানে fallback হিসেবে থাকল। Real deploy-এর নিজের domain যথারীতি
-      PUBLIC_WEB_URL/PUBLIC_ADMIN_URL env দিয়েই আসবে; এই তালিকা তখনও নিরীহ,
-      কারণ demo সাইট দুটোও আমাদেরই।  */
-  const demoFallback = [
-    'https://radian-web-tan.vercel.app',
-    'https://radian-admin.vercel.app',
-  ];
-
-  return Array.from(new Set([...fromEnv, ...localDev, ...demoFallback]));
-}
 
 async function bootstrap() {
   /*

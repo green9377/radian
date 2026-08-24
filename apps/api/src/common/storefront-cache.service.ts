@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { storefrontOrigins } from './web-origins';
+
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  *  DEC-WEB-004 — tell the shop its pages are out of date
@@ -32,12 +34,19 @@ export class StorefrontCacheService {
   private pending: NodeJS.Timeout | null = null;
 
   purge(reason = 'catalogue changed') {
-    /*  ⚠️ `PUBLIC_WEB_URL` — the one CORS already uses (main.ts). Asking for
-        a second variable holding the same address was work for the owner and
-        one more thing to get out of step; he was right to push back.
-        `WEB_PUBLIC_URL` is still read as an alias for anyone who set it.  */
-    const base = process.env.PUBLIC_WEB_URL || process.env.WEB_PUBLIC_URL;
-    if (!base) return;
+    /*  ⚠️ EVERY ADDRESS WE OWN, NOT ONE ENV VAR — 24 August 2026.
+
+        This read `PUBLIC_WEB_URL` alone and gave up silently when it was
+        missing. On the demo it was not missing; it was WRONG, and so every
+        single ping had been coming back 404 — every product save, every
+        offer, since the day this was written. Nothing looked broken, because
+        CORS has its own hard-coded fallback and therefore kept working.
+
+        Found by creating four real offers and watching a product page not
+        change. `storefrontOrigins()` now carries the same fallback CORS has
+        had all along, and the two lists are one list.  */
+    const bases = storefrontOrigins();
+    if (bases.length === 0) return;
     /*  Optional. Set on both sides → the shop trusts the call outright.
         Unset → the shop still accepts it, but throttled (see the route), so
         this works with no configuration at all.  */
@@ -46,16 +55,30 @@ export class StorefrontCacheService {
     if (this.pending) return;
     this.pending = setTimeout(() => {
       this.pending = null;
-      void fetch(`${base.replace(/\/$/, '')}/api/revalidate`, {
-        method: 'POST',
-        headers: secret ? { 'x-revalidate-secret': secret } : {},
-      })
-        .then((r) => {
-          if (!r.ok) this.log.warn(`revalidate → ${r.status} (${reason})`);
-        })
-        .catch((e: unknown) => {
-          this.log.warn(`revalidate failed (${reason}): ${e instanceof Error ? e.message : e}`);
-        });
+      void (async () => {
+        const failed: string[] = [];
+        for (const base of bases) {
+          try {
+            const r = await fetch(`${base}/api/revalidate`, {
+              method: 'POST',
+              headers: secret ? { 'x-revalidate-secret': secret } : {},
+            });
+            /*  One good answer is enough — the rest are the same shop under
+                another name, or an address that is not ours any more.  */
+            if (r.ok) return;
+            failed.push(`${base} → ${r.status}`);
+          } catch (e: unknown) {
+            failed.push(`${base} → ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+        /*  ⚠️ ERROR, not warn. When this fails the shop stops refreshing
+            after a save, which is invisible from every screen and reads to
+            the owner as "the admin does not work". A warning in a log nobody
+            opens is how it hid for a fortnight.  */
+        this.log.error(
+          `storefront never refreshed after ${reason} — tried ${failed.join(', ')}`,
+        );
+      })();
     }, 400);
     /*  ⚠️ unref so a pending ping never holds the process open on shutdown  */
     this.pending.unref?.();
