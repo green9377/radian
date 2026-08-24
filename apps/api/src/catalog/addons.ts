@@ -31,6 +31,8 @@ interface AddOnDto {
   sku?: string | null;
   imageUrl?: string | null;
   pricePaisa: number;
+  /** DEC-PRD-049 — given away on purpose. A ৳0 add-on without it is unpriced. */
+  isFree?: boolean;
   discountType?: DiscountType;
   discountValue?: number;
   stockQty?: number | null; // null = unlimited
@@ -91,7 +93,8 @@ export class AddOnsService {
         name: dto.name,
         sku: dto.sku || null,
         imageUrl: dto.imageUrl || null,
-        pricePaisa: dto.pricePaisa,
+        pricePaisa: dto.isFree ? 0 : dto.pricePaisa,
+        isFree: dto.isFree ?? false,
         discountType: dto.discountType ?? DiscountType.NONE,
         discountValue: dto.discountValue ?? 0,
         stockQty: dto.stockQty ?? null,
@@ -110,7 +113,10 @@ export class AddOnsService {
         name: dto.name,
         sku: dto.sku === undefined ? undefined : dto.sku || null,
         imageUrl: dto.imageUrl,
-        pricePaisa: dto.pricePaisa,
+        /*  DEC-PRD-049 — Free wins over whatever number is in the box, so a
+            leftover price cannot come back the next time it is edited.  */
+        pricePaisa: dto.isFree ? 0 : dto.pricePaisa,
+        isFree: dto.isFree,
         discountType: dto.discountType,
         discountValue: dto.discountValue,
         stockQty: dto.stockQty === undefined ? undefined : dto.stockQty,

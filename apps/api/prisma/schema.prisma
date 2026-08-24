@@ -1303,10 +1303,22 @@ model Product {
   /// Maximum characters. `null` = no limit.
   persoTextMax    Int?
   persoTextHint   String?
+  /// ── DEC-PRD-048 · must it be filled in? ────────────────────────────────
+  /// The product page printed the word "required" beside this whole section
+  /// — a word written in the code, with no switch behind it and nothing
+  /// enforcing it. The owner, 24 August 2026: *"ata asol somossa. required
+  /// thakar poreo buy now ba add to cart krtache, ata thik krte hobe."*
+  ///
+  /// So the shop decides, per product, per box. False means the page says
+  /// nothing about it and an empty box is fine — which is what every product
+  /// written before this decision meant.
+  persoTextRequired  Boolean @default(false)
   /// the box for an image
   persoImage      Boolean @default(false)
   persoImageLabel String?
   persoImageHint  String?
+  /// DEC-PRD-048 — see `persoTextRequired`
+  persoImageRequired Boolean @default(false)
 
   /// ── DEC-PRD-027 · the green "Want this customised?" box ────────────────
   /// The owner: *"Which products we allow customising on - the ones that then
@@ -1870,6 +1882,21 @@ model AddOn {
   sku               String?      @unique
   imageUrl          String?
   pricePaisa        Int
+  /// ── DEC-PRD-049 · given away on purpose ────────────────────────────────
+  /// The owner, 24 August 2026: *"add on 0 holeo show kre — ata somossa. add
+  /// on free dewar option o kra lagbe; kichu add on thakbe jegula customer
+  /// chaile select krle free te pabe."*
+  ///
+  /// The page was printing "+৳ 0" on four of six add-ons — every one of them
+  /// simply not priced yet. So price alone cannot say what is meant, and the
+  /// two cases have to be told apart:
+  ///
+  ///   isFree = true   → the shop MEANT it. The card says "Free", the total
+  ///                     does not move, and it is offered like any other.
+  ///   isFree = false
+  ///   and price = 0   → nobody has priced it. It is NOT shown, because a
+  ///                     forgotten price should cost a reminder, not stock.
+  isFree            Boolean      @default(false)
   discountType      DiscountType @default(NONE)
   discountValue     Int          @default(0) // FLAT=paisa; PERCENT=basis points
   stockQty          Int? // null = unlimited (a service like gift wrap never runs out)

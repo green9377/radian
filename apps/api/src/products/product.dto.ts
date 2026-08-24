@@ -191,9 +191,13 @@ export interface CreateProductDto {
   persoTextLabel?: string | null;
   persoTextMax?: number | null;
   persoTextHint?: string | null;
+  /** DEC-PRD-048 — must the customer fill this in before buying */
+  persoTextRequired?: boolean;
   persoImage?: boolean;
   persoImageLabel?: string | null;
   persoImageHint?: string | null;
+  /** DEC-PRD-048 — must the customer upload before buying */
+  persoImageRequired?: boolean;
 
   /** DEC-PRD-027 — the green "Want this customised?" box, per product */
   customiseOn?: boolean;

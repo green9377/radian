@@ -183,6 +183,12 @@ export interface PersoField {
   placeholder?: string;
   max?: number;
   hint: string;
+  /**
+   * DEC-PRD-048 — must it be filled in before buying. The page printed the
+   * word "required" with nothing behind it and the buttons worked anyway;
+   * now it is the shop's switch, and both the buttons and the server obey.
+   */
+  required?: boolean;
 }
 
 export interface Perso {
@@ -450,6 +456,13 @@ export interface AddonItem {
   key: string;
   name: string;
   pricePaisa: number;
+  /**
+   * DEC-PRD-049 — the shop gives this one away on purpose. The card says
+   * "Free" instead of "+৳ 0", which read as a page that had lost a number.
+   * An add-on that is ৳0 WITHOUT this never reaches the page at all — that
+   * one is unpriced, not free.
+   */
+  isFree?: boolean;
   bg: string;
   fromCatalog: boolean;
 }

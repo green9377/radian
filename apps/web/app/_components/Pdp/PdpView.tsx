@@ -414,6 +414,15 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   ).size;
   const needsPick = axisCount > 1 && !variant;
 
+  /*  ── DEC-PRD-048 · a required box actually stops the sale ──────────────
+      The page has printed "required" beside this section since it was built,
+      and nothing ever checked it. Now the shop decides per box, and an empty
+      one holds the buttons — with the reason on them, not a silent refusal.  */
+  const persoMissing = (detail.perso?.fields ?? []).some(
+    (f) => f.required && !(f.type === "text" ? persoText.trim() : persoImage.trim()),
+  );
+  const buyBlocked = needsPick || persoMissing;
+
   const soldOut = detail.availability?.state === "OUT_OF_STOCK" || variantOut;
   const preorder =
     detail.availability?.state === "PRE_ORDER"
@@ -425,7 +434,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
         nothing should reach here — but `addLine` is also what the sticky bar
         and any future shortcut call, and a cart line for something we do not
         have becomes a real order later. Cheap to check, expensive to miss.  */
-    if (soldOut || needsPick) return;
+    if (soldOut || buyBlocked) return;
     addLine(currentLine());
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -441,7 +450,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     CtaRow, so no separate guard is needed here.
   */
   function buyNow() {
-    if (soldOut || needsPick) return;
+    if (soldOut || buyBlocked) return;
     addLine(currentLine());
     router.push("/checkout");
   }
@@ -952,9 +961,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                           <b className="block text-[11.5px] text-purple font-semibold truncate">
                             {a.name}
                           </b>
-                          <span className="text-[11.5px] text-body-soft">
-                            +{formatTaka(a.pricePaisa)}
-                          </span>
+                          {/*  DEC-PRD-049 — "Free" where the shop meant free.
+                              "+৳ 0" read as a price that had failed to
+                              load.  */}
+                          {a.isFree || a.pricePaisa === 0 ? (
+                            <span className="text-[11.5px] font-bold text-[#0E7A3D]">Free</span>
+                          ) : (
+                            <span className="text-[11.5px] text-body-soft">
+                              +{formatTaka(a.pricePaisa)}
+                            </span>
+                          )}
                         </span>
                       </button>
                     );
@@ -966,12 +982,21 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               {/* ─── PERSONALISATION - only where it is wanted ─── */}
               {detail.perso && (
                 <section className="mt-7">
-                  <BlkTitle title={detail.perso.title} hint="required" />
+                  {/*  DEC-PRD-048 — "required" is the shop's switch now. It
+                      used to be this word, hardcoded, with nothing behind it:
+                      the buttons worked and the server took the order. Owner,
+                      24 Aug 2026: *"required thakar poreo buy now ba add to
+                      cart krtache."*  */}
+                  <BlkTitle
+                    title={detail.perso.title}
+                    hint={detail.perso.fields.some((f) => f.required) ? "required" : undefined}
+                  />
                   <div className="bg-lavender border-[1.5px] border-lavender-deep rounded-[18px] p-5 space-y-3.5">
                     {detail.perso.fields.map((f) => (
                       <div key={f.label}>
                         <label className="block text-[13px] font-semibold text-purple mb-1.5">
                           {f.label}
+                          {f.required && <span className="text-orchid ml-1">*</span>}
                         </label>
                         {f.type === "text" ? (
                           <>
@@ -1091,7 +1116,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   total={total}
                   added={added}
                   preorder={preorder}
-                  needsPick={needsPick}
+                  needsPick={buyBlocked}
+                  blockedReason={
+                    needsPick ? "Choose an option first" : "Fill in what is required"
+                  }
                   onAddToCart={addToCart}
                   onBuyNow={buyNow}
                 />
@@ -1147,7 +1175,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           added={added}
           soldOut={soldOut}
           preorder={!!preorder}
-          needsPick={needsPick}
+          needsPick={buyBlocked}
+          blockedReason={needsPick ? "Choose an option" : "Fill in what is needed"}
           onAddToCart={addToCart}
           onBuyNow={buyNow}
         />

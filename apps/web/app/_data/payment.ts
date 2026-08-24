@@ -1,5 +1,4 @@
-import type { CartItem } from "../_store/useCartStore";
-import { getProductDetail } from "./productDetails";
+import type { ResolvedLine } from "./cart";
 
 /*
   ═══════════════════════════════════════════════════════════════════
@@ -62,17 +61,30 @@ export interface PaymentOption {
   reason?: string;
 }
 
-/** Cart-এ একটাও advance-required product আছে কি না */
-export function hasPrepaidOnly(items: CartItem[]): boolean {
-  return items.some((i) => getProductDetail(i.slug)?.product.prepaidOnly === true);
+/**
+ * Is there an advance-required product in the cart?
+ *
+ * ⚠️ IT ASKED THE MOCK CATALOGUE UNTIL 24 August 2026, and that is the whole
+ * bug. It looked each line up with `getProductDetail(slug)` — the hand-written
+ * `PRODUCTS` list — so a REAL product, the kind the owner ticks "Advance
+ * required" on in the admin, was never found and the answer was always `false`.
+ * Cash on Delivery therefore stayed open on made-to-order goods: exactly the
+ * loss rule 3 above exists to prevent.
+ *
+ * The resolved cart already carries the real product, fetched from the API. It
+ * is read from there now, and the server refuses the same combination on its
+ * own (`checkout.ts`) — a money rule cannot live in the browser alone.
+ */
+export function hasPrepaidOnly(lines: Pick<ResolvedLine, "detail">[]): boolean {
+  return lines.some((l) => l.detail.product.prepaidOnly === true);
 }
 
 export function paymentOptions(args: {
   isGift: boolean;
-  /** deliverable line গুলোই — held item order-এ নেই (D21) */
-  items: CartItem[];
+  /** the deliverable lines only — a held item is not in this order (D21) */
+  lines: Pick<ResolvedLine, "detail">[];
 }): PaymentOption[] {
-  const advance = hasPrepaidOnly(args.items);
+  const advance = hasPrepaidOnly(args.lines);
 
   return PAYMENT_METHODS.map((method) => {
     if (method.id !== "cod") return { method, available: true };

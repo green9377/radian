@@ -1,7 +1,7 @@
 "use client";
 
 import { defaultPayment, paymentOptions, type PaymentId } from "../../_data/payment";
-import type { CartItem } from "../../_store/useCartStore";
+import type { ResolvedLine } from "../../_data/cart";
 import { useCheckoutStore } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
 import { Continue, QCard } from "./CheckoutFields";
@@ -20,10 +20,10 @@ import { Continue, QCard } from "./CheckoutFields";
   ছাড় যেখানে সংখ্যায় দেখা যায়, কোডও সেখানেই বসা উচিত।
 */
 
-export function Q5Payment({ items }: { items: CartItem[] }) {
+export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) {
   const s = useCheckoutStore();
 
-  const options = paymentOptions({ isGift: s.isGift, items });
+  const options = paymentOptions({ isGift: s.isGift, lines });
   const active: PaymentId =
     options.find((o) => o.method.id === s.payment && o.available)?.method.id ??
     defaultPayment(options);

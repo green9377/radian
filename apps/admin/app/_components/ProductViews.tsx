@@ -2863,6 +2863,7 @@ function fromApiAddon(a: ApiAddOn): DemoAddon {
     itemId: a.itemId ?? null,
     itemLabel: a.item ? `${a.item.name} · ${a.item.sku}` : null,
     pricePaisa: a.pricePaisa,
+    isFree: a.isFree === true,
     discountType: a.discountType,
     discountValue: a.discountValue,
     stockQty: a.stockQty,
@@ -2875,7 +2876,8 @@ function toApiAddon(a: DemoAddon): Record<string, unknown> {
     sku: a.sku || null,
     //  the column takes the address only — never the CSS around it
     imageUrl: bareUrl(a.image),
-    pricePaisa: a.pricePaisa,
+    pricePaisa: a.isFree ? 0 : a.pricePaisa,
+    isFree: a.isFree === true,
     discountType: a.discountType,
     discountValue: a.discountValue,
     stockQty: a.stockQty,
@@ -3523,11 +3525,36 @@ export function AddonsView() {
                           className="ipt"
                           style={{ minHeight: 32 }}
                           type="number"
-                          value={Math.round(a.pricePaisa / 100)}
+                          disabled={a.isFree}
+                          value={a.isFree ? 0 : Math.round(a.pricePaisa / 100)}
                           onChange={(e) => set(a.id, { pricePaisa: (Number(e.target.value) || 0) * 100 })}
                         />
                       </div>
                     </div>
+
+                    {/*  ── DEC-PRD-049 · given away on purpose ──────────────
+                        Owner, 24 Aug 2026: *"add on 0 holeo show kre — ata
+                        somossa. add on free dewar option o kra lagbe."*
+
+                        Price alone could not tell "free" from "not priced
+                        yet", and four of six add-ons were printing "+৳ 0" on
+                        the product page. Tick this and the card says Free;
+                        leave it and a ৳0 add-on is simply not offered until
+                        it has a price.  */}
+                    <label className="mt-2.5 flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="w-[15px] h-[15px] accent-[#0e7a3d]"
+                        checked={a.isFree === true}
+                        onChange={(e) => set(a.id, { isFree: e.target.checked, ...(e.target.checked ? { pricePaisa: 0 } : {}) })}
+                      />
+                      <span className="text-[12px] font-bold text-purple">Free — no charge</span>
+                      {!a.isFree && a.pricePaisa <= 0 && (
+                        <span className="text-[11px] font-semibold text-[#b45309]">
+                          ৳0 and not free — hidden from the website
+                        </span>
+                      )}
+                    </label>
 
                     {/* Discount — full width so the type + value both read clearly */}
                     <div className="mt-2.5">

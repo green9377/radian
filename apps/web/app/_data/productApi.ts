@@ -150,8 +150,8 @@ export interface ApiProductDetail {
   /** DEC-PRD-026 — whether the customer may supply their own text or photo */
   perso: {
     title: string;
-    text: { label: string; max: number | null; hint: string } | null;
-    image: { label: string; hint: string } | null;
+    text: { label: string; max: number | null; hint: string; required?: boolean } | null;
+    image: { label: string; hint: string; required?: boolean } | null;
   } | null;
   /** DEC-PRD-027 — the "Want this customised?" box, phone number included */
   customise: { title: string; sub: string; whatsapp: string | null } | null;
@@ -170,7 +170,18 @@ export interface ApiProductDetail {
   faqs: { question: string; answer: string; scope: "product" | "category" }[];
   /** DEC-PRD-023 — when `iconUrl` is filled, it is the shop's own image */
   trust: { icon: string | null; iconUrl?: string | null; label: string; sub: string | null }[];
-  addonTabs: { id: string; label: string; items: { id: string; name: string; pricePaisa: number; imageUrl: string | null }[] }[];
+  addonTabs: {
+    id: string;
+    label: string;
+    items: {
+      id: string;
+      name: string;
+      pricePaisa: number;
+      /** DEC-PRD-049 — given away on purpose; the card says "Free" */
+      isFree?: boolean;
+      imageUrl: string | null;
+    }[];
+  }[];
   reviews: {
     rating: number | null;
     count: number;
@@ -468,6 +479,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         key: i.id,
         name: i.name,
         pricePaisa: i.pricePaisa,
+        isFree: i.isFree === true,
         bg: i.imageUrl ? `url(${i.imageUrl}) center/cover` : GREY_TILE,
         /*  Every database add-on is a catalog row the owner maintains. The
             flag existed to separate those from the mock's inline services
@@ -496,6 +508,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
                     label: a.perso.text.label,
                     max: a.perso.text.max ?? undefined,
                     hint: a.perso.text.hint,
+                    /*  DEC-PRD-048 — the page used to print "required" beside
+                        this section with nothing behind the word.  */
+                    required: a.perso.text.required === true,
                   },
                 ]
               : []),
@@ -505,6 +520,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
                     type: "upload" as const,
                     label: a.perso.image.label,
                     hint: a.perso.image.hint,
+                    required: a.perso.image.required === true,
                   },
                 ]
               : []),

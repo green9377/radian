@@ -448,8 +448,8 @@ export interface ShopProductDetail {
    */
   perso: {
     title: string;
-    text: { label: string; max: number | null; hint: string } | null;
-    image: { label: string; hint: string } | null;
+    text: { label: string; max: number | null; hint: string; required: boolean } | null;
+    image: { label: string; hint: string; required: boolean } | null;
   } | null;
   /**
    * DEC-PRD-027 - the green "Want this customised?" box. `null` means do not
@@ -470,7 +470,14 @@ export interface ShopProductDetail {
   addonTabs: {
     id: string;
     label: string;
-    items: { id: string; name: string; pricePaisa: number; imageUrl: string | null }[];
+    items: {
+      id: string;
+      name: string;
+      pricePaisa: number;
+      /** DEC-PRD-049 — given away on purpose, so the card says "Free" */
+      isFree: boolean;
+      imageUrl: string | null;
+    }[];
   }[];
   /** published reviews of THIS product, with the list itself (DEC-WEB-005). `rating` is null until one exists —
    *  never a shop-wide or Google average wearing a product's name. */
@@ -547,11 +554,13 @@ export class ProductDetailService {
         persoTitle: true,
         persoText: true,
         persoTextLabel: true,
+        persoTextRequired: true,
         persoTextMax: true,
         persoTextHint: true,
         persoImage: true,
         persoImageLabel: true,
         persoImageHint: true,
+        persoImageRequired: true,
         customiseOn: true,
         customiseTitle: true,
         customiseSub: true,
@@ -1077,12 +1086,15 @@ export class ProductDetailService {
                     label: p.persoTextLabel?.trim() || 'Your message',
                     max: p.persoTextMax,
                     hint: p.persoTextHint?.trim() || '',
+                    /*  DEC-PRD-048 — the page said "required" without one.  */
+                    required: p.persoTextRequired,
                   }
                 : null,
               image: p.persoImage
                 ? {
                     label: p.persoImageLabel?.trim() || 'Your photo',
                     hint: p.persoImageHint?.trim() || '',
+                    required: p.persoImageRequired,
                   }
                 : null,
             }
@@ -1713,6 +1725,7 @@ export class ProductDetailService {
         id: true,
         name: true,
         pricePaisa: true,
+        isFree: true,
         discountType: true,
         discountValue: true,
         imageUrl: true,
@@ -1737,11 +1750,16 @@ export class ProductDetailService {
     return rows.map((a) => ({
       id: a.id,
       name: a.name,
-      pricePaisa: paidPaisa({
-        sellingPricePaisa: a.pricePaisa,
-        discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-        discountValue: a.discountValue,
-      }),
+      /*  DEC-PRD-049 — a deliberately free add-on costs nothing here too, or
+          the cart would charge for what the page gave away.  */
+      pricePaisa: a.isFree
+        ? 0
+        : paidPaisa({
+            sellingPricePaisa: a.pricePaisa,
+            discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+            discountValue: a.discountValue,
+          }),
+      isFree: a.isFree,
       imageUrl: bareImageUrl(a.imageUrl),
       /** false → the cart can say so; it does not remove the line itself */
       available: (() => {
@@ -1858,6 +1876,7 @@ export class ProductDetailService {
                 id: true,
                 name: true,
                 pricePaisa: true,
+                isFree: true,
                 discountType: true,
                 discountValue: true,
                 imageUrl: true,
@@ -1905,17 +1924,24 @@ export class ProductDetailService {
               service (gift wrap) that never runs out.  */
           .filter((a) => {
             if (!a.isActive || a.deletedAt !== null) return false;
+            /*  DEC-PRD-049 — ৳0 and not marked Free means nobody priced it.
+                Offering it would give stock away on a typing mistake; the
+                shop sees it missing and fixes the price.  */
+            if (a.pricePaisa <= 0 && !a.isFree) return false;
             const left = addonStock(a);
             return left === null || left > 0;
           })
           .map((a) => ({
             id: a.id,
             name: a.name,
-            pricePaisa: paidPaisa({
-              sellingPricePaisa: a.pricePaisa,
-              discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-              discountValue: a.discountValue,
-            }),
+            pricePaisa: a.isFree
+              ? 0
+              : paidPaisa({
+                  sellingPricePaisa: a.pricePaisa,
+                  discountType: a.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+                  discountValue: a.discountValue,
+                }),
+            isFree: a.isFree,
             imageUrl: bareImageUrl(a.imageUrl),
           })),
       }))

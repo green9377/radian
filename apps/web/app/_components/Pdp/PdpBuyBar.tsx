@@ -57,6 +57,7 @@ export function CtaRow({
   added,
   preorder,
   needsPick,
+  blockedReason,
   onAddToCart,
   onBuyNow,
 }: {
@@ -74,6 +75,8 @@ export function CtaRow({
    * cannot be picked off a shelf.
    */
   needsPick?: boolean;
+  /** what the buttons say while they wait — the reason, not a generic no */
+  blockedReason?: string;
   onAddToCart: () => void;
   onBuyNow: () => void;
 }) {
@@ -149,7 +152,7 @@ export function CtaRow({
           )}
           <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
           {needsPick
-            ? "Choose an option first"
+            ? blockedReason || "Choose an option first"
             : `${preorder ? "Pre-order" : "Buy Now"} · ${formatTaka(total)}`}
         </button>
       </div>
@@ -184,6 +187,7 @@ export function StickyBar({
   soldOut,
   preorder,
   needsPick,
+  blockedReason,
   onAddToCart,
   onBuyNow,
 }: {
@@ -198,6 +202,7 @@ export function StickyBar({
    *   fixed to the bottom of the phone and does not scroll away, so it has to
    *   wait for the same answer the CTA row waits for. */
   needsPick?: boolean;
+  blockedReason?: string;
   onAddToCart: () => void;
   onBuyNow: () => void;
 }) {
@@ -256,7 +261,7 @@ export function StickyBar({
           <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
         )}
         <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
-        {needsPick ? "Choose an option" : preorder ? "Pre-order" : "Buy Now"}
+        {needsPick ? blockedReason || "Choose an option" : preorder ? "Pre-order" : "Buy Now"}
       </button>
     </div>
   );

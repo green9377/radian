@@ -186,6 +186,12 @@ export interface DemoAddon {
   sku: string;
   image?: string; // gradient placeholder until real upload
   pricePaisa: number;
+  /**
+   * DEC-PRD-049 — given away on purpose. A ৳0 add-on WITHOUT this is simply
+   * unpriced, and the storefront does not offer it: a forgotten price should
+   * cost a reminder, not stock.
+   */
+  isFree?: boolean;
   discountType: DiscountKind;
   discountValue: number; // FLAT = paisa · PERCENT = whole %
   stockQty: number | null; // null = unlimited

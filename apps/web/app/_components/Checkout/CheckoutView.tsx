@@ -433,10 +433,7 @@ export default function CheckoutView() {
       }
     }
 
-    const options = paymentOptions({
-      isGift: c.isGift,
-      items: cart.lines.map((l) => l.item),
-    });
+    const options = paymentOptions({ isGift: c.isGift, lines: cart.lines });
     const payment =
       options.find((o) => o.method.id === c.payment && o.available)?.method.id ??
       defaultPayment(options);
@@ -642,7 +639,7 @@ export default function CheckoutView() {
                 speeds={speeds}
                 liveMethods={liveMethods}
               />
-              <Q5Payment items={cart.lines.map((l) => l.item)} />
+              <Q5Payment lines={cart.lines} />
 
               {/* after "Review order" is pressed — everything on one page, each with Edit */}
               {c.done.includes(5) && (

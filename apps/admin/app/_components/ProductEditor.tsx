@@ -1694,9 +1694,13 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [persoTextLabel, setPersoTextLabel] = useState("");
   const [persoTextMax, setPersoTextMax] = useState("");
   const [persoTextHint, setPersoTextHint] = useState("");
+  /*  DEC-PRD-048 — the page printed "required" with nothing behind it; now it
+      is a switch, per box, and both the buttons and the server obey it.  */
+  const [persoTextRequired, setPersoTextRequired] = useState(false);
   const [persoImage, setPersoImage] = useState(false);
   const [persoImageLabel, setPersoImageLabel] = useState("");
   const [persoImageHint, setPersoImageHint] = useState("");
+  const [persoImageRequired, setPersoImageRequired] = useState(false);
 
   /** DEC-PRD-027 — the "Want this customised?" green box */
   const [customiseOn, setCustomiseOn] = useState(false);
@@ -2212,9 +2216,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           setPersoTextLabel(p.persoTextLabel ?? "");
           setPersoTextMax(p.persoTextMax != null ? String(p.persoTextMax) : "");
           setPersoTextHint(p.persoTextHint ?? "");
+          setPersoTextRequired(!!p.persoTextRequired);
           setPersoImage(!!p.persoImage);
           setPersoImageLabel(p.persoImageLabel ?? "");
           setPersoImageHint(p.persoImageHint ?? "");
+          setPersoImageRequired(!!p.persoImageRequired);
           setCustomiseOn(!!p.customiseOn);
           setCustomiseTitle(p.customiseTitle ?? "");
           setCustomiseSub(p.customiseSub ?? "");
@@ -2484,9 +2490,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       persoTextLabel: persoTextLabel.trim() || null,
       persoTextMax: parseInt(persoTextMax) || null,
       persoTextHint: persoTextHint.trim() || null,
+      persoTextRequired,
       persoImage,
       persoImageLabel: persoImageLabel.trim() || null,
       persoImageHint: persoImageHint.trim() || null,
+      persoImageRequired,
       /*  DEC-PRD-027 */
       customiseOn,
       customiseTitle: customiseTitle.trim() || null,
@@ -6506,6 +6514,19 @@ No bundle products yet — add them on{" "}
                           placeholder="Written in icing — keep it short"
                         />
                       </Field>
+                      {/*  DEC-PRD-048 — the product page used to print the word
+                          "required" beside this whole section, with nothing
+                          behind it: the buttons worked and the order went
+                          through empty. It is a real switch now, and the
+                          buttons AND the server both hold to it.  */}
+                      <div className="sm:col-span-2">
+                        <Sw
+                          on={persoTextRequired}
+                          onToggle={() => setPersoTextRequired(!persoTextRequired)}
+                        >
+                          They must fill it in
+                        </Sw>
+                      </div>
                     </div>
                   )}
 
@@ -6530,6 +6551,13 @@ No bundle products yet — add them on{" "}
                           placeholder="Clear, well-lit, at least 1000 px wide"
                         />
                       </Field>
+                      {/*  DEC-PRD-048 — see the note on the message box.  */}
+                      <Sw
+                        on={persoImageRequired}
+                        onToggle={() => setPersoImageRequired(!persoImageRequired)}
+                      >
+                        They must upload one
+                      </Sw>
                     </div>
                   )}
 

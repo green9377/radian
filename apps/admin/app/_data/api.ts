@@ -122,9 +122,13 @@ export interface ApiProduct {
   persoTextLabel?: string | null;
   persoTextMax?: number | null;
   persoTextHint?: string | null;
+  /** DEC-PRD-048 — must the customer fill it in before buying */
+  persoTextRequired?: boolean;
   persoImage?: boolean;
   persoImageLabel?: string | null;
   persoImageHint?: string | null;
+  /** DEC-PRD-048 — must the customer upload before buying */
+  persoImageRequired?: boolean;
   /** DEC-PRD-027 — the "Want this customised?" box */
   customiseOn?: boolean;
   customiseTitle?: string | null;
@@ -1575,6 +1579,8 @@ export interface ApiAddOn {
   sku: string | null;
   imageUrl: string | null;
   pricePaisa: number;
+  /** DEC-PRD-049 — given away on purpose. ৳0 without it = not priced yet. */
+  isFree?: boolean;
   discountType: "NONE" | "FLAT" | "PERCENT";
   discountValue: number; // FLAT=paisa · PERCENT=basis points (1000=10%)
   stockQty: number | null; // null = unlimited
