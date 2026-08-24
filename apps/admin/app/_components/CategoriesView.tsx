@@ -370,6 +370,17 @@ export default function CategoriesView() {
               parents={parents}
               hasChildren={!!selNode && childCount(selNode.id) > 0}
               productCount={selNode ? pc(selNode) : 0}
+              /*  The tree badge counts a parent's sub-categories in; the
+                  editor header counted only what is filed directly. Side by
+                  side that read as a contradiction — "Fresh flower 13" next
+                  to "0 products". Both numbers go across now, and the header
+                  says which is which.  */
+              deepProductCount={
+                selNode
+                  ? pc(selNode) +
+                    rows.filter((r) => r.parentId === selNode.id).reduce((s, k) => s + pc(k), 0)
+                  : 0
+              }
               canDelete={!!selNode && pc(selNode) === 0 && childCount(selNode.id) === 0}
               onSave={saveCategory}
               onDelete={removeSelected}

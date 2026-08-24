@@ -50,6 +50,7 @@ export default function CategoryEditor({
   parents,
   hasChildren,
   productCount,
+  deepProductCount,
   canDelete,
   onSave,
   onDelete,
@@ -59,7 +60,20 @@ export default function CategoryEditor({
   initialParentId?: string | null;
   parents: ApiCategoryNode[];
   hasChildren: boolean;
+  /** filed DIRECTLY under this category */
   productCount: number;
+  /**
+   * …and the same count with its sub-categories added in — the number the
+   * tree on the left shows.
+   *
+   * ⚠️ TWO NUMBERS FOR ONE CATEGORY, and until 24 Aug 2026 the screen showed
+   * them side by side without saying they were different things: the tree
+   * said "Fresh flower 13" while this header said "0 products". Both were
+   * right and together they read as a bug. Every product in this shop sits in
+   * a sub-category, so the header said 0 for the category the owner thinks of
+   * as holding everything.
+   */
+  deepProductCount: number;
   canDelete: boolean;
   onSave: (body: CategoryWrite & { name: string; slug: string }) => Promise<void> | void;
   onDelete: () => void;
@@ -170,9 +184,19 @@ export default function CategoryEditor({
     }
   }
 
+  /*  Say the same thing the tree says. When a category holds products only
+      through its sub-categories — which is every top-level category in this
+      shop — the header used to read "0 products" beside a tree badge saying
+      13. Now the deep number leads, because that is the one the owner means
+      by "how many are in Fresh flower", and the direct count is added only
+      when the two actually differ.  */
+  const plural = (n: number) => `${n} product${n === 1 ? "" : "s"}`;
+  const where = node?.parentId ? "sub-category" : "top-level";
   const subtitle = isNew
     ? "Fill in the details and save"
-    : `${productCount} product${productCount === 1 ? "" : "s"} · ${node?.parentId ? "sub-category" : "top-level"}`;
+    : deepProductCount === productCount
+      ? `${plural(productCount)} · ${where}`
+      : `${plural(deepProductCount)} with sub-categories · ${productCount} directly · ${where}`;
 
   return (
     <div className="max-w-[860px]">
