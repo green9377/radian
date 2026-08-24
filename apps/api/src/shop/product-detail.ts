@@ -157,6 +157,45 @@ const BRAND: Record<string, { logo: string; color: string }> = {
 
 /** Live to a shopper. Drafts and soft-deleted rows never leave this file. */
 const LIVE = { deletedAt: null, isPublished: true } as const;
+
+/**
+ * The price a shopper actually SEES for a product — DEC-PRD-035.
+ *
+ * When every live variant carries its own price, the headline is the cheapest
+ * of them and the page says "from". Otherwise the product's own price stands.
+ *
+ * ⚠️ Exists because "You may also like" ranked on the price COLUMN while the
+ * card printed the cheapest variant, so a bouquet whose card reads "from
+ * ৳1,200" was being sorted as a ৳3,500 one. Any rule that compares prices
+ * across products has to compare the numbers on the cards.
+ */
+function cardPricePaisa(p: {
+  sellingPricePaisa: number;
+  discountType: string;
+  discountValue: number;
+  discountStartsAt?: Date | null;
+  discountEndsAt?: Date | null;
+  variants: { pricePaisa: number | null; discountType: string; discountValue: number }[];
+}): number {
+  const own = paidPaisa({
+    sellingPricePaisa: p.sellingPricePaisa,
+    discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+    discountValue: p.discountValue,
+    discountStartsAt: p.discountStartsAt,
+    discountEndsAt: p.discountEndsAt,
+  });
+  const priced = p.variants.filter((v) => v.pricePaisa !== null);
+  if (p.variants.length === 0 || priced.length !== p.variants.length) return own;
+  return Math.min(
+    ...priced.map((v) =>
+      paidPaisa({
+        sellingPricePaisa: v.pricePaisa!,
+        discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+        discountValue: v.discountValue,
+      }),
+    ),
+  );
+}
 /** child rows: the soft-delete extension does NOT reach nested relations */
 const LIVE_ROW = { deletedAt: null } as const;
 
@@ -839,22 +878,11 @@ export class ProductDetailService {
         tagSlugs,
         manualGroupIds: p.manualAddOnGroups.map((g) => g.id),
       }),
-      /*  DEC-PRD-051 — same category, nearest price. The price is worked out
-          here rather than inside, because the rail has to sit next to TODAY's
-          price, discount and all.  */
-      this.crossSell(
-        p.id,
-        p.category.id,
-        p.category.parent?.id ?? null,
-        tagSlugs,
-        paidPaisa({
-          sellingPricePaisa: p.sellingPricePaisa,
-          discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-          discountValue: p.discountValue,
-          discountStartsAt: p.discountStartsAt,
-          discountEndsAt: p.discountEndsAt,
-        }),
-      ),
+      /*  DEC-PRD-051 — same category, nearest price. The reference is the
+          HEADLINE this page will print (DEC-PRD-035), not the price column,
+          so the rail is compared against the number the shopper is looking
+          at while they look at it.  */
+      this.crossSell(p.id, p.category.id, p.category.parent?.id ?? null, tagSlugs, cardPricePaisa(p)),
     ]);
 
     /*
@@ -919,21 +947,10 @@ export class ProductDetailService {
           priced → the cheapest of them, and the page marks it "from". One
           blank → the product's own price still applies to that variant, so it
           stays the headline.  */
-      pricePaisa: (() => {
-        const priced = p.variants.filter((v) => v.pricePaisa !== null);
-        if (p.variants.length === 0 || priced.length !== p.variants.length) {
-          return paidPaisa(money);
-        }
-        return Math.min(
-          ...priced.map((v) =>
-            paidPaisa({
-              sellingPricePaisa: v.pricePaisa!,
-              discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-              discountValue: v.discountValue,
-            }),
-          ),
-        );
-      })(),
+      /*  One expression, shared with the "You may also like" ranking above
+          (`cardPricePaisa`). It was written out twice; the copy in the rail
+          drifted and sorted a "from ৳1,200" bouquet as a ৳3,500 one.  */
+      pricePaisa: cardPricePaisa(p),
       /*  DEC-PRD-042 — the window itself, so the page can say when it ends.
           Suppressed on a "from ৳X" product: that headline is a variant's
           price, and the product's own window says nothing true about it.  */
@@ -2069,19 +2086,22 @@ export class ProductDetailService {
         isBestSeller: true,
         salesCount: true,
         tags: { where: { isActive: true, deletedAt: null }, select: { slug: true } },
+        /*  ⚠️ DEC-PRD-035, AND THIS WAS CAUGHT LIVE. Ranking read the
+            product's own price column while the CARD quotes the cheapest
+            variant — so a bouquet whose card says "from ৳1,200" was being
+            compared at its ৳3,500 column price. The number that has to be
+            close is the number the shopper can see.  */
+        variants: {
+          where: { deletedAt: null, isActive: true },
+          select: { pricePaisa: true, discountType: true, discountValue: true },
+        },
       },
     });
 
     const wanted = new Set(tagSlugs);
     const ranked = rows
       .map((r) => {
-        const price = paidPaisa({
-          sellingPricePaisa: r.sellingPricePaisa,
-          discountType: r.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-          discountValue: r.discountValue,
-          discountStartsAt: r.discountStartsAt,
-          discountEndsAt: r.discountEndsAt,
-        });
+        const price = cardPricePaisa(r);
         /*  Distance as a RATIO, not in taka. ৳300 apart means nothing on its
             own — it is next door to a ৳3,000 arrangement and a different
             world from a ৳400 one.  */
