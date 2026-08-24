@@ -247,6 +247,78 @@ export class SystemService {
         href: '/intelligence/kpis', exists: !!intelligence,
         what: 'Green/amber/red bands, how much history the forecast needs',
       },
+
+      /*  ── 24 Aug 2026 · the map was missing more than it listed ───────────
+          Owner: *"je niyom gula admin theke change kra jabe ba customize kra
+          jabe agula kothay khuje pabo?"*
+
+          This screen is the answer to that question, and it was answering it
+          badly. It listed eleven doors — the eleven modules that happen to
+          keep a singleton settings TABLE — while a dozen screens that set
+          real shop rules were not on it at all: what the shop charges to
+          deliver, which payment methods exist, how many bouquets the
+          workshop can make in a day, who is allowed to see what.
+
+          A settings map that shows the settings whose storage shape is
+          convenient, rather than the settings that exist, sends him looking
+          in the sidebar anyway.
+
+          ⚠️ `exists: true` on these, and that is not a lie by omission. For
+          the eleven above it means "a settings row has been written". These
+          are screens over ordinary tables — methods, zones, roles — where
+          there is no single row to be missing, so the honest answer to "is
+          it set up" is that the screen is there and it lists whatever the
+          shop has put in it.  */
+      {
+        key: 'badges', label: 'Badge rules', owner: 'Products',
+        href: '/products/badges', exists: true,
+        what: 'What earns Best seller: how much of a category, over how many days, how many real sales. And how long New arrival lasts',
+      },
+      {
+        key: 'capacity', label: 'Daily capacity', owner: 'Products',
+        href: '/products/capacity', exists: true,
+        what: 'How much the workshop can make in a day, per group — the limit checkout books against',
+      },
+      {
+        key: 'payment-methods', label: 'Payment methods', owner: 'Administration',
+        href: '/administration/payment-methods', exists: true,
+        what: 'Which ways money may be taken, and the account each one lands in. Off here is off everywhere (DEC-GBL-001)',
+      },
+      {
+        key: 'access', label: 'Access control', owner: 'Administration',
+        href: '/administration/access', exists: true,
+        what: 'Which role may open which screen, and what needs the four-digit PIN',
+      },
+      {
+        key: 'integrations', label: 'Integrations & keys', owner: 'Administration',
+        href: '/administration/integrations', exists: true,
+        what: 'Payment gateway, courier, messaging and analytics keys — and the demo/real switch on each',
+      },
+      {
+        key: 'delivery-methods', label: 'Delivery methods & slots', owner: 'Delivery',
+        href: '/delivery/zones', exists: true,
+        what: 'The 2-hour, same-day and midnight options, their zones, fees and cut-off times',
+      },
+      {
+        key: 'delivery-setup', label: 'Delivery setup', owner: 'Delivery',
+        href: '/delivery/setup', exists: true,
+        what: 'Carriers, rider rules and what the shop pays per parcel',
+      },
+      {
+        key: 'suppliers', label: 'Suppliers', owner: 'Purchases',
+        href: '/suppliers/settings', exists: true,
+        what: 'Payment terms, lead times and the defaults a new supplier starts with',
+      },
+      {
+        key: 'assembly', label: 'Assembly', owner: 'Assembly',
+        href: '/assembly/settings', exists: true,
+        what: 'How a bouquet is put together, wastage allowance, which branch assembles',
+      },
+      {
+        key: 'shop-hours', label: 'Visit the shop', owner: 'Storefront',
+        href: '/storefront/hours', exists: true,
+        what: 'Opening hours, holidays and closures — the storefront reads them and so does checkout',
+      },
     ];
   }
 }

@@ -238,12 +238,30 @@ const OWNER_META: Record<string, { label: string; icon: string; grad: string; fg
   tracking: { label: "Tracking", icon: "chart", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
   intelligence: { label: "Intelligence", icon: "bolt", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
   company: { label: "Company", icon: "store", grad: "linear-gradient(120deg,#8879a8,#b9aecf)", fg: "#8879a8" },
+  /*  24 Aug 2026 — the map now carries the screens that set shop rules
+      without keeping a singleton table of their own (delivery fees, payment
+      methods, badge rules, daily capacity, access). They needed colours.  */
+  products: { label: "Products", icon: "flower", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
+  delivery: { label: "Delivery", icon: "truck", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
+  purchases: { label: "Purchases", icon: "box", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
+  assembly: { label: "Assembly", icon: "tools", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
+  storefront: { label: "Storefront", icon: "store", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
+  administration: { label: "Administration", icon: "gear", grad: "linear-gradient(120deg,#8879a8,#b9aecf)", fg: "#8879a8" },
 };
 /* sidebar department order: today's work, sell, stock, money, growth, setup */
 const OWNER_ORDER = [
-  "pos", "returns", "offers", "inventory", "finance",
-  "marketing", "messaging", "seo", "tracking", "intelligence", "company",
+  "products", "storefront", "pos", "returns", "offers",
+  "inventory", "purchases", "assembly", "delivery", "finance",
+  "marketing", "messaging", "seo", "tracking", "intelligence",
+  "company", "administration",
 ];
+
+/*  ⚠️ The API sends the owner capitalised ("Finance", "POS"); the keys above
+    are lowercase. Every lookup was therefore missing, and every group on this
+    screen had been rendering in the same fallback purple with a gear on it
+    since the screen was built — the per-module colours existed and were never
+    once seen. Lowercased on the way in, in both places.  */
+const ownerKey = (o: string) => o.toLowerCase();
 
 export function SettingsMapScreen() {
   const [rows, setRows] = useState<ApiSettingsEntry[]>([]);
@@ -257,7 +275,7 @@ export function SettingsMapScreen() {
     (acc[r.owner] ??= []).push(r);
     return acc;
   }, {});
-  const pos = (o: string) => { const i = OWNER_ORDER.indexOf(o); return i === -1 ? 999 : i; };
+  const pos = (o: string) => { const i = OWNER_ORDER.indexOf(ownerKey(o)); return i === -1 ? 999 : i; };
   const owners = Object.keys(byOwner).sort((a, b) => pos(a) - pos(b));
   const inUse = rows.filter((r) => r.exists).length;
 
@@ -286,7 +304,7 @@ export function SettingsMapScreen() {
 
       <div className="space-y-4">
         {owners.map((owner) => {
-          const meta = OWNER_META[owner] ?? {
+          const meta = OWNER_META[ownerKey(owner)] ?? {
             label: owner.replace(/^./, (c) => c.toUpperCase()), icon: "gear",
             grad: "linear-gradient(120deg,#8a2bb0,#cf43ea)", fg: "#7a2ea8",
           };
