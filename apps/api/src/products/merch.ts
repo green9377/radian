@@ -24,12 +24,18 @@ import { PrismaService } from '../prisma/prisma.service';
     · A minimum number of real sales, so the top of a quiet category is not
       whoever happened to sell twice.
 
-    WHAT COUNTS AS A SALE. Delivered order lines only, by quantity. Not
-    `Product.salesCount`, which is a running total that includes the owner's
-    typed `salesSeed` display figures (DEC-PRD-025) — seeding a bouquet with
-    "1000 sold" to reassure a shopper must not also hand it a badge. A badge
-    is a claim about what other customers did, and it is only allowed to be
-    made out of things other customers actually did.
+    WHAT COUNTS AS A SALE. Delivered WEBSITE order lines only, by quantity.
+
+    · Not `Product.salesCount`, which is a running total that includes the
+      owner's typed `salesSeed` display figures (DEC-PRD-025) — seeding a
+      bouquet with "1000 sold" to reassure a shopper must not also hand it a
+      badge.
+    · Not counter sales. The owner's call, 24 August 2026: the website's badge
+      belongs to the website. See `soldInWindow()` for why that is now written
+      into the query instead of being true by accident.
+
+    A badge is a claim about what other customers did, and it is only allowed
+    to be made out of things other customers actually did.
 
     WHY IT IS STORED. Three grids sort by `isBestSeller`, and an aggregate
     over a whole category cannot run once per card. So `recompute()` owns the
@@ -162,7 +168,27 @@ export class MerchService {
       where: {
         deletedAt: null,
         productId: { not: null },
-        order: { deletedAt: null, deliveryStatus: 'delivered', placedAt: { gte: since } },
+        order: {
+          deletedAt: null,
+          deliveryStatus: 'delivered',
+          placedAt: { gte: since },
+          /*  ── THE COUNTER DOES NOT VOTE ─────────────────────────────────
+              Owner, 24 August 2026, asked outright whether a hundred of the
+              same bouquet sold over the counter should earn the website's
+              badge. His answer: the website's badge belongs to the website.
+
+              The counter's customer is a different person making a different
+              choice, and "Best seller" on a product page is a sentence about
+              what the people browsing THAT page chose.
+
+              ⚠️ Stated here rather than left to chance. It was already true
+              by accident — DEC-POS-018 gives a counter line an `itemId` and
+              no `productId`, so the filter above dropped them anyway. An
+              accident is not a rule: the day one POS path starts writing a
+              productId, the badge would quietly start counting walk-ins and
+              nobody would know why the numbers moved.  */
+          fulfillmentType: 'DELIVERY',
+        },
       },
       _sum: { qty: true },
     });

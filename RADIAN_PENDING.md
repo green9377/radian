@@ -24,10 +24,21 @@ Products → Badge rules:**
 | eligibility | **≥ 3 real sales** | otherwise the top of a quiet category is whoever sold twice |
 | new arrival | **21 days from going LIVE** | `publishedAt`, not `createdAt` — a bouquet drafted in March and published in August is new in August |
 
-**What counts as a sale:** delivered order lines, by quantity. NOT
-`Product.salesCount`, which carries the owner's typed display seeds
-(DEC-PRD-025). A badge is a claim about what other customers did, so it may
-only be built out of what other customers actually did.
+**What counts as a sale:** delivered **website** order lines, by quantity.
+
+- NOT `Product.salesCount` — it carries the owner's typed display seeds
+  (DEC-PRD-025), and seeding "1000 sold" to reassure a shopper must not also
+  hand the product a badge.
+- NOT counter sales. Asked outright whether a hundred of the same bouquet sold
+  over the counter should earn the website's badge, the owner said no: *"na,
+  website ar ta website a."* The counter's customer is a different person
+  making a different choice, and "Best seller" on a product page is a sentence
+  about what the people browsing that page chose. Written into the query as
+  `fulfillmentType: DELIVERY` rather than left true by accident — DEC-POS-018
+  already keeps a `productId` off counter lines, but an accident is not a rule.
+
+A badge is a claim about what other customers did, so it may only be built out
+of what other customers actually did.
 
 **Stored vs computed.** `isBestSeller` is a cache — three grids sort by it and
 an aggregate over a category cannot run per card. `MerchService.recompute()`
