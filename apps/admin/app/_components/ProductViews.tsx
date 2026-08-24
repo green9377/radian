@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { ItemThumb } from "./ItemUI";
 import { Info } from "./ItemEditor";
 import { Switch as DSwitch } from "./DeliveryUI";
 import {
@@ -11,6 +12,7 @@ import {
   formatTaka,
   genBg,
   type ApiProduct,
+  type ApiItem,
   getAddOns,
   listItems,
   listAddOnTrash,
@@ -2910,7 +2912,9 @@ export function AddonsView() {
   /** DEC-PRD-039 — which add-on is choosing its stockroom Item, and the query */
   const [itemFor, setItemFor] = useState<string | null>(null);
   const [itemQ, setItemQ] = useState("");
-  const [itemHits, setItemHits] = useState<{ id: string; sku: string; name: string }[]>([]);
+  /*  The whole Item, not three of its fields — the mugshot has to come along
+      so this list looks like every other item list (owner, 24 Aug 2026).  */
+  const [itemHits, setItemHits] = useState<ApiItem[]>([]);
 
   /*  DEC-PRD-039 — the same `listItems` search the product editor uses for a
       variant's Item, so the two screens can never disagree about what exists.  */
@@ -3705,10 +3709,13 @@ export function AddonsView() {
                     }}
                     className="flex items-center gap-3 border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
                   >
-                    <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
-                      {it.name}
+                    {/*  DEC-ITM-012 — the warehouse mugshot, the same component
+                        every other item list uses (owner, 24 Aug 2026).  */}
+                    <ItemThumb item={{ sku: it.sku, name: it.name, imageUrl: it.imageUrl }} size={30} />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[13px] text-purple font-bold truncate">{it.name}</span>
+                      <span className="block text-[12px] text-body-soft font-mono">{it.sku}</span>
                     </span>
-                    <span className="text-[13px] text-body-soft font-mono">{it.sku}</span>
                   </button>
                 ))}
               </div>

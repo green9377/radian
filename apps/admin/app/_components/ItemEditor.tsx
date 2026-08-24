@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
+import ProductThumb from "./ProductThumb";
 import {
   WRAP, ACCENT, msg, ErrBar, OkBar, ItemThumb, QuickSelect, Modal, Field,
 } from "./ItemUI";
@@ -1986,8 +1987,15 @@ function UsagePanel({ itemId, item }: { itemId: string; item: ApiItem }) {
               Behind {products.length} product{products.length === 1 ? "" : "s"}
             </div>
             <div className="flex flex-col gap-1">
+              {/*  The tinted tile, not a bare line — the same shape every
+                  other product list has (owner, 24 Aug 2026). No photo comes
+                  down this endpoint, so the tile is the honest answer here
+                  rather than a broken image.  */}
               {products.map((p) => (
-                <span key={p.id} className="text-body truncate">{p.name}</span>
+                <span key={p.id} className="flex items-center gap-2 min-w-0">
+                  <ProductThumb slug={p.slug} size={22} />
+                  <span className="text-body truncate">{p.name}</span>
+                </span>
               ))}
             </div>
           </div>

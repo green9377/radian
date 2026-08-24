@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import ProductThumb from "./ProductThumb";
 import {
   ApiOffer,
   ApiOfferAnalytics,
@@ -424,7 +425,17 @@ export function OfferEditorLive({ id }: { id: string }) {
                 {prodOpts.length > 0 && (
                   <div className="mt-1 border border-lavender-deep rounded-[12px] bg-white shadow-soft max-w-[320px] overflow-hidden">
                     {prodOpts.map((p) => (
-                      <button key={p.id} onClick={() => { if (!form.productIds.includes(p.id)) { set({ productIds: [...form.productIds, p.id] }); setProdNames((n) => ({ ...n, [p.id]: p.name })); } setProdQ(""); }} className="block w-full text-left text-[13px] px-3 py-2 hover:bg-lavender/60">{p.name}</button>
+                      <button
+                        key={p.id}
+                        onClick={() => { if (!form.productIds.includes(p.id)) { set({ productIds: [...form.productIds, p.id] }); setProdNames((n) => ({ ...n, [p.id]: p.name })); } setProdQ(""); }}
+                        className="flex w-full items-center gap-2.5 text-left text-[13px] px-3 py-2 hover:bg-lavender/60"
+                      >
+                        {/*  The photo, like every other product list (owner,
+                            24 Aug 2026) — picking the right bouquet out of six
+                            similar names is guesswork without it.  */}
+                        <ProductThumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={28} />
+                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                      </button>
                     ))}
                   </div>
                 )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "./Icon";
+import ProductThumb from "./ProductThumb";
 import SaveBar, { type SaveState } from "./SaveBar";
 import { ModuleCard, ModuleHeader, StatTiles } from "./ModuleShell";
 import {
@@ -848,8 +849,11 @@ function ProductPicker({ value, onPick }: { value: { id: string; name: string } 
         <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border border-lavender-deep rounded-[12px] shadow-lg overflow-hidden max-h-[260px] overflow-y-auto">
           {hits.map((p) => (
             <button key={p.id} onClick={() => { onPick({ id: p.id, name: p.name }); setOpenList(false); setQ(""); }}
-              className="w-full px-3 py-2 text-left text-[12.5px] text-purple hover:bg-lavender/40 transition-colors truncate block">
-              {p.name}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[12.5px] text-purple hover:bg-lavender/40 transition-colors">
+              {/*  The photo, like the customer picker just above and every
+                  other product list (owner, 24 Aug 2026).  */}
+              <ProductThumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={28} />
+              <span className="min-w-0 flex-1 truncate">{p.name}</span>
             </button>
           ))}
         </div>

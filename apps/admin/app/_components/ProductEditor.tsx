@@ -15,6 +15,9 @@ import { ItemThumb } from "./ItemUI";
 import Icon from "./Icon";
 import BundleEditor from "./BundleEditor";
 import CraftEditor from "./CraftEditor";
+/*  One thumbnail component, so a product is never listed as a grey square
+    while its photo sits in the database (owner, 24 Aug 2026).  */
+import ProductThumb from "./ProductThumb";
 import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
 import {
   createProduct,
@@ -5958,6 +5961,7 @@ No bundle products yet — add them on{" "}
                               key={p.id}
                               className="flex items-center gap-2.5 bg-white border border-lavender-deep rounded-[10px] px-2.5 py-2"
                             >
+                              <ProductThumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={30} />
                               <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
                                 {p.name}
                               </span>
@@ -6014,7 +6018,7 @@ No bundle products yet — add them on{" "}
                               onClick={() => setPendingBundles((cur) => [...cur, x])}
                               className="flex items-center gap-3 bg-white border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
                             >
-                              <span className="w-[30px] h-[30px] rounded-[8px] bg-lavender border border-lavender-deep shrink-0" />
+                              <ProductThumb slug={x.slug} imageUrl={x.images?.[0]?.url} size={30} />
                               <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">
                                 {x.name}
                               </span>
@@ -6041,7 +6045,7 @@ No bundle products yet — add them on{" "}
                   <div className="flex flex-col gap-2 mb-3">
                     {[...myUpgrades, ...pendingUp].map((u) => (
                       <div key={u.id} className="flex items-center gap-3 bg-lavender/50 rounded-[11px] px-3 py-2.5">
-                        <span className="w-[30px] h-[30px] rounded-[8px] bg-white border border-lavender-deep shrink-0" />
+                        <ProductThumb slug={u.slug} imageUrl={u.images?.[0]?.url} size={30} />
                         <span className="text-[13.5px] text-purple font-medium flex-1 min-w-0 truncate">{u.name}</span>
                         {pendingUp.some((x) => x.id === u.id) && (
                           <span className="text-[10px] font-bold uppercase bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-1.5 py-0.5 rounded-full">links on save</span>
@@ -6090,7 +6094,7 @@ No bundle products yet — add them on{" "}
                             onClick={() => linkUpgrade(x)}
                             className="flex items-center gap-3 bg-white border border-lavender-deep rounded-[10px] px-2.5 py-2 hover:border-orchid text-left"
                           >
-                            <span className="w-[30px] h-[30px] rounded-[8px] bg-lavender border border-lavender-deep shrink-0" />
+                            <ProductThumb slug={x.slug} imageUrl={x.images?.[0]?.url} size={30} />
                             <span className="flex-1 min-w-0 text-[13px] text-purple font-medium truncate">{x.name}</span>
                             <span className="text-[13px] text-body-soft font-mono">{x.sku ?? "—"}</span>
                             <span className="text-[13px] text-body-soft">{formatTaka(x.offerPricePaisa)}</span>
