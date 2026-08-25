@@ -2824,6 +2824,15 @@ model OrderLine {
 
   productType ProductType // per-line readymade/crafted (reuse enum)
   qty         Int
+  /// DEC-POS-024 — the unit this line was SOLD in (item's own unit or its
+  /// direct base, nothing else) and the qty already converted to the item's
+  /// counting unit in thousandths, snapshotted at sale time. Same discipline
+  /// as the purchase factorSnapshot (PUR-R03): if a conversion is edited
+  /// later, an old receipt must not re-interpret how much stock it took.
+  /// null = sold in the item's own unit (and every line before this existed).
+  unitId       String?
+  unitLabel    String?
+  unitQtyMilli Int?
   unitPaisa   Int
   linePaisa   Int
   discountPaisa Int     @default(0) // per-line discount (edit, audited)

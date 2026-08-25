@@ -36,6 +36,13 @@ export interface PosSaleLineDto {
   productId?: string; // legacy — a website product sold at the counter
   qty: number;
   unitPaisa?: number; // override; else the item's counter price
+  /**
+   * DEC-POS-024 — the unit this line is sold in. Only the item's own unit or
+   * its DIRECT base is accepted (the same two the dropdown offers, DEC-PUR-013
+   * mirrored to the counter). Omitted = the item's own unit. `qty` and
+   * `unitPaisa` are both in THIS unit; stock converts by the exact factor.
+   */
+  unitId?: string;
 }
 
 export interface PosPaymentDto {

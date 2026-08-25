@@ -31,6 +31,15 @@ API: `items.service.ts` guard + `inventory.restateUnitDenomination` +
 confirm flow; PurchaseNewView two-option dropdown. Selftest: items
 selftest section 11 walks all three steps.
 
+- **DEC-POS-024** — the SAME two options on the POS bill: a Unit column
+  per line (item's unit or its base; single word when there is no base).
+  Switching rescales the shown price by the exact factor; floor, cost
+  warning and the stock cap all follow the chosen unit. `OrderLine` gains
+  `unitId / unitLabel / unitQtyMilli` — the qty converted to the item's
+  counting unit, snapshotted at sale time (PUR-R03's twin), and stock
+  deduction, advance hand-over, cancel revert and sale-return restock all
+  read the snapshot, never re-derive. Migration `20260826040000_pos_line_unit`.
+
 ---
 
 ## ✅ DEC-SAL-012 — cancelling: the stock rule is settled, the money rule is not (25 Aug)

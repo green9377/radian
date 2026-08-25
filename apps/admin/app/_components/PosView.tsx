@@ -54,6 +54,12 @@ interface CartLine {
    * typed over; the item's floor is the only wall.
    */
   unitPaisa: number;
+  /**
+   * DEC-POS-024 — the unit this line is sold in: the item's own unit or its
+   * direct base, the same two the purchase bill offers (DEC-PUR-013). Price,
+   * qty, floor and the stock cap all read in THIS unit.
+   */
+  unitId: string | null;
 }
 interface HeldCart {
   id: string;
@@ -129,11 +135,24 @@ export default function PosSellView() {
 
   // ---- cart ----
   const [lines, setLines] = useState<CartLine[]>([]);
-  /** how many of this item are already in the cart — the shelf has to cover them all */
-  const inCart = (id: string) => lines.find((l) => l.product.id === id)?.qty ?? 0;
+  /*  DEC-POS-024 — how many of the item's OWN unit one line-unit weighs, as a
+      divisor: 1 in the item's unit, baseQty when selling by the base.  */
+  const factorOf = (l: { product: ApiPosCatalogueRow; unitId: string | null }) =>
+    l.unitId && l.product.baseUnitId && l.unitId === l.product.baseUnitId ? (l.product.baseQty ?? 1) : 1;
+  /** stock cap in the line's OWN unit (base units get factor x as many) */
+  const capOf = (l: { product: ApiPosCatalogueRow; unitId: string | null }) =>
+    l.product.stockQty === null ? null : Math.max(0, l.product.stockQty) * factorOf(l);
+
+  /** what the cart already holds of this item, in the ITEM's own unit (milli) —
+      a line sold by the base only weighs its fraction (DEC-POS-024) */
+  const inCartMilli = (id: string) =>
+    lines
+      .filter((l) => l.product.id === id)
+      .reduce((n, l) => n + Math.round((l.qty * 1000) / factorOf(l)), 0);
+  const inCart = (id: string) => Math.round(inCartMilli(id) / 1000);
   /** POS-R14 — the counter cannot sell what is not on the shelf */
   const canAdd = (p: ApiPosCatalogueRow, extra = 1) =>
-    p.stockQty === null || inCart(p.id) + extra <= p.stockQty;
+    p.stockQty === null || inCartMilli(p.id) + extra * 1000 <= p.stockQty * 1000;
 
   const add = (p: ApiPosCatalogueRow) =>
     setLines((ls) => {
@@ -143,7 +162,7 @@ export default function PosSellView() {
         return ls.map((l) => (l.product.id === p.id ? { ...l, qty: l.qty + 1 } : l));
       }
       if (!canAdd(p)) return ls;
-      return [...ls, { key: `${p.id}-${Date.now()}`, product: p, qty: 1, unitPaisa: p.pricePaisa ?? 0 }];
+      return [...ls, { key: `${p.id}-${Date.now()}`, product: p, qty: 1, unitPaisa: p.pricePaisa ?? 0, unitId: p.unitId }];
     });
   /*  From the picker, the item is known by product, not by line key — and 0
       means "take it off the bill" so a mis-tap can be undone where it
@@ -153,8 +172,8 @@ export default function PosSellView() {
       ? ls.filter((l) => l.product.id !== id)
       : ls.map((l) => {
           if (l.product.id !== id) return l;
-          const cap = l.product.stockQty === null ? qty : Math.min(qty, l.product.stockQty);
-          return { ...l, qty: cap };
+          const shelf = capOf(l); // in the line's own unit (DEC-POS-024)
+          return { ...l, qty: shelf === null ? qty : Math.min(qty, shelf) };
         })));
 
   const setQty = (key: string, qty: number) =>
@@ -162,9 +181,23 @@ export default function PosSellView() {
       ls.map((l) => {
         if (l.key !== key) return l;
         const want = Math.max(1, qty);
-        // never past the shelf (a service has no shelf, so it is never capped)
-        const cap = l.product.stockQty === null ? want : Math.min(want, Math.max(1, l.product.stockQty));
-        return { ...l, qty: cap };
+        // never past the shelf, measured in the line's own unit (a service is never capped)
+        const shelf = capOf(l);
+        return { ...l, qty: shelf === null ? want : Math.min(want, Math.max(1, shelf)) };
+      }),
+    );
+  /*  switching the unit rescales the price the same way the shop would say it:
+      per stick <-> per pice by the exact factor. The cashier can still type
+      any price after (POS-R15); the floor check follows the chosen unit.  */
+  const setLineUnit = (key: string, unitId: string) =>
+    setLines((ls) =>
+      ls.map((l) => {
+        if (l.key !== key || l.unitId === unitId) return l;
+        const from = factorOf(l);
+        const to = factorOf({ ...l, unitId });
+        const unitPaisa = Math.round((l.unitPaisa * from) / to);
+        const shelf = capOf({ ...l, unitId });
+        return { ...l, unitId, unitPaisa, qty: shelf === null ? l.qty : Math.min(l.qty, Math.max(1, shelf)) };
       }),
     );
   const setUnit = (key: string, unitPaisa: number) =>
@@ -385,7 +418,7 @@ export default function PosSellView() {
         salespersonName: soldBy || undefined,
         note: note.trim() || undefined,
         advance: advanceFor ? { promisedFor: new Date(`${advanceFor}T12:00:00`).toISOString() } : undefined,
-        lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa })),
+        lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa, unitId: l.unitId ?? undefined })),
         discountPaisa,
         discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
         adjustmentPaisa,
@@ -562,14 +595,22 @@ export default function PosSellView() {
         {/*  THIS BILL — the page itself, exactly like a purchase bill: an empty
              table with one door, "Add items". The purple panel carries money only.  */}
         <div className={cardCls + " overflow-hidden"}>
-          <div className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
-            <span>Item</span><span>Price ৳/unit</span><span className="text-center">Qty</span><span className="text-right">Total</span><span />
+          <div className="grid grid-cols-[minmax(0,1fr)_110px_104px_128px_100px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+            <span>Item</span><span>Price ৳/unit</span><span className="text-center">Unit</span><span className="text-center">Qty</span><span className="text-right">Total</span><span />
           </div>
           {lines.length === 0 ? (
             <div className="px-4 py-8 text-center text-[13px] text-body-soft">Nothing on this bill yet — press <b className="text-purple">Add items</b> and pick from your shelf.</div>
           ) : (
-            lines.map((l) => (
-              <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_120px_128px_110px_40px] gap-3 items-center px-4 py-2.5 border-t border-lavender-deep">
+            lines.map((l) => {
+            /*  DEC-POS-024 — the wall and the warning follow the unit the line is
+                sold in: floor and cost per base = per item-unit / factor  */
+            const f = factorOf(l);
+            const floorLine = l.product.floorPricePaisa == null ? null
+              : f === 1 ? l.product.floorPricePaisa : Math.ceil(l.product.floorPricePaisa / f);
+            const costLine = l.product.costPaisa === undefined ? undefined
+              : f === 1 ? l.product.costPaisa : Math.round(l.product.costPaisa / f);
+            return (
+              <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_110px_104px_128px_100px_40px] gap-3 items-center px-4 py-2.5 border-t border-lavender-deep">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-[30px] h-[30px] rounded-[8px] shrink-0"
                     style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
@@ -590,28 +631,43 @@ export default function PosSellView() {
                 <div>
                   <TakaInput className="ipt h-[34px] text-[13px] text-right"
                     valuePaisa={l.unitPaisa}
-                    placeholder={String((l.product.pricePaisa ?? 0) / 100)}
+                    placeholder={String(Math.round((l.product.pricePaisa ?? 0) / f) / 100)}
                     onPaisa={(pz) => setUnit(l.key, pz)} />
-                  {l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa && (
-                    <div className="text-[11px] text-[#c0392b] mt-0.5">min {formatTaka(l.product.floorPricePaisa)}</div>
+                  {floorLine != null && l.unitPaisa < floorLine && (
+                    <div className="text-[11px] text-[#c0392b] mt-0.5">min {formatTaka(floorLine)}</div>
                   )}
                   {/*  POS-R16 (owner, 21 Aug) — selling under what it cost is
                        allowed, but it must never happen quietly. The floor is
                        still the only wall; this is the shop's own warning.  */}
-                  {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && l.unitPaisa > 0
-                    && l.unitPaisa < l.product.costPaisa
-                    && !(l.product.floorPricePaisa != null && l.unitPaisa < l.product.floorPricePaisa) && (
+                  {costLine !== undefined && costLine > 0 && l.unitPaisa > 0
+                    && l.unitPaisa < costLine
+                    && !(floorLine != null && l.unitPaisa < floorLine) && (
                     <div className="text-[11px] text-[#b45309] mt-0.5">
-                      under cost by {formatTaka(l.product.costPaisa - l.unitPaisa)}
+                      under cost by {formatTaka(costLine - l.unitPaisa)}
                     </div>
                   )}
                 </div>
 
+                {/*  DEC-POS-024 — sold by the item's unit or its base, the same two
+                    the purchase bill offers. One unit with no base = plain word.  */}
+                <div className="text-center">
+                  {l.product.baseUnitId ? (
+                    <select className="ipt h-[34px] text-[12.5px] font-semibold text-purple w-full"
+                      value={l.unitId ?? l.product.unitId ?? ""}
+                      onChange={(e) => setLineUnit(l.key, e.target.value)}>
+                      {l.product.unitId && <option value={l.product.unitId}>{l.product.unitName}</option>}
+                      <option value={l.product.baseUnitId}>{l.product.baseUnitName}</option>
+                    </select>
+                  ) : (
+                    <span className="text-[12.5px] font-medium text-body-soft">{l.product.unitName ?? "—"}</span>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-center">
-                  {/*  max = the shelf, so typing 40 when 9 are left stops at 9
-                       instead of being silently corrected after the fact.  */}
+                  {/*  max = the shelf in the line's OWN unit (base units get
+                       factor x as many), so typing past it stops at the wall  */}
                   <QtyStepper size="sm" value={l.qty} onChange={(n) => setQty(l.key, n)}
-                    min={1} max={l.product.stockQty ?? undefined} />
+                    min={1} max={capOf(l) ?? undefined} />
                 </div>
 
                 <div className="text-right text-[13.5px] font-semibold text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -623,7 +679,8 @@ export default function PosSellView() {
                   <Icon name="trash" size={15} />
                 </button>
               </div>
-            ))
+            );
+            })
           )}
           <button type="button" onClick={() => setPickerOpen(true)}
             className="w-full text-left px-4 py-3 border-t border-lavender-deep text-purple font-medium text-[13.5px] inline-flex items-center gap-2 hover:bg-lavender/40">

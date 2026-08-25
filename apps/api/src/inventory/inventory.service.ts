@@ -730,7 +730,15 @@ export class InventoryService {
      * DEC-POS-018 — a line is either a website Product (stock is found through
      * `Product.itemId`) or, at the counter, the Item itself. Exactly one is set.
      */
-    lines: { productId?: string | null; itemId?: string | null; qty: number }[];
+    lines: {
+      productId?: string | null;
+      itemId?: string | null;
+      qty: number;
+      /** DEC-POS-024 — qty already converted to the ITEM's counting unit
+       *  (milli) when the line was sold in a different unit of the family.
+       *  Absent = qty is in the item's own unit, as it always was. */
+      qtyMilliOverride?: number;
+    }[];
   }): Promise<{ posted: number; skipped: string[] }> {
     const warehouseId = await this.saleWarehouseId();
     const drafts: MovementDraft[] = [];
@@ -783,7 +791,7 @@ export class InventoryService {
           const lineFactor = await this.resolveRootFactor(c.unitId);
           const compFactor = await this.resolveRootFactor(comp.unitId);
           const perOneMilli = Math.round((c.qtyMilli * lineFactor) / Math.max(compFactor, 1));
-          const qtyMilli = perOneMilli * l.qty;
+          const qtyMilli = Math.round((perOneMilli * (l.qtyMilliOverride ?? l.qty * 1000)) / 1000);
           if (qtyMilli <= 0) continue;
           drafts.push({
             itemId: comp.id,
@@ -798,7 +806,9 @@ export class InventoryService {
           });
         }
       } else {
-        const qtyMilli = l.qty * 1000; // one product unit = one item unit (DEC-ITM-002)
+        // one product unit = one item unit (DEC-ITM-002); a POS line sold by the
+        // base unit arrives pre-converted (DEC-POS-024)
+        const qtyMilli = l.qtyMilliOverride ?? l.qty * 1000;
         drafts.push({
           itemId: item.id,
           warehouseId,
@@ -933,7 +943,14 @@ export class InventoryService {
         method only ever spoke Product, so a returned counter item was silently
         never restocked: the return completed, the money went back, the shelf
         stayed empty. A line may now name EITHER.  */
-    lines: { productId?: string | null; itemId?: string | null; qty: number }[];
+    lines: {
+      productId?: string | null;
+      itemId?: string | null;
+      qty: number;
+      /** DEC-POS-024 — qty pre-converted to the item's counting unit (milli)
+       *  when the SOLD line was in a base unit; absent = item's own unit. */
+      qtyMilliOverride?: number;
+    }[];
   }): Promise<{ posted: number; skipped: string[] }> {
     const warehouseId = await this.saleWarehouseId();
     const drafts: MovementDraft[] = [];
@@ -984,7 +1001,7 @@ export class InventoryService {
           const lineFactor = await this.resolveRootFactor(c.unitId);
           const compFactor = await this.resolveRootFactor(comp.unitId);
           const perOneMilli = Math.round((c.qtyMilli * lineFactor) / Math.max(compFactor, 1));
-          const qtyMilli = perOneMilli * l.qty;
+          const qtyMilli = Math.round((perOneMilli * (l.qtyMilliOverride ?? l.qty * 1000)) / 1000);
           if (qtyMilli <= 0) continue;
           drafts.push({
             itemId: comp.id,
@@ -999,7 +1016,8 @@ export class InventoryService {
           });
         }
       } else {
-        const qtyMilli = l.qty * 1000; // one product unit = one item unit (DEC-ITM-002)
+        // DEC-ITM-002; a line sold by the base unit comes back pre-converted (DEC-POS-024)
+        const qtyMilli = l.qtyMilliOverride ?? l.qty * 1000;
         drafts.push({
           itemId: item.id,
           warehouseId,

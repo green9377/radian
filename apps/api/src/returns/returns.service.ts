@@ -438,6 +438,25 @@ export class ReturnsService {
     return updated;
   }
 
+
+  /*  DEC-POS-024 — a counter line sold by the base unit took a FRACTION of the
+      item's counting unit off the shelf; putting `qty` back whole would grow
+      stock out of thin air. The order line's snapshot says how much one sold
+      unit really weighed; the same share goes back.  */
+  private async unitOverrides(lines: { orderLineId: string; qty: number }[]) {
+    const ids = [...new Set(lines.map((l) => l.orderLineId))];
+    if (!ids.length) return new Map<string, number>();
+    const rows = await this.prisma.db.orderLine.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, qty: true, ...({ unitQtyMilli: true } as object) },
+    });
+    const out = new Map<string, number>();
+    for (const r of rows as { id: string; qty: number; unitQtyMilli?: number | null }[]) {
+      if (r.unitQtyMilli != null && r.qty > 0) out.set(r.id, r.unitQtyMilli / r.qty);
+    }
+    return out; // orderLineId -> milli per ONE sold unit
+  }
+
   /* ============================ complete (execute) ============================ */
 
   /**
@@ -460,9 +479,15 @@ export class ReturnsService {
     });
     if (already > 0) return { posted: 0, skipped: [], already };
 
+    const perOne = await this.unitOverrides(r.lines);
     const lines = r.lines
       .filter((l) => l.restockAction === ReturnRestockAction.RESTOCK)
-      .map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty }))
+      .map((l) => ({
+        productId: l.productId ?? null,
+        itemId: (l as { itemId?: string | null }).itemId ?? null,
+        qty: l.qty,
+        qtyMilliOverride: perOne.has(l.orderLineId) ? Math.round(perOne.get(l.orderLineId)! * l.qty) : undefined,
+      }))
       .filter((l) => !!l.productId || !!l.itemId);
     if (!lines.length) return { posted: 0, skipped: [], already: 0 };
 
@@ -492,9 +517,15 @@ export class ReturnsService {
         the flow). Website lines come back by their Product, counter lines by the
         Item itself (owner, 21 Aug: a completed counter return never reached the
         shelf, because only the Product path existed).  */
+    const perOne = await this.unitOverrides(r.lines);
     const restockLines = r.lines
       .filter((l) => l.restockAction === ReturnRestockAction.RESTOCK)
-      .map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty }))
+      .map((l) => ({
+        productId: l.productId ?? null,
+        itemId: (l as { itemId?: string | null }).itemId ?? null,
+        qty: l.qty,
+        qtyMilliOverride: perOne.has(l.orderLineId) ? Math.round(perOne.get(l.orderLineId)! * l.qty) : undefined,
+      }))
       .filter((l) => !!l.productId || !!l.itemId);
     if (restockLines.length) {
       try {

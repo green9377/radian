@@ -400,11 +400,11 @@ export class PosService {
       },
       select: {
         id: true, sku: true, name: true, imageUrl: true, itemType: true,
-        isStockTracked: true,
+        isStockTracked: true, unitId: true,
         costMode: true, standardCostPaisa: true, computedCostPaisa: true,
         minMarginBp: true, minMarginPaisa: true,
         itemCategory: { select: { id: true, name: true } },
-        unit: { select: { name: true, shortCode: true, baseQty: true, baseUnit: { select: { name: true } } } },
+        unit: { select: { name: true, shortCode: true, baseQty: true, baseUnit: { select: { id: true, name: true } } } },
         ...({ sellingPricePaisa: true, markupBp: true } as object),
       },
       orderBy: { name: 'asc' },
@@ -439,6 +439,10 @@ export class PosService {
         imageUrl: it.imageUrl,
         itemType: it.itemType,
         unitName: it.unit?.name ?? null,
+        unitId: it.unitId ?? null,
+        baseUnitId: it.unit?.baseUnit?.id ?? null,
+        baseUnitName: it.unit?.baseUnit?.name ?? null,
+        baseQty: it.unit?.baseUnit ? Math.max(it.unit.baseQty, 1) : null,
         /*  the conversion, spelled out — "1 Stick = 4 Pice". The counter sells in
             the item's unit; the cashier should not have to remember what that
             unit breaks into (owner, 26 Aug: "unit a thakle tar base o dekha
@@ -491,7 +495,8 @@ export class PosService {
           where: { id: { in: itemIds } },
           select: {
             id: true, name: true, isSaleable: true, isActive: true, itemType: true,
-            isStockTracked: true,
+            isStockTracked: true, unitId: true,
+            unit: { select: { id: true, name: true, baseQty: true, baseUnit: { select: { id: true, name: true } } } },
             standardCostPaisa: true, computedCostPaisa: true, costMode: true,
             minMarginBp: true, minMarginPaisa: true,
             ...({ sellingPricePaisa: true, markupBp: true } as object),
@@ -499,6 +504,20 @@ export class PosService {
         })
       : [];
     const iMap = new Map(items.map((i) => [i.id, i as typeof i & { sellingPricePaisa?: number | null; markupBp?: number | null }]));
+
+    /*  DEC-POS-024 — a line may be sold in the item's own unit or its DIRECT
+        base, nothing else (the counter mirror of DEC-PUR-013). Returns the
+        divisor to the item's own unit: 1, or the unit's baseQty.  */
+    const lineUnitFactor = (l: { itemId?: string; unitId?: string }): number => {
+      if (!l.itemId || !l.unitId) return 1;
+      const it = iMap.get(l.itemId);
+      if (!it) return 1;
+      if (l.unitId === it.unitId) return 1;
+      if (it.unit?.baseUnit && l.unitId === it.unit.baseUnit.id) return Math.max(it.unit.baseQty, 1);
+      throw new BadRequestException(
+        `"${it.name}" is counted in ${it.unit?.name ?? 'its own unit'}${it.unit?.baseUnit ? ` and may also be sold by the ${it.unit.baseUnit.name}` : ''} — nothing else can go on this line (DEC-POS-024)`,
+      );
+    };
     const defaultMarkupBp = itemIds.length ? await this.itemMarkupBp() : 2000;
 
     const products = productIds.length
@@ -514,9 +533,13 @@ export class PosService {
         ALLOW_WARN, so a bouquet can still be promised for tomorrow); a customer
         standing at the till cannot walk out with air. Services are not counted.  */
     if (itemIds.length) {
-      const wanted = new Map<string, number>();
+      /*  in item-unit MILLI — a line sold by the base unit only weighs its
+          fraction of the counting unit (2 Pice of a 4-Pice Stick = 500)  */
+      const wantedMilli = new Map<string, number>();
       for (const l of dto.lines) {
-        if (l.itemId) wanted.set(l.itemId, (wanted.get(l.itemId) ?? 0) + Math.max(0, l.qty ?? 0));
+        if (!l.itemId) continue;
+        const f = lineUnitFactor(l);
+        wantedMilli.set(l.itemId, (wantedMilli.get(l.itemId) ?? 0) + Math.round((Math.max(0, l.qty ?? 0) * 1000) / f));
       }
       const tracked = items.filter((i) => i.isStockTracked);
       if (tracked.length) {
@@ -525,13 +548,13 @@ export class PosService {
           where: { itemId: { in: tracked.map((i) => i.id) } },
           _sum: { qtyMilli: true },
         });
-        const onHand = new Map(held.map((h) => [h.itemId, Math.floor((h._sum.qtyMilli ?? 0) / 1000)]));
+        const onHand = new Map(held.map((h) => [h.itemId, h._sum.qtyMilli ?? 0]));
         const short = tracked
-          .map((i) => ({ name: i.name, want: wanted.get(i.id) ?? 0, have: onHand.get(i.id) ?? 0 }))
+          .map((i) => ({ name: i.name, unit: i.unit?.name ?? '', want: wantedMilli.get(i.id) ?? 0, have: onHand.get(i.id) ?? 0 }))
           .filter((x) => x.want > x.have);
         if (short.length) {
           throw new BadRequestException(
-            `not enough stock: ${short.map((x) => `${x.name} (want ${x.want}, have ${x.have})`).join('; ')}`,
+            `not enough stock: ${short.map((x) => `${x.name} (want ${x.want / 1000} ${x.unit}, have ${x.have / 1000} ${x.unit})`.trim()).join('; ')}`,
           );
         }
       }
@@ -553,7 +576,12 @@ export class PosService {
           it.costMode === 'AUTO' ? (it.computedCostPaisa ?? it.standardCostPaisa) : it.standardCostPaisa;
         const markupBp = it.markupBp ?? defaultMarkupBp;
         const auto = cost > 0 ? Math.round(cost * (1 + markupBp / 10_000)) : null;
-        const listed = it.sellingPricePaisa ?? auto;
+        /*  DEC-POS-024 — everything money below is PER THE CHOSEN UNIT. Selling
+            by the base divides the listed price and the floor by the exact
+            factor (floor rounds UP — a floor that rounds down leaks margin).  */
+        const factor = lineUnitFactor(l);
+        const listedOwn = it.sellingPricePaisa ?? auto;
+        const listed = listedOwn == null ? null : factor === 1 ? listedOwn : Math.round(listedOwn / factor);
         const unitPaisa = l.unitPaisa ?? listed ?? 0;
         if (unitPaisa <= 0) {
           throw new BadRequestException(
@@ -562,16 +590,18 @@ export class PosService {
         }
         /*  DEC-ITM-018 — the floor is the whole point of the floor: the till may
             haggle, but never under what the owner said he would accept.  */
-        const floor = it.minMarginBp
+        const floorOwn = it.minMarginBp
           ? Math.round(cost * (1 + it.minMarginBp / 10_000))
           : it.minMarginPaisa
             ? cost + it.minMarginPaisa
             : null;
+        const floor = floorOwn == null ? null : factor === 1 ? floorOwn : Math.ceil(floorOwn / factor);
         if (floor !== null && unitPaisa < floor) {
           throw new BadRequestException(
             `"${it.name}" cannot be sold under ${(floor / 100).toFixed(2)} — that is its minimum`,
           );
         }
+        const soldUnit = factor === 1 ? it.unit : it.unit?.baseUnit ?? null;
         /*  cast: the generated client on a machine that has not run BUILD_CHECK.bat
             still thinks a line must have a product (DEC-POS-018 made it optional)  */
         return {
@@ -581,6 +611,13 @@ export class PosService {
           // a counter line is what it is; the enum only exists for website products
           productType: 'READYMADE' as ProductType,
           qty: l.qty,
+          /*  DEC-POS-024 snapshots — the receipt's unit wording and the qty in
+              the item's own counting unit, fixed at sale time (PUR-R03 twin)  */
+          ...({
+            unitId: soldUnit?.id ?? null,
+            unitLabel: soldUnit?.name ?? null,
+            unitQtyMilli: Math.round((l.qty * 1000) / factor),
+          } as object),
           unitPaisa,
           linePaisa: unitPaisa * l.qty,
           discountPaisa: 0,
@@ -786,7 +823,7 @@ export class PosService {
 
     // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
     if (!isAdvance) try {
-      const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty })) });
+      const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty, qtyMilliOverride: l.itemId ? Math.round((l.qty * 1000) / lineUnitFactor(l)) : undefined })) });
       if (r.skipped.length) {
         await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
       }
@@ -906,7 +943,7 @@ export class PosService {
     const actorName = dto.actorName ?? 'Cashier';
     const o = await this.prisma.db.order.findFirst({
       where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER },
-      include: { lines: { select: { productId: true, qty: true, ...({ itemId: true } as object) } } },
+      include: { lines: { select: { productId: true, qty: true, ...({ itemId: true, unitQtyMilli: true } as object) } } },
     });
     if (!o) throw new NotFoundException('advance order not found');
     if (o.salesStatus !== SalesStatus.placed) throw new BadRequestException('this order has already been handed over');
@@ -929,7 +966,13 @@ export class PosService {
     try {
       const r = await this.inventory.postSaleForOrder({
         orderId: o.id, orderNo: o.orderNo, actor: actorName, direction: -1,
-        lines: o.lines.map((l) => ({ productId: l.productId ?? null, itemId: (l as { itemId?: string | null }).itemId ?? null, qty: l.qty })),
+        lines: o.lines.map((l) => ({
+          productId: l.productId ?? null,
+          itemId: (l as { itemId?: string | null }).itemId ?? null,
+          qty: l.qty,
+          // DEC-POS-024 — the snapshot decides how much stock leaves, not the qty
+          qtyMilliOverride: (l as { unitQtyMilli?: number | null }).unitQtyMilli ?? undefined,
+        })),
       });
       if (r.skipped.length) {
         await this.audit.event({ entityType: 'Order', entityId: o.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
