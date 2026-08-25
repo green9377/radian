@@ -385,27 +385,21 @@ function sellableLineOf(p) {
       else bad(`variant deduction went wrong (prepare ${p.status}, stock ${vBefore} -> ${vNow})`);
       await call('POST', `/orders/${r.json.orderId}/cancel`, { reason: 'regression' }, true);
       const vBack = await readVariant();
-      /*  ⚠️ THIS TEST WAS ASSERTING AN ANSWER NOBODY HAS GIVEN — 25 Aug 2026.
+      /*  DEC-SAL-012 — the owner ruled on 25 Aug 2026, so this is a hard
+          assertion again, and it now asserts the RIGHT thing:
 
-          It demanded that cancel always put the stock back. That is a LOCKED
-          rule for a readymade line and it holds. For a CRAFTED line the code
-          deliberately does not restore (`orders.service.ts`, the cancel
-          transaction checks `productType === READYMADE`), and the reasoning
-          is defensible: once the workshop has started, the flowers are cut.
-          It is the same logic that forfeits the advance two lines above.
+            readymade — picked off a shelf, untouched, so it goes back
+            crafted   — the stems are cut, so the number stays down
 
-          But it has never been written down as a decision, and it is not the
-          suite's place to invent one — so this reports the crafted case and
-          leaves the ruling to the owner. Once he rules, turn this back into a
-          hard assertion either way.  */
+          It used to demand a restore from both and called the crafted case a
+          broken rule. It was the test that was wrong.  */
       const craftedLine = variantProduct.productType === 'CRAFTED';
-      if (vBack === vBefore) {
-        ok(`cancel restored the variant: ${vNow} -> ${vBack}`);
-      } else if (craftedLine && vBack === vNow) {
-        console.log(`  \x1b[33mNOTE\x1b[0m  made-to-order line: cancel did NOT put the stock back (${vNow}). ` +
-          'Deliberate in the code, never ruled on by the owner — see RADIAN_PENDING.');
+      if (craftedLine) {
+        if (vBack === vNow) ok(`made-to-order: cancel correctly did NOT return the stock (stays ${vBack}) — DEC-SAL-012`);
+        else bad(`made-to-order line put stock back (${vNow} -> ${vBack}) — the flowers were already cut`);
       } else {
-        bad(`after cancel variant stock is ${vBack}, expected ${vBefore}`);
+        if (vBack === vBefore) ok(`readymade: cancel restored the variant: ${vNow} -> ${vBack}`);
+        else bad(`after cancel variant stock is ${vBack}, expected ${vBefore}`);
       }
     }
   }

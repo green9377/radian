@@ -6,44 +6,58 @@
 
 ---
 
-## ❓ OPEN — a cancelled made-to-order line never gives its stock back (25 Aug)
+## ✅ DEC-SAL-012 — cancelling: the stock rule is settled, the money rule is not (25 Aug)
 
-Found by the regression suite, and it is the owner's ruling to make.
+The regression suite found that a cancelled CRAFTED line never returns its
+stock and asked whether that was a decision or an accident. The owner ruled,
+25 August 2026, in his own words:
 
-**What happens today.** Stock comes off at *preparing*, for every line type —
-`orders.service.ts` checks only `stockMode === 'MANUAL'`. On **cancel** it goes
-back only when `productType === READYMADE`. A CRAFTED line keeps the deduction
-for ever.
+> Once work has been started — and that is shown — there is no option to put
+> it back. So if they cancel before taking delivery they get 50% back; if the
+> product has been handed over at delivery, no money comes back. If they want
+> to cancel after receiving it because something is wrong with the product,
+> that is a different conversation. That is our general rule.
 
-```
-prepare   readymade ✔ deducted     crafted ✔ deducted
-cancel    readymade ✔ restored     crafted ✘ NOT restored
-add-ons   restored for both
-```
+### The stock half — LOCKED, and the code already did it
 
-**Why it may well be right.** Once the workshop has started, the flowers are
-cut — they do not go back on the shelf. It is the same reasoning that forfeits
-the advance on a cancelled crafted order, three lines above it in the same
-transaction.
+Stock only comes off at **preparing**, which is the moment the workshop starts.
 
-**Why it matters here.** Every one of the shop's products is CRAFTED, so this
-is not an edge case: *every* cancellation after preparing permanently lowers a
-stock number. Over a season the figures drift down and the shop stops being
-able to sell things it can actually make.
+| cancelled | readymade | made-to-order |
+|---|---|---|
+| before preparing | nothing was deducted | nothing was deducted |
+| after preparing | ✔ goes back — it was picked off a shelf, untouched | ✘ stays down — the stems are cut |
 
-**The question for the owner, in plain words:** you start making a bouquet, the
-customer then cancels. The flowers are used. Should the stock number go back up?
+No behaviour changed. What changed is that it is now written down, commented at
+the line, and the suite asserts it — it used to call the crafted case a broken
+rule, which was the test being wrong.
 
-- **No** — today's behaviour is correct, and it should be written down as a
-  decision so nobody "fixes" it later.
-- **Yes** — then the deduction is really about finished goods, and cancel must
-  restore for crafted lines too.
-- **It depends on when** — restore if it is cancelled before anyone has touched
-  it, not after. That is a third rule and needs a marker for "work started".
+### ⛔ The money half — NOT BUILT, and today it does the opposite
 
-⚠️ Nothing has been changed. The suite reports the crafted case as a NOTE
-instead of a FAIL so a green run stays meaningful, and this entry keeps the
-question alive.
+The owner's ladder:
+
+| when | money back |
+|---|---|
+| cancelled before delivery | **50%** |
+| product handed over | **nothing** |
+| after delivery, product fault | a Returns conversation, not a cancel |
+
+**What the code does now.** `cancel()` refunds `net − advanceForfeit(product)`,
+and `advanceForfeit` returns 0 unless the product carries an advance. **No
+product in the shop carries one.** So today a made-to-order order cancelled
+after the workshop started **refunds 100%** — the shop loses the flowers *and*
+the money.
+
+Open questions before this can be written:
+
+1. Is **50%** a shop-wide setting (house rule 7) or per product? He called it
+   "our general rule", which reads shop-wide with room to differ.
+2. What about cancelled **before** preparing, when nothing has been made? The
+   ruling does not cover it. Full refund is the obvious reading, but obvious is
+   not the same as ruled.
+3. Does it interact with `advanceRequired` / `advanceType`, which already exist
+   on Product and answer a different question (how much must be paid up front)?
+4. `out_for_delivery` — the rider is holding it but nobody has taken it. Is that
+   "before delivery" (50%) or "handed over" (nothing)?
 
 ---
 

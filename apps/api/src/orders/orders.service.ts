@@ -725,10 +725,41 @@ export class OrdersService {
         totalRefund += refund;
         await tx.orderLine.update({ where: { id: l.id }, data: { refundPaisa: refund, refundNote: note } });
 
-        // stock revert (readymade line, যদি preparing-এ committed হয়ে থাকে)
-        // ⚠️ যে ঘর থেকে কাটা হয়েছিল, ফেরতও সেই ঘরেই — variant line হলে variant-এ
-        //    (DEC-PRD-014)। নইলে cancel প্রতিবার product-এ ফেরত দিয়ে ভুতুড়ে
-        //    stock বানাত, আর variant-এর ঘর চিরকাল কম থাকত।
+        /*  ── DEC-SAL-012 · ONCE THE WORKSHOP HAS TOUCHED IT, IT DOES NOT GO
+               BACK ON THE SHELF (owner, 25 August 2026) ────────────────────
+
+            The regression suite flagged that a cancelled CRAFTED line never
+            returns its stock, and asked whether that was a decision or an
+            accident. It is a decision. The owner:
+
+              *"যখন কাজে হাত দিবে তখন আর ফিরতের অপশন নেই"* — once work has
+              started there is no putting it back.
+
+            Stock only ever comes off at PREPARING, which IS the moment the
+            workshop starts. So:
+
+              · cancelled before preparing — nothing was deducted, nothing to
+                return. The shelf never moved.
+              · cancelled after preparing, READYMADE — it was picked off a
+                shelf, not made. The flowers are untouched, so it goes back.
+              · cancelled after preparing, CRAFTED — the stems are cut. The
+                number stays down, because the flowers really are gone.
+
+            ⚠️ So the `READYMADE` test below is the rule, not an oversight.
+            Do not "fix" it into restoring everything.
+
+            ⚠️ WHERE IT GOES BACK also matters: the same box it came out of.
+            A variant line returns to the variant (DEC-PRD-014) — restoring to
+            the product instead invented phantom stock and left the variant
+            short for ever.
+
+            ⚠️ THE MONEY HALF OF THIS RULE IS NOT HERE YET. The owner's ladder
+            is 50% back when cancelled before delivery, nothing once it has
+            been handed over. `advanceForfeit` above still answers a different
+            question (how much advance is kept), and with no product carrying
+            an advance it currently refunds everything. Tracked in
+            RADIAN_PENDING — do not read this comment as if the money side
+            were settled.  */
         if (preparingStarted && l.productType === ProductType.READYMADE && p && p.stockMode === 'MANUAL') {
           if (l.variantId) {
             await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { increment: l.qty } } });
