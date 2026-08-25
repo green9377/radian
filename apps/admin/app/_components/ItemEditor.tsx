@@ -22,6 +22,7 @@ import {
   type InvItemStock, type ApiSupplier,
   type ApiItem, type ApiUnit, type ApiItemCategory, type ApiBrand, type ApiItemAttribute,
   type ApiItemEvent, type ApiItemTypeRow, type ItemType,
+  isUnitConfirmRefusal,
 } from "../_data/api";
 
 /*
@@ -336,7 +337,22 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
         setOk("Saved.");
         if (andClose) router.push("/items/list");
       }
-    } catch (e) { setErr(msg(e, "Could not save this item.")); }
+    } catch (e) {
+      /*  DEC-ITM-026 — the unit changed on an item with history. The API sent
+          back the exact restatement (stock a -> b, cost/reorder follow) and
+          refuses until a human has read it. Show those words, ask, resend.  */
+      if (isUnitConfirmRefusal(e)) {
+        const words = msg(e, "The unit change restates this item's numbers.").replace(/^UNIT_CONFIRM:\s*/, "");
+        if (window.confirm(`${words}\n\nGo ahead?`)) {
+          try {
+            const updated = await updateItem(itemId!, { ...payload(), confirmUnitChange: true });
+            setItem((prev) => (prev ? { ...prev, ...updated } : updated));
+            setOk("Saved — unit changed and the numbers restated.");
+            if (andClose) router.push("/items/list");
+          } catch (e2) { setErr(msg(e2, "Could not save this item.")); }
+        }
+      } else setErr(msg(e, "Could not save this item."));
+    }
     finally { setSaving(false); }
   }
 

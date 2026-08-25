@@ -71,7 +71,15 @@ export interface ItemDto {
   actorName?: string;
 }
 
-export type ItemPatch = Partial<ItemDto>;
+export type ItemPatch = Partial<ItemDto> & {
+  /**
+   * DEC-ITM-026 — changing the unit of an item that already has purchase or
+   * stock history restates stock, cost and reorder level by the family factor.
+   * The API refuses with a `UNIT_CONFIRM:` message until the caller re-sends
+   * with this flag, so the numbers are shown to a human first.
+   */
+  confirmUnitChange?: boolean;
+};
 
 /** one recipe line — quantities are integer thousandths, percentages are basis points */
 export interface ComponentDto {

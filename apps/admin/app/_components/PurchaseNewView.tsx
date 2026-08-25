@@ -445,13 +445,27 @@ export default function PurchaseNewView() {
                       <span className="block text-[13px] text-body-soft truncate">{l.item.sku}</span>
                     </span>
                   </span>
+                  {/*  DEC-PUR-013 (owner, 26 Aug 2026) — a purchase line may only be
+                       counted in the item's own unit or its base. The full unit list
+                       here let staff pick a foreign measure (Kg on a rose) and stock
+                       arithmetic swallowed it without complaint. Same family = the
+                       conversion is exact; anything else does not belong on this line.
+                       Changing what an item is counted in happens on the Item itself
+                       (DEC-ITM-026), never mid-purchase.  */}
                   <QuickSelect
                     value={l.unitId}
                     placeholder={l.item.unit?.name ?? "Unit"}
                     allowClear={false}
-                    options={units
-                      .filter((u) => u.isActive || u.id === l.unitId) // hidden units: no NEW picks (19 Aug)
-                      .map((u) => ({ id: u.id, label: u.name }))}
+                    options={(() => {
+                      const mine = units.find((u) => u.id === l.item.unitId);
+                      const base = mine?.baseUnitId ? units.find((u) => u.id === mine.baseUnitId) : undefined;
+                      const picked = l.unitId ? units.find((u) => u.id === l.unitId) : undefined;
+                      const list = [mine, base];
+                      if (picked && !list.some((u) => u?.id === picked.id)) list.push(picked); // old drafts keep their unit visible
+                      return list
+                        .filter((u): u is NonNullable<typeof u> => !!u)
+                        .map((u) => ({ id: u.id, label: u.name }));
+                    })()}
                     onChange={(id) => patchLine(l.key, { unitId: id })}
                   />
                   {/*  the same stepper the counter uses; one shape for a

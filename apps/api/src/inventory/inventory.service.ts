@@ -394,6 +394,70 @@ export class InventoryService {
      legacy Product.stockQty write; callers fail-soft so the live path never
      breaks on an inventory error. */
 
+  /**
+   * DEC-ITM-026 — an item's counting unit changed WITHIN its family (same root).
+   * Every stored balance is denominated in the item's unit, so the numbers must
+   * be restated or 40 pice would suddenly read as 40 sticks.
+   *
+   * Inventory does the writing because it is THE stock writer (INV-RULE-001):
+   * one ledger row per warehouse carries the restatement, at cost 0 — the goods
+   * did not move and their value did not change, only the yardstick did.
+   * ItemsService guards WHO may call this (history + same-family checks).
+   */
+  async restateUnitDenomination(params: {
+    itemId: string;
+    factorFrom: number; // old unit's root factor
+    factorTo: number;   // new unit's root factor
+    fromName: string;
+    toName: string;
+    actor?: string;
+  }): Promise<{ beforeMilli: number; afterMilli: number }> {
+    const { itemId, factorFrom, factorTo, fromName, toName, actor } = params;
+    const restate = (q: number) => Math.round((q * factorFrom) / factorTo);
+    let beforeMilli = 0;
+    let afterMilli = 0;
+
+    await this.prisma.db.$transaction(async (tx) => {
+      const stocks = await tx.inventoryStock.findMany({ where: { itemId } });
+      for (const s of stocks) {
+        const next = restate(s.qtyMilli);
+        beforeMilli += s.qtyMilli;
+        afterMilli += next;
+        if (next === s.qtyMilli) continue;
+        await tx.inventoryMovement.create({
+          data: {
+            itemId,
+            warehouseId: s.warehouseId,
+            reason: 'ADJUSTMENT',
+            qtyMilli: next - s.qtyMilli,
+            unitCostPaisa: 0,
+            valuePaisa: 0,
+            note: `Unit changed ${fromName} -> ${toName}; balance restated ${s.qtyMilli / 1000} ${fromName} -> ${next / 1000} ${toName} (DEC-ITM-026)`,
+            actor: actor ?? null,
+          },
+        });
+        await tx.inventoryStock.update({ where: { id: s.id }, data: { qtyMilli: next } });
+      }
+      // FEFO lots count in the same denomination (DEC-INV-007)
+      const lots = await tx.itemExpiryLot.findMany({ where: { itemId } });
+      for (const lot of lots) {
+        const next = restate(lot.qtyMilli);
+        if (next !== lot.qtyMilli) {
+          await tx.itemExpiryLot.update({ where: { id: lot.id }, data: { qtyMilli: next } });
+        }
+      }
+    });
+
+    await this.audit.event({
+      entityType: ENTITY,
+      entityId: itemId,
+      kind: 'general',
+      label: `⚠ Unit restatement: ${fromName} -> ${toName}, on-hand ${beforeMilli / 1000} -> ${afterMilli / 1000}`,
+      actorName: actor ?? 'system',
+    });
+    return { beforeMilli, afterMilli };
+  }
+
   /** total on-hand across warehouses, in the item's OWN unit (milli) */
   async onHandMilli(itemId: string): Promise<number> {
     const agg = await this.prisma.db.inventoryStock.aggregate({

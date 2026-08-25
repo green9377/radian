@@ -2561,6 +2561,8 @@ export interface ApiItem {
 }
 
 export interface ItemWrite {
+  /** DEC-ITM-026 — resend with true after the UNIT_CONFIRM: refusal is shown to a human */
+  confirmUnitChange?: boolean;
   sku?: string;
   name?: string;
   itemType?: ItemType;
@@ -3406,6 +3408,11 @@ export const purchaseSuppliers = (search?: string) =>
 /** PUR-R07 — the API refuses a wild cost jump with this prefix; the form offers a confirm */
 export function isCostJumpRefusal(e: unknown): boolean {
   return /COST_JUMP:/.test(e instanceof Error ? e.message : String(e));
+}
+
+/** DEC-ITM-026 — the API wants a human to see the unit restatement numbers first */
+export function isUnitConfirmRefusal(e: unknown): boolean {
+  return /UNIT_CONFIRM:/.test(e instanceof Error ? e.message : String(e));
 }
 
 /* Demo ONLY when the API is unreachable; an empty-but-reachable DB is REAL. */

@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ItemType, AssemblyMode, CostMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
 
@@ -83,6 +84,7 @@ export class ItemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly inventory: InventoryService, // DEC-ITM-026 unit restatement
   ) {}
 
   /* ------------------------------------------------------------------ read */
@@ -382,7 +384,7 @@ export class ItemsService {
           unitId: dto.unitId,
           isStockTracked: dto.itemType !== ItemType.SERVICE,
           assemblyMode: AssemblyMode.NONE,
-          // DEC-ITM-025 — a variant is an item like any other: born for selling
+          // DEC-ITM-026 — a variant is an item like any other: born for selling
           isSaleable: dto.isSaleable ?? defaultSaleable(dto.itemType),
           ...({ isOnline: true } as Record<string, boolean>), // DEC-ITM-024
           isPurchasable: dto.isPurchasable ?? defaultPurchasable(dto.itemType),
@@ -424,6 +426,65 @@ export class ItemsService {
       await this.ensureUnit(dto.unitId);
     }
     await this.ensureRefs(dto); // ITM-REV-6
+
+    /* ═══════════════════════════════════════════════════════════ DEC-ITM-026
+       THE THREE-STEP UNIT-CHANGE RULE (owner, 26 Aug 2026). Stock, cost and
+       reorder level are all denominated in the item's counting unit, so a
+       unit change is never just a label change:
+
+         1. no purchase/stock history  -> change freely, nothing to restate
+         2. history + SAME family      -> allowed, but stock/cost/reorder are
+            restated by the exact factor — refused with UNIT_CONFIRM: until
+            the numbers have been shown to a human (confirmUnitChange)
+         3. history + DIFFERENT family -> blocked. 40 pice is not any number
+            of kg; the honest answer is a new item.
+
+       "Family" = the units share a root through the base-unit chain
+       (UOM ruling, 21 Jul).  */
+    let unitRestate: {
+      fromFactor: number; toFactor: number; fromName: string; toName: string;
+    } | null = null;
+    if (dto.unitId !== undefined && dto.unitId !== current.unitId) {
+      const [movements, purchaseLines] = await Promise.all([
+        this.prisma.db.inventoryMovement.count({ where: { itemId: id } }),
+        this.prisma.db.purchaseLine.count({ where: { itemId: id } }),
+      ]);
+      if (movements + purchaseLines > 0) {
+        const from = await this.rootOf(current.unitId);
+        const to = await this.rootOf(dto.unitId);
+        const [fromU, toU] = await Promise.all([
+          this.prisma.db.unit.findFirst({ where: { id: current.unitId }, select: { name: true } }),
+          this.prisma.db.unit.findFirst({ where: { id: dto.unitId }, select: { name: true } }),
+        ]);
+        const fromName = fromU?.name ?? 'old unit';
+        const toName = toU?.name ?? 'new unit';
+        if (from.rootId !== to.rootId) {
+          throw new BadRequestException(
+            `"${current.name}" already has purchase or stock history counted in ${fromName}, and ${toName} is a different kind of measure — there is no honest conversion between them. Create a new item in ${toName} and make this one inactive (DEC-ITM-026).`,
+          );
+        }
+        const onHand = await this.inventory.onHandMilli(id);
+        const after = Math.round((onHand * from.factor) / to.factor);
+        if (!dto.confirmUnitChange) {
+          throw new ConflictException(
+            `UNIT_CONFIRM: Changing ${fromName} -> ${toName} will restate this item's numbers: stock ${onHand / 1000} ${fromName} -> ${after / 1000} ${toName}, and cost/reorder level convert by the same factor. Selling price converts arithmetically too — review it after, bulk pricing is yours to set.`,
+          );
+        }
+        unitRestate = { fromFactor: from.factor, toFactor: to.factor, fromName, toName };
+      }
+    }
+    /*  fields that live in "per item unit" — restated when the denomination
+        changes. Money per unit scales UP going to a bigger unit (cost per
+        stick = 4 x cost per pice); a quantity scales DOWN (40 pice = 10
+        sticks). Only used when the dto did not set the field itself.  */
+    const perUnitMoney = (v: number | null | undefined) =>
+      unitRestate == null || v == null
+        ? undefined
+        : Math.round((v * unitRestate.toFactor) / unitRestate.fromFactor);
+    const perUnitQty = (v: number | null | undefined) =>
+      unitRestate == null || v == null
+        ? undefined
+        : Math.max(1, Math.round((v * unitRestate.fromFactor) / unitRestate.toFactor));
 
     // DEC-ITM-017 — if the label changed, its behaviour wins over any enum sent alongside
     const nextType =
@@ -472,13 +533,24 @@ export class ItemsService {
         weightGram: dto.weightGram === undefined ? undefined : dto.weightGram,
         costMode: norm.costMode,
         standardCostPaisa:
-          dto.standardCostPaisa === undefined
-            ? undefined
-            : Math.max(0, Math.round(dto.standardCostPaisa)),
+          dto.standardCostPaisa !== undefined
+            ? Math.max(0, Math.round(dto.standardCostPaisa))
+            : perUnitMoney(current.standardCostPaisa),
         ...this.priceRules(dto),
+        /*  DEC-ITM-026 — per-unit money follows the new denomination unless the
+            caller set it explicitly in the same save  */
+        ...(unitRestate && dto.sellingPricePaisa === undefined && current.sellingPricePaisa != null
+          ? { sellingPricePaisa: perUnitMoney(current.sellingPricePaisa) }
+          : {}),
+        ...(unitRestate && dto.minMarginPaisa === undefined && current.minMarginPaisa != null
+          ? { minMarginPaisa: perUnitMoney(current.minMarginPaisa) }
+          : {}),
         isPerishable: dto.isPerishable,
         shelfLifeDays: dto.shelfLifeDays === undefined ? undefined : dto.shelfLifeDays,
-        reorderLevel: dto.reorderLevel === undefined ? undefined : dto.reorderLevel,
+        reorderLevel:
+          dto.reorderLevel !== undefined
+            ? dto.reorderLevel
+            : perUnitQty(current.reorderLevel),
         description: dto.description === undefined ? undefined : dto.description,
         isActive: dto.isActive,
         // sending the array REPLACES the set — `set` is the only unambiguous m2m verb
@@ -488,6 +560,29 @@ export class ItemsService {
       },
       include: itemInclude,
     });
+
+    if (unitRestate) {
+      /*  The item now carries the new unit; restate the stored balances to
+          match. If this half fails, put the old unit back rather than leave
+          the label and the numbers speaking different languages.  */
+      try {
+        await this.inventory.restateUnitDenomination({
+          itemId: id,
+          factorFrom: unitRestate.fromFactor,
+          factorTo: unitRestate.toFactor,
+          fromName: unitRestate.fromName,
+          toName: unitRestate.toName,
+          actor: dto.actorName,
+        });
+      } catch (e) {
+        await this.prisma.db.item.update({ where: { id }, data: { unitId: current.unitId } });
+        throw e;
+      }
+      await this.log(
+        id, 'UPDATE', dto.actorName,
+        `⚠ Unit changed ${unitRestate.fromName} -> ${unitRestate.toName}; stock, cost and reorder level restated (DEC-ITM-026)`,
+      );
+    }
 
     await this.log(id, 'UPDATE', dto.actorName, `Item "${item.name}" updated`);
     // ITM-R06 — this item's cost may now read differently for everything above it
@@ -1100,6 +1195,25 @@ export class ItemsService {
    * rate moves, a flat figure quietly stops meaning anything.
    * Everything is clamped: a negative margin is not a business decision, it is a typo.
    */
+  /** walk the base-unit chain to the root — { rootId, factor } (UOM ruling, cycle-guarded) */
+  private async rootOf(unitId: string): Promise<{ rootId: string; factor: number }> {
+    let factor = 1;
+    let currentId = unitId;
+    const seen = new Set<string>();
+    while (!seen.has(currentId)) {
+      seen.add(currentId);
+      const u: { id: string; baseUnitId: string | null; baseQty: number } | null =
+        await this.prisma.db.unit.findFirst({
+          where: { id: currentId },
+          select: { id: true, baseUnitId: true, baseQty: true },
+        });
+      if (!u || !u.baseUnitId) return { rootId: currentId, factor };
+      factor *= Math.max(u.baseQty, 1);
+      currentId = u.baseUnitId;
+    }
+    return { rootId: currentId, factor }; // broken chain — treat where we stopped as root
+  }
+
   private priceRules(dto: ItemPatch) {
     const bp = (v: number | null | undefined, max: number) =>
       v === undefined ? undefined : v === null ? null : Math.min(max, Math.max(0, Math.round(v)));
@@ -1386,7 +1500,7 @@ export class ItemsService {
 /* DEC-ITM-013 defaults — an ingredient is bought but not sold on its own; a service is
    sold but never bought; a consumable is neither sold nor returned. Staff can override
    any of these per item; these are only the sensible starting points. */
-/*  DEC-ITM-025 (owner, 20 Aug 2026) — everything in this list is for selling.
+/*  DEC-ITM-026 (owner, 20 Aug 2026) — everything in this list is for selling.
     "item mane amder sell kra lagbei" — some things are bought and resold, some are
     labour sold on its own, and the things that are NOT for sale (the shop's own AC,
     its lights) are assets, which is a different book entirely. So a new item starts

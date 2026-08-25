@@ -1,8 +1,35 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 21 Aug 2026._
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 26 Aug 2026._
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+---
+
+## ✅ DEC-ITM-026 + DEC-PUR-013 — units: the family rule (26 Aug)
+
+The owner asked what happens when a rose is bought in Pice today, Papri
+tomorrow, Stick the day after. Answer: the maths already held (PUR-R03
+factor snapshots) — **as long as the units share one family** — but the
+purchase-line dropdown offered EVERY unit, so a foreign measure (Kg on a
+rose) went straight into stock arithmetic without complaint. He ruled:
+
+- **DEC-PUR-013** — the purchase line's unit dropdown offers exactly two
+  things: the item's own counting unit and its direct base. Nothing else,
+  nowhere else. Changing what an item is counted in happens on the Item.
+- **DEC-ITM-026** — the three-step unit-change rule on Item:
+  1. no purchase/stock history → change freely;
+  2. history + same family → allowed after a human confirms the shown
+     restatement (stock 40 Pice → 10 Stick; cost, selling override,
+     min-margin and reorder level convert by the same factor; ledger gets
+     an ADJUSTMENT row at cost 0 via Inventory, THE stock writer);
+  3. history + different family → blocked — "create a new item, make this
+     one inactive". 40 pice is not any number of kg.
+
+API: `items.service.ts` guard + `inventory.restateUnitDenomination` +
+`UNIT_CONFIRM:` refusal (same shape as COST_JUMP). Admin: ItemEditor
+confirm flow; PurchaseNewView two-option dropdown. Selftest: items
+selftest section 11 walks all three steps.
 
 ---
 

@@ -413,6 +413,62 @@ async function main() {
     });
     ok('nothing this module did created a stock balance', stockRows === 0);
     ok('nothing this module did created a stock movement', moveRows === 0);
+
+    /* --------------------------------------------------------------- 11 */
+    console.log('\n=== 11. DEC-ITM-026 — the three-step unit-change rule ===');
+    /*  Owner, 26 Aug 2026: no history = change freely; history + same family =
+        restate stock/cost/reorder after a human confirms; history + different
+        family = blocked, make a new item. The fake history below is written
+        with the raw client on purpose — Items itself still writes no stock
+        (section 10 asserted that BEFORE this section ran).  */
+
+    const uRoot = await prisma.unit.create({ data: { name: `${PREFIX} Petal`, shortCode: 'zzstpetal' } });
+    const uBig = await prisma.unit.create({
+      data: { name: `${PREFIX} Stem`, shortCode: 'zzststem', baseUnitId: uRoot.id, baseQty: 4 },
+    });
+    const uForeign = await prisma.unit.create({ data: { name: `${PREFIX} Kg`, shortCode: 'zzstkg' } });
+
+    const uItem = await items.create({
+      name: `${PREFIX} Unit Guard`, itemType: ItemType.RAW, unitId: uRoot.id,
+      standardCostPaisa: 500, reorderLevel: 20, isStockTracked: true,
+    });
+
+    // step 1 — blank history: free in any direction, no confirmation asked
+    await items.update(uItem.id, { unitId: uBig.id });
+    await items.update(uItem.id, { unitId: uRoot.id });
+    ok('no history -> the unit changes freely, both ways', true);
+
+    // manufacture history: 40 petals on the shelf (raw client, see note above)
+    let wh = await prisma.warehouse.findFirst({ select: { id: true } });
+    const madeWh = !wh;
+    if (!wh) wh = await prisma.warehouse.create({ data: { code: 'ZZSTWH', name: `${PREFIX} WH` }, select: { id: true } });
+    await prisma.inventoryMovement.create({
+      data: { itemId: uItem.id, warehouseId: wh.id, reason: 'OPENING', qtyMilli: 40_000, unitCostPaisa: 500, valuePaisa: 20_000 },
+    });
+    await prisma.inventoryStock.create({ data: { itemId: uItem.id, warehouseId: wh.id, qtyMilli: 40_000 } });
+
+    // step 2 — same family: first ask, then restate
+    await refuses('history + same family -> refused until confirmed (UNIT_CONFIRM)',
+      () => items.update(uItem.id, { unitId: uBig.id }), 'UNIT_CONFIRM');
+    await items.update(uItem.id, { unitId: uBig.id, confirmUnitChange: true });
+    const stockAfter = await prisma.inventoryStock.findFirst({ where: { itemId: uItem.id }, select: { qtyMilli: true } });
+    const itemAfter = await prisma.item.findFirst({
+      where: { id: uItem.id }, select: { standardCostPaisa: true, reorderLevel: true },
+    });
+    ok('confirmed -> stock restated 40 petal = 10 stem', stockAfter?.qtyMilli === 10_000, `got ${stockAfter?.qtyMilli}`);
+    ok('cost per unit follows: 500/petal -> 2000/stem', itemAfter?.standardCostPaisa === 2000, `got ${itemAfter?.standardCostPaisa}`);
+    ok('reorder level follows: 20 petal -> 5 stem', itemAfter?.reorderLevel === 5, `got ${itemAfter?.reorderLevel}`);
+
+    // step 3 — different family: no conversion exists, blocked outright
+    await refuses('history + different family -> blocked, pointed at a new item',
+      () => items.update(uItem.id, { unitId: uForeign.id, confirmUnitChange: true }), 'new item');
+
+    // take the fake history out so the purge fence below can hard-delete the item
+    await prisma.inventoryMovement.deleteMany({ where: { itemId: uItem.id } });
+    await prisma.inventoryStock.deleteMany({ where: { itemId: uItem.id } });
+    await prisma.item.delete({ where: { id: uItem.id } }).catch(() => undefined);
+    await prisma.unit.deleteMany({ where: { id: { in: [uBig.id, uRoot.id, uForeign.id] } } }).catch(() => undefined);
+    if (madeWh && wh) await prisma.warehouse.delete({ where: { id: wh.id } }).catch(() => undefined);
   } catch (e) {
     fail += 1;
     const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
