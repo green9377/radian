@@ -4315,6 +4315,8 @@ export interface ApiPosCatalogueRow {
   imageUrl: string | null;
   itemType: ItemType;
   unitName: string | null;
+  /** the conversion, spelled out — "1 Stick = 4 Pice"; null for a base unit */
+  unitBase: string | null;
   categoryId: string | null;
   categoryName: string | null;
   pricePaisa: number | null;

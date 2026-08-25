@@ -404,7 +404,7 @@ export class PosService {
         costMode: true, standardCostPaisa: true, computedCostPaisa: true,
         minMarginBp: true, minMarginPaisa: true,
         itemCategory: { select: { id: true, name: true } },
-        unit: { select: { name: true, shortCode: true } },
+        unit: { select: { name: true, shortCode: true, baseQty: true, baseUnit: { select: { name: true } } } },
         ...({ sellingPricePaisa: true, markupBp: true } as object),
       },
       orderBy: { name: 'asc' },
@@ -439,6 +439,13 @@ export class PosService {
         imageUrl: it.imageUrl,
         itemType: it.itemType,
         unitName: it.unit?.name ?? null,
+        /*  the conversion, spelled out — "1 Stick = 4 Pice". The counter sells in
+            the item's unit; the cashier should not have to remember what that
+            unit breaks into (owner, 26 Aug: "unit a thakle tar base o dekha
+            jawa dorkar chilo").  */
+        unitBase: it.unit?.baseUnit
+          ? `1 ${it.unit.name} = ${it.unit.baseQty} ${it.unit.baseUnit.name}`
+          : null,
         categoryId: it.itemCategory?.id ?? null,
         categoryName: it.itemCategory?.name ?? null,
         /** what the till charges; null = nobody has priced it yet */

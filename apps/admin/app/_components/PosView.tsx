@@ -575,9 +575,13 @@ export default function PosSellView() {
                     style={{ background: l.product.imageUrl ? `url(${l.product.imageUrl}) center/cover no-repeat` : genBg(l.product.sku) }} />
                   <div className="min-w-0">
                     <div className="text-[13px] font-medium text-purple truncate">{l.product.name}</div>
+                    {/*  the unit is part of the number — "205 left" of WHAT was the
+                         owner's complaint (26 Aug). And when the unit breaks into a
+                         base, the conversion rides along so nobody has to remember it.  */}
                     <div className="text-[11px] text-body-soft">
                       {l.product.costPaisa !== undefined && l.product.costPaisa > 0 && <>cost {formatTaka(l.product.costPaisa)}</>}
-                      {l.product.stockQty !== null && <> · {l.product.stockQty} left</>}
+                      {l.product.stockQty !== null && <> · {l.product.stockQty} {l.product.unitName ?? ""} left</>}
+                      {l.product.unitBase && <> · {l.product.unitBase}</>}
                     </div>
                   </div>
                 </div>
@@ -797,7 +801,7 @@ export default function PosSellView() {
                     <span className="text-[12.5px] text-body-soft truncate">{p.categoryName ?? "—"}</span>
                     <span className="text-right text-[12.5px]"
                       style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
-                      {p.stockQty === null ? "service" : p.stockQty > 0 ? p.stockQty : "out of stock"}
+                      {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""}`.trim() : "out of stock"}
                     </span>
                     <span className="text-right">
                       <span className="block text-[13.5px] font-semibold text-body">
@@ -857,7 +861,7 @@ export default function PosSellView() {
                        the cashier promise something the shop cannot hand over  */}
                   <div className="text-[11.5px] mt-0.5"
                     style={{ color: p.stockQty === null ? "#8b7a95" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
-                    {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} in stock` : "out of stock"}
+                    {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""} in stock`.replace("  ", " ") : "out of stock"}
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
                     <span className="min-w-0">
