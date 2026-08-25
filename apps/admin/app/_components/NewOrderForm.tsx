@@ -24,6 +24,7 @@ import {
 import Icon from "./Icon";
 import ProductPicker from "./ProductPicker";
 import CustomerSelect from "./CustomerSelect";
+import QtyStepper from "./QtyStepper";
 
 /*
   New order — staff-created (phone / Facebook / WhatsApp). Same Sales model as a
@@ -390,7 +391,7 @@ export default function NewOrderForm() {
                         <div className="font-medium text-purple text-[13.5px] truncate">{p.name}</div>
                         <div className="text-[13px] text-body-soft">{formatTaka(p.offerPricePaisa)} each{isCrafted(p) ? " · crafted (advance)" : " · readymade"}</div>
                       </div>
-                      <input type="number" min={1} className="ipt h-[38px] text-center" value={l.qty} onChange={(e) => setLineQty(l.key, Number(e.target.value))} />
+                      <QtyStepper grow value={l.qty} min={1} onChange={(n) => setLineQty(l.key, n)} />
                       <div className="text-right text-[13.5px] font-medium">{formatTaka(p.offerPricePaisa * l.qty)}</div>
                       <button type="button" onClick={() => removeLine(l.key)} className="text-body-soft hover:text-[#c0392b] w-[34px] h-[34px] grid place-items-center rounded-[9px] border border-lavender-deep" title="Remove">
                         <Icon name="trash" size={16} />

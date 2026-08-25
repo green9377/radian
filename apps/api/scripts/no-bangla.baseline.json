@@ -146,7 +146,6 @@
   "apps/web/app/_components/Account/ReorderButton.tsx": 2,
   "apps/web/app/_components/Account/WishlistPanel.tsx": 2,
   "apps/web/app/_components/Cart/CartExtras.tsx": 6,
-  "apps/web/app/_components/Cart/CartLine.tsx": 15,
   "apps/web/app/_components/Cart/CartSummary.tsx": 9,
   "apps/web/app/_components/Cart/CartView.tsx": 15,
   "apps/web/app/_components/Cart/RestoreCartView.tsx": 6,

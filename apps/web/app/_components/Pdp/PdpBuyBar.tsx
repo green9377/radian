@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useZoneStore } from "../../_store/useZoneStore";
 import { formatTaka } from "../../_data/products";
 import Icon from "./PdpIcons";
+import QtyStepper from "../Common/QtyStepper";
 
 /*
   The small pieces of the PDP — CTA row, mobile sticky bar, section title,
@@ -62,7 +63,7 @@ export function CtaRow({
   onBuyNow,
 }: {
   qty: number;
-  setQty: (fn: (q: number) => number) => void;
+  setQty: (n: number) => void;
   total: number;
   added: boolean;
   /** DEC-PDP-09 — set when the shop has none of it but will still take the
@@ -103,23 +104,7 @@ export function CtaRow({
 
       <div className="flex gap-2.5 items-stretch mt-5 flex-wrap">
         {/* qty */}
-        <div className="flex items-center border-[1.5px] border-lavender-deep rounded-[14px] overflow-hidden bg-white shrink-0 h-[52px]">
-          <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            aria-label="Decrease quantity"
-            className="w-10 h-full text-[18px] text-purple hover:bg-lavender active:scale-90 transition-transform"
-          >
-            −
-          </button>
-          <b className="w-8 text-center text-[14.5px] text-purple tabular-nums">{qty}</b>
-          <button
-            onClick={() => setQty((q) => q + 1)}
-            aria-label="Increase quantity"
-            className="w-10 h-full text-[18px] text-purple hover:bg-lavender active:scale-90 transition-transform"
-          >
-            +
-          </button>
-        </div>
+        <QtyStepper value={qty} onChange={setQty} min={1} size="lg" />
 
         {/* secondary */}
         <button

@@ -5,50 +5,20 @@ import Link from "next/link";
 import { formatTaka } from "../../_data/products";
 import type { ResolvedLine } from "../../_data/cart";
 import Icon from "../Pdp/PdpIcons";
+import QtyStepper from "../Common/QtyStepper";
 
 /*
-  Cart line — board-এর line card।
+  Cart line — the line card on the cart board.
 
-  ⚠️ Board-এ line-এর ভেতরে gift message আর "Edit message" ছিল।
-  D14 অনুযায়ী gift message ORDER-level, item-level নয় → Checkout-এ।
-  তাই এখানে নেই।
+  ⚠️ The board had the gift message and "Edit message" inside the line. Per
+  D14 the gift message is ORDER-level, not item-level, so it lives on the
+  Checkout page and not here.
 
-  Line-এ যা edit করা যায় (locked): qty · remove line · remove add-on ·
-  size upgrade। Size/bundle/variant পুরো বদলাতে হলে "Edit" → PDP।
-  কারণ: cart-এ পুরো configurator বসালে PDP-র নকল হয়, আর cart হালকা
-  রাখার নিয়ম ভাঙে।
+  What a line can edit (locked): qty · remove line · remove add-on · size
+  upgrade. Changing the size/bundle/variant outright means "Edit" -> PDP,
+  because a full configurator in the cart is a second copy of the PDP and
+  breaks the rule that the cart stays light.
 */
-
-function QtyStepper({
-  qty,
-  onQty,
-}: {
-  qty: number;
-  onQty: (q: number) => void;
-}) {
-  return (
-    <div className="inline-flex items-center border-[1.5px] border-lavender-deep rounded-full overflow-hidden bg-white">
-      <button
-        onClick={() => onQty(qty - 1)}
-        disabled={qty <= 1}
-        aria-label="Decrease quantity"
-        className="w-9 h-9 grid place-items-center text-purple text-lg leading-none disabled:text-lavender-deep disabled:cursor-not-allowed hover:bg-lavender transition-colors"
-      >
-        −
-      </button>
-      <b className="w-8 text-center text-[14px] text-purple font-semibold tabular-nums">
-        {qty}
-      </b>
-      <button
-        onClick={() => onQty(qty + 1)}
-        aria-label="Increase quantity"
-        className="w-9 h-9 grid place-items-center text-purple text-lg leading-none hover:bg-lavender transition-colors"
-      >
-        +
-      </button>
-    </div>
-  );
-}
 
 export default function CartLine({
   line,
@@ -78,9 +48,9 @@ export default function CartLine({
     >
       <div className="grid grid-cols-[84px_1fr] sm:grid-cols-[110px_1fr_auto] gap-4">
         {/* photo */}
-        {/*  DEC-PRD-012 — যে রঙটা কেনা হয়েছে সেটারই ছবি। নাহলে cart-এ
-             লাল আর গোলাপি দুটো line-এ একই ছবি বসে থাকত আর কোনটা কোনটা
-             বোঝা যেত না।  */}
+        {/*  DEC-PRD-012 — the photo of the colour that was actually bought.
+             Otherwise a red line and a pink line sit in the cart under the
+             same picture and nobody can tell them apart.  */}
         <Link
           href={href}
           className="block aspect-square rounded-[16px] overflow-hidden"
@@ -123,7 +93,7 @@ export default function CartLine({
             {product.zone === "dhaka" ? detail.deliveryChip : "Ships nationwide"}
           </span>
 
-          {/* add-on chips — এখানেই সরানো যায় */}
+          {/* add-on chips — removable right here */}
           {addons.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {addons.map((a) => (
@@ -144,7 +114,7 @@ export default function CartLine({
             </div>
           )}
 
-          {/* personalisation — PDP-তে যা লেখা হয়েছিল */}
+          {/* personalisation — what was written on the PDP */}
           {(item.persoText || item.persoImage) && (
             <div className="flex items-center gap-2.5 mt-2.5 bg-lavender border border-lavender-deep rounded-[12px] px-3 py-2">
               <Icon name="pen" className="w-3.5 h-3.5 text-orchid shrink-0" />
@@ -160,7 +130,7 @@ export default function CartLine({
             </div>
           )}
 
-          {/* size upgrade nudge — একটাই inline edit যা দাম বাড়ায় */}
+          {/* size upgrade nudge — the one inline edit that raises the price */}
           {nextSize && upgradeCost > 0 && !held && (
             <button
               onClick={() => onUpgrade(nextSize.id)}
@@ -185,7 +155,7 @@ export default function CartLine({
             )}
           </div>
 
-          <QtyStepper qty={item.qty} onQty={onQty} />
+          <QtyStepper value={item.qty} onChange={onQty} min={1} />
 
           <div className="flex items-center gap-3 text-[12.5px]">
             <Link href={href} className="text-body-soft hover:text-orchid transition-colors">
@@ -201,7 +171,7 @@ export default function CartLine({
         </div>
       </div>
 
-      {/* ─── zone conflict flag — কিছু auto-delete হয় না ─── */}
+      {/* ─── zone conflict flag — nothing is auto-deleted ─── */}
       {held && (
         <div className="mt-4 flex items-center gap-3 flex-wrap bg-[#FFF7E8] border border-[#F2D9A8] rounded-[14px] px-4 py-3">
           <Icon name="truck" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0" />

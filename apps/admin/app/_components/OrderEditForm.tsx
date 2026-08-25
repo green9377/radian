@@ -8,6 +8,7 @@ import { TONE, Panel, type Tone } from "./OrderViews";
 import ProductPicker from "./ProductPicker";
 import Icon from "./Icon";
 import { TakaInput } from "./MoneyBlock";
+import QtyStepper from "./QtyStepper";
 
 /*
   Order Edit — one page, every edit option, price always visible on the right.
@@ -298,11 +299,7 @@ export default function OrderEditForm({ id }: { id: string }) {
                           <div className="text-[11.5px]" style={{ color: t.text }}>{formatTaka(l.unitPaisa)} each · {l.productType === "crafted" ? "crafted (advance)" : "readymade"}</div>
                         </div>
                         {gates.items ? (
-                          <div className="flex items-center gap-1.5">
-                            <button type="button" onClick={() => setQty(l.id, q - 1)} className="w-8 h-8 rounded-[9px] border bg-white text-purple font-medium" style={{ borderColor: t.border }}>−</button>
-                            <span className="w-8 text-center text-[13.5px] font-medium">{q}</span>
-                            <button type="button" onClick={() => setQty(l.id, q + 1)} className="w-8 h-8 rounded-[9px] border bg-white text-purple font-medium" style={{ borderColor: t.border }}>+</button>
-                          </div>
+                          <QtyStepper size="sm" value={q} min={1} onChange={(n) => setQty(l.id, n)} />
                         ) : (
                           <div className="text-[13px] text-body-soft text-center">× {q}</div>
                         )}
@@ -329,11 +326,8 @@ export default function OrderEditForm({ id }: { id: string }) {
                         <div className="truncate font-medium text-purple text-[13.5px]">{a.name} <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: TONE.green.soft, color: TONE.green.text }}>new</span></div>
                         <div className="text-[11.5px]" style={{ color: TONE.green.text }}>{formatTaka(a.unitPaisa)} each · {a.crafted ? "crafted (advance)" : "readymade"}</div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => setAdded((ls) => ls.map((x) => (x.key === a.key ? { ...x, qty: Math.max(1, x.qty - 1) } : x)))} className="w-8 h-8 rounded-[9px] border bg-white text-purple font-medium" style={{ borderColor: TONE.green.border }}>−</button>
-                        <span className="w-8 text-center text-[13.5px] font-medium">{a.qty}</span>
-                        <button type="button" onClick={() => setAdded((ls) => ls.map((x) => (x.key === a.key ? { ...x, qty: x.qty + 1 } : x)))} className="w-8 h-8 rounded-[9px] border bg-white text-purple font-medium" style={{ borderColor: TONE.green.border }}>+</button>
-                      </div>
+                      <QtyStepper size="sm" value={a.qty} min={1}
+                        onChange={(n) => setAdded((ls) => ls.map((x) => (x.key === a.key ? { ...x, qty: n } : x)))} />
                       <div className="text-right text-[13.5px] font-medium text-purple">{formatTaka(a.unitPaisa * a.qty)}</div>
                       <button type="button" onClick={() => setAdded((ls) => ls.filter((x) => x.key !== a.key))} className="w-[34px] h-[34px] grid place-items-center rounded-[9px] border bg-white" style={{ borderColor: TONE.green.border, color: TONE.rose.text }}><Icon name="trash" size={15} /></button>
                     </div>

@@ -30,6 +30,7 @@ import {
 import { RefundDialog, usePaymentMethods, type PayOption } from "./MoneyBlock";
 /*  DEC-SAL-013 — the cancellation refund ladder, and the house info dot.  */
 import { Info } from "./ItemEditor";
+import QtyStepper from "./QtyStepper";
 
 /*  DEC-GBL-001 — ORIGINAL and STORE_CREDIT are rules, not tills, so they are
     always offered; the real doors come from the shop's own list.  */
@@ -516,15 +517,8 @@ export function NewReturn() {
                         <div className="mt-2.5 flex items-end gap-4 flex-wrap">
                           <div>
                             <label className="lbl">How many</label>
-                            <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden bg-white" style={{ width: 118 }}>
-                              <button type="button" className="w-[32px] h-[36px] text-purple hover:bg-lavender/60"
-                                onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.max(1, d.qty - 1) } }))}>–</button>
-                              <input className="flex-1 min-w-0 h-[36px] text-center text-[13px] font-medium text-purple outline-none border-0"
-                                value={d.qty}
-                                onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.max(1, Math.min(l.returnableQty, parseInt(e.target.value, 10) || 1)) } }))} />
-                              <button type="button" className="w-[32px] h-[36px] text-purple hover:bg-lavender/60"
-                                onClick={() => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: Math.min(l.returnableQty, d.qty + 1) } }))}>+</button>
-                            </div>
+                            <QtyStepper value={d.qty} min={1} max={l.returnableQty} label="How many"
+                              onChange={(n) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, qty: n } }))} />
                             <div className="text-[11px] text-body-soft mt-1">of {l.returnableQty}</div>
                           </div>
 
@@ -663,13 +657,10 @@ export function NewReturn() {
                   {repl.map((r, i) => (
                     <div key={r.key} className="flex items-center gap-2 border border-lavender-deep rounded-[10px] px-2.5 py-1.5 bg-white">
                       <span className="text-[12.5px] flex-1 truncate">{r.name}</span>
-                      <div className="flex items-center border border-lavender-deep rounded-[8px] overflow-hidden shrink-0">
-                        <button type="button" className="w-[26px] h-[28px] text-purple hover:bg-lavender/60"
-                          onClick={() => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x)); }}>–</button>
-                        <span className="w-[26px] text-center text-[12.5px] font-medium text-purple">{r.qty}</span>
-                        <button type="button" className="w-[26px] h-[28px] text-purple hover:bg-lavender/60"
-                          onClick={() => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: x.qty + 1 } : x)); }}>+</button>
-                      </div>
+                      <span className="shrink-0">
+                        <QtyStepper size="sm" value={r.qty} min={1}
+                          onChange={(n) => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: n } : x)); }} />
+                      </span>
                       <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[#c0392b] shrink-0"
                         onClick={() => { setReplTouched(true); setRepl((rows) => rows.filter((_, j) => j !== i)); }}>✕</button>
                     </div>

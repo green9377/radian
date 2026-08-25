@@ -6,6 +6,7 @@ import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
 import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import QtyStepper from "./QtyStepper";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
   Live from :4000 only — demo fallbacks removed 6 Aug 2026 (owner's order).
@@ -144,6 +145,18 @@ export default function PosSellView() {
       if (!canAdd(p)) return ls;
       return [...ls, { key: `${p.id}-${Date.now()}`, product: p, qty: 1, unitPaisa: p.pricePaisa ?? 0 }];
     });
+  /*  From the picker, the item is known by product, not by line key — and 0
+      means "take it off the bill" so a mis-tap can be undone where it
+      happened (owner, 26 Aug: the picker tile had only an Add chip).  */
+  const setQtyOfProduct = (id: string, qty: number) =>
+    setLines((ls) => (qty <= 0
+      ? ls.filter((l) => l.product.id !== id)
+      : ls.map((l) => {
+          if (l.product.id !== id) return l;
+          const cap = l.product.stockQty === null ? qty : Math.min(qty, l.product.stockQty);
+          return { ...l, qty: cap };
+        })));
+
   const setQty = (key: string, qty: number) =>
     setLines((ls) =>
       ls.map((l) => {
@@ -591,11 +604,10 @@ export default function PosSellView() {
                 </div>
 
                 <div className="flex items-center justify-center">
-                  <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden">
-                    <button type="button" onClick={() => setQty(l.key, l.qty - 1)} className="w-[30px] h-[32px] text-purple hover:bg-lavender/60">–</button>
-                    <span className="w-[34px] text-center text-[13px] font-medium text-purple">{l.qty}</span>
-                    <button type="button" onClick={() => setQty(l.key, l.qty + 1)} className="w-[30px] h-[32px] text-purple hover:bg-lavender/60">+</button>
-                  </div>
+                  {/*  max = the shelf, so typing 40 when 9 are left stops at 9
+                       instead of being silently corrected after the fact.  */}
+                  <QtyStepper size="sm" value={l.qty} onChange={(n) => setQty(l.key, n)}
+                    min={1} max={l.product.stockQty ?? undefined} />
                 </div>
 
                 <div className="text-right text-[13.5px] font-semibold text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -795,11 +807,19 @@ export default function PosSellView() {
                         <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
                       )}
                     </span>
-                    <button type="button" onClick={() => add(p)} disabled={!canAdd(p)}
-                      title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
-                      className="justify-self-end text-white bg-purple inline-flex items-center gap-1 text-[12px] font-medium rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <Icon name="plus" size={12} /> Add
-                    </button>
+                    {inCart(p.id) > 0 ? (
+                      <span className="justify-self-end">
+                        <QtyStepper size="sm" value={inCart(p.id)} min={0}
+                          max={p.stockQty ?? undefined}
+                          onChange={(n) => setQtyOfProduct(p.id, n)} />
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => add(p)} disabled={!canAdd(p)}
+                        title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
+                        className="justify-self-end text-white bg-purple inline-flex items-center gap-1 text-[12px] font-bold rounded-full px-3.5 py-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <Icon name="plus" size={12} /> Add
+                      </button>
+                    )}
                   </div>
                 ))}
                 {grid.length === 0 && <div className="text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
@@ -807,11 +827,30 @@ export default function PosSellView() {
             </div>
           ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
-            {grid.map((p) => (
-              <button key={p.id} type="button" onClick={() => add(p)} disabled={!canAdd(p)}
-                title={!canAdd(p) ? "Nothing left on the shelf" : undefined}
-                className="text-left bg-white border border-lavender-deep rounded-[14px] overflow-hidden shadow-soft hover:shadow-lift hover:border-orchid-mid transition-all active:scale-[0.98] flex flex-col h-full disabled:opacity-45 disabled:hover:shadow-soft disabled:cursor-not-allowed">
-                <div className="h-[104px] w-full shrink-0" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
+            {grid.map((p) => {
+            const n = inCart(p.id);
+            const shut = !canAdd(p) && n === 0;
+            return (
+              /*  ⚠️ NOT a <button> any more — 26 Aug 2026. The quantity field
+                  inside the tile is an <input>, and an input inside a button
+                  cannot be typed into (and is invalid HTML). The tile keeps
+                  its click-to-add and its keyboard behaviour by hand.  */
+              <div key={p.id} role="button" tabIndex={shut ? -1 : 0}
+                aria-disabled={shut || undefined}
+                onClick={() => { if (!shut && n === 0) add(p); }}
+                onKeyDown={(e) => { if (!shut && n === 0 && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); add(p); } }}
+                title={shut ? "Nothing left on the shelf" : undefined}
+                className={`text-left bg-white border rounded-[14px] overflow-hidden shadow-soft transition-all flex flex-col h-full
+                  ${shut ? "opacity-45 cursor-not-allowed border-lavender-deep"
+                        : n > 0 ? "border-orchid cursor-default shadow-lift"
+                                : "border-lavender-deep cursor-pointer hover:shadow-lift hover:border-orchid-mid active:scale-[0.98]"}`}>
+                <div className="h-[104px] w-full shrink-0 relative" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }}>
+                  {n > 0 && (
+                    <span className="absolute top-2 right-2 bg-purple text-white text-[11.5px] font-bold rounded-full px-2 py-0.5 shadow-soft">
+                      on the bill
+                    </span>
+                  )}
+                </div>
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="text-[13px] font-medium text-purple leading-tight line-clamp-2 min-h-[34px]">{p.name}</div>
                   {/*  what is actually on the shelf — a till that hides a shortage makes
@@ -829,11 +868,22 @@ export default function PosSellView() {
                         <span className="block text-[11px] text-body-soft">cost {formatTaka(p.costPaisa)}</span>
                       )}
                     </span>
-                    <span className="text-white bg-purple inline-flex items-center gap-0.5 text-[11.5px] font-medium rounded-full px-2 py-1 shrink-0"><Icon name="plus" size={12} /> Add</span>
+                    {n === 0 && (
+                      <span className="text-white bg-purple inline-flex items-center gap-1 text-[12px] font-bold rounded-full px-3 py-1.5 shrink-0"><Icon name="plus" size={12} /> Add</span>
+                    )}
                   </div>
+                  {/*  a tile is 158px wide, so the stepper gets its own line
+                       rather than fighting the price for room  */}
+                  {n > 0 && (
+                    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                      <QtyStepper grow size="sm" value={n} min={0} max={p.stockQty ?? undefined}
+                        onChange={(q) => setQtyOfProduct(p.id, q)} />
+                    </div>
+                  )}
                 </div>
-              </button>
-            ))}
+              </div>
+            );
+            })}
             {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
           </div>
           )}

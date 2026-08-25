@@ -12,6 +12,7 @@ import {
   type ApiSupplier,
 } from "../_data/api";
 import { MoneyBlock, MoneyResult, PaymentLines, computeMoney, chargeNote, usePayRows, usePaymentMethods, BILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import QtyStepper from "./QtyStepper";
 
 /*
   New purchase — ONE screen, Biznify-Direct-Bill style (the owner's 331-of-331 habit).
@@ -84,6 +85,12 @@ export function ItemPicker({
       if (v <= 0) n.delete(id); else n.set(id, v);
       return n;
     });
+  const setPicked = (id: string, qty: number) =>
+    setSel((m) => {
+      const n = new Map(m);
+      if (qty <= 0) n.delete(id); else n.set(id, qty);
+      return n;
+    });
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-8" style={{ background: "rgba(40,20,50,.45)" }}>
@@ -120,9 +127,13 @@ export function ItemPicker({
             {shown.map((i) => {
               const n = sel.get(i.id) ?? 0;
               return (
-                <button key={i.id} type="button"
-                  onClick={() => (single ? onDone([{ item: i, qty: 1 }]) : bump(i.id, +1))}
-                  className="text-left bg-white rounded-[14px] border px-3.5 py-3 flex items-center gap-3 transition-all"
+                /*  ⚠️ NOT a <button> — the quantity is a typeable field now
+                    (26 Aug 2026), and an <input> inside a <button> cannot be
+                    typed into. Click-to-add stays, by hand.  */
+                <div key={i.id} role="button" tabIndex={0}
+                  onClick={() => { if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); } }}
+                  className={`text-left bg-white rounded-[14px] border px-3.5 py-3 flex items-center gap-3 transition-all ${n > 0 ? "cursor-default" : "cursor-pointer"}`}
                   style={{ borderColor: n > 0 ? ACCENT : "#e9def2", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
                   {/* the photo, exactly as the Item module saved it (DEC-ITM-012) */}
                   <ItemThumb item={i} size={46} />
@@ -133,13 +144,11 @@ export function ItemPicker({
                     </span>
                   </span>
                   {n > 0 && (
-                    <span className="flex items-center gap-1.5 shrink-0">
-                      <span onClick={(e) => { e.stopPropagation(); bump(i.id, -1); }}
-                        className="w-[22px] h-[22px] rounded-full border border-lavender-deep grid place-items-center text-body hover:border-orchid">−</span>
-                      <b className="text-[13px] text-purple min-w-[16px] text-center">{n}</b>
+                    <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <QtyStepper size="sm" value={n} min={0} onChange={(q) => setPicked(i.id, q)} />
                     </span>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -441,19 +450,12 @@ export default function PurchaseNewView() {
                       .map((u) => ({ id: u.id, label: u.name }))}
                     onChange={(id) => patchLine(l.key, { unitId: id })}
                   />
-                  {/*  the same − 1 + stepper the counter uses; one shape for a
-                       quantity everywhere (owner, 21 Aug: "atai standard")  */}
-                  <div className="flex items-center border border-lavender-deep rounded-[9px] overflow-hidden bg-white">
-                    <button type="button" title="One less"
-                      onClick={() => patchLine(l.key, { qty: String(Math.max(0, (parseFloat(l.qty) || 0) - 1)) })}
-                      className="w-[30px] h-[36px] text-purple hover:bg-lavender/60 shrink-0">–</button>
-                    <input className="flex-1 min-w-0 h-[36px] text-center text-[13px] font-medium text-purple outline-none border-0"
-                      placeholder="0" inputMode="decimal"
-                      value={l.qty} onChange={(e) => patchLine(l.key, { qty: e.target.value })} />
-                    <button type="button" title="One more"
-                      onClick={() => patchLine(l.key, { qty: String((parseFloat(l.qty) || 0) + 1) })}
-                      className="w-[30px] h-[36px] text-purple hover:bg-lavender/60 shrink-0">+</button>
-                  </div>
+                  {/*  the same stepper the counter uses; one shape for a
+                       quantity everywhere (owner, 21 Aug: "atai standard").
+                       Decimal, because a purchase can be 1.5 kg.  */}
+                  <QtyStepper grow decimal min={0} label="Quantity"
+                    value={parseFloat(l.qty) || 0}
+                    onChange={(n) => patchLine(l.key, { qty: String(n) })} />
                   <input className="ipt w-full" placeholder="0.00" inputMode="decimal"
                     value={l.priceTk} onChange={(e) => patchLine(l.key, { priceTk: e.target.value })} />
                   <span className="text-[13px] font-medium text-right">{formatTaka(lineTotal(l))}</span>
