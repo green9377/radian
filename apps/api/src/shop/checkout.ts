@@ -689,6 +689,10 @@ export class CheckoutService {
     if (orderLines.length) {
       const q = await this.offers.quote({
         customerId: customer?.id,
+        /*  A phone that matches no customer has ordered zero times, so the
+            welcome offer applies — and the quote now says so instead of
+            springing it on the bill (offer.dto.ts, `firstOrderEligible`).  */
+        firstOrderEligible: Boolean(dto.phone?.trim()) && !customer,
         /*  Net unit, exactly as `OrdersService.create` now does it — the two
             must feed the engine the same numbers or the quote and the order
             will disagree the moment a bundle discount is on the line. See the

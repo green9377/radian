@@ -445,12 +445,21 @@ export class OffersService {
         return `only with ${o.paymentMethod}`;
       // OFR-R02 first order
       if (o.shape === 'FIRST_ORDER') {
-        if (!customer) return 'needs an identified customer';
-        if (customer.ordersCount > 0) return 'not a first order';
-        const prior = await this.prisma.db.offerRedemption.count({
-          where: { customerId: customer.id, deletedAt: null, offer: { shape: 'FIRST_ORDER' } },
-        });
-        if (prior > 0) return 'welcome offer already used';
+        /*  ⚠️ NO CUSTOMER ROW IS NOT "UNKNOWN" — IT IS ZERO ORDERS.
+            See `firstOrderEligible` in offer.dto.ts for the whole story: this
+            branch used to refuse outright, so the welcome offer was invisible
+            to every first-time shopper and then appeared on their bill.  */
+        if (!customer) {
+          if (!dto.firstOrderEligible) return 'needs an identified customer';
+          /*  Nobody by that phone exists, so there is no redemption history
+              to check either. Fall through and let it apply.  */
+        } else {
+          if (customer.ordersCount > 0) return 'not a first order';
+          const prior = await this.prisma.db.offerRedemption.count({
+            where: { customerId: customer.id, deletedAt: null, offer: { shape: 'FIRST_ORDER' } },
+          });
+          if (prior > 0) return 'welcome offer already used';
+        }
       }
       // OFR-R06 limits
       if (o.totalLimit) {

@@ -357,24 +357,37 @@ function sellableLineOf(p) {
 
   /* ═══ 8 ═══ */
   section('8. Variant stock — deducted from the variant shelf (DEC-PRD-014)');
-  if (!variantProduct) skip('variant stock', 'no non-crafted product with variant stock > 1');
+  if (!variantProduct) skip('variant stock', 'no product with variant stock > 1');
   else {
     const v = variantProduct.variants.find((x) => (x.stockQty ?? 0) > 1);
+    /*  ⚠️ READ THE SHELF NOW, NOT AT FIXTURE TIME — 25 Aug 2026.
+        This compared against the number captured before section 0 finished,
+        and sections 3 to 7 place and PREPARE orders on the main fixture in
+        between. The moment the main fixture and this one land on the same
+        product — which they do on an all-crafted catalogue — section 7's
+        deduction was blamed on section 8: "11 -> 9" for an order of one, and
+        then the cancel check failed for the same reason.
+
+        Neither was a stock bug. It was this test trusting a stale number.  */
+    const readVariant = async () => {
+      const fresh = await call('GET', `/products/${variantProduct.id}`, null, true);
+      return fresh.json?.variants?.find((x) => x.id === v.id)?.stockQty;
+    };
+    const vBefore = await readVariant();
     const r = await call('POST', '/shop/checkout', orderBody(fix, { items: [{ slug: variantProduct.slug, qty: 1, variantId: v.id }] }));
     if (r.status !== 201) bad(`variant order failed (${r.status}): ${msgOf(r)}`);
     else {
       placedForCleanup.push(r.json);
       await call('POST', `/orders/${r.json.orderId}/confirm`, {}, true);
       const p = await call('POST', `/orders/${r.json.orderId}/prepare`, {}, true);
-      const fresh = await call('GET', `/products/${variantProduct.id}`, null, true);
-      const vNow = fresh.json?.variants?.find((x) => x.id === v.id)?.stockQty;
-      if (p.status < 300 && vNow === v.stockQty - 1) ok(`variant "${v.label ?? v.name ?? 'variant'}" deducted: ${v.stockQty} -> ${vNow}`);
-      else bad(`variant deduction went wrong (prepare ${p.status}, stock ${v.stockQty} -> ${vNow})`);
+      const vNow = await readVariant();
+      if (p.status < 300 && vNow === vBefore - 1) ok(`variant "${v.label ?? v.name ?? 'variant'}" deducted: ${vBefore} -> ${vNow}`);
+      else bad(`variant deduction went wrong (prepare ${p.status}, stock ${vBefore} -> ${vNow})`);
       await call('POST', `/orders/${r.json.orderId}/cancel`, { reason: 'regression' }, true);
-      const fresh2 = await call('GET', `/products/${variantProduct.id}`, null, true);
-      const vBack = fresh2.json?.variants?.find((x) => x.id === v.id)?.stockQty;
-      if (vBack === v.stockQty) ok(`cancel restored the variant: ${vNow} -> ${vBack}`);
-      else bad(`after cancel variant stock is ${vBack}, expected ${v.stockQty}`);
+      const vBack = await readVariant();
+      /*  Back to where THIS section found it, not where the fixture did.  */
+      if (vBack === vBefore) ok(`cancel restored the variant: ${vNow} -> ${vBack}`);
+      else bad(`after cancel variant stock is ${vBack}, expected ${vBefore}`);
     }
   }
 
