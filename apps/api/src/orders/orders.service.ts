@@ -693,13 +693,52 @@ export class OrdersService {
     return this.shape(updated);
   }
 
-  // cancel — per-line refund (readymade full · crafted advance forfeit if preparing); stock revert if committed
+  /**
+   * ── DEC-SAL-013 · what a cancelled order gives back (owner, 25 Aug 2026) ──
+   *
+   * The refund is a share of the MONEY ACTUALLY RECEIVED, never of the order
+   * total. Asked directly, the owner: *"the customer gets 50% of the amount
+   * they paid — not 50% of the product price."* And on a COD order where
+   * nothing had been paid: nothing back, nothing owed. The shop loses the
+   * flowers and that is the end of it.
+   *
+   *   unassigned        nothing made yet          → beforeStartPct (100%)
+   *   preparing         made, rider not out       → afterStartPct  (50%)
+   *   out_for_delivery  the rider has left        → 0
+   *   delivered         refused above — that is a Return, not a cancel
+   *
+   * ⚠️ WHAT THIS REPLACED, AND WHY IT WAS A LEAK. The old rule refunded each
+   * line in full unless the product carried an advance, and `advanceForfeit`
+   * returns 0 for a product with none. Not one product in this shop has one.
+   * So a made-to-order bouquet cancelled after the workshop had cut the stems
+   * refunded 100% — the shop lost the flowers AND the money, every time.
+   *
+   * ⚠️ THE PER-LINE FIGURES ARE NOW A SHARE-OUT, NOT THE SOURCE. The order
+   * decides one number and the lines carry their proportion of it, so the
+   * receipt still adds up. Do not go back to deciding it line by line: the
+   * ruling is about the ORDER's progress, and lines do not have progress.
+   */
   async cancel(id: string, dto: CancelOrderDto) {
     const o = await this.get(id);
     if (o.salesStatus === SalesStatus.completed || o.salesStatus === SalesStatus.cancelled)
       throw new BadRequestException(`cannot cancel a ${o.salesStatus} order`);
     const actorName = dto.actorName ?? 'Admin';
     const preparingStarted = o.deliveryStatus !== DeliveryStatus.unassigned;
+
+    /*  Money in hand: what was paid, less anything already given back.  */
+    const collected = Math.max(0, o.paidPaisa - o.refundPaisa);
+
+    const rates = await this.salesRates();
+    const refundPct =
+      o.deliveryStatus === DeliveryStatus.unassigned
+        ? rates.beforeStartPct
+        : o.deliveryStatus === DeliveryStatus.preparing
+          ? rates.afterStartPct
+          : /*  out_for_delivery, failed, stock_reverted — the rider has been
+                out with it. Not a setting: "once it is on the road it is
+                gone" is the ruling itself.  */
+            0;
+    const entitlement = Math.round((collected * refundPct) / 100);
 
     const lines = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
     /*  DEC-POS-018 — a counter line carries an Item, not a Product. These website
@@ -709,21 +748,29 @@ export class OrdersService {
     });
     const pMap = new Map(products.map((p) => [p.id, p]));
 
+    /*  DEC-SAL-013 — the ORDER decided the number; the lines carry their share
+        of it so the receipt still adds up. Shared out by each line's value,
+        with the rounding remainder given to the last line rather than lost.  */
+    const orderNet = lines.reduce((s, l) => s + (l.linePaisa - l.discountPaisa), 0);
+    const stageNote =
+      refundPct >= 100 ? 'Cancelled before the workshop started'
+        : refundPct > 0 ? `Cancelled after it was made — ${refundPct}% of what was paid`
+          : 'Cancelled after the rider left — nothing refundable';
+
     // REV-C2: per-line refund figures + stock revert run in one transaction.
     let totalRefund = 0;
     await this.prisma.db.$transaction(async (tx) => {
-      for (const l of lines) {
+      for (const [i, l] of lines.entries()) {
         const p = l.productId ? pMap.get(l.productId) : undefined;
         const net = l.linePaisa - l.discountPaisa;
-        let refund = net;
-        let note = 'Readymade — refunded in full';
-        if (l.productType === ProductType.CRAFTED && preparingStarted) {
-          const forfeit = this.advanceForfeit(p, net);
-          refund = Math.max(0, net - forfeit);
-          note = `Crafted — advance ${forfeit} paisa forfeited, rest refunded`;
-        }
+        const last = i === lines.length - 1;
+        const refund = last
+          ? Math.max(0, entitlement - totalRefund)
+          : orderNet > 0
+            ? Math.round((entitlement * net) / orderNet)
+            : 0;
         totalRefund += refund;
-        await tx.orderLine.update({ where: { id: l.id }, data: { refundPaisa: refund, refundNote: note } });
+        await tx.orderLine.update({ where: { id: l.id }, data: { refundPaisa: refund, refundNote: stageNote } });
 
         /*  ── DEC-SAL-012 · ONCE THE WORKSHOP HAS TOUCHED IT, IT DOES NOT GO
                BACK ON THE SHELF (owner, 25 August 2026) ────────────────────
@@ -779,12 +826,11 @@ export class OrdersService {
       }
     });
 
-    /* REV-C1: never refund money that was never collected.
-       The per-line figures above are the ENTITLEMENT; the actual payout is
-       capped at what is still in hand (paid − already refunded). A COD order
-       that was cancelled before anyone paid now refunds 0, as it should. */
-    const collected = Math.max(0, o.paidPaisa - o.refundPaisa);
-    const entitlement = totalRefund;
+    /*  REV-C1 — never refund money that was never collected. Since DEC-SAL-013
+        the entitlement is already a share OF `collected`, so this can no
+        longer exceed it; the cap stays as the belt to that braces. A COD order
+        cancelled before anyone paid refunds 0, which is the owner's own
+        answer to that exact case.  */
     const payout = Math.min(entitlement, collected);
 
     if (payout > 0) {
@@ -1265,6 +1311,62 @@ export class OrdersService {
     };
   }
 
+  /**
+   * DEC-SAL-013 — the two rates, from the one row the owner can edit.
+   *
+   * Read fresh on every cancel rather than cached: a cancellation is rare and
+   * a stale percentage is money.
+   */
+  /** DEC-SAL-013 — the rules screen reads this. */
+  async getSalesSettings() {
+    return this.salesRates();
+  }
+
+  /**
+   * DEC-SAL-013 — and writes it.
+   *
+   * ⚠️ Bounded 0–100. A percentage outside that is a typo, and this one is
+   * money: 1000 would try to refund ten times what came in, and the payout
+   * cap would quietly swallow it so nobody ever found out.
+   */
+  async saveSalesSettings(dto: { beforeStartPct?: number; afterStartPct?: number }) {
+    const now = await this.salesRates();
+    const clamp = (n: number | undefined, fallback: number) =>
+      n == null || Number.isNaN(n) ? fallback : Math.min(100, Math.max(0, Math.round(n)));
+    await this.prisma.db.salesSetting.update({
+      where: { id: 'singleton' },
+      data: {
+        beforeStartPct: clamp(dto.beforeStartPct, now.beforeStartPct),
+        afterStartPct: clamp(dto.afterStartPct, now.afterStartPct),
+      },
+    });
+    return this.salesRates();
+  }
+
+  private async salesRates(): Promise<{ beforeStartPct: number; afterStartPct: number }> {
+    try {
+      const row = await this.prisma.db.salesSetting.upsert({
+        where: { id: 'singleton' },
+        update: {},
+        create: { id: 'singleton' },
+      });
+      return { beforeStartPct: row.beforeStartPct, afterStartPct: row.afterStartPct };
+    } catch {
+      /*  Before the table exists, the owner's own numbers — never a silent
+          100% refund, which is the leak this rule was written to close.  */
+      return { beforeStartPct: 100, afterStartPct: 50 };
+    }
+  }
+
+  /**
+   * ⚠️ NO LONGER USED BY `cancel()` — DEC-SAL-013 replaced it, 25 Aug 2026.
+   *
+   * It answers a different question from the refund ladder: how much of the
+   * price must be paid UP FRONT before the workshop starts. Kept because
+   * `advanceRequired` / `advanceType` still drive that, and checkout reads
+   * them. It must not creep back into a refund calculation — the owner's rule
+   * is a share of what was RECEIVED, and this is a share of what was OWED.
+   */
   private advanceForfeit(p: { advanceType: string | null; advancePercent: number | null; advanceAmountPaisa: number | null } | undefined, net: number): number {
     if (!p) return 0;
     if (p.advanceType === 'FULL') return net;

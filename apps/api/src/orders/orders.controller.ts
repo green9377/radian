@@ -29,6 +29,20 @@ export class OrdersController {
   list(@Query() q: ListOrderQuery) {
     return this.svc.list(q);
   }
+
+  /*  ⚠️ DECLARED BEFORE `:id` OR IT NEVER RUNS. `/orders/cancel-rules` would
+      otherwise be read as an order whose id is the word "cancel-rules" — the
+      trap `product-detail.ts` warns about, one module over.  */
+  @Get('cancel-rules')
+  cancelRules() {
+    return this.svc.getSalesSettings();
+  }
+  @Roles('OWNER', 'MANAGER')
+  @Patch('cancel-rules')
+  saveCancelRules(@Body() body: { beforeStartPct?: number; afterStartPct?: number }) {
+    return this.svc.saveSalesSettings(body);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);

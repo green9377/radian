@@ -7237,3 +7237,15 @@ export const getWaTemplateStatus = () =>
   j<{ configured: boolean; templates: ApiTemplateResult[] }>("/messaging/templates");
 export const submitWaTemplates = () =>
   j<{ configured: boolean; results: ApiTemplateResult[] }>("/messaging/templates", { method: "POST" });
+
+/*  ── DEC-SAL-013 · what a cancelled order gives back ──────────────────────
+    A share of the money the customer actually PAID, never of the order total.
+    Owner, 25 Aug 2026. The "rider has left" case is fixed at nothing and is
+    deliberately not a setting.  */
+export const getCancelRules = () =>
+  j<{ beforeStartPct: number; afterStartPct: number }>("/orders/cancel-rules");
+export const saveCancelRules = (r: { beforeStartPct?: number; afterStartPct?: number }) =>
+  j<{ beforeStartPct: number; afterStartPct: number }>("/orders/cancel-rules", {
+    method: "PATCH",
+    body: JSON.stringify(r),
+  });

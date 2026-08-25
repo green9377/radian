@@ -131,6 +131,8 @@ const NO_SOFT_DELETE = new Set([
   // DEC-PRD-050 — the badge rules, one singleton row. Named here the day the
   // table was written, not after the API refused to boot.
   'MerchSetting',
+  // DEC-SAL-013 — the cancellation refund ladder. Same shape, same reason.
+  'SalesSetting',
   // membership rows live and die with their collection, like every other
   // parent-owned line table above
   'CollectionProduct',

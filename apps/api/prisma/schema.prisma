@@ -3134,6 +3134,45 @@ model CustomerCredit {
 }
 
 /// DEC-RTN-014 — singleton settings. Return window + approval threshold.
+/// ── DEC-SAL-013 · what a cancelled order gives back ───────────────────────
+/// The owner, 25 August 2026, after the regression suite asked:
+///
+/// > Once work has been started there is no putting it back. If they cancel
+/// > before taking delivery they get 50% back; once the rider has left,
+/// > nothing. And: *"the customer gets 50% of the amount they paid — not 50%
+/// > of the product price."*
+///
+/// So the refund is a share of MONEY ACTUALLY RECEIVED, never of the order
+/// total. A COD order cancelled before anyone paid refunds nothing and leaves
+/// nobody owing anything — the shop loses the flowers and that is the end of
+/// it. He was asked that case directly and chose it.
+///
+/// The ladder follows the delivery status, because that is the only honest
+/// record of how far the order actually got:
+///
+///   unassigned        nothing was made           → `beforeStartPct` (100)
+///   preparing         made, rider not out yet    → `afterStartPct`  (50)
+///   out_for_delivery  the rider has left         → 0, always
+///   delivered         cannot be cancelled at all — that is a Return
+///
+/// ⚠️ The last two are NOT settings. "Once it is on the road it is gone" is
+/// the ruling itself, not a number to tune, and a delivered order is refused
+/// by `cancel()` before any of this is reached.
+model SalesSetting {
+  id String @id @default("singleton")
+
+  /// Cancelled before the workshop started. 100 = the whole of what they paid.
+  beforeStartPct Int @default(100)
+
+  /// Cancelled after it was made but before the rider left. The owner's 50.
+  /// He called it "our general rule", so it is a number he can move — a
+  /// season, a big client or a mistake of ours may all deserve a different one.
+  afterStartPct Int @default(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ReturnSetting {
   id                       String   @id @default("singleton")
   returnWindowDays         Int      @default(0) // 0 = off (staff discretion); past window = warn, never block

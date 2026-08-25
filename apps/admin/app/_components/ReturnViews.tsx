@@ -20,6 +20,7 @@ import {
   completeReturn,
   repostReturnRestock, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
   deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit, listOrders, formatTaka,
+  getCancelRules, saveCancelRules,
   posCatalogue, type ApiPosCatalogueRow,
   RETURN_STATUS_META, RESOLUTION_LABEL,
   type ApiReturn, type ReturnAnalytics, type EligibleOrder, type ApiReturnReason,
@@ -27,6 +28,8 @@ import {
   type ReturnStatus, type ApiOrder,
 } from "../_data/api";
 import { RefundDialog, usePaymentMethods, type PayOption } from "./MoneyBlock";
+/*  DEC-SAL-013 — the cancellation refund ladder, and the house info dot.  */
+import { Info } from "./ItemEditor";
 
 /*  DEC-GBL-001 — ORIGINAL and STORE_CREDIT are rules, not tills, so they are
     always offered; the real doors come from the shop's own list.  */
@@ -1040,6 +1043,91 @@ export function ReturnSettingsView() {
           </div>
         )}
       </div>
+
+      {/*  ── DEC-SAL-013 · what a CANCELLED order gives back ─────────────────
+           A cancellation is not a return — the customer never received
+           anything — but both are "how much money goes back", and the owner
+           will look for them in the same place. So it sits under the return
+           policy rather than in a screen of its own.
+
+           The refund is a share of what was PAID, never of the order total.
+           His words: *the customer gets 50% of the amount they paid, not 50%
+           of the product price.*  */}
+      <CancelRules />
+    </div>
+  );
+}
+
+function CancelRules() {
+  const [rates, setRates] = useState<{ beforeStartPct: number; afterStartPct: number } | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    getCancelRules().then(setRates).catch((e) => setErr(msg(e, "Could not read the cancellation rules")));
+  }, []);
+
+  async function save(patch: { beforeStartPct?: number; afterStartPct?: number }) {
+    try {
+      setRates(await saveCancelRules(patch));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) { setErr(msg(e, "Could not save")); }
+  }
+
+  if (err) return <ErrBar text={err} onClose={() => setErr("")} />;
+  if (!rates) return null;
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-2.5 mb-3">
+        <h2 className="font-display text-[17px] text-purple m-0">If an order is cancelled</h2>
+        <Info text="A cancellation is not a return — nothing was ever received. What comes back is a share of the money the customer actually PAID, never a share of the order total. So a Cash-on-Delivery order cancelled before anyone paid returns nothing, and leaves nobody owing anything." />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
+            Not made yet
+            <Info text="Cancelled while the order is still waiting — nobody has touched the flowers. Nothing has come off the shelf either, so there is nothing to lose." />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="number" className="ipt tabular-nums font-semibold text-[17px]" style={{ minHeight: 42, maxWidth: 100 }}
+              defaultValue={rates.beforeStartPct}
+              onBlur={(e) => save({ beforeStartPct: parseInt(e.target.value, 10) })} />
+            <span className="text-[13px] font-semibold text-body-soft">% of what they paid</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
+            Made, rider not out
+            <Info text="The workshop has started, so the stems are cut and the stock does not come back. This is the owner's 50% — move it if a season or a customer deserves different." />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="number" className="ipt tabular-nums font-semibold text-[17px]" style={{ minHeight: 42, maxWidth: 100 }}
+              defaultValue={rates.afterStartPct}
+              onBlur={(e) => save({ afterStartPct: parseInt(e.target.value, 10) })} />
+            <span className="text-[13px] font-semibold text-body-soft">% of what they paid</span>
+          </div>
+        </div>
+
+        {/*  Not a field, deliberately. "Once it is on the road it is gone" is
+             the ruling, not a number to tune — showing it as an editable box
+             would invite somebody to soften a rule the owner set hard.  */}
+        <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
+            Rider has left
+            <Info text="Fixed at nothing, and not a setting. Once it is on the road the flowers, the trip and the rider's time are all spent. A problem found after it arrives is a Return, not a cancellation." />
+          </div>
+          <div className="flex items-center gap-2" style={{ minHeight: 42 }}>
+            <span className="font-display text-[22px] text-purple tabular-nums">0</span>
+            <span className="text-[13px] font-semibold text-body-soft">% — nothing comes back</span>
+          </div>
+        </div>
+      </div>
+
+      {saved && <div className="text-[13px] font-semibold text-[#0f7d55] mt-3">Saved ✓</div>}
     </div>
   );
 }

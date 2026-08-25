@@ -31,33 +31,43 @@ No behaviour changed. What changed is that it is now written down, commented at
 the line, and the suite asserts it — it used to call the crafted case a broken
 rule, which was the test being wrong.
 
-### ⛔ The money half — NOT BUILT, and today it does the opposite
+### DEC-SAL-013 — the money half, now built
 
-The owner's ladder:
+Asked the four open questions, the owner closed all of them:
 
-| when | money back |
+- *"the customer gets 50% of the amount they PAID — not 50% of the product
+  price"*
+- COD, nothing paid, cancelled after it was made → **nothing back and nothing
+  owed**. He was given that case with numbers and chose it: the shop loses the
+  flowers and that is the end of it.
+- nothing made yet → **the whole of what they paid**
+- **once the rider has left → nothing**, whoever is holding it
+
+So the ladder is a share of MONEY RECEIVED, and it follows the delivery status
+because that is the only honest record of how far the order got:
+
+| delivery status | back |
 |---|---|
-| cancelled before delivery | **50%** |
-| product handed over | **nothing** |
-| after delivery, product fault | a Returns conversation, not a cancel |
+| `unassigned` — not made | **100%** of what was paid |
+| `preparing` — made, rider not out | **50%** of what was paid |
+| `out_for_delivery` — rider gone | **0** |
+| `delivered` | cancel is refused; that is a Return |
 
-**What the code does now.** `cancel()` refunds `net − advanceForfeit(product)`,
-and `advanceForfeit` returns 0 unless the product carries an advance. **No
-product in the shop carries one.** So today a made-to-order order cancelled
-after the workshop started **refunds 100%** — the shop loses the flowers *and*
-the money.
+**What it replaced, and why it was a leak.** `cancel()` refunded each line in
+full unless the product carried an advance, and `advanceForfeit` returns 0 for
+a product with none — not one product in this shop has one. A made-to-order
+bouquet cancelled after the stems were cut refunded **100%**: the shop lost the
+flowers *and* the money, every time.
 
-Open questions before this can be written:
+**Where it lives.** `SalesSetting` singleton, the two percentages editable at
+Returns → Reasons & settings, under *"If an order is cancelled"*. The
+rider-has-left case is fixed at zero and deliberately NOT a field — that is the
+ruling, not a number to tune.
 
-1. Is **50%** a shop-wide setting (house rule 7) or per product? He called it
-   "our general rule", which reads shop-wide with room to differ.
-2. What about cancelled **before** preparing, when nothing has been made? The
-   ruling does not cover it. Full refund is the obvious reading, but obvious is
-   not the same as ruled.
-3. Does it interact with `advanceRequired` / `advanceType`, which already exist
-   on Product and answer a different question (how much must be paid up front)?
-4. `out_for_delivery` — the rider is holding it but nobody has taken it. Is that
-   "before delivery" (50%) or "handed over" (nothing)?
+`advanceForfeit()` is kept but no longer touches refunds: it answers how much
+must be paid UP FRONT, which is a share of what was OWED. The refund is a share
+of what was RECEIVED. Two different questions, and mixing them is how this went
+wrong the first time.
 
 ---
 
