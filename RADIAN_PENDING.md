@@ -6,6 +6,47 @@
 
 ---
 
+## ❓ OPEN — a cancelled made-to-order line never gives its stock back (25 Aug)
+
+Found by the regression suite, and it is the owner's ruling to make.
+
+**What happens today.** Stock comes off at *preparing*, for every line type —
+`orders.service.ts` checks only `stockMode === 'MANUAL'`. On **cancel** it goes
+back only when `productType === READYMADE`. A CRAFTED line keeps the deduction
+for ever.
+
+```
+prepare   readymade ✔ deducted     crafted ✔ deducted
+cancel    readymade ✔ restored     crafted ✘ NOT restored
+add-ons   restored for both
+```
+
+**Why it may well be right.** Once the workshop has started, the flowers are
+cut — they do not go back on the shelf. It is the same reasoning that forfeits
+the advance on a cancelled crafted order, three lines above it in the same
+transaction.
+
+**Why it matters here.** Every one of the shop's products is CRAFTED, so this
+is not an edge case: *every* cancellation after preparing permanently lowers a
+stock number. Over a season the figures drift down and the shop stops being
+able to sell things it can actually make.
+
+**The question for the owner, in plain words:** you start making a bouquet, the
+customer then cancels. The flowers are used. Should the stock number go back up?
+
+- **No** — today's behaviour is correct, and it should be written down as a
+  decision so nobody "fixes" it later.
+- **Yes** — then the deduction is really about finished goods, and cancel must
+  restore for crafted lines too.
+- **It depends on when** — restore if it is cancelled before anyone has touched
+  it, not after. That is a third rule and needs a marker for "work started".
+
+⚠️ Nothing has been changed. The suite reports the crafted case as a NOTE
+instead of a FAIL so a green run stays meaningful, and this entry keeps the
+question alive.
+
+---
+
 ## ⭐ DEC-PRD-050 — Best seller and New arrival are EARNED (24 Aug)
 
 Both were checkboxes on the product form. That makes the shop's own claim only
