@@ -121,7 +121,12 @@ function orderBody(fix, extra = {}) {
     deliveryMethodId: fix.method.id,
     deliverySlotId: fix.slot?.id,
     date: FAR_DATE,
-    paymentMethod: 'cod',
+    /*  ⚠️ COD only when the fixture can take it. On a made-to-order product
+        COD is refused (locked §4) — so on an all-crafted catalogue every one
+        of these orders would come back 400 and each test would report the
+        COD rule instead of the rule it was written for. The suite is not
+        testing COD here; section 5 does that on purpose.  */
+    paymentMethod: fix.isCrafted ? 'online' : 'cod',
     senderName: 'Regression Suite',
     senderPhone: PHONE,
     address: ADDRESS,
@@ -173,9 +178,28 @@ function sellableLineOf(p) {
     const r = await call('GET', `/products/${p.id}`, null, true);
     return r.status === 200 ? r.json : null;
   };
-  const product = await detailOf(candidates.find((p) => p.productType !== 'CRAFTED' && !p.advanceRequired && sellableLineOf(p)));
-  const crafted = await detailOf(candidates.find((p) => p.productType === 'CRAFTED' && sellableLineOf(p)));
-  const variantProduct = await detailOf(candidates.find((p) => p.productType !== 'CRAFTED' && !p.advanceRequired &&
+  /*  ⚠️ THE SUITE USED TO GIVE UP ON A SHOP LIKE THIS ONE — 25 Aug 2026.
+      It demanded a READYMADE product for its main fixture and, finding none,
+      printed "no sellable non-crafted product found" and stopped before a
+      single business rule ran.
+
+      Every one of the owner's thirteen products is CRAFTED, and that is not
+      a data mistake — it is a florist. Almost everything is made to order.
+      A suite that refuses to run because the shop sells what it sells is the
+      broken half of that argument.
+
+      So the main fixture now takes whatever is sellable, and only the checks
+      that GENUINELY need a readymade line skip — with the reason printed.
+      `mainIsCrafted` carries that fact to the two places it changes an
+      expected answer, because COD is refused on a crafted line (locked §4)
+      and a test that pays by COD on one would be testing the wrong rule.  */
+  const readymade = await detailOf(candidates.find((p) => p.productType !== 'CRAFTED' && !p.advanceRequired && sellableLineOf(p)));
+  const crafted = await detailOf(candidates.find((p) => p.productType === 'CRAFTED' && !p.advanceRequired && sellableLineOf(p)));
+  const product = readymade ?? crafted;
+  const mainIsCrafted = !readymade && Boolean(crafted);
+  /*  Variant stock is about the shelf, not the product type — the old filter
+      excluded CRAFTED here too and blinded the check for no reason.  */
+  const variantProduct = await detailOf(candidates.find((p) => !p.advanceRequired &&
     p.stockMode === 'MANUAL' && p.variants?.length && p.variants.some((v) => (v.stockQty ?? 0) > 1)));
 
   const menu = await call('GET', '/shop/delivery/menu?zone=DHAKA');
@@ -184,15 +208,19 @@ function sellableLineOf(p) {
   const slot = method?.slots?.[0];
 
   if (!product) {
-    bad('fixtures', 'no sellable non-crafted product found — see the list below');
+    bad('fixtures', 'nothing in the catalogue can be sold right now — see the list below');
     console.log('    admin sees these products (first 8):');
     for (const p of adminItems.slice(0, 8))
       console.log(`      - ${p.slug}  type=${p.productType}  stockMode=${p.stockMode}  stockQty=${p.stockQty}  variants=${p.variants?.length ?? 0}  advance=${p.advanceRequired}`);
+    console.log('    A product needs: published, in this zone, and stock above zero');
+    console.log('    (on its variants when it has them).');
     await done(); return;
   }
   if (!method) { bad('fixtures', 'no delivery method for DHAKA'); await done(); return; }
-  const fix = { product, line: sellableLineOf(product), method, slot };
+  const fix = { product, line: sellableLineOf(product), method, slot, isCrafted: mainIsCrafted };
   ok('fixtures', `${product.name}${fix.line.variantId ? ' (variant)' : ''} | ${method.label}${slot ? ` | ${slot.label}` : ''}`);
+  if (mainIsCrafted)
+    console.log('    \x1b[33mNOTE\x1b[0m  every product here is made-to-order, so the tests pay online — COD is refused on a crafted line by design');
 
   /* ═══ 1 ═══ */
   section('1. Shop is open (catalogue readable)');
@@ -206,7 +234,7 @@ function sellableLineOf(p) {
 
   /* ═══ 3 ═══ */
   section('3. Quoted money = charged money (server-only pricing)');
-  const qBody = { items: [{ ...fix.line }], zone: 'DHAKA', deliveryMethodId: method.id, deliverySlotId: slot?.id, paymentMethod: 'cod', phone: PHONE };
+  const qBody = { items: [{ ...fix.line }], zone: 'DHAKA', deliveryMethodId: method.id, deliverySlotId: slot?.id, paymentMethod: fix.isCrafted ? 'online' : 'cod', phone: PHONE };
   const quote = await call('POST', '/shop/checkout/quote', qBody);
   if (quote.status !== 201 && quote.status !== 200) bad(`quote failed (${quote.status}): ${msgOf(quote)}`);
   else {
@@ -244,12 +272,17 @@ function sellableLineOf(p) {
 
   /* ═══ 5 ═══ */
   section('5. COD rules (locked section 4)');
+  /*  ⚠️ THESE TWO FORCE `cod` AND MUST KEEP DOING SO. `orderBody` now picks
+      online when the fixture is made-to-order, which is right everywhere
+      except here — this is the one section whose whole subject IS Cash on
+      Delivery. Without the override both checks would place a happy online
+      order and report "should be refused" about a rule they never exercised.  */
   if (crafted) {
-    const r = await call('POST', '/shop/checkout', orderBody(fix, { items: [sellableLineOf(crafted)] }));
-    if (r.status === 400 && /COD/i.test(msgOf(r))) ok(`COD refused on crafted item: "${msgOf(r).slice(0, 60)}"`);
+    const r = await call('POST', '/shop/checkout', orderBody(fix, { items: [sellableLineOf(crafted)], paymentMethod: 'cod' }));
+    if (r.status === 400 && /COD|Cash on Delivery/i.test(msgOf(r))) ok(`COD refused on crafted item: "${msgOf(r).slice(0, 60)}"`);
     else { bad(`crafted + COD got ${r.status} — should be refused`); if (r.json?.orderId) placedForCleanup.push(r.json); }
   } else skip('COD-on-crafted', 'no crafted product with stock in the catalogue');
-  const gift = await call('POST', '/shop/checkout', orderBody(fix, { isGift: true, recipientName: 'Test Receiver', recipientPhone: '+8801811111111' }));
+  const gift = await call('POST', '/shop/checkout', orderBody(fix, { paymentMethod: 'cod', isGift: true, recipientName: 'Test Receiver', recipientPhone: '+8801811111111' }));
   if (gift.status === 400 && /COD|gift/i.test(msgOf(gift))) ok('COD refused on a gift — gifts must be paid first');
   else { bad(`gift + COD got ${gift.status} — should be refused`); if (gift.json?.orderId) placedForCleanup.push(gift.json); }
 

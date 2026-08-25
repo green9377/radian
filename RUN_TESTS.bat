@@ -69,7 +69,13 @@ REM  seconds to wake it, and a suite that dies on a cold start looks exactly
 REM  like a suite that found a bug.
 if "%WHERE%"=="DEMO" (
   echo   Waking the demo API - this can take up to a minute...
-  node -e "const u=process.argv[1]+'/health';(async()=>{for(let i=0;i<20;i++){try{const r=await fetch(u);if(r.ok){console.log('  awake');process.exit(0)}}catch{}await new Promise(r=>setTimeout(r,5000))}console.log('  no answer from the API - is the address right?');process.exit(1)})()" "%TARGET%"
+  REM  ⚠️ `process.exitCode`, never `process.exit()`. Calling exit() from
+  REM  inside the async loop tore down a handle libuv was still holding and
+  REM  Windows printed a raw C assertion over the results:
+  REM    "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), async.c:94"
+  REM  It was harmless and it looked like a crash. Setting the code and
+  REM  letting the process end by itself does the same job quietly.
+  node -e "const u=process.argv[1]+'/health';(async()=>{for(let i=0;i<20;i++){try{const r=await fetch(u);if(r.ok){console.log('  awake');return}}catch{}await new Promise(r=>setTimeout(r,5000))}console.log('  no answer from the API - is the address right?');process.exitCode=1})()" "%TARGET%"
   if errorlevel 1 (
     pause
     exit /b 1
