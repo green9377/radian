@@ -1,77 +1,97 @@
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  RADIAN REGRESSION SUITE — "সব ঠিক আছে কি না" জানার যন্ত্র
+  RADIAN REGRESSION SUITE — the machine that answers "is everything still ok"
 
-      RUN_TESTS.bat                              ← এক click (repo root-এ)
-      node apps/api/scripts/regression-suite.js  ← হাতে চালালে
-      node apps/api/scripts/regression-suite.js --full   ← + delivered→Finance
+      RUN_TESTS.bat                              <- one click (repo root)
+      node apps/api/scripts/regression-suite.js  <- by hand
+      node apps/api/scripts/regression-suite.js --full   <- + delivered->Finance
 
-  ── এটা কী ─────────────────────────────────────────────────────────────
-  মালিকের locked business rule-গুলোর প্রতিটা, একটা করে পরীক্ষা। শেষ লাইনে
-  হয় ALL GOOD, নয়তো ঠিক কোন নিয়মটা ভাঙল তার নাম। যেকোনো কোড-বদলের পরে
-  এটা চালাও: ALL GOOD মানে পুরনো কিছু ভাঙেনি। মালিকের প্রশ্নের উত্তরে
-  বানানো (৪ আগস্ট ২০২৬): "ami kivabe bujbo amr project asolei totally
-  100% okey?" — উত্তর: কারো মুখের কথায় না, এই যন্ত্রের রায়ে।
+  ── WHAT THIS IS ───────────────────────────────────────────────────────────
+  One test for each of the owner's locked business rules. The last line is
+  either ALL GOOD or the name of the rule that broke. Run it after any code
+  change: ALL GOOD means nothing old was broken. Built to answer the owner's
+  question (4 Aug 2026): "how do I know my project is really 100% okay?" —
+  and the answer is not somebody's word, it is this machine's verdict.
 
-  ⚠️ CONSOLE OUTPUT IS ENGLISH ON PURPOSE — Windows-এর cmd বাংলা অক্ষর
-  ভেঙে দেখায় (মালিক নিজে ধরেছেন, ৪ আগস্ট: "bangla kn ase duru bangla
-  jen na ase")। ভেতরের কথাবার্তা (এই comment-গুলো) বাংলাতেই থাক — এগুলো
-  কখনো ছাপা হয় না।
+  ⚠️ CONSOLE OUTPUT IS ENGLISH ON PURPOSE — Windows cmd mangles Bengali
+  letters (the owner caught it himself, 4 Aug 2026). Since 17 Aug 2026 the
+  whole project is English, comments included.
 
-  ── কোন নিয়মগুলো পরীক্ষা হয় ────────────────────────────────────────────
-   1. দোকান খোলা — catalogue পড়া যায়, মাল আছে
-   2. Delivery masters — fee/method/slot টেবিল থেকে আসে (DEC-DLV-002)
-   3. Quote-এর টাকা = order-এর টাকা (server-only pricing)
-   4. দাম বদলে গেলে চুপচাপ বেশি charge নয় — 409 (expectedTotalPaisa)
-   5. COD নিয়ম, locked §4 — crafted-এ নয়, gift-এ কখনোই নয়
-   6. ভরা slot-এ storefront order ঢোকে না; slot-load সঠিক গোনে (৪ আগস্ট)
-   7. Add-on inventory — দরজায় ও process-এ gate, কাটা-ফেরা (৪ আগস্ট)
-   8. Variant stock — কাটা পড়ে variant-এর ঘর থেকে (DEC-PRD-014/018)
-   9. Coupon — ভুল code-এ verbatim error (OFR-R08); সত্যি code-এ ছাড়
-  10. Track — orderNo+phone মিললেই কেবল; ভুল phone = নেই-এর মতোই
-  11. Zone — Dhaka-only পণ্য nationwide ঠিকানায় held (DEC-DLV-009)
-  12. Online payment → SSLCommerz session তৈরি হয় (sandbox)
-  13. [--full] placed→…→delivered পুরো জীবন + Finance journal (DEC-FIN-024)
+  ── WHICH RULES ARE TESTED ─────────────────────────────────────────────────
+  The numbers on screen are produced by `section()` in the order the tests
+  actually run, so this list is a description, not a key to keep in step:
 
-  ── নিরাপত্তা ───────────────────────────────────────────────────────────
-  ⚠️ এটা লেখে — সত্যিকারের test order, DATABASE_URL যেখানে দেখায় সেখানে।
-  Production-এ কখনো চালিয়ো না। প্রতিটা পরীক্ষা নিজের পেছনে ঘর গুছায় —
-  ব্যতিক্রম শুধু --full-এর delivered order-টা (delivered ফেরানো যায় না,
-  সে হিসাবের খাতায় উঠে গেছে); নম্বর ছাপা হয়, admin-এ চিনে নিও।
+    shop is open — catalogue readable, stock exists
+    delivery fee comes from the masters (DEC-DLV-002)
+    quoted money = charged money (server-only pricing)
+    track — orderNo + phone must BOTH match; runs on the order just placed
+    price changed under the customer -> 409, never a silent overcharge
+    COD rules, locked §4 — never on crafted, never on a gift
+    a full slot takes no storefront order; slot-load counts right (4 Aug)
+    add-on inventory — gated at the door and at prepare, deducted, restored
+    variant stock — deducted from the variant shelf (DEC-PRD-014/018),
+      and NOT returned on a cancelled crafted line (DEC-SAL-012)
+    coupons — a wrong code gets the engine's own words (OFR-R08)
+    zone — a Dhaka-only product is held on a nationwide address (DEC-DLV-009)
+    online payment -> an SSLCommerz session is created (sandbox)
+    [--full] placed -> ... -> delivered, and the Finance journal (DEC-FIN-024)
 
-  ── fixture বাছাই, প্রথম রানের শিক্ষা ──────────────────────────────────
-  প্রথম সংস্করণ "variant-হীন + stock > 2" পণ্য খুঁজত — আসল catalogue-এ
-  অমন কিছু ছিলই না (প্রায় সবার variant আছে), তাই সব SKIP। এখন: variant
-  থাকলে stock-থাকা variant-টাই line-এ যায়, আর stock > 0 হলেই চলে —
-  কারণ suite-এর order-গুলো prepare-এ পৌঁছানোর আগেই cancel হয়ে যায়,
-  stock প্রায় ছোঁয়াই হয় না।
+  ── SAFETY ─────────────────────────────────────────────────────────────────
+  ⚠️ This WRITES — real test orders, wherever DATABASE_URL points. Never run
+  it against production. Every test cleans up after itself; the one exception
+  is the delivered order from --full (delivered cannot be undone, it is in the
+  books). Its number is printed — recognise it in the admin.
+
+  ── PICKING FIXTURES, LEARNED ON THE FIRST RUN ─────────────────────────────
+  The first version looked for a product with no variants and stock > 2. The
+  real catalogue has no such thing (nearly everything has variants), so every
+  test SKIPped. Now: if the product has variants, the line carries the variant
+  that has stock, and stock > 0 is enough — the suite's orders are cancelled
+  before they reach prepare, so stock is barely touched.
   ═══════════════════════════════════════════════════════════════════════════
 */
 
 const API = (process.env.API || 'http://localhost:4000').replace(/\/$/, '');
 const FULL = process.argv.includes('--full');
 
-/*  test order-গুলো এক চেনা ভুয়া গ্রাহকে জমা হয় — admin-এ খুঁজে পাওয়া সহজ  */
+/*  Every test order lands on one known fake customer — easy to find in the admin  */
 const PHONE = '+8801700000001';
 const ADDRESS = 'House 1, Road 1, Dhanmondi, Dhaka (REGRESSION TEST)';
 
-/*  ভরা-slot পরীক্ষার তারিখ অনেক দূরে — আজকের আসল booking-এর সাথে যেন না মেশে  */
+/*  Far-off date, so the tests never mix with a real booking for today  */
 const FAR_DATE = new Date(Date.now() + 21 * 864e5).toISOString().slice(0, 10);
 
-/*  slot-পরীক্ষার নিজের তারিখ, FAR_DATE থেকেও আলাদা — প্রথম রানের শিক্ষা #২:
-    আগের test-গুলোর (এখনো cancel-না-হওয়া) order একই তারিখে বসে ছিল, capacity
-    ১ করতেই "প্রথম" order-ও ঠিকভাবেই refuse হলো, আর suite সেটাকে FAIL ভাবল।
-    নিয়ম ঠিকই ছিল — পরীক্ষাটা নিজের পায়ে কুড়াল মেরেছিল।  */
+/*  The slot test gets its own date, apart from FAR_DATE too — lesson #2 from
+    the first run: orders from earlier rounds (not yet cancelled) were sitting
+    on the same date, so the moment capacity went to 1 even the "first" order
+    was correctly refused, and the suite called that a FAIL. The rule was fine;
+    the test had put an axe through its own foot.  */
 const SLOT_DATE = new Date(Date.now() + 22 * 864e5).toISOString().slice(0, 10);
 
 let TOKEN = (process.env.RADIAN_TOKEN || '').trim();
-let tokenIsMine = false; // আমরা login করালে আমরাই logout করাব
+let tokenIsMine = false; // if we signed in, we sign out again
 
 const results = [];
 const ok = (name, note = '') => { results.push({ name, ok: true, note }); console.log(`  \x1b[32mPASS\x1b[0m  ${name}${note ? ` — ${note}` : ''}`); };
 const bad = (name, note = '') => { results.push({ name, ok: false, note }); console.log(`  \x1b[31mFAIL\x1b[0m  ${name}${note ? ` — ${note}` : ''}`); };
 const skip = (name, why) => { console.log(`  \x1b[33mSKIP\x1b[0m  ${name} — ${why}`); };
-const section = (t) => console.log(`\n\x1b[1m${t}\x1b[0m`);
+/*  ⚠️ THE NUMBERS COUNT THEMSELVES — 25 Aug 2026.
+
+    They used to be typed into each title by hand, and they had drifted: the
+    tracking test runs INSIDE the quote test (it needs that order), so it
+    printed "10." between "3." and "4.". The owner read the output and said,
+    fairly, that it stopped at 12 and that 10 was missing. Nothing was missing.
+    A numbered list that jumps is a list nobody can trust, and no amount of
+    being right about the code fixes that.
+
+    So `section()` numbers them in the order they actually run. A test can be
+    moved, added or nested and the output stays honest, because there is
+    nothing left to keep in step by hand.  */
+let sectionNo = 0;
+const section = (t) => {
+  const n = /^(Cleanup|Fixtures)/.test(t) ? '' : `${++sectionNo}. `;
+  console.log(`\n\x1b[1m${n}${t}\x1b[0m`);
+};
 
 async function call(method, path, body, admin = false) {
   const headers = {};
@@ -84,7 +104,7 @@ async function call(method, path, body, admin = false) {
 }
 const msgOf = (r) => (Array.isArray(r.json?.message) ? r.json.message.join(', ') : r.json?.message) || '';
 
-/* ── terminal-এ password: টাইপ পর্দায় দেখা যায় না ─────────────────────── */
+/* ── password in the terminal: what is typed never shows on screen ──────── */
 function ask(question, { hidden = false } = {}) {
   return new Promise((resolve) => {
     const rl = require('readline').createInterface({ input: process.stdin, output: process.stdout, terminal: true });
@@ -112,8 +132,8 @@ async function ensureToken() {
   return false;
 }
 
-/*  একটা সাধারণ order-body — প্রতিটা পরীক্ষা এটার উপর নিজের বদল বসায়।
-    fix.line-এ variantId আগেই বসানো (variant-ওয়ালা পণ্য হলে)।  */
+/*  A plain order body — each test lays its own changes on top of it.
+    fix.line already carries the variantId when the product has variants.  */
 function orderBody(fix, extra = {}) {
   return {
     items: [{ ...fix.line }],
@@ -142,8 +162,9 @@ async function cleanup() {
   }
 }
 
-/*  পণ্যের "বিক্রি করা যাবে এমন হাল" — variant থাকলে variant-এর ঘরে,
-    নাহলে product-এর ঘরে; TRACKED হলে Inventory-র হিসাব, এখানে ধরা হয় বিক্রিযোগ্য  */
+/*  Is this product in a state where it can be sold — on the variant shelf if
+    it has variants, otherwise the product's own. A TRACKED product is counted
+    by Inventory, and is treated here as sellable.  */
 function sellableLineOf(p) {
   if (p.stockMode === 'MANUAL' && p.variants?.length) {
     const v = p.variants.find((x) => (x.stockQty ?? 0) > 0);
@@ -157,21 +178,20 @@ function sellableLineOf(p) {
   console.log(`\n\x1b[1mRADIAN REGRESSION SUITE\x1b[0m -> ${API}${FULL ? '  (--full)' : ''}\n`);
   if (!(await ensureToken())) { process.exitCode = 1; return; }
 
-  /* ═══ fixtures ═══ */
-  section('0. Fixtures (picking test material from the live catalogue)');
+  section('Fixtures (picking test material from the live catalogue)');
   const shopList = await call('GET', '/shop/products?zone=DHAKA&limit=48');
   const shopItems = shopList.json?.items ?? shopList.json ?? [];
   const adminList = await call('GET', '/products?pageSize=100', null, true);
   const adminItems = adminList.json?.items ?? adminList.json ?? [];
   const bySlug = new Map(adminItems.map((p) => [p.slug, p]));
 
-  /*  দোকানে দেখা যায় এমন admin-পণ্য, বিক্রিযোগ্য অবস্থায়।
+  /*  Admin products that the shop can actually show, in a sellable state.
 
-      ⚠️ প্রথম রানের শিক্ষা #১: LIST endpoint variant-এর stockQty দেয় কিন্তু
-      `id` দেয় না — তাই list-এর পণ্য বাছার পরে DETAIL (GET /products/:id)
-      থেকে আসল variant id তুলে নিতে হয়। আগের সংস্করণ list-এর variant দিয়েই
-      order দিত → variantId undefined → variant-হীন order → পরীক্ষা নিজেই
-      অন্ধ।  */
+      ⚠️ Lesson #1 from the first run: the LIST endpoint gives a variant's
+      stockQty but not its `id` — so after picking from the list, the real
+      variant id has to be read from the DETAIL call (GET /products/:id). The
+      old version ordered with the list's variant -> variantId undefined -> an
+      order with no variant -> the test was blind to the very thing it tested.  */
   const candidates = shopItems.map((s) => bySlug.get(s.slug)).filter(Boolean);
   const detailOf = async (p) => {
     if (!p) return null;
@@ -222,18 +242,15 @@ function sellableLineOf(p) {
   if (mainIsCrafted)
     console.log('    \x1b[33mNOTE\x1b[0m  every product here is made-to-order, so the tests pay online — COD is refused on a crafted line by design');
 
-  /* ═══ 1 ═══ */
-  section('1. Shop is open (catalogue readable)');
+  section('Shop is open (catalogue readable)');
   if (shopItems.length > 0) ok(`shop catalogue readable (${shopItems.length} products)`);
   else bad('shop catalogue empty or unreadable');
 
-  /* ═══ 2 ═══ */
-  section('2. Delivery fee comes from the masters (DEC-DLV-002)');
+  section('Delivery fee comes from the masters (DEC-DLV-002)');
   if (typeof method.feePaisa === 'number') ok(`method "${method.label}" fee ${method.feePaisa} paisa — from DeliveryMethod table`);
   else bad('delivery method has no feePaisa');
 
-  /* ═══ 3 ═══ */
-  section('3. Quoted money = charged money (server-only pricing)');
+  section('Quoted money = charged money (server-only pricing)');
   const qBody = { items: [{ ...fix.line }], zone: 'DHAKA', deliveryMethodId: method.id, deliverySlotId: slot?.id, paymentMethod: fix.isCrafted ? 'online' : 'cod', phone: PHONE };
   const quote = await call('POST', '/shop/checkout/quote', qBody);
   if (quote.status !== 201 && quote.status !== 200) bad(`quote failed (${quote.status}): ${msgOf(quote)}`);
@@ -253,8 +270,8 @@ function sellableLineOf(p) {
       if (adm.status === 200 && adm.json?.orderNo === placed.json.orderNo) ok('admin panel sees the order, lines included');
       else bad(`admin cannot read the order (${adm.status})`);
 
-      /* ═══ 10 (এই order দিয়েই) ═══ */
-      section('10. Track — orderNo + phone must BOTH match (locked)');
+      /*  Tracking rides on the order just placed above.  */
+      section('Track — orderNo + phone must BOTH match (locked)');
       const t1 = await call('GET', `/shop/track?orderNo=${placed.json.orderNo}&phone=${encodeURIComponent(PHONE)}`);
       if (t1.status === 200 && typeof t1.json?.stage === 'number') ok('correct phone -> tracking opens');
       else bad(`tracking failed even with the right phone (${t1.status})`);
@@ -264,14 +281,12 @@ function sellableLineOf(p) {
     } else bad(`could not place the order (${placed.status}): ${msgOf(placed)}`);
   }
 
-  /* ═══ 4 ═══ */
-  section('4. Price changed under the customer -> refuse, never overcharge (409)');
+  section('Price changed under the customer -> refuse, never overcharge (409)');
   const stale = await call('POST', '/shop/checkout', orderBody(fix, { expectedTotalPaisa: 1 }));
   if (stale.status === 409) ok('stale (lower) total refused with 409');
   else { bad(`stale total got ${stale.status}, expected 409`); if (stale.json?.orderId) placedForCleanup.push(stale.json); }
 
-  /* ═══ 5 ═══ */
-  section('5. COD rules (locked section 4)');
+  section('COD rules (locked section 4)');
   /*  ⚠️ THESE TWO FORCE `cod` AND MUST KEEP DOING SO. `orderBody` now picks
       online when the fixture is made-to-order, which is right everywhere
       except here — this is the one section whose whole subject IS Cash on
@@ -286,8 +301,7 @@ function sellableLineOf(p) {
   if (gift.status === 400 && /COD|gift/i.test(msgOf(gift))) ok('COD refused on a gift — gifts must be paid first');
   else { bad(`gift + COD got ${gift.status} — should be refused`); if (gift.json?.orderId) placedForCleanup.push(gift.json); }
 
-  /* ═══ 6 ═══ */
-  section('6. A full slot takes NO storefront order (owner rule, 4 Aug)');
+  section('A full slot takes NO storefront order (owner rule, 4 Aug)');
   if (!slot) skip('full-slot rule', 'no delivery method with slots');
   else {
     const menuFresh = await call('GET', `/shop/delivery/menu?zone=DHAKA`);
@@ -295,7 +309,7 @@ function sellableLineOf(p) {
     const origCap = liveSlot?.capacityPerDay ?? null;
     await call('PATCH', `/delivery/slots/${slot.id}`, { capacityPerDay: 1 }, true);
     try {
-      /*  SLOT_DATE — নিজের ফাঁকা তারিখ, আগের test-order-দের থেকে দূরে  */
+      /*  SLOT_DATE — its own empty date, far from earlier test orders  */
       const o1 = await call('POST', '/shop/checkout', orderBody(fix, { date: SLOT_DATE }));
       if (o1.json?.orderId) placedForCleanup.push(o1.json);
       const load = await call('GET', `/shop/delivery/slot-load?date=${SLOT_DATE}`);
@@ -310,8 +324,7 @@ function sellableLineOf(p) {
     }
   }
 
-  /* ═══ 7 ═══ */
-  section('7. Add-on inventory gates (owner rule, 4 Aug)');
+  section('Add-on inventory gates (owner rule, 4 Aug)');
   const addonsR = await call('GET', '/addons', null, true);
   const addonArr = Array.isArray(addonsR.json) ? addonsR.json
     : (addonsR.json?.addOns ?? addonsR.json?.addons ?? Object.values(addonsR.json ?? {}).find(Array.isArray) ?? []);
@@ -336,7 +349,7 @@ function sellableLineOf(p) {
       else {
         placedForCleanup.push(r1.json);
         await call('POST', `/orders/${r1.json.orderId}/confirm`, {}, true);
-        await call('PATCH', `/addons/${addon.id}`, { stockQty: 0 }, true); // মাঝপথে ফুরাল
+        await call('PATCH', `/addons/${addon.id}`, { stockQty: 0 }, true); // it runs out mid-way
         const p0 = await call('POST', `/orders/${r1.json.orderId}/prepare`, {}, true);
         if (p0.status === 400 && /add-on/i.test(msgOf(p0))) ok('inventory checked again at processing — no stock, no prepare');
         else bad(`prepare went through with add-on stock 0 (${p0.status})`);
@@ -355,8 +368,7 @@ function sellableLineOf(p) {
     }
   }
 
-  /* ═══ 8 ═══ */
-  section('8. Variant stock — deducted from the variant shelf (DEC-PRD-014)');
+  section('Variant stock — deducted from the variant shelf (DEC-PRD-014)');
   if (!variantProduct) skip('variant stock', 'no product with variant stock > 1');
   else {
     const v = variantProduct.variants.find((x) => (x.stockQty ?? 0) > 1);
@@ -404,8 +416,7 @@ function sellableLineOf(p) {
     }
   }
 
-  /* ═══ 9 ═══ */
-  section('9. Coupons (OFR-R08 — a wrong code gets honest words)');
+  section('Coupons (OFR-R08 — a wrong code gets honest words)');
   const wrong = await call('POST', '/shop/checkout/quote', { ...qBody, couponCode: 'NO-SUCH-CODE-123' });
   if (wrong.json?.couponError) ok(`wrong code -> verbatim error: "${wrong.json.couponError.slice(0, 50)}"`);
   else bad('wrong coupon produced no couponError');
@@ -421,8 +432,7 @@ function sellableLineOf(p) {
     else bad(`"${liveCoupon.code}" gave neither a discount nor an explanation`);
   }
 
-  /* ═══ 11 ═══ */
-  section('11. Dhaka-only products do not ship nationwide (DEC-DLV-009)');
+  section('Dhaka-only products do not ship nationwide (DEC-DLV-009)');
   const dhakaOnly = candidates.find((p) => p.dhakaOnly === true)
     ?? candidates.find((p) => p.deliveryZone === 'DHAKA' || p.zone === 'DHAKA');
   if (!dhakaOnly) skip('zone hold', 'could not identify a dhaka-only flag in the admin list');
@@ -434,8 +444,7 @@ function sellableLineOf(p) {
     else bad(`dhaka-only "${dhakaOnly.name}" sells happily in a nationwide quote`);
   }
 
-  /* ═══ 12 ═══ */
-  section('12. Online payment -> SSLCommerz session (sandbox)');
+  section('Online payment -> SSLCommerz session (sandbox)');
   const onl = await call('POST', '/shop/checkout', orderBody(fix, { paymentMethod: 'online' }));
   if (onl.status !== 201) bad(`online order failed (${onl.status}): ${msgOf(onl)}`);
   else {
@@ -446,9 +455,8 @@ function sellableLineOf(p) {
     else bad(`payment session failed (${sess.status}): ${msgOf(sess)}`);
   }
 
-  /* ═══ 13 ═══ */
   if (FULL) {
-    section('13. Full lifecycle -> Finance journal (DEC-FIN-024) [--full]');
+    section('Full lifecycle -> Finance journal (DEC-FIN-024) [--full]');
     const lc = await call('POST', '/shop/checkout', orderBody(fix));
     if (lc.status !== 201) bad(`lifecycle order failed (${lc.status})`);
     else {
@@ -460,11 +468,12 @@ function sellableLineOf(p) {
       }
       if (alive) {
         ok(`${lc.json.orderNo}: placed -> confirmed -> preparing -> out -> delivered`);
-        /*  ⚠️ Array.isArray আগে! `[].entries` একটা built-in method — আগের
-            সংস্করণের `json?.entries ?? json` fallback আসল তালিকার বদলে সেই
-            method-টা ধরে ফেলত, আর ভরা খাতাকেও "খালি" বলত (প্রথম --full
-            রানে ধরা, ৪ আগস্ট: JV-000005/6 দিব্যি ছিল, suite চোখে দেখেনি)।
-            সাথে ছোট retry — booking fail-soft হলে এক নিঃশ্বাস দেরি হতে পারে।  */
+        /*  ⚠️ Array.isArray FIRST. `[].entries` is a built-in method, so the
+            old `json?.entries ?? json` fallback grabbed that method instead of
+            the list and called a full ledger "empty" (caught on the first
+            --full run, 4 Aug 2026: JV-000005/6 were sitting right there and
+            the suite could not see them). Plus a small retry — booking is
+            fail-soft and can be a breath late.  */
         let found = false;
         for (let tryNo = 0; tryNo < 3 && !found; tryNo++) {
           if (tryNo) await new Promise((r) => setTimeout(r, 1500));
@@ -491,10 +500,14 @@ function sellableLineOf(p) {
 
     const fails = results.filter((r) => !r.ok);
     console.log('\n' + '='.repeat(60));
+    /*  Say BOTH numbers. "23 checks" on its own read like 23 sections, and the
+        list on screen stopped at 12 — so the summary looked like it had lost
+        eleven of them (owner, 25 Aug 2026).  */
+    const scale = `${results.length} checks across ${sectionNo} sections`;
     if (fails.length === 0) {
-      console.log(`\x1b[1m\x1b[32m  ALL GOOD — every rule held (${results.length} checks)\x1b[0m`);
+      console.log(`\x1b[1m\x1b[32m  ALL GOOD — every rule held (${scale})\x1b[0m`);
     } else {
-      console.log(`\x1b[1m\x1b[31m  ${fails.length} RULE(S) BROKEN out of ${results.length} checks:\x1b[0m`);
+      console.log(`\x1b[1m\x1b[31m  ${fails.length} RULE(S) BROKEN — ${scale}:\x1b[0m`);
       for (const f of fails) console.log(`    FAIL  ${f.name}${f.note ? ` — ${f.note}` : ''}`);
       process.exitCode = 1;
     }

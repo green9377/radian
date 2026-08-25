@@ -92,7 +92,6 @@
   "apps/api/scripts/checkup.mjs": 52,
   "apps/api/scripts/discount-window.selftest.mjs": 3,
   "apps/api/scripts/pre-deploy-check.mjs": 33,
-  "apps/api/scripts/regression-suite.js": 64,
   "apps/api/src/administration/access.guard.ts": 1,
   "apps/api/src/administration/administration.controller.ts": 15,
   "apps/api/src/administration/administration.module.ts": 6,
