@@ -133,19 +133,23 @@ export function ItemPicker({
                 <div key={i.id} role="button" tabIndex={0}
                   onClick={() => { if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); }}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); } }}
-                  className={`text-left bg-white rounded-[14px] border px-3.5 py-3 flex items-center gap-3 transition-all ${n > 0 ? "cursor-default" : "cursor-pointer"}`}
+                  className={`text-left bg-white rounded-[14px] border px-3.5 py-3 transition-all ${n > 0 ? "cursor-default" : "cursor-pointer"}`}
                   style={{ borderColor: n > 0 ? ACCENT : "#e9def2", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
-                  {/* the photo, exactly as the Item module saved it (DEC-ITM-012) */}
-                  <ItemThumb item={i} size={46} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium text-body truncate">{i.name}</span>
-                    <span className="block text-[13px] text-body-soft truncate">
-                      {i.sku} · {i.unit?.name ?? "—"}{(i.standardCostPaisa ?? 0) > 0 ? ` · ${formatTaka(i.standardCostPaisa ?? 0)}` : ""}
+                  <span className="flex items-center gap-3">
+                    {/* the photo, exactly as the Item module saved it (DEC-ITM-012) */}
+                    <ItemThumb item={i} size={46} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-medium text-body truncate">{i.name}</span>
+                      <span className="block text-[13px] text-body-soft truncate">
+                        {i.sku} · {i.unit?.name ?? "—"}{(i.standardCostPaisa ?? 0) > 0 ? ` · ${formatTaka(i.standardCostPaisa ?? 0)}` : ""}
+                      </span>
                     </span>
                   </span>
+                  {/*  the tile is narrow — the stepper takes its own line rather
+                       than squeezing the name down to two letters  */}
                   {n > 0 && (
-                    <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <QtyStepper size="sm" value={n} min={0} onChange={(q) => setPicked(i.id, q)} />
+                    <span className="block mt-2" onClick={(e) => e.stopPropagation()}>
+                      <QtyStepper grow size="sm" value={n} min={0} onChange={(q) => setPicked(i.id, q)} />
                     </span>
                   )}
                 </div>
