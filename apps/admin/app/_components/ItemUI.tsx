@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "./Icon";
 import {
   itemTint, itemInitials, uploadItemImage, ITEM_TYPE_META,
@@ -225,6 +226,27 @@ export function QuickSelect({
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
 
+  /*  ⚠️ THE PANEL LIVES IN A PORTAL — 26 Aug 2026. It used to be position:
+      absolute inside the field's own cell. Any ancestor with overflow-hidden
+      (every rounded table card has it, for its coloured header) sliced the
+      panel off at the card's edge — on the purchase bill the unit dropdown
+      showed as a bare search box with every option cut away below. The owner
+      caught it. Rendering into <body> puts the panel above any clipping,
+      wherever a QuickSelect sits, now and in future screens.  */
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return; }
+    const place = () => {
+      const r = anchorRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 220) });
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => { window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); };
+  }, [open]);
+
   const chosen = options.find((o) => o.id === value) ?? null;
   const needle = q.trim().toLowerCase();
   const matches = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
@@ -241,7 +263,7 @@ export function QuickSelect({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={anchorRef}>
       <button type="button" onClick={() => { setOpen((v) => !v); setQ(""); }}
         className="ipt w-full text-left flex items-center gap-2"
         style={{ minHeight: 40 }}>
@@ -253,11 +275,12 @@ export function QuickSelect({
         <Icon name="chevronDown" size={14} />
       </button>
 
-      {open && (
+      {open && pos && createPortal(
         <>
           {/* click-away */}
-          <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-lavender-deep rounded-[12px] shadow-soft overflow-hidden">
+          <button type="button" className="fixed inset-0 z-[70] cursor-default" onClick={() => setOpen(false)} aria-hidden />
+          <div className="fixed z-[80] bg-white border border-lavender-deep rounded-[12px] shadow-lift overflow-hidden"
+            style={{ top: pos.top, left: pos.left, width: pos.width }}>
             <div className="p-2 border-b border-lavender-deep">
               <input
                 autoFocus className="ipt w-full" style={{ minHeight: 34, fontSize: 12.5 }}
@@ -306,7 +329,8 @@ export function QuickSelect({
               </div>
             )}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );
