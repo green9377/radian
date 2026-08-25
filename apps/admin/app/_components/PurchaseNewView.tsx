@@ -426,7 +426,7 @@ export default function PurchaseNewView() {
 
           {/* ---------------- lines ---------------- */}
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden mb-5">
-            <div style={{ background: ACCENT }} className="grid grid-cols-[minmax(0,1fr)_120px_90px_110px_100px_40px] gap-2 px-4 py-2.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95">
+            <div style={{ background: ACCENT }} className="grid grid-cols-[minmax(0,1fr)_110px_112px_104px_96px_40px] gap-2 px-4 py-2.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/95">
               <span>Item</span><span>Unit</span><span>Qty</span><span>Price (৳/unit)</span><span className="text-right">Total</span><span />
             </div>
             <div className="divide-y divide-lavender-deep">
@@ -436,7 +436,7 @@ export default function PurchaseNewView() {
                 </div>
               )}
               {lines.map((l) => (
-                <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_120px_90px_110px_100px_40px] gap-2 px-4 py-2.5 items-center">
+                <div key={l.key} className="grid grid-cols-[minmax(0,1fr)_110px_112px_104px_96px_40px] gap-2 px-4 py-2.5 items-center">
                   {/* the item as the Item module saved it — photo first (owner's rule) */}
                   <span className="flex items-center gap-2.5 min-w-0">
                     <ItemThumb item={l.item} size={36} />
@@ -457,7 +457,7 @@ export default function PurchaseNewView() {
                   {/*  the same stepper the counter uses; one shape for a
                        quantity everywhere (owner, 21 Aug: "atai standard").
                        Decimal, because a purchase can be 1.5 kg.  */}
-                  <QtyStepper grow decimal min={0} label="Quantity"
+                  <QtyStepper grow size="sm" decimal min={0} label="Quantity"
                     value={parseFloat(l.qty) || 0}
                     onChange={(n) => patchLine(l.key, { qty: String(n) })} />
                   <input className="ipt w-full" placeholder="0.00" inputMode="decimal"

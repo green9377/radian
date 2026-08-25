@@ -782,12 +782,12 @@ export default function PosSellView() {
 
           {view === "rows" ? (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
-              <div className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+              <div className="grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
                 <span /><span>Item</span><span>Category</span><span className="text-right">Stock</span><span className="text-right">Price</span><span />
               </div>
               <div className="divide-y divide-lavender-deep max-h-[62vh] overflow-y-auto">
                 {grid.map((p) => (
-                  <div key={p.id} className="grid grid-cols-[44px_minmax(0,1fr)_110px_110px_120px_84px] gap-3 items-center px-3.5 py-2">
+                  <div key={p.id} className="grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2">
                     <span className="w-[38px] h-[38px] rounded-[10px]"
                       style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
                     <span className="min-w-0">

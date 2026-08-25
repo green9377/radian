@@ -385,13 +385,13 @@ export default function NewOrderForm() {
                   const p = prod(l.slug);
                   if (!p) return null;
                   return (
-                    <div key={l.key} className="grid grid-cols-[44px_minmax(0,1fr)_86px_100px_34px] gap-3 items-center border border-lavender-deep rounded-[12px] p-3 bg-lavender/40">
+                    <div key={l.key} className="grid grid-cols-[44px_minmax(0,1fr)_112px_96px_34px] gap-3 items-center border border-lavender-deep rounded-[12px] p-3 bg-lavender/40">
                       <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug) }} />
                       <div className="min-w-0">
                         <div className="font-medium text-purple text-[13.5px] truncate">{p.name}</div>
                         <div className="text-[13px] text-body-soft">{formatTaka(p.offerPricePaisa)} each{isCrafted(p) ? " · crafted (advance)" : " · readymade"}</div>
                       </div>
-                      <QtyStepper grow value={l.qty} min={1} onChange={(n) => setLineQty(l.key, n)} />
+                      <QtyStepper grow size="sm" value={l.qty} min={1} onChange={(n) => setLineQty(l.key, n)} />
                       <div className="text-right text-[13.5px] font-medium">{formatTaka(p.offerPricePaisa * l.qty)}</div>
                       <button type="button" onClick={() => removeLine(l.key)} className="text-body-soft hover:text-[#c0392b] w-[34px] h-[34px] grid place-items-center rounded-[9px] border border-lavender-deep" title="Remove">
                         <Icon name="trash" size={16} />

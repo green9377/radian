@@ -162,10 +162,15 @@ export default function QtyStepper({
         disabled={disabled}
         inputMode={decimal ? "decimal" : "numeric"}
         aria-label={label}
-        className={`h-full min-w-0 text-center font-bold text-purple bg-transparent outline-none
+        className={`h-full text-center font-bold text-purple bg-transparent outline-none
                     border-x border-lavender/90 disabled:cursor-not-allowed
                     ${grow ? "flex-1" : ""}`}
-        style={{ width: grow ? undefined : s.field, fontSize: s.text, fontVariantNumeric: "tabular-nums" }}
+        /*  ⚠️ minWidth ALWAYS — 26 Aug 2026. In grow mode the field was flex-1
+            with min-w-0, so inside a narrow table column it collapsed until
+            one digit showed ("just 1 ta digit dekha jay" — the owner, on the
+            purchase bill). The buttons never give way, so the number must
+            hold its ground too: the field is the one part that may not shrink.  */
+        style={{ width: grow ? undefined : s.field, minWidth: s.field, fontSize: s.text, fontVariantNumeric: "tabular-nums" }}
       />
       {btn(1, atMax)}
     </div>
