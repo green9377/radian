@@ -261,9 +261,40 @@ export class SslCommerzService {
         where: { id: session.id },
         data: { status: PaymentSessionStatus.FAILED, raw: json as object },
       });
-      this.log.error(`init failed for ${order.orderNo}: ${json.failedreason ?? json.status}`);
+
+      const reason = json.failedreason ?? json.status ?? 'no reason given';
+      this.log.error(`init failed for ${order.orderNo}: ${reason}`);
+
+      /*  ⚠️ THE MOST LIKELY CAUSE, NAMED IN THE LOG — 25 Aug 2026.
+          The regression suite hit "Store Credential Error Or Store is
+          De-active" on the demo. The credentials were not missing; they were
+          the LIVE pair sitting behind a switch set to Sandbox, and a live
+          Store ID simply does not exist on sandbox.sslcommerz.com.
+
+          One switch and two boxes can disagree silently, and the only symptom
+          is a shopper who cannot pay. So the log says it in as many words
+          rather than leaving the next person to guess.  */
+      if (/credential|de-active|deactive/i.test(reason)) {
+        this.log.error(
+          `SSLCommerz refused the store id "${id}" on the ${live ? 'LIVE' : 'SANDBOX'} gateway. ` +
+            'A live Store ID does not work on sandbox, and a sandbox one does not work on live. ' +
+            'Check Administration → Integrations → Payment gateways: the Sandbox/Live switch must ' +
+            'match the pair in the boxes. Clearing both boxes on Sandbox falls back to ' +
+            "SSLCommerz's public testbox, which always works.",
+        );
+      }
+
+      /*  ⚠️ THE CUSTOMER NEVER READS THE GATEWAY'S OWN WORDS. This threw
+          `json.failedreason` straight at the shopper, so somebody who had
+          filled in the whole checkout was told "Store Credential Error Or
+          Store is De-active" — a sentence about OUR configuration, in a
+          vocabulary that is not theirs, with nothing they can do about it.
+
+          They get something they can act on. The real reason is in the log
+          above and in `PaymentSession.raw`, where the shop can find it.  */
       throw new BadRequestException(
-        json.failedreason || 'could not reach the payment gateway — please try again',
+        'We could not open the payment page just now. Please try again in a moment — ' +
+          'your order is saved, and nothing has been charged.',
       );
     }
 
