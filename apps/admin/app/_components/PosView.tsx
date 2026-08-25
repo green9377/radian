@@ -300,7 +300,10 @@ export default function PosSellView() {
   const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
   /** POS-R16 — how much of this bill is being sold for less than it cost */
   const underCostPaisa = lines.reduce((s, l) => {
-    const cost = l.product.costPaisa ?? 0;
+    /*  DEC-POS-024 — cost per the line's CHOSEN unit: a pice of a 4-pice stick
+        costs a quarter of the stick, not the whole stick  */
+    const f = factorOf(l);
+    const cost = Math.round((l.product.costPaisa ?? 0) / f);
     return cost > 0 && l.unitPaisa > 0 && l.unitPaisa < cost ? s + (cost - l.unitPaisa) * l.qty : s;
   }, 0);
   const moneyIn = { subtotalPaisa: subtotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate };
