@@ -236,12 +236,51 @@ export default function BundleEditor({
         সিদ্ধান্ত দুই পর্দায় ছড়ানো থাকলে মালিক কোনোদিন পুরো ছবিটা দেখতেন
         না, আর সেটাই তিনি ধরেছেন।
       */}
+      {/*  THE PREVIEW — the old debt ("tells but doesn't show"). The server has
+          always sent the computed sum (basePaisa … savePaisa) and this screen
+          threw it away, leaving a sentence pointing at another tab. Now the
+          owner sees the exact arithmetic the customer will see: main + the
+          whole list, and what taking it all saves. The discount is still SET
+          on the Pricing tab (owner, 2 Aug — money decisions live in one
+          place); here it is only shown.  */}
       {list.items.length > 0 && (
-        <p className="text-[12.5px] text-body-soft mt-1 mb-0">
-          The customer takes whichever of these they like. The discount for taking
-          them lives on the <b className="font-semibold text-purple">Pricing</b> tab,
-          with the full sum.
-        </p>
+        <div className="rounded-[12px] border border-lavender-deep bg-lavender/40 px-4 py-3 mt-1">
+          <div className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-body-soft mb-2">
+            What the customer sees
+          </div>
+          <div className="space-y-1 text-[13px]">
+            <div className="flex justify-between gap-3">
+              <span className="text-body-soft">Main product</span>
+              <span className="font-medium text-body">{formatTaka(list.basePaisa)}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-body-soft">
+                All {list.items.length} bundle item{list.items.length > 1 ? "s" : ""}
+              </span>
+              <span className="font-medium text-body">+ {formatTaka(list.itemsPaisa)}</span>
+            </div>
+            <div className="flex justify-between gap-3 pt-1 border-t border-lavender-deep">
+              <span className="text-body-soft">Everything together</span>
+              <span className="font-medium text-body">{formatTaka(list.beforePaisa)}</span>
+            </div>
+            {list.savePaisa > 0 ? (
+              <div className="flex justify-between gap-3">
+                <span className="font-semibold text-[#0f7d55]">
+                  Bundle price — customer saves {formatTaka(list.savePaisa)}
+                </span>
+                <span className="font-display font-semibold text-[15px] text-purple">
+                  {formatTaka(list.afterPaisa)}
+                </span>
+              </div>
+            ) : (
+              <div className="text-[12px] text-body-soft pt-0.5">
+                No bundle discount set yet — set it on the{" "}
+                <b className="font-semibold text-purple">Pricing</b> tab and this preview
+                updates itself.
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

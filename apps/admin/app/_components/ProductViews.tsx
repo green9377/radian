@@ -139,11 +139,14 @@ function PageHead({
   eyebrow,
   title,
   demo,
+  tip,
   children,
 }: {
   eyebrow: string;
   title: string;
   demo?: boolean;
+  /** house rule 17 — the page explanation, behind the i instead of prose */
+  tip?: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -158,9 +161,12 @@ function PageHead({
         </div>
         {demo && <DemoPill />}
       </div>
-      <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">
-        {title}
-      </h1>
+      <div className="flex items-center gap-2">
+        <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">
+          {title}
+        </h1>
+        {tip && <Info text={tip} />}
+      </div>
       {children && (
         <p className="text-body-soft text-[13.5px] m-0 max-w-[760px]">{children}</p>
       )}
@@ -200,6 +206,21 @@ const HUE: Record<string, string> = {
   blue: "from-[#3b5bdb] to-[#7793f7]",
   teal: "from-[#0b7285] to-[#3aa8bd]",
 };
+/*  rule 17 — the ONE count-card shape (Occasions & Tags / Brands / Categories):
+    coloured spine, icon in a tinted square, number large. The old Kpi was a
+    loud gradient tile in eight rainbow hues; every screen using it converges
+    here. Hues map into the brand family — red and amber stay warnings,
+    because "selling at a loss" must look like one.  */
+const KPI_TONE: Record<string, { c: string; edge: string; bg: string }> = {
+  purple: { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" },
+  orchid: { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" },
+  rose:   { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" },
+  green:  { c: "#0f7d55", edge: "#37a97c", bg: "#e9f6f0" },
+  teal:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
+  blue:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
+  amber:  { c: "#b45309", edge: "#e29a34", bg: "#fdf3e4" },
+  red:    { c: "#c0392b", edge: "#e0705f", bg: "#fdeeec" },
+};
 function Kpi({
   n,
   l,
@@ -211,20 +232,17 @@ function Kpi({
   hue: keyof typeof HUE;
   icon: string;
 }) {
+  const t = KPI_TONE[hue] ?? KPI_TONE.purple;
   return (
-    <div
-      className={`rounded-[16px] px-4 py-4 text-white bg-gradient-to-br ${HUE[hue]} shadow-lift relative overflow-hidden`}
-    >
-      <span className="absolute -right-4 -bottom-5 opacity-15">
-        <Icon name={icon} size={78} />
+    <div className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
+      style={{ background: `linear-gradient(150deg,${t.bg},#ffffff 130%)` }}>
+      <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: t.edge }} />
+      <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white"
+        style={{ background: t.edge, boxShadow: `0 3px 9px ${t.edge}45` }}>
+        <Icon name={icon} size={14} />
       </span>
-      <span className="opacity-90 relative">
-        <Icon name={icon} size={17} />
-      </span>
-      <div className="text-[27px] font-display font-medium leading-none mt-2.5 relative">
-        {n}
-      </div>
-      <div className="text-[12px] opacity-90 mt-1.5 relative">{l}</div>
+      <div className="font-display text-[25px] leading-none mt-3 tabular-nums" style={{ color: t.c }}>{n}</div>
+      <div className="text-[12px] font-semibold mt-1.5" style={{ color: t.c, opacity: 0.65 }}>{l}</div>
     </div>
   );
 }
@@ -778,17 +796,12 @@ export function MarginBoard() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Product Management · money" title="Price & Margin" demo={demo}>
-        Cost against selling price for the whole catalog — so nothing quietly
-        sells at a loss.
-      </PageHead>
-
-      <HowTo>
-        <b>How to read this:</b> <b>Cost</b> = what you pay. <b>Customer pays</b>{" "}
-        = price after any product discount. <b>Margin</b> = what is left for
-        Radian. Green is healthy, amber is thin (under 20%), red means you lose
-        money on every sale. Coupons are separate — they live in Offers.
-      </HowTo>
+      <PageHead
+        eyebrow="Product Management · money"
+        title="Price & Margin"
+        demo={demo}
+        tip="Cost against selling price for the whole catalog - so nothing quietly sells at a loss. Cost = what you pay. Customer pays = price after any product discount. Margin = what is left for Radian. Green is healthy, amber is thin (under 20%), red means you lose money on every sale. Coupons are separate - they live in Offers."
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={`${avg}%`} l="Average margin" hue={avg < 20 ? "amber" : "teal"} icon="cash" />
