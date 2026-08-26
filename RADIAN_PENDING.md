@@ -452,7 +452,28 @@ needs a run on the owner's machine.
 
 ---
 
-## 🌐 Phase 4 OPEN — Product / Catalogue (22 Aug)
+## ✅ Phase 4 CLOSED — Product / Catalogue (26 Aug, owner-tested)
+
+Everything from 22–26 Aug below shipped, verified live, owner-approved:
+flat URLs · variant combinations · category inheritance shown · badge rules ·
+offer templates + performance · DEC-PRD-059 offers-in-the-price · the full
+PDP redesign · units family (DEC-PUR-013/ITM-026/POS-024) · one QtyStepper ·
+the rule-16/17 sweep (Categories, Collections, Products family, Margin) ·
+BundleEditor's "What the customer sees" sum panel · DEC-GBL-005 confirmed
+already closed (stale doc, not code).
+
+**Next: Phase 5 — Checkout & Payment. Direction file:
+`RADIAN_PHASE5_DIRECTION.md`** — read it first in the new chat; it carries
+what already exists (SSLCommerz circle, addPayment, finance booking), the
+real remaining gaps, and the five open questions for the owner.
+
+⚠️ Demo leftovers: OFR-000027 (10% Fresh flower) may still be running —
+pause in Offers to restore prices. `apps/web/app/preview/pdp-ideas/` can be
+deleted once the owner agrees.
+
+---
+
+## 🌐 Phase 4 opened — Product / Catalogue (22 Aug)
 
 **DEC-WEB-010 — Flat URLs, the FlowerAura pattern (owner's choice, 22 Aug).**
 A category lives at the ROOT (`/fresh-flower`, sub at `/fresh-flower/roses`),
@@ -613,8 +634,8 @@ Gaps found in this sweep and fixed the same hour:
 - the last Bangla comments in `inventory.service.ts` / `.controller.ts` are
   English (house rule 9)
 
-**Next:** Phase 4 — Product / Catalogue. Direction file:
-`RADIAN_PHASE4_DIRECTION.md`.
+**Next:** ~~Phase 4~~ done — now Phase 5, Checkout & Payment. Direction file:
+`RADIAN_PHASE5_DIRECTION.md`.
 
 ---
 
@@ -729,7 +750,9 @@ unless the owner says so.
 | 1 | Administration — access templates, invites, guard, bell, all pages | **CLOSED 19 Aug** |
 | 2 | Masters — units, categories, colours/sizes, variants, supplier types, channels, delivery masters+setup | **CLOSED 19 Aug** |
 | 3 | Items → Purchase → Inventory | **CLOSED 22 Aug** — all three parts shipped and self-tested live; hand-over in `RADIAN_PHASE4_DIRECTION.md` |
-| 4–10 | Product/catalogue → Checkout/Payment → Orders/Delivery → Returns → POS → Finance → Growth | pending |
+| 4 | Product / Catalogue | **CLOSED 26 Aug** — owner-tested; hand-over in `RADIAN_PHASE5_DIRECTION.md` |
+| 5 | Checkout & Payment | **next** — direction: `RADIAN_PHASE5_DIRECTION.md` |
+| 6–10 | Orders/Delivery → Returns → POS → Finance → Growth | pending |
 
 Phase 2 closed with (all owner-tested and revised, live on demo):
 - every master rebuilt clean: no page prose, no field hints, inline dialog
