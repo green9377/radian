@@ -1589,9 +1589,20 @@ export class ProductDetailService {
    * the next thing that closes, not the last.
    */
   private async cutoffs() {
+    /*  ⚠️ THE CUT-OFF LIVES ON THE SLOT — 26 Aug 2026. DEC-DLV-018 moved it
+        there ("the morning slot closes at 8 and the evening one at 3 — one
+        number cannot tell three truths") and the method-level field went
+        quietly empty. This function kept reading ONLY the method field, so
+        the countdown never started and the owner asked, correctly, why a
+        3-hour product showed no Today. Both levels are read now: the
+        method's own time where one is typed, every slot's where not.  */
     const rows = await this.prisma.db.deliveryMethod.findMany({
       where: { isActive: true },
-      select: { zone: true, cutoffTime: true },
+      select: {
+        zone: true,
+        cutoffTime: true,
+        slots: { where: { isActive: true }, select: { cutoffTime: true } },
+      },
     });
 
     const now = new Date(Date.now() + 6 * 60 * 60 * 1000);
@@ -1600,7 +1611,8 @@ export class ProductDetailService {
     const soonest = (zone: string) => {
       const left = rows
         .filter((m) => m.zone === zone)
-        .map((m) => parseHHMM(m.cutoffTime))
+        .flatMap((m) => [m.cutoffTime, ...m.slots.map((sl) => sl.cutoffTime)])
+        .map((t) => parseHHMM(t))
         .filter((c): c is number => c !== null)
         .map((c) => c - minutesNow)
         /*  today's cut-off already gone is not tomorrow's countdown — the page

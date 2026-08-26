@@ -729,15 +729,34 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               chip with a lightning bolt in it would be worse than no chip, so
               the whole span goes.
             */}
-            {(zone === "bangladesh" || detail.deliveryChip) && (
-              <span className="inline-flex items-center gap-1.5 bg-orchid-soft text-purple rounded-lg px-2.5 py-1 text-[11.5px] font-bold">
-                <Icon
-                  name={zone === "bangladesh" ? "truck" : "bolt"}
-                  className="w-3.5 h-3.5 text-orchid"
-                />
-                {zone === "bangladesh" ? "Nationwide · 1–3 Days" : detail.deliveryChip}
-              </span>
-            )}
+            {/*  ⚠️ THE CHIP FOLLOWS THE VIEWER'S ZONE — owner, 26 Aug 2026:
+                "jodi karo location inside dhaka thake tahole se ken couriar
+                ta dekhbe." A 'both'-zone product carries a nationwide chip of
+                its own, and a Dhaka viewer was being shown courier words. In
+                Dhaka the chip speaks Dhaka (express / same-day / midnight,
+                from the product's own switches — or stays silent); courier
+                wording exists only for the All-Bangladesh viewer.  */}
+            {(() => {
+              const chip =
+                zone === "bangladesh"
+                  ? "Nationwide · 1–3 Days"
+                  : detail.speeds?.express
+                    ? "Express Delivery"
+                    : detail.speeds?.sameDay
+                      ? "Same-day in Dhaka"
+                      : detail.speeds?.midnight
+                        ? "Midnight delivery"
+                        : null;
+              return chip ? (
+                <span className="inline-flex items-center gap-1.5 bg-orchid-soft text-purple rounded-lg px-2.5 py-1 text-[11.5px] font-bold">
+                  <Icon
+                    name={zone === "bangladesh" ? "truck" : "bolt"}
+                    className="w-3.5 h-3.5 text-orchid"
+                  />
+                  {chip}
+                </span>
+              ) : null;
+            })()}
             <span
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11.5px] font-bold ${
                 detail.nature.type === "fresh"
