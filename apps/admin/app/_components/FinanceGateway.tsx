@@ -240,10 +240,12 @@ export function GatewaySettlementLive() {
         >
           {(!data || data.recent.length === 0) && (
             <tr>
-              <Td className="text-center text-body-soft py-8">
+              {/*  A plain <td colSpan> rather than the shared <Td>: Td takes no
+                   colSpan, so the sentence was folding itself into the 110px
+                   "No" column and reading as four stacked words.  */}
+              <td colSpan={5} className="text-center text-body-soft py-8 px-4">
                 The gateway has not paid anything over yet.
-              </Td>
-              <Td /><Td /><Td /><Td />
+              </td>
             </tr>
           )}
           {data?.recent.map((r) => (
