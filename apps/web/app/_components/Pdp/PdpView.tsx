@@ -18,7 +18,7 @@ import {
 import Icon from "./PdpIcons";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
 import OfferWindow from "./OfferWindow";
-import { BundleCards, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
+import { BundleCards, CardRail, CornerMark, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
 import { bundleTotals } from "../../_data/bundlePricing";
 
 /*
@@ -470,8 +470,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
   return (
     <>
-      <div className="grid lg:grid-cols-[1.18fr_1fr] gap-8 lg:gap-10 items-start">
+      <div className="grid lg:grid-cols-[1.14fr_1fr] gap-8 lg:gap-12">
         {/* ════════ GALLERY ════════ */}
+        {/*  ⚠️ STICKY NEEDS ROOM TO SLIDE — 26 Aug 2026. The sticky class used
+            to sit on the grid ITEM while the grid had items-start, so the cell
+            was exactly the gallery's own height and sticky had nowhere to go:
+            the photo scrolled away and a hole of dead white opened under the
+            trust badges (the owner's screenshot). Now the cell stretches to
+            the row's full height (grid default) and an INNER wrapper sticks,
+            so the photo rides along the whole buy column.  */}
+        <div className="min-w-0">
         <div className="lg:sticky lg:top-[124px]">
           {/*  ⚠️ The rail is ABSOLUTE inside its grid cell — 9 Aug 2026. With
               every colour's photo now always present (DEC-PRD-036) the rail
@@ -615,6 +623,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               </div>
             ))}
           </div>
+        </div>
         </div>
 
         {/* ════════ BUY PANEL ════════ */}
@@ -833,6 +842,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   upgrades={upList}
                   thisName={product.name}
                   thisPaisa={variantPaisa ?? size.pricePaisa}
+                  thisBg={detail.gallery[0] ?? ""}
                   activeSlug={upgradeSlug}
                   onPick={setUpgradeSlug}
                 />
@@ -900,40 +910,53 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 "Offers Available · 0 running" invites a click with nothing
                 behind it - a promise of something that cannot be had.
               */}
+              {/*  ── OFFERS — redesigned 26 Aug 2026 (owner: the collapsible
+                  stays, the look goes). A rose-gold coupon ticket: gradient
+                  band, gold-tinted seal, and each offer as a perforated
+                  voucher row — the dashed divider is where a paper coupon
+                  would tear. Codes are the loudest thing on the row because
+                  the code is the part the shopper takes with them.  */}
               {offers.length > 0 && (
-              <details className="mt-6 border-[1.5px] border-lavender-deep rounded-[18px] overflow-hidden group">
-                <summary className="flex items-center gap-3 px-5 py-3.5 cursor-pointer list-none bg-gradient-to-r from-orchid-soft to-[#FDF4FF]">
-                  <span className="w-8 h-8 rounded-full bg-white grid place-items-center text-orchid shrink-0">
-                    <Icon name="tag" className="w-4 h-4" />
+              <details className="mt-7 rounded-[18px] overflow-hidden group border border-[#E8C9CE] shadow-[0_6px_24px_rgba(183,110,121,0.10)]">
+                <summary className="relative flex items-center gap-3.5 px-5 py-4 cursor-pointer list-none bg-gradient-to-r from-[#FBF3F0] via-[#FDF6F3] to-orchid-soft">
+                  <span className="w-9 h-9 rounded-full bg-white grid place-items-center text-[#B76E79] shrink-0 shadow-[0_4px_12px_rgba(183,110,121,0.22)]">
+                    <Icon name="gift" className="w-[18px] h-[18px]" />
                   </span>
-                  <b className="text-[14.5px] text-purple font-bold">Offers Available</b>
-                  <span className="text-[12px] text-body-soft">· {offers.length} running</span>
-                  <Icon
-                    name="chev"
-                    className="w-4 h-4 ml-auto text-orchid transition-transform group-open:rotate-180"
-                  />
+                  <span className="min-w-0">
+                    <b className="block text-[14.5px] text-ink font-bold leading-tight">
+                      Offers on this gift
+                    </b>
+                    <span className="block text-[12px] text-[#B76E79] font-semibold">
+                      {offers.length} running — tap to see
+                    </span>
+                  </span>
+                  <span className="ml-auto w-7 h-7 rounded-full bg-white/80 grid place-items-center text-[#B76E79] transition-transform group-open:rotate-180 shrink-0">
+                    <Icon name="chev" className="w-4 h-4" />
+                  </span>
                 </summary>
-                <div className="p-3.5 bg-white space-y-2.5">
+                <div className="bg-white px-4 pb-4 pt-1 space-y-2.5">
                   {offers.map((o) => (
                     <div
                       key={o.text}
-                      className="flex items-center gap-3 border border-lavender-deep rounded-[12px] px-3.5 py-3 flex-wrap"
+                      className="flex items-stretch rounded-[14px] border border-[#EFDDD3] bg-[#FEFBF9] overflow-hidden"
                     >
                       <span
-                        className="w-[38px] h-[38px] rounded-[9px] grid place-items-center text-white text-[10.5px] font-bold shrink-0"
+                        className="w-[46px] grid place-items-center text-white text-[10.5px] font-bold shrink-0"
                         style={{ background: o.color }}
                       >
                         {o.logo}
                       </span>
-                      <p className="text-[13.5px] text-body flex-1 min-w-[160px]">{o.text}</p>
-                      {o.code ? (
-                        <span className="inline-flex items-center gap-1.5 border border-dashed border-orchid-mid text-orchid bg-orchid-soft rounded-lg px-2.5 py-1.5 text-[12px] font-bold">
-                          <Icon name="tag" className="w-3 h-3" />
-                          {o.code}
-                        </span>
-                      ) : (
-                        <span className="text-[11.5px] font-semibold text-orchid">{o.note}</span>
-                      )}
+                      <span className="self-stretch border-l-2 border-dashed border-[#E8C9CE]" />
+                      <div className="flex items-center gap-3 px-3.5 py-3 flex-1 min-w-0 flex-wrap">
+                        <p className="text-[13px] text-body flex-1 min-w-[150px] leading-snug m-0">{o.text}</p>
+                        {o.code ? (
+                          <span className="inline-flex items-center gap-1.5 border-[1.5px] border-dashed border-[#B76E79] text-[#8E4E58] bg-white rounded-[9px] px-3 py-1.5 text-[12.5px] font-bold tracking-wide shrink-0">
+                            {o.code}
+                          </span>
+                        ) : (
+                          <span className="text-[11.5px] font-bold text-[#0E7A3D] bg-[#E8F9EE] rounded-full px-2.5 py-1 shrink-0">{o.note}</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -965,7 +988,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/*  ⚠️ A RAIL, NOT A GRID — 26 Aug 2026, the owner: many
+                    add-ons pushed the page downward and there was no way to
+                    scroll sideways. One row now, same card language as
+                    bundles and upgrades (square mark: several can be taken;
+                    the empty box is visible so the choice explains itself).  */}
+                <CardRail>
                   {activeTab?.items.map((a) => {
                     const key = a.key;
                     const on = !!picked[key];
@@ -973,29 +1001,26 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       <button
                         key={key}
                         onClick={() => setPicked((p) => ({ ...p, [key]: !p[key] }))}
-                        className={`relative rounded-[18px] overflow-hidden bg-white border-[1.5px] text-center transition-all duration-200 active:scale-[0.97] ${
+                        aria-pressed={on}
+                        className={`relative w-[128px] sm:w-[136px] shrink-0 snap-start rounded-[18px] overflow-hidden bg-white border-2 text-center transition-all duration-200 active:scale-[0.97] ${
                           on
-                            ? "border-orchid shadow-[0_6px_20px_rgba(207,67,234,0.15)]"
-                            : "border-lavender-deep hover:border-orchid-mid"
+                            ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)]"
+                            : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px]"
                         }`}
                       >
-                        {on && (
-                          <span className="absolute top-[7px] right-[7px] z-[3] w-[22px] h-[22px] rounded-full bg-orchid text-white grid place-items-center">
-                            <Icon name="check" className="w-3 h-3" />
-                          </span>
-                        )}
-                        <span className="block aspect-[1/0.85]" style={{ background: a.bg }} />
-                        <span className="block px-2.5 pt-2 pb-3">
-                          <b className="block text-[11.5px] text-purple font-semibold truncate">
+                        <CornerMark on={on} />
+                        <span className="block aspect-square" style={{ background: a.bg }} />
+                        <span className="block px-2.5 pt-2 pb-2.5">
+                          <b className="block text-[11.5px] text-ink font-semibold truncate">
                             {a.name}
                           </b>
                           {/*  DEC-PRD-049 — "Free" where the shop meant free.
                               "+৳ 0" read as a price that had failed to
                               load.  */}
                           {a.isFree || a.pricePaisa === 0 ? (
-                            <span className="text-[11.5px] font-bold text-[#0E7A3D]">Free</span>
+                            <span className="text-[12px] font-bold text-[#0E7A3D]">Free</span>
                           ) : (
-                            <span className="text-[11.5px] text-body-soft">
+                            <span className="block font-display text-[13.5px] font-semibold text-purple">
                               +{formatTaka(a.pricePaisa)}
                             </span>
                           )}
@@ -1003,7 +1028,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       </button>
                     );
                   })}
-                </div>
+                </CardRail>
               </section>
               )}
 
@@ -1143,6 +1168,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   setQty={setQty}
                   total={total}
                   added={added}
+                  note={detail.underBuyText}
+                  preorderNote={detail.underBuyPreorderText}
                   preorder={preorder}
                   needsPick={buyBlocked}
                   blockedReason={

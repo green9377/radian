@@ -407,6 +407,10 @@ export interface ShopProductDetail {
    * `code` is set for a coupon, `note` for one that applies by itself.
    */
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
+  /** DEC-PRD-052 — the reassurance line under Buy Now, set in Setup -> Website
+   *  look (StorefrontSetting). Null = the storefront's built-in wording. */
+  underBuyText: string | null;
+  underBuyPreorderText: string | null;
   /**
    * "214 orders this month" — real, or null.
    *
@@ -840,6 +844,7 @@ export class ProductDetailService {
       ordersThisMonth,
       addonTabs,
       crossSell,
+      storefront,
     ] = await Promise.all([
       this.rating(p.id),
       this.categoryFaqs(p.category.id, p.category.parent?.id ?? null),
@@ -883,6 +888,12 @@ export class ProductDetailService {
           so the rail is compared against the number the shopper is looking
           at while they look at it.  */
       this.crossSell(p.id, p.category.id, p.category.parent?.id ?? null, tagSlugs, cardPricePaisa(p)),
+      /*  DEC-PRD-052 — the line under Buy Now, one row for the whole shop.
+          Cast because a stale generated client predates the columns.  */
+      this.prisma.db.storefrontSetting.findFirst({
+        where: { id: 'singleton' },
+        select: { ...({ pdpUnderBuyText: true, pdpUnderBuyPreorderText: true } as object) },
+      }) as Promise<{ pdpUnderBuyText?: string | null; pdpUnderBuyPreorderText?: string | null } | null>,
     ]);
 
     /*
@@ -1253,6 +1264,8 @@ export class ProductDetailService {
       addonTabs,
       reviews: rating,
       crossSell,
+      underBuyText: storefront?.pdpUnderBuyText ?? null,
+      underBuyPreorderText: storefront?.pdpUnderBuyPreorderText ?? null,
       seo: {
         title: p.metaTitle,
         description: p.metaDescription,

@@ -191,15 +191,22 @@ export class StorefrontSettingsService {
     heroRotateSeconds?: number;
     shopChipTitle?: string | null;
     shopChipSub?: string | null;
+    pdpUnderBuyText?: string | null;
+    pdpUnderBuyPreorderText?: string | null;
   }) {
     const data: {
       heroRotateSeconds?: number;
       shopChipTitle?: string | null;
       shopChipSub?: string | null;
+      pdpUnderBuyText?: string | null;
+      pdpUnderBuyPreorderText?: string | null;
     } = {};
     if (dto.heroRotateSeconds !== undefined) data.heroRotateSeconds = clampSeconds(dto.heroRotateSeconds);
     if (dto.shopChipTitle !== undefined) data.shopChipTitle = String(dto.shopChipTitle ?? '').trim() || null;
     if (dto.shopChipSub !== undefined) data.shopChipSub = String(dto.shopChipSub ?? '').trim() || null;
+    // DEC-PRD-052 — the line under Buy Now; blank returns the built-in wording
+    if (dto.pdpUnderBuyText !== undefined) data.pdpUnderBuyText = String(dto.pdpUnderBuyText ?? '').trim() || null;
+    if (dto.pdpUnderBuyPreorderText !== undefined) data.pdpUnderBuyPreorderText = String(dto.pdpUnderBuyPreorderText ?? '').trim() || null;
 
     return this.prisma.db.storefrontSetting.upsert({
       where: { id: 'singleton' },

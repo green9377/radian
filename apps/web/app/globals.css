@@ -106,17 +106,23 @@ body {
 }
 
 /* ---- PDP: Buy Now attention animation (FlowerAura-style shine + glow) ---- */
+/*  ⚠️ The percentages are of the SHINE STRIP's own width (a third of the
+    button), not the button's — 26 Aug 2026. translateX(120%) moved the strip
+    forty percent of one button and the gleam died a third of the way across,
+    which is exactly what the owner saw ("halka hoyei off hoye jay"). 460% of
+    its own width carries it clean past the right edge; the hold at 55% leaves
+    a breath between sweeps so it reads as a gleam, not a blinker.  */
 @keyframes shineSweep {
   0% {
-    transform: translateX(-120%);
+    transform: translateX(-160%);
   }
   55%,
   100% {
-    transform: translateX(120%);
+    transform: translateX(460%);
   }
 }
 .animate-shine {
-  animation: shineSweep 2.8s ease-in-out infinite;
+  animation: shineSweep 3s ease-in-out infinite;
 }
 
 @keyframes ctaGlow {

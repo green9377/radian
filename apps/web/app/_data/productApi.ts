@@ -167,6 +167,8 @@ export interface ApiProductDetail {
   craftKicker?: string | null;
   cutoffMinutesLeft: { dhaka: number | null; nationwide: number | null };
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
+  underBuyText?: string | null;
+  underBuyPreorderText?: string | null;
   ordersThisMonth: number | null;
   /** DEC-PRD-025 — which period the number above covers */
   salesWindow: "TODAY" | "WEEK" | "MONTH" | "ALL";
@@ -552,6 +554,8 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         how flowers are wrapped costs nothing; a cashback offer the shop is not
         actually running costs a customer who paid with bKash expecting ৳300
         back. Nothing running → the strip is absent.  */
+    underBuyText: a.underBuyText ?? null,
+    underBuyPreorderText: a.underBuyPreorderText ?? null,
     offers: a.offers.map((o) => ({
       logo: o.logo,
       color: o.color,

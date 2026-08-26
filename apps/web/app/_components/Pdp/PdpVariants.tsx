@@ -410,6 +410,96 @@ export function SizeRow({
   );
 }
 
+
+/*
+  ═══════════════════════════════════════════════════════════════════════════
+  ONE CARD LANGUAGE — owner, 26 Aug 2026:
+
+  *"ami chai agula amn vabe sajaw jate sobgula aksate sundor shape a thake…
+   akta product a jodi amder sob use kra lage tahole se page ta kmn hobe"*
+
+  Upgrade, bundle and add-on all draw the SAME photo card now: square photo,
+  name, price, and a mark in the top-right corner that is always visible —
+  a circle where only one can be chosen (upgrade), a rounded square where
+  several can (bundle, add-on). The mark's shape is the promise.
+
+  And none of the three stacks downward any more: each section is ONE ROW
+  that scrolls sideways (*"beshi hole nicher dike chole ase ata thik krba"*).
+  The row shows a sliver of the next card so the scroll explains itself.
+  ═══════════════════════════════════════════════════════════════════════════
+*/
+export function CardRail({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x pb-1 -mx-1 px-1">
+      {children}
+    </div>
+  );
+}
+
+export function CornerMark({ on, round }: { on: boolean; round?: boolean }) {
+  return (
+    <span
+      className={`absolute top-2 right-2 z-[3] w-[22px] h-[22px] grid place-items-center transition-colors shadow-[0_2px_8px_rgba(71,0,102,0.12)] ${
+        round ? "rounded-full" : "rounded-[7px]"
+      } ${on ? "bg-orchid text-white" : "bg-white/95 border-[1.5px] border-lavender-deep"}`}
+    >
+      {on && <Icon name="check" className="w-3 h-3" />}
+    </span>
+  );
+}
+
+export function PickCard({
+  on,
+  round,
+  bg,
+  tag,
+  name,
+  priceLine,
+  onClick,
+  ariaPressed,
+}: {
+  on: boolean;
+  round?: boolean;
+  bg: string;
+  tag?: string | null;
+  name: string;
+  priceLine: React.ReactNode;
+  onClick: () => void;
+  ariaPressed?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={ariaPressed}
+      aria-current={ariaPressed === undefined ? on : undefined}
+      className={`relative w-[148px] sm:w-[156px] shrink-0 snap-start text-left rounded-[18px] overflow-hidden bg-white border-2 transition-all duration-200 active:scale-[0.97] ${
+        on
+          ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)]"
+          : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px]"
+      }`}
+    >
+      {tag && (
+        <span className="absolute top-2 left-2 z-[3] bg-orchid text-white text-[9px] font-bold tracking-[0.1em] uppercase rounded-full px-2 py-1">
+          {tag}
+        </span>
+      )}
+      <CornerMark on={on} round={round} />
+      <span
+        className="block aspect-square"
+        style={{ background: bg || "linear-gradient(150deg,#EFE4F7,#DDC9EC)" }}
+      />
+      <span className="block px-3 pt-2.5 pb-3">
+        <span className={`block text-[12.5px] font-semibold truncate ${on ? "text-purple" : "text-ink"}`}>
+          {name}
+        </span>
+        <span className="block font-display text-[15px] font-semibold text-purple mt-0.5">
+          {priceLine}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 /*
   ═══════════════════════════════════════════════════════════════════════════
   UPGRADE — bigger versions of this one. DEC-PRD-020, owner 2 Aug 2026:
@@ -432,6 +522,7 @@ export function UpgradeRow({
   upgrades,
   thisName,
   thisPaisa,
+  thisBg,
   activeSlug,
   onPick,
 }: {
@@ -439,62 +530,38 @@ export function UpgradeRow({
   /** the name of this page's own product — the first card */
   thisName: string;
   thisPaisa: number;
+  /** this product's own photo, so the first card is a real card too */
+  thisBg: string;
   /** `null` = this product itself is the one selected */
   activeSlug: string | null;
   onPick: (slug: string | null) => void;
 }) {
+  /*  ⚠️ The row-list with a bare radio is gone — owner, 26 Aug 2026: the
+      bundle's photo cards were the style he liked, so the upgrade speaks the
+      same language now. The mark stays ROUND, because only one size can be
+      chosen — the shape is the promise (bundles keep the square).  */
   const options = [
-    { slug: null as string | null, name: thisName, pricePaisa: thisPaisa, bg: "" },
+    { slug: null as string | null, name: thisName, pricePaisa: thisPaisa, bg: thisBg },
     ...upgrades,
   ];
 
   return (
-    <section className="mb-6">
-      <div className="flex items-baseline gap-2 mb-3">
-        <b className="text-[14px] font-bold text-ink">Choose the size you want to send</b>
-      </div>
-      <div className="flex flex-col gap-2">
-        {options.map((o) => {
-          const on = o.slug === activeSlug;
-          return (
-            <button
-              key={o.slug ?? "__this"}
-              onClick={() => onPick(o.slug)}
-              aria-current={on}
-              className={`flex items-center gap-3 text-left rounded-[14px] border-[1.5px] px-3 py-2.5 transition-all duration-200 active:scale-[0.99] ${
-                on
-                  ? "border-orchid bg-orchid-soft"
-                  : "border-lavender-deep bg-white hover:border-orchid-mid"
-              }`}
-            >
-              {/*  ⚠️ A round mark, not a square — only one can be chosen here.
-                  Bundles get squares, because several can be taken there. The
-                  behaviour has to match what the mark promises.  */}
-              <span
-                className={`w-[18px] h-[18px] rounded-full border-2 shrink-0 grid place-items-center ${
-                  on ? "border-orchid" : "border-lavender-deep"
-                }`}
-              >
-                {on && <span className="w-[9px] h-[9px] rounded-full bg-orchid" />}
-              </span>
-              {o.bg && (
-                <span
-                  className="w-[38px] h-[38px] rounded-[10px] shrink-0 border border-lavender-deep"
-                  style={{ background: o.bg }}
-                />
-              )}
-              <span className="flex-1 min-w-0">
-                <span className={`block text-[13.5px] font-semibold truncate ${on ? "text-purple" : "text-ink"}`}>
-                  {o.name}
-                </span>
-              </span>
-              <span className="font-display text-[15px] font-semibold text-purple shrink-0">
-                {formatTaka(o.pricePaisa)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <section className="mb-7">
+      <BlkTitle title="Choose the size you want to send" hint="one of these" />
+      <CardRail>
+        {options.map((o) => (
+          <PickCard
+            key={o.slug ?? "__this"}
+            on={o.slug === activeSlug}
+            round
+            bg={o.bg}
+            tag={o.slug === null ? "This one" : null}
+            name={o.name}
+            priceLine={formatTaka(o.pricePaisa)}
+            onClick={() => onPick(o.slug)}
+          />
+        ))}
+      </CardRail>
     </section>
   );
 }
@@ -534,53 +601,23 @@ export function BundleCards({
   return (
     <section>
       <BlkTitle title="Make It a Bundle" hint={hint} />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {bundles.map((b) => {
-          const on = activeIds.includes(b.id);
-          /*  The card shows the item's **own** price — no discount. The
-              discount is written once under the list, because it applies to
-              the total including the main product; putting it here would print
-              the same discount four times and leave nobody able to make the
-              total add up.  */
-          return (
-            <button
-              key={b.id}
-              onClick={() => onToggle(b.id)}
-              aria-pressed={on}
-              className={`relative text-left rounded-[18px] overflow-hidden bg-white border-2 transition-all duration-200 active:scale-[0.97] ${
-                on
-                  ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)]"
-                  : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px]"
-              }`}
-            >
-              {b.tag && (
-                <span className="absolute top-2 left-2 z-[3] bg-orchid text-white text-[9px] font-bold tracking-[0.1em] uppercase rounded-full px-2 py-1">
-                  {b.tag}
-                </span>
-              )}
-              {/*  A square tick — the smallest way to say "you can take more".
-                  The box stays visible while unticked, otherwise nobody would
-                  realise several can be taken.  */}
-              <span
-                className={`absolute top-2 right-2 z-[3] w-[22px] h-[22px] rounded-[7px] grid place-items-center transition-colors ${
-                  on ? "bg-orchid text-white" : "bg-white/90 border-[1.5px] border-lavender-deep"
-                }`}
-              >
-                {on && <Icon name="check" className="w-3 h-3" />}
-              </span>
-              <span className="block aspect-square" style={{ background: b.bg }} />
-              <span className="block px-3 pt-2.5 pb-3">
-                <span className="block text-[12.5px] font-semibold text-ink truncate">
-                  {b.label}
-                </span>
-                <span className="block font-display text-[15px] font-semibold text-purple mt-0.5">
-                  + {formatTaka(b.pricePaisa)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/*  The card shows the item's **own** price — no discount. The discount
+          is written once under the list, because it applies to the total
+          including the main product. Square marks: several can be taken.  */}
+      <CardRail>
+        {bundles.map((b) => (
+          <PickCard
+            key={b.id}
+            on={activeIds.includes(b.id)}
+            bg={b.bg}
+            tag={b.tag}
+            name={b.label}
+            priceLine={<>+ {formatTaka(b.pricePaisa)}</>}
+            onClick={() => onToggle(b.id)}
+            ariaPressed={activeIds.includes(b.id)}
+          />
+        ))}
+      </CardRail>
 
       {/*
         DEC-PRD-018 — the discount lives here, once. The owner's rule: take

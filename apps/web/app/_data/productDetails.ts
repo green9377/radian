@@ -437,6 +437,9 @@ export interface ProductDetail {
    * at checkout. Absent means nothing is running, and the strip does not draw.
    */
   offers?: Offer[];
+  /** DEC-PRD-052 — the reassurance line under Buy Now; null = built-in wording */
+  underBuyText?: string | null;
+  underBuyPreorderText?: string | null;
   /**
    * "Pairs beautifully with" — full cards, built by the same code as the
    * category grid, so a product looks identical wherever it appears.

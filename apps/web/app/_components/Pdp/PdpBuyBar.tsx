@@ -59,9 +59,15 @@ export function CtaRow({
   preorder,
   needsPick,
   blockedReason,
+  note,
+  preorderNote,
   onAddToCart,
   onBuyNow,
 }: {
+  /** DEC-PRD-052 — the shop's own wording for the line under the buttons;
+   *  null falls back to the built-in sentence. Set in Setup -> Website look. */
+  note?: string | null;
+  preorderNote?: string | null;
   qty: number;
   setQty: (n: number) => void;
   total: number;
@@ -149,10 +155,14 @@ export function CtaRow({
           wrong guess to make.  */}
       <p className="text-center text-[12.5px] text-body-soft mt-3">
         {preorder ? (
-          <>
-            Delivery date &amp; time slot and gift message come on the next step.
-            We&apos;ll confirm the sending date with you before anything ships.
-          </>
+          preorderNote || (
+            <>
+              Delivery date &amp; time slot and gift message come on the next step.
+              We&apos;ll confirm the sending date with you before anything ships.
+            </>
+          )
+        ) : note ? (
+          note
         ) : (
           <>
             Delivery date &amp; time slot, gift card message and anonymous-gift option — all on

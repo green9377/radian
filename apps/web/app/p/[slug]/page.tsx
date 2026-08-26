@@ -115,7 +115,11 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
 
   return (
     <main className="bg-[#F6F4FA]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+      {/*  1400px, was 1200 — the owner, 26 Aug 2026: the selling page was
+          leaving too much dead margin on a desktop. The card inside keeps its
+          own padding, so the extra width all goes to the photo and the buy
+          panel.  */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
         {/* breadcrumb */}
         <nav
           aria-label="Breadcrumb"

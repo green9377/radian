@@ -97,7 +97,7 @@ export default function ShopHoursView() {
     }
   }
 
-  async function patchSettings(body: { shopChipTitle?: string; shopChipSub?: string }) {
+  async function patchSettings(body: { shopChipTitle?: string; shopChipSub?: string; pdpUnderBuyText?: string; pdpUnderBuyPreorderText?: string }) {
     try {
       setSaveState("saving");
       setSettings(await setStorefrontSettings(body));
@@ -219,6 +219,23 @@ export default function ShopHoursView() {
                 <F label="Card on the photo — line 2" hint="blank on both lines hides the card">
                   <input className="ipt" defaultValue={settings?.shopChipSub ?? ""} placeholder="Watch your gift arranged by hand"
                     onBlur={(e) => e.target.value !== (settings?.shopChipSub ?? "") && patchSettings({ shopChipSub: e.target.value })} />
+                </F>
+              </div>
+
+              {/*  DEC-PRD-052 — the reassurance line under the product page's
+                  Buy Now button. The owner asked whether it could be changed
+                  (26 Aug 2026); until then it was typed into the component.
+                  Blank returns the storefront's built-in wording.  */}
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Line under Buy Now" hint="blank = the built-in wording">
+                  <input className="ipt" defaultValue={settings?.pdpUnderBuyText ?? ""}
+                    placeholder="Delivery date, gift message - all on the next step. No payment until you confirm."
+                    onBlur={(e) => e.target.value !== (settings?.pdpUnderBuyText ?? "") && patchSettings({ pdpUnderBuyText: e.target.value })} />
+                </F>
+                <F label="Same line on a pre-order" hint="a pre-order must not promise no-payment">
+                  <input className="ipt" defaultValue={settings?.pdpUnderBuyPreorderText ?? ""}
+                    placeholder="We'll confirm the sending date with you before anything ships."
+                    onBlur={(e) => e.target.value !== (settings?.pdpUnderBuyPreorderText ?? "") && patchSettings({ pdpUnderBuyPreorderText: e.target.value })} />
                 </F>
               </div>
             </div>

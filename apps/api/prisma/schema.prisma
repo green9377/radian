@@ -920,6 +920,13 @@ model StorefrontSetting {
 
   /// the paragraph under the logo in the footer
   footerTagline String? @db.Text
+
+  /// DEC-PRD-052 — the reassurance line under the PDP's Buy Now button. Two
+  /// wordings: the normal one and the pre-order one (a pre-order must not
+  /// promise "no payment until you confirm" — the advance rule decides that).
+  /// null = the storefront's built-in wording.
+  pdpUnderBuyText         String? @db.Text
+  pdpUnderBuyPreorderText String? @db.Text
   /* ---- the Google summary card above the reviews ----
      Typed by hand until the Business Profile is verified and connected, then
      these are overwritten by the real figures on a schedule.

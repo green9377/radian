@@ -416,6 +416,9 @@ export interface ApiStorefrontSettings {
   /** the small card floating over the shop photograph — both blank hides it */
   shopChipTitle: string | null;
   shopChipSub: string | null;
+  /** DEC-PRD-052 — the reassurance line under the PDP's Buy Now; blank = built-in wording */
+  pdpUnderBuyText: string | null;
+  pdpUnderBuyPreorderText: string | null;
 }
 export const getStorefrontSettings = () => j<ApiStorefrontSettings>("/banners/settings");
 /** every field optional — the API only writes what is sent */
