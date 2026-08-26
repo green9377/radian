@@ -238,6 +238,10 @@ const BUNDLE_ADDS = {
       as a name. Renaming a product would otherwise snap the cart line.  */
   id: true,
   name: true,
+  /*  DEC-PRD-059 — a bundle item is another product; its offer cut runs on
+      ITS category.  */
+  categoryId: true,
+  category: { select: { parentId: true } },
   sellingPricePaisa: true,
   discountType: true,
   discountValue: true,
@@ -831,6 +835,10 @@ export class ProductDetailService {
       parallel they cost one round trip between them.
     */
     const tagSlugs = p.tags.map((t) => t.slug);
+    /*  DEC-PRD-059 — fetched FIRST because upgrades() and bundles() price
+        OTHER products and need to cut per their own category. One indexed
+        query; the cost of serialising it is nothing.  */
+    const displayOffers = await loadDisplayOffers(this.prisma);
     const [
       rating,
       catFaqs,
@@ -846,12 +854,11 @@ export class ProductDetailService {
       addonTabs,
       crossSell,
       storefront,
-      displayOffers,
     ] = await Promise.all([
       this.rating(p.id),
       this.categoryFaqs(p.category.id, p.category.parent?.id ?? null),
-      this.bundles(p.id, p.category.id, p.category.parent?.id ?? null),
-      this.upgrades(p.id),
+      this.bundles(p.id, p.category.id, p.category.parent?.id ?? null, displayOffers),
+      this.upgrades(p.id, displayOffers),
       this.prisma.db.companySetting.findFirst({ select: { publicPhone: true } }),
       this.craft(p.id, p.category.id, p.category.parent?.id ?? null),
       this.cutoffs(),
@@ -896,9 +903,6 @@ export class ProductDetailService {
         where: { id: 'singleton' },
         select: { ...({ pdpUnderBuyText: true, pdpUnderBuyPreorderText: true } as object) },
       }) as Promise<{ pdpUnderBuyText?: string | null; pdpUnderBuyPreorderText?: string | null } | null>,
-      /*  DEC-PRD-059 — the unconditional automatic offers, once; applied to
-          every price this payload prints (headline, sizes, variants).  */
-      loadDisplayOffers(this.prisma),
     ]);
 
     /*  the best offer cut for ONE unit at this price — same base and formula
@@ -1381,11 +1385,12 @@ export class ProductDetailService {
    * would mean offering "take 50 roses" and then phoning to take it back -
    * exactly the rule the bundle cards follow, for exactly the same reason.
    */
-  private async upgrades(productId: string) {
+  private async upgrades(productId: string, displayOffers: import('./display-offers').DisplayOffer[] = []) {
     const rows = await this.prisma.db.product.findMany({
       where: { upgradeOfProductId: productId, isPublished: true },
       orderBy: [{ upgradeSortOrder: 'asc' }, { sellingPricePaisa: 'asc' }],
       select: {
+        id: true,
         slug: true,
         name: true,
         sellingPricePaisa: true,
@@ -1395,6 +1400,10 @@ export class ProductDetailService {
         discountEndsAt: true,
         stockMode: true,
         stockQty: true,
+        /*  DEC-PRD-059 — an upgrade is another product; its offer cut runs on
+            ITS category, not this page's.  */
+        categoryId: true,
+        category: { select: { parentId: true } },
         /*  DEC-PRD-014 — the stock may live on the variants.  */
         variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
         images: {
@@ -1416,11 +1425,8 @@ export class ProductDetailService {
               : u.stockQty) <= 0
           ),
       )
-      .map((u) => ({
-        slug: u.slug,
-        name: u.name,
-        imageUrl: u.images[0]?.url ?? null,
-        pricePaisa: paidPaisa({
+      .map((u) => {
+        const paid = paidPaisa({
           sellingPricePaisa: u.sellingPricePaisa,
           discountType: u.discountType as 'NONE' | 'FLAT' | 'PERCENT',
           discountValue: u.discountValue,
@@ -1428,8 +1434,21 @@ export class ProductDetailService {
               price either.  */
           discountStartsAt: u.discountStartsAt,
           discountEndsAt: u.discountEndsAt,
-        }),
-      }));
+        });
+        return {
+          slug: u.slug,
+          name: u.name,
+          imageUrl: u.images[0]?.url ?? null,
+          // DEC-PRD-059 — the same offer cut the upgrade's own page would show
+          pricePaisa:
+            paid -
+            displayCut(
+              displayOffers,
+              { id: u.id, categoryId: u.categoryId, parentCategoryId: u.category?.parentId ?? null },
+              paid,
+            ),
+        };
+      });
   }
 
   /*  ⚠️ DEC-PRD-016's `combos()` has been lifted out of here — under
@@ -1446,7 +1465,7 @@ export class ProductDetailService {
 
       Bundles REPLACE rather than add up, exactly as craft points do: the
       product's own if it has any, else its category's, else the parent's.  */
-  private async bundles(productId: string, categoryId: string, parentCategoryId: string | null) {
+  private async bundles(productId: string, categoryId: string, parentCategoryId: string | null, displayOffers: import('./display-offers').DisplayOffer[] = []) {
     const rows = await this.prisma.db.bundle.findMany({
       where: {
         isActive: true,
@@ -1525,19 +1544,29 @@ export class ProductDetailService {
           see the same cake twice and be charged for it twice.  */
       .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       .filter(sellable)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        imageUrl: p.images[0]?.url ?? null,
-        pricePaisa: paidPaisa({
+      .map((p) => {
+        const paid = paidPaisa({
           sellingPricePaisa: p.sellingPricePaisa,
           discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
           discountValue: p.discountValue,
           /*  DEC-PRD-028 — the same expiry applies on a bundle's card too.  */
           discountStartsAt: p.discountStartsAt,
           discountEndsAt: p.discountEndsAt,
-        }),
-      }));
+        });
+        return {
+          id: p.id,
+          name: p.name,
+          imageUrl: p.images[0]?.url ?? null,
+          // DEC-PRD-059 — the same offer cut this item's own card shows
+          pricePaisa:
+            paid -
+            displayCut(
+              displayOffers,
+              { id: p.id, categoryId: p.categoryId, parentCategoryId: p.category?.parentId ?? null },
+              paid,
+            ),
+        };
+      });
 
     if (items.length === 0) return null;
 
