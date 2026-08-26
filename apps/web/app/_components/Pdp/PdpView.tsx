@@ -1285,14 +1285,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   <span className="text-[13px] text-body-soft">— picked here, kept at checkout</span>
                 </div>
                 <div className="flex gap-2.5 flex-wrap">
-                  {/*  ⚠️ Today = an ARRIVAL promise, so it is offered only when
-                      it can be kept: Dhaka zone (nationwide runs 1-3 days — an
-                      arrival "today" cannot be promised), a product the shop
-                      marked for fast delivery (deliveryChip), and today's
-                      cut-off still alive. The owner's rule, 26 Aug: "jodi
-                      product a today na thake tahole thik ache but thakle to
-                      today asa ucit."  */}
-                  {zone === "dhaka" && detail.deliveryChip && clock && (
+                  {/*  ⚠️ Today = an ARRIVAL promise, offered only when it can
+                      be kept: Dhaka zone (nationwide runs 1-3 days), a product
+                      with express or same-day switched ON (`speeds`, not the
+                      chip — a 'both'-zone product wears the nationwide chip
+                      and still qualifies), and a LIVING cut-off. The clock is
+                      null whenever Delivery -> Zones & Availability has no
+                      cut-off time typed for the zone — that, not code, is why
+                      Today is absent on a fresh shop (found 26 Aug: every
+                      method's cut-off box was empty).  */}
+                  {zone === "dhaka" && (detail.speeds?.express || detail.speeds?.sameDay) && clock && (
                     <button
                       type="button"
                       onClick={() => pickDay("today")}
