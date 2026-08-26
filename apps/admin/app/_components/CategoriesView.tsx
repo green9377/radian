@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
 import CategoryEditor from "./CategoryEditor";
+import { Info } from "./ItemEditor";
 import {
   listCategoriesSafe,
   createCategory,
@@ -178,11 +179,12 @@ export default function CategoriesView() {
             <span className="w-[9px] h-[9px] -rotate-45 bg-gradient-to-br from-orchid to-rosegold" style={{ borderRadius: "50% 50% 50% 0" }} />
             Classification · categories
           </div>
-          <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Categories</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[720px]">
-            The category tree behind every product and the storefront menu. Pick one on the left to edit its page,
-            images and SEO on the right.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Categories</h1>
+            {/*  house rule 17 — the explanation lives behind the i, not as a
+                paragraph on the page  */}
+            <Info text="The category tree behind every product and the storefront menu. Pick one on the left to edit its page, images and SEO on the right." />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/products/list" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">
@@ -212,22 +214,32 @@ export default function CategoriesView() {
       )}
       {loading && <div className="text-[13px] text-body-soft mb-4">Loading categories…</div>}
 
-      {/* stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3 mb-6">
+      {/*  The house count cards (rule 17's shape, same as Occasions & Tags /
+          Brands): brand family only — deep purple, rose gold, orchid, soft
+          purple — coloured spine on the left, icon in a tinted square, the
+          number large, any explanation behind the i. The blue/green/amber set
+          this screen wore was the old off-brand palette.  */}
+      <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-6">
         {[
-          { l: "Categories", v: String(stats.total), c: "#7a2ea8", bg: "#f5eafb", icon: "grid" },
-          { l: "Top-level", v: String(stats.tops), c: "#8b3fb0", bg: "#f3e8fb", icon: "layers" },
-          { l: "Sub-categories", v: String(stats.subs), c: "#3182c9", bg: "#e9f2fc", icon: "hash" },
-          { l: "Products classified", v: String(stats.classified), c: "#12a172", bg: "#e6f7ef", icon: "box" },
-          { l: "Empty categories", v: String(stats.empty), c: stats.empty ? "#d98a0f" : "#12a172", bg: "#fbf1e2", icon: "bolt" },
-          { l: "Hidden", v: String(stats.inactive), c: stats.inactive ? "#b5642f" : "#12a172", bg: "#f6ece3", icon: "eye" },
+          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "grid" },
+          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "layers", tip: "The aisles — what the storefront menu shows." },
+          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
+          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
+          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
+          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
         ].map((k, i) => (
-          <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
-            <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
-              <Icon name={k.icon} size={13} />
-            </span>
-            <div className="font-display text-[23px] leading-none mt-2.5" style={{ color: k.c }}>{k.v}</div>
-            <div className="text-[11px] font-medium text-body mt-1.5">{k.l}</div>
+          <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
+            <div className="flex items-center justify-between gap-2">
+              <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
+                style={{ background: k.edge, boxShadow: `0 3px 9px ${k.edge}45` }}>
+                <Icon name={k.icon} size={14} />
+              </span>
+              {k.tip && <Info text={k.tip} />}
+            </div>
+            <div className="font-display text-[25px] leading-none mt-3 tabular-nums" style={{ color: k.c }}>{k.v}</div>
+            <div className="text-[12px] font-semibold mt-1.5" style={{ color: k.c, opacity: 0.65 }}>{k.l}</div>
           </div>
         ))}
       </div>

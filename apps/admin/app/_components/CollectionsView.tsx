@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
+import { Info } from "./ItemEditor";
 import SaveBar, { type SaveState } from "./SaveBar";
 import {
   listCollections, createCollection, updateCollection, deleteCollection, uploadImage,
@@ -140,10 +141,11 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
     <div className={embedded ? "w-full" : WRAP}>
       {!embedded && (
         <>
-          <h1 className="font-display text-[22px] text-purple mb-1">Collections</h1>
-          <p className="text-[13px] text-body-soft mb-5">
-            The cards under &ldquo;Gifts for Every Budget&rdquo;, and any other shelf you want to name. Click one to open it.
-          </p>
+          <div className="flex items-center gap-2 mb-5">
+            <h1 className="font-display text-[22px] text-purple m-0">Collections</h1>
+            {/*  house rule 17 — the explanation lives behind the i  */}
+            <Info text="The cards under 'Gifts for Every Budget', and any other shelf you want to name. Click one to open it." />
+          </div>
         </>
       )}
 
@@ -219,12 +221,9 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                           <L label="From ৳"><input type="number" className="ipt" defaultValue={toTaka(c.minPaisa)} placeholder="any" onBlur={(e) => patch(c.id, { minPaisa: toPaisa(e.target.value) })} /></L>
                           <L label="Up to ৳"><input type="number" className="ipt" defaultValue={toTaka(c.maxPaisa)} placeholder="any" onBlur={(e) => patch(c.id, { maxPaisa: toPaisa(e.target.value) })} /></L>
                         </div>
-                        {/* Spelled out on the screen. It is the sort of rule that
-                            reads as obvious until a discount ends and a product
-                            leaves the shelf with nobody being told. */}
-                        <p className="text-[11.5px] text-body-soft mt-1.5">
-                          Uses the price a customer actually pays, after any discount. Leave a box empty for &ldquo;no limit&rdquo;.
-                        </p>
+                        {/*  rule 17 — the price-band rule rides behind the i,
+                            not as a grey sentence under the fields  */}
+                        <div className="mt-1.5"><Info text="Uses the price a customer actually pays, after any discount. Leave a box empty for 'no limit'. The rule reads as obvious until a discount ends and a product leaves the shelf with nobody being told." /></div>
                       </div>
                     ) : (
                       <p className="text-[12px] text-body-soft bg-lavender/40 border border-lavender-deep rounded-[10px] px-3.5 py-2.5">
