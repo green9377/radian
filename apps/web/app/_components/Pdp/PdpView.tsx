@@ -18,7 +18,7 @@ import {
 import Icon from "./PdpIcons";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
 import OfferWindow from "./OfferWindow";
-import { BundleCards, CardRail, CornerMark, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
+import { BundleCards, CardRail, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
 import { bundleTotals } from "../../_data/bundlePricing";
 
 /*
@@ -158,8 +158,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     a colour still held.
   */
   const variantSlots = upgrade ? [] : vList.filter((v) => v.imageUrl);
+  /*  ⚠️ With an upgrade selected the OLD product's photos leave the rail —
+      owner, 26 Aug 2026: "upgrade product dile ager product image dhore
+      rakhe". A different thing is being bought; photos of the thing that is
+      NOT being bought, sitting in the gallery, read as the page not having
+      changed at all. The upgrade card carries one photo, so the rail shows
+      that one until the customer comes back.  */
   const gallery = upgrade
-    ? [upgrade.bg, ...detail.gallery]
+    ? [upgrade.bg]
     : [...detail.gallery, ...variantSlots.map((v) => `url(${v.imageUrl}) center/cover`)];
 
   const openMedia = (i: number) => {
@@ -412,7 +418,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const axisCount = new Set(
     vList.flatMap((v) => (v.parts?.length ? v.parts.map((p) => p.attributeId) : [])),
   ).size;
-  const needsPick = axisCount > 1 && !variant;
+  /*  ⚠️ `!upgrade` — 26 Aug 2026, the owner pressed an upgrade and Buy Now
+      stayed shut. The pair rule (DEC-PRD-045) belongs to THIS product's two
+      lists; with an upgrade selected a DIFFERENT product is being bought,
+      whole, and holding the buttons hostage to the colours of the one being
+      left behind was a bug wearing a rule's clothes.  */
+  const needsPick = !upgrade && axisCount > 1 && !variant;
 
   /*  ── DEC-PRD-048 · a required box actually stops the sale ──────────────
       The page has printed "required" beside this section since it was built,
@@ -993,6 +1004,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                     scroll sideways. One row now, same card language as
                     bundles and upgrades (square mark: several can be taken;
                     the empty box is visible so the choice explains itself).  */}
+                {/*  FlowerAura's pattern, on the owner's ask (26 Aug): every
+                    add-on card carries its own ADD button, and the button IS
+                    the state — outlined "+ Add" resting, filled "Added" when
+                    taken. An impulse purchase should not make anybody guess
+                    whether tapping the picture did something.  */}
                 <CardRail>
                   {activeTab?.items.map((a) => {
                     const key = a.key;
@@ -1002,15 +1018,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                         key={key}
                         onClick={() => setPicked((p) => ({ ...p, [key]: !p[key] }))}
                         aria-pressed={on}
-                        className={`relative w-[128px] sm:w-[136px] shrink-0 snap-start rounded-[18px] overflow-hidden bg-white border-2 text-center transition-all duration-200 active:scale-[0.97] ${
+                        className={`relative w-[136px] sm:w-[144px] shrink-0 snap-start rounded-[18px] overflow-hidden bg-white border-2 text-center transition-all duration-200 active:scale-[0.97] ${
                           on
                             ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)]"
                             : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px]"
                         }`}
                       >
-                        <CornerMark on={on} />
                         <span className="block aspect-square" style={{ background: a.bg }} />
-                        <span className="block px-2.5 pt-2 pb-2.5">
+                        <span className="block px-2.5 pt-2">
                           <b className="block text-[11.5px] text-ink font-semibold truncate">
                             {a.name}
                           </b>
@@ -1023,6 +1038,21 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                             <span className="block font-display text-[13.5px] font-semibold text-purple">
                               +{formatTaka(a.pricePaisa)}
                             </span>
+                          )}
+                        </span>
+                        <span
+                          className={`mx-2.5 mt-1.5 mb-2.5 h-[30px] inline-flex w-[calc(100%-20px)] items-center justify-center gap-1 rounded-full text-[12px] font-bold transition-colors ${
+                            on
+                              ? "bg-orchid text-white"
+                              : "border-[1.5px] border-orchid text-orchid bg-white"
+                          }`}
+                        >
+                          {on ? (
+                            <>
+                              <Icon name="check" className="w-3 h-3" /> Added
+                            </>
+                          ) : (
+                            "+ Add"
                           )}
                         </span>
                       </button>
@@ -1157,6 +1187,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   category page lives at `/<slug>` (the breadcrumb
                   writes it that way itself). So "See what else we have" led
                   nowhere but a 404.  */}
+              {/*  ── THE BUTTONS NEVER LEAVE THE SCREEN — 26 Aug 2026 ──────
+                  FlowerAura holds its CTA at the viewport's bottom edge while
+                  the buy column scrolls (position: sticky; bottom: 0 on the
+                  wrap) and the owner asked for exactly that. Same trick here:
+                  the wrap sticks to the bottom on desktop, on white, with a
+                  soft top shadow so content sliding under it reads as under.
+                  Mobile keeps the separate StickyBar it always had.  */}
+              <div className="lg:sticky lg:bottom-0 lg:z-30 lg:bg-white lg:pb-3 lg:-mb-1 lg:shadow-[0_-14px_22px_-16px_rgba(71,0,102,0.22)] lg:rounded-t-[14px]">
               {soldOut ? (
                 <SoldOut
                   backHref={`/${detail.crumb.catSlug}`}
@@ -1179,6 +1217,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   onBuyNow={buyNow}
                 />
               )}
+              </div>
             </>
           )}
 

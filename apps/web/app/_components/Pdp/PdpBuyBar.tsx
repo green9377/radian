@@ -139,7 +139,7 @@ export function CtaRow({
           }`}
         >
           {!needsPick && (
-            <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
+            <span className="animate-shine pointer-events-none absolute -top-2 -bottom-2 w-[24px] bg-white/25 rotate-[8deg]" />
           )}
           <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
           {needsPick
@@ -253,7 +253,7 @@ export function StickyBar({
         }`}
       >
         {!needsPick && (
-          <span className="animate-shine pointer-events-none absolute top-0 bottom-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-18deg]" />
+          <span className="animate-shine pointer-events-none absolute -top-2 -bottom-2 w-[24px] bg-white/25 rotate-[8deg]" />
         )}
         <Icon name={needsPick ? "check" : preorder ? "clock" : "bolt"} className="w-4 h-4" />
         {needsPick ? blockedReason || "Choose an option" : preorder ? "Pre-order" : "Buy Now"}

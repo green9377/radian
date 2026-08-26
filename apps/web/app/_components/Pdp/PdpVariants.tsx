@@ -430,8 +430,13 @@ export function SizeRow({
 */
 export function CardRail({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x pb-1 -mx-1 px-1">
-      {children}
+    <div className="relative">
+      <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x pb-1 -mx-1 px-1">
+        {children}
+      </div>
+      {/*  the fade is the rail saying "there is more this way" — without it a
+          row that happens to end at the edge looks finished when it is not  */}
+      <span className="pointer-events-none absolute right-[-4px] top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
     </div>
   );
 }

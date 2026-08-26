@@ -106,23 +106,21 @@ body {
 }
 
 /* ---- PDP: Buy Now attention animation (FlowerAura-style shine + glow) ---- */
-/*  ⚠️ The percentages are of the SHINE STRIP's own width (a third of the
-    button), not the button's — 26 Aug 2026. translateX(120%) moved the strip
-    forty percent of one button and the gleam died a third of the way across,
-    which is exactly what the owner saw ("halka hoyei off hoye jay"). 460% of
-    its own width carries it clean past the right edge; the hold at 55% leaves
-    a breath between sweeps so it reads as a gleam, not a blinker.  */
-@keyframes shineSweep {
+/*  FlowerAura-decoded, 26 Aug 2026 (the owner sent their PDP as the
+    reference): their gleam is a NARROW 24px white bar at 20% opacity,
+    tilted 6deg, animating `left` from one edge clean past the other every
+    2 seconds, no pause. Ours was a third-of-the-button skewed band with a
+    hold — it read as a flicker. The numbers below are theirs.  */
+@keyframes gleamMove {
   0% {
-    transform: translateX(-160%);
+    left: -15%;
   }
-  55%,
   100% {
-    transform: translateX(460%);
+    left: 110%;
   }
 }
 .animate-shine {
-  animation: shineSweep 3s ease-in-out infinite;
+  animation: gleamMove 2s ease infinite;
 }
 
 @keyframes ctaGlow {
