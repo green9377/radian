@@ -927,13 +927,6 @@ model StorefrontSetting {
   /// null = the storefront's built-in wording.
   pdpUnderBuyText         String? @db.Text
   pdpUnderBuyPreorderText String? @db.Text
-
-  /// DEC-PRD-054 — the "How it arrives" strip on the PDP: three shop-wide
-  /// photographs of the journey (arranged -> boxed -> handed over). All three
-  /// empty = the strip is not drawn. URLs into the shop's own media store.
-  pdpJourneyImg1 String? @db.Text
-  pdpJourneyImg2 String? @db.Text
-  pdpJourneyImg3 String? @db.Text
   /* ---- the Google summary card above the reviews ----
      Typed by hand until the Business Profile is verified and connected, then
      these are overwritten by the real figures on a schedule.

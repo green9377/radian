@@ -169,7 +169,6 @@ export interface ApiProductDetail {
   offers: { key: string; logo: string; color: string; text: string; code: string | null; note: string | null }[];
   underBuyText?: string | null;
   underBuyPreorderText?: string | null;
-  journey?: string[];
   ordersThisMonth: number | null;
   /** DEC-PRD-025 — which period the number above covers */
   salesWindow: "TODAY" | "WEEK" | "MONTH" | "ALL";
@@ -557,7 +556,6 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         back. Nothing running → the strip is absent.  */
     underBuyText: a.underBuyText ?? null,
     underBuyPreorderText: a.underBuyPreorderText ?? null,
-    journey: a.journey ?? [],
     offers: a.offers.map((o) => ({
       logo: o.logo,
       color: o.color,

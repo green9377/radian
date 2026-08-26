@@ -97,7 +97,7 @@ export default function ShopHoursView() {
     }
   }
 
-  async function patchSettings(body: Partial<Record<"shopChipTitle" | "shopChipSub" | "pdpUnderBuyText" | "pdpUnderBuyPreorderText" | "pdpJourneyImg1" | "pdpJourneyImg2" | "pdpJourneyImg3", string>>) {
+  async function patchSettings(body: Partial<Record<"shopChipTitle" | "shopChipSub" | "pdpUnderBuyText" | "pdpUnderBuyPreorderText", string>>) {
     try {
       setSaveState("saving");
       setSettings(await setStorefrontSettings(body));
@@ -237,41 +237,6 @@ export default function ShopHoursView() {
                     placeholder="We'll confirm the sending date with you before anything ships."
                     onBlur={(e) => e.target.value !== (settings?.pdpUnderBuyPreorderText ?? "") && patchSettings({ pdpUnderBuyPreorderText: e.target.value })} />
                 </F>
-              </div>
-
-              {/*  DEC-PRD-054 — the "How it arrives" strip on every product
-                  page: three photos of the journey (arranged -> boxed -> at
-                  the door). All three empty = the strip is not drawn.  */}
-              <div className="grid grid-cols-3 gap-3">
-                {([1, 2, 3] as const).map((n) => {
-                  const key = `pdpJourneyImg${n}` as "pdpJourneyImg1" | "pdpJourneyImg2" | "pdpJourneyImg3";
-                  const url = settings?.[key] ?? "";
-                  const caption = ["1 · Arranged fresh", "2 · Boxed with the card", "3 · At their door"][n - 1];
-                  return (
-                    <F key={n} label={caption} hint={n === 1 ? "the product-page journey strip" : undefined}>
-                      <label className="relative block aspect-[4/3] rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center"
-                        style={url ? { background: `url(${url}) center/cover no-repeat`, borderStyle: "solid" } : undefined}>
-                        {!url && <span className="text-[12px] text-body-soft font-medium">Upload photo</span>}
-                        <input type="file" accept="image/*" className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              const { url: up } = await uploadImage(file, "banners");
-                              await patchSettings({ [key]: up } as Record<string, string>);
-                            } catch { setErr("Could not upload that photo."); }
-                          }} />
-                        {url && (
-                          <button type="button" title="Remove"
-                            onClick={(e) => { e.preventDefault(); patchSettings({ [key]: "" } as Record<string, string>); }}
-                            className="absolute top-1.5 right-1.5 w-[24px] h-[24px] rounded-full bg-white/95 text-[#c0392b] text-[13px] leading-none grid place-items-center shadow-soft">
-                            ✕
-                          </button>
-                        )}
-                      </label>
-                    </F>
-                  );
-                })}
               </div>
             </div>
           </div>

@@ -419,10 +419,6 @@ export interface ApiStorefrontSettings {
   /** DEC-PRD-052 — the reassurance line under the PDP's Buy Now; blank = built-in wording */
   pdpUnderBuyText: string | null;
   pdpUnderBuyPreorderText: string | null;
-  /** DEC-PRD-054 — the "How it arrives" strip; all blank hides it */
-  pdpJourneyImg1: string | null;
-  pdpJourneyImg2: string | null;
-  pdpJourneyImg3: string | null;
 }
 export const getStorefrontSettings = () => j<ApiStorefrontSettings>("/banners/settings");
 /** every field optional — the API only writes what is sent */

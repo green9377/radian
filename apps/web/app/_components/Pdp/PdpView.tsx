@@ -652,13 +652,24 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               carried the composition, 1,400px down inside an accordion. Here
               it fills the once-dead space under the photo and turns the price
               into a recipe: one photo becomes twelve roses and satin ribbon.  */}
+          {/*  Capped at SIX — the owner's question (26 Aug): "iteam 12 ta hole
+              ki hobe?" A wall of rows under the photo stops being luxury and
+              starts being an inventory list. Six fit; anything past six
+              becomes the door to the full table below ("Before You Order"),
+              which reads the SAME admin rows — What's inside is written once
+              on the product and shown in both faces.  */}
           {detail.spec.length > 0 && (
             <div className="mt-5 rounded-[20px] border-[1.5px] border-lavender-deep bg-gradient-to-br from-[#faf6fd] to-[#fdf6f3] px-5 py-4">
-              <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#B76E79] mb-2.5">
-                Inside this {detail.nature.type === "fresh" ? "bouquet" : "gift"}
+              <div className="flex items-baseline justify-between gap-3 mb-2.5">
+                <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#B76E79]">
+                  Inside this {detail.nature.type === "fresh" ? "bouquet" : "gift"}
+                </span>
+                <a href="#specs" className="text-[11.5px] font-bold text-purple hover:text-orchid whitespace-nowrap">
+                  Full details ↓
+                </a>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-                {detail.spec.map((r) => (
+                {detail.spec.slice(0, 6).map((r) => (
                   <div key={r.item} className="flex items-center gap-2.5 text-[13.5px] text-body min-w-0">
                     <i className="not-italic w-[24px] h-[24px] rounded-[8px] bg-white border border-lavender-deep grid place-items-center shrink-0">
                       <Icon name="check" className="w-3 h-3 text-[#B76E79]" />
@@ -670,6 +681,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   </div>
                 ))}
               </div>
+              {detail.spec.length > 6 && (
+                <a href="#specs" className="inline-flex items-center gap-1.5 mt-3 text-[12.5px] font-bold text-purple hover:text-orchid">
+                  + {detail.spec.length - 6} more — see the full list
+                </a>
+              )}
             </div>
           )}
 
@@ -1269,7 +1285,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   <span className="text-[13px] text-body-soft">— picked here, kept at checkout</span>
                 </div>
                 <div className="flex gap-2.5 flex-wrap">
-                  {clock && (
+                  {/*  ⚠️ Today = an ARRIVAL promise, so it is offered only when
+                      it can be kept: Dhaka zone (nationwide runs 1-3 days — an
+                      arrival "today" cannot be promised), a product the shop
+                      marked for fast delivery (deliveryChip), and today's
+                      cut-off still alive. The owner's rule, 26 Aug: "jodi
+                      product a today na thake tahole thik ache but thakle to
+                      today asa ucit."  */}
+                  {zone === "dhaka" && detail.deliveryChip && clock && (
                     <button
                       type="button"
                       onClick={() => pickDay("today")}
@@ -1283,7 +1306,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                         ⚡ Today
                       </b>
                       <span className={`text-[11.5px] ${deliveryDay === "today" ? "text-[#3d7a55]" : "text-body-soft"}`}>
-                        {zone === "bangladesh" ? "dispatched today" : "express inside Dhaka"}
+                        express inside Dhaka
                       </span>
                     </button>
                   )}
@@ -1433,38 +1456,6 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             button is not drawn at all - silence beats sending somebody to a
             place that does not exist.
           */}
-          {/*  ── DEC-PRD-054 — the moment at the door. Three shop-wide photos
-              of the journey (Setup -> Shop hours & photo card). The buyer
-              never sees the delivery, and that unseen moment IS the product;
-              with no photos set, nothing is drawn.  */}
-          {(detail.journey ?? []).length > 0 && (
-            <section className="mt-6">
-              <div className="flex items-baseline gap-2 mb-3">
-                <b className="text-[14px] font-bold text-ink">How it arrives</b>
-                <span className="text-[13px] text-body-soft">— from our hands to theirs</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                {(detail.journey ?? []).map((u, i) => (
-                  <div key={u} className="bg-white border-[1.5px] border-lavender-deep rounded-[14px] overflow-hidden">
-                    <div className="aspect-[4/3] relative" style={{ background: `url(${u}) center/cover no-repeat` }}>
-                      <span className="absolute top-1.5 left-1.5 bg-white/95 text-purple font-bold text-[10.5px] rounded-full px-2 py-0.5">
-                        {i + 1}
-                      </span>
-                    </div>
-                    <div className="px-2.5 py-2">
-                      <b className="block text-[11.5px] text-ink leading-tight">
-                        {["Arranged fresh, same day", "Boxed with your card", "At their door"][i]}
-                      </b>
-                      <span className="block text-[10.5px] text-body-soft leading-snug">
-                        {["by hand, in our studio", "wrapped, watered, sealed", "handed over with care"][i]}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
           {detail.customise && (
             <div className="mt-5 bg-[#E8F9EE] border-[1.5px] border-[#C4EED4] rounded-[18px] px-5 py-4 flex items-center gap-3.5 flex-wrap">
               <span className="w-11 h-11 rounded-full bg-white grid place-items-center text-[#1DA851] shrink-0">

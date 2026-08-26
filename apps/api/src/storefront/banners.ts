@@ -193,9 +193,6 @@ export class StorefrontSettingsService {
     shopChipSub?: string | null;
     pdpUnderBuyText?: string | null;
     pdpUnderBuyPreorderText?: string | null;
-    pdpJourneyImg1?: string | null;
-    pdpJourneyImg2?: string | null;
-    pdpJourneyImg3?: string | null;
   }) {
     const data: {
       heroRotateSeconds?: number;
@@ -203,9 +200,6 @@ export class StorefrontSettingsService {
       shopChipSub?: string | null;
       pdpUnderBuyText?: string | null;
       pdpUnderBuyPreorderText?: string | null;
-      pdpJourneyImg1?: string | null;
-      pdpJourneyImg2?: string | null;
-      pdpJourneyImg3?: string | null;
     } = {};
     if (dto.heroRotateSeconds !== undefined) data.heroRotateSeconds = clampSeconds(dto.heroRotateSeconds);
     if (dto.shopChipTitle !== undefined) data.shopChipTitle = String(dto.shopChipTitle ?? '').trim() || null;
@@ -213,10 +207,6 @@ export class StorefrontSettingsService {
     // DEC-PRD-052 — the line under Buy Now; blank returns the built-in wording
     if (dto.pdpUnderBuyText !== undefined) data.pdpUnderBuyText = String(dto.pdpUnderBuyText ?? '').trim() || null;
     if (dto.pdpUnderBuyPreorderText !== undefined) data.pdpUnderBuyPreorderText = String(dto.pdpUnderBuyPreorderText ?? '').trim() || null;
-    // DEC-PRD-054 — the three journey photos; blank removes a slot
-    if (dto.pdpJourneyImg1 !== undefined) data.pdpJourneyImg1 = String(dto.pdpJourneyImg1 ?? '').trim() || null;
-    if (dto.pdpJourneyImg2 !== undefined) data.pdpJourneyImg2 = String(dto.pdpJourneyImg2 ?? '').trim() || null;
-    if (dto.pdpJourneyImg3 !== undefined) data.pdpJourneyImg3 = String(dto.pdpJourneyImg3 ?? '').trim() || null;
 
     return this.prisma.db.storefrontSetting.upsert({
       where: { id: 'singleton' },

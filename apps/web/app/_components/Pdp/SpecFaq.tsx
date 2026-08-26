@@ -30,7 +30,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
   */
 
   return (
-    <section className="max-w-[900px] mx-auto pt-8">
+    <section id="specs" className="max-w-[900px] mx-auto pt-8 scroll-mt-[170px]">
       <div className="text-center mb-5">
         <div className="inline-flex items-center gap-2 text-[11.5px] tracking-[0.22em] uppercase text-orchid font-semibold mb-2">
           <span className="w-[8px] h-[8px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
