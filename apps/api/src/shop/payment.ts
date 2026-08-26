@@ -73,10 +73,44 @@ interface ValidationResponse {
   tran_id?: string;
   val_id?: string;
   amount?: string;
+  /**
+   * DEC-FIN-029 — what actually reaches the shop's account after SSLCommerz
+   * takes its cut. Their documentation: "the amount you will get in your
+   * account after bank charge".
+   *
+   * ⚠️ It can come back EMPTY — one of SSLCommerz's own documented examples
+   * returns `"store_amount": ""`. When it does, the fee is recorded as unknown
+   * (null), never computed from a rate. The TDR is 2.5% on almost every
+   * channel today but 3.5% on AMEX and 0% on NPSB, and it is a commercial term
+   * that can be renegotiated without anyone touching this file. A rate in code
+   * is a rate that goes stale silently; a null says "nobody told us", which is
+   * the truth and shows up as a gap at settlement.
+   */
+  store_amount?: string;
   currency?: string;
   bank_tran_id?: string;
   card_type?: string;
   error?: string;
+}
+
+/**
+ * DEC-FIN-029 — the gateway's cut on one payment, in paisa, or null when the
+ * gateway did not say.
+ *
+ * ⚠️ Every refusal below returns NULL rather than 0. They are different
+ * statements: 0 means "we know the gateway took nothing" (true for NPSB), null
+ * means "nobody told us". Booking a guessed 0 as a fact would leave the books
+ * looking complete while the money quietly failed to arrive at settlement.
+ */
+export function gatewayFee(paidPaisa: number, storeAmount?: string): number | null {
+  const s = (storeAmount ?? '').trim();
+  if (!s) return null;
+  const received = Math.round(parseFloat(s) * 100);
+  if (!Number.isFinite(received)) return null;
+  /*  A store_amount above what was paid is nonsense — a gateway does not add
+      money. Rather than book a negative expense, treat it as not said.  */
+  if (received > paidPaisa || received < 0) return null;
+  return paidPaisa - received;
 }
 
 @Injectable()
@@ -389,6 +423,11 @@ export class SslCommerzService {
       kind: 'PAYMENT',
       amountPaisa: Math.max(1, paidPaisa),
       method: PaymentMethod.online,
+      /*  DEC-FIN-029 — the customer paid `paidPaisa`; the shop receives
+          `store_amount`. The difference is the gateway's cut, and Finance
+          books it as an expense on this same day instead of discovering it as
+          a hole at settlement.  */
+      feePaisa: gatewayFee(paidPaisa, v.store_amount),
       reference: v.bank_tran_id || tranId,
       note: `SSLCommerz ${v.card_type ?? ''}`.trim(),
       actorName: 'SSLCommerz',

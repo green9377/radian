@@ -926,7 +926,29 @@ export class OrdersService {
        holds, not from a figure read a moment ago. */
     const { txn, updated } = await this.prisma.db.$transaction(async (tx) => {
       const created = await tx.paymentTransaction.create({
-        data: { orderId: id, kind: dto.kind, method, amountPaisa: dto.amountPaisa, reference: dto.reference, note: dto.note, actorName },
+        data: {
+          orderId: id,
+          kind: dto.kind,
+          method,
+          amountPaisa: dto.amountPaisa,
+          /*  DEC-GBL-006 — the column was added on 21 Aug and this call site
+              never wrote it, so every order payment landed in the method's
+              default account regardless of which bKash number actually took
+              it. Passed through now; still optional, because a method with a
+              single account has nothing to ask.  */
+          accountId: dto.accountId ?? null,
+          /*  DEC-FIN-029 — the gateway's cut, straight from the gateway's own
+              answer. Null when it did not say (see `gatewayFee`).
+
+              ⚠️ Cast until the local Prisma client is regenerated — the same
+              shape `checkout.ts` uses for `deliveryBlackout`. `BUILD_CHECK.bat`
+              regenerates on the host and the cast becomes redundant, not
+              wrong.  */
+          feePaisa: dto.feePaisa ?? null,
+          reference: dto.reference,
+          note: dto.note,
+          actorName,
+        } as unknown as Prisma.PaymentTransactionUncheckedCreateInput,
       });
 
       const bumped = await tx.order.update({

@@ -127,6 +127,19 @@ export interface AddPaymentDto {
   kind: PaymentTxnKind; // ADVANCE | PAYMENT | COD_COLLECTED | REFUND
   amountPaisa: number;
   method?: PaymentMethod;
+  /**
+   * DEC-GBL-006 — WHICH bKash number or bank account took it. The column has
+   * existed since 21 Aug; until 26 Aug nothing on this path ever filled it, so
+   * every order payment fell back to the method's default account. Optional
+   * because a method with one account has no choice to make.
+   */
+  accountId?: string;
+  /**
+   * DEC-FIN-029 — what the channel kept, when the channel says so
+   * (SSLCommerz `store_amount`). Null/absent means it did not say; it is never
+   * calculated from a rate. See `gatewayFee` in `shop/payment.ts`.
+   */
+  feePaisa?: number | null;
   reference?: string;
   note?: string;
   actorName?: string;

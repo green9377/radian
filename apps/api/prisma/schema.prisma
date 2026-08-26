@@ -2875,6 +2875,11 @@ model PaymentTransaction {
   /// (FinanceAccount.id). Null = the one account that method has.
   accountId   String?
   amountPaisa Int
+  /// DEC-FIN-029 - what the channel KEPT out of this payment, so the shop
+  /// receives amountPaisa - feePaisa. Read from the gateway's own answer
+  /// (SSLCommerz `store_amount`), never derived from a rate typed in code.
+  /// Null = no fee, or the gateway did not say. Never a guess.
+  feePaisa    Int?
   reference   String?
   note        String?
   actorName   String
@@ -2938,6 +2943,21 @@ model PaymentSession {
   @@index([orderId])
   @@index([status])
 }
+
+/// ⚠️ DEC-FIN-030 has NO table of its own, deliberately (26 Aug 2026).
+///
+/// A gateway payout is money moving from the Gateway money account (1050) into
+/// the shop's bank - which is exactly what `Transfer` already is, down to the
+/// document number, the date, the actor and the note. A `GatewaySettlement`
+/// model was written and removed the same hour: it would have been a second
+/// owner of "money moved between two accounts", and One Data One Owner is not
+/// negotiable (house rule 4).
+///
+/// What makes a settlement different from any other transfer is not the record
+/// but the RULES around it, and those live in the service and the screen: the
+/// from-account is always Gateway, the payout can never exceed what the gateway
+/// still owes, and the screen shows that balance so it can be checked against
+/// the panel's own "Unsettled Payable".
 
 /// Proof photo - Delivery-owned (kitchen prep and rider handover); Sales only
 /// displays it (DEC-SAL-007)

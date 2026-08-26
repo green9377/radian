@@ -6,6 +6,7 @@ import { FinanceAssetsService } from './finance-assets.service';
 import { FinanceReportsService } from './finance-reports.service';
 import { FinanceDriftService } from './finance-drift.service';
 import { FinanceMushakService } from './finance-mushak.service';
+import { FinanceGatewayService } from './finance-gateway.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CommonModule } from '../common/common.module';
 import { AuthModule } from '../auth/auth.module';
@@ -17,7 +18,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [PrismaModule, CommonModule, AuthModule],
   controllers: [FinanceController],
-  providers: [FinanceService, FinanceEventsService, FinanceAssetsService, FinanceReportsService, FinanceDriftService, FinanceMushakService],
-  exports: [FinanceService, FinanceEventsService, FinanceAssetsService, FinanceReportsService, FinanceDriftService, FinanceMushakService],
+  providers: [FinanceService, FinanceEventsService, FinanceAssetsService, FinanceReportsService, FinanceDriftService, FinanceMushakService, FinanceGatewayService],
+  exports: [FinanceService, FinanceEventsService, FinanceAssetsService, FinanceReportsService, FinanceDriftService, FinanceMushakService, FinanceGatewayService],
 })
 export class FinanceModule {}

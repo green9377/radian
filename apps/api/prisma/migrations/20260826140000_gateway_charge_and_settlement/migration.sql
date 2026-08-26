@@ -1,0 +1,12 @@
+-- DEC-FIN-029 - the gateway keeps a cut out of every online payment.
+--
+-- feePaisa: what the channel kept out of ONE payment. Nullable on purpose -
+-- every payment written before today has no honest answer, and inventing one
+-- from a 2.5% rate would put a made-up number in the books. Null reads as
+-- "not known", which is true.
+--
+-- ⚠️ DEC-FIN-030 (gateway settlement) adds NO table. A payout is money moving
+-- from the Gateway account into the bank, and `Transfer` already owns that
+-- fact. A GatewaySettlement model was written and dropped the same hour rather
+-- than give one fact two owners.
+ALTER TABLE "PaymentTransaction" ADD COLUMN IF NOT EXISTS "feePaisa" INTEGER;

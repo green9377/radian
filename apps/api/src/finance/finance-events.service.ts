@@ -359,6 +359,37 @@ export class FinanceEventsService {
       const landingAccount = already
         ? await this.accId(ACC.RECEIVABLE)
         : await this.accId(ACC.CUSTOMER_ADVANCE);
+
+      /*
+        ═══ DEC-FIN-029 — THE CUSTOMER PAID MORE THAN THE SHOP RECEIVED ═══
+
+        A card payment of Tk 1,700 is not Tk 1,700 arriving anywhere. The
+        gateway keeps its cut (2.5% on almost every channel, read from the
+        SSLCommerz panel on 26 Aug 2026) and forwards Tk 1,657.50 — days later,
+        and only once Tk 2,500 has piled up.
+
+        The credit side is untouched: the customer's debt falls by the full
+        Tk 1,700, because that is what they handed over. It is the DEBIT that
+        splits — Tk 1,657.50 into the Gateway money account, which now holds
+        exactly what SSLCommerz still owes the shop and can be checked against
+        the panel's own "Unsettled Payable", and Tk 42.50 straight into the
+        gateway fee expense on the day it was actually incurred.
+
+        ⚠️ `feePaisa` is only ever what the gateway itself reported. Null means
+        it did not say, and then nothing is split — a fee guessed from a rate
+        would put a fabricated number in the books and, worse, make the Gateway
+        balance look right while being wrong. A missing fee shows up as a gap
+        at settlement and gets fixed by a human; an invented one never does.
+      */
+      const fee = (p as { feePaisa?: number | null }).feePaisa ?? 0;
+      const feePaisa = fee > 0 && fee < p.amountPaisa ? fee : 0;
+      const debits: LineInput[] = feePaisa
+        ? [
+            { accountId: money, debitPaisa: p.amountPaisa - feePaisa },
+            { accountId: await this.accId(ACC.GATEWAY_FEE), debitPaisa: feePaisa, orderId: p.orderId },
+          ]
+        : [{ accountId: money, debitPaisa: p.amountPaisa }];
+
       await this.finance.postEntry({
         sourceType: 'PAYMENT',
         sourceId: p.id,
@@ -367,7 +398,7 @@ export class FinanceEventsService {
         narration: `${counter} — payment received`,
         branchId: p.order?.branchId ?? null,
         lines: [
-          { accountId: money, debitPaisa: p.amountPaisa },
+          ...debits,
           { accountId: landingAccount, creditPaisa: p.amountPaisa, orderId: p.orderId },
         ],
       });

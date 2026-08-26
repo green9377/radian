@@ -6,6 +6,37 @@
 
 ---
 
+## 🟢 PHASE 5 OPEN — Checkout & Payment (26 Aug)
+
+Direction: `RADIAN_PHASE5_DIRECTION.md`. The owner's six rulings, asked and
+answered before any code: **`RADIAN_PHASE5_DECISIONS.md`**.
+
+**What the SSLCommerz panel actually says** (read live 26 Aug, store
+`radianbd0live`): TDR **2.5%** on every channel (AMEX 3.5%, NPSB 0%, no
+separate VAT on the fee) · settles to **BRAC Bank, Natun Bazar, A/C
+2071119390001** · **minimum ৳2,500** or nothing is sent · not on bank holidays.
+Checked against two real transactions: ৳3,150 in → ৳78.75 charged → ৳3,071.25
+payable, matching the panel's own Unsettled Payable to the paisa.
+
+| # | Work | State |
+|---|---|---|
+| 1 | Decisions recorded, Phase 5 opened | **done** |
+| 2 | `store_amount` + refund API confirmed in SSLCommerz docs | **done** |
+| 3 | DEC-FIN-029 — gateway charge per payment + Gateway money account | next |
+| 4 | DEC-FIN-030 — Gateway settlement screen (Gateway → BRAC Bank) | pending |
+| 5 | Admin "Online payments" view over `PaymentSession` | pending |
+| 6 | DEC-FIN-031 — SSLCommerz refund API beside manual, choice per case | pending |
+| 7 | DEC-PRD-060 — prepaid-only notice on the PDP | pending |
+| 8 | Checkout UI sweep (rules 16/17) + translate its Bangla comments | pending |
+| 9 | Order edit money UI onto MoneyBlock (deferred from 21 Aug) | pending |
+| 10 | Walk the whole money circle live on demo, then hand over | pending |
+
+⚠️ **The Checkout folder and `payment.ts` still carry ~164 lines of old Bangla
+comments** (house rule 9). Every file touched in items 3–9 gets its comments
+translated in the same edit — not as a separate job.
+
+---
+
 ## ✅ DEC-PRD-059 — an automatic offer shows up IN the price (26 Aug)
 
 The owner's yes to the FlowerAura pattern. The rule that keeps a printed

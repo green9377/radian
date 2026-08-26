@@ -13,6 +13,7 @@ import {
 import { FinanceReportsService } from './finance-reports.service';
 import { FinanceDriftService } from './finance-drift.service';
 import { FinanceMushakService } from './finance-mushak.service';
+import { FinanceGatewayService, type GatewaySettleDto } from './finance-gateway.service';
 import type {
   AccountWriteDto,
   SettingsWriteDto,
@@ -52,6 +53,7 @@ export class FinanceController {
     private readonly reports: FinanceReportsService,
     private readonly drift: FinanceDriftService,
     private readonly mushak: FinanceMushakService,
+    private readonly gateway: FinanceGatewayService,
   ) {}
 
   /* ---- settings ---- */
@@ -183,6 +185,23 @@ export class FinanceController {
   @Post('transfers')
   createTransfer(@Body() dto: TransferWriteDto) {
     return this.finance.createTransfer(dto);
+  }
+
+  /* ---- DEC-FIN-030 — what the payment gateway still owes, and paying it over ----
+
+     Not a second kind of transfer: `settle` posts through `createTransfer`
+     below. What is here is the part that is about gateways — the balance to
+     hold against SSLCommerz's own "Unsettled Payable", and the ceiling that
+     stops a mistyped payout leaving an orphan on the Gateway account. */
+  @Get('gateway')
+  gatewaySummary() {
+    return this.gateway.summary();
+  }
+
+  @NeedsPin()
+  @Post('gateway/settle')
+  gatewaySettle(@Body() dto: GatewaySettleDto) {
+    return this.gateway.settle(dto);
   }
 
   /* ---- partners ---- */

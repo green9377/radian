@@ -397,6 +397,7 @@ const GROUPS: Group[] = [
           { label: "Monthly bills", href: "/finance/recurring" },
           { label: "Staff advance & salary", href: "/finance/staff" },
           { label: "Cash with carriers", href: "/finance/carrier" },
+          { label: "Payment gateway", href: "/finance/gateway" },
           { label: "Assets & loans", href: "/finance/assets" },
           { label: "Reports", href: "/finance/reports" },
           { label: "Books vs reality", href: "/finance/drift" },
