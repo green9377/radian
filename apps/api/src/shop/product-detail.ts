@@ -1,3 +1,4 @@
+import { displayCut, loadDisplayOffers } from './display-offers';
 import {
   Controller,
   Get,
@@ -845,6 +846,7 @@ export class ProductDetailService {
       addonTabs,
       crossSell,
       storefront,
+      displayOffers,
     ] = await Promise.all([
       this.rating(p.id),
       this.categoryFaqs(p.category.id, p.category.parent?.id ?? null),
@@ -894,7 +896,19 @@ export class ProductDetailService {
         where: { id: 'singleton' },
         select: { ...({ pdpUnderBuyText: true, pdpUnderBuyPreorderText: true } as object) },
       }) as Promise<{ pdpUnderBuyText?: string | null; pdpUnderBuyPreorderText?: string | null } | null>,
+      /*  DEC-PRD-059 — the unconditional automatic offers, once; applied to
+          every price this payload prints (headline, sizes, variants).  */
+      loadDisplayOffers(this.prisma),
     ]);
+
+    /*  the best offer cut for ONE unit at this price — same base and formula
+        as the engine's solo line, so what the page promises checkout charges  */
+    const offerCutOf = (unit: number) =>
+      displayCut(
+        displayOffers,
+        { id: p.id, categoryId: p.category.id, parentCategoryId: p.category.parent?.id ?? null },
+        unit,
+      );
 
     /*
       DEC-PRD-028 - both dates MUST be selected here. On 3 August these two
@@ -961,7 +975,7 @@ export class ProductDetailService {
       /*  One expression, shared with the "You may also like" ranking above
           (`cardPricePaisa`). It was written out twice; the copy in the rail
           drifted and sorted a "from ৳1,200" bouquet as a ৳3,500 one.  */
-      pricePaisa: cardPricePaisa(p),
+      pricePaisa: cardPricePaisa(p) - offerCutOf(cardPricePaisa(p)),
       /*  DEC-PRD-042 — the window itself, so the page can say when it ends.
           Suppressed on a "from ৳X" product: that headline is a variant's
           price, and the product's own window says nothing true about it.  */
@@ -975,9 +989,14 @@ export class ProductDetailService {
       unitSuffix: p.unit?.shortCode ?? null,
       /*  ⚠️ No struck price beside a "from" — see the card (DEC-PRD-035).  */
       mrpPaisa:
-        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null)
-          ? null
-          : mrpOrNull(money),
+        offerCutOf(cardPricePaisa(p)) > 0
+          ? /*  DEC-PRD-059 — with an offer in the price, the struck figure is
+                what they would have paid without it (the bigger of the paid
+                price and any product-discount MRP already showing).  */
+            Math.max(cardPricePaisa(p), mrpOrNull(money) ?? 0)
+          : p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null)
+            ? null
+            : mrpOrNull(money),
       zone: p.zone === 'NATIONWIDE' ? 'both' : 'dhaka',
       productType: p.productType as 'READYMADE' | 'CRAFTED',
       nature: {
@@ -1134,27 +1153,39 @@ export class ProductDetailService {
             price. `wasPaisa` is the struck figure, and only when a discount
             actually reduced something — never a number derived backwards from
             a ratio (that produced the ৳1,418 nonsense on 8 Aug).  */
-        pricePaisa:
-          v.pricePaisa !== null
-            ? paidPaisa({
-                sellingPricePaisa: v.pricePaisa,
-                discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-                discountValue: v.discountValue,
-              })
-            : paidPaisa(p),
-        wasPaisa:
-          v.pricePaisa !== null &&
-          paidPaisa({
-            sellingPricePaisa: v.pricePaisa,
-            discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-            discountValue: v.discountValue,
-          }) < v.pricePaisa
-            ? v.pricePaisa
-            : null,
+        /*  DEC-PRD-059 — the offer cut follows every variant price, so the
+            colour a shopper picks keeps the promise the headline made. The
+            struck figure stays "what they would have paid": the variant's own
+            full price when its own discount was already showing, otherwise
+            the pre-cut paid price.  */
+        pricePaisa: (() => {
+          const paid =
+            v.pricePaisa !== null
+              ? paidPaisa({
+                  sellingPricePaisa: v.pricePaisa,
+                  discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+                  discountValue: v.discountValue,
+                })
+              : paidPaisa(p);
+          return paid - offerCutOf(paid);
+        })(),
+        wasPaisa: (() => {
+          const paid =
+            v.pricePaisa !== null
+              ? paidPaisa({
+                  sellingPricePaisa: v.pricePaisa,
+                  discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+                  discountValue: v.discountValue,
+                })
+              : paidPaisa(p);
+          const ownStruck = v.pricePaisa !== null && paid < v.pricePaisa ? v.pricePaisa : null;
+          return offerCutOf(paid) > 0 ? Math.max(paid, ownStruck ?? 0) : ownStruck;
+        })(),
         stockQty: variantCount(v),
         };
       }),
-      sizes: p.sizes,
+      /*  DEC-PRD-059 — the size row prints prices too; the cut follows them  */
+      sizes: p.sizes.map((sz) => ({ ...sz, pricePaisa: sz.pricePaisa - offerCutOf(sz.pricePaisa) })),
       /*  own heading → parent's → a plain word. Never blank: the size row
           would then open with a dash and nothing before it.  */
       sizeLabel: p.category.sizeLabel ?? p.category.parent?.sizeLabel ?? 'Size',

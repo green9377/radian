@@ -5,6 +5,7 @@ import { Public } from '../auth/auth.guard';
 import { LayoutModule, LayoutService } from '../storefront/layout';
 import { paidPaisa } from '../common/discount-window';
 /*  DEC-PRD-050 — one rule for "is this new", shared with the admin.  */
+import { displayCut, loadDisplayOffers, type DisplayOffer } from './display-offers';
 import { isNewNow, MERCH_DEFAULTS } from '../products/merch';
 
 /*
@@ -115,7 +116,7 @@ const CARD_SELECT = {
   advanceRequired: true,
   salesCount: true,
   leadTimeDays: true,
-  category: { select: { slug: true, name: true, parent: { select: { slug: true } } } },
+  category: { select: { id: true, slug: true, name: true, parent: { select: { id: true, slug: true } } } },
   images: {
     where: { deletedAt: null },
     orderBy: { sortOrder: 'asc' },
@@ -965,7 +966,7 @@ export class ShopCatalogService {
 
   private async toCards(rows: CardRow[]): Promise<ShopProduct[]> {
     if (rows.length === 0) return [];
-    const [grouped, newDays] = await Promise.all([
+    const [grouped, newDays, displayOffers] = await Promise.all([
       this.prisma.db.review.groupBy({
         by: ['productId'],
         where: { productId: { in: rows.map((r) => r.id) }, status: 'PUBLISHED', deletedAt: null },
@@ -973,9 +974,11 @@ export class ShopCatalogService {
         _count: { _all: true },
       }),
       this.newArrivalDays(),
+      // DEC-PRD-059 — one fetch for the whole grid, applied per card below
+      loadDisplayOffers(this.prisma),
     ]);
     const byProduct = new Map(grouped.map((g) => [g.productId, g]));
-    return rows.map((r) => this.toCard(r, byProduct.get(r.id), newDays));
+    return rows.map((r) => this.toCard(r, byProduct.get(r.id), newDays, displayOffers));
   }
 
   /*  DEC-PRD-050 — one row, read at most once a minute. A page of sixty cards
@@ -1001,6 +1004,7 @@ export class ShopCatalogService {
     r: CardRow,
     review?: { _avg: { rating: number | null }; _count: { _all: number } },
     newDays: number = MERCH_DEFAULTS.newArrivalDays,
+    displayOffers: DisplayOffer[] = [],
   ): ShopProduct {
     const neu = isNewNow(r, newDays); // DEC-PRD-050
     const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
@@ -1017,7 +1021,16 @@ export class ShopCatalogService {
         offerPaisa(v.pricePaisa!, v.discountType, v.discountValue, null, null),
       );
     const allPriced = r.variants.length > 0 && variantPrices.length === r.variants.length;
-    const price = allPriced ? Math.min(...variantPrices) : ownPrice;
+    const basePrice = allPriced ? Math.min(...variantPrices) : ownPrice;
+    /*  DEC-PRD-059 — an unconditional automatic offer shows up IN the price.
+        The cut runs on the same base and formula the checkout engine uses for
+        a solo line, so the card's promise is exactly what checkout charges.  */
+    const offerCut = displayCut(
+      displayOffers,
+      { id: r.id, categoryId: r.category.id, parentCategoryId: r.category.parent?.id ?? null },
+      basePrice,
+    );
+    const price = basePrice - offerCut;
 
     const rating = review?._avg.rating ?? null;
     const reviewCount = review?._count._all ?? 0;
@@ -1060,7 +1073,19 @@ export class ShopCatalogService {
       /*  ⚠️ No struck price on a "from" card. The product's ৳2,400 has nothing
           to do with the cheapest colour's ৳450, and putting them side by side
           would invent a saving nobody offered (DEC-PRD-035).  */
-      mrpPaisa: allPriced ? null : price < r.sellingPricePaisa ? r.sellingPricePaisa : null,
+      /*  With an offer cut the struck figure is what the shopper would have
+          paid without it — on a "from" card that is the pre-cut cheapest, on
+          a plain card the full selling price wins where it is higher.  */
+      mrpPaisa:
+        offerCut > 0
+          ? allPriced
+            ? basePrice
+            : Math.max(basePrice, r.sellingPricePaisa)
+          : allPriced
+            ? null
+            : price < r.sellingPricePaisa
+              ? r.sellingPricePaisa
+              : null,
       priceFrom: allPriced || undefined,
       cat: r.category.parent?.slug ?? r.category.slug,
       sub: r.category.parent ? r.category.slug : null,
