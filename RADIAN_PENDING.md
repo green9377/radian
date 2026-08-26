@@ -6,6 +6,34 @@
 
 ---
 
+## ✅ DEC-PRD-059 — an automatic offer shows up IN the price (26 Aug)
+
+The owner's yes to the FlowerAura pattern. The rule that keeps a printed
+price honest: only offers that would CERTAINLY apply to a solo purchase
+move the shown price — AUTOMATIC, PERCENT/FLAT, sitewide/category/product,
+and NO minSpend, NO per-customer limit, NO total cap. Conditional offers
+stay in the "Offers for you" strip where they can state their condition.
+
+Nothing is stored; checkout still prices from the product's own fields and
+runs the engine (OFR-R10) — same base, same formula, same tie-break, so
+the card's promise is exactly what checkout charges. Applied to: every
+grid card (toCards funnel — search, home rails, cross-sell included), the
+PDP headline + struck figure, every size, every variant, every upgrade
+card and every bundle item (each cut on ITS OWN product/category).
+
+Verified live with OFR-000027 (10% Fresh flower, unconditional): ৳3,500 →
+৳3,150 everywhere at once, struck price + 10% OFF + You save ৳350.
+⚠️ OFR-000027 is still RUNNING on demo — pause it in Offers to put demo
+prices back.
+
+Same day: PDP got the five gifting features (date pills DEC-PRD-055 —
+cut-offs now read from SLOTS per DEC-DLV-018; anatomy DEC-PRD-056 capped
+at 6 + Full details anchor; live gift-card DEC-PRD-057; buy-bar summary
+DEC-PRD-058; journey DEC-PRD-054 built and withdrawn same day), the
+viewer-zone chip rule, and the rule-17 sweep of Categories & Collections.
+
+---
+
 ## ✅ DEC-ITM-026 + DEC-PUR-013 — units: the family rule (26 Aug)
 
 The owner asked what happens when a rose is bought in Pice today, Papri
