@@ -93,15 +93,18 @@ export default function CartLine({
             {product.zone === "dhaka" ? detail.deliveryChip : "Ships nationwide"}
           </span>
 
-          {/* add-on chips — removable right here */}
+          {/* add-on chips — removable right here. Quantity travels as repeated
+              keys (DEC-PRD-053), so equal chips fold into one with a count. */}
           {addons.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {addons.map((a) => (
+              {[...new Map(addons.map((a) => [a.key, a])).values()].map((a) => {
+                const count = addons.filter((x) => x.key === a.key).length;
+                return (
                 <span
                   key={a.key}
                   className="inline-flex items-center gap-1.5 bg-lavender border border-lavender-deep rounded-full pl-3 pr-1.5 py-1 text-[12px] text-body"
                 >
-                  {a.name} <b className="text-purple">+{formatTaka(a.pricePaisa)}</b>
+                  {a.name}{count > 1 ? ` ×${count}` : ""} <b className="text-purple">+{formatTaka(a.pricePaisa * count)}</b>
                   <button
                     onClick={() => onRemoveAddon(a.key)}
                     aria-label={`Remove ${a.name}`}
@@ -110,7 +113,8 @@ export default function CartLine({
                     ✕
                   </button>
                 </span>
-              ))}
+                );
+              })}
             </div>
           )}
 

@@ -16,6 +16,7 @@ import {
   type ProductDetail,
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
+import QtyStepper from "../Common/QtyStepper";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
 import OfferWindow from "./OfferWindow";
 import { BundleCards, CardRail, SizeRow, UpgradeRow, VariantPicker, VariantRow } from "./PdpVariants";
@@ -106,7 +107,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   */
   const [bundleIds, setBundleIds] = useState<string[]>([]);
   const [tabIdx, setTabIdx] = useState(0);
-  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  /*  ⚠️ COUNTS, not booleans — 26 Aug 2026, the owner: "+ - kichi to daw
+      nai". Two boxes of chocolates is a real order; a tick can only say
+      yes. 0 / absent = not taken.  */
+  const [picked, setPicked] = useState<Record<string, number>>({});
   const [qty, setQty] = useState(1);
   const [media, setMedia] = useState<number | "video">(0);
   const [added, setAdded] = useState(false);
@@ -242,9 +246,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
   const addonTotal = useMemo(
     () =>
-      Object.keys(picked)
-        .filter((k) => picked[k])
-        .reduce((sum, k) => sum + (addonByKey.get(k)?.pricePaisa ?? 0), 0),
+      Object.entries(picked).reduce(
+        (sum, [k, n]) => sum + (addonByKey.get(k)?.pricePaisa ?? 0) * Math.max(0, n),
+        0,
+      ),
     [picked, addonByKey],
   );
 
@@ -384,7 +389,13 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       variantId: variant?.id,
       sizeId: size.id,
       bundleIds,
-      addonKeys: Object.keys(picked).filter((k) => picked[k]),
+      /*  The whole pipeline — cart maths, checkout pricing, the add-on stock
+          gate and the prepare-time deduction — iterates this array element by
+          element, so quantity travels as REPETITION and no shape changes
+          anywhere downstream (checked each stop before writing this).  */
+      addonKeys: Object.entries(picked).flatMap(([k, n]) =>
+        Array.from({ length: Math.max(0, n) }, () => k),
+      ),
       persoText: persoText.trim() || undefined,
       persoImage: persoImage || undefined,
       qty,
@@ -491,7 +502,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             the row's full height (grid default) and an INNER wrapper sticks,
             so the photo rides along the whole buy column.  */}
         <div className="min-w-0">
-        <div className="lg:sticky lg:top-[124px]">
+        {/*  170 = the sticky header's measured 154px + a breath. It was 124,
+            which tucked the top of the rail 30px UNDER the header — measured
+            in the browser on 26 Aug after the owner caught it twice.  */}
+        <div className="lg:sticky lg:top-[170px]">
           {/*  ⚠️ The rail is ABSOLUTE inside its grid cell — 9 Aug 2026. With
               every colour's photo now always present (DEC-PRD-036) the rail
               grew TALLER than the main image and dangled below it, which the
@@ -927,41 +941,50 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   voucher row — the dashed divider is where a paper coupon
                   would tear. Codes are the loudest thing on the row because
                   the code is the part the shopper takes with them.  */}
+              {/*  ── OFFERS, third pass (26 Aug) — a COUPON, drawn as one.
+                  The closed bar wears the coupon's own uniform: gold dashed
+                  edge on cream, a gold seal, the count in a gold pill. Open,
+                  every offer is a ticket with real cut-out notches at the
+                  fold (two circles of the page's white) — the thing people
+                  have torn along all their lives, so it explains itself.  */}
               {offers.length > 0 && (
-              <details className="mt-7 rounded-[18px] overflow-hidden group border border-[#E8C9CE] shadow-[0_6px_24px_rgba(183,110,121,0.10)]">
-                <summary className="relative flex items-center gap-3.5 px-5 py-4 cursor-pointer list-none bg-gradient-to-r from-[#FBF3F0] via-[#FDF6F3] to-orchid-soft">
-                  <span className="w-9 h-9 rounded-full bg-white grid place-items-center text-[#B76E79] shrink-0 shadow-[0_4px_12px_rgba(183,110,121,0.22)]">
-                    <Icon name="gift" className="w-[18px] h-[18px]" />
+              <details className="mt-7 group">
+                <summary className="relative flex items-center gap-3 px-4 py-3 cursor-pointer list-none rounded-[16px] border-[1.5px] border-dashed border-[#D9A66A] bg-gradient-to-r from-[#FFFAF3] to-[#FDF4EA] transition-shadow hover:shadow-[0_8px_24px_rgba(217,166,106,0.18)]">
+                  <span className="w-9 h-9 rounded-[11px] bg-gradient-to-br from-[#E3B778] to-[#B76E79] grid place-items-center text-white shrink-0 shadow-[0_4px_12px_rgba(183,110,121,0.3)]">
+                    <Icon name="tag" className="w-[17px] h-[17px]" />
                   </span>
-                  <span className="min-w-0">
-                    <b className="block text-[14.5px] text-ink font-bold leading-tight">
-                      Offers on this gift
-                    </b>
-                    <span className="block text-[12px] text-[#B76E79] font-semibold">
-                      {offers.length} running — tap to see
-                    </span>
+                  <b className="text-[14.5px] text-ink font-bold">Offers for you</b>
+                  <span className="text-[11.5px] font-bold text-[#8A5A00] bg-[#F6E3C6] rounded-full px-2 py-0.5">
+                    {offers.length}
                   </span>
-                  <span className="ml-auto w-7 h-7 rounded-full bg-white/80 grid place-items-center text-[#B76E79] transition-transform group-open:rotate-180 shrink-0">
-                    <Icon name="chev" className="w-4 h-4" />
+                  <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-bold text-[#B76E79]">
+                    View
+                    <Icon name="chev" className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
                   </span>
                 </summary>
-                <div className="bg-white px-4 pb-4 pt-1 space-y-2.5">
+                <div className="pt-2.5 space-y-2.5">
                   {offers.map((o) => (
                     <div
                       key={o.text}
-                      className="flex items-stretch rounded-[14px] border border-[#EFDDD3] bg-[#FEFBF9] overflow-hidden"
+                      className="relative flex items-stretch rounded-[14px] bg-white border border-[#EFE0CB] shadow-[0_4px_16px_rgba(183,110,121,0.08)] overflow-hidden"
                     >
                       <span
-                        className="w-[46px] grid place-items-center text-white text-[10.5px] font-bold shrink-0"
+                        className="w-[52px] grid place-items-center text-white text-[10.5px] font-bold shrink-0"
                         style={{ background: o.color }}
                       >
                         {o.logo}
                       </span>
-                      <span className="self-stretch border-l-2 border-dashed border-[#E8C9CE]" />
+                      {/*  the tear line, notches included — the page's white
+                          bites two half-circles out of the ticket's edge  */}
+                      <span className="relative self-stretch border-l-[1.5px] border-dashed border-[#E4CBA8]">
+                        <i className="absolute -top-[6px] -left-[6px] w-[11px] h-[11px] rounded-full bg-white border-b border-[#EFE0CB]" />
+                        <i className="absolute -bottom-[6px] -left-[6px] w-[11px] h-[11px] rounded-full bg-white border-t border-[#EFE0CB]" />
+                      </span>
                       <div className="flex items-center gap-3 px-3.5 py-3 flex-1 min-w-0 flex-wrap">
                         <p className="text-[13px] text-body flex-1 min-w-[150px] leading-snug m-0">{o.text}</p>
                         {o.code ? (
-                          <span className="inline-flex items-center gap-1.5 border-[1.5px] border-dashed border-[#B76E79] text-[#8E4E58] bg-white rounded-[9px] px-3 py-1.5 text-[12.5px] font-bold tracking-wide shrink-0">
+                          <span className="inline-flex items-center gap-1.5 border-[1.5px] border-dashed border-[#D9A66A] text-[#8A5A00] bg-[#FFFAF3] rounded-[9px] px-3 py-1.5 text-[12.5px] font-bold tracking-[0.06em] shrink-0">
+                            <Icon name="tag" className="w-3 h-3" />
                             {o.code}
                           </span>
                         ) : (
@@ -1009,19 +1032,34 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                     the state — outlined "+ Add" resting, filled "Added" when
                     taken. An impulse purchase should not make anybody guess
                     whether tapping the picture did something.  */}
+                {/*  ⚠️ role="button", not <button> — the picked state carries a
+                    QtyStepper whose number is TYPEABLE (house rule 18), and an
+                    input inside a button cannot be typed into. "+ Add" puts
+                    one in; the stepper then owns the card's foot — press − to
+                    zero and it is out again, exactly the FlowerAura pattern
+                    the owner pointed at, with the typing ours.  */}
                 <CardRail>
                   {activeTab?.items.map((a) => {
                     const key = a.key;
-                    const on = !!picked[key];
+                    const n = picked[key] ?? 0;
+                    const on = n > 0;
                     return (
-                      <button
+                      <div
                         key={key}
-                        onClick={() => setPicked((p) => ({ ...p, [key]: !p[key] }))}
+                        role="button"
+                        tabIndex={0}
                         aria-pressed={on}
-                        className={`relative w-[136px] sm:w-[144px] shrink-0 snap-start rounded-[18px] overflow-hidden bg-white border-2 text-center transition-all duration-200 active:scale-[0.97] ${
+                        onClick={() => { if (!on) setPicked((p) => ({ ...p, [key]: 1 })); }}
+                        onKeyDown={(e) => {
+                          if (!on && (e.key === "Enter" || e.key === " ")) {
+                            e.preventDefault();
+                            setPicked((p) => ({ ...p, [key]: 1 }));
+                          }
+                        }}
+                        className={`relative w-[136px] sm:w-[144px] shrink-0 snap-start rounded-[18px] overflow-hidden bg-white border-2 text-center transition-all duration-200 ${
                           on
-                            ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)]"
-                            : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px]"
+                            ? "border-orchid shadow-[0_10px_28px_rgba(207,67,234,0.18)] cursor-default"
+                            : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px] cursor-pointer active:scale-[0.97]"
                         }`}
                       >
                         <span className="block aspect-square" style={{ background: a.bg }} />
@@ -1040,22 +1078,30 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                             </span>
                           )}
                         </span>
-                        <span
-                          className={`mx-2.5 mt-1.5 mb-2.5 h-[30px] inline-flex w-[calc(100%-20px)] items-center justify-center gap-1 rounded-full text-[12px] font-bold transition-colors ${
-                            on
-                              ? "bg-orchid text-white"
-                              : "border-[1.5px] border-orchid text-orchid bg-white"
-                          }`}
-                        >
+                        <span className="block px-2.5 pt-1.5 pb-2.5" onClick={(e) => e.stopPropagation()}>
                           {on ? (
-                            <>
-                              <Icon name="check" className="w-3 h-3" /> Added
-                            </>
+                            <QtyStepper
+                              grow
+                              size="sm"
+                              min={0}
+                              value={n}
+                              onChange={(q) =>
+                                setPicked((p) => {
+                                  const next = { ...p };
+                                  if (q <= 0) delete next[key];
+                                  else next[key] = q;
+                                  return next;
+                                })
+                              }
+                              label={`${a.name} quantity`}
+                            />
                           ) : (
-                            "+ Add"
+                            <span className="h-[32px] inline-flex w-full items-center justify-center gap-1 rounded-full text-[12px] font-bold border-[1.5px] border-orchid text-orchid bg-white">
+                              + Add
+                            </span>
                           )}
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                 </CardRail>
