@@ -411,6 +411,8 @@ export interface ShopProductDetail {
    *  look (StorefrontSetting). Null = the storefront's built-in wording. */
   underBuyText: string | null;
   underBuyPreorderText: string | null;
+  /** DEC-PRD-054 — the "How it arrives" photos, shop-wide; empty = no strip */
+  journey: string[];
   /**
    * "214 orders this month" — real, or null.
    *
@@ -892,8 +894,8 @@ export class ProductDetailService {
           Cast because a stale generated client predates the columns.  */
       this.prisma.db.storefrontSetting.findFirst({
         where: { id: 'singleton' },
-        select: { ...({ pdpUnderBuyText: true, pdpUnderBuyPreorderText: true } as object) },
-      }) as Promise<{ pdpUnderBuyText?: string | null; pdpUnderBuyPreorderText?: string | null } | null>,
+        select: { ...({ pdpUnderBuyText: true, pdpUnderBuyPreorderText: true, pdpJourneyImg1: true, pdpJourneyImg2: true, pdpJourneyImg3: true } as object) },
+      }) as Promise<{ pdpUnderBuyText?: string | null; pdpUnderBuyPreorderText?: string | null; pdpJourneyImg1?: string | null; pdpJourneyImg2?: string | null; pdpJourneyImg3?: string | null } | null>,
     ]);
 
     /*
@@ -1266,6 +1268,8 @@ export class ProductDetailService {
       crossSell,
       underBuyText: storefront?.pdpUnderBuyText ?? null,
       underBuyPreorderText: storefront?.pdpUnderBuyPreorderText ?? null,
+      journey: [storefront?.pdpJourneyImg1, storefront?.pdpJourneyImg2, storefront?.pdpJourneyImg3]
+        .filter((u): u is string => !!u && u.trim().length > 0),
       seo: {
         title: p.metaTitle,
         description: p.metaDescription,

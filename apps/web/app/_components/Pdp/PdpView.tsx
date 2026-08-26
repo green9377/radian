@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useZoneStore } from "../../_store/useZoneStore";
+import { useCheckoutStore } from "../../_store/useCheckoutStore";
+import { toISODate } from "../../_data/delivery";
 import { useCartStore } from "../../_store/useCartStore";
 import { formatTaka } from "../../_data/products";
 import { track } from "../../_data/tracking";
@@ -122,6 +124,26 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
      to be uncontrolled) */
   const [persoText, setPersoText] = useState("");
   const [persoImage, setPersoImage] = useState("");
+
+  /*  DEC-PRD-055 — "when should it arrive?", answered ON the page. The pick
+      writes straight into the checkout store's own `date`, so checkout opens
+      with the answer already given. Nothing is preselected: choosing a day
+      for the customer is how a wrong date gets ordered.  */
+  const [deliveryDay, setDeliveryDay] = useState<"today" | "tomorrow" | "pick" | null>(null);
+  const patchCheckout = useCheckoutStore((st) => st.patch);
+  const pickDay = (d: "today" | "tomorrow" | "pick") => {
+    setDeliveryDay(d);
+    const now = new Date();
+    patchCheckout({
+      date:
+        d === "today"
+          ? toISODate(now)
+          : d === "tomorrow"
+            ? toISODate(new Date(now.getTime() + 864e5))
+            : null,
+      slotId: null,
+    });
+  };
 
   const addLine = useCartStore((s) => s.add);
 
@@ -626,6 +648,31 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               PROMISE is the coloured band under the buy box (`WhyBuy.tsx`),
               and it is the loud one. Making both loud is what made the page
               repeat itself.  */}
+          {/*  ── DEC-PRD-056 — the luxury anatomy. The spec table has always
+              carried the composition, 1,400px down inside an accordion. Here
+              it fills the once-dead space under the photo and turns the price
+              into a recipe: one photo becomes twelve roses and satin ribbon.  */}
+          {detail.spec.length > 0 && (
+            <div className="mt-5 rounded-[20px] border-[1.5px] border-lavender-deep bg-gradient-to-br from-[#faf6fd] to-[#fdf6f3] px-5 py-4">
+              <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#B76E79] mb-2.5">
+                Inside this {detail.nature.type === "fresh" ? "bouquet" : "gift"}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                {detail.spec.map((r) => (
+                  <div key={r.item} className="flex items-center gap-2.5 text-[13.5px] text-body min-w-0">
+                    <i className="not-italic w-[24px] h-[24px] rounded-[8px] bg-white border border-lavender-deep grid place-items-center shrink-0">
+                      <Icon name="check" className="w-3 h-3 text-[#B76E79]" />
+                    </i>
+                    <span className="min-w-0 truncate">
+                      {r.qty && r.qty !== "—" ? <b className="font-semibold">{r.qty} </b> : null}
+                      {r.item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-x-5 gap-y-2.5 mt-5 pt-4 border-t border-lavender-deep">
             {detail.trust.map((t) => (
               <div key={t.label} className="flex items-center gap-2 min-w-0">
@@ -1137,6 +1184,27 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                               maxLength={f.max}
                             />
                             <p className="text-[12px] text-body-soft mt-1.5">{f.hint}</p>
+                            {/*  DEC-PRD-057 — the words land on the card as they
+                                type. A plain input feels like a form; watching
+                                the card fill makes the moment emotional, and
+                                someone mid-message does not abandon a cart.
+                                Same field underneath — only the face is new.  */}
+                            {persoText.trim().length > 0 && (
+                              <div className="mt-3">
+                                <div className="relative rounded-[16px] border-[1.5px] border-[#E8C9CE] bg-gradient-to-br from-[#fffdfb] to-[#fbf3f5] px-5 pt-6 pb-4 shadow-[0_12px_30px_rgba(183,110,121,0.14)]">
+                                  <span className="absolute top-1.5 left-0 right-0 text-center text-[#B76E79] text-[14px] opacity-70">❦</span>
+                                  <p className="font-display text-[14.5px] leading-[1.65] text-[#4a2b35] text-center m-0 mt-2 break-words">
+                                    {persoText}
+                                  </p>
+                                  <div className="text-center text-[10.5px] text-[#B76E79] tracking-[0.14em] uppercase mt-2.5">
+                                    — with love
+                                  </div>
+                                </div>
+                                <div className="text-center text-[10.5px] text-body-soft mt-1.5 tracking-[0.05em] uppercase">
+                                  The card that travels with the flowers
+                                </div>
+                              </div>
+                            )}
                           </>
                         ) : (
                           <label className="flex items-center gap-3.5 border-[1.5px] border-dashed border-[#CBB6DC] rounded-[12px] p-4 bg-white cursor-pointer hover:border-orchid hover:bg-orchid-soft transition-colors">
@@ -1188,32 +1256,82 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 needs to come from the Delivery module's label - a separate
                 job, written down here so it is not forgotten.
               */}
-              {clock && (
-              <div className="flex items-center gap-3 bg-[#FFF7E8] border-[1.5px] border-[#F2D9A8] rounded-[18px] px-4 py-3 mt-7">
-                <span className="w-9 h-9 rounded-full bg-white grid place-items-center text-[#8A5A00] shrink-0">
-                  <Icon name="bolt" className="w-[18px] h-[18px]" />
-                </span>
-                <div className="min-w-0">
-                  <b className="block text-[14px] text-[#8A5A00] font-bold">
-                    {zone === "bangladesh"
-                      ? "Order today — delivered in 1–3 days nationwide"
-                      : "Order now — at their door by 6:00 PM today"}
-                  </b>
-                  <span className="text-[12.5px] text-[#9A7434]">
-                    {/*  ⚠️ "2-hour" removed — this countdown is driven by the
-                         method's own cut-off, and naming a duration beside it
-                         made the two disagree the moment the owner changed the
-                         express from two hours to three.  */}
-                    {zone === "bangladesh"
-                      ? "Courier cut-off for today's dispatch"
-                      : "Cut-off for express delivery inside Dhaka"}
-                  </span>
+              {/*  ── DEC-PRD-055 — "when should it arrive?" on the page ────
+                  Gifts are bought for a DATE. The old countdown box counted
+                  down without saying what making it BUYS you; it is now the
+                  promise line under three date pills, and the pick rides into
+                  checkout pre-answered. "Today" is only offered while today's
+                  cut-off is still alive — a dead pill would be a lie with a
+                  clock on it.  */}
+              <section className="mt-7">
+                <div className="flex items-baseline gap-2 mb-3">
+                  <b className="text-[14px] font-bold text-ink">When should it arrive?</b>
+                  <span className="text-[13px] text-body-soft">— picked here, kept at checkout</span>
                 </div>
-                <div className="ml-auto font-display text-[19px] font-semibold text-[#8A5A00] tabular-nums">
-                  {clock}
+                <div className="flex gap-2.5 flex-wrap">
+                  {clock && (
+                    <button
+                      type="button"
+                      onClick={() => pickDay("today")}
+                      className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
+                        deliveryDay === "today"
+                          ? "border-[#0E7A3D] bg-[#E8F9EE] shadow-[0_6px_18px_rgba(14,122,61,0.12)]"
+                          : "border-lavender-deep bg-white hover:border-orchid-mid"
+                      }`}
+                    >
+                      <b className={`block text-[14px] ${deliveryDay === "today" ? "text-[#0E7A3D]" : "text-ink"}`}>
+                        ⚡ Today
+                      </b>
+                      <span className={`text-[11.5px] ${deliveryDay === "today" ? "text-[#3d7a55]" : "text-body-soft"}`}>
+                        {zone === "bangladesh" ? "dispatched today" : "express inside Dhaka"}
+                      </span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => pickDay("tomorrow")}
+                    className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
+                      deliveryDay === "tomorrow"
+                        ? "border-[#0E7A3D] bg-[#E8F9EE] shadow-[0_6px_18px_rgba(14,122,61,0.12)]"
+                        : "border-lavender-deep bg-white hover:border-orchid-mid"
+                    }`}
+                  >
+                    <b className={`block text-[14px] ${deliveryDay === "tomorrow" ? "text-[#0E7A3D]" : "text-ink"}`}>
+                      Tomorrow
+                    </b>
+                    <span className={`text-[11.5px] ${deliveryDay === "tomorrow" ? "text-[#3d7a55]" : "text-body-soft"}`}>
+                      any time slot
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => pickDay("pick")}
+                    className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
+                      deliveryDay === "pick"
+                        ? "border-orchid bg-orchid-soft shadow-[0_6px_18px_rgba(207,67,234,0.12)]"
+                        : "border-lavender-deep bg-white hover:border-orchid-mid"
+                    }`}
+                  >
+                    <b className={`block text-[14px] ${deliveryDay === "pick" ? "text-purple" : "text-ink"}`}>
+                      Pick a date
+                    </b>
+                    <span className="text-[11.5px] text-body-soft">birthdays &amp; anniversaries</span>
+                  </button>
                 </div>
-              </div>
-              )}
+                {clock && (
+                  <div className="flex items-center gap-3 bg-[#FFF7E8] border-[1.5px] border-[#F2D9A8] rounded-[14px] px-4 py-2.5 mt-2.5">
+                    <Icon name="bolt" className="w-4 h-4 text-[#8A5A00] shrink-0" />
+                    <span className="text-[13px] font-semibold text-[#8A5A00] min-w-0">
+                      {zone === "bangladesh"
+                        ? "Order within the time — dispatched today, at their door in 1–3 days"
+                        : "Order within the time — it reaches them today"}
+                    </span>
+                    <span className="ml-auto font-display text-[17px] font-semibold text-[#8A5A00] tabular-nums shrink-0">
+                      {clock}
+                    </span>
+                  </div>
+                )}
+              </section>
 
               {/*
                 DEC-PDP-09 - the owner, 1 August 2026: "at stock 0 no order may
@@ -1241,6 +1359,41 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   soft top shadow so content sliding under it reads as under.
                   Mobile keeps the separate StickyBar it always had.  */}
               <div className="lg:sticky lg:bottom-0 lg:z-30 lg:bg-white lg:pb-3 lg:-mb-1 lg:shadow-[0_-14px_22px_-16px_rgba(71,0,102,0.22)] lg:rounded-t-[14px]">
+              {/*  DEC-PRD-058 — by the time the buyer reaches the buttons the
+                  choices are far above, out of sight. This slim line says what
+                  is being bought at the exact moment of commitment. Only drawn
+                  once something beyond the plain product is chosen — on a bare
+                  page it would just repeat the title.  */}
+              {!soldOut &&
+                (upgrade || variant || bundleIds.length > 0 || Object.keys(picked).length > 0 || detail.sizes.length > 1) && (
+                <div className="hidden lg:flex items-center gap-3 bg-lavender border-[1.5px] border-lavender-deep rounded-[14px] px-3 py-2 mb-2.5">
+                  <span
+                    className="w-[38px] h-[38px] rounded-[10px] shrink-0 border border-lavender-deep"
+                    style={{ background: gallery[typeof media === "number" ? media : 0] ?? FALLBACK_BG }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <b className="block text-[12.5px] text-ink truncate">
+                      {(upgrade ? upgrade.name : product.name)
+                        + (variant ? ` — ${variant.label}` : "")
+                        + (detail.sizes.length > 1 ? ` · ${size.label}` : "")}
+                    </b>
+                    <span className="block text-[11.5px] text-body-soft truncate">
+                      {[
+                        bundleIds.length > 0 ? `${bundleIds.length} bundle item${bundleIds.length > 1 ? "s" : ""}` : null,
+                        Object.keys(picked).length > 0
+                          ? `${Object.values(picked).reduce((a, b) => a + b, 0)} add-on${Object.values(picked).reduce((a, b) => a + b, 0) > 1 ? "s" : ""}`
+                          : null,
+                        qty > 1 ? `qty ${qty}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "as shown"}
+                    </span>
+                  </span>
+                  <span className="font-display text-[16px] font-semibold text-purple whitespace-nowrap shrink-0">
+                    {formatTaka(total)}
+                  </span>
+                </div>
+              )}
               {soldOut ? (
                 <SoldOut
                   backHref={`/${detail.crumb.catSlug}`}
@@ -1280,6 +1433,38 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             button is not drawn at all - silence beats sending somebody to a
             place that does not exist.
           */}
+          {/*  ── DEC-PRD-054 — the moment at the door. Three shop-wide photos
+              of the journey (Setup -> Shop hours & photo card). The buyer
+              never sees the delivery, and that unseen moment IS the product;
+              with no photos set, nothing is drawn.  */}
+          {(detail.journey ?? []).length > 0 && (
+            <section className="mt-6">
+              <div className="flex items-baseline gap-2 mb-3">
+                <b className="text-[14px] font-bold text-ink">How it arrives</b>
+                <span className="text-[13px] text-body-soft">— from our hands to theirs</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                {(detail.journey ?? []).map((u, i) => (
+                  <div key={u} className="bg-white border-[1.5px] border-lavender-deep rounded-[14px] overflow-hidden">
+                    <div className="aspect-[4/3] relative" style={{ background: `url(${u}) center/cover no-repeat` }}>
+                      <span className="absolute top-1.5 left-1.5 bg-white/95 text-purple font-bold text-[10.5px] rounded-full px-2 py-0.5">
+                        {i + 1}
+                      </span>
+                    </div>
+                    <div className="px-2.5 py-2">
+                      <b className="block text-[11.5px] text-ink leading-tight">
+                        {["Arranged fresh, same day", "Boxed with your card", "At their door"][i]}
+                      </b>
+                      <span className="block text-[10.5px] text-body-soft leading-snug">
+                        {["by hand, in our studio", "wrapped, watered, sealed", "handed over with care"][i]}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {detail.customise && (
             <div className="mt-5 bg-[#E8F9EE] border-[1.5px] border-[#C4EED4] rounded-[18px] px-5 py-4 flex items-center gap-3.5 flex-wrap">
               <span className="w-11 h-11 rounded-full bg-white grid place-items-center text-[#1DA851] shrink-0">
