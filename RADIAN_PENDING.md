@@ -248,8 +248,13 @@ with a door to Categories.
 "Before You Order" on `/p/red-rose-without-variant…`, and the product form says
 "ALSO ON THE PAGE · FROM FRESH FLOWER".
 
-⚠️ **Still loose:** `CraftEditor` and `BundleEditor` both TELL the product it
-inherits but do not show what. Worth the same treatment as the FAQ panel.
+~~⚠️ Still loose: `CraftEditor` and `BundleEditor` both TELL the product it
+inherits but do not show what.~~ ✅ **Both paid.** CraftEditor got "Use these
+and edit" (23 Aug, §below); BundleEditor got its "What the customer sees" sum
+panel (26 Aug) — main + all items = before, then the bundle price and the
+saving, straight from the server's own arithmetic. Verified live on
+`variant---bounlde-uprgade-add-on`: ৳3,500 + ৳10,500 = ৳14,000 → ৳11,200,
+saves ৳2,800.
 
 ---
 
@@ -318,8 +323,11 @@ of drawing an empty panel.
 is now in the rail, and Product story → Why buy from us lists
 `freshnes` / `gurnaty of money back` under "ON THE PAGE NOW · FROM FRESH FLOWER".
 
-⚠️ **Same treatment still owed to `BundleEditor`** — it tells the product it
-inherits and does not show what.
+~~⚠️ Same treatment still owed to `BundleEditor`~~ ✅ **Paid 26 Aug** — the
+bundle list now ends in a "What the customer sees" panel showing the full sum
+(main + items = before → bundle price, saving), using the figures the server
+always sent and the screen used to throw away. The discount itself is still
+SET on the Pricing tab (owner, 2 Aug) — here it is only shown.
 
 ---
 

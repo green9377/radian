@@ -72,12 +72,13 @@ are empty. The Finance copies are removed after a one-time copy-over.
 |---|---|---|
 | Inventory → Wastage | `WASTAGE_REASONS` — Rotten, Dried out, Broken, Expired, Damaged in transit, Other | a reason master the owner can add to — Returns already has one (`ReturnReason`) |
 | Inventory → Gift out | `GIFT_REASONS` — Marketing, Relationship, Corporate sample, Compensation, Other | same master, different purpose tag |
-| Admin → New order | `METHODS` (delivery methods + fees) and `SLOTS` — written into the file, marked "static for the mock" | the Delivery module already owns methods, zones, slots and fees; the admin's own order screen must read them, or it quotes a price the website does not |
+| ~~Admin → New order~~ ✅ | ~~`METHODS` + `SLOTS` static~~ — **already closed**: `NewOrderForm` reads `/delivery/config` (`deliveryConfigSafe`); the static table is only the API-down fallback. Verified live 26 Aug — the form shows the Delivery masters ("3 Hours Delivery", "same day Delivery", "Midnight Delivery"), not the old hardcoded names | done — this row was stale, not the code |
 | Offers → Coupons | `OFFER_OPTS` sample names | the offers that exist |
 
 **Proposed fix — DEC-GBL-004.** One `Reason` master with a purpose
 (RETURN · WASTAGE · GIFT · ADJUSTMENT · CANCEL), the Returns table folded into
-it. **DEC-GBL-005** — New order reads the Delivery module, no local fee table.
+it. **DEC-GBL-005** — New order reads the Delivery module, no local fee table —
+**done** (verified live 26 Aug 2026; the audit row above was stale).
 
 ---
 
