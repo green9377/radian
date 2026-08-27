@@ -13,30 +13,32 @@ import DeliveryTimeline from "./DeliveryTimeline";
 /*
   /track — Order tracking, LIVE against the shop since 4 Aug 2026.
 
-  ⚠️ কী দেখায় আর কী দেখায় না (locked — সোবুজ):
-  শুধু **delivery timeline**। দাম, receipt, ঠিকানা, gift message — কিছুই নয়।
-  Track number receiver-এর হাতেও থাকতে পারে; সারপ্রাইজ ফাঁস করা যাবে না।
+  ⚠️ WHAT IT SHOWS AND WHAT IT DOES NOT (locked — the owner):
+  The delivery timeline, and nothing else. No prices, no receipt, no address,
+  no gift message. The track number may be in the RECEIVER's hand, and a
+  surprise must not spoil itself.
 
-  ── যা বদলাল ────────────────────────────────────────────────────────────
-  আগে এই page localStorage-এর **শেষ order**-এর সাথে মেলাত — অন্য device
-  থেকে, বা কালকে এসে, নম্বর লিখলে "খুঁজে পাইনি"। এখন `GET /shop/track`
-  ডাকে, আর admin panel-এ order যত ধাপ এগোয়, এখানে ঠিক ততটাই দেখায় —
-  একই দুই status-track থেকে (DEC-SAL-003), তাই দুটো পর্দা কখনো দুই কথা
-  বলতে পারে না।
+  ── What changed ───────────────────────────────────────────────────────────
+  This page used to match against the LAST order in localStorage — so typing a
+  number from another device, or coming back tomorrow, answered "not found".
+  It now calls `GET /shop/track`, and it shows exactly as far as the order has
+  travelled in the admin panel, read from the same two status tracks
+  (DEC-SAL-003). The two screens cannot tell different stories.
 
-  ── কেন ফোন নম্বরও লাগে ────────────────────────────────────────────────
-  Order নম্বরটা উপহারের card-এ ছাপা — কার হাতে যাবে জানা নেই। শুধু নম্বর
-  দিয়ে খোলা মানে যে কেউ RAD-১ থেকে RAD-৯৯৯৯৯ ঘুরিয়ে দোকানের সব order
-  দেখে ফেলত। নম্বর + ফোন জোড়া লাগে, আর ভুল জোড়ার উত্তর "নেই"-এর
-  উত্তরের সাথে হুবহু এক — অনুমান করে কিছুই শেখা যায় না।
+  ── Why the phone number is asked for too ──────────────────────────────────
+  The order number is printed on the gift card, and there is no knowing whose
+  hand that reaches. Opening on the number alone would let anyone walk RAD-1
+  to RAD-99999 and read every order the shop has. It takes the number AND the
+  phone together, and a wrong pair answers exactly like an order that does not
+  exist — so guessing teaches nothing.
 */
 
 export default function TrackOrderView() {
   const params = useSearchParams();
   const hydrated = useOrderHydrated();
   const lastOrder = useOrderStore((s) => s.last);
-  /*  নিজের device-এ ফোনটা আগে থেকেই জানা (checkout store persist করে) —
-      নিজের order দেখতে আবার টাইপ করতে হয় না।  */
+  /*  On their own device the phone is already known (the checkout store
+      persists it) — nobody has to type it again to see their own order.  */
   const knownPhone = useCheckoutStore((s) => s.senderPhone);
   const knownDial = useCheckoutStore((s) => s.senderDial);
 
@@ -46,8 +48,9 @@ export default function TrackOrderView() {
   const [result, setResult] = useState<TrackedOrder | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  /*  ?id=RAD-XXXXX — order-success থেকে আসা link। ফোন device-এ জানা থাকলে
-      auto-lookup; না জানলে ঘরটা ভরে অপেক্ষা — চাওয়ার আগে খোলে না।  */
+  /*  ?id=RAD-XXXXX — the link from order-success. If the device knows the
+      phone, look it up straight away; if not, fill the box and wait — it never
+      opens before it has been asked for.  */
   useEffect(() => {
     const id = params.get("id");
     if (!id) return;
@@ -63,9 +66,10 @@ export default function TrackOrderView() {
     setLooking(true);
     setNotFound(false);
     setResult(null);
-    /*  দেশি নম্বর 01X… আকারেই থাকে — server শেষ ১০ সংখ্যা মেলায়, তাই
-        +880 থাকা-না-থাকায় কিছু আসে যায় না। প্রবাসী sender পুরো নম্বরই
-        দেবেন (+44…), সেটাও একই নিয়মে মেলে।  */
+    /*  A local number stays in its 01X… shape — the server matches on the
+        last 10 digits, so whether +880 is there makes no difference. A sender
+        abroad types the whole number (+44…), and that matches by the same
+        rule.  */
     const r = await trackOrder(orderNo, ph.startsWith("0") || ph.startsWith("+") ? ph : `${knownDial}${ph}`);
     setLooking(false);
     if (r) setResult(r);
@@ -141,7 +145,8 @@ export default function TrackOrderView() {
         </button>
       </form>
 
-      {/* শেষ order-এর quick chip — এই device-এই দেওয়া, তাই ফোনও জানা */}
+      {/* quick chip for the last order — placed on this device, so the phone
+          is known too */}
       {!result && !notFound && !looking && lastOrder && knownPhone && (
         <button
           type="button"
@@ -198,7 +203,7 @@ export default function TrackOrderView() {
             title="Delivery Timeline"
           />
 
-          {/* WhatsApp note — live update এখানেই আসে (D36) */}
+          {/* WhatsApp note — this is where live updates arrive (D36) */}
           <div className="bg-lavender rounded-[24px] border-[1.5px] border-lavender-deep p-5 flex items-start gap-3">
             <span className="w-9 h-9 rounded-full bg-white text-orchid grid place-items-center shrink-0 border border-lavender-deep">
               <Icon name="wa" className="w-[18px] h-[18px]" />

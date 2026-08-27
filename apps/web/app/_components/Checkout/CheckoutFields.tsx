@@ -6,9 +6,10 @@ import { COUNTRIES } from "../../_data/countries";
 import Icon from "../Pdp/PdpIcons";
 
 /*
-  Checkout-এর ছোট building block গুলো — QCard · Field · Input · Toggle · Seg।
-  একটাই জায়গায় রাখা, কারণ চারটা step-ই হুবহু একই চেহারা চায়। নইলে
-  step 3-এর input step 1-এর থেকে ২px আলাদা হবে, আর কেউ ধরতে পারবে না।
+  Checkout's small building blocks — QCard · Field · Input · Toggle · Seg.
+  Kept in one place because all five steps want exactly the same face.
+  Otherwise step 3's input ends up 2px different from step 1's and nobody ever
+  catches it.
 */
 
 /* ─────────────────── STEP BAR ─────────────────── */
@@ -22,12 +23,14 @@ export const STEP_LABELS = [
 ] as const;
 
 /*
-  ★ Scroll করলেও উপরে আটকে থাকে (locked, 14 July)
-  Checkout লম্বা — নিচে নেমে গেলে "আমি কোন ধাপে, আর কয়টা বাকি" ভুলে যাওয়াই
-  সবচেয়ে বড় drop-off-এর কারণ। তাই bar সবসময় চোখের সামনে।
+  ★ Stays pinned at the top while scrolling (locked, 14 July).
+  Checkout is long, and losing track of "which step am I on, how many are
+  left" partway down is the single biggest cause of drop-off. So the bar is
+  always in sight.
 
-  ⚠️ `top` = Header-এর উচ্চতা। Header sticky top-0, তাই এর নিচেই বসতে হবে।
-  Header-এর উচ্চতা বদলালে এখানকার আর CheckoutSummary-র `top` — দুটোই বদলাও।
+  ⚠️ `top` = the header's height. The header is sticky at top-0, so this has to
+  sit directly under it. If the header's height changes, change BOTH this and
+  CheckoutSummary's `top`.
 */
 export function StepBar({ step, done }: { step: number; done: number[] }) {
   return (
@@ -62,8 +65,9 @@ export function StepBar({ step, done }: { step: number; done: number[] }) {
 }
 
 /* ─────────────────── ACCORDION CARD ───────────────────
-   বন্ধ থাকলে এক লাইনের সারসংক্ষেপ + Edit। খোলা থাকলে পুরো form।
-   একসাথে একটাই খোলা — checkout-এ যত কম জিনিস চোখে পড়ে তত ভালো।
+   Closed: a one-line summary and an Edit. Open: the whole form.
+   Only one open at a time — the less there is to look at in checkout, the
+   better.
 */
 
 export function QCard({
@@ -86,7 +90,8 @@ export function QCard({
   return (
     <section
       id={`step-${n}`}
-      /* scroll-mt = sticky StepBar-এর উচ্চতা — Edit-এ এলে card যেন bar-এর নিচে না লুকায় */
+      /* scroll-mt = the sticky StepBar's height, so a card reached by Edit
+         does not hide underneath the bar */
       className={`scroll-mt-[190px] lg:scroll-mt-[200px] bg-white rounded-[24px] border-[1.5px] transition-colors ${
         open ? "border-orchid-mid shadow-soft" : "border-lavender-deep"
       }`}
@@ -143,7 +148,7 @@ export function Field({
   label: string;
   hint?: string;
   optional?: boolean;
-  /** ★ বাধ্যতামূলক ঘরে লাল তারা — কোনটা ছাড়া চলবে না, এক নজরে বোঝা যায় */
+  /** ★ A red star on a required field — what cannot be skipped, at a glance */
   required?: boolean;
   error?: string;
   children: ReactNode;
@@ -171,8 +176,8 @@ export const inputClass =
   "w-full border-[1.5px] border-lavender-deep rounded-[14px] px-4 py-3 text-[14px] text-body outline-none transition-colors focus:border-orchid placeholder:text-body-soft/70";
 
 /* ─────────────────── PHONE (country code) ───────────────────
-   প্রবাসী customer ঢাকায় উপহার পাঠান — তাঁর নিজের নম্বর +880 নয়।
-   আর সব update WhatsApp-এ যায়, তাই নম্বরটা WhatsApp হতেই হবে।
+   Customers living abroad send gifts to Dhaka — their own number is not +880.
+   And every update goes over WhatsApp, so the number has to be a WhatsApp one.
 */
 
 export function PhoneInput({

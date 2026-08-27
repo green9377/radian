@@ -22,16 +22,17 @@ import {
 /*
   Q1 — Your Details   ·   Q2 — Who's Receiving + Gift Touches
 
-  ★ Sender-এর ফোনে country code বাধ্যতামূলক (locked, 14 July — সোবুজ)
-  অনেক customer প্রবাসী — ঢাকায় মায়ের জন্য ফুল পাঠান। তাঁর নম্বর +880 নয়।
-  আর Radian-এর পুরো communication WhatsApp-এ শুরু হয় (confirmation → prep
-  photo → delivery photo), তাই নম্বরটা **WhatsApp হতেই হবে** — ঘরের নিচে
-  সেটাই পরিষ্কার লেখা।
+  ★ The sender's phone takes a country code (locked, 14 July — the owner).
+  Many customers live abroad and send flowers to a mother in Dhaka; their own
+  number is not +880. And all of Radian's communication starts on WhatsApp
+  (confirmation → prep photo → delivery photo), so the number MUST be a
+  WhatsApp one — which is what the line under the field says plainly.
 
-  ★ Receiver-এর ফোনে country code নেই — উপহার বাংলাদেশে যাচ্ছে, প্রাপকও
-  বাংলাদেশেই। আর তাঁর নম্বর WhatsApp হওয়া বাধ্যতামূলক নয় — রাইডার ফোন করবে।
+  ★ The receiver's phone takes no country code — the gift is going to
+  Bangladesh, so the receiver is in Bangladesh. And theirs need not be a
+  WhatsApp number: the rider will call it.
 
-  ★ বাধ্যতামূলক ঘরে লাল * — কোনটা ছাড়া চলবে না, এক নজরে।
+  ★ A red * on a required field — what cannot be skipped, at a glance.
 */
 
 const MSG_MAX = 200;
@@ -146,10 +147,10 @@ export function Q2Receiving() {
       {s.isGift && (
         <>
           {/*
-            ─── SAVED RECEIVERS — মালিকের রায়, ৩ আগস্ট ২০২৬ ───
-            যাদের এই device থেকে আগে পাঠানো হয়েছে, তারা এক tap-এ ফিরে আসে।
-            বাছলে নিচের ঘর দুটো ভরে যায় — কিন্তু ঘরগুলো ততক্ষণই সম্পাদনযোগ্য
-            থাকে; বাছাই মানে বন্দী নয়। "Someone new" শুধু ঘর খালি করে।
+            ─── SAVED RECEIVERS — the owner's ruling, 3 Aug 2026 ───
+            Anyone this device has sent to before comes back in one tap.
+            Picking one fills the two fields below — but they stay editable;
+            choosing is not being locked in. "Someone new" simply empties them.
           */}
           <SavedReceivers
             currentPhone={s.recipientPhone}
@@ -189,7 +190,7 @@ export function Q2Receiving() {
             </Field>
           </div>
 
-          {/* ─── gift message (D14 — PDP/cart থেকে সরানো) ─── */}
+          {/* ─── gift message (D14 — moved here from the PDP / cart) ─── */}
           <div className="mt-4">
             <Field
               label="Gift message"
@@ -246,17 +247,17 @@ export function Q2Receiving() {
 }
 
 /* ─────────────────── SAVED RECEIVERS ───────────────────
-   মালিকের রায়, ৩ আগস্ট ২০২৬: আগের receiver-রা option হিসেবে দেখাবে,
-   সেখান থেকে select — বা নতুন receiver।
+   The owner's ruling, 3 Aug 2026: previous receivers show as options to pick
+   from — or a new receiver.
 
-   ⚠️ তালিকাটা এই DEVICE-এর নিজের খাতা (useRecipientBook), server নয় —
-   login ছাড়া ফোন নম্বর দিয়ে কারো address book খোলা যায় না। server-এর
-   খাতাও ভরছে (প্রতিটা gift order প্রাপককে CRM-এ save করে), সেটা OTP
-   login-এর দিন এখানেই এসে বসবে।
+   ⚠️ THE LIST IS THIS DEVICE'S OWN BOOK (`useRecipientBook`), not the server's.
+   Without a login, a bare phone number must never unlock somebody's address
+   book. The server's book is filling too — every gift order files its receiver
+   in the CRM — and it moves in here the day WhatsApp OTP login lands.
 
-   খালি খাতায় কিছুই আঁকা হয় না — প্রথমবারের গ্রাহক জানতেও পারবেন না
-   feature-টা আছে, আর সেটাই ঠিক: শূন্য তালিকার শিরোনাম একটা প্রশ্নের মতো
-   দেখায় যার উত্তর দেওয়ার কিছু নেই। */
+   An empty book draws nothing at all: a first-time customer never learns the
+   feature exists, and that is right. A heading over an empty list reads like a
+   question with nothing to answer it. */
 function SavedReceivers({
   currentPhone,
   onPick,

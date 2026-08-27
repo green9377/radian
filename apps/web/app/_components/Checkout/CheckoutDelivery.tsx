@@ -31,16 +31,17 @@ import { fetchSlotLoad } from "../../_data/checkoutApi";
 import { Continue, Field, QCard, Seg, inputClass } from "./CheckoutFields";
 
 /*
-  Q3 — Where   ·   Q4 — When   (আলাদা দুই step, locked 14 July)
+  Q3 — Where   ·   Q4 — When   (two separate steps, locked 14 July)
 
-  ★ কোনো district / thana / area dropdown নেই (D27)
-  একটাই বড় ঘর — দুই zone-এই। প্রতিটা dropdown = extra decision + সময়,
-  আর প্রতিটা extra decision-এ order ঝরে।
+  ★ NO district / thana / area dropdowns (D27)
+  One big box, in both zones. Every dropdown is another decision and more
+  time, and orders fall away at every extra decision.
 
-  ★ Zone conflict এখানেই বলি, cart-এ ফেরত পাঠাই না
-  আগে All Bangladesh বাছলে (আর cart-এ Dhaka-only পণ্য থাকলে) checkout
-  খালি হয়ে /cart-এ ছুঁড়ে ফেলত — বিরক্তিকর। এখন এই page-এই বলে দিই কোন
-  পণ্য এই ঠিকানায় যাবে না, আর এক click-এ ঢাকায় ফেরার পথ দিই।
+  ★ A zone conflict is said HERE, not by throwing them back to the cart.
+  Choosing All Bangladesh with a Dhaka-only product in the cart used to empty
+  checkout and dump the customer on /cart — infuriating. Now this page says
+  which products will not go to that address, and offers one click back to
+  Dhaka.
 */
 
 export function Q3Where({
@@ -49,9 +50,9 @@ export function Q3Where({
   allHeld,
 }: {
   heldCount: number;
-  /** এই zone-এ যা সত্যিই যাবে — ঠিকানা এদের জন্যই */
+  /** what will actually go to this zone — the address is for these */
   deliverableCount: number;
-  /** সব item Dhaka-only, এই zone-এ কিছুই যাবে না */
+  /** every item is Dhaka-only; nothing at all goes to this zone */
   allHeld: boolean;
 }) {
   const s = useCheckoutStore();
@@ -60,7 +61,8 @@ export function Q3Where({
 
   function onZone(next: Zone) {
     setZone(next);
-    // method zone-বাঁধা — courier ঢাকায় নেই, express দেশজুড়ে নেই
+    // methods are tied to a zone — no courier inside Dhaka, no express
+    // nationwide
     s.patch({ method: defaultMethod(next), slotId: null, date: null });
   }
 
@@ -93,9 +95,10 @@ export function Q3Where({
         />
       </div>
 
-      {/* ─── সব item এই zone-এ আটকে গেছে ─────────────────────────────
-          আলাদা full-screen নয় — checkout page-এই, Q3-এর ভেতরে (সোবুজ,
-          15 July)। ঠিকানার ঘর দেখাই না, কারণ কিছুই তো shipping হচ্ছে না। */}
+      {/* ─── every item is held in this zone ──────────────────────────
+          Not a full screen of its own — inside Q3, on the checkout page
+          (the owner, 15 July). The address fields are not drawn, because
+          nothing is being shipped. */}
       {allHeld ? (
         <div className="rounded-[16px] bg-[#FFF7E8] border border-[#F2D9A8] px-5 py-5 text-center">
           <span className="w-12 h-12 rounded-full bg-white text-[#8A5A00] grid place-items-center mx-auto">
@@ -127,9 +130,10 @@ export function Q3Where({
         </div>
       ) : (
         <>
-      {/* ─── zone conflict (কিছু যাবে, কিছু যাবে না) — redirect নয় (D21) ─
-          "২টা যাবে না" পড়ে নিচে address দেখলে বিরোধ মনে হয়। তাই স্পষ্ট
-          করে বলি কয়টা item এই ঠিকানায় *যাবে*। ──────────────────────── */}
+      {/* ─── zone conflict (some go, some do not) — no redirect (D21) ──
+          Reading "2 cannot go" and then seeing an address field below it
+          reads as a contradiction. So it says plainly how many items WILL
+          go to this address. ─────────────────────────────────────────── */}
       {heldCount > 0 && (
         <div className="mb-5 rounded-[16px] bg-[#FFF7E8] border border-[#F2D9A8] px-4 py-3.5">
           <p className="flex gap-2.5 text-[12.5px] text-[#8A5A00] leading-snug">
@@ -227,11 +231,12 @@ export function Q4When({
       looking for it itself, or two screens end up disagreeing.  */
   speeds?: CartSpeeds;
   /**
-   * DEC-DLV-009 / DEC-DLV-010 — delivery module-এর আসল মেনু।
+   * DEC-DLV-009 / DEC-DLV-010 — the delivery module's real menu.
    *
-   * ⚠️ `null` = এখনো উত্তর আসেনি। তখন পুরনো তালিকা দিয়ে জায়গা ধরে রাখা হয়,
-   * নাহলে পর্দা এক মুহূর্তের জন্য খালি দেখাত। খালি array (`[]`) আলাদা কথা:
-   * সেটা বলে দোকান এই zone-এ কোনো delivery বসায়নি।
+   * ⚠️ `null` = the answer has not arrived yet. The old list holds the space
+   * until it does, or the screen would flash empty for a moment. An empty
+   * array (`[]`) says something different: the shop has set up no delivery at
+   * all for this zone.
    */
   liveMethods?: LiveMethod[] | null;
 }) {
@@ -243,20 +248,23 @@ export function Q4When({
   const now = useMemo(() => new Date(), []);
   const today = toISODate(now);
 
-  /*  delivery module যা বলে তাই — উত্তর না আসা পর্যন্ত পুরনো তালিকা।  */
+  /*  Whatever the delivery module says — the old list only until it answers. */
   const methods = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-  /*  ⚠️ `CheckoutView`-এর `method` memo-র সাথে হুবহু এক তিন ধাপ।  */
+  /*  ⚠️ Exactly the same three steps as `CheckoutView`'s `method` memo.  */
   const method = methods.find((m) => m.id === s.method) ?? methods[0] ?? METHODS[1];
 
   /*
-    ═══ আসল "booked" গোনা — ৪ আগস্ট ২০২৬, মালিকের বরাবরের নিয়ম ═══
-    *"slot ভরে গেলে customer-কে next slot দেখাবে; ওই slot-এ order নেবে না।"*
+    ═══ COUNTING "booked" FOR REAL — 4 Aug 2026, the owner's standing rule ═══
+    *"Once a slot is full, show the customer the next slot; it must not take
+    an order into that slot."*
 
-    `toLiveMethods` slot-এ `booked: 0` বসাত — mock, নিজের মন্তব্যেই স্বীকার
-    করা। ফলে ভরা slot-ও "Available" দেখাত আর order নিয়ে নিত। এখন যেদিনের
-    delivery, সেদিনের গোনা `/shop/delivery/slot-load` থেকে আসে — admin-এর
-    নিজের হিসাবের হুবহু এক অঙ্ক, তাই দুই পর্দা কখনো দ্বিমত করবে না।
-    (server-ও দরজায় আবার গোনে — UI শুধু সৌজন্য, নিয়মটা server-এর।)
+    `toLiveMethods` wrote `booked: 0` onto every slot — a mock, admitted in its
+    own comment. So a full slot still read "Available" and still took the
+    order. The count now comes from `/shop/delivery/slot-load` for the day
+    being delivered — the identical arithmetic to the admin's own, so the two
+    screens cannot disagree.
+    (The server counts again at the door — the UI is a courtesy, the rule is
+    the server's.)
   */
   const [slotLoad, setSlotLoad] = useState<Record<string, number>>({});
   const loadDate = method.todayOnly ? today : (s.date ?? today);
@@ -268,16 +276,16 @@ export function Q4When({
     return () => { stale = true; };
   }, [loadDate]);
 
-  /*  এই delivery-র নিজের slot, আসল booked বসিয়ে। module থেকে এলে সেগুলোই,
-      নাহলে পুরনো তিনটা।  */
+  /*  This delivery's own slots, with the real booked count on them. The
+      module's slots when they arrived, otherwise the old three.  */
   const slotsForMethod = slotsOf(method).map((sl) => ({
     ...sl,
     booked: slotLoad[sl.id] ?? sl.booked,
   }));
 
-  /*  বাছা slot-টা ভরে গেলে (বা সময় পেরোলে) নিজে থেকে পরের খোলা slot-এ —
-      "next slot দেখাবে"। খোলা কিছু না থাকলে বাছাই খালি হয়, আর নিচের
-      "সব slot শেষ" বার্তাই চলে।  */
+  /*  If the chosen slot fills up (or its time passes), move to the next open
+      one by itself — "show them the next slot". With nothing open the choice
+      is cleared and the "all slots gone" message below takes over.  */
   useEffect(() => {
     if (!method.slots || !s.slotId) return;
     const cur = slotsForMethod.find((x) => x.id === s.slotId);
@@ -338,18 +346,19 @@ export function Q4When({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, methods, now, leadDays, spd, today]);
 
-  /*  ⚠️ পর্দার তালিকা থেকেই নেওয়া, `getMethod(id)` নয়। live id হাতে-লেখা
-      তালিকায় মেলে না, তাই যেটাই বাছা হোক Same Day-র নিয়মে date/slot reset
-      হতো — Midnight বাছলে তারিখ মুছে যেত, Schedule It বাছলে slot।  */
+  /*  ⚠️ Taken from the list on screen, not from `getMethod(id)`. A live id
+      never matched the hand-written list, so whatever was picked reset the
+      date and slot by Same Day's rules — choosing Midnight wiped the date,
+      choosing Schedule It wiped the slot.  */
   function onMethod(id: MethodId) {
     const m = methods.find((x) => x.id === id);
     if (!m) return;
     s.patch({
       method: id,
-      // Same Day = আজ, বাছাবাছির কিছু নেই
+      // Same Day = today; there is nothing to choose
       date: m.todayOnly ? today : m.datePick ? s.date : null,
-      /*  নতুন method-এর নিজের তালিকায় slot-টা আছে কি না — না থাকলে রেখে
-          দেওয়া মানে এমন একটা slot নিয়ে এগোনো যেটা এই delivery-তে নেই।  */
+      /*  Is the slot in the new method's own list — because keeping one that
+          is not means going forward with a slot this delivery does not have. */
       slotId: m.slots && slotsOf(m).some((sl) => sl.id === s.slotId) ? s.slotId : null,
     });
   }
@@ -383,9 +392,10 @@ export function Q4When({
       {/* ─── method ─── */}
       <div className="grid sm:grid-cols-2 gap-3">
         {methods.map((m) => {
-          /*  DEC-DLV-010 — দিনের জানালার বাইরে হলে server আগেই বলে দিয়েছে
-              ("Opens later today" / "Closed for today")। সেটা ঘড়ির নিয়মের
-              চেয়েও আগে, কারণ ওটাই গ্রাহকের কাজে লাগে।  */
+          /*  DEC-DLV-010 — outside the day's window the server has already
+              said so ("Opens later today" / "Closed for today"). That comes
+              before the clock rule, because that is the sentence the customer
+              can act on.  */
           const live = m as Partial<LiveMethod>;
           const state = live.closedNow
             ? ({ ok: false, reason: live.closedReason ?? "Not available now" } as const)
@@ -534,7 +544,7 @@ export function Q4When({
       )}
 
       {/*
-        ─── express — সময় নয়, ঘড়ি ───
+        ─── express — a clock, not a time ───
 
         ⚠️ TWO BUGS ON ONE LINE, fixed 3 Aug 2026.
 
@@ -631,7 +641,7 @@ export function Q4When({
             {slotsForMethod.map((slot) => {
               const state = slotState(slot, isToday, now);
               const on = slot.id === s.slotId && state.ok;
-              // capacity কম থাকলে সত্যিকারের urgency — বানানো নয়
+              // real urgency when capacity is genuinely low — never invented
               const low = state.ok && state.left <= 5;
 
               return (

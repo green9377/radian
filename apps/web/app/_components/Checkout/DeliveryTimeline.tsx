@@ -5,16 +5,17 @@ import Icon from "../Pdp/PdpIcons";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  7-STAGE ORDER TRACKER (locked, 14 July — সোবুজ)
+  7-STAGE ORDER TRACKER (locked, 14 July — the owner)
 
-  Board-এ ৪ ধাপ ছিল। আসল Operations flow ৭টা — আর দুটো photo আলাদা
-  ধাপ, কারণ প্রতিটা ছবি customer-এর কাছে আলাদা মুহূর্ত (আলাদা
-  WhatsApp notification-ও যাবে)।
+  The board had 4 stages. The real Operations flow is 7 — and the two photos
+  are stages of their own, because each photo is its own moment for the
+  customer (each sends its own WhatsApp notification too).
 
-  Photo updates toggle off করলে ৪ আর ৭ নম্বর ধাপ থাকে না — মিথ্যা
-  প্রতিশ্রুতি দেখানো হবে না।
+  With photo updates switched off, stages 4 and 7 do not exist — the timeline
+  never shows a promise the shop is not making.
 
-  Checkout (stage=0) → preview। Order Success (stage=1) → প্রথমটা সবুজ।
+  Checkout (stage=0) → a preview. Order Success (stage=1) → the first turns
+  green.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -23,7 +24,7 @@ export interface TimelineStage {
   icon: IconName;
   title: string;
   sub: string;
-  /** photo updates off থাকলে বাদ */
+  /** dropped when photo updates are off */
   photo?: boolean;
 }
 
@@ -58,7 +59,7 @@ export default function DeliveryTimeline({
   doneAt,
   title = "Your Delivery Timeline",
 }: {
-  /** কয়টা ধাপ শেষ */
+  /** how many stages are done */
   stage: number;
   photos: boolean;
   outAt: string;

@@ -1,23 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { formatTaka } from "../../_data/products";
 import type { ResolvedCart } from "../../_data/cart";
 import type { CheckoutTotals } from "../../_data/order";
 import type { Quote } from "../../_data/checkoutApi";
+import { getGoogleRating } from "../../_data/shop";
 import { useCartStore } from "../../_store/useCartStore";
 import Icon from "../Pdp/PdpIcons";
 
 /*
-  Order Summary — checkout-এর সব সংখ্যা একটাই জায়গা থেকে আসে
-  (`checkoutTotals()`), তাই sticky bar আর Place Order button কখনো
-  আলাদা টাকা দেখাবে না।
+  Order Summary — every number in checkout comes from one place
+  (`checkoutTotals()`), so the sticky bar and the Place Order button can never
+  show a different amount from this panel.
 
-  ★ Held item (D21): zone = All Bangladesh হলে Dhaka-only item order-এ
-  যায় না — কিন্তু চুপচাপ উধাও হয় না। হলুদ লাইনে বলি: cart-এ থাকল।
+  ★ Held item (D21): with the zone set to All Bangladesh a Dhaka-only item does
+  not go into the order — but it does not vanish silently either. The amber
+  line says so: it stayed in the cart.
 
-  ❌ "Need Help" section এখানে নেই — D19।
+  ❌ No "Need Help" section here — D19.
 */
 
 function Row({
@@ -72,13 +74,13 @@ export function CheckoutSummary({
   const { lines, held } = cart;
 
   return (
-    /* top = header + sticky StepBar — নইলে summary bar-এর নিচে ঢুকে যেত */
+    /* top = header + sticky StepBar, or the summary slides under the bar */
     <aside className="lg:sticky lg:top-[200px] bg-white border-[1.5px] border-lavender-deep rounded-[24px] p-5 sm:p-6 shadow-soft">
       <h2 className="font-display text-[20px] text-purple font-semibold mb-4">
         Order Summary
       </h2>
 
-      {/* mini lines — edit করতে হলে cart-এ ফিরতে হবে (D22) */}
+      {/* mini lines — editing means going back to the cart (D22) */}
       <div className="space-y-3 pb-3 border-b border-lavender">
         {lines.map((l) => (
           <div key={l.item.lineId} className="flex items-center gap-3">
@@ -145,7 +147,7 @@ export function CheckoutSummary({
         </div>
       )}
 
-      {/* ─── promo code — total-এর ঠিক উপরে (locked) ─── */}
+      {/* ─── promo code — directly above the total (locked) ─── */}
       <CouponRow
         applied={quote?.applied.find((a) => a.code)?.code ?? null}
         couponError={quote?.couponError ?? null}
@@ -170,31 +172,73 @@ export function CheckoutSummary({
         {placing ? "Placing your order…" : `Place Order · ${formatTaka(totals.totalPaisa)}`}
       </button>
 
-      {/* trust band */}
-      <div className="mt-4 rounded-[16px] bg-[#F0FBF4] border border-[#C4EED4] px-4 py-3.5 space-y-2">
-        {[
-          { icon: "lock", text: "256-bit encrypted payment via secure gateway" },
-          { icon: "heart", text: "Freshness guarantee — replaced free if imperfect" },
-          { icon: "star", text: "4.9 on Google · 12,000+ moments delivered" },
-        ].map((t) => (
-          <p
-            key={t.text}
-            className="flex items-center gap-2.5 text-[12px] text-[#25674A] leading-snug"
-          >
-            <Icon
-              name={t.icon as "lock" | "heart" | "star"}
-              className="w-4 h-4 text-[#0E7A3D] shrink-0"
-            />
-            {t.text}
-          </p>
-        ))}
-      </div>
+      <TrustBand />
     </aside>
   );
 }
 
+/* ─────────────────── TRUST BAND ─────────────────── */
+
+/**
+ * ⚠️ THE RATING IS THE REAL ONE, OR THERE IS NO RATING LINE — 27 Aug 2026.
+ *
+ * This band shipped `"4.9 on Google · 12,000+ moments delivered"` as typed
+ * text. The shop's actual Google rating is 4.2 from 59 reviews, and nothing
+ * anywhere counts "moments delivered" — that number had no source at all.
+ *
+ * It is the same offence the hero was fixed for on 9 Aug (DEC-PRD-034), and
+ * this panel was simply missed. Worse here than there: it sits beside the
+ * Place Order button, so the last thing a customer reads before handing over
+ * money was a figure the shop invented.
+ *
+ * The rule the project already holds — a claim about what other customers did
+ * may only be built from what other customers actually did (DEC-PRD-050) — so:
+ * the real average, or the line does not draw. The invented delivery count is
+ * gone and does not come back until something counts it.
+ *
+ * The other two lines stay because they are promises the shop makes, not
+ * counts it is claiming: the gateway really is encrypted, and the freshness
+ * guarantee is the owner's own policy.
+ */
+function TrustBand() {
+  const [rating, setRating] = useState<{ rating: number | null } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getGoogleRating()
+      .then((r) => { if (alive) setRating(r); })
+      /*  Fail-soft: no rating line beats a wrong one, and a checkout must not
+          break because a review count could not be fetched.  */
+      .catch(() => { if (alive) setRating({ rating: null }); });
+    return () => { alive = false; };
+  }, []);
+
+  const lines: { icon: "lock" | "heart" | "star"; text: string }[] = [
+    { icon: "lock", text: "256-bit encrypted payment via secure gateway" },
+    { icon: "heart", text: "Freshness guarantee — replaced free if imperfect" },
+  ];
+  if (rating?.rating) {
+    lines.push({ icon: "star", text: `${rating.rating.toFixed(1)} on Google — from real reviews` });
+  }
+
+  return (
+    <div className="mt-4 rounded-[16px] bg-[#F0FBF4] border border-[#C4EED4] px-4 py-3.5 space-y-2">
+      {lines.map((t) => (
+        <p
+          key={t.text}
+          className="flex items-center gap-2.5 text-[12px] text-[#25674A] leading-snug"
+        >
+          <Icon name={t.icon} className="w-4 h-4 text-[#0E7A3D] shrink-0" />
+          {t.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /* ─────────────────── COUPON ───────────────────
-   Cart-এ যা বসানো ছিল, এখানেও সেটাই — code persist হয়, discount নয় (D28)।
+   Whatever was set in the cart is what stands here — the code persists, the
+   discount does not (D28).
 */
 
 /**

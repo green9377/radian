@@ -14,16 +14,18 @@ import type { IconName } from "../../_data/productDetails";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  ONE LAST LOOK — "Review order" click করার পর
+  ONE LAST LOOK — after "Review order" is pressed
 
-  পাঁচটা accordion বন্ধ হয়ে গেছে, এখন সব তথ্য **এক পাতায়**: কে পাঠাচ্ছে,
-  কে পাচ্ছে, কী লেখা কার্ডে, কোথায়, কখন, কীভাবে দাম দেবে, আর কী কী যাচ্ছে।
+  The five accordions have closed, and everything is now on ONE page: who is
+  sending, who is receiving, what the card says, where, when, how they are
+  paying, and what is going.
 
-  ⚠️ প্রতিটা block-এ Edit — সেই step-এ ফেরত নিয়ে যায়। শেষ মুহূর্তে ভুল
-  ঠিকানা বা ভুল নাম ধরা পড়লে যেন পুরো form আবার হাঁটতে না হয়।
+  ⚠️ Every block carries an Edit that returns to that step. Catching a wrong
+  address or a wrong name at the last moment must not mean walking the whole
+  form again.
 
-  এটাই সেই জায়গা যেখানে গোপন সারপ্রাইজের বার্তাটা মানুষ শেষবার পড়ে —
-  তাই কার্ডের বার্তাটা আসল কার্ডের মতো করেই দেখাই।
+  This is where somebody reads the message for their secret surprise one last
+  time — so the card message is drawn the way a real card looks.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -70,11 +72,12 @@ export default function CheckoutReview({
   totals: CheckoutTotals;
   eta: { out: string; done: string };
   /**
-   * DEC-DLV-009 — CheckoutView যে সারিটা resolve করেছে।
+   * DEC-DLV-009 — the row CheckoutView already resolved.
    *
-   * ⚠️ আগে এখানে নিজে `getMethod(s.method)` করত। live id হাতে-লেখা তালিকায়
-   * মিলত না, তাই "One Last Look"-এ সবসময় *Same Day · ৳60* লেখা থাকত — যে
-   * পাতাটার পুরো কাজই হলো "যা হবে ঠিক তাই দেখানো"।
+   * ⚠️ This used to call `getMethod(s.method)` for itself. A live id never
+   * matched the hand-written list, so "One Last Look" always read
+   * *Same Day · ৳60* — on the one page whose entire job is to show exactly
+   * what is about to happen.
    */
   method: DeliveryMethod;
   placing: boolean;
@@ -87,7 +90,7 @@ export default function CheckoutReview({
   const slot = findSlot(method, s.slotId);
   const payment = PAYMENT_METHODS.find((p) => p.id === s.payment);
 
-  /* Edit → সেই card খোলে আর চোখের সামনে চলে আসে */
+  /* Edit → opens that card and brings it into view */
   function goStep(n: number) {
     s.openStep(n);
     requestAnimationFrame(() =>
@@ -169,7 +172,7 @@ export default function CheckoutReview({
           <span className="block text-[12px] text-body-soft">{payment?.note}</span>
         </Block>
 
-        {/* item edit = cart (D22 — checkout-এ configurator বসাই না) */}
+        {/* editing an item means the cart (D22 — no configurator in checkout) */}
         <Block
           icon="cart"
           title={`${cart.totals.activeQty} ${cart.totals.activeQty === 1 ? "item" : "items"}`}

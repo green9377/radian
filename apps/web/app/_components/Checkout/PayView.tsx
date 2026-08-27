@@ -11,21 +11,23 @@ import { formatTaka } from "../../_data/products";
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  টাকা দেওয়া শেষ করার পাতা — `/pay/{orderNo}`। DEC-WA-002, DEC-WA-003।
+  The finish-paying page — `/pay/{orderNo}`. DEC-WA-002, DEC-WA-003.
 
-  ⚠️ এই পাতাটার একটাই কাজ: **একটা বোতাম**। গ্রাহক ইতিমধ্যে একবার টাকা দিতে
-  গিয়ে ব্যর্থ হয়েছেন — তাঁকে দ্বিতীয়বার ফর্ম, ঠিকানা বা প্রশ্নের মুখে ফেললে
-  তিনি আর ফিরবেন না। তাই কোনো ঘর নেই, কোনো যাচাই নেই, শুধু "Pay"।
+  ⚠️ THIS PAGE HAS ONE JOB: ONE BUTTON. The customer has already tried to pay
+  once and failed. Put a form, an address or a question in front of them a
+  second time and they do not come back. So there are no fields, no
+  validation, just "Pay".
 
-  ⚠️ ব্যক্তিগত কিছু দেখানো হয় না — নাম নয়, ঠিকানা নয়, কী কিনেছেন তা-ও নয়।
-  শুধু order নম্বর আর বাকি টাকা। লিংকটা WhatsApp-এ যায়, আর WhatsApp-এর
-  বার্তা ভুল মানুষের হাতেও পড়তে পারে।
+  ⚠️ NOTHING PERSONAL IS SHOWN — not the name, not the address, not what they
+  bought. Only the order number and what is still owed. This link travels over
+  WhatsApp, and a WhatsApp message can end up in the wrong hands.
 
-  ⚠️ তিনটে অবস্থা আলাদা করে বলা হয়, কারণ তিনটেই ঘটে:
-     · টাকা এর মধ্যে এসে গেছে → "দেওয়া হয়ে গেছে", বোতাম নেই
-     · order বাতিল হয়েছে → বোতাম নেই
-     · COD → অনলাইনে দেওয়ার কিছু নেই, রাইডারকে দেবেন
-  এগুলো না বললে গ্রাহক বোতাম চেপে চেপে ভাববেন সাইট নষ্ট।
+  ⚠️ Three states are spelled out separately, because all three happen:
+     · the money has arrived in the meantime → "already paid", no button
+     · the order was cancelled → no button
+     · COD → there is nothing to pay online, pay the rider
+  Without saying so, the customer presses the button over and over and decides
+  the site is broken.
   ═══════════════════════════════════════════════════════════════════════════
 */
 

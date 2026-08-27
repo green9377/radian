@@ -9,15 +9,16 @@ import { Continue, QCard } from "./CheckoutFields";
 /*
   Q5 — Payment
 
-  ★ Gateway = SSLCommerz (locked) — তাই দুটোই option: Online Payment + COD।
-  Wallet-এর নাম (bKash/Nagad/Rocket) sub-line-এ, আলাদা card নয়: বাছাইটা
-  SSLCommerz-এর page-এই হবে, এখানে আবার করালে একই সিদ্ধান্ত দুবার।
+  ★ Gateway = SSLCommerz (locked), so there are two options: Online Payment
+  and COD. The wallet names (bKash / Nagad / Rocket) live in the sub-line, not
+  as cards of their own: that choice is made on SSLCommerz's own page, and
+  asking it here would be the same decision twice.
 
-  ★ COD (D26): gift order-এ নয় · prepaidOnly product থাকলে নয়।
-  Card লুকাই না — ধূসর করে **কারণ** লিখি।
+  ★ COD (D26): never on a gift order, never when a prepaidOnly product is in
+  the cart. The card is not hidden — it is greyed out and it says WHY.
 
-  ★ Promo code এখানে নেই — Order Summary-তে, total-এর ঠিক উপরে (locked)।
-  ছাড় যেখানে সংখ্যায় দেখা যায়, কোডও সেখানেই বসা উচিত।
+  ★ No promo code here — it lives in the Order Summary, directly above the
+  total (locked). The code belongs where the discount can be seen as a number.
 */
 
 export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) {
@@ -31,8 +32,8 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
   function onContinue() {
     s.patch({ payment: active });
     s.completeStep(5);
-    /* "One Last Look" card এইমাত্র mount হচ্ছে — render শেষ হওয়ার পরে scroll,
-       নইলে element এখনো DOM-এ নেই আর কিছুই হয় না */
+    /* The "One Last Look" card is mounting right now — scroll after the
+       render, or the element is not in the DOM yet and nothing happens. */
     setTimeout(
       () => document.getElementById("review")?.scrollIntoView({ behavior: "smooth" }),
       80,
@@ -62,9 +63,14 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
               type="button"
               disabled={!available}
               onClick={() => s.set("payment", method.id)}
-              className={`text-left rounded-[16px] border-[1.5px] p-4 transition-colors ${
+              /*  House rule 16 — which one is chosen has to read across the
+                  room. The live card takes the brand colour, a heavier border
+                  and a soft shadow; the others stay quiet. A 1.5px tint change
+                  was not enough to tell at a glance, on the one screen where
+                  picking the wrong thing costs money.  */
+              className={`text-left rounded-[16px] border-2 p-4 transition-all ${
                 on
-                  ? "border-orchid-mid bg-orchid-soft/50"
+                  ? "border-purple bg-orchid-soft shadow-[0_4px_14px_rgba(122,46,168,0.18)]"
                   : available
                     ? "border-lavender-deep bg-white hover:border-orchid-mid"
                     : "border-lavender-deep bg-lavender cursor-not-allowed"
@@ -73,21 +79,27 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
               <span className="flex items-center gap-2.5">
                 <span
                   className={`w-10 h-9 rounded-[10px] grid place-items-center text-[11px] font-semibold shrink-0 ${
-                    available
-                      ? "bg-white text-purple shadow-soft"
-                      : "bg-white/60 text-body-soft"
+                    on
+                      ? "bg-purple text-white shadow-soft"
+                      : available
+                        ? "bg-white text-purple shadow-soft"
+                        : "bg-white/60 text-body-soft"
                   }`}
                 >
                   {method.logo}
                 </span>
                 <span
-                  className={`text-[14px] font-semibold ${
-                    available ? "text-purple" : "text-body-soft"
+                  className={`text-[14.5px] ${
+                    on
+                      ? "font-bold text-purple"
+                      : available
+                        ? "font-semibold text-purple"
+                        : "font-semibold text-body-soft"
                   }`}
                 >
                   {method.label}
                 </span>
-                {on && <Icon name="check" className="w-4 h-4 ml-auto text-orchid" />}
+                {on && <Icon name="check" className="w-[18px] h-[18px] ml-auto text-purple" />}
               </span>
 
               <span
