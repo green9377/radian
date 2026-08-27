@@ -94,6 +94,7 @@ const GROUPS: Group[] = [
           { label: "All orders", href: "/orders/list" },
           { label: "Needs action", href: "/orders/action" },
           { label: "Payments", href: "/orders/payments" },
+          { label: "Online payments", href: "/orders/online-payments" },
           { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
           { label: "Recovery", href: "/orders/recovery" },
           { label: "Scheduled", href: "/orders/scheduled" },

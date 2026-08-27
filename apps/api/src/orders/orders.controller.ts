@@ -10,6 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { OnlinePaymentsService } from './online-payments.service';
 import { Roles } from '../auth/auth.guard';
 import type {
   CreateOrderDto,
@@ -23,7 +24,10 @@ import type {
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly svc: OrdersService) {}
+  constructor(
+    private readonly svc: OrdersService,
+    private readonly online: OnlinePaymentsService,
+  ) {}
 
   @Get()
   list(@Query() q: ListOrderQuery) {
@@ -43,6 +47,23 @@ export class OrdersController {
     return this.svc.saveSalesSettings(body);
   }
 
+  /*  ---- online payments: the reconcile board (DEC-FIN-029's other half) ----
+
+      ⚠️ ALSO BEFORE `:id`, same trap as cancel-rules above — otherwise
+      /orders/online-payments is read as an order whose id is the words
+      "online-payments".
+
+      Read-only. `PaymentSession` is written in shop/payment.ts and nowhere
+      else; Orders looks at it through the foreign key (house rule 4).  */
+  @Get('online-payments')
+  onlinePayments(
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.online.list({ status, q, take: take ? Number(take) : undefined });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);
@@ -50,6 +71,11 @@ export class OrdersController {
   @Get(':id/timeline')
   timeline(@Param('id') id: string) {
     return this.svc.timeline(id);
+  }
+  /** every trip this order made to the gateway — the door from the order */
+  @Get(':id/online-payments')
+  orderOnlinePayments(@Param('id') id: string) {
+    return this.online.forOrder(id);
   }
   @Post()
   create(@Body() dto: CreateOrderDto, @Headers('x-actor-name') actor?: string) {

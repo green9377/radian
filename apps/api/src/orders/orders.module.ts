@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { OnlinePaymentsService } from './online-payments.service';
 import { OrdersController } from './orders.controller';
 import { InventoryModule } from '../inventory/inventory.module';
 import { OffersModule } from '../offers/offers.module';
@@ -18,7 +19,7 @@ import { MerchModule } from '../products/merch';
  */
 @Module({
   imports: [InventoryModule, OffersModule, FinanceModule, CapacityModule, WhatsAppCloudModule, MessagingModule, MerchModule],
-  providers: [OrdersService],
+  providers: [OrdersService, OnlinePaymentsService],
   controllers: [OrdersController],
   exports: [OrdersService], // DeliveryModule drives transitions through this (DEC-DLV-006)
 })
