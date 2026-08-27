@@ -68,6 +68,20 @@ export class FinanceGatewayService {
       gatewayName: gateway.name,
       /** what the gateway still owes the shop, by our books */
       heldPaisa: gateway.balancePaisa,
+      /*  The arithmetic behind that one number, so the screen can show its
+          working instead of asking to be believed. All three come straight
+          from the ledger (FIN-RULE-008) — nothing is stored or recomputed.
+
+          `openingPaisa` matters on go-live day: the gateway is already holding
+          money from before this system existed. It is set ONCE, per account,
+          on Finance -> Money accounts (DEC-FIN-007), and frozen after the
+          opening entry posts. Not settable here on purpose — a second place to
+          type an opening balance is a second owner of one fact.  */
+      openingPaisa: gateway.openingBalancePaisa,
+      /** everything the gateway has taken in for us */
+      inPaisa: gateway.debitPaisa,
+      /** everything it has paid over to the bank */
+      outPaisa: gateway.creditPaisa,
       destinations,
       /** what the gateway has already paid over, newest first */
       recent: await this.recent(gateway.id),
