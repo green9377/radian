@@ -7,14 +7,18 @@ import { persist } from "zustand/middleware";
 import type { Order } from "../_data/order";
 
 /*
-  শেষ order-টা ধরে রাখে, যাতে /order-success page দেখাতে পারে।
+  Holds the last order so /order-success can show it.
 
-  ⚠️ কেন store, query param নয়:
-  URL-এ পুরো order বসানো যায় না, আর API এখনো নেই — তাই checkout যা
-  বানাল, সেটাই localStorage-এ রেখে success page পড়ে নেয়।
+  Why a store and not a query param: a whole order does not fit in a URL, so
+  checkout keeps what it built in localStorage and the success page reads it.
 
-  ⇄ SWAP HERE — Ecommerce lock হলে /order-success/[id] server থেকে
-  order fetch করবে, এই store-টা তখন শুধু "সদ্য কেনা" flag হয়ে থাকবে।
+  ⚠️ IT IS NOT THE SUCCESS PAGE'S ONLY SOURCE ANY MORE (27 Aug 2026). This is
+  ONE browser's memory of ONE order, and after a gateway payment the customer
+  can come back on a device that never held it — or one holding an older order
+  entirely, which is exactly what happened on demo. `OrderSuccessView` now
+  trusts this store only when its order number matches the `?id=` in the URL,
+  and asks the server otherwise. Read the note at the top of that file before
+  changing either side.
 */
 
 interface OrderStore {

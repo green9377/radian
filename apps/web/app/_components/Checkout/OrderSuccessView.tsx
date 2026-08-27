@@ -1,34 +1,100 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { formatTaka } from "../../_data/products";
+import { API_BASE } from "../../_data/shop";
 import { track } from "../../_data/tracking";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import Icon from "../Pdp/PdpIcons";
 import DeliveryTimeline from "./DeliveryTimeline";
 
 /*
-  /order-success — checkout যা বানাল, সেটাই দেখায়।
+  /order-success — shows what checkout just built.
 
-  ❌ "Create my account / set a password" CTA নেই (§11 retro-fix) —
-     Auth মডিউল আসার আগে password চাওয়া মানে এমন account বানানো যাতে
-     কেউ কখনো ঢুকতে পারবে না।
-  ❌ "Need Help" section নেই — D19।
+  ❌ No "Create my account / set a password" CTA (§11 retro-fix) — asking for
+     a password before the Auth module exists means creating an account
+     nobody can ever sign in to.
+  ❌ No "Need Help" section — D19.
 
-  ⇄ SWAP HERE — Ecommerce lock হলে /order-success/[id], order server থেকে।
+  Track this order → /track?id=RAD-XXXXX (delivery timeline).
 
-  Track this order → /track?id=RAD-XXXXX (delivery timeline)।
+  ═══════════════════════════════════════════════════════════════════════════
+  ⚠️ THE `?id=` IN THE URL DECIDES WHAT IS SHOWN. It did not, until 27 Aug
+  2026, and the money circle walk found what that cost.
+
+  This page used to render `useOrderStore.last` — whatever order THIS BROWSER
+  placed most recently — and ignore the URL completely. After paying at the
+  gateway the customer comes back to `/order-success?id=RAD-74146`, and the
+  page showed RAD-82739 with a different receipt: a real test, a real
+  mismatch. Three ways that hurts, worst last:
+
+    · the customer reads a number that is not their order, and a total that is
+      not what they paid, and concludes the shop is broken
+    · on a shared device it is the PREVIOUS person's order — their name, their
+      address, their receipt
+    · with nothing in local storage — a different device, cleared data, or
+      simply a browser that dropped it — `missing` fired and the customer who
+      had just paid was redirected to the homepage with no confirmation at all
+
+  So: the local receipt is shown only when it IS the order in the URL.
+  Otherwise the page asks the server about that order number and shows the
+  little it can prove.
+
+  ⚠️ AND IT SHOWS ONLY THE LITTLE IT CAN PROVE. A `?id=` is a guessable order
+  number in an address bar; it is not identity. The confirmed-from-server view
+  carries the order number and whether it is paid, and nothing else — no
+  receipt, no address, no name. The same reasoning that keeps /track to a
+  timeline: that number may be in the receiver's hand, and a surprise must not
+  spoil itself.
+  ═══════════════════════════════════════════════════════════════════════════
 */
+
+/** what the server will admit about an order to somebody holding its number */
+interface PaidCheck {
+  found: boolean;
+  orderNo?: string;
+  duePaisa?: number;
+  paid?: boolean;
+  cancelled?: boolean;
+}
 
 export default function OrderSuccessView() {
   const router = useRouter();
+  const params = useSearchParams();
   const hydrated = useOrderHydrated();
   const order = useOrderStore((s) => s.last);
 
-  const missing = hydrated && !order;
+  /*  Upper-cased because order numbers are, and a customer re-typing the link
+      by hand should not be told their order does not exist.  */
+  const wantedNo = (params.get("id") ?? "").trim().toUpperCase();
+
+  /*  The local receipt is only this order's receipt when the numbers agree.
+      With no `?id=` at all the page is being reached straight from checkout,
+      where the store IS the order — that path is unchanged.  */
+  const localIsTheOne = !!order && (!wantedNo || order.id.toUpperCase() === wantedNo);
+
+  const [remote, setRemote] = useState<PaidCheck | null>(null);
+  const needRemote = !!wantedNo && hydrated && !localIsTheOne;
+
+  useEffect(() => {
+    if (!needRemote) return;
+    let alive = true;
+    fetch(`${API_BASE}/shop/payment/due/${encodeURIComponent(wantedNo)}`)
+      .then((r) => r.json())
+      .then((d: PaidCheck) => { if (alive) setRemote(d); })
+      /*  Fail-soft: the money is already taken and the gateway has already
+          sent them here. A network hiccup must not turn into a blank page —
+          the fallback below still names their order.  */
+      .catch(() => { if (alive) setRemote({ found: false }); });
+    return () => { alive = false; };
+  }, [needRemote, wantedNo]);
+
+  /*  Only send them away when there is genuinely nothing to show: no order in
+      this browser AND no order number in the URL.  */
+  const missing = hydrated && !order && !wantedNo;
 
   useEffect(() => {
     if (missing) router.replace("/");
@@ -50,13 +116,92 @@ export default function OrderSuccessView() {
     });
   }, [order]);
 
-  if (!hydrated || !order) {
+  if (!hydrated || (!order && !wantedNo)) {
     return (
       <div className="min-h-[50vh] grid place-items-center">
         <span className="text-[13.5px] text-body-soft">Loading your order…</span>
       </div>
     );
   }
+
+  /*  Came back from the gateway on a device that does not hold this order —
+      or holds a different one. Confirm what the server will confirm, and say
+      nothing else.  */
+  if (!localIsTheOne) {
+    if (!remote) {
+      return (
+        <div className="min-h-[50vh] grid place-items-center">
+          <span className="text-[13.5px] text-body-soft">Checking your order…</span>
+        </div>
+      );
+    }
+    const paid = remote.found && remote.paid === true;
+    const cancelled = remote.found && remote.cancelled === true;
+    return (
+      <div className="py-12">
+        <div className="text-center max-w-[560px] mx-auto">
+          <span
+            className={`w-16 h-16 rounded-full grid place-items-center mx-auto ${
+              paid ? "bg-[#E8F9EE] text-[#0E7A3D]" : "bg-lavender text-purple"
+            }`}
+          >
+            <Icon name={paid ? "check" : "truck"} className="w-7 h-7" />
+          </span>
+
+          <h1 className="font-display text-[30px] sm:text-[36px] text-purple font-semibold mt-5">
+            {cancelled
+              ? "This Order Was Cancelled"
+              : paid
+                ? "Payment Received"
+                : "Your Order Is Placed"}
+          </h1>
+
+          <p className="text-[14.5px] text-body mt-3">
+            {cancelled
+              ? "Nothing more is owed on it."
+              : paid
+                ? "Thank you — we have your payment and your order is with our studio."
+                : remote.found
+                  ? "We have your order. The payment has not reached us yet."
+                  : "We could not find that order number. If money left your account, keep this page and contact us."}
+          </p>
+
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 mt-5">
+            <span className="rounded-full bg-white border-[1.5px] border-lavender-deep px-4 py-2 text-[13px] font-semibold text-purple">
+              Order {remote.orderNo ?? wantedNo}
+            </span>
+            {paid && (
+              <span className="rounded-full bg-[#E8F9EE] px-4 py-2 text-[13px] font-semibold text-[#0E7A3D]">
+                Paid
+              </span>
+            )}
+          </div>
+
+          {/*  ⚠️ No receipt here, deliberately — see the note at the top. An
+               order number in an address bar is not proof of who is holding
+               it. The timeline behind Track asks for the phone as well.  */}
+          <div className="flex flex-col sm:flex-row gap-2.5 justify-center mt-8">
+            <Link
+              href={`/track?id=${encodeURIComponent(remote.orderNo ?? wantedNo)}`}
+              className="h-[50px] px-6 inline-flex items-center justify-center gap-2 bg-purple text-white rounded-[16px] font-semibold text-[14.5px] hover:bg-purple-deep transition-colors"
+            >
+              <Icon name="truck" className="w-[18px] h-[18px]" />
+              Track this order
+            </Link>
+            <Link
+              href="/"
+              className="h-[50px] px-6 inline-flex items-center justify-center gap-2 bg-white border-[1.5px] border-lavender-deep text-purple rounded-[16px] font-semibold text-[14.5px] hover:border-orchid transition-colors"
+            >
+              Continue shopping
+              <Icon name="chev" className="w-4 h-4 -rotate-90" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) return null;
 
   const placedAt = new Date(order.placedAt).toLocaleString("en-GB", {
     timeZone: "Asia/Dhaka",
