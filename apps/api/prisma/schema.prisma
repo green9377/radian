@@ -5658,6 +5658,22 @@ model FinanceSetting {
 
   riderCashLimitPaisa Int @default(0) // 0 = off; warn above this in 1110
 
+  /// DEC-FIN-029/030 — the gateway's own terms, which are SSLCommerz's to
+  /// change and therefore ours to edit, never to hardcode (house rule 7).
+  ///
+  /// `gatewayPayoutMinPaisa` — they hold the money until this much has built
+  /// up. Read from the merchant panel on 26 Aug 2026: Tk 2,500. Used only to
+  /// explain a quiet week on the gateway screen; it blocks nothing.
+  gatewayPayoutMinPaisa Int @default(250000)
+  /// `gatewayFeeRateBps` — what we EXPECT them to keep (250 = 2.5%).
+  ///
+  /// ⚠️ THIS NUMBER NEVER COMPUTES MONEY. The charge booked on a payment is
+  /// always the gateway's own answer (`store_amount`), because a rate typed
+  /// here goes stale the day the contract is renegotiated and nobody would
+  /// see it happen. This is a WATCHDOG: when the gateway keeps more than this
+  /// rate predicts, the payment is flagged for a human. 0 = watch nothing.
+  gatewayFeeRateBps Int @default(250)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -5154,6 +5154,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 export async function apiGet<T>(path: string): Promise<T> {
   return j<T>(path);
 }
+/** the PATCH twin of apiPost — settings screens edit, they do not create */
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return j<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+}
 
 /* ==================== DRIFT — do the books still match the shop? (G1) ==================== */
 

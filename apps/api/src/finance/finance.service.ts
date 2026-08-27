@@ -346,6 +346,14 @@ export class FinanceService {
     if (dto.signatoryName !== undefined) data.signatoryName = dto.signatoryName;
     if (dto.signatoryDesignation !== undefined) data.signatoryDesignation = dto.signatoryDesignation;
     if (dto.riderCashLimitPaisa !== undefined) data.riderCashLimitPaisa = dto.riderCashLimitPaisa;
+    /*  DEC-FIN-029/030 — clamped, because both are read straight onto a screen
+        and a negative threshold or a 900% rate would make the gateway page
+        talk nonsense rather than fail loudly.  */
+    const gw = data as unknown as Record<string, number>;
+    if (dto.gatewayPayoutMinPaisa !== undefined)
+      gw.gatewayPayoutMinPaisa = Math.max(0, Math.round(dto.gatewayPayoutMinPaisa));
+    if (dto.gatewayFeeRateBps !== undefined)
+      gw.gatewayFeeRateBps = Math.min(10_000, Math.max(0, Math.round(dto.gatewayFeeRateBps)));
 
     const row = await this.prisma.db.financeSetting.update({ where: { id: 'singleton' }, data });
     await this.audit.record({

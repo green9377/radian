@@ -37,6 +37,11 @@ export interface SettingsWriteDto {
   signatoryName?: string | null;
   signatoryDesignation?: string | null;
   riderCashLimitPaisa?: number;
+  /* DEC-FIN-029/030 — the gateway's terms, editable because they are the
+     gateway's to change (house rule 7). The rate only WATCHES; the charge
+     booked on a payment is always the gateway's own figure. */
+  gatewayPayoutMinPaisa?: number;
+  gatewayFeeRateBps?: number;
 }
 
 export interface ReconcileDto {

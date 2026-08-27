@@ -71,16 +71,104 @@ export class FinanceGatewayService {
       destinations,
       /** what the gateway has already paid over, newest first */
       recent: await this.recent(gateway.id),
-      /*  The shop's own settlement terms, so the screen can say WHY nothing
-          has arrived yet instead of looking broken on a quiet week. Read from
-          the merchant panel, not guessed — but they are SSLCommerz's terms and
-          SSLCommerz can change them, so they are shown as a note, never used
-          to block anything.  */
-      terms: {
-        minimumPaisa: 250_000, // Tk 2,500
-        note: 'SSLCommerz pays out once at least Tk 2,500 has built up, and not on bank holidays.',
-      },
+      /*  The gateway's own settlement terms, so the screen can say WHY nothing
+          has arrived yet instead of looking broken on a quiet week.
+
+          ⚠️ Read from FinanceSetting, not from this file. They were written
+          here as constants for about an hour on 26 Aug and the owner caught
+          it: they are SSLCommerz's terms, SSLCommerz can renegotiate them, and
+          house rule 7 says a business number never lives in code.  */
+      terms: await this.terms(),
+      /*  Payments where the gateway kept MORE than the expected rate predicts
+          (DEC-FIN-029's watchdog). Never a refusal — the gateway's own figure
+          is still what gets booked; this is a list for a human to look at.  */
+      overcharged: await this.overcharged(),
     };
+  }
+
+  /** the gateway's terms as the owner has them recorded */
+  private async terms() {
+    /*  Cast until the local Prisma client is regenerated (BUILD_CHECK.bat does
+        it on the host) — the same shape checkout.ts uses for deliveryBlackout.
+        The ?? defaults are not a second source of truth: they are what the
+        columns default to, and they only apply before the migration lands.  */
+    const s = (await this.finance.settings()) as unknown as {
+      gatewayPayoutMinPaisa?: number;
+      gatewayFeeRateBps?: number;
+    } | null;
+    const minimumPaisa = s?.gatewayPayoutMinPaisa ?? 250_000;
+    const rateBps = s?.gatewayFeeRateBps ?? 250;
+    return {
+      minimumPaisa,
+      rateBps,
+      note:
+        `The gateway pays out once at least ${(minimumPaisa / 100).toLocaleString()} taka ` +
+        'has built up, and not on bank holidays.',
+    };
+  }
+
+  /**
+   * The watchdog (owner's ruling, 26 Aug): keep the expected rate, but let it
+   * WATCH rather than calculate.
+   *
+   * ⚠️ Why this is not used to work the charge out. A rate typed into a
+   * settings box is right on the day it is typed and silently wrong the day
+   * the contract changes — and a wrong fee on every order poisons profit
+   * without ever looking wrong. So the money always comes from the gateway's
+   * own answer, and the rate only asks "did they keep more than we agreed?".
+   *
+   * A rounding paisa or two is not a discrepancy, so the comparison allows a
+   * small margin before it says anything.
+   */
+  private async overcharged() {
+    const { rateBps } = await this.terms();
+    if (rateBps <= 0) return [];
+
+    /*  Cast on both ends until the client is regenerated: `feePaisa` is new,
+        and the include's `order` is invisible to a client that predates it.  */
+    const rows = (await this.prisma.db.paymentTransaction.findMany({
+      where: {
+        deletedAt: null,
+        method: 'online',
+        NOT: { feePaisa: null },
+      } as unknown as Record<string, unknown>,
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: { order: { select: { orderNo: true } } },
+    })) as unknown as {
+      id: string;
+      createdAt: Date;
+      amountPaisa: number;
+      feePaisa: number | null;
+      order: { orderNo: string } | null;
+    }[];
+
+    const out: {
+      id: string;
+      orderNo: string | null;
+      createdAt: Date;
+      amountPaisa: number;
+      feePaisa: number;
+      expectedPaisa: number;
+    }[] = [];
+
+    for (const r of rows) {
+      const fee = r.feePaisa ?? 0;
+      const expected = Math.round((r.amountPaisa * rateBps) / 10_000);
+      /*  Two paisa of slack: the gateway rounds its own way and a one-paisa
+          difference is arithmetic, not a charge worth a person's attention.  */
+      if (fee > expected + 2) {
+        out.push({
+          id: r.id,
+          orderNo: r.order?.orderNo ?? null,
+          createdAt: r.createdAt,
+          amountPaisa: r.amountPaisa,
+          feePaisa: fee,
+          expectedPaisa: expected,
+        });
+      }
+    }
+    return out.slice(0, 20);
   }
 
   private async recent(gatewayAccountId: string) {

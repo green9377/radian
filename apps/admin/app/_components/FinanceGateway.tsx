@@ -19,7 +19,7 @@
 */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiFinanceAccount, apiGet, apiPost } from "../_data/api";
+import { ApiFinanceAccount, apiGet, apiPatch, apiPost } from "../_data/api";
 import { Info } from "./ItemEditor";
 import {
   Banner, Chip, FinHeader, Flash, Kpi, Lbl, Panel, Table, Td, Th, WRAP,
@@ -36,13 +36,22 @@ interface Payout {
   note: string | null;
   actorName: string;
 }
+interface Overcharge {
+  id: string;
+  orderNo: string | null;
+  createdAt: string;
+  amountPaisa: number;
+  feePaisa: number;
+  expectedPaisa: number;
+}
 interface GatewaySummary {
   gatewayAccountId: string;
   gatewayName: string;
   heldPaisa: number;
   destinations: Destination[];
   recent: Payout[];
-  terms: { minimumPaisa: number; note: string };
+  terms: { minimumPaisa: number; rateBps: number; note: string };
+  overcharged: Overcharge[];
 }
 
 const HELD_INFO =
@@ -59,19 +68,35 @@ const PAYOUT_INFO =
   "nothing is deducted again here.";
 
 const THRESHOLD_INFO =
-  "SSLCommerz only pays out once at least Tk 2,500 has built up, and not on " +
-  "bank holidays. Below that the money is not late — it is simply waiting.";
+  "The gateway only pays out once this much has built up, and not on bank " +
+  "holidays. Below it the money is not late — it is simply waiting. Both " +
+  "numbers are SSLCommerz's terms, so change them here whenever the contract " +
+  "changes.";
+
+const RATE_INFO =
+  "This rate never works out what you are charged — the charge booked on " +
+  "every payment is the gateway's own figure, taken from its answer at the " +
+  "moment the money settles. The rate only WATCHES: if the gateway ever keeps " +
+  "more than it predicts, that payment is listed below for you to look at. " +
+  "Set it to 0 to watch nothing.";
 
 export function GatewaySettlementLive() {
   const [data, setData] = useState<GatewaySummary | null>(null);
   const [ok, setOk] = useState("");
   const [err, setErr] = useState("");
   const [f, setF] = useState({ toAccountId: "", amount: "", settledOn: todayStr(), note: "" });
+  /*  The gateway's terms, held as text while they are being typed so a
+      half-deleted "2.5" does not snap back to a number mid-keystroke.  */
+  const [t, setT] = useState({ minimum: "", rate: "" });
 
   const load = useCallback(async () => {
     try {
       const d = await apiGet<GatewaySummary>("/finance/gateway");
       setData(d);
+      setT({
+        minimum: String(d.terms.minimumPaisa / 100),
+        rate: String(d.terms.rateBps / 100),
+      });
       /*  Default to the bank, since that is where a gateway settles — but only
           as a first guess; the owner can have several and the field stays open
           (DEC-GBL-006, "ask only when there is a choice").  */
@@ -132,6 +157,37 @@ export function GatewaySettlementLive() {
           {taka(held)} is sitting at the gateway. It is sent once it passes{" "}
           {taka(data?.terms.minimumPaisa ?? 0)}.
         </Banner>
+      )}
+
+      {/*  DEC-FIN-029's watchdog. It never blocks and never re-books anything —
+           the gateway's own figure is still what is in the ledger. This is a
+           list for a human, which is the only thing that can act on it.  */}
+      {(data?.overcharged.length ?? 0) > 0 && (
+        <Panel title="The gateway kept more than expected" emoji="⚠" tone="rose" className="mb-5">
+          <Table
+            head={
+              <>
+                <Th w="130px">Order</Th>
+                <Th w="120px">Date</Th>
+                <Th right>Customer paid</Th>
+                <Th right>Expected cut</Th>
+                <Th right w="140px">Actually kept</Th>
+              </>
+            }
+          >
+            {data?.overcharged.map((o) => (
+              <tr key={o.id}>
+                <Td><span className="font-semibold text-purple">{o.orderNo ?? "—"}</span></Td>
+                <Td><span className="text-body-soft">{String(o.createdAt).slice(0, 10)}</span></Td>
+                <Td right>{taka(o.amountPaisa)}</Td>
+                <Td right><span className="text-body-soft">{taka(o.expectedPaisa)}</span></Td>
+                <Td right>
+                  <span className="font-bold" style={{ color: "#c2185b" }}>{taka(o.feePaisa)}</span>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </Panel>
       )}
 
       <Panel title="Record a payout" emoji="🏦" tone="emerald" className="mb-5">
@@ -223,6 +279,63 @@ export function GatewaySettlementLive() {
               books and that is worth finding before this is recorded.
             </div>
           )}
+        </div>
+      </Panel>
+
+      {/*  Rule 7 — these are SSLCommerz's terms, not ours, so they live in a
+           box the owner can reach rather than in the code. They sat in the
+           service as constants for about an hour and he caught it.  */}
+      <Panel title="The gateway's terms" emoji="📏" tone="brand" className="mb-5">
+        <div className="px-5 py-4">
+          <div className="grid md:grid-cols-4 gap-3 items-end">
+            <div>
+              <span className="flex items-center gap-1">
+                <Lbl>Pays out above (৳)</Lbl>
+                <Info text={THRESHOLD_INFO} />
+              </span>
+              <input
+                className={input}
+                value={t.minimum}
+                onChange={(e) => setT({ ...t, minimum: e.target.value })}
+              />
+            </div>
+            <div>
+              <span className="flex items-center gap-1">
+                <Lbl>Expected cut (%)</Lbl>
+                <Info text={RATE_INFO} />
+              </span>
+              <input
+                className={input}
+                value={t.rate}
+                onChange={(e) => setT({ ...t, rate: e.target.value })}
+              />
+            </div>
+            <div>
+              <button
+                className={btnPrimary}
+                style={btnPrimaryStyle}
+                onClick={async () => {
+                  try {
+                    await apiPatch("/finance/settings", {
+                      gatewayPayoutMinPaisa: toPaisa(t.minimum),
+                      /*  Percent on the screen, basis points in the database —
+                          2.5% is 250, so the stored number never carries a
+                          fraction and cannot drift by rounding.  */
+                      gatewayFeeRateBps: Math.round(Number(t.rate || "0") * 100),
+                    });
+                    await load();
+                    setErr("");
+                    setOk("Terms saved");
+                    window.setTimeout(() => setOk(""), 4000);
+                  } catch (e) {
+                    setErr(e instanceof Error ? e.message : "Could not save");
+                  }
+                }}
+              >
+                Save terms
+              </button>
+            </div>
+          </div>
         </div>
       </Panel>
 
