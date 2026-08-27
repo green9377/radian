@@ -6,6 +6,72 @@
 
 ---
 
+## 💳 THE MONEY CIRCLE WORKS — and it never had before (27 Aug)
+
+Walked end to end on demo. **Online payment had NEVER completed on this
+system**: 7 attempts existed, 6 stuck at "went to pay", 1 refused, 0 paid.
+Not one of them was the customer changing their mind.
+
+**Three faults, found in this order. None of them was in the business logic.**
+
+**1. `PUBLIC_API_URL` pointed at a host that does not exist.** Render had
+`radian-api.onrender.com`; the service is `radian-api-qnt6.onrender.com`. So
+SSLCommerz was told to send both the customer's browser AND the server-to-server
+IPN to a dead address. The customer saw "Not Found"; the IPN vanished; the
+session sat INITIATED for ever. **Money taken, nothing recorded.** On the real
+shop that is every card payment. Fixed in Render (owner).
+
+⚠️ CLAUDE.md §2 has carried a warning about this exact wrong hostname since
+23 Aug — and nobody thought to check the env against it. A note is not a check.
+
+**2. CORS turned a paid order into a 500.** With the address fixed, the browser
+reached us and got `Internal server error`. SSLCommerz returns the customer by
+cross-origin FORM POST, which carries `Origin: sandbox.sslcommerz.com`; that is
+not on our allowlist, so the cors middleware threw before the handler ran. The
+check was never protecting anything there — CORS is a browser rule for scripted
+requests, not for a top-level navigation. `/shop/payment/` is exempt now;
+everything else keeps the strict list. An unknown origin no longer throws at
+all — it gets a response with no CORS headers, which is the same protection
+without dressing a policy decision as a crash. (`main.ts`, commit 7e1ef71.)
+
+**3. The success page ignored the order number in the URL.** It rendered
+`useOrderStore.last` — whatever THIS BROWSER placed last — so after paying,
+`?id=RAD-74146` displayed RAD-82739 and a stranger's receipt. On a shared
+device that is the previous customer's name and address. And with nothing in
+local storage the customer who had just paid was redirected to the homepage
+with no confirmation at all. Now the local receipt shows only when its number
+matches the URL; otherwise the server is asked and only what it can prove is
+shown — order number and paid/unpaid, no receipt. (`OrderSuccessView.tsx`,
+commit d9a5e9e.)
+
+**Verified live, RAD-86328 and RAD-74146:**
+
+| step | result |
+|---|---|
+| order → gateway session | ✅ |
+| IPN came back | ✅ **first time ever** |
+| money on the order | ✅ due ৳0, paid |
+| Online payments board | ✅ "Paid", VISA-Dutch Bangla |
+| Gateway money account | ✅ +৳4,913.30 |
+| Gateway fee expense | ✅ ৳125.98 — **exactly 2.5%** |
+| customer's own screen | ✅ "Payment Received · RAD-74146 · Paid" |
+
+DEC-FIN-029 behaved in the wild exactly as written: the customer paid
+৳5,039.28, SSLCommerz kept ৳125.98, ৳4,913.30 landed in the gateway account —
+taken from the gateway's own answer, not from a rate in code.
+
+### 🚨 BEFORE GOING REAL — check all three addresses
+
+`PUBLIC_API_URL` · `PUBLIC_WEB_URL` · `PUBLIC_ADMIN_URL`. Two of the three were
+wrong here and nothing looked broken until money moved. Open one order end to
+end on the real store before announcing it.
+
+⚠️ **Render free build minutes ran out on 27 Aug.** New API code cannot deploy
+until the billing period resets; Vercel (admin, web) is unaffected, and env
+changes work via **Save and deploy** (not "Save, rebuild, and deploy").
+
+---
+
 ## 🟢 PHASE 5 OPEN — Checkout & Payment (26 Aug)
 
 Direction: `RADIAN_PHASE5_DIRECTION.md`. The owner's six rulings, asked and
@@ -29,7 +95,7 @@ payable, matching the panel's own Unsettled Payable to the paisa.
 | 7 | DEC-PRD-060 — prepaid-only notice on the PDP | pending |
 | 8 | Checkout UI sweep (rules 16/17) + translate its Bangla comments | pending |
 | 9 | Order edit money UI onto MoneyBlock (deferred from 21 Aug) | pending |
-| 10 | Walk the whole money circle live on demo, then hand over | pending |
+| 10 | Walk the whole money circle live on demo | **done 27 Aug** — three faults found and fixed, see above |
 
 ⚠️ **The Checkout folder and `payment.ts` still carry ~164 lines of old Bangla
 comments** (house rule 9). Every file touched in items 3–9 gets its comments
