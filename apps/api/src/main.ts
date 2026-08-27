@@ -1,31 +1,63 @@
 import { NestFactory } from '@nestjs/core';
+import type { Request } from 'express';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 /*  One list of our own addresses, shared with the cache ping — see the note in
     that file for why it stopped being two.  */
 import { corsOrigins } from './common/web-origins';
 
-// BigInt (Customer.ltvPaisa) JSON-serialize safety net — নইলে response throw করে।
-// (service response-এ ltvPaisa Number-এ map করা হয়; এটা fallback।)
+// BigInt (Customer.ltvPaisa) JSON-serialize safety net - without it the
+// response throws. (Services map ltvPaisa to Number; this is the fallback.)
 (BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
   return this.toString();
 };
 
-/*  কোন কোন সাইট ব্রাউজার থেকে এই API ডাকতে পারবে।
+/*  WHICH SITES MAY CALL THIS API FROM A BROWSER.
 
-    আগে এখানে খালি `app.enableCors()` ছিল — মানে পৃথিবীর যেকোনো ওয়েবসাইট
-    ভিজিটরের ব্রাউজার দিয়ে আমাদের API-তে কল করতে পারত। লোকালে ওটা নিরীহ,
-    ইন্টারনেটে নয়।
+    This used to be a bare `app.enableCors()` — meaning any website on earth
+    could call our API through a visitor's browser. Harmless locally, not on
+    the internet.
 
-    এখন তালিকা তিন জায়গা থেকে আসে:
-      • PUBLIC_WEB_URL   — গ্রাহকের দোকান (apps/web)
-      • PUBLIC_ADMIN_URL — admin panel (apps/admin)
-      • CORS_ORIGINS     — বাড়তি কিছু লাগলে, কমা দিয়ে আলাদা করা
-    এর সাথে লোকাল dev-এর :3000 আর :3001 সবসময় খোলা।
+    The list comes from three places:
+      • PUBLIC_WEB_URL   — the customer's shop (apps/web)
+      • PUBLIC_ADMIN_URL — the admin panel (apps/admin)
+      • CORS_ORIGINS     — anything extra, comma-separated
+    Local dev's :3000 and :3001 are always open on top of those.
 
-    ⚠️ Production-এ এগুলোর একটাও সেট না থাকলে API চালু হবে কিন্তু admin/web
-    ফাঁকা দেখাবে। তাই boot-এর সময় তালিকাটা log-এ ছাপা হয় — deploy-এর পরে
-    log-এ "[CORS] allowed:" লাইনটা মিলিয়ে দেখুন।  */
+    ⚠️ If none of them is set in production the API still boots, but admin and
+    web come back empty. So the list is printed at boot — after a deploy, check
+    the "[CORS] allowed:" line in the log.  */
+
+/*
+  ═══════════════════════════════════════════════════════════════════════════
+  ⚠️ THE PAYMENT GATEWAY'S OWN LANDING ROUTES ARE NOT SUBJECT TO THIS LIST.
+
+  Found on 27 Aug 2026, walking the money circle on demo. The customer paid,
+  the money was recorded correctly — and the screen said
+  "Internal server error". A shopper reading that has been charged and told it
+  failed, so they call, or they pay a second time.
+
+  What happens: after payment SSLCommerz sends the customer's browser back to
+  `success_url` as a FORM POST, and a cross-origin form POST carries
+  `Origin: https://sandbox.sslcommerz.com`. That origin is not on our list, so
+  the cors middleware threw, and the throw became a 500 before the handler ever
+  ran.
+
+  ⚠️ AND THE CHECK WAS NEVER PROTECTING ANYTHING HERE. CORS is a rule the
+  BROWSER enforces on scripted requests; it does not stop a top-level
+  navigation, which is exactly what this is. Rejecting it bought no safety and
+  cost the customer their confirmation page.
+
+  What actually protects these routes is in `shop/payment.ts`: nothing is
+  marked paid from what the browser carries. We call SSLCommerz back with the
+  `val_id`, over our own connection, and only their answer moves money. That is
+  the fence, and it is untouched.
+
+  Kept as narrow as it can be: this exemption is for `/shop/payment/` and
+  nothing else. Every other route keeps the strict allowlist.
+  ═══════════════════════════════════════════════════════════════════════════
+*/
+const GATEWAY_CALLBACK_PREFIX = '/shop/payment/';
 
 async function bootstrap() {
   /*
@@ -38,21 +70,30 @@ async function bootstrap() {
   const allowed = corsOrigins();
   const isProd = process.env.NODE_ENV === 'production';
 
-  app.enableCors({
-    origin: (origin, cb) => {
-      // Origin header নেই মানে ব্রাউজার নয় — server-to-server, curl, webhook
-      // (SSLCommerz-এর IPN এভাবেই আসে)। CORS তাদের জন্য নয়, তাই পাস।
-      if (!origin) return cb(null, true);
-      if (allowed.includes(origin.replace(/\/+$/, ''))) return cb(null, true);
+  /*  The (req, cb) form rather than a plain options object — it is the only
+      one that can see the PATH, and the exemption above is decided by path.  */
+  app.enableCors((req: Request, cb) => {
+    const origin = req.headers.origin;
+    const path = req.path ?? '';
 
-      // dev-এ শুধু সতর্ক করি, কাজ থামাই না। production-এ সত্যিই আটকাই।
-      if (!isProd) {
-        console.warn(`[CORS] unknown origin allowed (dev only): ${origin}`);
-        return cb(null, true);
-      }
-      return cb(new Error(`[CORS] blocked: ${origin}`), false);
-    },
-    credentials: true,
+    const ok = (allow: boolean) => cb(null, { origin: allow, credentials: true });
+
+    // No Origin header means it is not a browser — server-to-server, curl, a
+    // webhook (SSLCommerz's IPN arrives this way). CORS is not for them.
+    if (!origin) return ok(true);
+
+    // The gateway's landing routes — see the long note above.
+    if (path.startsWith(GATEWAY_CALLBACK_PREFIX)) return ok(true);
+
+    if (allowed.includes(origin.replace(/\/+$/, ''))) return ok(true);
+
+    // In dev warn but keep working; in production actually refuse.
+    if (!isProd) {
+      console.warn(`[CORS] unknown origin allowed (dev only): ${origin}`);
+      return ok(true);
+    }
+    console.warn(`[CORS] blocked: ${origin} (${path})`);
+    return ok(false);
   });
 
   console.log(`[CORS] allowed: ${allowed.join(', ')}`);
@@ -61,9 +102,9 @@ async function bootstrap() {
       error" — see prisma-exception.filter.ts (owner, 20 Aug).  */
   app.useGlobalFilters(new PrismaExceptionFilter());
 
-  // ⚠️ Render/Railway নিজেরাই PORT ঢুকিয়ে দেয় — হাতে PORT সেট করলে তারা app
-  // খুঁজে পায় না ("Application failed to respond")। আর '0.0.0.0' না দিলে
-  // container-এর বাইরে থেকে আসা request শোনা যায় না।
+  // ⚠️ Render/Railway inject PORT themselves - setting it by hand means they
+  // cannot find the app ("Application failed to respond"). And without
+  // '0.0.0.0' requests from outside the container are never heard.
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
   console.log(
