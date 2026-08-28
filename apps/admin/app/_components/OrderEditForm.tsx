@@ -8,6 +8,7 @@ import { TONE, Panel, type Tone } from "./OrderViews";
 import ProductPicker from "./ProductPicker";
 import Icon from "./Icon";
 import { TakaInput } from "./MoneyBlock";
+import { Info } from "./ItemEditor";
 import QtyStepper from "./QtyStepper";
 
 /*
@@ -222,8 +223,11 @@ export default function OrderEditForm({ id }: { id: string }) {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Link href={`/orders/${o.id}`} className="border border-lavender-deep bg-white text-body-soft hover:text-purple w-[40px] h-[40px] rounded-[12px] grid place-items-center shrink-0"><Icon name="chevronLeft" size={20} /></Link>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-[24px] text-purple m-0 leading-none">Edit order {o.orderNo ?? ""}</h1>
-          <p className="text-body-soft text-[13px] m-0 mt-1">Items, charges, delivery and notes — the price updates on the right as you go.</p>
+          {/*  House rule 17 — the header paragraph rides behind the ⓘ.  */}
+          <h1 className="font-display text-[24px] text-purple m-0 leading-none inline-flex items-center gap-2">
+            Edit order {o.orderNo ?? ""}
+            <Info text="Change items, charges, delivery and notes. The price on the right updates as you go, and nothing is committed until you press Save changes." />
+          </h1>
         </div>
         <Link href={`/orders/${o.id}`} className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[12px] font-medium hover:text-purple text-body-soft">Cancel</Link>
         <button type="button" disabled={saving} onClick={save} className="bg-purple hover:bg-purple-deep disabled:opacity-50 text-white text-[13.5px] px-5 py-2.5 rounded-[12px] font-medium inline-flex items-center gap-2 shadow-soft">
@@ -448,6 +452,47 @@ export default function OrderEditForm({ id }: { id: string }) {
               <h3 className="font-display text-[15px] m-0" style={{ color: TONE.purple.text }}>Order summary</h3>
             </div>
             <div className="p-5">
+              {/*
+                ⚠️ THE GRAND TOTAL SITS ON TOP AND IS THE BIGGEST THING HERE —
+                house rule 14, the shape the owner picked himself (option D).
+
+                It used to sit at the BOTTOM, the same size as the rows above
+                it, after a stack of six lines. On a screen whose whole purpose
+                is "what does this order cost now", the answer was the hardest
+                thing on it to find. This is the cosmetic pass deferred from
+                21 Aug — the arithmetic behind it never changed, and it is the
+                same figure it always was.
+
+                MoneyBlock itself is NOT used here, deliberately. This screen
+                has per-line discounts, which that component does not do, and
+                bending one to fit the other would break both. What is shared
+                is the SHAPE: total loudest, its working small underneath.
+              */}
+              <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: TONE.purple.bg }}>
+                <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: TONE.purple.text, opacity: 0.75 }}>
+                  Order total
+                </div>
+                <div
+                  className="font-semibold font-display text-[34px] leading-[1.2]"
+                  style={{ color: TONE.purple.text, fontVariantNumeric: "tabular-nums" }}
+                >
+                  {formatTaka(total)}
+                </div>
+                <div className="text-[11px]" style={{ color: TONE.purple.text, opacity: 0.7, fontVariantNumeric: "tabular-nums" }}>
+                  {formatTaka(subtotal)}
+                  {lineDiscTotal > 0 && <span> − {formatTaka(lineDiscTotal)}</span>}
+                  {o.discountPaisa > 0 && <span> − {formatTaka(o.discountPaisa)}</span>}
+                  {chargeTotal !== 0 && (
+                    <span> {chargeTotal < 0 ? "−" : "+"} {formatTaka(Math.abs(chargeTotal))}</span>
+                  )}
+                  {deliveryPaisa > 0 && <span> + {formatTaka(deliveryPaisa)}</span>}
+                </div>
+              </div>
+
+              {/*  The lines that make it up, now that the answer is already
+                   given. They stay because a bill has to be checkable — but
+                   they no longer compete with it.  */}
+              <div className="mt-3">
               <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Sub-total</span><span>{formatTaka(subtotal)}</span></div>
               {lineDiscTotal > 0 && <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Line discounts</span><span style={{ color: TONE.green.text }}>− {formatTaka(lineDiscTotal)}</span></div>}
               {o.discountPaisa > 0 && <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Coupon {o.couponCode}</span><span>− {formatTaka(o.discountPaisa)}</span></div>}
@@ -455,12 +500,8 @@ export default function OrderEditForm({ id }: { id: string }) {
                 <div key={c.key} className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft truncate">{c.label || "Charge"}</span><span>{c.paisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(c.paisa))}</span></div>
               ))}
               <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Delivery</span><span>{formatTaka(deliveryPaisa)}</span></div>
-
-              <div className="flex justify-between items-baseline py-2.5 mt-1 border-t" style={{ borderColor: TONE.purple.border }}>
-                <span className="text-purple font-medium">Total</span>
-                <span className="font-display text-[24px] text-purple leading-none">{formatTaka(total)}</span>
+              <div className="flex justify-between py-1 text-[13.5px] border-t mt-1 pt-2" style={{ borderColor: TONE.purple.border }}><span className="text-body-soft">Already paid</span><span>{formatTaka(paidNet)}</span></div>
               </div>
-              <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Already paid</span><span>{formatTaka(paidNet)}</span></div>
               {due > 0 && (
                 <div className="flex justify-between py-2 px-3 mt-1 rounded-[10px]" style={{ background: TONE.gold.bg }}>
                   <span className="font-medium" style={{ color: TONE.gold.text }}>{o.payment.method === "cod" ? "Collect on delivery" : "To charge"}</span>
@@ -481,11 +522,19 @@ export default function OrderEditForm({ id }: { id: string }) {
                 </div>
               )}
 
-              <button type="button" disabled={saving} onClick={save} className="w-full mt-4 bg-purple hover:bg-purple-deep disabled:opacity-50 text-white text-[14px] py-3 rounded-[12px] font-medium inline-flex items-center justify-center gap-2 shadow-soft">
+              {/*  House rule 16 — the button that commits money is bold and
+                   says what it does.  */}
+              <button type="button" disabled={saving} onClick={save} className="w-full mt-4 bg-purple hover:bg-purple-deep disabled:opacity-50 text-white text-[14.5px] py-3.5 rounded-[12px] font-bold inline-flex items-center justify-center gap-2 shadow-soft">
                 <Icon name="check" size={17} /> {saving ? "Saving…" : "Save changes"}
               </button>
               <Link href={`/orders/${o.id}`} className="block text-center text-[13px] text-body-soft mt-2 hover:text-purple">Cancel without saving</Link>
-              <p className="text-[13px] text-body-soft mt-3 mb-0">Items lock once preparing starts (stock committed). Discounts and charges stay open until the order closes — every change is written to the activity log.</p>
+              {/*  House rule 17 — the paragraph that used to sit here moves
+                   behind the ⓘ. It is still there for whoever wants it and
+                   silent for everyone else.  */}
+              <div className="flex items-center justify-center gap-1.5 mt-3 text-[12.5px] text-body-soft">
+                <span>What can still be changed</span>
+                <Info text="Items lock once preparing starts, because stock is committed then (DEC-MOD-003). Discounts and charges stay open until the order closes, and every change is written to the activity log with who made it." />
+              </div>
             </div>
           </div>
         </aside>
