@@ -1456,6 +1456,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                   blockedReason={
                     needsPick ? "Choose an option first" : "Fill in what is required"
                   }
+                  /*  DEC-PRD-060 — the product's own field, read and said out
+                      loud. The COD rule itself stays in one place, on the
+                      server (`assertCodAllowed`).  */
+                  prepaidOnly={product.prepaidOnly === true}
                   onAddToCart={addToCart}
                   onBuyNow={buyNow}
                 />

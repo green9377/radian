@@ -61,6 +61,7 @@ export function CtaRow({
   blockedReason,
   note,
   preorderNote,
+  prepaidOnly,
   onAddToCart,
   onBuyNow,
 }: {
@@ -84,6 +85,21 @@ export function CtaRow({
   needsPick?: boolean;
   /** what the buttons say while they wait — the reason, not a generic no */
   blockedReason?: string;
+  /**
+   * DEC-PRD-060 — this product cannot be Cash on Delivery, so the page says so
+   * BEFORE the customer commits (owner, 26 Aug 2026).
+   *
+   * ⚠️ The rule itself is not here and must never be copied here. Whether COD
+   * is allowed is decided in one place, `orders.service.assertCodAllowed`,
+   * which every channel passes through. This line only READS the product's own
+   * `prepaidOnly` field and says it out loud.
+   *
+   * The browser's copy of this rule already went wrong once — 24 Aug 2026,
+   * when `_data/payment.ts` looked cart lines up in a mock catalogue, never
+   * found them, and so offered COD on made-to-order goods. A sentence on a
+   * page is not a second implementation; a second `if` would be.
+   */
+  prepaidOnly?: boolean;
   onAddToCart: () => void;
   onBuyNow: () => void;
 }) {
@@ -105,6 +121,20 @@ export function CtaRow({
                 : "We're making more. Order now and yours is reserved — we'll call you with the date."}
             </span>
           </div>
+        </div>
+      )}
+
+      {/*  DEC-PRD-060 — said here, where the buying decision is made, rather
+           than at the end of checkout where it can only cancel an order that
+           is already half-placed. Quiet, factual, one line: a condition of
+           sale has to be visible, so it does not hide behind an ⓘ.  */}
+      {prepaidOnly && (
+        <div className="mt-5 flex items-center gap-2.5 rounded-[14px] border-[1.5px] border-lavender-deep bg-lavender px-4 py-3">
+          <Icon name="lock" className="w-4 h-4 text-purple shrink-0" />
+          <span className="text-[13px] text-body leading-snug">
+            <b className="text-purple font-semibold">Paid in advance.</b>{" "}
+            Cash on delivery is not available for this one.
+          </span>
         </div>
       )}
 
