@@ -231,6 +231,11 @@ export interface PlacedOrder {
   totalPaisa: number;
   paymentMethod: string;
   needsPayment: boolean;
+  /*  DEC-WA-010 — the order is already placed; this only says whether the
+      success page should offer the code box. False for a number the shop has
+      already proved, so regulars are never asked twice.  */
+  needsPhoneVerify?: boolean;
+  senderPhone?: string;
 }
 
 export interface PaymentSession {
@@ -337,6 +342,25 @@ export async function fetchDeliveryMenu(
  */
 export const placeOrder = (input: PlaceOrderIn) =>
   post<PlacedOrder>("/shop/checkout", input);
+
+/*  The one-time code (DEC-WA-010).
+
+    The order is already placed before either of these is called — nothing
+    here can undo it, and a customer who ignores the whole step still has
+    their order. The point is only to learn whether the number we will send
+    every update to is a number that actually receives.  */
+
+export const resendPhoneCode = (phone: string, email?: string) =>
+  post<{
+    sent: boolean;
+    via: "WHATSAPP" | "SMS" | "EMAIL" | null;
+    to: string | null;
+    expiresInSec: number;
+    error?: string;
+  }>("/shop/otp/send", { phone, purpose: "CHECKOUT", email });
+
+export const confirmPhoneCode = (phone: string, code: string) =>
+  post<{ ok: boolean }>("/shop/confirm-phone", { phone, code });
 
 export const createPaymentSession = (orderId: string) =>
   post<PaymentSession>("/shop/payment/session", { orderId });

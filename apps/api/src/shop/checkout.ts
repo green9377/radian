@@ -25,6 +25,8 @@ import type { OrderLineInput } from '../orders/order.dto';
 import { WhatsAppCloudModule, WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { MessagingModule } from '../messaging/messaging.controller';
 import { OrderMessagesService } from '../messaging/order-messages.service';
+import { OtpService } from '../messaging/otp.service';
+import { OtpPurpose } from '@prisma/client';
 import { CheckoutLeadsService } from '../messaging/checkout-leads.service';
 
 /*
@@ -281,6 +283,7 @@ export class CheckoutService {
     private readonly whatsapp: WhatsAppCloudService,
     private readonly orderMessages: OrderMessagesService,
     private readonly leads: CheckoutLeadsService,
+    private readonly otp: OtpService,
   ) {}
 
   /* ══════════════════ 1. price the cart ══════════════════ */
@@ -1168,6 +1171,26 @@ Queued rather than sent directly: COD and prepaid say different
       .markConverted(dto.clientKey, order.id, order.senderPhone)
       .catch(() => undefined);
 
+    /*  Prove the number (DEC-WA-010). The owner's ruling, 29 Aug: the order
+        goes through FIRST and the number is proved after — a code standing
+        between a customer and their order costs orders, and the point here is
+        not to guard checkout. It is that every message this shop sends about
+        this order goes to this number, so we need to know it is real.
+
+        Fail-soft and unwaited, exactly like the confirmation above: a code
+        that will not send must never turn a placed order into an error.
+        An already-verified number is not asked again.  */
+    const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
+    if (needsPhoneVerify) {
+      void this.otp
+        .send({
+          phone: order.senderPhone,
+          purpose: OtpPurpose.CHECKOUT,
+          email: order.senderEmail ?? undefined,
+        })
+        .catch((e) => this.log?.warn?.(`otp send failed for ${order.orderNo}: ${e}`));
+    }
+
     return {
       orderId: order.id,
       orderNo: order.orderNo,
@@ -1176,7 +1199,48 @@ Queued rather than sent directly: COD and prepaid say different
       /*  COD needs no gateway; online does, and that is the next step in the
           caller's hands (`/shop/payment/session`).  */
       needsPayment: method === PaymentMethod.online,
+      /*  The success page shows the code box when this is true. It never
+          blocks anything — the order is already placed either way.  */
+      needsPhoneVerify,
+      senderPhone: order.senderPhone,
     };
+  }
+
+  /**
+   * A number is proved once, not once per order. Asking a regular customer
+   * for a code on every order would be noise they learn to ignore, which is
+   * how a verification step stops meaning anything.
+   */
+  private async phoneAlreadyVerified(phone: string) {
+    const clean = phone?.trim();
+    if (!clean) return false;
+    /*  Raw client, for the same reason findOrCreateCustomer uses it: `phone`
+        is unique across soft-deleted rows too, and a trashed-then-returning
+        customer still counts as verified.  */
+    const c = await this.prisma.customer
+      .findUnique({ where: { phone: clean }, select: { whatsappVerified: true } })
+      .catch(() => null);
+    return c?.whatsappVerified === true;
+  }
+
+  /**
+   * The code came back right, so the number is real and reachable.
+   *
+   * Customer is written here rather than in OtpService on purpose: the OTP
+   * service knows about codes, not about who a customer is (One Data One
+   * Owner), and checkout already owns creating this row.
+   */
+  async confirmPhone(phone: string, code: string) {
+    const ok = (await this.otp.verify(phone, OtpPurpose.CHECKOUT, code)).ok;
+    if (!ok) return { ok: false };
+
+    const clean = phone?.trim();
+    if (clean) {
+      await this.prisma.customer
+        .updateMany({ where: { phone: clean }, data: { whatsappVerified: true } })
+        .catch(() => undefined);
+    }
+    return { ok: true };
   }
 
   /* ══════════════════ 5. public reads the checkout needs ══════════════════ */
@@ -1388,6 +1452,19 @@ export class CheckoutController {
   @Get('track')
   track(@Query('orderNo') orderNo?: string, @Query('phone') phone?: string) {
     return this.svc.track(orderNo ?? '', phone ?? '');
+  }
+
+  /**
+   * The code from the success page (DEC-WA-010). Public for the same reason
+   * `track` is: the person typing it has not proved anything yet.
+   *
+   * Answers only true or false. The order is untouched either way — it was
+   * placed before the code was ever sent, and a wrong code does not undo it.
+   */
+  @Public()
+  @Post('confirm-phone')
+  confirmPhone(@Body() b: { phone?: string; code?: string }) {
+    return this.svc.confirmPhone(b?.phone ?? '', b?.code ?? '');
   }
 }
 

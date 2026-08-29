@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { confirmPhoneCode, resendPhoneCode } from "../../_data/checkoutApi";
 import { formatTaka } from "../../_data/products";
 import { API_BASE } from "../../_data/shop";
 import { track } from "../../_data/tracking";
@@ -51,6 +52,148 @@ import DeliveryTimeline from "./DeliveryTimeline";
   spoil itself.
   ═══════════════════════════════════════════════════════════════════════════
 */
+
+/*
+  ─── The code box (DEC-WA-010) ────────────────────────────────────────────
+
+  The owner's ruling, 29 Aug: the ORDER GOES THROUGH FIRST and the number is
+  proved afterwards. So this block sits below a finished order and can be
+  ignored entirely — nothing here can undo or delay anything.
+
+  Why ask at all, then. Every message this shop sends about this order —
+  confirmed, on its way, delivered — goes to that number. A number that
+  cannot receive means a customer who hears nothing and a shop that does not
+  know it. One code answers that.
+
+  ⚠️ Never says which channel failed. The customer is told where the code
+  WENT, never where it did not: "no WhatsApp on this number" is a fact about
+  a stranger that a public page should not hand out.
+*/
+function PhoneVerifyBlock({ phone, email }: { phone: string; email?: string }) {
+  /*  Opens already in the "we sent it" state: checkout sent a code on the way
+      here, so asking the customer to press Send first would mean a second
+      code for no reason while the first is still in the air.  */
+  const [state, setState] = useState<"sending" | "sent" | "done" | "gone">("sent");
+  const [sentTo, setSentTo] = useState<{ via: string | null; to: string | null } | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit() {
+    if (code.trim().length !== 6 || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await confirmPhoneCode(phone, code.trim());
+      /*  Two different "no" here: the call failed (r.ok false), or the call
+          worked and the code was simply wrong (r.data.ok false). The customer
+          is told the same thing either way — which code was wrong is not
+          something a public page should help anyone narrow down.  */
+      if (r.ok && r.data.ok) setState("done");
+      else setErr("That code did not match. Check it, or send a new one.");
+    } catch {
+      setErr("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    setState("sending");
+    try {
+      const r = await resendPhoneCode(phone, email);
+      if (r.ok && r.data.sent) {
+        setSentTo({ via: r.data.via, to: r.data.to });
+      } else {
+        /*  The rate limiter's message is worth showing — "wait 40 seconds" is
+            useful. Anything else is not explained away.  */
+        setErr(
+          (r.ok ? r.data.error : r.message) ?? "We could not send a code right now.",
+        );
+      }
+      setState("sent");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "We could not send a code right now.");
+      setState("sent");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (state === "gone") return null;
+
+  if (state === "done") {
+    return (
+      <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#E8F9EE] px-5 py-2.5 text-[13.5px] font-semibold text-[#0E7A3D]">
+        <Icon name="check" className="w-4 h-4" />
+        Number confirmed — you will get every update here.
+      </div>
+    );
+  }
+
+  const where =
+    sentTo?.via === "EMAIL"
+      ? `your email (${sentTo.to})`
+      : sentTo?.via === "SMS"
+        ? "you by SMS"
+        : "your WhatsApp";
+
+  return (
+    <div className="mt-7 mx-auto max-w-[420px] rounded-[20px] border-[1.5px] border-lavender-deep bg-white p-5 text-left">
+      <p className="text-[14px] font-semibold text-purple">Confirm your number</p>
+      <p className="text-[13px] text-body-soft mt-1 leading-relaxed">
+        We sent a 6-digit code to {where}. Entering it makes sure every update about this order
+        reaches you.
+      </p>
+
+      <div className="flex gap-2 mt-3.5">
+        <input
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="6-digit code"
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onKeyDown={(e) => e.key === "Enter" && void submit()}
+          className="flex-1 min-w-0 h-[46px] rounded-[14px] border-[1.5px] border-lavender-deep px-4 text-[15px] tracking-[3px] font-semibold text-purple outline-none focus:border-orchid"
+        />
+        <button
+          type="button"
+          disabled={busy || code.length !== 6}
+          onClick={() => void submit()}
+          className="h-[46px] px-5 rounded-[14px] bg-purple text-white font-semibold text-[14px] disabled:opacity-40 hover:bg-purple-deep transition-colors"
+        >
+          {busy ? "…" : "Confirm"}
+        </button>
+      </div>
+
+      {err && <p className="text-[12.5px] text-[#B4232A] mt-2">{err}</p>}
+
+      <div className="flex items-center justify-between mt-3">
+        <button
+          type="button"
+          onClick={() => void resend()}
+          disabled={busy}
+          className="text-[12.5px] font-semibold text-purple hover:text-orchid disabled:opacity-40"
+        >
+          {state === "sending" ? "Sending…" : "Send a new code"}
+        </button>
+        {/*  Skipping is allowed and says so. The order is already placed;
+             pretending otherwise would be a lie on a receipt.  */}
+        <button
+          type="button"
+          onClick={() => setState("gone")}
+          className="text-[12.5px] text-body-soft hover:text-purple"
+        >
+          Not now
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /** what the server will admit about an order to somebody holding its number */
 interface PaidCheck {
@@ -238,6 +381,8 @@ export default function OrderSuccessView() {
             {placedAt} · {order.paymentLabel}
           </span>
         </div>
+
+        <PhoneVerifyBlock phone={order.sender.phone} email={order.sender.email} />
       </div>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start mt-9">
