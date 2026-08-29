@@ -61,10 +61,20 @@ export class WhatsAppCoexistenceService {
     if (!wabaId?.trim() || !phoneNumberId?.trim())
       throw new BadRequestException('Meta did not return the account and number ids');
 
+    /*  The app secret is already on the Integrations screen — the webhook
+        signature check reads it from there. Asking the owner to paste it into
+        a second place would give one secret two homes, which is exactly what
+        the Integrations screen exists to prevent. Env is only a fallback.  */
+    const saved = await this.integrations.credentials('MESSAGING', 'WHATSAPP');
     const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
-    if (!appId || !appSecret)
-      throw new BadRequestException('META_APP_ID / META_APP_SECRET are not set on the server');
+    const appSecret =
+      saved?.clientSecret?.trim() || process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+    if (!appId)
+      throw new BadRequestException('META_APP_ID is not set on the server');
+    if (!appSecret)
+      throw new BadRequestException(
+        'The WhatsApp App secret is empty — fill it in on this screen first',
+      );
 
     const url =
       `${GRAPH}/oauth/access_token?client_id=${encodeURIComponent(appId)}` +
