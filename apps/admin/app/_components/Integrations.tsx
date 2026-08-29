@@ -39,6 +39,7 @@ import {
   createCourierService, deleteCourierService, updateCourierService,
   getIntegrations, getWaTemplateStatus, revealIntegrationField, saveIntegration,
   submitWaTemplates, waTestSend, messagingTestSend, type ApiTemplateResult,
+  coexistenceConfig, coexistenceStatus, coexistenceExchange,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -763,6 +764,7 @@ function ServiceCard({
         {s.provider === "WHATSAPP" && (
           <>
             <WhatsAppTestRow brand={brand} onError={onError} />
+            <WhatsAppCoexistenceRow brand={brand} />
             <WhatsAppTemplateRow brand={brand} onError={onError} />
           </>
         )}
@@ -882,6 +884,164 @@ function MessagingTestRow({
           {sms
             ? "Sends one real SMS to this number — costs one message, proves the key."
             : "Sends one real email to this address — the only proof the key works."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*
+  Coexistence (DEC-WA-009). One number, two places: staff keep answering on the
+  WhatsApp Business app, and the system sends order messages on that SAME
+  number. Meta only allows it for a Tech Provider, which Radian became on
+  29 Aug 2026.
+
+  The whole middle of this flow belongs to Meta — its popup asks for the
+  number, then a code the owner confirms inside the WhatsApp Business app. All
+  this button does is open that popup and hand what comes back to the server,
+  which exchanges it for the sending token. The app secret never comes here.
+
+  ⚠️ The SDK is loaded on click, not on page load: every admin screen paying
+  for Facebook's script so one card can have a button is a bad trade.
+*/
+
+declare global {
+  interface Window {
+    FB?: {
+      init: (o: Record<string, unknown>) => void;
+      login: (cb: (r: { authResponse?: { code?: string } }) => void, o: Record<string, unknown>) => void;
+    };
+  }
+}
+
+function WhatsAppCoexistenceRow({ brand }: { brand: { grad: string; glow: string; solid: string } }) {
+  const [cfg, setCfg] = useState<{ appId: string; configId: string; graphVersion: string } | null>(null);
+  const [live, setLive] = useState<{ connected: boolean; phone?: string | null; reason?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [c, s] = await Promise.all([coexistenceConfig(), coexistenceStatus()]);
+        setCfg(c); setLive(s);
+      } catch { /* the card still works without this row */ }
+    })();
+  }, []);
+
+  /** Meta's script, fetched once and only when it is actually needed. */
+  function loadSdk(appId: string, version: string) {
+    return new Promise<void>((resolve, reject) => {
+      if (window.FB) return resolve();
+      const el = document.createElement("script");
+      el.src = "https://connect.facebook.net/en_US/sdk.js";
+      el.async = true;
+      el.onload = () => {
+        window.FB?.init({ appId, autoLogAppEvents: true, xfbml: false, version });
+        resolve();
+      };
+      el.onerror = () => reject(new Error("Facebook's script could not be loaded"));
+      document.body.appendChild(el);
+    });
+  }
+
+  async function connect() {
+    if (!cfg?.appId || !cfg?.configId) {
+      setNote({ ok: false, msg: "META_APP_ID / META_ES_CONFIG_ID are not set on the server yet." });
+      return;
+    }
+    setBusy(true); setNote(null);
+
+    /*  The ids arrive by postMessage while the popup runs; the code arrives in
+        the callback afterwards. Both are needed, so the listener is set up
+        first and removed however this ends.  */
+    let waba = ""; let phone = "";
+    const onMessage = (ev: MessageEvent) => {
+      if (!ev.origin.endsWith("facebook.com")) return;
+      try {
+        const d = JSON.parse(String(ev.data)) as {
+          type?: string; event?: string;
+          data?: { waba_id?: string; phone_number_id?: string };
+        };
+        if (d.type !== "WA_EMBEDDED_SIGNUP") return;
+        if (d.data?.waba_id) waba = d.data.waba_id;
+        if (d.data?.phone_number_id) phone = d.data.phone_number_id;
+      } catch { /* Meta also sends non-JSON frames here */ }
+    };
+    window.addEventListener("message", onMessage);
+
+    try {
+      await loadSdk(cfg.appId, cfg.graphVersion);
+      const code = await new Promise<string>((resolve, reject) => {
+        window.FB!.login(
+          (r) => (r.authResponse?.code ? resolve(r.authResponse.code) : reject(new Error("Cancelled before finishing"))),
+          {
+            config_id: cfg.configId,
+            response_type: "code",
+            override_default_response_type: true,
+            extras: {
+              setup: {},
+              featureType: "whatsapp_business_app_onboarding",
+              sessionInfoVersion: "3",
+            },
+          },
+        );
+      });
+
+      if (!waba || !phone) throw new Error("Meta did not send back the account id — try the flow again");
+
+      const r = await coexistenceExchange({ code, wabaId: waba, phoneNumberId: phone });
+      setLive({ connected: r.connected });
+      setNote({
+        ok: true,
+        msg: r.historySync.ok
+          ? "Connected. Old chats and contacts are being copied in — keep the WhatsApp Business app open for a few minutes."
+          : "Connected. Chat history was not shared, so only new messages will appear.",
+      });
+    } catch (e) {
+      setNote({ ok: false, msg: (e as Error).message });
+    } finally {
+      window.removeEventListener("message", onMessage);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+      <Lbl>Same number on the phone and here</Lbl>
+
+      {live?.connected ? (
+        <p className="text-[11.5px] leading-relaxed" style={{ color: TONE.emerald.text }}>
+          ✓ Connected{live.phone ? ` — ${live.phone}` : ""}. Staff can keep using the WhatsApp
+          Business app; both sides stay in step.
+        </p>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="w-full px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
+            style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
+            disabled={busy}
+            onClick={() => void connect()}
+          >
+            {busy ? "Waiting for Meta…" : "Connect phone (Coexistence)"}
+          </button>
+          {!note && (
+            <p className="text-[11px] text-body-soft mt-1.5">
+              Keeps the number working in the WhatsApp Business app while the system also sends on
+              it. Meta asks for a code you confirm inside that app.
+            </p>
+          )}
+        </>
+      )}
+
+      {note && (
+        <p
+          className="text-[11.5px] leading-relaxed mt-2"
+          style={{ color: note.ok ? TONE.emerald.text : TONE.rose.text }}
+        >
+          {note.ok ? "✓ " : "✗ "}{note.msg}
         </p>
       )}
     </div>

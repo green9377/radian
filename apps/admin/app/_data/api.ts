@@ -6418,6 +6418,31 @@ export const messagingTestSend = (channel: "EMAIL" | "SMS", to: string) =>
   j<{ ok: boolean; error?: string; raw?: string }>(
     "/marketing/messaging/test", { method: "POST", body: JSON.stringify({ channel, to }) });
 
+/*  Coexistence (DEC-WA-009) — the shop's number on the phone AND here at once.
+    The popup is Meta's; these three only open it and finish what it starts.  */
+
+export type ApiCoexistenceConfig = {
+  appId: string; configId: string; graphVersion: string;
+  connected: boolean; phoneNumberId: string | null; wabaId: string | null;
+};
+export const coexistenceConfig = () =>
+  j<ApiCoexistenceConfig>("/messaging/coexistence/config");
+
+export type ApiCoexistenceStatus = {
+  connected: boolean; reason?: string;
+  onBusinessApp?: boolean; platformType?: string | null; phone?: string | null;
+};
+export const coexistenceStatus = () =>
+  j<ApiCoexistenceStatus>("/messaging/coexistence/status");
+
+/** The popup's code becomes the sending token — server-side, so no secret ships here. */
+export const coexistenceExchange = (b: { code: string; wabaId: string; phoneNumberId: string }) =>
+  j<{
+    connected: boolean; wabaId: string; phoneNumberId: string; subscribed: boolean;
+    contactsSync: { ok: boolean; requestId?: string | null; error?: string };
+    historySync: { ok: boolean; requestId?: string | null; error?: string };
+  }>("/messaging/coexistence/exchange", { method: "POST", body: JSON.stringify(b) });
+
 export const waPreview = (b: ApiAudienceFilter) =>
   j<{ count: number; sample: { id: string; name: string; phone: string }[] }>(
     "/marketing/whatsapp/preview", { method: "POST", body: JSON.stringify(b) });

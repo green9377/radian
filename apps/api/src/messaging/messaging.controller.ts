@@ -11,6 +11,7 @@ import { MessagingSweeper } from './messaging.sweeper';
 import { WhatsAppTemplatesService } from './whatsapp-templates';
 import { WhatsAppWebhookController, WhatsAppWebhookService } from './whatsapp-webhook';
 import { MetaWebhookController, MetaWebhookService } from './meta-webhook';
+import { WhatsAppCoexistenceController, WhatsAppCoexistenceService } from './whatsapp-coexistence';
 import { ChannelSender } from './channel-sender.service';
 import { AdministrationModule } from '../administration/administration.module';
 
@@ -152,11 +153,11 @@ export class CheckoutLeadController {
   providers: [
     MessagingSettingsService, OrderMessagesService, CheckoutLeadsService,
     MessagingSweeper, WhatsAppTemplatesService, WhatsAppWebhookService,
-    MetaWebhookService, ChannelSender,
+    MetaWebhookService, WhatsAppCoexistenceService, ChannelSender,
   ],
   controllers: [
     MessagingController, CheckoutLeadController,
-    WhatsAppWebhookController, MetaWebhookController,
+    WhatsAppWebhookController, MetaWebhookController, WhatsAppCoexistenceController,
   ],
   exports: [OrderMessagesService, CheckoutLeadsService, ChannelSender],
 })

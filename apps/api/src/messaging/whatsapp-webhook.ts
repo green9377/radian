@@ -25,26 +25,52 @@ import { Public } from '../auth/auth.guard';
   delivery lands once.
 */
 
+/** One message as WhatsApp describes it, in any of the payloads below. */
+interface WaMessage {
+  from?: string;
+  to?: string;
+  id?: string;
+  timestamp?: string;
+  type?: string;
+  text?: { body?: string };
+  button?: { text?: string };
+  interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
+  image?: { caption?: string };
+  document?: { filename?: string; caption?: string };
+  referral?: { source_id?: string; headline?: string; ctwa_clid?: string };
+}
+
 interface WaValue {
   metadata?: { display_phone_number?: string; phone_number_id?: string };
   contacts?: { profile?: { name?: string }; wa_id?: string }[];
-  messages?: {
-    from?: string;
-    id?: string;
-    timestamp?: string;
-    type?: string;
-    text?: { body?: string };
-    button?: { text?: string };
-    interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
-    image?: { caption?: string };
-    document?: { filename?: string; caption?: string };
-    referral?: { source_id?: string; headline?: string; ctwa_clid?: string };
-  }[];
+  messages?: WaMessage[];
   statuses?: {
     id?: string;
     status?: string;
     recipient_id?: string;
     errors?: { title?: string; message?: string }[];
+  }[];
+
+  /*
+    Coexistence (DEC-WA-009). The owner's number lives in the WhatsApp Business
+    app AND here at the same time, so three more payloads arrive.
+  */
+
+  /// What the owner typed on the phone. Ours, but we did not send it.
+  message_echoes?: WaMessage[];
+
+  /// The chat that already existed on the phone, replayed once after onboarding.
+  history?: {
+    metadata?: { phase?: number; chunk_order?: number; progress?: number };
+    threads?: { id?: string; messages?: WaMessage[] }[];
+    errors?: { code?: number; message?: string }[];
+  }[];
+
+  /// The phone's address book. Read-only here — Customers owns that data.
+  state_sync?: {
+    type?: string;
+    contact?: { full_name?: string; first_name?: string; phone_number?: string };
+    action?: string;
   }[];
 }
 
@@ -104,10 +130,15 @@ export class WhatsAppWebhookService {
       (a, c) => ({
         messages: a.messages + (c.value?.messages?.length ?? 0),
         statuses: a.statuses + (c.value?.statuses?.length ?? 0),
+        echoes: a.echoes + (c.value?.message_echoes?.length ?? 0),
+        history: a.history + (c.value?.history?.length ?? 0),
       }),
-      { messages: 0, statuses: 0 },
+      { messages: 0, statuses: 0, echoes: 0, history: 0 },
     );
-    this.log.log(`webhook in — ${counts.messages} message(s), ${counts.statuses} status(es)`);
+    this.log.log(
+      `webhook in — ${counts.messages} message(s), ${counts.statuses} status(es), ` +
+        `${counts.echoes} echo(es), ${counts.history} history batch(es)`,
+    );
 
     for (const entry of payload?.entry ?? []) {
       for (const change of entry.changes ?? []) {
@@ -115,6 +146,9 @@ export class WhatsAppWebhookService {
         if (!v) continue;
         for (const st of v.statuses ?? []) await this.onStatus(st);
         for (const m of v.messages ?? []) await this.onMessage(v, m);
+        for (const e of v.message_echoes ?? []) await this.onEcho(e);
+        for (const h of v.history ?? []) await this.onHistory(h);
+        if (v.state_sync?.length) this.onStateSync(v.state_sync);
       }
     }
   }
@@ -141,7 +175,7 @@ export class WhatsAppWebhookService {
 
   /* ---- what the customer sent ---- */
 
-  private text(m: NonNullable<WaValue['messages']>[number]): string {
+  private text(m: WaMessage): string {
     return (
       m.text?.body ||
       m.button?.text ||
@@ -153,7 +187,7 @@ export class WhatsAppWebhookService {
     );
   }
 
-  private async onMessage(v: WaValue, m: NonNullable<WaValue['messages']>[number]) {
+  private async onMessage(v: WaValue, m: WaMessage) {
     const from = m.from?.trim();
     if (!from || !m.id) return;
 
@@ -189,10 +223,138 @@ export class WhatsAppWebhookService {
    * One thread per WhatsApp number. A new thread per message would throw away
    * the history that makes the previous conversation worth having.
    */
+  /* ---- Coexistence: what the owner sent from the phone ---- */
+
+  /**
+   * DEC-WA-009. The owner answers a customer on the WhatsApp Business app; we
+   * were not the sender, so nothing else in this file would ever hear about it.
+   * Without this the Inbox shows the customer's question and no reply, and the
+   * next staff member answers it a second time.
+   */
+  private async onEcho(m: WaMessage) {
+    const to = m.to?.trim();
+    if (!to || !m.id) return;
+    await this.storeOutbound(to, m, MessageAuthor.STAFF);
+  }
+
+  /* ---- Coexistence: the chat that was already on the phone ---- */
+
+  /**
+   * Replayed once, right after onboarding, in chunks that arrive out of order.
+   * Timestamps are the original ones — a thread whose messages all claim today
+   * would be worse than no history at all.
+   */
+  private async onHistory(h: NonNullable<WaValue['history']>[number]) {
+    const err = h.errors?.[0];
+    if (err) {
+      // 2593109 = the owner declined to share history. Not a failure.
+      this.log.log(`history not shared (${err.code ?? 'unknown'})`);
+      return;
+    }
+
+    const meta = h.metadata;
+    this.log.log(
+      `history batch — phase ${meta?.phase ?? '?'}, chunk ${meta?.chunk_order ?? '?'}, ` +
+        `${meta?.progress ?? '?'}% done`,
+    );
+
+    for (const thread of h.threads ?? []) {
+      const waId = thread.id?.trim();
+      if (!waId) continue;
+      for (const m of thread.messages ?? []) {
+        if (!m.id) continue;
+        const at = this.at(m.timestamp);
+        // `to` present = the business sent it; otherwise the customer did.
+        if (m.to) await this.storeOutbound(waId, m, MessageAuthor.STAFF, at);
+        else await this.storeInbound(waId, m, at);
+      }
+    }
+  }
+
+  /**
+   * The phone's address book. Deliberately log-only: Customers owns customer
+   * records (One Data One Owner), and a contact in someone's phone is not a
+   * customer of the shop.
+   */
+  private onStateSync(rows: NonNullable<WaValue['state_sync']>) {
+    const added = rows.filter((r) => r.action === 'add').length;
+    this.log.log(`contact sync — ${added} added/changed, ${rows.length - added} removed`);
+  }
+
+  /* ---- shared writers ---- */
+
+  private at(timestamp?: string) {
+    const s = Number(timestamp);
+    return Number.isFinite(s) && s > 0 ? new Date(s * 1000) : undefined;
+  }
+
+  private async storeInbound(waId: string, m: WaMessage, at?: Date) {
+    try {
+      const convo = await this.conversationFor(waId);
+      await this.prisma.db.message.create({
+        data: {
+          conversationId: convo.id,
+          direction: MessageDirection.IN,
+          authorType: MessageAuthor.CUSTOMER,
+          body: this.text(m).slice(0, 2000),
+          externalMessageId: m.id,
+          ...(at ? { createdAt: at } : {}),
+        },
+      });
+      await this.touch(convo.id, at, true);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      this.log.warn(`history inbound failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  private async storeOutbound(waId: string, m: WaMessage, author: MessageAuthor, at?: Date) {
+    try {
+      const convo = await this.conversationFor(waId);
+      await this.prisma.db.message.create({
+        data: {
+          conversationId: convo.id,
+          direction: MessageDirection.OUT,
+          authorType: author,
+          body: this.text(m).slice(0, 2000),
+          externalMessageId: m.id,
+          ...(at ? { createdAt: at } : {}),
+        },
+      });
+      await this.touch(convo.id, at, false);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      this.log.warn(`outbound mirror failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  /**
+   * History arrives out of order, so lastMessageAt only ever moves forward —
+   * otherwise a late chunk of old messages would drag a live thread backwards
+   * and bury it at the bottom of the Inbox.
+   */
+  private async touch(conversationId: string, at: Date | undefined, unread: boolean) {
+    const when = at ?? new Date();
+    const row = await this.prisma.db.conversation.findUnique({
+      where: { id: conversationId },
+      select: { lastMessageAt: true },
+    });
+    const forward = !row?.lastMessageAt || row.lastMessageAt < when;
+
+    await this.prisma.db.conversation.update({
+      where: { id: conversationId },
+      data: {
+        ...(forward ? { lastMessageAt: when } : {}),
+        // Backfilled history was already read on the phone; only live inbound counts.
+        ...(unread && !at ? { status: ConversationStatus.OPEN, unreadForStaff: { increment: 1 } } : {}),
+      },
+    });
+  }
+
   private async conversationFor(
     waId: string,
     profileName?: string,
-    referral?: NonNullable<WaValue['messages']>[number]['referral'],
+    referral?: WaMessage['referral'],
   ) {
     const existing = await this.prisma.db.conversation.findFirst({
       where: { channel: InboxChannel.WHATSAPP, externalIdentity: waId, deletedAt: null },

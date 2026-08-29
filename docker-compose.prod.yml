@@ -55,6 +55,9 @@ services:
       args:
         # build-time — এখানেই বসতে হবে, চালু করার সময় নয়
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        # "View website" and every storefront link in the admin follow this;
+        # without it the code falls back to the demo Vercel URL (api.ts)
+        NEXT_PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
     container_name: radian_admin_prod
     restart: always
     depends_on:
