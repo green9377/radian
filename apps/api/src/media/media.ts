@@ -10,11 +10,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { randomBytes } from 'crypto';
+import { mkdir, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { Public } from '../auth/auth.guard';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  Image upload → ImageKit. Added 30 Jul 2026.
+  Image upload. Added 30 Jul 2026 (ImageKit); moved to VPS disk 29 Aug 2026.
 
   WHAT WAS HERE BEFORE: nothing. The admin's drag-and-drop boxes called
   `URL.createObjectURL(file)` and `sendUrl()` stripped any `blob:` value before
@@ -86,12 +89,14 @@ const RASTER = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
       direct navigation, <object>, <embed>. Referenced through <img> or a CSS
       background, which is the only way this codebase renders it, they do not
       execute at all.
-   2. These files are served from `ik.imagekit.io`, not from the shop's own
-      domain, so even a document-load would run on someone else's origin.
+   2. These files are served from the media host (PUBLIC_MEDIA_URL), which is
+      a separate origin from the shop and the admin, so even a document-load
+      would run outside both apps. Caddy also sends X-Content-Type-Options:
+      nosniff on everything it serves from there.
 
-  ⚠️ Point 2 stops being true the day images move to a custom domain
-  (images.radianbd.com). If that happens, either sanitise on upload or keep
-  serving icons through <img> and never <object>.
+  ⚠️ Point 2 stops being true if media ever moves onto the SHOP's own origin.
+  If that happens, either sanitise on upload or keep serving icons through
+  <img> and never <object>.
 
   Icons need SVG: they inherit the brand purple through `currentColor`, and a
   PNG icon arrives stuck in whatever colour it was drawn.
@@ -116,16 +121,24 @@ export interface UploadResult {
 
 @Injectable()
 export class MediaService {
-  private get creds() {
-    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-    const endpoint = process.env.IMAGEKIT_URL_ENDPOINT;
-    if (!privateKey || !endpoint) {
-      // A missing key is a setup mistake, not a user mistake. Say which one.
+  /*
+    29 Aug 2026 (owner): images live on OUR server now, not ImageKit. The VPS
+    stores the file on disk (MEDIA_DIR, a bind mount shared with Caddy) and
+    Caddy serves it from PUBLIC_MEDIA_URL with long immutable cache headers.
+    The header comment's promise held: only putObject changed.
+    The SVG note above still holds too — the media host is a separate origin
+    from the shop, and Caddy adds nosniff.
+  */
+  private get storage() {
+    const dir = process.env.MEDIA_DIR;
+    const base = (process.env.PUBLIC_MEDIA_URL ?? '').replace(/\/+$/, '');
+    if (!dir || !base) {
+      // A missing value is a setup mistake, not a user mistake. Say which one.
       throw new ServiceUnavailableException(
-        'Image uploads are not configured — IMAGEKIT_PRIVATE_KEY / IMAGEKIT_URL_ENDPOINT missing from .env',
+        'Image uploads are not configured — MEDIA_DIR / PUBLIC_MEDIA_URL missing from .env',
       );
     }
-    return { privateKey, endpoint };
+    return { dir, base };
   }
 
   async upload(file: UploadedImage | undefined, folder: string): Promise<UploadResult> {
@@ -153,50 +166,29 @@ export class MediaService {
   }
 
   /**
-   * The only function that knows which provider we use. Keep it that way —
-   * moving to Bunny should be a rewrite of this body and nothing else.
+   * The only function that knows where files live. Keep it that way —
+   * moving providers again should be a rewrite of this body and nothing else.
    */
   private async putObject(file: UploadedImage, folder: Folder): Promise<UploadResult> {
-    const { privateKey } = this.creds;
+    const { dir, base } = this.storage;
 
-    const form = new FormData();
-    form.append('file', new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }));
-    form.append('fileName', safeName(file.originalname));
-    form.append('folder', `/radian/${folder}`);
-    // Never overwrite: two products called "rose.jpg" must not replace each other.
-    form.append('useUniqueFileName', 'true');
+    // Never overwrite: two products called "rose.jpg" must not replace each
+    // other. The unique prefix also makes every URL immutable, which is what
+    // lets Caddy serve them with a one-year cache header.
+    const name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}-${safeName(file.originalname)}`;
+    const rel = `radian/${folder}/${name}`;
 
-    const res = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-      method: 'POST',
-      headers: {
-        // ImageKit wants the private key as the username with an empty password.
-        Authorization: `Basic ${Buffer.from(`${privateKey}:`).toString('base64')}`,
-      },
-      body: form,
-    });
-
-    const body = (await res.json().catch(() => ({}))) as {
-      url?: string;
-      fileId?: string;
-      width?: number;
-      height?: number;
-      message?: string;
-    };
-
-    if (!res.ok || !body.url) {
-      // Surface their message — "invalid key" and "quota exceeded" need
-      // different actions, and a generic 500 tells the owner neither.
+    try {
+      await mkdir(join(dir, 'radian', folder), { recursive: true });
+      await writeFile(join(dir, rel), file.buffer);
+    } catch (e) {
       throw new BadRequestException(
-        `Upload failed (${res.status}): ${body.message ?? 'no response from the image service'}`,
+        `Upload failed: could not write the file to media storage (${(e as Error).message})`,
       );
     }
 
-    return {
-      url: body.url,
-      fileId: body.fileId ?? '',
-      width: body.width ?? 0,
-      height: body.height ?? 0,
-    };
+    // width/height were ImageKit metadata; nothing in the admin reads them.
+    return { url: `${base}/${rel}`, fileId: rel, width: 0, height: 0 };
   }
 }
 

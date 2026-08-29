@@ -45,6 +45,10 @@ services:
       - .env.production
     # ⚠️ কোনো volume mount নেই — production-এ image-এর ভেতরের build করা কোডই
     #    চলবে। লোকাল ফোল্ডার mount করলে dist/ মুছে গিয়ে container মরে যাবে।
+    volumes:
+      # DATA mount, not code: uploaded images land here (media.ts writes to
+      # MEDIA_DIR=/media) and Caddy serves the same folder read-only below.
+      - ./media:/media
     expose:
       - "4000"
 
@@ -99,8 +103,10 @@ services:
       WEB_DOMAIN: ${WEB_DOMAIN}
       ADMIN_DOMAIN: ${ADMIN_DOMAIN}
       API_DOMAIN: ${API_DOMAIN}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./media:/srv/media:ro
       - caddy_data:/data
       - caddy_config:/config
 

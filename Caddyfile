@@ -27,3 +27,15 @@
 
 	header X-Robots-Tag "noindex, nofollow"
 }
+
+# Images (29 Aug 2026) — served straight from disk, no container in the way.
+# The folder is ./media on the VPS, written by the API (media.ts, MEDIA_DIR)
+# and mounted here read-only. Filenames are unique per upload and never
+# reused, so a one-year immutable cache header is safe and is what makes
+# repeat visits fast. nosniff keeps uploaded SVGs inert (media.ts explains).
+{$MEDIA_DOMAIN} {
+	root * /srv/media
+	file_server
+	header Cache-Control "public, max-age=31536000, immutable"
+	header X-Content-Type-Options "nosniff"
+}
