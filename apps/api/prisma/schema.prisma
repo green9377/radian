@@ -7677,3 +7677,63 @@ model InboxSetting {
 
   updatedAt DateTime @updatedAt
 }
+
+/// How a one-time code reached the customer. The order below is the order the
+/// code tries them in — see OtpService (DEC-WA-010).
+enum OtpChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum OtpPurpose {
+  /// Proving the checkout phone is a number we can actually reach.
+  CHECKOUT
+  /// Signing in to the storefront — no password anywhere (DEC-CUS-002).
+  LOGIN
+  /// Opening an order's history without knowing the order number.
+  TRACK
+}
+
+/// A one-time code in flight (DEC-WA-010).
+///
+/// The code itself is NEVER stored. Only a hash of it: a leaked database must
+/// not hand over live codes, and nobody — including staff reading the table —
+/// can read a customer's code and use it before they do.
+///
+/// Rows are kept after use, not deleted, because "how often does WhatsApp
+/// fail and fall through to SMS" is a question worth being able to answer,
+/// and because a burst of attempts on one number is what an attack looks like.
+model PhoneOtp {
+  id String @id @default(cuid())
+
+  /// E.164, the same shape Customer.phone uses, so the two can be compared
+  /// without cleaning either one first.
+  phone   String
+  purpose OtpPurpose
+
+  /// sha256(code + id). Never the code.
+  codeHash String
+
+  /// Which channels were tried, in order, and what came back. Answers
+  /// "why did this customer never get a code" without guessing.
+  attemptsLog Json @default("[]")
+
+  /// The channel that actually delivered it, once one does.
+  sentVia OtpChannel?
+
+  /// Where it went, when that is not the phone (email fallback).
+  sentTo String?
+
+  expiresAt DateTime
+  /// Wrong guesses. Past the cap the row is spent, however much time is left.
+  wrongTries Int       @default(0)
+  usedAt     DateTime?
+
+  /// Rate limiting reads these two, so they are indexed together below.
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([phone, purpose, createdAt])
+  @@index([expiresAt])
+}

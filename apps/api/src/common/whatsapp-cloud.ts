@@ -46,6 +46,12 @@ export const TPL = {
   abandoned: process.env.WA_TPL_CHECKOUT_ABANDONED || 'checkout_abandoned',
   /** DEC-WEB-008 — {{1}} name, {{2}} product, URL button = /review/{{token}} */
   review: process.env.WA_TPL_REVIEW_REQUEST || 'review_request',
+  /**
+   * The one-time code. Meta's AUTHENTICATION category, which is not a label we
+   * choose — it has its own shape (a copy-code button, no free text) and its
+   * own rules, and Meta rejects an OTP body sent as UTILITY.
+   */
+  otp: process.env.WA_TPL_OTP || 'radian_login_code',
 };
 
 /** Send result: whether it went, why not, and Meta's message id. */
@@ -95,9 +101,11 @@ export class WhatsAppCloudService {
     payload: Record<string, unknown>,
   ): Promise<SendResult> {
     const c = await this.creds();
-    if (!c) return { ok: false, configured: false, error: 'WhatsApp keys not set' };
+    if (!c)
+      return { ok: false, configured: false, error: 'WhatsApp keys not set' };
     const msisdn = this.msisdn(to);
-    if (!msisdn) return { ok: false, configured: true, error: `unusable phone: ${to}` };
+    if (!msisdn)
+      return { ok: false, configured: true, error: `unusable phone: ${to}` };
 
     try {
       const res = await fetch(`${GRAPH}/${c.phoneId}/messages`, {
@@ -106,16 +114,27 @@ export class WhatsAppCloudService {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${c.token}`,
         },
-        body: JSON.stringify({ messaging_product: 'whatsapp', to: msisdn, ...payload }),
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: msisdn,
+          ...payload,
+        }),
       });
       const body = await res.text();
       if (!res.ok) {
-        this.log.warn(`send failed (${res.status}) to ${msisdn.slice(0, 6)}…: ${body.slice(0, 300)}`);
-        return { ok: false, configured: true, error: `${res.status}: ${body.slice(0, 300)}` };
+        this.log.warn(
+          `send failed (${res.status}) to ${msisdn.slice(0, 6)}…: ${body.slice(0, 300)}`,
+        );
+        return {
+          ok: false,
+          configured: true,
+          error: `${res.status}: ${body.slice(0, 300)}`,
+        };
       }
       let messageId: string | undefined;
       try {
-        messageId = (JSON.parse(body) as { messages?: { id?: string }[] })?.messages?.[0]?.id;
+        messageId = (JSON.parse(body) as { messages?: { id?: string }[] })
+          ?.messages?.[0]?.id;
       } catch {
         /* sent, but the id could not be read */
       }
@@ -128,7 +147,10 @@ export class WhatsAppCloudService {
   }
 
   /** For call sites where a boolean is enough. */
-  private async send(to: string, payload: Record<string, unknown>): Promise<boolean> {
+  private async send(
+    to: string,
+    payload: Record<string, unknown>,
+  ): Promise<boolean> {
     return (await this.sendRaw(to, payload)).ok;
   }
 
@@ -162,6 +184,30 @@ export class WhatsAppCloudService {
     };
   }
 
+  /**
+   * The one-time code (DEC-WA-010). An AUTHENTICATION template wants the same
+   * code twice: once for the text Meta writes, once for the copy button. Miss
+   * the button copy and the message arrives with a button that copies nothing.
+   */
+  otpMessage(code: string, lang = 'en') {
+    return {
+      type: 'template',
+      template: {
+        name: TPL.otp,
+        language: { code: lang },
+        components: [
+          { type: 'body', parameters: [{ type: 'text', text: code }] },
+          {
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [{ type: 'text', text: code }],
+          },
+        ],
+      },
+    };
+  }
+
   /** The admin test button. hello_world is pre-approved on every account. */
   async sendTest(to: string): Promise<{ sent: boolean; configured: boolean }> {
     const configured = (await this.creds()) !== null;
@@ -171,21 +217,40 @@ export class WhatsAppCloudService {
   }
 
   /** {{1}} name, {{2}} order number, {{3}} total */
-  orderConfirmation(o: { senderPhone: string; senderName: string; orderNo: string; totalPaisa: number }) {
+  orderConfirmation(o: {
+    senderPhone: string;
+    senderName: string;
+    orderNo: string;
+    totalPaisa: number;
+  }) {
     return this.send(
       o.senderPhone,
-      this.template(TPL.confirm, [o.senderName, o.orderNo, `৳${(o.totalPaisa / 100).toLocaleString('en-IN')}`]),
+      this.template(TPL.confirm, [
+        o.senderName,
+        o.orderNo,
+        `৳${(o.totalPaisa / 100).toLocaleString('en-IN')}`,
+      ]),
     );
   }
 
   /** {{1}} name, {{2}} order number */
   orderOut(o: { senderPhone: string; senderName: string; orderNo: string }) {
-    return this.send(o.senderPhone, this.template(TPL.out, [o.senderName, o.orderNo]));
+    return this.send(
+      o.senderPhone,
+      this.template(TPL.out, [o.senderName, o.orderNo]),
+    );
   }
 
   /** {{1}} name, {{2}} order number */
-  orderDelivered(o: { senderPhone: string; senderName: string; orderNo: string }) {
-    return this.send(o.senderPhone, this.template(TPL.delivered, [o.senderName, o.orderNo]));
+  orderDelivered(o: {
+    senderPhone: string;
+    senderName: string;
+    orderNo: string;
+  }) {
+    return this.send(
+      o.senderPhone,
+      this.template(TPL.delivered, [o.senderName, o.orderNo]),
+    );
   }
 }
 

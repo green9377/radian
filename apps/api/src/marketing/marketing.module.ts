@@ -33,7 +33,13 @@ import { AdministrationModule } from '../administration/administration.module';
     call them when an order is delivered, returned or cancelled — the module
     receives completed business events, it does not poll. */
 @Module({
-  imports: [PrismaModule, CommonModule, FinanceModule, WhatsAppCloudModule, AdministrationModule],
+  imports: [
+    PrismaModule,
+    CommonModule,
+    FinanceModule,
+    WhatsAppCloudModule,
+    AdministrationModule,
+  ],
   controllers: [MarketingController],
   providers: [
     CampaignsService,
@@ -50,8 +56,14 @@ import { AdministrationModule } from '../administration/administration.module';
     LoyaltyService,
   ],
   exports: [
-    CampaignsService, AttributionService, AffiliatesService, OutreachService,
-    ReferralService, LoyaltyService,
+    CampaignsService,
+    AttributionService,
+    AffiliatesService,
+    OutreachService,
+    ReferralService,
+    LoyaltyService,
+    // OTP falls back to SMS and email through these (DEC-WA-010)
+    MessagingService,
   ],
 })
 export class MarketingModule {}

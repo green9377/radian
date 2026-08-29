@@ -1,11 +1,24 @@
 import {
-  Body, Controller, Get, Headers, HttpCode, Injectable, Logger, Post, Query, Req,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Injectable,
+  Logger,
+  Post,
+  Query,
+  Req,
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 import {
-  ConversationStatus, InboxChannel, MessageAuthor, MessageDirection,
-  OrderMessageStatus, Prisma,
+  ConversationStatus,
+  InboxChannel,
+  MessageAuthor,
+  MessageDirection,
+  OrderMessageStatus,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationsService } from '../administration/integrations.service';
@@ -34,7 +47,10 @@ interface WaMessage {
   type?: string;
   text?: { body?: string };
   button?: { text?: string };
-  interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
+  interactive?: {
+    button_reply?: { title?: string };
+    list_reply?: { title?: string };
+  };
   image?: { caption?: string };
   document?: { filename?: string; caption?: string };
   referral?: { source_id?: string; headline?: string; ctwa_clid?: string };
@@ -69,7 +85,11 @@ interface WaValue {
   /// The phone's address book. Read-only here — Customers owns that data.
   state_sync?: {
     type?: string;
-    contact?: { full_name?: string; first_name?: string; phone_number?: string };
+    contact?: {
+      full_name?: string;
+      first_name?: string;
+      phone_number?: string;
+    };
     action?: string;
   }[];
 }
@@ -87,8 +107,10 @@ export class WhatsAppWebhookService {
     try {
       const row = await this.integrations.credentials('MESSAGING', 'WHATSAPP');
       return {
-        verifyToken: row?.webhookSecret?.trim() || process.env.WHATSAPP_VERIFY_TOKEN || '',
-        appSecret: row?.clientSecret?.trim() || process.env.WHATSAPP_APP_SECRET || '',
+        verifyToken:
+          row?.webhookSecret?.trim() || process.env.WHATSAPP_VERIFY_TOKEN || '',
+        appSecret:
+          row?.clientSecret?.trim() || process.env.WHATSAPP_APP_SECRET || '',
       };
     } catch {
       return {
@@ -101,7 +123,8 @@ export class WhatsAppWebhookService {
   /** Meta's one-off subscription handshake. */
   async verify(mode?: string, token?: string, challenge?: string) {
     const { verifyToken } = await this.secrets();
-    if (mode === 'subscribe' && verifyToken && token === verifyToken) return challenge ?? '';
+    if (mode === 'subscribe' && verifyToken && token === verifyToken)
+      return challenge ?? '';
     this.log.warn('webhook verify refused — token did not match');
     return null;
   }
@@ -114,7 +137,8 @@ export class WhatsAppWebhookService {
     const { appSecret } = await this.secrets();
     if (!appSecret) return false;
     if (!signature?.startsWith('sha256=') || !raw) return false;
-    const expected = 'sha256=' + createHmac('sha256', appSecret).update(raw).digest('hex');
+    const expected =
+      'sha256=' + createHmac('sha256', appSecret).update(raw).digest('hex');
     const a = Buffer.from(signature);
     const b = Buffer.from(expected);
     return a.length === b.length && timingSafeEqual(a, b);
@@ -126,15 +150,17 @@ export class WhatsAppWebhookService {
       indistinguishable from never being called, which is exactly the question
       you need answered when a message does not appear.
     */
-    const counts = (payload?.entry ?? []).flatMap((e) => e.changes ?? []).reduce(
-      (a, c) => ({
-        messages: a.messages + (c.value?.messages?.length ?? 0),
-        statuses: a.statuses + (c.value?.statuses?.length ?? 0),
-        echoes: a.echoes + (c.value?.message_echoes?.length ?? 0),
-        history: a.history + (c.value?.history?.length ?? 0),
-      }),
-      { messages: 0, statuses: 0, echoes: 0, history: 0 },
-    );
+    const counts = (payload?.entry ?? [])
+      .flatMap((e) => e.changes ?? [])
+      .reduce(
+        (a, c) => ({
+          messages: a.messages + (c.value?.messages?.length ?? 0),
+          statuses: a.statuses + (c.value?.statuses?.length ?? 0),
+          echoes: a.echoes + (c.value?.message_echoes?.length ?? 0),
+          history: a.history + (c.value?.history?.length ?? 0),
+        }),
+        { messages: 0, statuses: 0, echoes: 0, history: 0 },
+      );
     this.log.log(
       `webhook in — ${counts.messages} message(s), ${counts.statuses} status(es), ` +
         `${counts.echoes} echo(es), ${counts.history} history batch(es)`,
@@ -164,12 +190,18 @@ export class WhatsAppWebhookService {
         data: failed
           ? {
               status: OrderMessageStatus.FAILED,
-              error: (st.errors?.[0]?.message ?? st.errors?.[0]?.title ?? 'failed').slice(0, 500),
+              error: (
+                st.errors?.[0]?.message ??
+                st.errors?.[0]?.title ??
+                'failed'
+              ).slice(0, 500),
             }
           : { status: OrderMessageStatus.SENT },
       });
     } catch (e) {
-      this.log.warn(`status update failed: ${e instanceof Error ? e.message : e}`);
+      this.log.warn(
+        `status update failed: ${e instanceof Error ? e.message : e}`,
+      );
     }
   }
 
@@ -192,7 +224,11 @@ export class WhatsAppWebhookService {
     if (!from || !m.id) return;
 
     try {
-      const convo = await this.conversationFor(from, v.contacts?.[0]?.profile?.name, m.referral);
+      const convo = await this.conversationFor(
+        from,
+        v.contacts?.[0]?.profile?.name,
+        m.referral,
+      );
 
       await this.prisma.db.message.create({
         data: {
@@ -214,8 +250,14 @@ export class WhatsAppWebhookService {
       });
     } catch (e) {
       // A duplicate is Meta retrying, not a problem.
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
-      this.log.warn(`inbound message failed: ${e instanceof Error ? e.message : e}`);
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return;
+      this.log.warn(
+        `inbound message failed: ${e instanceof Error ? e.message : e}`,
+      );
     }
   }
 
@@ -278,7 +320,9 @@ export class WhatsAppWebhookService {
    */
   private onStateSync(rows: NonNullable<WaValue['state_sync']>) {
     const added = rows.filter((r) => r.action === 'add').length;
-    this.log.log(`contact sync — ${added} added/changed, ${rows.length - added} removed`);
+    this.log.log(
+      `contact sync — ${added} added/changed, ${rows.length - added} removed`,
+    );
   }
 
   /* ---- shared writers ---- */
@@ -303,12 +347,23 @@ export class WhatsAppWebhookService {
       });
       await this.touch(convo.id, at, true);
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
-      this.log.warn(`history inbound failed: ${e instanceof Error ? e.message : e}`);
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return;
+      this.log.warn(
+        `history inbound failed: ${e instanceof Error ? e.message : e}`,
+      );
     }
   }
 
-  private async storeOutbound(waId: string, m: WaMessage, author: MessageAuthor, at?: Date) {
+  private async storeOutbound(
+    waId: string,
+    m: WaMessage,
+    author: MessageAuthor,
+    at?: Date,
+  ) {
     try {
       const convo = await this.conversationFor(waId);
       await this.prisma.db.message.create({
@@ -323,8 +378,14 @@ export class WhatsAppWebhookService {
       });
       await this.touch(convo.id, at, false);
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
-      this.log.warn(`outbound mirror failed: ${e instanceof Error ? e.message : e}`);
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      )
+        return;
+      this.log.warn(
+        `outbound mirror failed: ${e instanceof Error ? e.message : e}`,
+      );
     }
   }
 
@@ -333,7 +394,11 @@ export class WhatsAppWebhookService {
    * otherwise a late chunk of old messages would drag a live thread backwards
    * and bury it at the bottom of the Inbox.
    */
-  private async touch(conversationId: string, at: Date | undefined, unread: boolean) {
+  private async touch(
+    conversationId: string,
+    at: Date | undefined,
+    unread: boolean,
+  ) {
     const when = at ?? new Date();
     const row = await this.prisma.db.conversation.findUnique({
       where: { id: conversationId },
@@ -346,7 +411,12 @@ export class WhatsAppWebhookService {
       data: {
         ...(forward ? { lastMessageAt: when } : {}),
         // Backfilled history was already read on the phone; only live inbound counts.
-        ...(unread && !at ? { status: ConversationStatus.OPEN, unreadForStaff: { increment: 1 } } : {}),
+        ...(unread && !at
+          ? {
+              status: ConversationStatus.OPEN,
+              unreadForStaff: { increment: 1 },
+            }
+          : {}),
       },
     });
   }
@@ -357,7 +427,11 @@ export class WhatsAppWebhookService {
     referral?: WaMessage['referral'],
   ) {
     const existing = await this.prisma.db.conversation.findFirst({
-      where: { channel: InboxChannel.WHATSAPP, externalIdentity: waId, deletedAt: null },
+      where: {
+        channel: InboxChannel.WHATSAPP,
+        externalIdentity: waId,
+        deletedAt: null,
+      },
       orderBy: { lastMessageAt: 'desc' },
     });
 
@@ -372,14 +446,20 @@ export class WhatsAppWebhookService {
 
     if (existing) {
       if (Object.keys(ad).length) {
-        await this.prisma.db.conversation.update({ where: { id: existing.id }, data: ad });
+        await this.prisma.db.conversation.update({
+          where: { id: existing.id },
+          data: ad,
+        });
       }
       return existing;
     }
 
     const local = this.toLocal(waId);
     const customer = await this.prisma.db.customer
-      .findFirst({ where: { phone: local, deletedAt: null }, select: { id: true } })
+      .findFirst({
+        where: { phone: local, deletedAt: null },
+        select: { id: true },
+      })
       .catch(() => null);
 
     try {
@@ -395,9 +475,16 @@ export class WhatsAppWebhookService {
       });
     } catch (e) {
       // The unique index caught a concurrent create: the other one won, use it.
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
         const winner = await this.prisma.db.conversation.findFirst({
-          where: { channel: InboxChannel.WHATSAPP, externalIdentity: waId, deletedAt: null },
+          where: {
+            channel: InboxChannel.WHATSAPP,
+            externalIdentity: waId,
+            deletedAt: null,
+          },
         });
         if (winner) return winner;
       }

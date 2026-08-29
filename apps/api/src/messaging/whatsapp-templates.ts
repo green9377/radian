@@ -22,6 +22,13 @@ interface TemplateDef {
   body: string;
   example: string[];
   button?: { text: string; url: string; example: string };
+  /**
+   * AUTHENTICATION templates are not ordinary templates with a different
+   * label. Meta writes the wording itself, in every language, and will only
+   * accept a fixed shape: a body with no text of ours, a copy-code button,
+   * and an expiry. Sending an OTP as UTILITY gets the template rejected.
+   */
+  otp?: { expiryMinutes: number };
 }
 
 export const TEMPLATES: TemplateDef[] = [
@@ -63,7 +70,11 @@ export const TEMPLATES: TemplateDef[] = [
       'through. {{3}} is due. You can finish it below, or call {{4}} and we will ' +
       'take care of it for you.',
     example: ['Sobuj', 'R-10428', '৳2,450', '01519-779378'],
-    button: { text: 'Complete payment', url: `${WEB}/pay/{{1}}`, example: `${WEB}/pay/R-10428` },
+    button: {
+      text: 'Complete payment',
+      url: `${WEB}/pay/{{1}}`,
+      example: `${WEB}/pay/R-10428`,
+    },
   },
   {
     name: TPL.abandoned,
@@ -73,7 +84,22 @@ export const TEMPLATES: TemplateDef[] = [
       'Hello {{1}}, what you chose is still waiting in your basket. Pick up where ' +
       'you left off below, or call {{2}} and we will help you finish it.',
     example: ['Sobuj', '01519-779378'],
-    button: { text: 'Return to cart', url: `${WEB}/cart/{{1}}`, example: `${WEB}/cart/abc123` },
+    button: {
+      text: 'Return to cart',
+      url: `${WEB}/cart/{{1}}`,
+      example: `${WEB}/cart/abc123`,
+    },
+  },
+  {
+    /*  The one-time code (DEC-WA-010). The body below is never sent — Meta
+        supplies its own wording for AUTHENTICATION templates and only takes
+        the code and the expiry from us. It is written here so that reading
+        this list still tells you what the customer receives.  */
+    name: TPL.otp,
+    category: 'AUTHENTICATION',
+    body: '{{1}} is your verification code. For your security, do not share this code.',
+    example: ['123456'],
+    otp: { expiryMinutes: 5 },
   },
 ];
 
@@ -106,6 +132,29 @@ export class WhatsAppTemplatesService {
   }
 
   private payload(t: TemplateDef) {
+    /*  AUTHENTICATION has its own shape entirely: no text of ours, a
+        copy-code button, and add_security_recommendation — which is what puts
+        "do not share this code" in the message, in the customer's language,
+        without us writing it.  */
+    if (t.otp) {
+      return {
+        name: t.name,
+        language: 'en',
+        category: t.category,
+        message_send_ttl_seconds: t.otp.expiryMinutes * 60,
+        components: [
+          { type: 'BODY', add_security_recommendation: true },
+          { type: 'FOOTER', code_expiration_minutes: t.otp.expiryMinutes },
+          {
+            type: 'BUTTONS',
+            buttons: [
+              { type: 'OTP', otp_type: 'COPY_CODE', text: 'Copy code' },
+            ],
+          },
+        ],
+      };
+    }
+
     const components: Record<string, unknown>[] = [
       { type: 'BODY', text: t.body, example: { body_text: [t.example] } },
     ];
@@ -113,14 +162,22 @@ export class WhatsAppTemplatesService {
       components.push({
         type: 'BUTTONS',
         buttons: [
-          { type: 'URL', text: t.button.text, url: t.button.url, example: [t.button.example] },
+          {
+            type: 'URL',
+            text: t.button.text,
+            url: t.button.url,
+            example: [t.button.example],
+          },
         ],
       });
     }
     return { name: t.name, language: 'en', category: t.category, components };
   }
 
-  async submitAll(): Promise<{ configured: boolean; results: TemplateResult[] }> {
+  async submitAll(): Promise<{
+    configured: boolean;
+    results: TemplateResult[];
+  }> {
     const c = await this.creds();
     if (!c) return { configured: false, results: [] };
 
@@ -129,7 +186,10 @@ export class WhatsAppTemplatesService {
       try {
         const res = await fetch(`${GRAPH}/${c.wabaId}/message_templates`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${c.token}` },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${c.token}`,
+          },
           body: JSON.stringify(this.payload(t)),
         });
         const body = (await res.json()) as {
@@ -137,16 +197,25 @@ export class WhatsAppTemplatesService {
           error?: { message?: string; error_user_msg?: string };
         };
         if (res.ok) {
-          results.push({ name: t.name, ok: true, status: body.status ?? 'PENDING' });
+          results.push({
+            name: t.name,
+            ok: true,
+            status: body.status ?? 'PENDING',
+          });
           continue;
         }
         /*
           Already there is not a failure — pressing the button twice is normal.
           Meta phrases this several ways, so match on the idea, not one string.
         */
-        const msg = body.error?.error_user_msg || body.error?.message || `HTTP ${res.status}`;
+        const msg =
+          body.error?.error_user_msg ||
+          body.error?.message ||
+          `HTTP ${res.status}`;
         const exists =
-          /already exists|already English content|already have.*template|duplicate/i.test(msg);
+          /already exists|already English content|already have.*template|duplicate/i.test(
+            msg,
+          );
         results.push({
           name: t.name,
           ok: exists,
@@ -168,7 +237,10 @@ export class WhatsAppTemplatesService {
     return { configured: true, results };
   }
 
-  async status(): Promise<{ configured: boolean; templates: TemplateResult[] }> {
+  async status(): Promise<{
+    configured: boolean;
+    templates: TemplateResult[];
+  }> {
     const c = await this.creds();
     if (!c) return { configured: false, templates: [] };
     try {
@@ -183,22 +255,40 @@ export class WhatsAppTemplatesService {
       if (!res.ok) {
         return {
           configured: true,
-          templates: [{ name: '—', ok: false, error: body.error?.message ?? `HTTP ${res.status}` }],
+          templates: [
+            {
+              name: '—',
+              ok: false,
+              error: body.error?.message ?? `HTTP ${res.status}`,
+            },
+          ],
         };
       }
       const mine = new Set(TEMPLATES.map((t) => t.name));
-      const found = (body.data ?? []).filter((t) => mine.has(t.name) && t.language === 'en');
+      const found = (body.data ?? []).filter(
+        (t) => mine.has(t.name) && t.language === 'en',
+      );
       return {
         configured: true,
         templates: TEMPLATES.map((t) => {
           const f = found.find((x) => x.name === t.name);
-          return { name: t.name, ok: f?.status === 'APPROVED', status: f?.status ?? 'NOT SUBMITTED' };
+          return {
+            name: t.name,
+            ok: f?.status === 'APPROVED',
+            status: f?.status ?? 'NOT SUBMITTED',
+          };
         }),
       };
     } catch (e) {
       return {
         configured: true,
-        templates: [{ name: '—', ok: false, error: e instanceof Error ? e.message : String(e) }],
+        templates: [
+          {
+            name: '—',
+            ok: false,
+            error: e instanceof Error ? e.message : String(e),
+          },
+        ],
       };
     }
   }

@@ -1,4 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Injectable,
+  Logger,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationsService } from '../administration/integrations.service';
 import { Roles, type AuthedRequest } from '../auth/auth.guard';
@@ -56,10 +65,18 @@ export class WhatsAppCoexistenceService {
    * The phone number is already registered — that happened inside the WhatsApp
    * Business app — so unlike normal onboarding there is no register step here.
    */
-  async exchange(code: string, wabaId: string, phoneNumberId: string, actorName: string) {
-    if (!code?.trim()) throw new BadRequestException('No code came back from Meta');
+  async exchange(
+    code: string,
+    wabaId: string,
+    phoneNumberId: string,
+    actorName: string,
+  ) {
+    if (!code?.trim())
+      throw new BadRequestException('No code came back from Meta');
     if (!wabaId?.trim() || !phoneNumberId?.trim())
-      throw new BadRequestException('Meta did not return the account and number ids');
+      throw new BadRequestException(
+        'Meta did not return the account and number ids',
+      );
 
     /*  The app secret is already on the Integrations screen — the webhook
         signature check reads it from there. Asking the owner to paste it into
@@ -68,7 +85,9 @@ export class WhatsAppCoexistenceService {
     const saved = await this.integrations.credentials('MESSAGING', 'WHATSAPP');
     const appId = process.env.META_APP_ID;
     const appSecret =
-      saved?.clientSecret?.trim() || process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+      saved?.clientSecret?.trim() ||
+      process.env.META_APP_SECRET ||
+      process.env.WHATSAPP_APP_SECRET;
     if (!appId)
       throw new BadRequestException('META_APP_ID is not set on the server');
     if (!appSecret)
@@ -86,7 +105,9 @@ export class WhatsAppCoexistenceService {
       error?: { message?: string };
     };
     if (!res.ok || !json.access_token)
-      throw new BadRequestException(json.error?.message || 'Meta refused the code exchange');
+      throw new BadRequestException(
+        json.error?.message || 'Meta refused the code exchange',
+      );
 
     const token = json.access_token;
 
@@ -97,17 +118,29 @@ export class WhatsAppCoexistenceService {
     await this.integrations.save(
       'MESSAGING',
       'WHATSAPP',
-      { apiKey: token, clientId: phoneNumberId.trim(), username: wabaId.trim(), isEnabled: true },
+      {
+        apiKey: token,
+        clientId: phoneNumberId.trim(),
+        username: wabaId.trim(),
+        isEnabled: true,
+      },
       actorName,
     );
 
     // Without this Meta has our token but no idea where to deliver webhooks.
-    const sub = await this.post(`${GRAPH}/${wabaId.trim()}/subscribed_apps`, token);
+    const sub = await this.post(
+      `${GRAPH}/${wabaId.trim()}/subscribed_apps`,
+      token,
+    );
     if (!sub.ok) this.log.warn(`webhook subscribe failed: ${sub.error}`);
 
     /*  Meta allows each sync exactly once, and only within 24 hours. Failing
         one must not stop the other, so both are attempted and both reported.  */
-    const contacts = await this.sync(phoneNumberId.trim(), token, 'smb_app_state_sync');
+    const contacts = await this.sync(
+      phoneNumberId.trim(),
+      token,
+      'smb_app_state_sync',
+    );
     const history = await this.sync(phoneNumberId.trim(), token, 'history');
 
     this.log.log(
@@ -131,32 +164,51 @@ export class WhatsAppCoexistenceService {
     const creds = await this.integrations.credentials('MESSAGING', 'WHATSAPP');
     const id = creds?.clientId?.trim();
     const token = creds?.apiKey?.trim();
-    if (!id || !token) return { connected: false, reason: 'No WhatsApp keys saved yet' };
+    if (!id || !token)
+      return { connected: false, reason: 'No WhatsApp keys saved yet' };
 
-    const res = await fetch(`${GRAPH}/${id}?fields=is_on_biz_app,platform_type,display_phone_number`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `${GRAPH}/${id}?fields=is_on_biz_app,platform_type,display_phone_number`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
     const json = (await res.json().catch(() => ({}))) as {
       is_on_biz_app?: boolean;
       platform_type?: string;
       display_phone_number?: string;
       error?: { message?: string };
     };
-    if (!res.ok) return { connected: false, reason: json.error?.message || 'Meta did not answer' };
+    if (!res.ok)
+      return {
+        connected: false,
+        reason: json.error?.message || 'Meta did not answer',
+      };
 
     return {
-      connected: Boolean(json.is_on_biz_app) && json.platform_type === 'CLOUD_API',
+      connected:
+        Boolean(json.is_on_biz_app) && json.platform_type === 'CLOUD_API',
       onBusinessApp: Boolean(json.is_on_biz_app),
       platformType: json.platform_type ?? null,
       phone: json.display_phone_number ?? null,
     };
   }
 
-  private async sync(phoneNumberId: string, token: string, syncType: 'history' | 'smb_app_state_sync') {
+  private async sync(
+    phoneNumberId: string,
+    token: string,
+    syncType: 'history' | 'smb_app_state_sync',
+  ) {
     const res = await fetch(`${GRAPH}/${phoneNumberId}/smb_app_data`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', sync_type: syncType }),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        sync_type: syncType,
+      }),
     });
     const json = (await res.json().catch(() => ({}))) as {
       request_id?: string;
@@ -169,9 +221,16 @@ export class WhatsAppCoexistenceService {
   }
 
   private async post(url: string, token: string) {
-    const res = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-    const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-    return res.ok ? { ok: true as const } : { ok: false as const, error: json.error?.message ?? 'failed' };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+    };
+    return res.ok
+      ? { ok: true as const }
+      : { ok: false as const, error: json.error?.message ?? 'failed' };
   }
 }
 

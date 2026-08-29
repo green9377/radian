@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Module, Param, Post, Query } from '@nestjs/common';
-import { CheckoutLeadStatus } from '@prisma/client';
+import {
+  Body,
+  Controller,
+  Get,
+  Module,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { CheckoutLeadStatus, OtpPurpose } from '@prisma/client';
+import { MarketingModule } from '../marketing/marketing.module';
+import { OtpService } from './otp.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
@@ -9,9 +19,15 @@ import { OrderMessagesService } from './order-messages.service';
 import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
 import { MessagingSweeper } from './messaging.sweeper';
 import { WhatsAppTemplatesService } from './whatsapp-templates';
-import { WhatsAppWebhookController, WhatsAppWebhookService } from './whatsapp-webhook';
+import {
+  WhatsAppWebhookController,
+  WhatsAppWebhookService,
+} from './whatsapp-webhook';
 import { MetaWebhookController, MetaWebhookService } from './meta-webhook';
-import { WhatsAppCoexistenceController, WhatsAppCoexistenceService } from './whatsapp-coexistence';
+import {
+  WhatsAppCoexistenceController,
+  WhatsAppCoexistenceService,
+} from './whatsapp-coexistence';
 import { ChannelSender } from './channel-sender.service';
 import { AdministrationModule } from '../administration/administration.module';
 
@@ -42,21 +58,43 @@ export class MessagingController {
   async saveSettings(@Body() dto: Record<string, unknown>) {
     const num = (v: unknown, min: number, max: number, fallback: number) => {
       const n = Number(v);
-      return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+      return Number.isFinite(n)
+        ? Math.min(max, Math.max(min, Math.round(n)))
+        : fallback;
     };
     const cur = await this.settings.get();
     const data = {
       recoveryEnabled: Boolean(dto.recoveryEnabled),
       paymentFailedEnabled: Boolean(dto.paymentFailedEnabled),
       // 0 disables the retry; three days later would just look disorganised.
-      paymentFailedRetryHours: num(dto.paymentFailedRetryHours, 0, 72, cur.paymentFailedRetryHours),
+      paymentFailedRetryHours: num(
+        dto.paymentFailedRetryHours,
+        0,
+        72,
+        cur.paymentFailedRetryHours,
+      ),
       abandonedEnabled: Boolean(dto.abandonedEnabled),
       // Five minutes is the floor: a bKash or card OTP takes longer than that.
-      abandonedAfterMinutes: num(dto.abandonedAfterMinutes, 5, 1440, cur.abandonedAfterMinutes),
+      abandonedAfterMinutes: num(
+        dto.abandonedAfterMinutes,
+        5,
+        1440,
+        cur.abandonedAfterMinutes,
+      ),
       // Numbers of people who bought nothing are a liability to keep.
-      leadRetentionDays: num(dto.leadRetentionDays, 1, 365, cur.leadRetentionDays),
+      leadRetentionDays: num(
+        dto.leadRetentionDays,
+        1,
+        365,
+        cur.leadRetentionDays,
+      ),
       sweeperEnabled: Boolean(dto.sweeperEnabled),
-      sweeperEveryMinutes: num(dto.sweeperEveryMinutes, 1, 120, cur.sweeperEveryMinutes),
+      sweeperEveryMinutes: num(
+        dto.sweeperEveryMinutes,
+        1,
+        120,
+        cur.sweeperEveryMinutes,
+      ),
       supportPhone: String(dto.supportPhone ?? '').trim() || null,
     };
     await this.prisma.db.messagingSetting.upsert({
@@ -127,7 +165,45 @@ export class MessagingController {
 /* Called by the customer's browser, so it lives under /shop like the rest. */
 @Controller('shop')
 export class CheckoutLeadController {
-  constructor(private readonly leads: CheckoutLeadsService) {}
+  constructor(
+    private readonly leads: CheckoutLeadsService,
+    private readonly otp: OtpService,
+  ) {}
+
+  /*
+    The one-time code (DEC-WA-010). Public, because the person asking for it
+    has not proved anything yet — that is the entire point of the code.
+
+    OtpService rate-limits per number and never says which channel failed, so
+    a public door here does not become a way to probe who has WhatsApp or to
+    flood someone's phone.
+  */
+
+  @Public()
+  @Post('otp/send')
+  sendOtp(@Body() b: { phone?: string; purpose?: OtpPurpose; email?: string }) {
+    return this.otp.send({
+      phone: b?.phone ?? '',
+      purpose: b?.purpose ?? OtpPurpose.CHECKOUT,
+      email: b?.email,
+    });
+  }
+
+  /**
+   * Answers only true or false. What a verified code unlocks is decided by
+   * the endpoint that needs it (checkout, login, track) — never here.
+   */
+  @Public()
+  @Post('otp/verify')
+  verifyOtp(
+    @Body() b: { phone?: string; purpose?: OtpPurpose; code?: string },
+  ) {
+    return this.otp.verify(
+      b?.phone ?? '',
+      b?.purpose ?? OtpPurpose.CHECKOUT,
+      b?.code ?? '',
+    );
+  }
 
   /** Public, so nothing sent is trusted: scrub() drops card-shaped keys. */
   @Public()
@@ -149,16 +225,36 @@ export class CheckoutLeadController {
 }
 
 @Module({
-  imports: [PrismaModule, WhatsAppCloudModule, AdministrationModule],
+  imports: [
+    PrismaModule,
+    WhatsAppCloudModule,
+    AdministrationModule,
+    MarketingModule,
+  ],
   providers: [
-    MessagingSettingsService, OrderMessagesService, CheckoutLeadsService,
-    MessagingSweeper, WhatsAppTemplatesService, WhatsAppWebhookService,
-    MetaWebhookService, WhatsAppCoexistenceService, ChannelSender,
+    MessagingSettingsService,
+    OrderMessagesService,
+    CheckoutLeadsService,
+    MessagingSweeper,
+    WhatsAppTemplatesService,
+    WhatsAppWebhookService,
+    MetaWebhookService,
+    WhatsAppCoexistenceService,
+    OtpService,
+    ChannelSender,
   ],
   controllers: [
-    MessagingController, CheckoutLeadController,
-    WhatsAppWebhookController, MetaWebhookController, WhatsAppCoexistenceController,
+    MessagingController,
+    CheckoutLeadController,
+    WhatsAppWebhookController,
+    MetaWebhookController,
+    WhatsAppCoexistenceController,
   ],
-  exports: [OrderMessagesService, CheckoutLeadsService, ChannelSender],
+  exports: [
+    OrderMessagesService,
+    CheckoutLeadsService,
+    ChannelSender,
+    OtpService,
+  ],
 })
 export class MessagingModule {}
