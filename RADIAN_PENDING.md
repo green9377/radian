@@ -6,6 +6,57 @@
 
 ---
 
+## 📦 THE FULFILMENT CIRCLE WORKS — walked end to end (29 Aug)
+
+Order RAD-69010, one `red · small` of Anniversary GIFT, placed on the website
+and pushed through every stage by hand.
+
+| step | result |
+|---|---|
+| website order → admin | ✅ |
+| Confirm | ✅ |
+| **Preparing → stock 5 → 4** | ✅ the button even says "(stock −1)" |
+| Out for delivery | ✅ |
+| delivered while unpaid | ✅ **refused**, correctly — REV-C5 |
+| record payment → Delivered | ✅ in **1 second** |
+| **COGS ৳4,265 → ৳4,285** | ✅ the item's cost booked on delivery |
+| Gateway fee unchanged | ✅ right — this payment was bKash, not the gateway |
+
+⚠️ **Stock moves at PREPARING, not at order time, and not at delivery.** That
+is DEC-MOD-003 and it is deliberate: deducting when the order arrives would
+make the shelf lie every time somebody abandons or fails to pay. Delivery is
+when the MONEY moves (revenue + COGS, DEC-FIN-002/003), because the goods left
+the building at preparing.
+
+### Two faults found on the way — both were screens lying about correct rules
+
+**1. "COD due" on orders that were never COD.** The status-label table mapped
+`unpaid` → "COD due" with no knowledge of the payment method, so an online
+order whose payment never arrived announced "COD due · ৳5,039.28". Staff
+reading that send the parcel expecting the rider to collect; the rider comes
+back empty-handed with the goods gone, and the due board counts cash that has
+no cash behind it. The table existed TWICE (api.ts and orders.ts) and was
+wrong in both. `unpaid` now reads "Not paid"; `paymentLabel(status, method)`
+says "COD due" only when the method really is cod. (commit 790b968)
+
+**2. A refused step froze the whole admin.** Pressing "Mark delivered" on an
+unpaid online order made the page go dead — no error, no spinner, nothing. The
+API was right the entire time: it refuses with *"cannot mark delivered — 503928
+paisa is still unpaid. Record the payment first."* `act()` caught that and put
+it in a browser `alert()`, which BLOCKS the renderer until somebody presses OK.
+It cost most of an afternoon, because a frozen page looks nothing like a
+business rule doing its job. The refusal now lands as a line on the page with a
+Dismiss. Same principle as prisma-exception-filter (owner, 20 Aug). (7cf5165)
+
+⚠️ `confirm()` on **Cancel order** is left alone on purpose — that one asks a
+question, and blocking is the point.
+
+**The lesson both share:** the rules were right; the SCREENS were lying about
+them. Walking a real order is the only thing that finds that — no type-check,
+no unit test and no code reading would have.
+
+---
+
 ## 💳 THE MONEY CIRCLE WORKS — and it never had before (27 Aug)
 
 Walked end to end on demo. **Online payment had NEVER completed on this
