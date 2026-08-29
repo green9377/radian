@@ -194,6 +194,8 @@ export default function OrderEditor({ id }: { id: string }) {
   const [cust, setCust] = useState<ApiCustomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  /** why the last action was refused — shown on the page, never in an alert */
+  const [actErr, setActErr] = useState("");
   const [sec, setSec] = useState<SecId>("summary");
   const [openMaterials, setOpenMaterials] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -218,13 +220,32 @@ export default function OrderEditor({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  /*
+    ⚠️ NO `alert()` HERE ANY MORE — 29 Aug 2026, found walking the fulfilment
+    circle.
+
+    Pressing "Mark delivered" on an order whose online payment had not arrived
+    threw the right refusal from the API — *"cannot mark delivered — 503928
+    paisa is still unpaid. Record the payment first."* — and this caught it and
+    put it in a browser `alert()`. A native alert BLOCKS the page: everything
+    stops until somebody presses OK, and until then the screen is frozen with
+    no visible reason. It cost most of an afternoon to find, because the symptom
+    (a dead admin page) looks nothing like the cause (a correct business rule
+    doing its job).
+
+    The refusal now lands in a line on the page, in the shop's own colours,
+    beside the button that caused it — the same principle as
+    prisma-exception-filter (owner, 20 Aug): a rule saying no must read as a
+    rule saying no, not as something broken.
+  */
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
+    setActErr("");
     try {
       await fn();
       await reload();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Action failed");
+      setActErr(e instanceof Error ? e.message : "That did not work. Try again.");
     } finally {
       setBusy(false);
     }
@@ -341,7 +362,7 @@ export default function OrderEditor({ id }: { id: string }) {
           <Stepper steps={JOURNEY} current={journeyIndex(o)} tone={cancelled ? "rose" : deliveryTone(o.deliveryStatus)} dead={cancelled} deadLabel="Order cancelled — per-line refund applied" />
         </div>
         {nextStep && !terminal && (
-          <button type="button" disabled={busy} onClick={() => act(nextStep.run)} className="text-white text-[13px] px-4 py-2.5 rounded-[11px] font-medium disabled:opacity-50 inline-flex items-center gap-2 shrink-0" style={{ background: TONE[nextStep.tone].solid }}>
+          <button type="button" disabled={busy} onClick={() => act(nextStep.run)} className="text-white text-[13px] px-4 py-2.5 rounded-[11px] font-bold disabled:opacity-50 inline-flex items-center gap-2 shrink-0" style={{ background: TONE[nextStep.tone].solid }}>
             <Icon name="check" size={15} /> {busy ? "Working…" : nextStep.label}
           </button>
         )}
@@ -351,6 +372,22 @@ export default function OrderEditor({ id }: { id: string }) {
           </span>
         )}
       </div>
+
+      {/*  Why the last step was refused — on the page, beside the button that
+           was pressed. This is usually a RULE, not a fault: "record the payment
+           first", "items are locked once preparing starts". It reads as one.  */}
+      {actErr && (
+        <div
+          className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-5 text-[13px]"
+          style={{ background: TONE.gold.bg, borderColor: TONE.gold.border, color: TONE.gold.text }}
+        >
+          <Icon name="alert" size={16} />
+          <span className="flex-1 min-w-0">{actErr}</span>
+          <button type="button" onClick={() => setActErr("")} className="font-bold shrink-0 opacity-70 hover:opacity-100">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* status band */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
