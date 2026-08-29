@@ -10,6 +10,7 @@ import {
   SALES_STATUS_META,
   DELIVERY_STATUS_META,
   PAYMENT_STATUS_META,
+  paymentLabel,
   zoneLabel,
   formatTaka,
   ago,
@@ -411,7 +412,7 @@ export function OrdersActionQueue() {
 
       <Panel title="Paid — verify and confirm" icon="check" tone="green" count={paid.length} hint="money is already in">
         {loading ? <EmptyRow text="Loading…" tone="green" /> : paid.length === 0 ? <EmptyRow text="All clear — nothing waiting." tone="green" /> : paid.map((o) => (
-          <OrderRow key={o.id} o={o} tone="green" right={<>{amountEl(o.totalPaisa)}<Chip meta={PAYMENT_STATUS_META[o.paymentStatus]} />{confirmBtn(o, "green")}</>} />
+          <OrderRow key={o.id} o={o} tone="green" right={<>{amountEl(o.totalPaisa)}<Chip meta={{ ...PAYMENT_STATUS_META[o.paymentStatus], label: paymentLabel(o.paymentStatus, o.paymentMethod) }} />{confirmBtn(o, "green")}</>} />
         ))}
       </Panel>
 
@@ -466,7 +467,7 @@ export function OrdersPayments() {
           <OrderRow key={o.id} o={o} tone="gold" right={<>
             <span className="text-[13px] text-body-soft">of {formatTaka(o.totalPaisa)}</span>
             <span className="text-[14px] font-medium" style={{ color: TONE.gold.text }}>{formatTaka(o.duePaisa)}</span>
-            <Chip meta={PAYMENT_STATUS_META[o.paymentStatus]} />
+            <Chip meta={{ ...PAYMENT_STATUS_META[o.paymentStatus], label: paymentLabel(o.paymentStatus, o.paymentMethod) }} />
           </>} />
         ))}
       </Panel>

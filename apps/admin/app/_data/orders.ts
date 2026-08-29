@@ -100,13 +100,31 @@ export const DELIVERY_STATUS_META: Record<DeliveryStatus, StatusMeta> = {
 };
 
 export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
-  unpaid: { label: "COD due", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
+  /*  ⚠️ "Unpaid" is not "COD" — see the long note on the twin of this table in
+      `api.ts`. An online order whose payment never arrived is not a
+      cash-on-delivery order, and calling it one sends a parcel out with
+      nothing for the rider to collect.  */
+  unpaid: { label: "Not paid", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
   advance_paid: { label: "Advance paid", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
   paid: { label: "Paid", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
   cod_collected: { label: "COD collected", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
   partially_refunded: { label: "Part refunded", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
   refunded: { label: "Refunded", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
 };
+
+/**
+ * What to call an order's payment state, given the METHOD as well as the
+ * status — "unpaid" alone cannot say who is expected to pay, or how.
+ *
+ * Cash owed at the door is money the rider will collect. An online payment
+ * that never arrived is money nobody will hand over at the door, and somebody
+ * has to send the customer the pay link instead. Reading them as one sentence
+ * is how a parcel goes out with nothing to collect.
+ */
+export function paymentLabel(status: PaymentStatus, method?: string | null): string {
+  if (status === "unpaid") return method === "cod" ? "COD due" : "Not paid";
+  return PAYMENT_STATUS_META[status]?.label ?? status;
+}
 
 /* ─────────── entities ─────────── */
 

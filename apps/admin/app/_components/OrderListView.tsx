@@ -12,6 +12,7 @@ import {
   SALES_STATUS_META,
   DELIVERY_STATUS_META,
   PAYMENT_STATUS_META,
+  paymentLabel,
   zoneLabel,
   formatTaka,
   ago,
@@ -241,7 +242,7 @@ export default function OrderListView() {
               </div>
               <div className="min-w-0 py-3">
                 <div className="text-[13.5px] font-medium text-purple">{formatTaka(o.totalPaisa)}</div>
-                <div className="mt-0.5"><Chip meta={PAYMENT_STATUS_META[o.paymentStatus]} /></div>
+                <div className="mt-0.5"><Chip meta={{ ...PAYMENT_STATUS_META[o.paymentStatus], label: paymentLabel(o.paymentStatus, o.paymentMethod) }} /></div>
               </div>
               <div className="flex flex-col gap-1 items-start py-3">
                 <Chip meta={SALES_STATUS_META[o.salesStatus]} />

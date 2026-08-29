@@ -1579,13 +1579,43 @@ export const DELIVERY_STATUS_META: Record<DeliveryStatus, StatusMeta> = {
   stock_reverted: { label: "Stock reverted", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
 };
 export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
-  unpaid: { label: "COD due", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
+  /*
+    ⚠️ "Unpaid" IS NOT "COD" — corrected 29 Aug 2026, walking the fulfilment
+    circle. This label read "COD due" for EVERY unpaid order, and an online
+    order whose payment never arrived is not a cash-on-delivery order: nobody
+    is going to hand the rider money for it.
+
+    Found on RAD-69010 — placed online, payment not completed, and the order
+    screen announced "COD due · ৳5,039.28". Staff reading that send the parcel
+    out expecting the rider to collect, and the rider comes back empty-handed
+    with the goods already gone.
+
+    The API was right all along: `derivePaymentStatus` only returns `unpaid`,
+    and it returns `cod_collected` when COD money actually arrives. The word
+    COD was invented here, on the screen. `paymentLabel()` below now says which
+    it is, because only the ORDER knows its method.
+  */
+  unpaid: { label: "Not paid", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
   advance_paid: { label: "Advance paid", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
   paid: { label: "Paid", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
   cod_collected: { label: "COD collected", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
   partially_refunded: { label: "Part refunded", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
   refunded: { label: "Refunded", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
 };
+/**
+ * What to call an order's payment state, given the METHOD as well as the
+ * status — because "unpaid" alone cannot say who is expected to pay, or how.
+ *
+ * A cash order that has not been paid is money the rider will collect. An
+ * online order that has not been paid is money nobody is going to hand over
+ * at the door — somebody has to send the customer the pay link. Reading them
+ * as the same sentence is how a parcel goes out with nothing to collect.
+ */
+export function paymentLabel(status: PaymentStatus, method?: string | null): string {
+  if (status === "unpaid") return method === "cod" ? "COD due" : "Not paid";
+  return PAYMENT_STATUS_META[status]?.label ?? status;
+}
+
 export function zoneLabel(z: string): string {
   return z === "DHAKA" ? "Dhaka" : "Nationwide";
 }

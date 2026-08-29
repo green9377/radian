@@ -19,6 +19,7 @@ import {
   SALES_STATUS_META,
   DELIVERY_STATUS_META,
   PAYMENT_STATUS_META,
+  paymentLabel,
   formatTaka,
   shortDate,
   clockTime,
@@ -234,7 +235,13 @@ export default function OrderEditor({ id }: { id: string }) {
 
   const sm = SALES_STATUS_META[o.salesStatus];
   const dm = DELIVERY_STATUS_META[o.deliveryStatus];
-  const pm = PAYMENT_STATUS_META[o.payment.status];
+  /*  The method decides the wording when nothing has been paid: cash owed at
+      the door reads differently from an online payment that never arrived
+      (29 Aug 2026 — see the note in api.ts).  */
+  const pm = {
+    ...PAYMENT_STATUS_META[o.payment.status],
+    label: paymentLabel(o.payment.status, o.payment.method),
+  };
   const cancelled = o.salesStatus === "cancelled";
   const terminal = cancelled || o.salesStatus === "completed";
   const failed = o.deliveryStatus === "failed" || o.deliveryStatus === "stock_reverted";
