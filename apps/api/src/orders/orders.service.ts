@@ -421,7 +421,8 @@ export class OrdersService {
       throw new BadRequestException(`cannot confirm from salesStatus=${o.salesStatus}`);
     const updated = await this.prisma.db.order.update({
       where: { id },
-      data: { salesStatus: SalesStatus.confirmed },
+      // DEC-SAL-016 — the moment, not just the state
+      data: { salesStatus: SalesStatus.confirmed, confirmedAt: new Date() },
       include: FULL_INCLUDE,
     });
     await this.event(id, 'sales', `Order confirmed`, actorName);
@@ -536,7 +537,8 @@ export class OrdersService {
       }
       return tx.order.update({
         where: { id },
-        data: { deliveryStatus: DeliveryStatus.preparing },
+        // DEC-SAL-016 — the moment, not just the state
+        data: { deliveryStatus: DeliveryStatus.preparing, preparingAt: new Date() },
         include: FULL_INCLUDE,
       });
     });
@@ -559,7 +561,13 @@ export class OrdersService {
     if (o.deliveryStatus === DeliveryStatus.failed) await this.event(id, 'delivery', `Retrying delivery`, actorName);
     const updated = await this.prisma.db.order.update({
       where: { id },
-      data: { deliveryStatus: DeliveryStatus.out_for_delivery },
+      data: {
+        deliveryStatus: DeliveryStatus.out_for_delivery,
+        /*  DEC-SAL-016 — the FIRST time it left, kept through a retry. A
+            second attempt after a failure must not erase how long this parcel
+            has really been on the road.  */
+        ...(o.outForDeliveryAt ? {} : { outForDeliveryAt: new Date() }),
+      },
       include: FULL_INCLUDE,
     });
     await this.event(id, 'delivery', `Out for delivery`, actorName);
@@ -639,6 +647,8 @@ export class OrdersService {
         data: {
           deliveryStatus: DeliveryStatus.delivered,
           salesStatus: SalesStatus.completed,
+          // DEC-SAL-016 — and the one `promisedBy` is measured against
+          deliveredAt: new Date(),
           duePaisa: Math.max(0, bumped.totalPaisa - bumped.paidPaisa),
           paymentStatus: this.derivePaymentStatus(bumped.paymentMethod, bumped.totalPaisa, bumped.paidPaisa, bumped.refundPaisa, outstanding > 0 ? 'COD_COLLECTED' : ''),
         },
@@ -856,6 +866,7 @@ export class OrdersService {
       where: { id },
       data: {
         salesStatus: SalesStatus.cancelled,
+        cancelledAt: new Date(), // DEC-SAL-016
         deliveryStatus: preparingStarted ? DeliveryStatus.stock_reverted : o.deliveryStatus,
         refundPaisa: newRefund,
         duePaisa: 0, // a cancelled order collects nothing more

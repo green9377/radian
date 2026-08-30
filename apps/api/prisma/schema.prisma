@@ -2458,6 +2458,30 @@ model Order {
   /// as UNMEASURABLE, never as late (INT-R09).
   promisedBy    DateTime?
 
+  /// ── When each step actually happened · DEC-SAL-016 ─────────────────────
+  /// The two status columns say WHERE an order is; these say WHEN it got
+  /// there. Three things needed that and none of them had it:
+  ///
+  ///   · the customer's own order page, which showed a tracker frozen at
+  ///     "placed" because the browser's snapshot was all it ever read
+  ///   · `promisedBy` right above, whose own comment says on-time is
+  ///     "deliveredAt <= promisedBy" — a comparison against a column that
+  ///     did not exist
+  ///   · DEC-DLV-023, the missed-promise list the owner asked for on 30 Aug
+  ///
+  /// The times were recoverable from ActivityEvent, but only by matching the
+  /// English in a log line. When a step's moment is a business fact, it gets
+  /// a column.
+  ///
+  /// Null means the step has not happened. `outForDeliveryAt` is the FIRST
+  /// time the parcel left — a retry after a failure does not rewrite it, so
+  /// "how long has this been on the road" stays answerable.
+  confirmedAt      DateTime?
+  preparingAt      DateTime?
+  outForDeliveryAt DateTime?
+  deliveredAt      DateTime?
+  cancelledAt      DateTime?
+
   // DEC-DLV-002 — FK into the Delivery masters; the label/fee SNAPSHOTS above
   // stay the receipt (old orders untouched, method edits never rewrite history)
   deliveryMethodId String?

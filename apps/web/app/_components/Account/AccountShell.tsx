@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { isTerminal } from "../../_data/order";
 import { getAllOrders } from "../../_data/orders";
+import { useLiveOrder } from "../../_data/useLiveOrder";
 import { useAuthStore } from "../../_store/useAuthStore";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import { useProfileHydrated, useProfileStore } from "../../_store/useProfileStore";
@@ -43,7 +44,7 @@ export default function AccountShell({
   const profHydrated = useProfileHydrated();
   const avatar = useProfileStore((s) => s.avatar);
 
-  const orders = getAllOrders(liveHydrated ? live : null);
+  const orders = getAllOrders(useLiveOrder(liveHydrated ? live : null)); // DEC-SAL-016
   const activeCount = orders.filter((o) => !isTerminal(o.status)).length;
 
   const items: NavItem[] = [

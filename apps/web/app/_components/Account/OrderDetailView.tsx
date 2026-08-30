@@ -10,6 +10,7 @@ import {
   type OrderEvent,
 } from "../../_data/order";
 import { findOrder } from "../../_data/orders";
+import { useLiveOrder } from "../../_data/useLiveOrder";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import DeliveryTimeline from "../Checkout/DeliveryTimeline";
 import Icon from "../Pdp/PdpIcons";
@@ -36,6 +37,10 @@ function stamp(ms: number): string {
 export default function OrderDetailView({ id }: { id: string }) {
   const liveHydrated = useOrderHydrated();
   const live = useOrderStore((s) => s.last);
+  /*  DEC-SAL-016 — the browser holds the receipt; the shop holds the status.
+      Without this the tracker below sat on "placed" for ever, whatever the
+      admin did. See `useLiveOrder` for why it goes through /shop/track.  */
+  const order = useLiveOrder(findOrder(id, liveHydrated ? live : null));
 
   if (!liveHydrated) {
     return (
@@ -44,8 +49,6 @@ export default function OrderDetailView({ id }: { id: string }) {
       </div>
     );
   }
-
-  const order = findOrder(id, live);
 
   if (!order) {
     return (

@@ -450,6 +450,16 @@ export interface TrackedOrder {
   date: string | null;
   etaLabel: string | null;
   photoUpdates: boolean;
+  /** DEC-SAL-016 — when each step happened; null = not reached (or an order
+   *  older than the columns). Times only, never who or why. */
+  steps?: {
+    placedAt: string;
+    confirmedAt: string | null;
+    preparingAt: string | null;
+    outForDeliveryAt: string | null;
+    deliveredAt: string | null;
+    cancelledAt: string | null;
+  };
 }
 
 /**

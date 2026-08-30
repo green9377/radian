@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { getAllOrders } from "../../_data/orders";
 import { isTerminal, type Order } from "../../_data/order";
+import { useLiveOrder } from "../../_data/useLiveOrder";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import OrderCard from "./OrderCard";
 
@@ -32,7 +33,10 @@ export default function OrdersView() {
   const live = useOrderStore((s) => s.last);
   const [filter, setFilter] = useState<Filter>("all");
 
-  const orders = getAllOrders(liveHydrated ? live : null);
+  /*  DEC-SAL-016 — the customer's own order is corrected against the shop
+      before the list is built, so the "Active / Delivered" chips count what
+      is true rather than what this browser last remembered.  */
+  const orders = getAllOrders(useLiveOrder(liveHydrated ? live : null));
   const shown = orders.filter((o) => match(o, filter));
 
   return (

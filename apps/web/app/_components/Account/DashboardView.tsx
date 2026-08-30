@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { getAllOrders } from "../../_data/orders";
+import { useLiveOrder } from "../../_data/useLiveOrder";
 import { isTerminal, type Order, type OrderStatus } from "../../_data/order";
 import { useAuthStore } from "../../_store/useAuthStore";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
@@ -31,7 +32,8 @@ export default function DashboardView() {
   const liveHydrated = useOrderHydrated();
   const live = useOrderStore((s) => s.last);
 
-  const orders = getAllOrders(liveHydrated ? live : null);
+  // DEC-SAL-016 — the hero says where the order really is, not where it started
+  const orders = getAllOrders(useLiveOrder(liveHydrated ? live : null));
   const active = orders.find((o) => !isTerminal(o.status)) ?? null;
   const lastDelivered = orders.find((o) => o.status === "delivered") ?? null;
   const recent = orders.slice(0, 3);

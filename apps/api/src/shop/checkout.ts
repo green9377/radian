@@ -1344,6 +1344,11 @@ Queued rather than sent directly: COD and prepaid say different
         orderNo: true, placedAt: true, salesStatus: true, deliveryStatus: true,
         methodLabel: true, slotLabel: true, date: true, etaLabel: true,
         photoUpdates: true, senderPhone: true, recipientPhone: true,
+        /*  DEC-SAL-016 — when each step happened. Times only: no actor, no
+            note, no label. The customer's page draws its own words from the
+            step; who touched the order is the shop's business.  */
+        confirmedAt: true, preparingAt: true, outForDeliveryAt: true,
+        deliveredAt: true, cancelledAt: true,
         customer: { select: { phone: true } },
       },
     });
@@ -1383,6 +1388,17 @@ Queued rather than sent directly: COD and prepaid say different
       date: order.date,
       etaLabel: order.etaLabel,
       photoUpdates: order.photoUpdates,
+      /*  Null on every order placed before DEC-SAL-016, and on every step not
+          yet reached. The page shows the step without a time rather than
+          inventing one.  */
+      steps: {
+        placedAt: order.placedAt.toISOString(),
+        confirmedAt: order.confirmedAt?.toISOString() ?? null,
+        preparingAt: order.preparingAt?.toISOString() ?? null,
+        outForDeliveryAt: order.outForDeliveryAt?.toISOString() ?? null,
+        deliveredAt: order.deliveredAt?.toISOString() ?? null,
+        cancelledAt: order.cancelledAt?.toISOString() ?? null,
+      },
     } satisfies TrackResult;
   }
 }
@@ -1407,6 +1423,23 @@ export interface TrackResult {
   date: string | null;
   etaLabel: string | null;
   photoUpdates: boolean;
+  /**
+   * DEC-SAL-016 — when each step happened. Times and nothing else: this is a
+   * public route reached with an order number, so it says WHAT happened and
+   * WHEN, never who did it or what they wrote.
+   *
+   * Null = not reached, or an order older than these columns. Both read the
+   * same way on the page (the step, no time), which is honest: nobody wrote
+   * that moment down, so nothing here claims to know it.
+   */
+  steps: {
+    placedAt: string;
+    confirmedAt: string | null;
+    preparingAt: string | null;
+    outForDeliveryAt: string | null;
+    deliveredAt: string | null;
+    cancelledAt: string | null;
+  };
 }
 
 @Controller('shop')
