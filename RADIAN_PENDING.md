@@ -172,7 +172,32 @@ end on the real store before announcing it.
 
 ---
 
-## 🟢 PHASE 5 OPEN — Checkout & Payment (26 Aug)
+## 🟢 PHASE 6 OPENS NEXT — Orders & Delivery (fulfilment)
+
+**First read of the new chat: `RADIAN_PHASE6_DIRECTION.md`.** It carries what
+already exists (13 delivery pages, 14 order pages, the whole assignment
+lifecycle), five gaps verified in the code on 30 Aug, and four questions the
+owner must answer before anything is built.
+
+The two loudest:
+
+- **Two ways to assign a carrier, one of them invisible.** `POST
+  /orders/:id/courier` writes courier fields onto the Order and creates no
+  `DeliveryAssignment`, so those parcels never reach the board, the analytics
+  or Finance. Live in `OrderEditor.tsx:635` and `DeliveryViews.tsx:122`.
+- **Orders → Reports counts the first 100 orders only** (`pageSize: "100"`
+  hardcoded). Revenue, AOV and cancel rate all go quietly wrong past 100 —
+  and look perfect on demo. This is REV-C4 from the July Sales review.
+
+⚠️ **Not this phase: the real domain.** Asked and answered 30 Aug — *"live ar
+ktha vule jaw."* `radianbd.com` still runs the owner's existing trading shop
+(getCommerce, 395 URLs in Google's index). Build the system first; the cutover
+and any data migration are a later conversation. The measurements are kept in
+the direction file §3 so that conversation starts informed.
+
+---
+
+## ✅ PHASE 5 CLOSED — Checkout & Payment (26–30 Aug)
 
 Direction: `RADIAN_PHASE5_DIRECTION.md`. The owner's six rulings, asked and
 answered before any code: **`RADIAN_PHASE5_DECISIONS.md`**.
