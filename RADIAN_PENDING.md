@@ -36,11 +36,17 @@ problem and Render is gone. API work can ship again.
    Messenger and Instagram messages stop arriving with no error anywhere. The
    docs are fixed (`RADIAN_WHATSAPP_SETUP.md`, `RADIAN_MESSENGER_INSTAGRAM.md`)
    but **the change also has to be made in Meta's own dashboard.**
-2. **Which database is the API on?** It should be `radian_postgres_prod` on the
-   VPS, but Neon's compute was woken on 29 Aug 12:39 and orders made through
-   the old Render API are visible on the VPS. Innocent explanation: the dump
-   was restored after. Serious one: the API is still on Neon. One command
-   settles it — CLAUDE.md §2 has it. **Settle it before a real customer pays.**
+2. ~~**Which database is the API on?**~~ ✅ **SETTLED 30 Aug — it is the VPS's
+   own postgres, not Neon.** Proved rather than assumed: an order created on
+   the VPS today (RAD-76123) does NOT exist in Neon, while one created through
+   the old Render API on 29 Aug (RAD-69010) does. The VPS database was restored
+   from a Neon dump taken after 29 Aug; the two have diverged since. Neon is a
+   frozen snapshot now — one more copy of that day's data, nothing live.
+
+   ⚠️ Worth keeping: "the old orders are visible on the new system" proves a
+   RESTORE happened, not that the two are one database. Write something new on
+   one and look for it on the other — that is the only question that answers
+   itself.
 
 ⚠️ **The local repo `D:\radian` has diverged from origin/main** (local HEAD
 `8a22838`, not on main). origin/main is ahead with the owner's OTP / phone
