@@ -1,4 +1,12 @@
 # RADIAN BUSINESS OS — TEST PLAN, PHASE 0 → PHASE 3
+
+> ⚠️ **STALE ADDRESSES — read this first (30 Aug 2026).** Anything below that
+> names `radian-admin.vercel.app`, `radian-web-tan.vercel.app` or
+> `radian-api-qnt6.onrender.com` is HISTORY, not an instruction. Vercel, Render
+> and Neon are all shut down; the whole system lives on the Hostinger VPS:
+> web `development.radianbd.com` · admin `admin.development.radianbd.com` ·
+> api `api.development.radianbd.com`. See CLAUDE.md §2. The reasoning in this
+> file is still worth reading — only the addresses are wrong.
 **For an independent tester. Version 1.0 — 22 Aug 2026.**
 
 ---

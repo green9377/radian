@@ -1,5 +1,13 @@
 # PHASE 3 DIRECTION — Purchase / Inventory testing (written 19 Aug 2026)
 
+> ⚠️ **STALE ADDRESSES — read this first (30 Aug 2026).** Anything below that
+> names `radian-admin.vercel.app`, `radian-web-tan.vercel.app` or
+> `radian-api-qnt6.onrender.com` is HISTORY, not an instruction. Vercel, Render
+> and Neon are all shut down; the whole system lives on the Hostinger VPS:
+> web `development.radianbd.com` · admin `admin.development.radianbd.com` ·
+> api `api.development.radianbd.com`. See CLAUDE.md §2. The reasoning in this
+> file is still worth reading — only the addresses are wrong.
+
 > Hand this to the new conversation as-is. It carries everything the last
 > conversation learned, so nothing has to be rediscovered. Read CLAUDE.md and
 > RADIAN_PENDING.md first — the rules there stand; this file only adds the

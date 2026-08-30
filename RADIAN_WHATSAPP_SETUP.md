@@ -373,7 +373,14 @@ _সূত্র: Meta WhatsApp Cloud API — Get started · Pricing (২০২�
 
 **২. Meta-তে callback বসান** — Radian app → WhatsApp → Configuration → Webhook → Edit:
 
-- Callback URL: `https://radian-api-qnt6.onrender.com/webhooks/whatsapp`
+- Callback URL: `https://api.development.radianbd.com/webhooks/whatsapp`
+
+  > ⚠️ **CHANGED 30 Aug 2026 — and it has to be changed in Meta too.** This
+  > said `radian-api-qnt6.onrender.com`, which since the VPS move answers
+  > nothing. A webhook pointed at a dead host does not error anywhere we can
+  > see: Meta simply stops delivering, and every customer message quietly never
+  > arrives. Fixing this file is half the job — the other half is Meta →
+  > WhatsApp → Configuration → Callback URL.
   *(আসল সার্ভারে গেলে ওই ঠিকানা)*
 - Verify token: উপরের ওই শব্দটাই, হুবহু
 - **Verify and save**

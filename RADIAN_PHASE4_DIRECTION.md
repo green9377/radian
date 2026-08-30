@@ -1,5 +1,13 @@
 # PHASE 4 DIRECTION — Product / Catalogue (written 22 Aug 2026)
 
+> ⚠️ **STALE ADDRESSES — read this first (30 Aug 2026).** Anything below that
+> names `radian-admin.vercel.app`, `radian-web-tan.vercel.app` or
+> `radian-api-qnt6.onrender.com` is HISTORY, not an instruction. Vercel, Render
+> and Neon are all shut down; the whole system lives on the Hostinger VPS:
+> web `development.radianbd.com` · admin `admin.development.radianbd.com` ·
+> api `api.development.radianbd.com`. See CLAUDE.md §2. The reasoning in this
+> file is still worth reading — only the addresses are wrong.
+
 This file is written for the FIRST message of a new chat. It carries what the
 next session must know so nobody rediscovers the project from zero.
 

@@ -1,5 +1,15 @@
 # Radian — Demo Deploy Guide (বিগিনার সংস্করণ)
 
+> # 🛑 DO NOT FOLLOW THIS FILE ANY MORE (30 Aug 2026)
+>
+> These are instructions for deploying to **Vercel + Render + Neon**. All three
+> are shut down; the whole system now lives on the Hostinger VPS.
+>
+> **Today's correct instructions:** `CLAUDE.md` §2 · `RADIAN_ACCOUNTS.md`
+>
+> Not deleted — the reasoning for each decision is written here and still
+> earns its place. Only the STEPS are no longer followable.
+
 _তৈরি: 26 July 2026। উদ্দেশ্য: প্রথমবার একটা ডেমো সার্ভারে Radian তোলা এবং ডোমেইন যুক্ত করা।_
 _এই ফাইল ধাপে ধাপে পড়ুন। কোনো ধাপ লাফ দেবেন না — প্রতিটার আগেরটার উপর নির্ভরশীল।_
 

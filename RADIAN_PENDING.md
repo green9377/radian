@@ -6,6 +6,49 @@
 
 ---
 
+## 🏠 EVERYTHING IS ON THE VPS — nowhere else (owner, 30 Aug)
+
+*"amder r akhon kichui others kothaw nei sob amder vps a ache. amder kon kaj
+akhon r others kothaw jabe na."*
+
+| part | live address |
+|---|---|
+| shop | https://development.radianbd.com |
+| admin | https://admin.development.radianbd.com |
+| api | https://api.development.radianbd.com |
+| images | https://media.development.radianbd.com |
+
+**Walked on 30 Aug to confirm rather than assume:** all four answer, every
+image on the shop comes from the media host, an order pushed through the VPS
+dropped stock 4 → 3 at preparing, and delivering it unpaid was correctly
+refused with the banner. **`radian-api-qnt6.onrender.com` answers nothing.**
+
+⚠️ **The VPS does NOT deploy itself.** `git push` only reaches GitHub; the VPS
+needs `git pull` + `docker compose up -d --build` by hand (CLAUDE.md §2). "It
+is pushed" is no longer the same sentence as "it is live".
+
+⚠️ **Render's build-minute limit is no longer a blocker** — that was a Render
+problem and Render is gone. API work can ship again.
+
+### Two things this move left behind, both worth doing
+
+1. **Meta webhooks still pointed at the dead Render host** — WhatsApp,
+   Messenger and Instagram messages stop arriving with no error anywhere. The
+   docs are fixed (`RADIAN_WHATSAPP_SETUP.md`, `RADIAN_MESSENGER_INSTAGRAM.md`)
+   but **the change also has to be made in Meta's own dashboard.**
+2. **Which database is the API on?** It should be `radian_postgres_prod` on the
+   VPS, but Neon's compute was woken on 29 Aug 12:39 and orders made through
+   the old Render API are visible on the VPS. Innocent explanation: the dump
+   was restored after. Serious one: the API is still on Neon. One command
+   settles it — CLAUDE.md §2 has it. **Settle it before a real customer pays.**
+
+⚠️ **The local repo `D:\radian` has diverged from origin/main** (local HEAD
+`8a22838`, not on main). origin/main is ahead with the owner's OTP / phone
+verify / media work. Copying files out of the local folder into a fresh clone
+is how somebody's work gets quietly reverted — pull first, always.
+
+---
+
 ## 📦 THE FULFILMENT CIRCLE WORKS — walked end to end (29 Aug)
 
 Order RAD-69010, one `red · small` of Anniversary GIFT, placed on the website

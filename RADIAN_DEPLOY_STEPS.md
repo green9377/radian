@@ -1,4 +1,19 @@
-# Radian Demo — আপনার ধাপগুলো (ক্লিক বাই ক্লিক)
+# ~~Radian Demo — আপনার ধাপগুলো (ক্লিক বাই ক্লিক)~~ · SUPERSEDED
+
+> # 🛑 DO NOT FOLLOW THIS FILE ANY MORE (30 Aug 2026)
+>
+> These are instructions for deploying to **Vercel + Render + Neon**. All three
+> are shut down; the whole system now lives on the Hostinger VPS.
+>
+> ⚠️ **THE ENV TABLES BELOW ARE NOW WRONG.** Copying `PUBLIC_API_URL`,
+> `PUBLIC_WEB_URL` or `PUBLIC_ADMIN_URL` from here means the customer's card is
+> charged and the order stays unpaid. That is exactly what happened on 27 Aug.
+>
+> **Today's correct instructions:** `CLAUDE.md` §2 (deploying to the VPS) and
+> `RADIAN_ACCOUNTS.md` (what each account does).
+>
+> Not deleted — the reasoning for each decision is written here and still earns
+> its place. Only the STEPS are no longer followable.
 
 _কোডের কাজ শেষ (Phase 0)। এই ফাইলটা এখন থেকে আপনার。_
 _মোট সময় ~৪৫ মিনিট। এক বসায় শেষ করতে হবে না — যেকোনো ধাপে থেমে পরে চালু করা যায়।_

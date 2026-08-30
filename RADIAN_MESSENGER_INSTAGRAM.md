@@ -62,7 +62,12 @@ App: **Radian** (`1720041072657899`) · Page: **Radian Flower & Gift Shop**
 
 1. Use cases → **Messenger** + **Instagram messaging** যোগ
 2. Messenger → Configure webhooks
-   - Callback URL `https://radian-api-qnt6.onrender.com/webhooks/meta`
+   - Callback URL `https://api.development.radianbd.com/webhooks/meta`
+
+     > ⚠️ **CHANGED 30 Aug 2026 — change it in Meta as well.** This pointed at
+     > `radian-api-qnt6.onrender.com`, dead since the VPS move. A webhook on a
+     > dead host fails silently: Messenger and Instagram messages simply stop
+     > arriving, with nothing in any log to say so.
    - Verify token — **WhatsApp-এরটাই**, কোড একটাই token পড়ে
 3. Page যুক্ত → subscribe: `messages`, `messaging_postbacks` → **Generate** token
 4. Instagram → **API setup with Instagram login** → **Add account** →

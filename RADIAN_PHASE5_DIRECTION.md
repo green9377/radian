@@ -31,14 +31,23 @@ shop-wide and must not be duplicated).
 
 ## 2. Ship path (every single time)
 
+⚠️ **REWRITTEN 30 Aug 2026.** Vercel and Render are gone — everything is on the
+Hostinger VPS, and the VPS does NOT deploy itself. See CLAUDE.md §2.
+
 ```
 code → tsc --noEmit (api + admin + web) → no-bangla selftest → commit → push main
-     → Vercel + Render deploy (2–4 min) → open the demo link and LOOK
+     → VPS console: git pull + docker compose up -d --build
+     → open the live link and LOOK
 ```
 
-- admin  https://radian-admin.vercel.app
-- api    https://radian-api-qnt6.onrender.com  (free tier — first call can take 30–50 s)
-- web    https://radian-web-tan.vercel.app
+- web    https://development.radianbd.com
+- admin  https://admin.development.radianbd.com
+- api    https://api.development.radianbd.com
+- media  https://media.development.radianbd.com
+
+The old addresses (`radian-admin.vercel.app`, `radian-web-tan.vercel.app`,
+`radian-api-qnt6.onrender.com`) answer nothing. Do not go looking there and
+conclude the system is broken.
 - **Commit author must stay `green9377 <amiparboinshaallah@gmail.com>`** or
   Vercel silently BLOCKS the deployment. Never override with `-c user.email`.
 - Guards before pushing: `node apps/api/scripts/no-bangla.selftest.mjs`;

@@ -1,119 +1,150 @@
-# Radian — কোন account কী কাজে (মালিকের হাতবই)
+# Radian — what each account does
 
-> **কেন এই ফাইল:** মালিকের প্রশ্ন (৫ আগস্ট ২০২৬): *"koto gula jaygay account
-> kra lagche... kontai account krlm and ki hocche asob kichui jani na."*
-> প্রতিটা account-এর কাজ, টাকা লাগে কিনা, আর real launch-এ কী বদলাবে —
-> সব এক জায়গায়। **সব account আপনার নিজের email-এ, চাবি আপনার হাতে।**
+> Written for the owner. What each account is, why it is needed, what it costs,
+> and which ones need touching on the day the real shop opens.
+>
+> ⚠️ **Rewritten 30 Aug 2026.** The previous version presented Vercel · Render ·
+> Neon as the running system. **They are not running any more** — everything is
+> on one Hostinger VPS. Leaving the old text would send somebody to a dead
+> address to conclude the site was broken.
 
 ---
 
-## দোকানের সাথে তুলনা করলে
+## Compared to a real shop
 
-একটা আসল দোকান চালাতে যেমন লাগে — দলিল, দোকানঘর, গুদাম, খাতা, ক্যাশ কাউন্টার —
-online দোকানেও ঠিক তাই লাগে। প্রতিটা account ওই এক-একটা জিনিস:
+The shop used to be spread across **five rented rooms** — the shopfront in one
+place, the manager in another, the warehouse in a third. Now the **whole shop
+is in one building we own**: the Hostinger VPS.
 
 ```
-গ্রাহক radian-web-tan.vercel.app খোলে
+customer opens development.radianbd.com
         │
         ▼
-   ┌─ VERCEL ─────┐     দোকানের সামনের অংশ (web + admin পর্দা)
-   │              │
-   │   পর্দা      │──── ছবিগুলো আসে IMAGEKIT থেকে
-   └──────┬───────┘
-          ▼
-   ┌─ RENDER ─────┐     দোকানের ম্যানেজার (API — সব নিয়ম এখানে)
-   │   API        │──── টাকা নেয় SSLCOMMERZ দিয়ে
-   │              │──── AI-এর উত্তর আসে ANTHROPIC থেকে
-   └──────┬───────┘
-          ▼
-   ┌─ NEON ───────┐     গুদাম + খাতা (database — product, order, customer)
-   └──────────────┘
+┌─ HOSTINGER VPS (one machine, ours) ────────────────────┐
+│                                                        │
+│   Caddy ─── the doorman: takes every request, does TLS │
+│     │                                                  │
+│     ├─ web    → the customer's shop                    │
+│     ├─ admin  → your admin panel                       │
+│     ├─ api    → the manager (every business rule)      │
+│     ├─ media  → the picture cupboard                   │
+│     └─ postgres → warehouse + ledgers (database)       │
+│                                                        │
+└───────────────┬────────────────────────────────────────┘
+                │
+                ├──── takes money through SSLCOMMERZ
+                ├──── AI answers come from ANTHROPIC
+                └──── messages go through META (WhatsApp/Messenger)
 
-   আর এই সবকিছুর মূল নকশা (code) থাকে GITHUB-এ — দোকানের দলিল।
+   And the master plans (the code) live on GITHUB — the deeds.
 ```
 
----
+**Why moving from rented rooms to our own building helps:** nothing falls
+asleep any more (on Render's free tier the API slept after 15 minutes and a
+customer got 40 seconds of blank screen), there is no build limit, and having
+everything in one place makes the books easier to reconcile.
 
-## ৭টা account, এক এক করে
-
-### ১. GitHub — code-এর সিন্দুক (দলিল)
-- **কী রাখে:** পুরো project-এর code — `github.com/green9377/radian`
-- **কীভাবে কাজ করে:** কোনো বদল হলে এখানে "push" হয়। push হওয়া মাত্র
-  Vercel আর Render নিজে নিজে নতুন code নিয়ে সাইট নতুন করে চালু করে।
-  **এটাই আসল জাদু — এক জায়গায় বদল, সব জায়গায় আপডেট।**
-- **টাকা:** ফ্রি, চিরকাল।
-- **Real-এ:** এই একটাই থাকবে। নতুন কিছু লাগবে না।
-
-### ২. Vercel — দোকানের সামনের অংশ (পর্দা)
-- **কী চালায়:** দুটো সাইট —
-  - `radian-web-tan.vercel.app` → গ্রাহকের দোকান
-  - `radian-admin.vercel.app` → আপনার admin panel
-- **কীভাবে:** GitHub-এ নতুন code গেলেই ২-৩ মিনিটে নিজে নিজে আপডেট।
-- **টাকা:** এখন ফ্রি। real-এ ভিড় বাড়লে মাসে ~$20 (Pro) — শুরুতে ফ্রি-তেই চলবে।
-- **Real-এ:** একই account। শুধু radianbd.com domain-টা লাগিয়ে দেওয়া হবে।
-
-### ৩. Render — দোকানের ম্যানেজার (API)
-- **কী চালায়:** `radian-api-qnt6.onrender.com` — ব্যবসার সব নিয়ম এখানে খাটে:
-  দাম হিসাব, stock কাটা, order নেওয়া, delivery-র নিয়ম, AI-র উত্তর।
-  পর্দা (Vercel) শুধু দেখায়; **সিদ্ধান্ত সব এই ম্যানেজার নেয়।**
-- **টাকা:** এখন ফ্রি — অসুবিধা একটাই: ১৫ মিনিট কেউ না এলে ঘুমিয়ে পড়ে
-  (তাই GitHub-এর একটা robot প্রতি ১০ মিনিটে ডেকে জাগিয়ে রাখে)।
-  Real-এ মাসে $7 — তখন আর ঘুমাবে না।
-- **Real-এ:** একই account, শুধু paid plan।
-
-### ৪. Neon — গুদাম আর খাতা (database)
-- **কী রাখে:** আসল তথ্য — product, order, customer, stock, হিসাব। Vercel/Render
-  উড়ে গেলেও তথ্য এখানে নিরাপদ।
-- **টাকা:** এখন ফ্রি। real-এ ভিড় বাড়লে ~$19/মাস — শুরুতে ফ্রি চলে।
-- **Real-এ:** একই account-এ **আলাদা নতুন database** হবে। Demo-র test data আর
-  আসল গ্রাহকের data কোনোদিন এক জায়গায় থাকবে না — এটা লোহার নিয়ম।
-
-### ৫. Anthropic — AI কর্মচারী
-- **কী করে:** Inbox-এর AI support agent এখান থেকে "বুদ্ধি" ভাড়া নেয়।
-  গ্রাহক chat-এ যা লেখে, তার উত্তর এই API বানিয়ে দেয়।
-- **টাকা:** যতটুকু ব্যবহার ততটুকু বিল — mini মডেলে হাজার হাজার
-  চ্যাটেও মাসে কয়েক ডলার। আপনি $5 ভরেছেন, ওটা অনেকদিন চলবে।
-- **Real-এ:** একই account, একই key চলবে (চাইলে real-এর জন্য আলাদা key)।
-
-### ৬. SSLCommerz — ক্যাশ কাউন্টার (payment)
-- **কী করে:** গ্রাহকের bKash/Nagad/card-এর টাকা নিয়ে আপনার account-এ পৌঁছে দেয়।
-- **এখন:** **sandbox** (খেলনা কাউন্টার) — নকল টাকায় টেস্ট, আসল টাকা নড়ে না।
-- **Real-এ:** ⚠️ **এই একটাতেই নতুন কাজ আছে।** আসল (live) account নিতে হবে —
-  trade license সহ ব্যবসার কাগজ লাগবে, ওরা যাচাই করে ২-৩ দিনে দেয়।
-  এটা আগেভাগে শুরু করা ভালো। (বিকল্প থাকলে আমি তুলনা করে দেব।)
-
-### ৭. ImageKit — ছবির আলমারি
-- **কী রাখে:** Product-এর ছবি। আপনি admin-এ ছবি upload করলে সেটা এখানে জমা হয়,
-  আর সারা দুনিয়ায় দ্রুত পৌঁছে দেয়।
-- **টাকা:** ফ্রি (মাসে 20GB পর্যন্ত) — অনেক দূর যাবে।
-- **Real-এ:** একই account, কিছুই করা লাগবে না।
+**Cost:** one rent instead of several, and it does not grow into separate
+bills as the shop grows.
 
 ---
 
-## Real launch-এর দিন আসলে কী কী লাগবে
+## What is needed now
 
-| কাজ | কোথায় | কত সময় |
+### 1. Hostinger VPS — the whole shop
+- **Runs:** everything — web, admin, api, images, database. One machine.
+- **Address:** `srv1937497.hstgr.cloud` (187.53.129.45), AlmaLinux 10,
+  KVM 4 (4 vCPU / 16GB / 200GB)
+- **Live links:**
+  - shop — https://development.radianbd.com
+  - admin — https://admin.development.radianbd.com
+  - api — https://api.development.radianbd.com
+  - images — https://media.development.radianbd.com
+- **How you get in:** hPanel → VPS → Web console (logs in by itself)
+- **⚠️ It does not update itself.** When new code reaches GitHub, somebody has
+  to run `git pull` + rebuild on the VPS (the commands are in CLAUDE.md §2).
+- **For the real shop:** the same machine, with `radianbd.com` added.
+
+### 2. GitHub — the safe holding the code (the deeds)
+- **Holds:** the whole project — `github.com/green9377/radian`
+- **Cost:** free, for ever.
+
+### 3. Cloudflare — the address book (DNS)
+- **Does:** sends anyone typing `radianbd.com` to the VPS.
+- **Account:** Borhangazi1997@gmail.com · registrar: Namecheap
+- **⚠️ Rule:** every record stays **DNS only** (grey cloud). Turning it orange
+  breaks the VPS's certificate renewal.
+
+### 4. SSLCommerz — the cash counter (payments)
+- **Does:** takes the customer's card / bKash / Nagad money and pays it into
+  your bank.
+- **Store:** `radianbd0live` (RADIANBD)
+- **Keeps:** **2.5%** on almost every channel (AMEX 3.5%, NPSB 0%)
+- **Pays out to:** BRAC Bank, Natun Bazar, A/C 2071119390001 — once **Tk 2,500**
+  has built up, and not on bank holidays
+- **Now:** sandbox (play money). Going live means changing the Store ID and
+  password, nothing more.
+
+### 5. Anthropic — the AI staff member
+- **Does:** writes the Inbox AI's replies to customer chat.
+- **Cost:** pay per use — a few dollars a month.
+
+### 6. Meta — WhatsApp · Messenger · Instagram
+- **Does:** order updates reach the customer on WhatsApp, and messages from all
+  three channels land in the Inbox.
+- **⚠️ Webhook addresses are now:**
+  `https://api.development.radianbd.com/webhooks/whatsapp` and `/webhooks/meta`.
+  **After the VPS move these must be changed in Meta's dashboard too** —
+  otherwise messages quietly stop arriving, with no error visible anywhere.
+
+---
+
+## No longer in use
+
+| service | state |
+|---|---|
+| **Vercel** | stopped (projects paused). The old addresses answer nothing |
+| **Render** | stopped (service suspended). Checked 30 Aug — answers nothing |
+| **Neon** | endpoint suspended. A full copy of the data is on the VPS at `backups/neon_demo.sql` |
+| **ImageKit** | no new image goes there; the old copies sit as a free spare |
+
+⚠️ None of these has been **deleted** — let them sit a while, in case something
+has to be brought back. But no document will describe them as "live" again.
+
+---
+
+## On the day the real shop opens
+
+| task | where | how long |
 |---|---|---|
-| radianbd.com domain কেনা | domain registrar (একটাই নতুন account) | ১০ মিনিট |
-| Domain লাগানো | Vercel (আছেই) | ১৫ মিনিট |
-| নতুন খালি database | Neon (আছেই) | ১০ মিনিট |
-| Render paid plan | Render (আছেই) | ৫ মিনিট |
-| SSLCommerz live account | SSLCommerz | কাগজপত্রসহ ২-৩ দিন |
-| Setup data (category, delivery, policy) | admin panel থেকেই | ১-২ ঘণ্টা |
-| Smoke test | — | ৩০ মিনিট |
+| point `radianbd.com` at the VPS | Cloudflare | 15 min |
+| put the SSLCommerz live keys in | Admin → Integrations | 5 min |
+| **check all three addresses** | VPS `.env.production` | 10 min |
+| change the webhook addresses | Meta dashboard | 10 min |
+| real data (categories, delivery, policies) | admin panel | 1–2 hours |
+| **walk one order from start to finish** | yourself | 30 min |
 
-**নতুন account মোটে ২টা: domain registrar আর SSLCommerz live। বাকি ৫টা যা আছে তাই।**
+⚠️ **Do not skip the third one.** `PUBLIC_API_URL`, `PUBLIC_WEB_URL`,
+`PUBLIC_ADMIN_URL` — two of the three were wrong on demo, and when they are
+wrong nothing appears broken: the customer's card is charged and the order
+stays unpaid. That is exactly what happened on 27 Aug.
 
----
-
-## নিরাপত্তার ৩টা নিয়ম (মালিকের জন্য)
-
-1. **সব account-এর password এক রাখবেন না** — একটা password manager ব্যবহার করুন।
-2. **GitHub আর Neon সবচেয়ে দামি** — code আর data। এই দুটোতে 2-step
-   verification চালু রাখুন।
-3. কোনো account-এর email/password **কাউকে দেবেন না** — এমনকি developer-কেও না।
-   Developer-কে লাগলে আলাদা invite/limited access দেওয়া যায়।
+⚠️ **Do not skip the last one either.** Before announcing anything, place an
+order yourself, pay for it, and walk it through to delivered.
 
 ---
 
-_শেষ হালনাগাদ: ৫ আগস্ট ২০২৬_
+## Security rules
+
+1. **Do not reuse one password everywhere** — use a password manager.
+2. **GitHub and the VPS are the valuable two** — the code and all the data.
+   Turn on 2-step verification for both.
+3. **Backups:** the database is backed up on the VPS every night at 03:15
+   (`/root/apps/radian/backups/daily_1..7.sql`, a seven-day rotation).
+   ⚠️ The backups sit **on the same machine**. Lose the machine and the backups
+   go with it. At some point they need to live somewhere else as well.
+4. **Never give anyone an account password.** Send a separate invite instead.
+
+---
+
+_Last updated: 30 Aug 2026 — after the move to the VPS, verified live._

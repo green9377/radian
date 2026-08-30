@@ -1,5 +1,15 @@
 # Radian — Deployment প্ল্যান (Demo + Real, দুই ভার্সন)
 
+> # 🛑 DO NOT FOLLOW THIS FILE ANY MORE (30 Aug 2026)
+>
+> These are instructions for deploying to **Vercel + Render + Neon**. All three
+> are shut down; the whole system now lives on the Hostinger VPS.
+>
+> **Today's correct instructions:** `CLAUDE.md` §2 · `RADIAN_ACCOUNTS.md`
+>
+> Not deleted — the reasoning for each decision is written here and still
+> earns its place. Only the STEPS are no longer followable.
+
 _তৈরি: ৪ আগস্ট ২০২৬। `RADIAN_DEPLOY_GUIDE.md`-এর উত্তরসূরি।_
 _পুরনো guide-এ Railway + Vercel ছিল ($5/মাস, web বাদ)। মালিকের সিদ্ধান্ত অনুযায়ী
 এখন **সম্পূর্ণ ফ্রি** stack, চারটা অংশই উঠবে, এবং **শুরু থেকেই দুই environment**।_
