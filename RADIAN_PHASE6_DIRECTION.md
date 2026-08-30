@@ -143,7 +143,35 @@ Same pattern as Phases 3–5: **the owner walks the module hands-on**, and the
 gaps below get closed. Every item here was verified in the code on 30 Aug, not
 copied from an older document.
 
-### 🔴 6.1 — Two different ways to assign a carrier, and one of them is invisible
+### ✅ 6.1 — CLOSED 30 Aug 2026. One path to a carrier.
+
+The owner's ruling: *"order screen a jen ak click a courier assign kra jay"* —
+keep the one-click hand-off on the order screen, but it must not bypass
+Delivery. So the button stayed and the route underneath it changed.
+
+- `POST /orders/:id/courier`, `AssignCourierDto` and
+  `OrdersService.assignCourier()` are **gone**. The only way to hand a parcel
+  to a carrier is `POST /delivery/assignments`, which mirrors the legacy Order
+  courier fields itself (DEC-DLV-006).
+- The order screen's Carrier hand-off panel now creates a real
+  `DeliveryAssignment`: a bold Own rider / Courier switch (rule 16), riders and
+  couriers read from the masters (DEC-DLV-014) instead of the hardcoded
+  `COURIERS` array, consignment id, tracking from the courier's own template,
+  supersede on re-assign (DLV-R01). Loose prose moved behind the panel hint
+  (rule 17).
+- `DeliveryViews.tsx` deleted — an orphan no page imported, holding the last
+  caller of the dead route and two `alert()` calls. The copy-data-entry button
+  lost its two `alert()` calls as well.
+
+**Walked live, not assumed.** RAD-74146 assigned to Steadfast from the order
+screen produced `DLV-000001 · COURIER · ASSIGNED · PH6-TEST-001`, and the same
+row carries `Order.courierName = Steadfast` — assignment and mirror both, which
+is exactly what the old path never did. (The board does not show it because
+RAD-74146 is still *placed*; the board is confirmed-orders-only, by design.)
+
+⚠️ Demo leftover: DLV-000001 on RAD-74146 is that test.
+
+### ~~🔴 6.1 (original finding)~~ — Two different ways to assign a carrier, and one of them is invisible
 
 `POST /orders/:id/courier` → `assignCourier()` writes `courierName`,
 `courierConsignment`, `courierTrackingUrl`, `courierAssignedAt` **straight onto
@@ -217,20 +245,25 @@ House rules 16/17 (bold clear buttons, no loose prose — explanations behind
 the ⓘ), house count-cards on the Orders and Delivery master screens, and
 **translate the Bangla comments in every file touched** (rule 9).
 
-## 7. Questions for the owner — ASK BEFORE BUILDING
+## 7. The owner's answers — ANSWERED 30 Aug 2026
 
-None of these may be guessed (rule 2).
+All four were put to the owner before a line was written (rule 2). These are
+now the rules Phase 6 builds to.
 
-1. **Changing carrier mid-flight.** There is no transition out of
-   `out_for_delivery` back to `preparing`. Today the only path is Fail →
-   Re-assign, which counts against the failure rate. Should a direct carrier
-   swap exist, and should it count as a failure?
-2. **Remove `/orders/:id/courier`?** (§6.1) It is the invisible path. Removing
-   it makes the board the single truth — but it is a button in use today.
-3. **What separates a *failed* delivery from a *reschedule*?** The customer was
-   out; the phone was off; the address was wrong. Same button today.
-4. **A missed delivery promise** — 2-hour, same-day, midnight. Should the
-   system flag it, and does anything follow (a call, a note, compensation)?
+1. **Changing carrier mid-flight — DEC-DLV-021.** A direct carrier swap will
+   exist out of `out_for_delivery`, and **it does not count as a failure**. The
+   owner's reasoning is the right one: a rider's bike breaking is not the
+   rider's failure, and a failure rate that counts it stops meaning anything.
+   *(not built yet — the next item in this phase)*
+2. **The order-screen courier button stays, but goes through Delivery** —
+   *"order screen a jen ak click a courier assign kra jay"*. **Done, §6.1.**
+3. **Failed and reschedule stay ONE action, with the reason recorded** —
+   DEC-DLV-022. The reason comes from a list rather than free text, so the
+   reports can split it later. One button, because the parcel did not arrive
+   either way. *(not built yet)*
+4. **A missed promise is flagged AND collected into a follow-up list** —
+   DEC-DLV-023. The system marks the order and gathers the misses; the call,
+   the note or the compensation stays a person's decision. *(not built yet)*
 
 ## 8. Traps this module has already sprung
 
