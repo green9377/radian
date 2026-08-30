@@ -166,9 +166,9 @@ taken from the gateway's own answer, not from a rate in code.
 wrong here and nothing looked broken until money moved. Open one order end to
 end on the real store before announcing it.
 
-⚠️ **Render free build minutes ran out on 27 Aug.** New API code cannot deploy
-until the billing period resets; Vercel (admin, web) is unaffected, and env
-changes work via **Save and deploy** (not "Save, rebuild, and deploy").
+> 🗓️ *The two lines above are from the Render/Vercel days.* Since 29 Aug
+> everything runs on the VPS and deploys by hand there — `git pull` +
+> `docker compose … up -d --build`. Nothing waits on anyone's build minutes.
 
 ---
 
@@ -188,18 +188,46 @@ payable, matching the panel's own Unsettled Payable to the paisa.
 |---|---|---|
 | 1 | Decisions recorded, Phase 5 opened | **done** |
 | 2 | `store_amount` + refund API confirmed in SSLCommerz docs | **done** |
-| 3 | DEC-FIN-029 — gateway charge per payment + Gateway money account | next |
-| 4 | DEC-FIN-030 — Gateway settlement screen (Gateway → BRAC Bank) | pending |
-| 5 | Admin "Online payments" view over `PaymentSession` | pending |
-| 6 | DEC-FIN-031 — SSLCommerz refund API beside manual, choice per case | pending |
-| 7 | DEC-PRD-060 — prepaid-only notice on the PDP | pending |
-| 8 | Checkout UI sweep (rules 16/17) + translate its Bangla comments | pending |
-| 9 | Order edit money UI onto MoneyBlock (deferred from 21 Aug) | pending |
+| 3 | DEC-FIN-029 — gateway charge per payment + Gateway money account | **done** — proven live to the paisa |
+| 4 | DEC-FIN-030 — Gateway settlement screen (Gateway → BRAC Bank) | **done** |
+| 5 | Admin "Online payments" view over `PaymentSession` | **done** |
+| 6 | DEC-FIN-031 — SSLCommerz refund API beside manual, choice per case | **done — WALKED LIVE 30 Aug**, see below |
+| 7 | DEC-PRD-060 — prepaid-only notice on the PDP | **done** |
+| 8 | Checkout UI sweep (rules 16/17) + translate its Bangla comments | **done** |
+| 9 | Order edit money UI onto MoneyBlock (deferred from 21 Aug) | **done** |
 | 10 | Walk the whole money circle live on demo | **done 27 Aug** — three faults found and fixed, see above |
 
-⚠️ **The Checkout folder and `payment.ts` still carry ~164 lines of old Bangla
-comments** (house rule 9). Every file touched in items 3–9 gets its comments
-translated in the same edit — not as a separate job.
+### ✅ The gateway refund, walked on the VPS (30 Aug) — RTN-000017
+
+The one thing Phase 5 was not allowed to close without. Not a type-check: real
+money, sent down the real sandbox gateway, on `api.development.radianbd.com`.
+
+RAD-86328 (paid ৳5,039.28 by card) → delivered → return opened on its only
+line → approved → completed with **refundMethod GATEWAY**:
+
+| step | what came back |
+|---|---|
+| `/returns/gateway-refundable/:orderId` | `{ok:true, bankTranId:"260827141239AFpZTWwbV93Ybwo"}` |
+| SSLCommerz accepted it | `refund_ref_id` **6a93c8d4e0768** |
+| refund row written | `gatewayRefundId` + `gatewayRefundStatus` on the PaymentTransaction |
+| asking the gateway again | **`processing`** — *sent, not yet arrived* |
+| the order | `paymentStatus: refunded`, due ৳0 |
+
+**The asynchronous truth held.** Acceptance said `success`; the gateway's own
+status query said `processing` and `refreshGatewayRefund` wrote that back over
+it. That is exactly the distinction DEC-FIN-031 exists to protect — the screen
+never got to claim the money had arrived when it had not.
+
+**Also settled while walking it:** `complete()` ignores any amount sent in the
+body — for a REFUND the payout is `min(returnValue, cap)`, decided by **what
+came back**, not by what someone types at payout time. `refundPaisa` is not in
+`CompleteReturnDto` at all, so there is no dead field to mislead a future
+screen. A partial refund is expressed by returning fewer lines, or by
+PARTIAL_COMPENSATION.
+
+⚠️ Demo data changed to make this walk possible: the *Anniversary GIFT*
+product was given `stockQty: 5` (it was 0, which correctly blocked `prepare`),
+and RAD-86328 now reads delivered · completed · refunded.
 
 ---
 
