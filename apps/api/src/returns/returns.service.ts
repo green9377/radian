@@ -20,6 +20,13 @@ import { FinanceEventsService } from '../finance/finance-events.service';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { PaymentMethodsService } from '../common/payment-methods.service';
+import { SslCommerzService } from '../shop/payment';
+
+/*  DEC-FIN-031 — `GATEWAY` is new on the enum, and a Prisma client generated
+    before the migration does not know it yet. Same cast pattern the rest of
+    the project uses (see `checkout.ts` on deliveryBlackout); BUILD_CHECK
+    regenerates on the host and the cast becomes redundant, not wrong.  */
+const REFUND_GATEWAY = 'GATEWAY' as unknown as ReturnRefundMethod;
 import type {
   CreateReturnDto,
   CompleteReturnDto,
@@ -68,7 +75,41 @@ export class ReturnsService {
     // Finance consumes the completed return — fail-soft (DEC-FIN-010)
     private readonly finance: FinanceEventsService,
     private readonly payMethods: PaymentMethodsService, // DEC-GBL-001
+    /*  DEC-FIN-031 — the second way money can go back: down the wire it came
+        up. Beside the hand-sent refund, never instead of it.  */
+    private readonly gateway: SslCommerzService,
   ) {}
+
+  /**
+   * DEC-FIN-031 — can this order's money go back through the gateway at all?
+   *
+   * Two things have to be true, and neither is a preference: the order was
+   * really paid online, and we still hold the gateway's own `bankTranId` for a
+   * settled payment. Without that reference SSLCommerz has nothing to reverse.
+   *
+   * Returned rather than thrown, because the SCREEN needs to know before it
+   * offers the choice — a greyed-out option with a reason beats a button that
+   * fails after it is pressed.
+   */
+  async gatewayRefundable(orderId: string): Promise<{ ok: boolean; bankTranId?: string; why?: string }> {
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId },
+      select: { paymentMethod: true },
+    });
+    if (!order) return { ok: false, why: 'Order not found.' };
+    if (order.paymentMethod !== PaymentMethod.online)
+      return { ok: false, why: 'This order was not paid online, so there is nothing at the gateway to send back.' };
+
+    const session = await this.prisma.db.paymentSession.findFirst({
+      where: { orderId, status: 'SUCCESS', NOT: { bankTranId: null } },
+      orderBy: { settledAt: 'desc' },
+      select: { bankTranId: true },
+    });
+    if (!session?.bankTranId)
+      return { ok: false, why: 'No gateway reference was recorded for this payment, so it can only be sent back by hand.' };
+
+    return { ok: true, bankTranId: session.bankTranId };
+  }
 
   /* ============================ reads ============================ */
 
@@ -634,6 +675,37 @@ export class ReturnsService {
 
     const cashOut = refundPaisa; // actual money leaving (compensation handled above merged into refundPaisa when not store-credit)
 
+    /*
+      ═══ DEC-FIN-031 — GATEWAY REFUND: SEND IT BEFORE RECORDING IT ═══
+
+      The gateway call happens OUTSIDE and BEFORE the transaction below, and
+      that order is the whole point. If SSLCommerz refuses — wrong reference,
+      too old, already refunded — nothing may be written. A REFUND row the
+      gateway never accepted is money the books say went back and the customer
+      never received, and that is the worst kind of wrong: it looks settled.
+
+      A refusal throws, so the screen shows the gateway's own reason and the
+      staff member can send it by hand instead. That is the choice the owner
+      asked for, arriving at the moment it is needed.
+    */
+    let gatewayRefundId: string | null = null;
+    let gatewayRefundStatus: string | null = null;
+    if (cashOut > 0 && refundMethod === REFUND_GATEWAY) {
+      const can = await this.gatewayRefundable(order.id);
+      if (!can.ok) throw new BadRequestException(can.why ?? 'This refund cannot go through the gateway.');
+      const sent = await this.gateway.refund({
+        bankTranId: can.bankTranId!,
+        amountPaisa: cashOut,
+        reason: `Return ${r.returnNo}`,
+        /*  Our own id, so a double click cannot become two refunds — the same
+            discipline as the payment side's tranId.  */
+        refundTranId: `RF-${r.returnNo}`,
+      });
+      if (!sent.ok) throw new BadRequestException(sent.message);
+      gatewayRefundId = sent.refundRefId;
+      gatewayRefundStatus = sent.status ?? 'processing';
+    }
+
     await this.prisma.db.$transaction(async (tx) => {
       // cash refund → real PaymentTransaction on the order + bump order.refundPaisa
       if (cashOut > 0) {
@@ -648,6 +720,10 @@ export class ReturnsService {
             note: `Return ${r.returnNo}`,
             actorName,
             ...({ accountId } as object), // DEC-GBL-006
+            /*  DEC-FIN-031 — only a gateway refund carries these. On a
+                hand-sent refund they stay null, and that absence is the honest
+                record: nothing to chase at the gateway.  */
+            ...({ gatewayRefundId, gatewayRefundStatus } as object),
           },
         });
         const newRefund = order.refundPaisa + cashOut;
@@ -829,10 +905,38 @@ export class ReturnsService {
         return PaymentMethod.card;
       case ReturnRefundMethod.BANK:
         return PaymentMethod.bank;
+      /*  DEC-FIN-031 — money going back down the gateway is `online` money, the
+          same way it arrived. Finance then credits the Gateway account, not the
+          cash drawer, which is where the money actually is.  */
+      case REFUND_GATEWAY:
+        return PaymentMethod.online;
       case ReturnRefundMethod.ORIGINAL:
       default:
         return orderMethod;
     }
+  }
+
+  /**
+   * DEC-FIN-031 — ask the gateway whether a refund has actually landed, and
+   * write down what it says.
+   *
+   * ⚠️ This is the ONLY thing that may turn "sent" into "arrived". Nothing
+   * marks a refund as received on a timer or on optimism; the gateway is asked
+   * and its own word is stored. Called from the returns screen.
+   */
+  async refreshGatewayRefund(paymentId: string) {
+    const row = (await this.prisma.db.paymentTransaction.findFirst({
+      where: { id: paymentId },
+    })) as unknown as { id: string; gatewayRefundId?: string | null } | null;
+    if (!row?.gatewayRefundId)
+      throw new BadRequestException('This refund did not go through the gateway.');
+
+    const got = await this.gateway.refundStatus(row.gatewayRefundId);
+    await this.prisma.db.paymentTransaction.update({
+      where: { id: row.id },
+      data: { gatewayRefundStatus: got.status ?? 'processing' } as unknown as Record<string, string>,
+    });
+    return { status: got.status, refundedOn: got.refundedOn };
   }
 
   /**

@@ -4424,6 +4424,10 @@ export type ReturnRefundMethod =
   | "CARD"
   | "BANK"
   | "ORIGINAL"
+  /*  DEC-FIN-031 — money pushed back down the wire it came up, through
+      SSLCommerz. Offered only when the order was really paid online and the
+      gateway reference was recorded; the shop chooses per refund.  */
+  | "GATEWAY"
   | "STORE_CREDIT";
 
 export interface ApiReturnLine {

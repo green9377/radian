@@ -17,7 +17,7 @@ import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ErrBar, OkBar, msg
 import {
   listReturns, returnAnalytics, getReturn, getReturnTimeline,
   eligibleOrderForReturn, createReturn, approveReturn, rejectReturn, cancelReturn,
-  completeReturn,
+  completeReturn, apiGet,
   repostReturnRestock, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
   deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit, listOrders, formatTaka,
   getCancelRules, saveCancelRules,
@@ -41,10 +41,15 @@ function useRefundMethods(): ReturnRefundMethod[] {
 }
 /*  the payout dialog needs the accounts too (DEC-GBL-006): "which bKash number
     did the money go back out of" is the same question as taking it in.  */
-function usePayoutOptions(): PayOption[] {
+function usePayoutOptions(gatewayOk?: boolean): PayOption[] {
   const live = usePaymentMethods(REFUND_TENDERS);
   return [
     { id: "ORIGINAL", label: "Original method" },
+    /*  DEC-FIN-031 — the gateway option appears ONLY when the money can really
+        go back that way: paid online, and we still hold the gateway's own
+        reference. Offering it otherwise means a button that fails after it is
+        pressed, on the screen where somebody is giving money back.  */
+    ...(gatewayOk ? [{ id: "GATEWAY", label: "Back to the card (gateway)" } as PayOption] : []),
     ...live,
     { id: "STORE_CREDIT", label: "Store credit" },
   ];
@@ -728,7 +733,10 @@ export function ReturnDetail({ id }: { id: string }) {
   const [refundAccountId, setRefundAccountId] = useState(""); // DEC-GBL-006
   const [payoutOpen, setPayoutOpen] = useState(false);
   const refundMethods = useRefundMethods(); // DEC-GBL-001
-  const payoutOptions = usePayoutOptions(); // DEC-GBL-006
+  /*  DEC-FIN-031 — asked of the server before the choice is drawn, because
+      only the server knows whether a gateway reference was ever recorded.  */
+  const [gatewayOk, setGatewayOk] = useState<{ ok: boolean; why?: string } | null>(null);
+  const payoutOptions = usePayoutOptions(gatewayOk?.ok); // DEC-GBL-006
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   async function load() {
@@ -739,6 +747,13 @@ export function ReturnDetail({ id }: { id: string }) {
       setTimeline(await getReturnTimeline(id));
       if (data.customerId)
         getCustomerCredit(data.customerId).then((c) => setCreditBalance(c.balancePaisa)).catch(() => {});
+      /*  DEC-FIN-031 — fail-soft: if this cannot be asked, the gateway option
+          simply is not offered, and the hand-sent refund still works. A
+          refund screen must never be blocked by a question about a nicety.  */
+      if (data.orderId)
+        apiGet<{ ok: boolean; why?: string }>(`/returns/gateway-refundable/${data.orderId}`)
+          .then(setGatewayOk)
+          .catch(() => setGatewayOk({ ok: false }));
     } catch (e) { setErr(msg(e, "Could not load return")); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -908,9 +923,17 @@ export function ReturnDetail({ id }: { id: string }) {
           who={r.order?.orderNo}
           amountPaisa={payoutPaisa}
           amountLabel="Paying back"
-          note={r.resolution === "PARTIAL_COMPENSATION"
-            ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
-            : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`}
+          /*  DEC-FIN-031 — when the money is going back down the gateway, say
+              so here, because it behaves differently from every other option
+              on this list: it is SENT now and ARRIVES in a few days. A
+              customer told "done" who then waits three days phones the shop.  */
+          note={
+            refundMethod === "GATEWAY"
+              ? "Goes back to the card it came from. SSLCommerz accepts it today; the customer sees it in a few days — tell them that, not \"done\"."
+              : r.resolution === "PARTIAL_COMPENSATION"
+                ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
+                : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`
+          }
           methods={payoutOptions}
           method={refundMethod} onMethod={(v) => setRefundMethod(v as ReturnRefundMethod)}
           accountId={refundAccountId} onAccount={setRefundAccountId}

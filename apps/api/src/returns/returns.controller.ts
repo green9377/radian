@@ -67,6 +67,22 @@ export class ReturnsController {
     return this.svc.creditBalance(customerId);
   }
 
+  /*  DEC-FIN-031 — both of these sit ABOVE `:id`, or /returns/gateway-... is
+      read as a return whose id is those words (the trap `cancel-rules` in
+      orders.controller carries a comment about). */
+
+  /** can this order's money go back down the gateway? asked before offering it */
+  @Get('gateway-refundable/:orderId')
+  gatewayRefundable(@Param('orderId') orderId: string) {
+    return this.svc.gatewayRefundable(orderId);
+  }
+
+  /** ask the gateway whether a sent refund has actually landed */
+  @Post('gateway-refund/:paymentId/refresh')
+  refreshGatewayRefund(@Param('paymentId') paymentId: string) {
+    return this.svc.refreshGatewayRefund(paymentId);
+  }
+
   /* list + create */
   @Get()
   list(@Query() q: ListReturnQuery) {

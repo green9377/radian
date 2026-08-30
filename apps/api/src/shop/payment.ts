@@ -436,6 +436,97 @@ export class SslCommerzService {
     return PaymentSessionStatus.SUCCESS;
   }
 
+  /* ══════════════════ 3. refunds, back down the same wire ══════════════════ */
+
+  /**
+   * DEC-FIN-031 — push money back through SSLCommerz.
+   *
+   * The owner's ruling: *"manual chaile manual refund, ar jodi chai
+   * SSLCommerce theke dibe tahole taw jen dite pare — depend on customer upor
+   * and amder situation ar upor."* So this exists BESIDE the hand-sent refund,
+   * never instead of it, and the shop picks per refund.
+   *
+   * ⚠️ WHAT COMES BACK IS AN ACCEPTANCE, NOT AN ARRIVAL. `status: success`
+   * means SSLCommerz has taken the request; the money reaches the card later,
+   * and only `refundStatus()` below can say when. Everything above this call
+   * has to keep those two ideas apart — a customer told their money is back
+   * when it is not will come back angrier than before.
+   *
+   * ⚠️ It needs the ORIGINAL payment's `bank_tran_id`. No bank reference, no
+   * gateway refund — and that is a real limit, not an error: a payment we have
+   * no gateway record of cannot be reversed at the gateway.
+   */
+  async refund(opts: {
+    bankTranId: string;
+    amountPaisa: number;
+    reason: string;
+    /** our own id for this refund, so a retry cannot become two refunds */
+    refundTranId: string;
+  }): Promise<{ ok: boolean; refundRefId: string | null; status: string | null; message: string }> {
+    const { id, pass, live } = await this.resolvedCreds();
+    if (!id || !pass)
+      throw new BadRequestException(
+        'SSLCommerz is not configured — Administration → Integrations → Payment',
+      );
+    if (!opts.bankTranId?.trim())
+      throw new BadRequestException(
+        'This payment has no gateway reference, so it cannot be refunded through the gateway. Send it back by hand instead.',
+      );
+
+    const url =
+      `${this.baseOf(live)}/validator/api/merchantTransIDvalidationAPI.php` +
+      `?bank_tran_id=${encodeURIComponent(opts.bankTranId)}` +
+      `&refund_trans_id=${encodeURIComponent(opts.refundTranId)}` +
+      `&refund_amount=${(opts.amountPaisa / 100).toFixed(2)}` +
+      `&refund_remarks=${encodeURIComponent(opts.reason.slice(0, 240))}` +
+      `&store_id=${encodeURIComponent(id)}&store_passwd=${encodeURIComponent(pass)}` +
+      `&v=1&format=json`;
+
+    const res = await fetch(url);
+    const j = (await res.json()) as {
+      APIConnect?: string;
+      status?: string;
+      refund_ref_id?: string;
+      errorReason?: string;
+    };
+
+    const ok = j.status === 'success' || j.status === 'processing';
+    if (!ok) {
+      const why = j.errorReason || j.status || j.APIConnect || 'no reason given';
+      this.log.error(`refund refused for ${opts.bankTranId}: ${why}`);
+    }
+    return {
+      ok,
+      refundRefId: j.refund_ref_id ?? null,
+      status: j.status ?? null,
+      /*  The gateway's own words go to STAFF, not to a customer — this lands on
+          the returns screen, where somebody can act on it.  */
+      message: ok
+        ? 'Refund accepted by the gateway. The money reaches the customer over the next few days.'
+        : `The gateway refused the refund: ${j.errorReason || j.status || 'no reason given'}`,
+    };
+  }
+
+  /**
+   * Ask the gateway whether a refund has actually landed.
+   *
+   * `processing` → accepted, still travelling · `refunded` → the customer has
+   * it · `cancelled` → it will not arrive. Called from the returns screen, so
+   * "sent" can turn into "arrived" only when the gateway says so.
+   */
+  async refundStatus(refundRefId: string): Promise<{ status: string | null; refundedOn: string | null }> {
+    const { id, pass, live } = await this.resolvedCreds();
+    const url =
+      `${this.baseOf(live)}/validator/api/merchantTransIDvalidationAPI.php` +
+      `?refund_ref_id=${encodeURIComponent(refundRefId)}` +
+      `&store_id=${encodeURIComponent(id)}&store_passwd=${encodeURIComponent(pass)}&format=json`;
+    const j = (await fetch(url).then((r) => r.json())) as {
+      status?: string;
+      refunded_on?: string;
+    };
+    return { status: j.status ?? null, refundedOn: j.refunded_on ?? null };
+  }
+
   /** cancel/fail redirect — records the outcome, never touches the order */
   async mark(tranId: string, status: PaymentSessionStatus, raw: unknown) {
     const s = await this.prisma.db.paymentSession.findFirst({ where: { tranId } });

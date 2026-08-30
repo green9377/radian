@@ -2880,6 +2880,20 @@ model PaymentTransaction {
   /// (SSLCommerz `store_amount`), never derived from a rate typed in code.
   /// Null = no fee, or the gateway did not say. Never a guess.
   feePaisa    Int?
+
+  /// DEC-FIN-031 - a REFUND row that was pushed back through the gateway.
+  ///
+  /// ⚠️ A GATEWAY REFUND IS NOT INSTANT, and these two fields exist so the
+  /// screen can never pretend it is. SSLCommerz answers `success` when the
+  /// refund has been ACCEPTED, not when the customer has the money; it moves
+  /// to `refunded` later, and only a separate query tells us. Telling somebody
+  /// their money is back before it is back is the one lie a refund must not
+  /// tell, so "sent" and "arrived" are two different words here.
+  ///
+  /// Null on every hand-sent refund — those leave no trail at the gateway.
+  gatewayRefundId     String?
+  /// processing | refunded | cancelled | failed — the gateway's own word
+  gatewayRefundStatus String?
   reference   String?
   note        String?
   actorName   String
@@ -3026,6 +3040,11 @@ enum ReturnRefundMethod {
   BANK
   ORIGINAL
   STORE_CREDIT
+  /// DEC-FIN-031 - push the money back down the wire it came up, through
+  /// SSLCommerz, instead of somebody sending it by hand. Only possible when
+  /// the order was actually paid online and we still hold the gateway's
+  /// `bankTranId`; the shop chooses per refund, it is never automatic.
+  GATEWAY
 }
 
 enum CustomerCreditKind {
