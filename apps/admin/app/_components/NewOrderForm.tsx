@@ -153,8 +153,12 @@ export default function NewOrderForm() {
   const offerDiscount = quote?.discountPaisa ?? 0;
   const offerWaived = quote?.deliveryWaivedPaisa ?? 0;
   const total = Math.max(0, subtotal - offerDiscount + deliveryFee - offerWaived);
-  const hasCrafted = lines.some((l) => isCrafted(prod(l.slug)));
-  const codAllowed = !isGift && !hasCrafted;
+  /*  DEC-SAL-015 — COD is closed by exactly two things: a gift, and a product
+      the owner marked "payment required". NOT by CRAFTED: the shop assembles
+      almost everything it sells, so that test used to grey out cash on nearly
+      every order. Same rule as the server's `assertCodAllowed`.  */
+  const needsAdvance = lines.some((l) => prod(l.slug)?.advanceRequired === true);
+  const codAllowed = !isGift && !needsAdvance;
   // effective payment — auto-fall back to online when COD isn't allowed (derived, no setState-in-render)
   const effPayment: "online" | "cod" = payment === "cod" && !codAllowed ? "online" : payment;
   /* cash taken in hand right now (counter / phone order) — recorded as an advance */
@@ -389,7 +393,7 @@ export default function NewOrderForm() {
                       <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover no-repeat` : genBg(p.slug) }} />
                       <div className="min-w-0">
                         <div className="font-medium text-purple text-[13.5px] truncate">{p.name}</div>
-                        <div className="text-[13px] text-body-soft">{formatTaka(p.offerPricePaisa)} each{isCrafted(p) ? " · crafted (advance)" : " · readymade"}</div>
+                        <div className="text-[13px] text-body-soft">{formatTaka(p.offerPricePaisa)} each{isCrafted(p) ? " · made to order" : " · readymade"}{p.advanceRequired ? " · payment up front" : ""}</div>
                       </div>
                       <QtyStepper grow size="sm" value={l.qty} min={1} onChange={(n) => setLineQty(l.key, n)} />
                       <div className="text-right text-[13.5px] font-medium">{formatTaka(p.offerPricePaisa * l.qty)}</div>
@@ -508,7 +512,7 @@ export default function NewOrderForm() {
 
             {!codAllowed && (
               <p className="text-[12px] text-[#b45309] mt-0 mb-3">
-                Cash on delivery is off — {isGift ? "gift orders can't be COD" : "this cart has a crafted item that needs advance payment"}.
+                Cash on delivery is off — {isGift ? "gift orders can't be COD" : "an item here is marked as needing payment up front"}.
               </p>
             )}
             <label className={labelCls}>Internal staff note (private)</label>

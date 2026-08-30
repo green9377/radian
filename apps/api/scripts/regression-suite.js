@@ -26,7 +26,8 @@
     quoted money = charged money (server-only pricing)
     track — orderNo + phone must BOTH match; runs on the order just placed
     price changed under the customer -> 409, never a silent overcharge
-    COD rules, locked §4 — never on crafted, never on a gift
+    COD rules, DEC-SAL-015 — never on a gift, never when the product says
+      payment is required; a made-to-order self order CAN pay cash
     a full slot takes no storefront order; slot-load counts right (4 Aug)
     add-on inventory — gated at the door and at prepare, deducted, restored
     variant stock — deducted from the variant shelf (DEC-PRD-014/018),
@@ -141,11 +142,10 @@ function orderBody(fix, extra = {}) {
     deliveryMethodId: fix.method.id,
     deliverySlotId: fix.slot?.id,
     date: FAR_DATE,
-    /*  ⚠️ COD only when the fixture can take it. On a made-to-order product
-        COD is refused (locked §4) — so on an all-crafted catalogue every one
-        of these orders would come back 400 and each test would report the
-        COD rule instead of the rule it was written for. The suite is not
-        testing COD here; section 5 does that on purpose.  */
+    /*  These sections are not about payment, so they pay online on a
+        made-to-order fixture and leave cash to the COD section. Under
+        DEC-SAL-015 either would now be accepted; keeping this stable means a
+        failure here is never a payment story.  */
     paymentMethod: fix.isCrafted ? 'online' : 'cod',
     senderName: 'Regression Suite',
     senderPhone: PHONE,
@@ -211,8 +211,12 @@ function sellableLineOf(p) {
       So the main fixture now takes whatever is sellable, and only the checks
       that GENUINELY need a readymade line skip — with the reason printed.
       `mainIsCrafted` carries that fact to the two places it changes an
-      expected answer, because COD is refused on a crafted line (locked §4)
-      and a test that pays by COD on one would be testing the wrong rule.  */
+      expected answer.
+
+      ⚠️ It NO LONGER means "COD would be refused" — DEC-SAL-015 (30 Aug 2026)
+      allows cash on a made-to-order self order. These two places keep paying
+      online only so that the sections they belong to go on testing what they
+      were written for; section "COD rules" is where cash itself is tested.  */
   const readymade = await detailOf(candidates.find((p) => p.productType !== 'CRAFTED' && !p.advanceRequired && sellableLineOf(p)));
   const crafted = await detailOf(candidates.find((p) => p.productType === 'CRAFTED' && !p.advanceRequired && sellableLineOf(p)));
   const product = readymade ?? crafted;
@@ -240,7 +244,7 @@ function sellableLineOf(p) {
   const fix = { product, line: sellableLineOf(product), method, slot, isCrafted: mainIsCrafted };
   ok('fixtures', `${product.name}${fix.line.variantId ? ' (variant)' : ''} | ${method.label}${slot ? ` | ${slot.label}` : ''}`);
   if (mainIsCrafted)
-    console.log('    \x1b[33mNOTE\x1b[0m  every product here is made-to-order, so the tests pay online — COD is refused on a crafted line by design');
+    console.log('    \x1b[33mNOTE\x1b[0m  every product here is made-to-order; these sections pay online to keep testing their own subject (cash is tested in the COD section)');
 
   section('Shop is open (catalogue readable)');
   if (shopItems.length > 0) ok(`shop catalogue readable (${shopItems.length} products)`);
@@ -286,16 +290,23 @@ function sellableLineOf(p) {
   if (stale.status === 409) ok('stale (lower) total refused with 409');
   else { bad(`stale total got ${stale.status}, expected 409`); if (stale.json?.orderId) placedForCleanup.push(stale.json); }
 
-  section('COD rules (locked section 4)');
-  /*  ⚠️ THESE TWO FORCE `cod` AND MUST KEEP DOING SO. `orderBody` now picks
-      online when the fixture is made-to-order, which is right everywhere
-      except here — this is the one section whose whole subject IS Cash on
-      Delivery. Without the override both checks would place a happy online
-      order and report "should be refused" about a rule they never exercised.  */
+  section('COD rules (DEC-SAL-015)');
+  /*  ⚠️ THESE FORCE `cod` AND MUST KEEP DOING SO — this is the one section
+      whose whole subject IS Cash on Delivery. Without the override the checks
+      would place a happy online order and report on a rule they never ran.
+
+      ⚠️ THE CRAFTED CHECK WAS INVERTED ON 30 Aug 2026, and that is the point of
+      the change. It used to assert that a made-to-order line REFUSES cash. The
+      owner's rule is: a gift is paid in full · a self order may be COD · a
+      product marked "payment required" needs payment either way. Radian
+      assembles nearly everything it sells, so the old assertion was quietly
+      insisting that cash must not work anywhere in the shop.  */
   if (crafted) {
     const r = await call('POST', '/shop/checkout', orderBody(fix, { items: [sellableLineOf(crafted)], paymentMethod: 'cod' }));
-    if (r.status === 400 && /COD|Cash on Delivery/i.test(msgOf(r))) ok(`COD refused on crafted item: "${msgOf(r).slice(0, 60)}"`);
-    else { bad(`crafted + COD got ${r.status} — should be refused`); if (r.json?.orderId) placedForCleanup.push(r.json); }
+    if (r.status === 400 && /COD|Cash on Delivery/i.test(msgOf(r)))
+      bad(`COD refused on a made-to-order self order — DEC-SAL-015 allows it: "${msgOf(r).slice(0, 60)}"`);
+    else if (r.status === 201 || r.status === 200) { ok('COD accepted on a made-to-order self order (DEC-SAL-015)'); if (r.json?.orderId) placedForCleanup.push(r.json); }
+    else { bad(`crafted + COD got ${r.status}: ${msgOf(r)}`); if (r.json?.orderId) placedForCleanup.push(r.json); }
   } else skip('COD-on-crafted', 'no crafted product with stock in the catalogue');
   const gift = await call('POST', '/shop/checkout', orderBody(fix, { paymentMethod: 'cod', isGift: true, recipientName: 'Test Receiver', recipientPhone: '+8801811111111' }));
   if (gift.status === 400 && /COD|gift/i.test(msgOf(gift))) ok('COD refused on a gift — gifts must be paid first');

@@ -91,17 +91,18 @@ async function call(method, path, body) {
   /*
     ⚠️ THE PAYMENT METHOD IS NOT THE TESTER'S CHOICE — IT IS THE PRODUCT'S.
 
-    Locked §4: no COD on a crafted line, and none on a product marked
-    advance-required. The first version of this file always sent `cod` and
-    "failed" on a made-to-order flower basket, which is the rule working. So
-    the rule is read off the product here instead of assumed, and the run says
-    out loud which branch it took.
+    DEC-SAL-015: COD is closed by a gift and by a product marked "payment
+    required" — NOT by made-to-order. The first version of this file always
+    sent `cod` and "failed" on a flower basket, which was the rule working;
+    then it read `crafted` too, which over-corrected once the rule changed.
+
+    So only `advanceRequired` decides, and the run says which branch it took.
   */
-  const payMethod = crafted || prepaidOnly ? 'online' : 'cod';
+  const payMethod = prepaidOnly ? 'online' : 'cod';
   ok(
     payMethod === 'cod'
-      ? 'paying by COD — readymade, no advance required'
-      : `paying online — ${crafted ? 'crafted product' : 'advance required'}, COD refused by locked §4`,
+      ? `paying by COD — self order, no advance required${crafted ? ' (made-to-order, and that is allowed: DEC-SAL-015)' : ''}`
+      : 'paying online — this product is marked payment-required, so COD is refused',
   );
 
   /* ── 2. delivery menu comes from the DB ──────────────────────────────── */

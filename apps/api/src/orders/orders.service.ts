@@ -1090,12 +1090,11 @@ export class OrdersService {
     if (dto.addLines?.length && o.paymentMethod === PaymentMethod.cod) {
       const added = await this.prisma.db.product.findMany({ where: { id: { in: dto.addLines.map((l) => l.productId) } } });
       /*  Staff read these, not customers — but plain words cost nothing and a
-          section number explains nothing to anybody. Locked §4 / DEC-PAY-001.  */
-      const badType = added.find((p) => p.productType === ProductType.CRAFTED);
-      if (badType)
-        throw new BadRequestException(
-          `“${badType.name}” is made to order, so it cannot be added to a Cash on Delivery order.`,
-        );
+          section number explains nothing to anybody. DEC-PAY-001.
+
+          ⚠️ The CRAFTED check that stood here is gone (DEC-SAL-015) — it has to
+          match `assertCodAllowed`, and a rule enforced in two places is a rule
+          that will disagree with itself.  */
       const badAdvance = added.find((p) => p.advanceRequired);
       if (badAdvance)
         throw new BadRequestException(
@@ -1415,11 +1414,20 @@ export class OrdersService {
         'Cash on Delivery is not available on a gift order — our rider would have to ask the receiver for money. Please pay online.',
       );
 
-    const crafted = lines.find((l) => l.productType === ProductType.CRAFTED);
-    if (crafted)
-      throw new BadRequestException(
-        `“${crafted.name}” is made to order, so it cannot be Cash on Delivery. Please pay online.`,
-      );
+    /*  ⚠️ CRAFTED IS NOT A COD RULE — removed 30 Aug 2026, DEC-SAL-015.
+        This used to refuse Cash on Delivery on every CRAFTED line. Radian
+        ASSEMBLES what it sells (flowers + ribbon + wrap → bouquet), so 22 of
+        24 live products are CRAFTED: the rule closed COD on practically the
+        whole shop, while the cart badge and the product page went on promising
+        it. The browser's own `paymentOptions()` never had this check, so the
+        website OFFERED cash and the server then refused the order — a screen
+        and a rule telling different stories, the same family of fault Phase 5
+        kept finding.
+
+        The owner's rule, in his words (30 Aug): a gift is always paid in full ·
+        a self order may be COD or online · and a product marked "payment
+        required" needs payment whichever it is. Made-to-order is answered by
+        `advanceRequired` below — the one flag the owner actually ticks.  */
 
     const advanceLine = dto.lines.find((l) => pMap.get(l.productId)?.advanceRequired);
     if (advanceLine) {
