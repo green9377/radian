@@ -78,6 +78,13 @@ export interface CheckoutItemIn {
   /** `AddOn` ids — `addonKeys` in the browser store */
   addonIds?: string[];
   persoText?: string;
+  /**
+   * DEC-PRD-061 — the URL `POST /media/upload/perso-photo` gave back. The
+   * browser sends a URL, never a file: the photo is already stored by the time
+   * checkout runs, so a slow upload cannot hold up an order and a failed one
+   * cannot take the whole basket with it.
+   */
+  persoImageUrl?: string;
   qty: number;
 }
 
@@ -226,6 +233,28 @@ function minLabel(m: number): string {
   return `${h12}:${String(mm).padStart(2, '0')} ${ap}`;
 }
 
+/*  DEC-PRD-061 — a customer's photo URL is trusted only if this shop put it
+    there.
+
+    ⚠️ THE FIELD ARRIVES FROM THE BROWSER, so left alone it is an arbitrary
+    string that the shop would store on an order and later render in the admin.
+    That is a stored link to anywhere, pointed at the owner's staff by whoever
+    posts a checkout — and it would also let an order claim a photo that no
+    upload of ours ever produced.
+
+    So the only accepted shape is an absolute URL on `PUBLIC_MEDIA_URL`, under
+    the one folder the perso upload route writes to. Anything else is dropped
+    (not refused): a missing photo is caught by `persoImageRequired` a moment
+    later, with a sentence written for a customer, and a shopper should never
+    meet the word "origin".  */
+function persoImageOf(raw: string | undefined): string | null {
+  const url = raw?.trim();
+  if (!url) return null;
+  const base = (process.env.PUBLIC_MEDIA_URL ?? '').replace(/\/+$/, '');
+  if (!base) return null;
+  return url.startsWith(`${base}/radian/perso/`) ? url : null;
+}
+
 /** an OrderLine-to-be, plus the bits the quote screen wants to show */
 interface Resolved {
   productId: string;
@@ -245,6 +274,8 @@ interface Resolved {
   /** DEC-PRD-048 — the shop demands a message / a photo on this product */
   persoTextRequired: boolean;
   persoImageRequired: boolean;
+  /** DEC-PRD-061 — accepted only if it points at this shop's own media host */
+  persoImageUrl: string | null;
   /** the AddOns really on this line (ids) — these go onto the OrderLine */
   addonIdsPicked: string[];
   bundleLabels: string[];
@@ -501,6 +532,7 @@ export class CheckoutService {
         bundleLabels: picks.map((p) => p.name),
         addonLabels: picked.map((a) => a.name),
         persoText: it.persoText,
+        persoImageUrl: persoImageOf(it.persoImageUrl), // DEC-PRD-061
         qty,
         /*  Add-ons stay outside the discount — they are not items on the list,
             and the owner's discount sits under the list (DEC-PRD-018).  */
@@ -850,6 +882,7 @@ export class CheckoutService {
         bundleLabel: l.bundleLabels.length ? l.bundleLabels.join(' + ') : undefined,
         addonLabels: l.addonLabels,
         persoText: l.persoText,
+        persoImageUrl: l.persoImageUrl ?? undefined, // DEC-PRD-061
         addedFrom: 'PRODUCT',
       });
       for (const e of l.extras) {
@@ -967,6 +1000,17 @@ export class CheckoutService {
       if (l.persoTextRequired && !l.persoText?.trim()) {
         throw new BadRequestException(
           `“${l.name}” needs your message before it can be ordered.`,
+        );
+      }
+      /*  ⚠️ THIS HALF WAS DECLARED AND NEVER CHECKED until 30 Aug 2026
+          (DEC-PRD-061). `persoImageRequired` was read off the product, carried
+          onto the line, and then nothing tested it — because no photo could
+          reach the server at all. A product the owner had marked "photo
+          required" took orders without one, and the shop found out when the
+          item could not be made.  */
+      if (l.persoImageRequired && !l.persoImageUrl) {
+        throw new BadRequestException(
+          `“${l.name}” needs your photo before it can be ordered.`,
         );
       }
     }

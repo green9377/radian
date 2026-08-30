@@ -534,6 +534,22 @@ export default function OrderEditor({ id }: { id: string }) {
                           {l.sizeLabel}{l.bundleLabel ? ` · ${l.bundleLabel}` : ""}{l.addonLabels.length ? ` · + ${l.addonLabels.join(", ")}` : ""}{l.persoText ? ` · “${l.persoText}”` : ""}
                         </div>
                         <div className="text-[13px] text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-medium text-purple">{formatTaka(l.linePaisa)}</b></div>
+                        {/*  DEC-PRD-061 — the customer's own photograph, and on
+                            these products it is PRINTED ON THE GOODS (owner,
+                            30 Aug). So it is shown at a size somebody can
+                            actually judge and offered for download at the size
+                            it arrived, not squeezed into a 40px square.  */}
+                        {l.persoImageUrl && (
+                          <div className="mt-2.5 inline-flex items-center gap-3 border rounded-[12px] p-2.5" style={{ borderColor: TONE.purple.border, background: TONE.purple.bg }}>
+                            <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: TONE.purple.border, background: `url(${l.persoImageUrl}) center/cover` }} />
+                            <div>
+                              <div className="text-[12px] font-medium uppercase tracking-[0.04em]" style={{ color: TONE.purple.text }}>Customer&apos;s photo</div>
+                              <a href={l.persoImageUrl} download target="_blank" rel="noreferrer" className="text-[13px] font-bold text-purple inline-flex items-center gap-1.5 mt-1 hover:underline">
+                                <Icon name="download" size={14} /> Download full size
+                              </a>
+                            </div>
+                          </div>
+                        )}
                         {l.refundNote && <div className="text-[12px] mt-1.5" style={{ color: TONE.rose.text }}>Refund: {formatTaka(l.refundPaisa ?? 0)} — {l.refundNote}</div>}
                         {openMaterials === l.id && (
                           <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: TONE.purple.border }}>

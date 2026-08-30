@@ -1316,6 +1316,8 @@ export interface ApiOrderLine {
   bundleLabel?: string | null;
   addonLabels: string[];
   persoText?: string | null;
+  /** DEC-PRD-061 — the customer's own photo, printed onto this item */
+  persoImageUrl?: string | null;
   productType: "READYMADE" | "CRAFTED";
   qty: number;
   unitPaisa: number;
@@ -1523,6 +1525,7 @@ export function adaptOrder(a: ApiOrder): any {
       bundleLabel: l.bundleLabel || null,
       addonLabels: l.addonLabels || [],
       persoText: l.persoText || undefined,
+      persoImageUrl: l.persoImageUrl || undefined, // DEC-PRD-061
       productType: l.productType === "CRAFTED" ? "crafted" : "readymade",
       qty: l.qty,
       unitPaisa: l.unitPaisa,

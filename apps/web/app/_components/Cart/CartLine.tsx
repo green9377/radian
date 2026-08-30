@@ -121,7 +121,19 @@ export default function CartLine({
           {/* personalisation — what was written on the PDP */}
           {(item.persoText || item.persoImage) && (
             <div className="flex items-center gap-2.5 mt-2.5 bg-lavender border border-lavender-deep rounded-[12px] px-3 py-2">
-              <Icon name="pen" className="w-3.5 h-3.5 text-orchid shrink-0" />
+              {/*  DEC-PRD-061 — the photo itself, because it is now a real
+                  stored picture. It used to print the file NAME, which was all
+                  the browser had: nothing had been uploaded, so there was
+                  nothing to show. Seeing the actual picture is also the only
+                  way a customer catches having sent the wrong one.  */}
+              {item.persoImage ? (
+                <span
+                  className="w-9 h-9 rounded-[8px] border border-lavender-deep shrink-0"
+                  style={{ background: `url(${item.persoImage}) center/cover` }}
+                />
+              ) : (
+                <Icon name="pen" className="w-3.5 h-3.5 text-orchid shrink-0" />
+              )}
               <span className="text-[12.5px] text-body truncate">
                 {item.persoText && (
                   <>
@@ -129,7 +141,7 @@ export default function CartLine({
                   </>
                 )}
                 {item.persoText && item.persoImage ? " · " : ""}
-                {item.persoImage && <>Photo attached: {item.persoImage}</>}
+                {item.persoImage && <>Your photo is attached</>}
               </span>
             </div>
           )}

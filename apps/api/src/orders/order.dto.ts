@@ -14,23 +14,33 @@ export interface OrderLineInput {
   addonLabels?: string[];
   persoText?: string;
   /**
-   * এই line-এ বসা ছাড় — DEC-PRD-018-এর bundle ছাড় storefront থেকে এখানেই আসে।
+   * DEC-PRD-061 — the customer's own photograph for this line, already stored
+   * by `POST /media/upload/perso-photo`. A URL, never a file: checkout should
+   * not be holding an upload open, and a failed picture must not take the
+   * whole basket with it.
+   */
+  persoImageUrl?: string;
+  /**
+   * The discount sitting on this line — DEC-PRD-018's bundle discount arrives
+   * here from the storefront.
    *
-   * ⚠️ আগে সবসময় ০ বসত। তখন bundle-এর ছাড় দিতে হলে `unitPaisa` কমিয়ে
-   * পাঠানো ছাড়া উপায় ছিল না, আর তাতে রসিদে পণ্যের আসল দামটাই মিথ্যা হয়ে
-   * যেত — গ্রাহক দেখতেন ৳১,১৭০ দামের গোলাপ, অথচ দোকান বেচে ৳১,২৯৯-এ।
-   * এখন দাম আর ছাড় আলাদা, ঠিক যেমন staff-এর হাতে দেওয়া ছাড়ের বেলায় হয়।
+   * ⚠️ It used to be 0 always. Giving a bundle discount then meant sending a
+   * lowered `unitPaisa`, and that made the receipt lie about what the goods
+   * cost — the customer read a ৳1,170 bouquet while the shop had sold a
+   * ৳1,299 one. Price and discount are separate now, exactly as they are for a
+   * discount a staff member types in.
    */
   discountPaisa?: number;
-  /** কোন পর্দা থেকে line-টা যোগ হয়েছে — add-on performance report এখান থেকেই আসে */
+  /** which screen this line was added from — the add-on performance report reads it */
   addedFrom?: 'PRODUCT' | 'CART' | 'CHECKOUT';
   /**
-   * DEC-PRD-014 — কোন রঙ/ফ্লেভার বিক্রি হচ্ছে। দিলে Preparing-এর stock −qty
-   * **এই variant-এর** ঘরে কাটে, product-এর ঘরে নয় — কারণ variant থাকলে
-   * মজুদের সত্যিটা ওখানেই, আর সব পর্দা ওরই যোগফল দেখায়।
+   * DEC-PRD-014 — which colour/flavour is being sold. Given, Preparing's
+   * stock −qty comes out of THIS VARIANT's field and not the product's,
+   * because when variants exist the truth of the stock lives there and every
+   * screen shows their sum.
    */
   variantId?: string;
-  /** snapshot — মালিক রঙের নাম বদলালেও পুরনো রসিদ যা ছিল তাই থাকে */
+  /** a snapshot — renaming the colour later must not change an old receipt */
   variantLabel?: string;
   /** কোন AddOn-গুলো, id-তে — stock-নিয়মের চাবি (মালিকের রায়, ৪ আগস্ট) */
   addonIds?: string[];

@@ -2833,6 +2833,21 @@ model OrderLine {
   addedFrom   AddedFrom @default(PRODUCT)
   persoText   String?
 
+  /// DEC-PRD-061 - the customer's own photograph for this line, and the owner
+  /// ruled on 30 Aug 2026 that it is PRINTED ON THE PRODUCT. So it is kept at
+  /// the size it arrived and the admin offers it for download; it is a part of
+  /// the goods, not a note about them.
+  ///
+  /// ⚠️ `Product.persoImage` (the switch) and the product page's upload box
+  /// existed since 2 August; the middle never did. "Tap to upload" wrote the
+  /// FILE NAME into the browser's cart, no file left the device, checkout had
+  /// no field to carry one and this table had no column to hold one. The
+  /// customer saw their photo accepted and the shop received a filename.
+  ///
+  /// One per line (owner's ruling, same day). A second photo is a schema
+  /// change, not a config change, and that is the honest place for it.
+  persoImageUrl String?
+
   /// DEC-PRD-012/014 - which colour or flavour was sold. null = no variant.
   ///
   /// Added 3 August 2026 after a real discrepancy surfaced. DEC-PRD-014 says

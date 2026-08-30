@@ -38,6 +38,8 @@ export interface QuoteItemIn {
   bundleIds?: string[];
   addonIds?: string[];
   persoText?: string;
+  /** DEC-PRD-061 — the URL the perso upload gave back, never the file itself */
+  persoImageUrl?: string;
   qty: number;
 }
 
@@ -300,8 +302,38 @@ export function toQuoteItems(items: CartItem[]): QuoteItemIn[] {
     bundleIds: i.bundleIds,
     addonIds: i.addonKeys,
     persoText: i.persoText,
+    // DEC-PRD-061 — the stored URL, not the file. See `uploadPersoPhoto`.
+    persoImageUrl: i.persoImage,
     qty: i.qty,
   }));
+}
+
+/**
+ * DEC-PRD-061 — put the customer's photograph somewhere the shop can reach it,
+ * and give back the URL that travels with the order.
+ *
+ * ⚠️ IT IS UPLOADED HERE, ON THE PRODUCT PAGE, not at checkout. The photo is
+ * printed on the goods (the owner's ruling, 30 Aug), so it can be several
+ * megabytes on a phone connection — and a customer who has already typed an
+ * address must not sit watching a progress bar, or lose a whole basket because
+ * one picture failed. By the time checkout runs there is only a short string
+ * to send.
+ *
+ * Throws with the server's own sentence, because that sentence names the thing
+ * the customer can fix ("Image is 14.2 MB. The limit is 10 MB.").
+ */
+export async function uploadPersoPhoto(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${baseFor()}/media/upload/perso-photo`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    const b = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(b?.message ?? "Could not upload the photo. Please try again.");
+  }
+  return ((await res.json()) as { url: string }).url;
 }
 
 export const zoneCodeFor = (z: Zone | null): "DHAKA" | "BANGLADESH" =>

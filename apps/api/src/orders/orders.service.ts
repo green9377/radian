@@ -1301,25 +1301,32 @@ export class OrdersService {
     return {
       product: { connect: { id: p.id } },
       name: p.name,
-      /*  ছবি-snapshot — রসিদের বাকি সবকিছুর মতোই জমে যায়। মালিক পরে ছবি
-          বদলালে পুরনো order-এর ছবি বদলায় না (DEC-DLV-002-এর স্পিরিট)।
-          admin `background:`-এ সরাসরি বসায়, তাই CSS-রূপে রাখা হয়।  */
+      /*  The picture, frozen like everything else on a receipt. Changing the
+          product's photo later must not change an old order's (the spirit of
+          DEC-DLV-002). The admin drops it straight into `background:`, so it
+          is kept in CSS form.  */
       bg: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover` : undefined,
       sizeLabel: l.sizeLabel,
       bundleLabel: l.bundleLabel,
       addonLabels: l.addonLabels ?? [],
       addonIds: l.addonIds ?? [],
       persoText: l.persoText,
-      /*  DEC-PRD-014 — যে রঙটা বিক্রি হলো, FK + label snapshot দুটোই।  */
+      /*  DEC-PRD-061 — the customer's own photograph, which on these products
+          is printed ON the goods. It belongs to the line for the same reason
+          the price does: it is what was ordered.  */
+      persoImageUrl: l.persoImageUrl,
+      /*  DEC-PRD-014 — the colour that was sold: the FK and the label
+          snapshot, both.  */
       ...(l.variantId ? { variant: { connect: { id: l.variantId } } } : {}),
       variantLabel: l.variantLabel,
       addedFrom: (l.addedFrom ?? 'PRODUCT') as AddedFrom,
       productType: p.productType, // per-line freeze from product
       qty: l.qty,
       unitPaisa,
-      /*  ⚠️ linePaisa = গ্রাহক এই line-এর জন্য যা দেবেন, ছাড় বাদ দিয়ে।
-          Order-এর subtotal এদের যোগফল, তাই ছাড় এখানে না কাটলে bundle
-          ছাড়টা দুবার হিসাব হতো — একবার এখানে, একবার নিচে discountPaisa-তে।  */
+      /*  ⚠️ linePaisa = what the customer pays for this line, discount taken
+          off. The order's subtotal is the sum of these, so not subtracting it
+          here would count the bundle discount twice — once here and once in
+          `discountPaisa` below.  */
       linePaisa: unitPaisa * l.qty - discountPaisa,
       discountPaisa,
     };

@@ -74,6 +74,7 @@ const FOLDERS = [
   'suppliers', // supplier & vendor photographs
   'purchases', // purchase receipts photographed at the counter
   'delivery', // rider proof-of-delivery photographs
+  'perso', // DEC-PRD-061 — the customer's own photo, printed onto the product
 ] as const;
 type Folder = (typeof FOLDERS)[number];
 
@@ -235,6 +236,39 @@ export class MediaController {
   )
   uploadReviewPhoto(@UploadedFile() file: UploadedImage) {
     return this.svc.upload(file, 'reviews');
+  }
+
+  /**
+   * DEC-PRD-061 (30 Aug 2026) — the photograph a customer attaches to a
+   * personalised item.
+   *
+   * ⚠️ Until today this did not exist, and the product page pretended it did.
+   * "Tap to upload" put the FILE NAME into the browser's cart and nothing
+   * else: no file left the device, the checkout payload had no field for one,
+   * and `OrderLine` had no column. A customer chose a photo, saw it accepted,
+   * and the shop received a bouquet order with a filename nobody could open.
+   * Worse, a product with "photo required" switched on took orders anyway —
+   * `persoImageRequired` was read at checkout and never tested, because there
+   * was nothing to test.
+   *
+   * ⚠️ THE SIZE CAP IS 10 MB, NOT THE REVIEW ROUTE'S 3. The owner's ruling,
+   * 30 Aug: this photo is PRINTED ON THE PRODUCT. A 3 MB cap would quietly
+   * decide that a phone photograph good enough for a frame is refused, and the
+   * customer would have no idea why their picture was the wrong one.
+   *
+   * Otherwise it is the review route's shape, for the review route's reasons:
+   * the folder is hard-coded so nothing can wander, one file at a time, and
+   * JPG/PNG/WebP/AVIF only — never SVG, whatever it claims to be.
+   */
+  @Public()
+  @Post('upload/perso-photo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    }),
+  )
+  uploadPersoPhoto(@UploadedFile() file: UploadedImage) {
+    return this.svc.upload(file, 'perso');
   }
 }
 

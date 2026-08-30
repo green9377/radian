@@ -138,6 +138,8 @@ export interface OrderLine {
   bundleLabel: string | null;
   addonLabels: string[];
   persoText?: string;
+  /** DEC-PRD-061 — the customer's own photo, which is printed onto this item */
+  persoImageUrl?: string;
   /** per-line: drives cancel/refund branch (locked) */
   productType: ProductType;
   qty: number;

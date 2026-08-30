@@ -9,6 +9,7 @@ import { toISODate } from "../../_data/delivery";
 import { useCartStore } from "../../_store/useCartStore";
 import { formatTaka } from "../../_data/products";
 import { track } from "../../_data/tracking";
+import { uploadPersoPhoto } from "../../_data/checkoutApi";
 import {
   ADDON_TABS,
   OFFERS,
@@ -123,7 +124,31 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   /* Personalisation - it has to be held in state to reach the cart (it used
      to be uncontrolled) */
   const [persoText, setPersoText] = useState("");
+  /*  DEC-PRD-061 — the STORED URL of the customer's photograph, not its file
+      name. Until 30 Aug this held `file.name`: the picture never left the
+      device, and the shop received a bouquet order with a filename on it.  */
   const [persoImage, setPersoImage] = useState("");
+  const [persoImageName, setPersoImageName] = useState("");
+  const [persoUploading, setPersoUploading] = useState(false);
+  const [persoUploadErr, setPersoUploadErr] = useState("");
+
+  async function pickPersoPhoto(file: File | null) {
+    if (!file) return;
+    setPersoUploadErr("");
+    setPersoImageName(file.name);
+    setPersoUploading(true);
+    try {
+      setPersoImage(await uploadPersoPhoto(file));
+    } catch (e) {
+      /*  The photo is NOT kept on a failure. A name on the screen with no
+          file behind it is exactly the state this whole change exists to end.  */
+      setPersoImage("");
+      setPersoImageName("");
+      setPersoUploadErr(e instanceof Error ? e.message : "Could not upload the photo.");
+    } finally {
+      setPersoUploading(false);
+    }
+  }
 
   /*  DEC-PRD-055 — "when should it arrive?", answered ON the page. The pick
       writes straight into the checkout store's own `date`, so checkout opens
@@ -1251,23 +1276,24 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                             </span>
                             <span className="min-w-0">
                               <b className="block text-[13.5px] text-purple font-semibold truncate">
-                                {persoImage || "Tap to upload"}
+                                {persoUploading
+                                  ? "Uploading…"
+                                  : persoImageName || "Tap to upload"}
                               </b>
-                              <span className="text-[12px] text-body-soft">{f.hint}</span>
+                              <span className="text-[12px] text-body-soft">
+                                {persoUploadErr || f.hint}
+                              </span>
                             </span>
-                            {/*
-                              For now only the file NAME is kept, so the cart
-                              and checkout have something to show.
-                              SWAP HERE: an asset id goes here once the upload
-                              API exists.
-                            */}
+                            {/*  DEC-PRD-061 — the file goes UP here and the URL
+                                is what is kept. It used to keep `file.name`
+                                and nothing else, so the picture never left the
+                                phone.  */}
                             <input
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) =>
-                                setPersoImage(e.target.files?.[0]?.name ?? "")
-                              }
+                              disabled={persoUploading}
+                              onChange={(e) => void pickPersoPhoto(e.target.files?.[0] ?? null)}
                             />
                           </label>
                         )}
