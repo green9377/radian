@@ -1446,10 +1446,8 @@ export function getOrderTimeline(
 export function addOrderPayment(id: string, body: Record<string, unknown>): Promise<ApiOrder> {
   return j<ApiOrder>(`/orders/${id}/payments`, { method: "POST", body: JSON.stringify(body) });
 }
-/** hand the parcel to a courier — stores the consignment id + tracking link on the order */
-export function assignCourier(id: string, body: Record<string, unknown>): Promise<ApiOrder> {
-  return j<ApiOrder>(`/orders/${id}/courier`, { method: "POST", body: JSON.stringify(body) });
-}
+/*  `assignCourier` (POST /orders/:id/courier) LEFT THIS FILE — Phase 6.
+    It bypassed Delivery entirely; use `createAssignment` instead. */
 /** one plain-text order summary — reused by Copy / WhatsApp / Email everywhere */
 export function orderShareText(o: ApiOrder): string {
   return [
@@ -1469,8 +1467,8 @@ export function orderShareText(o: ApiOrder): string {
 export function orderContactPhone(o: ApiOrder): string {
   return (o.isGift ? o.recipientPhone : o.senderPhone) || o.senderPhone;
 }
-/** couriers Radian hands parcels to — admin-configurable later (Delivery module) */
-export const COURIERS: string[] = ["Steadfast", "Pathao Courier", "RedX", "eCourier", "SA Paribahan", "Sundarban", "Own rider"];
+/*  The hardcoded COURIERS array LEFT THIS FILE — Phase 6. Couriers are a
+    master kept in Administration (DEC-DLV-014); read `listCourierServices`. */
 
 /* adapt API order → the shape the mock-based OrderEditor/EditForm expect */
 /* eslint-disable @typescript-eslint/no-explicit-any */

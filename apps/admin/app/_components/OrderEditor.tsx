@@ -11,9 +11,14 @@ import {
   orderAction,
   cancelOrder,
   addOrderPayment,
-  assignCourier,
-  COURIERS,
+  createAssignment,
+  orderAssignments,
+  listRiders,
+  listCourierServices,
   type ApiCustomer,
+  type ApiRider,
+  type ApiCourierService,
+  type ApiAssignment,
 } from "../_data/api";
 import {
   SALES_STATUS_META,
@@ -199,10 +204,17 @@ export default function OrderEditor({ id }: { id: string }) {
   const [sec, setSec] = useState<SecId>("summary");
   const [openMaterials, setOpenMaterials] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  /* courier hand-off */
-  const [courier, setCourier] = useState("");
+  const [copiedEntry, setCopiedEntry] = useState(false);
+  /*  carrier hand-off — Phase 6: the ONE path is a DeliveryAssignment
+      (POST /delivery/assignments), so the parcel reaches the board, analytics,
+      cost posting and COD reconciliation. The old /orders/:id/courier wrote
+      onto the Order and told Delivery nothing. */
+  const [carrierKind, setCarrierKind] = useState<"RIDER" | "COURIER">("COURIER");
+  const [carrierId, setCarrierId] = useState("");
   const [consignment, setConsignment] = useState("");
-  const [trackUrl, setTrackUrl] = useState("");
+  const [riders, setRiders] = useState<ApiRider[]>([]);
+  const [couriers, setCouriers] = useState<ApiCourierService[]>([]);
+  const [assignment, setAssignment] = useState<ApiAssignment | null>(null);
   /* record a payment */
   const [payAmt, setPayAmt] = useState(0);
   const [payKind, setPayKind] = useState<"COD_COLLECTED" | "ADVANCE" | "PAYMENT" | "REFUND">("COD_COLLECTED");
@@ -213,7 +225,12 @@ export default function OrderEditor({ id }: { id: string }) {
     (adapted as unknown as { timeline: unknown[] }).timeline = adaptTimeline(tl);
     setO(adapted);
     getCustomer(adapted.customerId).then(setCust).catch(() => setCust(null));
+    orderAssignments(id).then((rows) => setAssignment(rows.find((a) => a.isActive) ?? null)).catch(() => setAssignment(null));
   }
+  useEffect(() => {
+    listRiders().then((r) => setRiders(r.filter((x) => x.isActive))).catch(() => setRiders([]));
+    listCourierServices().then((c) => setCouriers(c.filter((x) => x.isActive))).catch(() => setCouriers([]));
+  }, []);
   useEffect(() => {
     setLoading(true);
     reload().finally(() => setLoading(false));
@@ -272,8 +289,8 @@ export default function OrderEditor({ id }: { id: string }) {
   const custName = cust?.name ?? o.sender.name;
   const orderNo = (o as { orderNo?: string }).orderNo ?? o.id;
 
-  /* courier info lives on the order (adaptOrder passes it through) */
-  const cr = o as unknown as { courierName?: string | null; courierConsignment?: string | null; courierTrackingUrl?: string | null };
+  /* the form shows until the parcel is out — re-assigning supersedes (DLV-R01) */
+  const canAssign = !terminal && (!assignment || assignment.status === "ASSIGNED");
   /* channel slug → readable name; falls back to the slug so nothing renders blank */
   const rawChannel = (o as unknown as { channel?: string }).channel ?? "";
   const channelName = rawChannel ? rawChannel.charAt(0).toUpperCase() + rawChannel.slice(1) : "Web";
@@ -569,78 +586,107 @@ export default function OrderEditor({ id }: { id: string }) {
             </Panel>
           )}
 
-          {/* COURIER — hand the parcel over without leaving the order */}
+          {/* CARRIER — one click hands the parcel to Delivery without leaving the
+              order. Phase 6: this creates a real DeliveryAssignment, so the
+              parcel reaches the board, analytics, cost and COD settlement. */}
           {sec === "delivery" && (
-            <Panel title="Courier hand-off" icon="truck" tone={cr.courierName ? "green" : "blue"} hint="fills the courier's data entry from this order">
+            <Panel title="Carrier hand-off" icon="truck" tone={assignment ? "green" : "blue"} hint="assigns through Delivery — the parcel lands on the delivery board and in its accounts; re-assigning replaces the previous assignment">
               <div className="p-5">
-                {cr.courierName ? (
+                {assignment ? (
                   <>
-                    <Row k="Courier" v={<span className="font-medium text-purple">{cr.courierName}</span>} />
-                    <Row k="Consignment" v={cr.courierConsignment || "—"} />
-                    <Row k="Tracking" v={cr.courierTrackingUrl ? <a href={cr.courierTrackingUrl} target="_blank" rel="noreferrer" className="text-purple underline">Open tracking</a> : "—"} />
+                    <Row k="Carrier" v={<span className="font-medium text-purple">{assignment.kind === "RIDER" ? `Rider — ${assignment.rider?.name ?? "?"}` : `Courier — ${assignment.courier?.name ?? "?"}`}</span>} />
+                    <Row k="Assignment" v={assignment.assignmentNo} />
+                    <Row k="Status" v={assignment.status.replace(/_/g, " ").toLowerCase()} />
+                    <Row k="Consignment" v={assignment.consignmentNo || "—"} />
+                    <Row k="Tracking" v={assignment.trackingUrl ? <a href={assignment.trackingUrl} target="_blank" rel="noreferrer" className="text-purple underline">Open tracking</a> : "—"} />
                   </>
                 ) : (
-                  <p className="text-[13px] text-body-soft mt-0 mb-3">No courier assigned yet.</p>
+                  <p className="text-[13px] text-body-soft mt-0 mb-3">Not with a carrier yet.</p>
                 )}
 
-                {!terminal && (
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3 mt-3">
-                    <div>
-                      <label className="text-[13px] text-body-soft font-medium mb-1 block">Courier</label>
-                      <select className="ipt h-[42px]" value={courier} onChange={(e) => setCourier(e.target.value)}>
-                        <option value="">Select courier…</option>
-                        {COURIERS.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                {canAssign && (
+                  <>
+                    <div className="inline-flex rounded-[12px] border border-[#e9dcf5] overflow-hidden mt-3">
+                      {(["RIDER", "COURIER"] as const).map((k) => {
+                        const on = carrierKind === k;
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => { setCarrierKind(k); setCarrierId(""); }}
+                            className="text-[13px] font-bold px-4 py-2 inline-flex items-center gap-1.5"
+                            style={on ? { background: TONE.purple.solid, color: "#fff", boxShadow: "0 2px 8px rgba(107,70,155,.35)" } : { background: "#fff", color: "#a892bb" }}
+                          >
+                            <Icon name={k === "RIDER" ? "user" : "truck"} size={14} /> {k === "RIDER" ? "Own rider" : "Courier"}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div>
-                      <label className="text-[13px] text-body-soft font-medium mb-1 block">Consignment id</label>
-                      <input className="ipt h-[42px]" value={consignment} onChange={(e) => setConsignment(e.target.value)} placeholder="from the courier" />
-                    </div>
-                    <div>
-                      <label className="text-[13px] text-body-soft font-medium mb-1 block">Tracking link</label>
-                      <input className="ipt h-[42px]" value={trackUrl} onChange={(e) => setTrackUrl(e.target.value)} placeholder="https://…" />
-                    </div>
-                  </div>
-                )}
 
-                {!terminal && (
-                  <div className="flex gap-2 flex-wrap mt-3.5">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const payload = [
-                          `Recipient: ${o.isGift ? o.recipient?.name : custName}`,
-                          `Phone: ${o.isGift ? o.recipient?.phone : o.sender.phone}`,
-                          `Address: ${o.address}`,
-                          `Parcel: ${o.lines.map((l) => `${l.name} x${l.qty}`).join(", ")}`,
-                          `COD amount: ${due > 0 ? formatTaka(due) : "0 (prepaid)"}`,
-                          `Note: ${o.deliveryNotes || "-"}`,
-                          `Ref: ${orderNo}`,
-                        ].join("\n");
-                        try {
-                          await navigator.clipboard.writeText(payload);
-                          alert("Courier data entry copied — paste it into the courier panel.");
-                        } catch {
-                          alert(payload);
-                        }
-                      }}
-                      className="text-[12.5px] px-3.5 py-2 rounded-[10px] font-medium border bg-white inline-flex items-center gap-1.5"
-                      style={{ borderColor: TONE.blue.border, color: TONE.blue.text }}
-                    >
-                      <Icon name="copy" size={14} /> Copy data entry
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !courier}
-                      onClick={() => act(() => assignCourier(id, { courierName: courier, courierConsignment: consignment || undefined, courierTrackingUrl: trackUrl || undefined }))}
-                      className="text-[12.5px] px-4 py-2 rounded-[10px] font-medium text-white disabled:opacity-50 inline-flex items-center gap-1.5"
-                      style={{ background: TONE.blue.solid }}
-                    >
-                      <Icon name="truck" size={14} /> {cr.courierName ? "Update courier" : "Assign courier"}
-                    </button>
-                  </div>
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3 mt-3">
+                      <div>
+                        <label className="text-[13px] text-body-soft font-medium mb-1 block">{carrierKind === "RIDER" ? "Rider" : "Courier"}</label>
+                        <select className="ipt h-[42px]" value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
+                          <option value="">{carrierKind === "RIDER" ? "Select rider…" : "Select courier…"}</option>
+                          {(carrierKind === "RIDER" ? riders : couriers).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      {carrierKind === "COURIER" && (
+                        <div>
+                          <label className="text-[13px] text-body-soft font-medium mb-1 block">Consignment id</label>
+                          <input className="ipt h-[42px]" value={consignment} onChange={(e) => setConsignment(e.target.value)} placeholder="from the courier panel" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap mt-3.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const payload = [
+                            `Recipient: ${o.isGift ? o.recipient?.name : custName}`,
+                            `Phone: ${o.isGift ? o.recipient?.phone : o.sender.phone}`,
+                            `Address: ${o.address}`,
+                            `Parcel: ${o.lines.map((l) => `${l.name} x${l.qty}`).join(", ")}`,
+                            `COD amount: ${due > 0 ? formatTaka(due) : "0 (prepaid)"}`,
+                            `Note: ${o.deliveryNotes || "-"}`,
+                            `Ref: ${orderNo}`,
+                          ].join("\n");
+                          try {
+                            await navigator.clipboard.writeText(payload);
+                            setCopiedEntry(true);
+                            setTimeout(() => setCopiedEntry(false), 2000);
+                          } catch {
+                            setActErr("Could not reach the clipboard — copy the details from the order instead.");
+                          }
+                        }}
+                        className="text-[13px] px-4 py-2.5 rounded-[10px] font-bold border bg-white inline-flex items-center gap-1.5"
+                        style={{ borderColor: TONE.blue.border, color: TONE.blue.text }}
+                      >
+                        <Icon name={copiedEntry ? "check" : "copy"} size={14} /> {copiedEntry ? "Copied" : "Copy data entry"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || !carrierId}
+                        onClick={() => act(async () => {
+                          await createAssignment({
+                            orderId: id,
+                            kind: carrierKind,
+                            ...(carrierKind === "RIDER"
+                              ? { riderId: carrierId }
+                              : { courierId: carrierId, consignmentNo: consignment.trim() || undefined }),
+                          });
+                          setCarrierId("");
+                          setConsignment("");
+                        })}
+                        className="text-[13px] px-5 py-2.5 rounded-[10px] font-bold text-white disabled:opacity-50 inline-flex items-center gap-1.5"
+                        style={{ background: TONE.blue.solid }}
+                      >
+                        <Icon name="truck" size={14} /> {assignment ? "Re-assign carrier" : "Assign carrier"}
+                      </button>
+                    </div>
+                  </>
                 )}
-                <p className="text-[13px] text-body-soft mt-3 mb-0">Delivery owns the parcel itself — Sales just records which courier has it, so staff can track without leaving the order.</p>
               </div>
             </Panel>
           )}

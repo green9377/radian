@@ -36,7 +36,6 @@ import {
   EditOrderDto,
   AddPaymentDto,
   AddPhotoDto,
-  AssignCourierDto,
   CancelOrderDto,
   ListOrderQuery,
   OrderLineInput,
@@ -976,30 +975,13 @@ export class OrdersService {
     return this.shape(updated);
   }
 
-  /* courier hand-off — Delivery executes the parcel; Sales records the reference
-     so the order carries its consignment id and tracking link. */
-  async assignCourier(id: string, dto: AssignCourierDto) {
-    const o = await this.get(id);
-    if (o.salesStatus === SalesStatus.cancelled) throw new BadRequestException('order is cancelled');
-    if (!dto.courierName?.trim()) throw new BadRequestException('courierName is required');
-    const actorName = dto.actorName ?? 'Admin';
+  /*  `assignCourier` LEFT THIS FILE — Phase 6, 30 Aug 2026. It wrote courier
+      fields straight onto the Order with no DeliveryAssignment, so Delivery
+      never saw the parcel. Carrier hand-off now lives only in
+      DeliveryService.assign() (POST /delivery/assignments), which mirrors the
+      legacy Order courier fields itself (DEC-DLV-006). */
 
-    const updated = await this.prisma.db.order.update({
-      where: { id },
-      data: {
-        courierName: dto.courierName.trim(),
-        courierConsignment: dto.courierConsignment?.trim() || null,
-        courierTrackingUrl: dto.courierTrackingUrl?.trim() || null,
-        courierAssignedAt: new Date(),
-      },
-      include: FULL_INCLUDE,
-    });
-    await this.audit.record({ entityType: ENTITY, entityId: id, action: 'UPDATE', actorName, changes: { courier: dto as unknown as Record<string, unknown> } });
-    await this.event(id, 'delivery', `Courier assigned — ${dto.courierName}${dto.courierConsignment ? ` (${dto.courierConsignment})` : ''}`, actorName);
-    return this.shape(updated);
-  }
-
-  // proof photo — Delivery-owned; Sales শুধু record/দেখায়
+  // proof photo — Delivery-owned; Sales only records and shows it
   async addPhoto(id: string, dto: AddPhotoDto) {
     await this.ensureExists(id);
     const actorName = dto.actorName ?? 'Delivery';

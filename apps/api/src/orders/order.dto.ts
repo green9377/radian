@@ -154,13 +154,6 @@ export interface AddPhotoDto {
   actorName?: string;
 }
 
-export interface AssignCourierDto {
-  courierName: string;
-  courierConsignment?: string;
-  courierTrackingUrl?: string;
-  actorName?: string;
-}
-
 export interface CancelOrderDto {
   reason?: string;
   actorName?: string;

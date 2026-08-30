@@ -17,7 +17,6 @@ import type {
   EditOrderDto,
   AddPaymentDto,
   AddPhotoDto,
-  AssignCourierDto,
   CancelOrderDto,
   ListOrderQuery,
 } from './order.dto';
@@ -117,10 +116,12 @@ export class OrdersController {
   addPayment(@Param('id') id: string, @Body() dto: AddPaymentDto, @Headers('x-actor-name') actor?: string) {
     return this.svc.addPayment(id, { ...dto, actorName: dto.actorName ?? actor });
   }
-  @Post(':id/courier')
-  assignCourier(@Param('id') id: string, @Body() dto: AssignCourierDto, @Headers('x-actor-name') actor?: string) {
-    return this.svc.assignCourier(id, { ...dto, actorName: actor ?? dto.actorName });
-  }
+  /*  ⚠️ There is deliberately NO `:id/courier` route any more (Phase 6, 30 Aug
+      2026). It wrote courier fields straight onto the Order and created no
+      DeliveryAssignment, so the parcel never reached the board, analytics,
+      cost posting or COD reconciliation — a One Data One Owner violation.
+      The only way to hand a parcel to a carrier is POST /delivery/assignments,
+      which also keeps the legacy Order courier fields in step (DEC-DLV-006). */
 
   @Post(':id/photos')
   addPhoto(@Param('id') id: string, @Body() dto: AddPhotoDto, @Headers('x-actor-name') actor?: string) {
