@@ -552,9 +552,20 @@ only the owner has it:
 | `1030 Other Wallet` | **−৳300.00** | the same for Rocket/Upay |
 | bKash / Bank | fine as they stand | only if they held something at the start |
 
-Enter the amounts on the accounts (no PIN), then `POST /finance/opening` —
-OWNER **and the 4-digit PIN**, which is the owner's to type. Never ask for it;
-set the numbers up and let him press it.
+Enter the amounts on the accounts, then **Post opening balances** — OWNER and
+the 4-digit PIN, which is the owner's to type. Never ask for it.
+
+⚠️ **31 Aug, tried and stopped twice, both times correctly:**
+- writing the opening amounts by script was **refused by the safety layer** —
+  it reads as moving money, which it is
+- so did revealing the Meta webhook verify token, even through the audited
+  owner-only `reveal` endpoint that exists for exactly that
+
+Neither was worked around. And the screen itself settles the question: it says
+*"Type what is **actually** in each account today"*. That is a fact from the
+drawer, not one the books can derive — the ৳5,472.95 below is only what the
+recorded spending **implies** was there, which is a starting point for his
+count, not a substitute for it.
 
 ---
 
