@@ -12,6 +12,7 @@ import {
   cancelOrder,
   addOrderPayment,
   createAssignment,
+  assignmentAction,
   orderAssignments,
   listRiders,
   listCourierServices,
@@ -333,16 +334,47 @@ export default function OrderEditor({ id }: { id: string }) {
     return null;
   };
 
-  /* the single next step, coloured by what it is */
+  /*  The single next step, coloured by what it is.
+
+      ⚠️ THE LAST TWO GO THROUGH DELIVERY WHEN A CARRIER IS CARRYING THE PARCEL
+      — 30 Aug 2026, found while walking DEC-DLV-021.
+
+      "Out for delivery" here used to call `orders.out-for-delivery` directly.
+      The ORDER moved and the ASSIGNMENT did not: DLV-000002 sat at *assigned*
+      while the order read *out for delivery*, so the board showed a parcel
+      nobody had taken out, the analytics never saw it leave, and a carrier
+      swap was recorded as CANCELLED because the assignment never said it was
+      on the road. Two doors to the same fact, and one of them silent — the
+      same shape as the courier bug that opened this phase.
+
+      `assignmentAction` calls the order method itself, so the order rules
+      (stock, unpaid refusal, DEC-SAL-016 times) all still run — this only
+      makes sure Delivery hears about it too. With no assignment there is
+      nothing to tell, and the order action stands on its own.  */
+  const live = assignment && assignment.isActive ? assignment : null;
   const nextStep: { label: string; tone: Tone; run: () => Promise<unknown> } | null =
     o.salesStatus === "placed"
       ? { label: "Confirm order", tone: "green", run: () => orderAction(id, "confirm") }
       : o.salesStatus === "confirmed" && o.deliveryStatus === "unassigned"
         ? { label: "Start preparing (stock −1)", tone: "amber", run: () => orderAction(id, "prepare") }
         : o.deliveryStatus === "preparing"
-          ? { label: "Out for delivery", tone: "blue", run: () => orderAction(id, "out-for-delivery") }
+          ? {
+              label: "Out for delivery",
+              tone: "blue",
+              run: () =>
+                live && live.status === "ASSIGNED"
+                  ? assignmentAction(live.id, "out")
+                  : orderAction(id, "out-for-delivery"),
+            }
           : o.deliveryStatus === "out_for_delivery"
-            ? { label: "Mark delivered", tone: "green", run: () => orderAction(id, "delivered") }
+            ? {
+                label: "Mark delivered",
+                tone: "green",
+                run: () =>
+                  live && live.status === "OUT_FOR_DELIVERY"
+                    ? assignmentAction(live.id, "delivered")
+                    : orderAction(id, "delivered"),
+              }
             : null;
 
   return (

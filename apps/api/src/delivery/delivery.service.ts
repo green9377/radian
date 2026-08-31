@@ -326,15 +326,24 @@ export class DeliveryService {
     /*  DEC-DLV-021 — WAS THE PARCEL ALREADY ON THE ROAD?
         Then this is a swap, not a cancellation: it left with one carrier and
         somebody else is finishing it. A failed one keeps FAILED (its reason is
-        the record of why), and anything that never left is CANCELLED as
-        before.  */
+        the record of why), and anything that never left is CANCELLED as before.
+
+        ⚠️ THE ORDER IS ASKED TOO, not only the assignment. An order can be out
+        for delivery while its assignment still reads ASSIGNED — every row
+        created before the order screen's button was routed through Delivery is
+        in exactly that state. Reading the assignment alone would file those
+        swaps as cancellations, which is the record saying the parcel never
+        left when it had.  */
+    const wasOnTheRoad =
+      prevActive?.status === AssignmentStatus.OUT_FOR_DELIVERY ||
+      order.deliveryStatus === DeliveryStatus.out_for_delivery;
     const supersededStatus =
       prevActive?.status === AssignmentStatus.FAILED
         ? AssignmentStatus.FAILED
-        : prevActive?.status === AssignmentStatus.OUT_FOR_DELIVERY
+        : wasOnTheRoad
           ? AssignmentStatus.SWAPPED
           : AssignmentStatus.CANCELLED;
-    const isSwap = supersededStatus === AssignmentStatus.SWAPPED;
+    const isSwap = !!prevActive && supersededStatus === AssignmentStatus.SWAPPED;
 
     const assignmentNo = await this.nextNo();
     const created = await this.prisma.db.$transaction(async (tx) => {
