@@ -626,6 +626,33 @@ the app's **Live / Development** mode (in Development, Meta only pushes for
 accounts holding an app role — the app has exactly two administrators and no
 testers), and the Instagram app's **Settings → Messages → Connected tools**.
 
+### Re-subscribing did not fix it — and the app is Live, so that is not it either
+
+The owner sent a second DM after the re-subscribe. **Still nothing.** Checked at
+17:58: the last MetaWebhook line is 17:46, which was my own signed self-test.
+
+Two more suspects were then knocked out by looking rather than guessing:
+
+- **App mode** — the dashboard says **Published**, and the alert inbox carries
+  *"Radian switched to live mode"* from 6 Aug. Development mode is not the cause.
+- **Sending works.** The owner replies from admin to Instagram and it arrives.
+  So the account is connected and the token is privileged enough to write.
+
+### Where this actually stands
+
+| direction | Instagram | proof |
+|---|---|---|
+| we → Meta (send) | ✅ works | the owner's own reply landed |
+| Meta → us (read on demand) | ✅ works | `GET /me/conversations` returned all 50 threads |
+| Meta → us (push) | ❌ **silent** | 0 webhook lines, ever, against 9 for Messenger |
+
+Everything Radian controls is proven good. What is left is Meta choosing not to
+push, with every setting it exposes reporting healthy. The two switches nobody
+has been able to see yet both sit outside the API: the **Instagram use case's
+own webhook panel** (the dashboard SPA will not open it — the Customize button
+is a React handler with no href), and the Instagram phone app's
+**Settings → Messages → Connected tools**.
+
 ### ⭐ The durable answer, whichever way that goes — read, do not only listen
 
 Today proved something worth building on: **the Instagram token can read the
@@ -650,8 +677,19 @@ exist, cannot be loaded due to missing permissions
 ```
 
 Every inbound Messenger thread today failed its profile lookup, so the customer's
-name is never filled in and the thread reads **Guest**. The token or its
-permissions are the suspect. Not fixed — recorded.
+name is never filled in and the thread reads **Guest**. **`debug_token` named the
+cause exactly** — the Page token carries only:
+
+```
+scopes: pages_messaging, whatsapp_business_management,
+        whatsapp_business_messaging, public_profile
+```
+
+`pages_messaging` is enough to receive and reply, and nothing more. The profile
+read needs **`pages_read_engagement`** (and `pages_manage_metadata` for the
+subscription reads that also failed today). The fix is a re-authorisation of the
+Page token with those scopes added — an owner action in the dashboard, not a
+code change. Not done — recorded.
 
 ### The standing lesson — four wrong calls in one afternoon
 
