@@ -152,7 +152,7 @@ export const PROVIDERS: Manifest[] = [
   {
     provider: 'FACEBOOK_PAGE', label: 'Facebook Page', kind: 'SOCIAL', hasSandbox: false,
     matters:
-      'Messenger and Instagram direct messages, in and out of the Inbox. Instagram rides on this same token, so one key covers both.',
+      'Messenger conversations, in and out of the Inbox. Instagram does NOT ride on this token - it holds its own, on its own host. Use the Connect button rather than pasting: the scopes matter, and a token with only pages_messaging leaves every thread reading "Guest".',
     fields: [
       { key: 'clientId', label: 'Page ID', secret: false },
       { key: 'apiKey', label: 'Page access token', secret: true },

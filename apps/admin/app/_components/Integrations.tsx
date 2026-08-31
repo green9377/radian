@@ -40,6 +40,8 @@ import {
   getIntegrations, getWaTemplateStatus, revealIntegrationField, saveIntegration,
   submitWaTemplates, waTestSend, messagingTestSend, type ApiTemplateResult,
   coexistenceConfig, coexistenceStatus, coexistenceExchange,
+  fbPageConfig, fbPageStatus, fbPageExchange, fbPageBackfillNames,
+  type ApiFbPageConfig, type ApiFbPageStatus,
 } from "../_data/api";
 import {
   Banner, Card, Chip, FinHeader, Flash, Panel, TONE, WRAP,
@@ -262,8 +264,8 @@ export default function Integrations({ only }: { only?: ApiIntKind } = {}) {
 /*
   COURIERS — ONE CARD PER COURIER, KEYS FOLDED IN. 12 Aug 2026.
 
-  The owner, plainly: "delivery-তে courier থাকলে এটা confusing and flow break
-  করে." He was right, and the old note at the top of this section proved it —
+  The owner, plainly: having the couriers sit under Delivery is confusing and
+  breaks the flow. He was right, and the old note at the top of this proved it —
   it had to explain that names lived on one screen and keys on another, which
   is a sentence no screen should ever need.
 
@@ -769,6 +771,8 @@ function ServiceCard({
           </>
         )}
 
+        {s.provider === "FACEBOOK_PAGE" && <FacebookPageConnectRow brand={brand} />}
+
         {(s.provider === "SMS" || s.provider === "EMAIL") && (
           <MessagingTestRow channel={s.provider} brand={brand} onError={onError} />
         )}
@@ -1042,6 +1046,165 @@ function WhatsAppCoexistenceRow({ brand }: { brand: { grad: string; glow: string
           style={{ color: note.ok ? TONE.emerald.text : TONE.rose.text }}
         >
           {note.ok ? "✓ " : "✗ "}{note.msg}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/*
+  Facebook Page — connect with a button, never a pasted token.
+
+  The old token carried only `pages_messaging`: enough to receive and reply, and
+  not enough to read a customer's name, which is why 48 of 49 Messenger threads
+  said "Guest" (measured 31 Aug). Getting a wider one by hand would mean copying
+  a token out of Meta's Graph Explorer and pasting it into this form — through a
+  clipboard and a browser field, which is nowhere a token should go. So Meta's
+  popup returns a CODE, the server swaps it for the Page token, and the token is
+  never in this browser at all.
+
+  The scope list is shown afterwards because Meta grants what it feels like: a
+  screen that only says "connected" is how three missing scopes went unnoticed.
+*/
+function FacebookPageConnectRow({ brand }: { brand: { grad: string; glow: string; solid: string } }) {
+  const [cfg, setCfg] = useState<ApiFbPageConfig | null>(null);
+  const [live, setLive] = useState<ApiFbPageStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setLive(await fbPageStatus());
+    } catch {
+      /* the row still works without it */
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setCfg(await fbPageConfig());
+      } catch {
+        /* leave the button disabled */
+      }
+      await refresh();
+    })();
+  }, [refresh]);
+
+  function loadSdk(appId: string, version: string) {
+    return new Promise<void>((resolve, reject) => {
+      if (window.FB) return resolve();
+      const el = document.createElement("script");
+      el.src = "https://connect.facebook.net/en_US/sdk.js";
+      el.async = true;
+      el.onload = () => {
+        window.FB?.init({ appId, autoLogAppEvents: true, xfbml: false, version });
+        resolve();
+      };
+      el.onerror = () => reject(new Error("Facebook's script could not be loaded"));
+      document.body.appendChild(el);
+    });
+  }
+
+  async function connect() {
+    if (!cfg?.appId) {
+      setNote({ ok: false, msg: "META_APP_ID is not set on the server yet." });
+      return;
+    }
+    setBusy(true);
+    setNote(null);
+    try {
+      await loadSdk(cfg.appId, cfg.graphVersion);
+      const code = await new Promise<string>((resolve, reject) => {
+        window.FB!.login(
+          (r) =>
+            r.authResponse?.code
+              ? resolve(r.authResponse.code)
+              : reject(new Error("Cancelled before finishing")),
+          {
+            scope: cfg.scopes,
+            response_type: "code",
+            override_default_response_type: true,
+          },
+        );
+      });
+      const r = await fbPageExchange({ code });
+      setLive(r);
+      setNote({
+        ok: true,
+        msg: r.missing?.length
+          ? `Connected to ${r.pageName ?? "the Page"}, but Meta withheld: ${r.missing.join(", ")}`
+          : `Connected to ${r.pageName ?? "the Page"} with everything the inbox needs.`,
+      });
+    } catch (e) {
+      setNote({ ok: false, msg: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function backfill() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await fbPageBackfillNames();
+      setNote({
+        ok: r.named > 0,
+        msg: r.named
+          ? `Named ${r.named} of ${r.looked} threads that were showing Guest.`
+          : `Looked at ${r.looked}, named none.${r.firstRefusal ? ` Meta said: ${r.firstRefusal}` : ""}`,
+      });
+    } catch (e) {
+      setNote({ ok: false, msg: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const missing = live?.missing ?? [];
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+      <Lbl>Connect the Page</Lbl>
+
+      {live?.connected && live.scopes && (
+        <p
+          className="text-[11.5px] leading-relaxed mb-2"
+          style={{ color: missing.length ? TONE.rose.text : TONE.emerald.text }}
+        >
+          {missing.length
+            ? `Connected, but missing ${missing.join(", ")} — names will keep showing as Guest until this is redone.`
+            : "✓ Connected with every scope the inbox needs."}
+        </p>
+      )}
+
+      <button
+        type="button"
+        className="w-full px-5 py-3 rounded-2xl text-white font-extrabold text-[13px] transition-transform active:scale-[0.98] disabled:opacity-40"
+        style={{ background: brand.grad, boxShadow: `0 6px 18px ${brand.glow}` }}
+        disabled={busy || !cfg?.appId}
+        onClick={() => void connect()}
+      >
+        {busy ? "Waiting for Meta…" : live?.connected ? "Reconnect the Page" : "Connect the Page"}
+      </button>
+
+      <button
+        type="button"
+        className="w-full mt-2 px-5 py-3 rounded-2xl font-extrabold text-[13px] border-2 transition-transform active:scale-[0.98] disabled:opacity-40"
+        style={{ borderColor: brand.solid, color: brand.solid }}
+        disabled={busy || !live?.connected}
+        onClick={() => void backfill()}
+      >
+        Fill in the “Guest” names
+      </button>
+
+      {note && (
+        <p
+          className="text-[11.5px] leading-relaxed mt-2"
+          style={{ color: note.ok ? TONE.emerald.text : TONE.rose.text }}
+        >
+          {note.ok ? "✓ " : "✗ "}
+          {note.msg}
         </p>
       )}
     </div>

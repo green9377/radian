@@ -6574,6 +6574,33 @@ export const coexistenceExchange = (b: { code: string; wabaId: string; phoneNumb
     historySync: { ok: boolean; requestId?: string | null; error?: string };
   }>("/messaging/coexistence/exchange", { method: "POST", body: JSON.stringify(b) });
 
+/* ── Facebook Page: connect by button, never by pasting a token ─────────── */
+
+export type ApiFbPageConfig = {
+  appId: string; graphVersion: string; scopes: string;
+  connected: boolean; pageId: string | null;
+};
+export const fbPageConfig = () => j<ApiFbPageConfig>("/messaging/facebook-page/config");
+
+export type ApiFbPageStatus = {
+  connected: boolean; reason?: string; valid?: boolean;
+  pageId?: string | null;
+  /** What Meta says the token can do — its answer, not ours. */
+  scopes?: string[];
+  missing?: string[];
+};
+export const fbPageStatus = () => j<ApiFbPageStatus>("/messaging/facebook-page/status");
+
+/** The popup's code becomes the Page token — server-side, so it never reaches this browser. */
+export const fbPageExchange = (b: { code: string }) =>
+  j<ApiFbPageStatus & { pageName: string | null }>(
+    "/messaging/facebook-page/exchange", { method: "POST", body: JSON.stringify(b) });
+
+/** Fill in the names of threads that have been reading "Guest". */
+export const fbPageBackfillNames = () =>
+  j<{ ran: boolean; reason?: string; looked: number; named: number; firstRefusal: string | null }>(
+    "/messaging/facebook-page/backfill-names", { method: "POST" });
+
 export const waPreview = (b: ApiAudienceFilter) =>
   j<{ count: number; sample: { id: string; name: string; phone: string }[] }>(
     "/marketing/whatsapp/preview", { method: "POST", body: JSON.stringify(b) });

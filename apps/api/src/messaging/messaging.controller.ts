@@ -26,6 +26,10 @@ import {
 import { MetaWebhookController, MetaWebhookService } from './meta-webhook';
 import { MetaPollService } from './meta-poll.service';
 import {
+  FacebookPageConnectController,
+  FacebookPageConnectService,
+} from './facebook-page-connect';
+import {
   WhatsAppCoexistenceController,
   WhatsAppCoexistenceService,
 } from './whatsapp-coexistence';
@@ -253,6 +257,7 @@ export class CheckoutLeadController {
     WhatsAppWebhookService,
     MetaWebhookService,
     MetaPollService,
+    FacebookPageConnectService,
     WhatsAppCoexistenceService,
     OtpService,
     ChannelSender,
@@ -262,6 +267,7 @@ export class CheckoutLeadController {
     CheckoutLeadController,
     WhatsAppWebhookController,
     MetaWebhookController,
+    FacebookPageConnectController,
     WhatsAppCoexistenceController,
   ],
   exports: [
