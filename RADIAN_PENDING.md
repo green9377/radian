@@ -189,7 +189,33 @@ call: the only mentions of `purchaseReturn` / `supplierCredit` in the whole
 falls, the supplier now owes us — and the ledger hears none of it. Breaks
 CLAUDE.md §4 rule 4a.
 
-### P7-13 — stock that appears out of nowhere never reaches the books
+### ✅ P7-13 FIXED, DEPLOYED AND WALKED — 31 Aug (`9a19d29` on the VPS)
+
+`onStockAdjustment` handles OPENING as well as ADJUSTMENT; `opening()`,
+`adjust()` and `applyStocktake()` all hand off after their transaction,
+fail-soft. **DEC-INV-016 (owner):** what a stocktake finds is a gain or loss of
+this period (`5150`); what was already on the shelf when the books began faces
+equity — new account **`3300 Opening Balance`**, kept apart from Partner
+Capital so "what the owner put in" stays a separate question from "what was
+already here on day one".
+
+`POST /finance/backfill/stock-movements` brought the history in, as the owner
+asked. Run live: **`{ found: 27, posted: 27 }`**, and the books moved:
+
+| | before | after |
+|---|---|---|
+| `1150 Inventory` | ৳7,919.81 | **৳1,03,344.81** |
+| `3300 Opening Balance` | — | **৳75,235.00** |
+| `5150 Inventory Adjustment` | ৳0 | **−৳20,190.00** |
+| **stock-value drift** | **−৳99,462.01** | **−৳4,037.01** |
+
+**96% of the gap is closed.** The remaining ৳4,037.01 is its own question — the
+drift screen's own advice points at item costs edited after stock was received,
+which moves the stock board without any money moving. Not chased yet.
+
+The backfill is keyed by movement id, so running it again posts nothing.
+
+### P7-13 — what it was: stock that appears out of nowhere never reached the books
 
 `finance-events.onStockAdjustment` is fully written, has an account waiting
 (`5150 Inventory Adjustment`) — and **zero callers**. `5150` has never held a
