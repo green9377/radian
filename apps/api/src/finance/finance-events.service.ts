@@ -488,6 +488,43 @@ export class FinanceEventsService {
           { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), creditPaisa: p.grandTotalPaisa },
         ],
       });
+
+      /*  P7-17 — money paid BEFORE the goods came is an advance sitting in
+          1200, not a payment against a bill that did not exist yet
+          (DEC-PUR-004). The goods are here now, so the advance becomes payment:
+          the payable falls and the advance is used up.
+
+          Counted from the LEDGER, never from the payment rows — the same
+          discipline P7-15 had to be taught. Only what actually reached 1200
+          may be taken out of it.  */
+      const advanceAcc = await this.accId(ACC.SUPPLIER_ADVANCE);
+      const payments = await this.prisma.db.purchasePayment.findMany({
+        where: { purchaseId, deletedAt: null },
+        select: { id: true },
+      });
+      let advanced = 0;
+      for (const pay of payments) {
+        const e = await this.prisma.db.journalEntry.findUnique({
+          where: { sourceKey: `PURCHASE_PAYMENT:${pay.id}:paid` },
+          include: { lines: true },
+        });
+        advanced += (e?.lines ?? [])
+          .filter((l) => l.accountId === advanceAcc)
+          .reduce((n, l) => n + l.debitPaisa, 0);
+      }
+      if (advanced > 0) {
+        await this.finance.postEntry({
+          sourceType: 'PURCHASE',
+          sourceId: purchaseId,
+          sourceKey: `PURCHASE:${purchaseId}:advance-applied`,
+          entryDate: p.receivedAt ?? p.purchaseDate,
+          narration: `${p.purchaseNo} — advance paid earlier applied to the bill`,
+          lines: [
+            { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: advanced },
+            { accountId: advanceAcc, creditPaisa: advanced },
+          ],
+        });
+      }
     });
   }
 
@@ -585,14 +622,31 @@ export class FinanceEventsService {
         where: { id: purchasePaymentId },
       });
       if (!pp || pp.deletedAt || pp.amountPaisa <= 0) return;
+
+      /*  P7-17 (31 Aug 2026) — money handed over BEFORE the goods arrive is an
+          advance, not a payment against a bill (DEC-PUR-004). Posting it
+          against 2000 credits a payable that does not exist yet, which is how
+          the books came to show LESS owed to suppliers than the purchase
+          register did. When the goods arrive, `onPurchaseReceived` moves it
+          across.  */
+      const purchase = await this.prisma.db.purchase.findUnique({
+        where: { id: pp.purchaseId },
+        select: { receivedAt: true, purchaseNo: true },
+      });
+      const beforeGoods = !purchase?.receivedAt || pp.paidAt < purchase.receivedAt;
       await this.finance.postEntry({
         sourceType: 'PURCHASE',
         sourceId: pp.id,
         sourceKey: `PURCHASE_PAYMENT:${pp.id}:paid`,
         entryDate: pp.paidAt,
-        narration: 'Paid a supplier bill',
+        narration: beforeGoods
+          ? `${purchase?.purchaseNo ?? 'Purchase'} — paid in advance, before the goods came`
+          : 'Paid a supplier bill',
         lines: [
-          { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: pp.amountPaisa },
+          {
+            accountId: await this.accId(beforeGoods ? ACC.SUPPLIER_ADVANCE : ACC.SUPPLIER_PAYABLE),
+            debitPaisa: pp.amountPaisa,
+          },
           {
             accountId: await this.moneyAccountFor(pp.method, (pp as { accountId?: string | null }).accountId),
             creditPaisa: pp.amountPaisa,
@@ -863,6 +917,72 @@ export class FinanceEventsService {
     }
 
     return { looked: releases.length, fixed, alreadyFixed, reversedPaisa };
+  }
+
+  /**
+   * P7-17 cleanup — an advance already booked against the payable.
+   *
+   * Before today every purchase payment was posted `Dr 2000`, even one handed
+   * over before the goods existed. That credits a bill that has not been raised
+   * yet, and it is why the books ended up showing LESS owed to suppliers than
+   * the purchase register did.
+   *
+   * This moves only those: payment posted to 2000, goods not received (or
+   * received later than the payment). It reverses nothing else, and like the
+   * other cleanups it is keyed, so a second run does nothing.
+   */
+  async fixAdvancesPostedAsPayable(): Promise<{ looked: number; fixed: number; movedPaisa: number }> {
+    await this.finance.ensureSeed();
+    const payableAcc = await this.accId(ACC.SUPPLIER_PAYABLE);
+    const advanceAcc = await this.accId(ACC.SUPPLIER_ADVANCE);
+
+    const payments = await this.prisma.db.purchasePayment.findMany({
+      where: { deletedAt: null, amountPaisa: { gt: 0 } },
+      select: { id: true, purchaseId: true, paidAt: true, amountPaisa: true },
+    });
+
+    let fixed = 0;
+    let movedPaisa = 0;
+    for (const pay of payments) {
+      const purchase = await this.prisma.db.purchase.findUnique({
+        where: { id: pay.purchaseId },
+        select: { receivedAt: true, purchaseNo: true },
+      });
+      const beforeGoods = !purchase?.receivedAt || pay.paidAt < purchase.receivedAt;
+      if (!beforeGoods) continue;
+
+      const entry = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE_PAYMENT:${pay.id}:paid` },
+        include: { lines: true },
+      });
+      const onPayable = (entry?.lines ?? [])
+        .filter((l) => l.accountId === payableAcc)
+        .reduce((n, l) => n + l.debitPaisa, 0);
+      if (onPayable <= 0) continue;
+
+      const sourceKey = `PURCHASE_PAYMENT:${pay.id}:advance-fix`;
+      const done = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey },
+        select: { id: true },
+      });
+      if (done) continue;
+
+      await this.finance.postEntry({
+        sourceType: 'PURCHASE',
+        sourceId: pay.id,
+        sourceKey,
+        narration: `${purchase?.purchaseNo ?? 'Purchase'} — money paid before the goods is an advance, not a payment (P7-17)`,
+        isManual: true,
+        actorName: 'system',
+        lines: [
+          { accountId: advanceAcc, debitPaisa: onPayable },
+          { accountId: payableAcc, creditPaisa: onPayable },
+        ],
+      });
+      fixed += 1;
+      movedPaisa += onPayable;
+    }
+    return { looked: payments.length, fixed, movedPaisa };
   }
 
   /* ==================== RETURNS ==================== */

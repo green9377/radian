@@ -409,8 +409,11 @@ export class FinanceController {
   /*  P7-15 — undo the advance releases the old bug wrote on counter sales.
       Reverses only what the ledger itself shows was never an advance.  */
   @Post('backfill/fix-advance-release')
-  fixAdvanceRelease() {
-    return this.events.fixWrongAdvanceReleases();
+  async fixAdvanceRelease() {
+    return {
+      customerSide: await this.events.fixWrongAdvanceReleases(),
+      supplierSide: await this.events.fixAdvancesPostedAsPayable(),
+    };
   }
 
   @Get('drift')
