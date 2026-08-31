@@ -62,6 +62,12 @@ export class ReturnsController {
     return this.svc.eligibleOrder(orderId);
   }
 
+  /*  DEC-RTN-015 — what this customer could put on a bill of this size, right
+      now: the balance, the shop's cap, and the smaller of the two.  */
+  @Get('credit/:customerId/quote')
+  creditQuote(@Param('customerId') customerId: string, @Query('totalPaisa') totalPaisa?: string) {
+    return this.svc.quoteCredit(customerId, Number(totalPaisa ?? 0) || 0);
+  }
   @Get('credit/:customerId')
   credit(@Param('customerId') customerId: string) {
     return this.svc.creditBalance(customerId);

@@ -123,6 +123,15 @@ export interface CreatePosSaleDto {
   payMode: 'full' | 'partial';
   payments: PosPaymentDto[];
 
+  /**
+   * DEC-RTN-015 (owner, 31 Aug 2026) — part of this bill paid with the
+   * customer's store credit. Not a tender: no money moves, a liability the shop
+   * was already carrying is discharged instead. Returns owns the credit ledger
+   * and checks the balance and the shop's cap; POS only asks for an amount.
+   * Needs an identified customer, for the same reason a due does.
+   */
+  storeCreditPaisa?: number;
+
   actorName?: string;
 }
 

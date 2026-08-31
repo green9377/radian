@@ -4386,8 +4386,21 @@ export interface PosSaleInput {
   adjustmentPaisa?: number; adjustmentNote?: string; taxRateBps?: number;
   payMode: "full" | "partial";
   payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number; accountId?: string }[];
+  /** DEC-RTN-015 — part of the bill settled with the customer's store credit */
+  storeCreditPaisa?: number;
   actorName?: string;
 }
+
+/** DEC-RTN-015 — what this customer could put on a bill of this size, right now */
+export interface ApiCreditQuote {
+  customerId: string;
+  balancePaisa: number;
+  capBps: number;
+  capPaisa: number;
+  usablePaisa: number;
+}
+export const creditQuote = (customerId: string, totalPaisa: number) =>
+  j<ApiCreditQuote>(`/returns/credit/${customerId}/quote?totalPaisa=${Math.max(0, Math.round(totalPaisa))}`);
 
 /** DEC-POS-018 — what the till may sell: items, never products */
 export interface ApiPosCatalogueRow {

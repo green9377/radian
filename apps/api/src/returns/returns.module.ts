@@ -18,5 +18,9 @@ import { PaymentModule } from '../shop/payment';
   imports: [InventoryModule, FinanceModule, PaymentModule],
   providers: [ReturnsService],
   controllers: [ReturnsController],
+  /*  DEC-RTN-015 — POS asks Returns to spend a customer's store credit; Returns
+      owns the credit ledger and stays the only writer of it. One-way: Returns
+      never imports POS.  */
+  exports: [ReturnsService],
 })
 export class ReturnsModule {}

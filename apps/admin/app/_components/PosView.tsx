@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiCreditQuote, creditQuote, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
 import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 import QtyStepper from "./QtyStepper";
 /*
@@ -340,9 +340,26 @@ export default function PosSellView() {
   const adjustmentPaisa = sum.extraPaisa; // charges + adjustment — one number for the order
   const total = sum.totalPaisa;
 
+  /*  DEC-RTN-015 — store credit on this bill. Not a tender: no money moves, a
+      liability the shop was already carrying is discharged, so it sits above
+      the payment rows and comes off the bill before anything is owed. The cap
+      and the balance are the server's answer, never the browser's.  */
+  const [quote, setQuote] = useState<ApiCreditQuote | null>(null);
+  const [creditPaisa, setCreditPaisa] = useState(0);
+  useEffect(() => {
+    if (!selectedCust?.id || total <= 0) { setQuote(null); setCreditPaisa(0); return; }
+    creditQuote(selectedCust.id, total).then(setQuote).catch(() => setQuote(null));
+  }, [selectedCust?.id, total]);
+  useEffect(() => {
+    // never let a stale amount outlive the bill it was quoted against
+    setCreditPaisa((c) => Math.min(c, quote?.usablePaisa ?? 0));
+  }, [quote?.usablePaisa]);
+
   /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice. Money
       is taken as many ways as the customer likes; whatever is left is the due.  */
-  const pay = usePayRows(total, methods[0]?.id ?? "CASH");
+  /*  what the customer still has to hand over after credit is applied  */
+  const payablePaisa = Math.max(0, total - creditPaisa);
+  const pay = usePayRows(payablePaisa, methods[0]?.id ?? "CASH");
   const { paidPaisa: paid, duePaisa, changePaisa, overpaidNoChange } = pay;
 
   /*  The cap lives on the server and it refuses in words; the screen no longer
@@ -369,6 +386,7 @@ export default function PosSellView() {
     if (!selectedCust?.id) { setCredit(null); return; }
     posCreditStanding(selectedCust.id).then(setCredit).catch(() => setCredit(null));
   }, [selectedCust?.id]);
+
   const creditWarning =
     credit && credit.limitPaisa > 0 && duePaisa > 0 && credit.outstandingPaisa + duePaisa > credit.limitPaisa
       ? `${selectedCust?.name ?? "This customer"} already owes ${formatTaka(credit.outstandingPaisa)}; this bill takes it to ${formatTaka(credit.outstandingPaisa + duePaisa)}, over the ${formatTaka(credit.limitPaisa)} limit.`
@@ -473,6 +491,8 @@ export default function PosSellView() {
         /*  the server still takes a word for this; it is derived now, never asked
             (DEC-POS-017 retired) — anything left unpaid makes it a partial sale  */
         payMode: duePaisa > 0 ? "partial" : "full",
+        // DEC-RTN-015 — settled with the customer's credit, not with money
+        storeCreditPaisa: creditPaisa > 0 ? creditPaisa : undefined,
         payments: pay.pays
           .filter((p) => p.amountPaisa > 0)
           .map((p) => ({
@@ -821,6 +841,27 @@ export default function PosSellView() {
 
             <div className="px-4 shrink-0 pb-1">
               <div className="rounded-[12px] px-3 py-3" style={{ background: "rgba(255,255,255,.07)" }}>
+                {quote && quote.usablePaisa > 0 && (
+                  <div className="rounded-[12px] px-3 py-2.5 mb-2.5"
+                    style={{ background: "rgba(216,87,239,.16)", border: "1px solid rgba(216,87,239,.35)" }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] text-[#f0d5fa] font-medium">
+                        Store credit · {formatTaka(quote.balancePaisa)} saved
+                      </span>
+                      <button type="button"
+                        onClick={() => setCreditPaisa(creditPaisa > 0 ? 0 : quote.usablePaisa)}
+                        className={"text-[12px] font-bold px-3 py-1.5 rounded-[9px] " +
+                          (creditPaisa > 0 ? "bg-white text-purple" : "bg-white/15 text-white border border-white/30")}>
+                        {creditPaisa > 0 ? "Remove" : `Use ${formatTaka(quote.usablePaisa)}`}
+                      </button>
+                    </div>
+                    {quote.usablePaisa < quote.balancePaisa && (
+                      <div className="text-[11.5px] text-[#d9b3ea] mt-1">
+                        Credit can pay {quote.capBps / 100}% of a bill — {formatTaka(quote.capPaisa)} on this one.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <PaymentLines pay={pay} methods={methods} maxHeight={168} />
               </div>
             </div>
