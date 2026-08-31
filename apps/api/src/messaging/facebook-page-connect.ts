@@ -1,10 +1,9 @@
 import {
   BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Req,
 } from '@nestjs/common';
-import { InboxChannel } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationsService } from '../administration/integrations.service';
 import { Roles } from '../auth/auth.guard';
+import { MetaPollService } from './meta-poll.service';
 
 /*
   Connecting the Facebook Page — the button, not the paste.
@@ -49,10 +48,7 @@ interface MetaPage {
 export class FacebookPageConnectService {
   private readonly log = new Logger('FacebookPageConnect');
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly integrations: IntegrationsService,
-  ) {}
+  constructor(private readonly integrations: IntegrationsService) {}
 
   /** What the browser needs to open Meta's popup. Never the app secret. */
   async config() {
@@ -169,65 +165,6 @@ export class FacebookPageConnectService {
     return { ...after, connected: true, pageId: page.id, pageName: page.name ?? null };
   }
 
-  /**
-   * Fill in the names of threads that have been reading "Guest".
-   *
-   * Run after connecting, so the 48 threads that arrived while the token was
-   * too narrow are repaired at once instead of waiting for each of those
-   * customers to write again — some of them never will.
-   */
-  async backfillNames(limit = 500) {
-    const creds = await this.integrations.credentials('SOCIAL', 'FACEBOOK_PAGE');
-    const token = creds?.apiKey?.trim();
-    if (!token) return { ran: false, reason: 'No Page token saved yet', looked: 0, named: 0 };
-
-    const rows = await this.prisma.db.conversation.findMany({
-      where: {
-        channel: InboxChannel.MESSENGER,
-        deletedAt: null,
-        OR: [{ guestName: null }, { guestName: '' }],
-        externalIdentity: { not: null },
-      },
-      select: { id: true, externalIdentity: true },
-      take: limit,
-    });
-
-    let named = 0;
-    const refusals: string[] = [];
-    for (const r of rows) {
-      const name = await this.profileName(r.externalIdentity as string, token, refusals);
-      if (!name) continue;
-      await this.prisma.db.conversation.update({ where: { id: r.id }, data: { guestName: name } });
-      named += 1;
-    }
-
-    this.log.log(`name backfill — looked at ${rows.length}, named ${named}`);
-    return {
-      ran: true,
-      looked: rows.length,
-      named,
-      // Meta's own words when it refused, so a zero is never a mystery.
-      firstRefusal: refusals[0] ?? null,
-    };
-  }
-
-  private async profileName(psid: string, token: string, refusals: string[]): Promise<string | null> {
-    try {
-      const res = await fetch(`${GRAPH}/${psid}?fields=first_name,last_name`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        if (refusals.length < 3) refusals.push((await res.text()).slice(0, 200));
-        return null;
-      }
-      const j = (await res.json()) as { first_name?: string; last_name?: string };
-      const name = [j.first_name, j.last_name].filter(Boolean).join(' ').trim();
-      return name ? name.slice(0, 120) : null;
-    } catch {
-      return null;
-    }
-  }
-
   private async pages(userToken: string): Promise<MetaPage[]> {
     const res = await fetch(`${GRAPH}/me/accounts?fields=id,name,access_token`, {
       headers: { Authorization: `Bearer ${userToken}` },
@@ -257,7 +194,15 @@ interface ActorRequest {
 
 @Controller('messaging/facebook-page')
 export class FacebookPageConnectController {
-  constructor(private readonly svc: FacebookPageConnectService) {}
+  constructor(
+    private readonly svc: FacebookPageConnectService,
+    /*
+      The backfill lives in the poller, not here. Names come from the
+      conversation listing - the one place Meta gives them up - and that reader
+      already exists there for both channels. Two copies of it would drift.
+    */
+    private readonly poll: MetaPollService,
+  ) {}
 
   @Get('config')
   @Roles('OWNER', 'MANAGER')
@@ -280,6 +225,6 @@ export class FacebookPageConnectController {
   @Post('backfill-names')
   @Roles('OWNER', 'MANAGER')
   backfill() {
-    return this.svc.backfillNames();
+    return this.poll.backfillNames();
   }
 }
