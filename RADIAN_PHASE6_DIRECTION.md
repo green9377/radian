@@ -347,7 +347,30 @@ Phase 6 clears the Orders/Delivery ones; the rest ride their own phases.
 ⚠️ `confirm()` on **Cancel order** stays. That one asks a question, and
 blocking is the point.
 
-### 🟢 6.5 — Walk the fulfilment circle properly, the parts Phase 5 did not
+### ✅ 6.5 — mostly walked, 31 Aug 2026
+
+| walked | result |
+|---|---|
+| **retry after a failure** (REV-M1) | RAD-52077 failed with Deshi → re-assigned to Rahman (DLV-000007) → out → delivered. `failed → out_for_delivery` holds |
+| **bulk assign with a cancelled order mixed in** (DEC-DLV-013) | 3 assigned (DLV-000008/9/10), 1 refused by name — *"cannot assign a cancelled order"*. The other three were not thrown away, which is the whole reason bulk is not a transaction |
+| **a prepaid parcel on the settle list** (test 20) | RAD-52077, paid online in full: on the list with `cod = 0`, settling created **no remittance**, 5200 took the cost, 2300 recorded what the shop now owes the rider, 1110 and the drawer untouched |
+| **the settle screen, end to end** | RAD-86607 COD ৳1,365, cost ৳100 → *"1 parcel(s) settled — ৳ 1,265 banked, RMT-000002"* |
+
+**The ledger after three settlements, every figure checked:**
+`1110 = 0` (no rider is holding shop money) · `2300 = 12000` (only Rahman's
+prepaid-parcel fee still owed) · `5200 = 37000` (15000 + 12000 + 10000) ·
+`Cash Drawer 297649 → 424149` (+126500 = 1365 − 100).
+
+⚠️ **The prepaid walk found one:** the reply carried `netPaisa: −12000` and the
+screen printed *"−৳120 in"* — which reads as the rider owing the shop when the
+truth is the reverse. `netPaisa` is null when no receipt was issued, and the
+sentence now says what happened.
+
+⬜ Still not walked: **a blackout date and a full slot**, and the **2-hour /
+same-day / midnight promises against real slot cut-offs** (DEC-DLV-018,
+DEC-INT-003).
+
+### ~~🟢 6.5 (original list)~~ — Walk the fulfilment circle properly, the parts Phase 5 did not
 
 Phase 5 walked one happy order to `delivered`. Phase 6 walks the rest:
 **assign a rider from the board · out · delivered · settle his cash** ·

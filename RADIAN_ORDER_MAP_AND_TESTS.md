@@ -110,9 +110,12 @@ the system and the result seen** — a type-check proves nothing about a seam.
     `DeliveryAssignment` (§6.1)
 11. **Swap the carrier on the road** → old = `SWAPPED`, new can still leave
     (DEC-DLV-021)
-12. Fail a delivery, then retry it → `failed → out_for_delivery` (REV-M1)
-13. Bulk assign 3+ parcels, one of them cancelled → the other two still go
-    through, and the failure is named
+12. ✅ Fail a delivery, then retry it → `failed → out_for_delivery` (REV-M1).
+    Walked 31 Aug: RAD-52077 failed with Deshi, re-assigned to Rahman
+    (DLV-000007), went out, and was delivered
+13. ✅ Bulk assign 3+ parcels, one of them cancelled → the others still go
+    through, and the failure is named. Walked 31 Aug: 3 assigned
+    (DLV-000008/9/10), 1 refused — *"cannot assign a cancelled order"*
 14. Courier parcel with a consignment id → tracking URL built from the
     courier's own template
 15. Deliver an unpaid online order → **refused** (REV-C5)
@@ -125,9 +128,14 @@ the system and the result seen** — a type-check proves nothing about a seam.
 19. ✅ Remit the rider's cash → clears the accrual (`Dr 2300`, **not** 5200).
     Walked on RAD-75470: 1110 went 0 → 267000 → 0, cash drawer +252000,
     5200 = 15000 (expensed once), `RMT-000001`
-20. ⬜ A prepaid parcel also appears on the settle list — the rider was still
-    paid. **Still not walked.** The code reads right; so did everything else
-    in this section for a month
+20. ✅ A prepaid parcel also appears on the settle list — the rider was still
+    paid. Walked 31 Aug on RAD-52077 (online, paid in full): it sat on the
+    list with `cod = 0`, settling it created **no remittance**, 5200 rose by
+    the cost, 2300 recorded what the shop now owes the rider, and neither
+    1110 nor the cash drawer moved. **And it found one:** the reply said
+    `netPaisa: −12000` and the screen printed *"−৳120 in"*, which reads as the
+    rider owing the shop when the truth is the reverse. Null now, with a
+    sentence that says what happened
 21. ✅ `costRecordedAt`, not `costPaisa > 0`, decides "priced yet"
 
 ⚠️ What the walk found: the settle screen asked `order.duePaisa`, which
