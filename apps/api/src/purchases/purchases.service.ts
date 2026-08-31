@@ -617,6 +617,18 @@ export class PurchasesService {
     );
     const purchaseNo = created.purchaseNo;
 
+    /*  ═══ P7-16 (31 Aug 2026) — THE MONEY PAID WITH THE BILL ═══
+        The first payment is written INLINE above, as a nested create, and
+        nothing told Finance about it. Only `addPayment` — money added to a bill
+        later — ever posted. So every purchase paid on the spot or with an
+        advance sat in the register as paid while the ledger still showed the
+        supplier owed: ৳11,453.94 of it by 31 Aug, which is exactly what the
+        drift checker had been complaining about for days.
+        Fail-soft, like every hand-off here (DEC-FIN-010).  */
+    for (const pay of created.payments ?? []) {
+      await this.finance.onPurchasePayment(pay.id);
+    }
+
     await this.audit.record({
       entityType: ENTITY,
       entityId: created.id,

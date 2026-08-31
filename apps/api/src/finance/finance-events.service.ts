@@ -718,6 +718,29 @@ export class FinanceEventsService {
       if (now) posted += 1;
     }
 
+    /*  P7-16 — the payment written with the bill itself never posted; only
+        money added to a bill later did. Same sweep, same idempotency
+        (`onPurchasePayment` skips anything a supplier payment already covered,
+        DEC-FIN-022).  */
+    const pays = await this.prisma.db.purchasePayment.findMany({
+      where: { deletedAt: null, amountPaisa: { gt: 0 } },
+      select: { id: true },
+      orderBy: { paidAt: 'asc' },
+    });
+    for (const p of pays) {
+      const seen = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE_PAYMENT:${p.id}:paid` },
+        select: { id: true },
+      });
+      if (seen) { alreadyPosted += 1; continue; }
+      await this.onPurchasePayment(p.id);
+      const now = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE_PAYMENT:${p.id}:paid` },
+        select: { id: true },
+      });
+      if (now) posted += 1;
+    }
+
     /*  P7-12 — purchase returns were in the same position: the door existed,
         the event did not. Same rules, same idempotency.  */
     const rets = await this.prisma.db.purchaseReturn.findMany({
