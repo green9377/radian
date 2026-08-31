@@ -742,6 +742,106 @@ export class FinanceEventsService {
     return { found: rows.length + rets.length, posted, alreadyPosted };
   }
 
+  /**
+   * ═══ P7-15 · CLEANING UP AFTER THE BUG (31 Aug 2026) ═══
+   *
+   * Fixing the rule stopped new sales going wrong; it did nothing about the
+   * entries already written. Those are the reason the books say customers owe
+   * **minus** ৳12,642 — a number that cannot be true.
+   *
+   * ⚠️ This does NOT write off anything and it invents no account. It reverses
+   * exactly the part of each old "money taken earlier" entry that was never an
+   * advance in the first place, and it works that out from the ledger rather
+   * than from an assumption:
+   *
+   *   justified = how much of that order's payments a journal line actually
+   *               credited to 2100 Customer Advance
+   *   wrong     = what the release claimed − justified
+   *
+   * On a counter sale the justified part is normally zero, because POS books
+   * its payments after revenue and they go straight to 1100. On a website
+   * order it is normally the whole amount, so nothing is reversed there — which
+   * is why this only ever touches what is actually broken.
+   *
+   * Idempotent by `sourceKey` (DEC-FIN-023): run it twice and the second run
+   * finds nothing to do.
+   */
+  async fixWrongAdvanceReleases(): Promise<{
+    looked: number;
+    fixed: number;
+    alreadyFixed: number;
+    reversedPaisa: number;
+  }> {
+    await this.finance.ensureSeed();
+    const releases = await this.prisma.db.journalEntry.findMany({
+      where: { sourceType: 'ORDER', sourceKey: { endsWith: ':advance-release' } },
+      include: { lines: true },
+      orderBy: { entryDate: 'asc' },
+    });
+
+    const advanceAccId = await this.accId(ACC.CUSTOMER_ADVANCE);
+    const receivableAccId = await this.accId(ACC.RECEIVABLE);
+
+    let fixed = 0;
+    let alreadyFixed = 0;
+    let reversedPaisa = 0;
+
+    for (const rel of releases) {
+      const orderId = rel.sourceId;
+      if (!orderId) continue;
+
+      const order = await this.prisma.db.order.findUnique({
+        where: { id: orderId },
+        select: { orderNo: true, fulfillmentType: true },
+      });
+      // a website order's release is the honest case — leave it alone
+      if (!order || order.fulfillmentType !== 'COUNTER') continue;
+
+      const claimed = rel.lines
+        .filter((l) => l.accountId === advanceAccId)
+        .reduce((n, l) => n + l.debitPaisa, 0);
+      if (claimed <= 0) continue;
+
+      /*  what really went into 2100 for this order: every journal line on its
+          payment entries that credited Customer Advance  */
+      const paymentEntries = await this.prisma.db.journalEntry.findMany({
+        where: { sourceType: 'PAYMENT', lines: { some: { orderId } } },
+        include: { lines: true },
+      });
+      const justified = paymentEntries
+        .flatMap((e) => e.lines)
+        .filter((l) => l.accountId === advanceAccId)
+        .reduce((n, l) => n + l.creditPaisa, 0);
+
+      const wrong = claimed - justified;
+      if (wrong <= 0) continue;
+
+      const sourceKey = `ORDER:${orderId}:advance-release-fix`;
+      const done = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey },
+        select: { id: true },
+      });
+      if (done) { alreadyFixed += 1; continue; }
+
+      await this.finance.postEntry({
+        sourceType: 'ORDER',
+        sourceId: orderId,
+        sourceKey,
+        narration: `${order.orderNo} — correcting an advance release that was never an advance (P7-15)`,
+        isManual: true,
+        actorName: 'system',
+        lines: [
+          { accountId: receivableAccId, debitPaisa: wrong, orderId },
+          { accountId: advanceAccId, creditPaisa: wrong, orderId },
+        ],
+      });
+      fixed += 1;
+      reversedPaisa += wrong;
+    }
+
+    return { looked: releases.length, fixed, alreadyFixed, reversedPaisa };
+  }
+
   /* ==================== RETURNS ==================== */
 
   /**
