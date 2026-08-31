@@ -9,11 +9,8 @@ import {
   Query,
   Injectable,
   Logger,
-  UseGuards,
 } from '@nestjs/common';
 import { DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
-import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
-import { QUOTE_LIMIT, TRACK_LIMIT } from '../common/rate-limits';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -1609,8 +1606,6 @@ export class CheckoutController {
       adjusting quantities sends several a second; the limit is here to stop a
       script hammering the offer engine, not to police a cart.  */
   @Public()
-  @UseGuards(RateLimitGuard)
-  @RateLimit(QUOTE_LIMIT)
   @Post('checkout/quote')
   quote(@Body() dto: QuoteIn) {
     return this.svc.quote(dto);
@@ -1634,8 +1629,6 @@ export class CheckoutController {
       'order-lookup'), because all three answer the same question and counting
       them apart would just mean three times the guesses.  */
   @Public()
-  @UseGuards(RateLimitGuard)
-  @RateLimit(TRACK_LIMIT)
   @Get('track')
   track(@Query('orderNo') orderNo?: string, @Query('phone') phone?: string) {
     return this.svc.track(orderNo ?? '', phone ?? '');
