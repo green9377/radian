@@ -403,11 +403,37 @@ accounting one: *how much money was in the drawer, in bKash and in the bank on
 the day we started keeping these books?* Finance already has the screen for it
 (`POST /finance/opening`, OWNER + PIN).
 
-**Also still open, both small and both measured:**
+### P7-17 — money paid before the goods is an advance, not a payment
+
+Finishing the supplier number turned up one more. After P7-16 the books swung
+the other way — ৳1,480 owed where the register said ৳4,980 — because **every**
+purchase payment posted `Dr 2000 Supplier Payable`, including money handed over
+before the goods, and therefore before any payable existed. DEC-PUR-004 already
+says a pre-receive payment is an advance; the ledger did not know.
+
+Now: it posts to `1200 Supplier Advance` and says so, and `onPurchaseReceived`
+moves it across when the goods arrive — reading the amount **from the ledger**,
+not from the payment rows, which is P7-15's lesson applied on the way in.
+Cleanup run live: **4 payments moved, ৳2,570**.
+
+Supplier payable now reads **৳4,050** against a register due of about ৳4,485.
+
+### ⚠️ Part of what is still red is the CHECKER, not the books
+
+`supplierDues()` in `finance-drift.service.ts` reports `real: 0` — it says the
+shop owes suppliers **nothing at all**, while the purchase register plainly has
+about ৳4,485 open on six bills (PUR-000002, 07, 08, 11, 12, 13). Its own
+arithmetic should produce that number, so something in it is wrong; the
+`supplierAdjustment` sum inside `Math.max(…, 0)` is the first suspect.
+
+**Do not chase the last few hundred taka of supplier drift until this is
+settled** — the yardstick itself is bent, and half a day was nearly spent
+measuring against it.
+
+**Also still open, and small:**
 - stock **−৳4,097.01** — the drift screen's own advice points at item costs
   edited after stock was received, which moves the stock board without any
   money moving. Not chased yet.
-- supplier payable **৳1,480** — what is left after the backfill. Not chased yet.
 
 ### What still has no explanation
 
