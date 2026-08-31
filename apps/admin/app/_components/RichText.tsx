@@ -35,6 +35,8 @@ export default function RichText({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
+  /** why the last thing was refused — on the page, never in a browser alert */
+  const [err, setErr] = useState("");
   const [empty, setEmpty] = useState(!value);
 
   // set once per article, never on every render — see the note above
@@ -62,16 +64,23 @@ export default function RichText({
       // execCommand inserts at the caret, which is where the writer expects it
       cmd("insertHTML", `<img src="${url}" alt="" style="max-width:100%;border-radius:12px;margin:12px 0" />`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not add that picture");
+      setErr(e instanceof Error ? e.message : "Could not add that picture.");
     } finally {
       setUploading(false);
     }
   }
 
-  function addLink() {
-    const url = prompt("Where should this link go?\n\nA page on the site (/faq) or a full address (https://…)");
+  /*  ⚠️ The address is typed IN THE TOOLBAR, not in a `prompt()`. A prompt
+      blocks the page, loses what was typed on Escape, and — the part that
+      matters for a link — puts the address somewhere it cannot be read back
+      before it is committed to the text.  */
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+  function addLink() { setLinkUrl(""); }
+  function commitLink() {
+    const url = (linkUrl ?? "").trim();
+    setLinkUrl(null);
     if (!url) return;
-    cmd("createLink", url.trim());
+    cmd("createLink", url);
   }
 
   const btn = "px-2.5 py-1.5 rounded-[8px] text-[13px] text-body hover:bg-lavender hover:text-purple transition-colors";
@@ -96,6 +105,26 @@ export default function RichText({
         <span className="flex-1" />
         <button onClick={() => cmd("removeFormat")} className={btn} title="Clear formatting">Clear</button>
       </div>
+      {linkUrl !== null && (
+        <div className="flex items-center gap-2 px-2 py-2 border-b border-lavender-deep bg-white">
+          <input
+            autoFocus
+            className="ipt h-[34px] flex-1"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLink(); } if (e.key === "Escape") setLinkUrl(null); }}
+            placeholder="A page on the site (/faq) or a full address (https://…)"
+          />
+          <button type="button" onClick={commitLink} className="text-[13px] font-bold text-purple px-3 py-1.5">Link it</button>
+          <button type="button" onClick={() => setLinkUrl(null)} className="text-[13px] text-body-soft px-2">Cancel</button>
+        </div>
+      )}
+      {err && (
+        <div className="flex items-start gap-2 px-3 py-2 border-b text-[12.5px]" style={{ background: "#fdeef0", borderColor: "#f3c9cf", color: "#8c2f39" }}>
+          <span className="flex-1">{err}</span>
+          <button type="button" onClick={() => setErr("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
 
       <div className="relative">
         {empty && (

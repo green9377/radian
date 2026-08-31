@@ -78,7 +78,7 @@ export default function CustomerSegments() {
     if (!n) return;
     const slug = slugify(n);
     if (segs.some((s) => s.slug === slug)) {
-      alert("That segment already exists.");
+      setError("That segment already exists.");
       return;
     }
     if (isDemo) {
@@ -87,7 +87,7 @@ export default function CustomerSegments() {
       load();
       return;
     }
-    alert("Creating segments needs the write endpoint (POST /segments). Switch to demo data to try it.");
+    setError("Creating segments needs the write endpoint (POST /segments). Switch to demo data to try it.");
   }
   function saveEdit(id: string) {
     const n = editName.trim();

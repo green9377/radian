@@ -178,7 +178,7 @@ export default function CompanySettings() {
                       const { url } = await uploadImage(file, "brand");
                       set("logoUrl")(url);
                     } catch (er) {
-                      alert(er instanceof Error ? er.message : "Upload failed");
+                      setErr(er instanceof Error ? er.message : "Could not upload that file.");
                     } finally { setLogoBusy(false); }
                   }}
                 />

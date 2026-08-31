@@ -320,7 +320,9 @@ export default function OrderEditor({ id }: { id: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      alert("Could not copy — select the text manually.");
+      /*  The clipboard can be refused by the browser; saying so beside the
+          button beats a blocking alert over the whole order.  */
+      setActErr("Could not reach the clipboard — select the text and copy it by hand.");
     }
   };
   const waPhone = (o.isGift ? o.recipient?.phone : o.sender.phone) ?? o.sender.phone;
@@ -825,7 +827,7 @@ export default function OrderEditor({ id }: { id: string }) {
                         disabled={busy}
                         onClick={() => {
                           const amt = payAmt || due;
-                          if (amt <= 0) return alert("Enter an amount.");
+                          if (amt <= 0) { setActErr("Type how much first."); return; }
                           act(() => addOrderPayment(id, { kind: payKind, amountPaisa: amt }).then(() => setPayAmt(0)));
                         }}
                         className="h-[42px] px-4 rounded-[11px] text-white text-[13px] font-medium disabled:opacity-50 inline-flex items-center justify-center gap-1.5"

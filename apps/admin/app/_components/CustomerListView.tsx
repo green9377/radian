@@ -104,7 +104,7 @@ export default function CustomerListView() {
       await deleteCustomer(c.id);
       setAll((prev) => prev.filter((x) => x.id !== c.id));
     } catch (e) {
-      alert("Delete failed: " + (e instanceof Error ? e.message : e));
+      setError(e instanceof Error ? e.message : "Could not delete that customer.");
     }
   }
 

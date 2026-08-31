@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Said, useSay } from "./Said";
 import { WRAP, TONE, Stat, PageHead, Chip, ErrorBox, type Tone } from "./OrderViews";
 import {
   listOrders,
@@ -39,6 +40,7 @@ function rowTone(o: ApiOrder): Tone {
 
 /* row menu — the small jobs you shouldn't have to open an order for */
 function RowMenu({ o, onDone }: { o: ApiOrder; onDone: () => void }) {
+  const say = useSay();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const text = orderShareText(o);
@@ -49,6 +51,7 @@ function RowMenu({ o, onDone }: { o: ApiOrder; onDone: () => void }) {
 
   return (
     <div className="relative">
+      <Said say={say} />
       <button type="button" onClick={() => setOpen((v) => !v)} title="More" className="w-[34px] h-[34px] grid place-items-center rounded-[9px] border bg-white text-body-soft hover:text-purple" style={{ borderColor: TONE.purple.border }}>
         <Icon name="grid" size={15} />
       </button>
@@ -65,7 +68,7 @@ function RowMenu({ o, onDone }: { o: ApiOrder; onDone: () => void }) {
             </button>
             {o.salesStatus === "placed" && (
               <button type="button" disabled={busy} className={item} style={{ color: TONE.green.text }}
-                onClick={async () => { setBusy(true); try { await orderAction(o.id, "confirm"); onDone(); setOpen(false); } catch (e) { alert(e instanceof Error ? e.message : "Failed"); } finally { setBusy(false); } }}>
+                onClick={async () => { setBusy(true); try { await orderAction(o.id, "confirm"); onDone(); setOpen(false); } catch (e) { say.fromError(e, "Could not confirm that order."); } finally { setBusy(false); } }}>
                 <Icon name="check" size={14} /> {busy ? "Confirming…" : "Confirm order"}
               </button>
             )}

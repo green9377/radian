@@ -1074,6 +1074,8 @@ export function StatusChip({ status, isPaidLeave }: { status: string; isPaidLeav
 /* =================================================================== ROLES */
 
 export function EmployeeRolesView() {
+  /** which role is being renamed, typed on the row instead of in a prompt */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [rows, setRows] = useState<ApiEmployeeRole[]>([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1126,14 +1128,30 @@ export function EmployeeRolesView() {
               <Td right className="text-body-soft">{r._count?.employees ?? 0}</Td>
               <Td right>{r.isActive ? <Chip tone="emerald">In use</Chip> : <Chip tone="slate">Switched off</Chip>}</Td>
               <Td right>
-                <button className="text-[12px] text-orchid underline mr-3"
-                  onClick={async () => {
-                    const n = prompt("Rename this role", r.name);
-                    if (!n || n === r.name) return;
-                    try { await updateRole(r.id, { name: n }); } catch { /* handled below */ }
-                  }}>
-                  rename
-                </button>
+                {renaming?.id === r.id ? (
+                  <span className="inline-flex items-center gap-2 mr-3">
+                    <input
+                      autoFocus
+                      className="ipt h-[30px] w-[150px]"
+                      value={renaming.value}
+                      onChange={(e) => setRenaming({ ...renaming, value: e.target.value })}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Escape") setRenaming(null);
+                        if (e.key !== "Enter") return;
+                        const n = renaming.value.trim();
+                        setRenaming(null);
+                        if (!n || n === r.name) return;
+                        try { await updateRole(r.id, { name: n }); await load(); } catch (er) { setErr((er as Error).message); }
+                      }}
+                    />
+                    <button className="text-[12px] text-body-soft underline" onClick={() => setRenaming(null)}>cancel</button>
+                  </span>
+                ) : (
+                  <button className="text-[12px] text-orchid underline mr-3"
+                    onClick={() => setRenaming({ id: r.id, value: r.name })}>
+                    rename
+                  </button>
+                )}
                 <button className="text-[12px] text-body-soft underline mr-3"
                   onClick={() => void updateRole(r.id, { isActive: !r.isActive })}>
                   {r.isActive ? "switch off" : "switch on"}

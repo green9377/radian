@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Said, useSay } from "./Said";
 import {
   listProducts,
   deleteProduct,
@@ -47,6 +48,7 @@ function Kpi({ n, l, hue, icon }: { n: string; l: string; hue: string; icon: str
 }
 
 export default function ProductListView() {
+  const say = useSay();
   const [all, setAll] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
   /*  6 Aug 2026 — demo fallback REMOVED, owner's order. He emptied the
@@ -145,7 +147,7 @@ export default function ProductListView() {
     try {
       await updateProduct(p.id, body);
     } catch (e) {
-      alert("Could not save: " + (e instanceof Error ? e.message : e));
+      say.fromError(e, `Could not save "${p.name}".`);
       return;
     }
     setAll((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...(body as Partial<ApiProduct>) } : x)));
@@ -169,7 +171,7 @@ export default function ProductListView() {
       });
       await load();
     } catch (e) {
-      alert("Could not duplicate: " + (e instanceof Error ? e.message : e));
+      say.fromError(e, `Could not duplicate "${p.name}".`);
     }
     setMenu(null);
   }
@@ -179,7 +181,7 @@ export default function ProductListView() {
     try {
       await deleteProduct(p.id);
     } catch (e) {
-      alert("Delete failed: " + (e instanceof Error ? e.message : e));
+      say.fromError(e, `Could not delete "${p.name}".`);
       return;
     }
     setAll((prev) => prev.filter((x) => x.id !== p.id));
@@ -213,7 +215,7 @@ export default function ProductListView() {
     const okIds = new Set(chosen.map((p) => p.id));
     setAll((prev) => prev.filter((x) => !okIds.has(x.id)));
     setSel(new Set());
-    if (failed > 0) alert(`${failed} of ${chosen.length} could not be deleted — refresh and try again.`);
+    if (failed > 0) say.bad(`${failed} of ${chosen.length} could not be deleted — refresh and try again.`);
     await load();
   }
 
@@ -257,6 +259,7 @@ export default function ProductListView() {
 
   return (
     <div className="px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full">
+      <Said say={say} />
       <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">

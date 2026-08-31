@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Said, useSay } from "./Said";
 import { Donut, HBar, LegendDot } from "./Charts";
 import {
   listOrders,
@@ -369,6 +370,7 @@ export function OrdersOverview() {
 
 /* ════════════════════ 2. ACTION QUEUE ════════════════════ */
 export function OrdersActionQueue() {
+  const say = useSay();
   const { items, loading, error, reload } = useOrders();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -383,7 +385,7 @@ export function OrdersActionQueue() {
       await orderAction(id, "confirm");
       await reload();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not confirm");
+      say.fromError(e, "Could not confirm that order.");
     } finally {
       setBusy(null);
     }
@@ -405,6 +407,7 @@ export function OrdersActionQueue() {
       <PageHead eyebrow="Commerce · Sales" title="Action queue">
         Everything waiting on staff, split by what you actually have to do. Confirming only accepts the order — stock still drops later, when Delivery starts preparing.
       </PageHead>
+      <Said say={say} />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -715,9 +718,9 @@ export function OrdersReturns() {
         {loading ? <EmptyRow text="Loading…" tone="blue" /> : delivered.length === 0 ? <EmptyRow text="No delivered orders yet." tone="blue" /> : delivered.map((o) => (
           <OrderRow key={o.id} o={o} tone="blue" right={<>
             {amountEl(o.totalPaisa)}
-            <button type="button" onClick={() => alert("Return request (prototype) — the Returns module owns the return record; refund method depends on the reason.")} className="text-[12.5px] text-white px-3 py-1.5 rounded-[9px] font-medium" style={{ background: TONE.blue.solid }}>
+            <Link href="/returns/new" className="text-[12.5px] text-white px-3 py-1.5 rounded-[9px] font-medium" style={{ background: TONE.blue.solid }}>
               Start return
-            </button>
+            </Link>
           </>} />
         ))}
       </Panel>

@@ -91,7 +91,9 @@ export default function CustomerOccasions() {
         setCopied(r.rec.id + r.occ.id);
         setTimeout(() => setCopied(null), 2000);
       })
-      .catch(() => alert(msg));
+      /*  The clipboard can be refused; putting the message on the page beats
+          a blocking alert nobody can copy out of anyway.  */
+      .catch(() => setError(`Could not reach the clipboard. Copy this by hand: ${msg}`));
   }
 
   async function load() {

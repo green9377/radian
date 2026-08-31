@@ -92,7 +92,7 @@ export default function CustomerRisk() {
       const updated = await setCustomerBlocked(c.id, blocking);
       setAll((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: updated.status } : x)));
     } catch (e) {
-      alert("Failed: " + (e instanceof Error ? e.message : e));
+      setError(e instanceof Error ? e.message : "That did not go through.");
     } finally {
       setBusy(null);
     }

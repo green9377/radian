@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Said, useSay } from "./Said";
 import { WRAP, Header, Switch, TimeSelect } from "./DeliveryUI";
 import { Modal, Field, DataTable } from "./ItemUI";
 import { formatTaka } from "../_data/api";
@@ -356,6 +357,7 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
 /* ---------------- Zones (DeliveryArea master) ---------------- */
 
 function ZonesTab({ zones, run, busy }: { zones: ApiDeliveryArea[]; run: (fn: () => Promise<unknown>) => Promise<boolean>; busy: boolean }) {
+  const say = useSay();
   const [dlg, setDlg] = useState<{ id: string | null; name: string; parentId: string | null } | null>(null);
   const mains = zones.filter((z) => !z.parentId);
   const subsOf = (id: string) => zones.filter((z) => z.parentId === id);
@@ -386,7 +388,7 @@ function ZonesTab({ zones, run, busy }: { zones: ApiDeliveryArea[]; run: (fn: ()
       {!sub && <span className="text-[11.5px] text-body-soft">{subsOf(z.id).length} area{subsOf(z.id).length === 1 ? "" : "s"}</span>}
       <IconBtn name="edit" title="Rename" onClick={() => setDlg({ id: z.id, name: z.name, parentId: z.parentId })} />
       <IconBtn name="trash" danger title="Delete" onClick={() => {
-        if (subsOf(z.id).length) { alert("Remove the areas inside it first."); return; }
+        if (subsOf(z.id).length) { say.bad("Remove the areas inside it first."); return; }
         if (!confirm(`Delete "${z.name}"?`)) return;
         void run(() => deleteDeliveryArea(z.id));
       }} />
@@ -395,6 +397,7 @@ function ZonesTab({ zones, run, busy }: { zones: ApiDeliveryArea[]; run: (fn: ()
 
   return (
     <>
+      <Said say={say} />
       <div className="flex justify-end mb-3">
         <button onClick={() => setDlg({ id: null, name: "", parentId: null })}
           className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2" style={{ background: ACCENT }}>

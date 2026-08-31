@@ -87,7 +87,7 @@ export default function CustomerDuplicates() {
       }
       return;
     }
-    alert("Merging live records needs POST /customers/:id/merge. Switch to demo data to try the full flow.");
+    setError("Merging live records needs POST /customers/:id/merge. Switch to demo data to try the full flow.");
     setMerged((prev) => [...prev, key]);
   }
 

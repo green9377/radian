@@ -10,6 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Said, useSay } from "./Said";
+import { useAuth } from "./AuthGate";
 import Icon from "./Icon";
 import ProductThumb from "./ProductThumb";
 /*  The house ⓘ — one implementation, shared with every other swept screen.  */
@@ -182,6 +184,7 @@ const benefitText = (o: ApiOffer) =>
 
 /* ================= LIST ================= */
 export function OffersListLive() {
+  const say = useSay();
   const [rows, setRows] = useState<ApiOffer[] | null>(null);
   const [demo, setDemo] = useState(false);
   const [q, setQ] = useState("");
@@ -216,7 +219,7 @@ export function OffersListLive() {
 
   const act = async (o: ApiOffer, a: "pause" | "resume") => {
     setBusy(o.id);
-    try { await offerAction(o.id, a); await load(); } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    try { await offerAction(o.id, a); await load(); } catch (e) { say.fromError(e, "That did not go through."); }
     setBusy(null);
   };
   const dup = async (o: ApiOffer) => {
@@ -234,12 +237,13 @@ export function OffersListLive() {
         scarcity: o.scarcity, bonusLines: o.bonusLines, guaranteeText: o.guaranteeText,
       });
       await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { say.fromError(e, "That did not go through."); }
     setBusy(null);
   };
 
   return (
     <div className={WRAP}>
+      <Said say={say} />
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <PageHead
           eyebrow="Offers & Promotions · engine"
@@ -742,6 +746,8 @@ export function OfferEditorLive({ id }: { id: string }) {
 
 /* ================= APPROVALS (live) ================= */
 export function OffersApprovalsLive() {
+  const say = useSay();
+  const { me } = useAuth();
   const [queue, setQueue] = useState<ApiOffer[] | null>(null);
   const [demo, setDemo] = useState(false);
   const load = useCallback(async () => {
@@ -749,14 +755,25 @@ export function OffersApprovalsLive() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  /*  ⚠️ WHO APPROVED IT IS NOT SOMETHING TO TYPE — 31 Aug 2026.
+
+      This asked `prompt("Your name (audited)", "Admin")`. An AUDITED approval
+      whose signature is free text with "Admin" already filled in is not an
+      audit trail: pressing Enter signs somebody else's name, and nobody can
+      ever say who let that discount through. The session knows who is signed
+      in; that is the only honest answer, and it is the same name every other
+      audited action in the admin already records.  */
   const act = async (o: ApiOffer, verdict: "approve" | "decline") => {
-    const name = prompt(`Your name (audited) — ${verdict} "${o.name}"`, "Admin");
-    if (!name) return;
-    try { await offerAction(o.id, verdict, { actorName: name }); await load(); } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    try {
+      await offerAction(o.id, verdict, { actorName: me?.name ?? "Admin" });
+      await load();
+      say.good(`"${o.name}" ${verdict === "approve" ? "approved" : "declined"}.`);
+    } catch (e) { say.fromError(e, `Could not ${verdict} that offer.`); }
   };
 
   return (
     <div className={WRAP}>
+      <Said say={say} />
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead
           eyebrow="Offers & Promotions · approvals"
@@ -791,6 +808,7 @@ export function OffersApprovalsLive() {
 
 /* ================= SETTINGS (live) ================= */
 export function OffersSettingsLive() {
+  const say = useSay();
   const [thresholdPct, setThresholdPct] = useState("25");
   const [defCombinable, setDefCombinable] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -813,11 +831,12 @@ export function OffersSettingsLive() {
       await updateOfferSettings({ approvalThresholdBp: Math.round((Number(thresholdPct) || 0) * 100), defaultCombinable: defCombinable });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { say.fromError(e, "That did not go through."); }
   };
 
   return (
     <div className={WRAP}>
+      <Said say={say} />
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <PageHead
           eyebrow="Offers & Promotions · settings"

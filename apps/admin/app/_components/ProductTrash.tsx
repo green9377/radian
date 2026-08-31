@@ -50,7 +50,7 @@ export default function ProductTrash() {
       await restoreProduct(p.id);
       setRows((x) => x.filter((y) => y.id !== p.id));
     } catch (e) {
-      alert("Restore failed: " + (e instanceof Error ? e.message : e));
+      setErr(e instanceof Error ? e.message : "Could not restore that product.");
     } finally {
       setBusy(null);
     }

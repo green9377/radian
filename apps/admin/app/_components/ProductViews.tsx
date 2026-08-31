@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { Said, useSay } from "./Said";
 import { ItemThumb } from "./ItemUI";
 import { Info } from "./ItemEditor";
 import { Switch as DSwitch } from "./DeliveryUI";
@@ -591,6 +592,7 @@ function Attn({
 
 /* ================= 2 · STOCK BOARD ================= */
 export function StockBoard() {
+  const say = useSay();
   const { items, setItems, loading, demo, patch } = useCatalog();
   const [filter, setFilter] = useState<"all" | "low" | "out">("all");
   const [q, setQ] = useState("");
@@ -614,7 +616,7 @@ export function StockBoard() {
 
   const setStock = (p: ApiProduct, qty: number) =>
     patch(p.id, { stockQty: Math.max(0, qty) }).catch((e) =>
-      alert("Could not save: " + (e instanceof Error ? e.message : e)),
+      say.fromError(e, `Could not save the stock for ${p.name}.`),
     );
 
   const out = items.filter((p) => p.stockQty <= 0).length;
@@ -625,6 +627,8 @@ export function StockBoard() {
       <PageHead eyebrow="Product Management · stock" title="Stock Board" demo={demo}>
         Set stock for every product in one place, without opening each one.
       </PageHead>
+
+      <Said say={say} />
 
       <HowTo>
         <b>How to read this:</b> the number is how many you can still sell. Use −
@@ -753,6 +757,7 @@ export function StockBoard() {
 
 /* ================= 3 · PRICE & MARGIN ================= */
 export function MarginBoard() {
+  const say = useSay();
   const { items, setItems, loading, demo, patch } = useCatalog();
   const [q, setQ] = useState("");
   const [onlyRisk, setOnlyRisk] = useState(false);
@@ -767,7 +772,7 @@ export function MarginBoard() {
       setSaved(id);
       setTimeout(() => setSaved((v) => (v === id ? null : v)), 1200);
     } catch (e) {
-      alert("Could not save: " + (e instanceof Error ? e.message : e));
+      say.fromError(e, "Could not save that change.");
     }
   }
 
@@ -802,6 +807,8 @@ export function MarginBoard() {
         demo={demo}
         tip="Cost against selling price for the whole catalog - so nothing quietly sells at a loss. Cost = what you pay. Customer pays = price after any product discount. Margin = what is left for Radian. Green is healthy, amber is thin (under 20%), red means you lose money on every sale. Coupons are separate - they live in Offers."
       />
+
+      <Said say={say} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={`${avg}%`} l="Average margin" hue={avg < 20 ? "amber" : "teal"} icon="cash" />
@@ -1030,6 +1037,7 @@ export function HealthBoard() {
 
 /* ================= 5 · BULK ACTIONS ================= */
 export function BulkActions() {
+  const say = useSay();
   const { items, setItems, loading, demo, patch } = useCatalog();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
@@ -1058,7 +1066,7 @@ export function BulkActions() {
       setDone(`${label} applied to ${chosen.length} product(s).`);
       setSel(new Set());
     } catch (e) {
-      alert("Bulk action failed: " + (e instanceof Error ? e.message : e));
+      say.fromError(e, "That bulk action did not go through.");
     } finally {
       setBusy(false);
     }
@@ -1226,6 +1234,8 @@ export function BulkActions() {
         Change many products at once — publish a season, shift prices before
         Valentine&apos;s, switch delivery zone.
       </PageHead>
+
+      <Said say={say} />
 
       <HowTo>
         <b>How to use:</b> click rows in the table to tick them, then press an
@@ -2098,6 +2108,7 @@ function productToUpgrade(p: ApiProduct): DemoUpgrade {
 }
 
 export function UpgradeProducts() {
+  const say = useSay();
   const { items, setItems, demo, patch } = useCatalog();
   const [demoUps, setDemoUps] = useState<DemoUpgrade[]>([]);
   const [base, setBase] = useState("");
@@ -2136,7 +2147,7 @@ export function UpgradeProducts() {
       return;
     }
     patch(prod.id, { upgradeOfProductId: baseId }).catch((e) =>
-      alert("Could not link: " + (e instanceof Error ? e.message : e)),
+      say.fromError(e, "Could not link that upgrade."),
     );
   }
   /** stop a product being an upgrade — it stays in the catalog, just unlinked */
@@ -2241,6 +2252,8 @@ export function UpgradeProducts() {
         A bigger or premium version of a product — its own name and its own extra
         price. The customer picks it instead of the standard one.
       </PageHead>
+
+      <Said say={say} />
 
       <HowTo>
         <b>An upgrade is a different thing, not a top-up.</b> 50 roses → 100
@@ -2905,7 +2918,14 @@ const bulkBtn =
   "text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white/15 hover:bg-white/25 disabled:opacity-50";
 
 export function AddonsView() {
+  const say = useSay();
   const { items } = useCatalog();
+  /*  The bulk discount amount, asked for on the bar instead of in a
+      `prompt()`. A prompt blocks the page, loses the answer on Escape, and
+      gives a number that sets a PRICE on every selected item no chance to be
+      read back before it is applied.  */
+  const [discountKind, setDiscountKind] = useState<"pct" | "flat" | null>(null);
+  const [discountValue, setDiscountValue] = useState("");
   const [rows, setRows] = useState<DemoAddon[]>([]);
   const [groups, setGroups] = useState<DemoAddonGroup[]>([]);
   const [rules, setRules] = useState<DemoAddonRule[]>([]);
@@ -3261,6 +3281,26 @@ export function AddonsView() {
     }
   }
 
+  /*  ⚠️ PERCENT is basis points on the server (10% = 1000) and FLAT is paisa —
+      the same convention every other price in the system uses. Both are the
+      typed number × 100, which is why the two branches look identical.  */
+  function applyBulkDiscount() {
+    const n = Number(discountValue);
+    if (!n || n <= 0) {
+      say.bad("Type how much off first — a discount of nothing is not a discount.");
+      return;
+    }
+    if (discountKind === "pct" && n >= 100) {
+      say.bad("A percentage discount has to be under 100.");
+      return;
+    }
+    void runBulk("DISCOUNT", {
+      discountType: discountKind === "pct" ? "PERCENT" : "FLAT",
+      discountValue: Math.round(n * 100),
+    });
+    setDiscountKind(null);
+  }
+
   return (
     <div className={WRAP}>
       {img.err && (
@@ -3268,6 +3308,7 @@ export function AddonsView() {
           {img.err}
         </div>
       )}
+      <Said say={say} />
       <PageHead eyebrow="Product Management · catalog" title="Add-ons" demo={demo}>
         The little extras a customer adds to a gift — a card, gift wrap, a vase.
         Never sold on their own, always added on top.
@@ -3389,15 +3430,13 @@ export function AddonsView() {
                   e.currentTarget.value = "";
                   if (!v) return;
                   if (v === "none") return void runBulk("DISCOUNT", { discountType: "NONE" });
-                  const n = Number(prompt(v === "pct" ? "Percent off (e.g. 10)" : "Taka off (e.g. 200)"));
-                  if (!n || n <= 0) return;
-                  /*  ⚠️ PERCENT is basis points on the server (10% = 1000) and
-                      FLAT is paisa — the same convention every other price in
-                      the system uses.  */
-                  void runBulk("DISCOUNT", {
-                    discountType: v === "pct" ? "PERCENT" : "FLAT",
-                    discountValue: v === "pct" ? Math.round(n * 100) : Math.round(n * 100),
-                  });
+                  /*  The amount is asked for ON THE BAR, not in a `prompt()`.
+                      A prompt blocks the page while it waits, throws the answer
+                      away on Escape, and gives a number that decides a PRICE no
+                      chance to be read back before it is applied to every
+                      selected product.  */
+                  setDiscountKind(v as "pct" | "flat");
+                  setDiscountValue("");
                 }}
               >
                 <option value="">Set discount…</option>
@@ -3405,6 +3444,24 @@ export function AddonsView() {
                 <option value="flat">৳ off</option>
                 <option value="none">Remove discount</option>
               </select>
+
+              {/*  The amount, in the open, with the number visible before it is
+                   applied to every selected product.  */}
+              {discountKind && (
+                <span className="inline-flex items-center gap-1.5 bg-white/15 rounded-[9px] px-2 py-1">
+                  <input
+                    autoFocus
+                    className="w-[92px] text-[12.5px] rounded-[7px] px-2 py-1 text-purple"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value.replace(/[^\d.]/g, ""))}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyBulkDiscount(); if (e.key === "Escape") setDiscountKind(null); }}
+                    placeholder={discountKind === "pct" ? "10" : "200"}
+                  />
+                  <span className="text-[12.5px] font-semibold">{discountKind === "pct" ? "% off" : "৳ off"}</span>
+                  <button type="button" disabled={bulkBusy} onClick={applyBulkDiscount} className="text-[12.5px] font-bold underline underline-offset-2">Apply</button>
+                  <button type="button" onClick={() => setDiscountKind(null)} className="text-[12.5px] opacity-80 hover:opacity-100">✕</button>
+                </span>
+              )}
 
               <select
                 className="text-[12.5px] rounded-[9px] px-2 py-1.5 text-purple"
@@ -4193,7 +4250,7 @@ export function AddonsView() {
                         const b = await getAddOns();
                         setRows(b.addons.map(fromApiAddon));
                       } catch (e) {
-                        alert(e instanceof Error ? e.message : "Could not restore");
+                        say.fromError(e, "Could not restore that add-on.");
                       } finally {
                         setTrashBusy(null);
                       }
@@ -4213,7 +4270,7 @@ export function AddonsView() {
                       } catch (e) {
                         /*  ⚠️ The refusal is the useful part — "it was sold, so
                             it stays" is a rule, not a failure.  */
-                        alert(e instanceof Error ? e.message : "Could not delete");
+                        say.fromError(e, "Could not delete that add-on.");
                       } finally {
                         setTrashBusy(null);
                       }

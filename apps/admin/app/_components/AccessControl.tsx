@@ -47,6 +47,8 @@ function flatten(nodes: ApiAccessNode[]): ApiAccessNode[] {
 }
 
 export default function AccessControl() {
+  /** which template is being renamed, and the name being typed for it */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [tree, setTree] = useState<ApiAccessNode[]>([]);
   const [positions, setPositions] = useState<ApiPosition[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -180,13 +182,16 @@ export default function AccessControl() {
     }
   }
 
-  async function rename(p: ApiPosition) {
-    const name = window.prompt("New name for this template", p.name);
-    if (!name || name === p.name) return;
+  /*  ⚠️ Typed on the row, not in a `window.prompt()` — a prompt blocks the
+      page while it waits and throws the new name away on Escape.  */
+  async function rename(p: ApiPosition, name: string) {
+    setRenaming(null);
+    const n = name.trim();
+    if (!n || n === p.name) return;
     try {
-      await renamePosition(p.id, name);
+      await renamePosition(p.id, n);
       await load();
-      flash(`Renamed to "${name}"`);
+      flash(`Renamed to "${n}"`);
     } catch (e) { flash("", (e as Error).message); }
   }
 
@@ -318,9 +323,22 @@ export default function AccessControl() {
               })}
             </div>
 
-            {position && !position.isOwner && (
+            {position && !position.isOwner && renaming?.id === position.id && (
+              <div className="px-3 py-2 border-t border-[#f0eaf7] flex items-center gap-2">
+                <input
+                  autoFocus
+                  className="ipt h-[32px] flex-1"
+                  value={renaming.value}
+                  onChange={(e) => setRenaming({ ...renaming, value: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter") void rename(position, renaming.value); if (e.key === "Escape") setRenaming(null); }}
+                />
+                <button className="text-[11px] font-bold text-purple hover:underline" onClick={() => void rename(position, renaming.value)}>Save</button>
+                <button className="text-[11px] font-bold text-body-soft hover:underline" onClick={() => setRenaming(null)}>Cancel</button>
+              </div>
+            )}
+            {position && !position.isOwner && renaming?.id !== position.id && (
               <div className="px-3 py-2 border-t border-[#f0eaf7] flex gap-3">
-                <button className="text-[11px] font-bold text-purple hover:underline" onClick={() => void rename(position)}>Rename</button>
+                <button className="text-[11px] font-bold text-purple hover:underline" onClick={() => setRenaming({ id: position.id, value: position.name })}>Rename</button>
                 {!position.isLocked && (
                   <button className="text-[11px] font-bold hover:underline" style={{ color: "#c0392b" }} onClick={() => void drop(position)}>Delete</button>
                 )}

@@ -799,11 +799,17 @@ export function OccasionsView() {
     } catch (e) { setErr((e as Error).message); }
   };
 
-  const stopContacting = async (customerId: string, name: string) => {
-    const reason = prompt(`Stop marketing messages to ${name}? Reason (optional):`);
-    if (reason === null) return;
+  /*  ⚠️ Opting somebody out of marketing is not prompt material — it is a
+      standing instruction about a real person, and the reason typed with it is
+      the only record of WHY. A prompt blocks the page and loses that reason on
+      Escape.  */
+  const [stopping, setStopping] = useState<{ id: string; name: string; reason: string } | null>(null);
+  const stopContacting = async () => {
+    if (!stopping) return;
+    const { id: customerId, name, reason } = stopping;
+    setStopping(null);
     try {
-      await optOutCustomer({ customerId, reason: reason || null });
+      await optOutCustomer({ customerId, reason: reason.trim() || null });
       setOk(`${name} will not appear in these lists again`);
       await load();
     } catch (e) { setErr((e as Error).message); }
@@ -811,6 +817,28 @@ export function OccasionsView() {
 
   return (
     <div className={WRAP}>
+      {stopping && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4">
+          <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[420px]">
+            <h3 className="font-display text-[18px] text-purple m-0 mb-1">Stop marketing messages to {stopping.name}?</h3>
+            <p className="text-[12.5px] text-body-soft mt-0 mb-4">
+              They will not appear in these lists again. Order updates still reach them — this is marketing only.
+            </p>
+            <input
+              autoFocus
+              className={input}
+              value={stopping.reason}
+              onChange={(e) => setStopping({ ...stopping, reason: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter") void stopContacting(); if (e.key === "Escape") setStopping(null); }}
+              placeholder="Why (optional) — e.g. asked us on the phone"
+            />
+            <div className="flex gap-2.5 mt-5">
+              <button onClick={() => void stopContacting()} className="flex-1 text-white text-[13.5px] font-bold py-2.5 rounded-[11px]" style={{ background: "#c0392b" }}>Stop contacting</button>
+              <button onClick={() => setStopping(null)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       <FinHeader
         eyebrow="Marketing"
         title="Occasions coming up"
@@ -892,7 +920,7 @@ export function OccasionsView() {
                         <a className={btnGhost} href={`tel:${r.customer.phone}`}
                           onClick={() => void contact(r, "PHONE", "")}>Call</a>
                         <button className={btnGhost}
-                          onClick={() => void stopContacting(r.customer.id, r.customer.name)}>Stop</button>
+                          onClick={() => setStopping({ id: r.customer.id, name: r.customer.name, reason: "" })}>Stop</button>
                       </div>
                     )}
                   </Td>

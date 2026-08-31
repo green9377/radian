@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "./Icon";
+import { useAuth } from "./AuthGate";
 import {
   ApiExpense,
   ApiFinanceAccount,
@@ -53,6 +54,12 @@ import {
 /* ==================== EXPENSES ==================== */
 
 export function ExpensesLive() {
+  /*  ⚠️ WHO APPROVED IT IS NOT SOMETHING TO TYPE — 31 Aug 2026. This asked
+      `window.prompt("Approved by (your name)")` and fell back to the literal
+      string "admin" when it was dismissed. An approval on MONEY whose
+      signature is free text, with a default, is not an approval anybody can
+      stand behind later. The session knows who is signed in.  */
+  const { me } = useAuth();
   const [rows, setRows] = useState<ApiExpense[]>([]);
   const [accs, setAccs] = useState<ApiFinanceAccount[]>([]);
   const [threshold, setThreshold] = useState(0);
@@ -196,7 +203,7 @@ export function ExpensesLive() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className={btnPrimary} style={btnPrimaryStyle} onClick={async () => { try { await approveFinanceExpense(r.id, { actorName: window.prompt("Approved by (your name)") ?? "admin" }); await load(); flash("Approved and recorded"); } catch (e) { fail(e); } }}>Approve</button>
+                  <button className={btnPrimary} style={btnPrimaryStyle} onClick={async () => { try { await approveFinanceExpense(r.id, { actorName: me?.name ?? "Admin" }); await load(); flash("Approved and recorded"); } catch (e) { fail(e); } }}>Approve</button>
                   <button className={btnGhost} onClick={async () => { try { await declineFinanceExpense(r.id, { actorName: "admin" }); await load(); flash("Declined"); } catch (e) { fail(e); } }}>Decline</button>
                 </div>
               </div>
@@ -420,6 +427,8 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export function PartnersLive() {
+  /** which partner figure is being typed, in the open rather than in a prompt */
+  const [editing, setEditing] = useState<{ id: string; field: "share" | "salary"; value: string } | null>(null);
   const [rows, setRows] = useState<ApiPartner[]>([]);
   const [accs, setAccs] = useState<ApiFinanceAccount[]>([]);
   const [offline, setOffline] = useState(false);
@@ -429,6 +438,24 @@ export function PartnersLive() {
   const [txn, setTxn] = useState<{ partner: ApiPartner; kind: string } | null>(null);
   const [share, setShare] = useState<Share | null>(null);
   const [tAmount, setTAmount] = useState(""); const [tAcc, setTAcc] = useState(""); const [tNote, setTNote] = useState("");
+
+  async function saveEdit(p: ApiPartner) {
+    if (!editing) return;
+    const n = Number(editing.value);
+    if (!Number.isFinite(n) || n < 0) { setErr("That is not a number."); return; }
+    if (editing.field === "share" && n > 100) { setErr("A share cannot be more than 100%."); return; }
+    try {
+      await updateFinancePartner(
+        p.id,
+        editing.field === "share"
+          ? { sharePercentBp: Math.round(n * 100) }
+          : { monthlySalaryPaisa: toPaisa(editing.value) },
+      );
+      setEditing(null);
+      await load();
+      setOk(editing.field === "share" ? `${p.name}'s share is now ${n}%.` : `${p.name}'s salary is now ${taka(toPaisa(editing.value))}.`);
+    } catch (e) { fail(e); }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -555,16 +582,31 @@ export function PartnersLive() {
             )}
 
             <div className="mt-3 flex gap-2">
-              <button className={btnGhost} onClick={async () => {
-                const s = window.prompt("Profit share %", String(p.sharePercentBp / 100));
-                if (s === null) return;
-                try { await updateFinancePartner(p.id, { sharePercentBp: Math.round(Number(s) * 100) }); await load(); } catch (e) { fail(e); }
-              }}>Edit share</button>
-              <button className={btnGhost} onClick={async () => {
-                const s = window.prompt("Monthly salary ৳", String(p.monthlySalaryPaisa / 100));
-                if (s === null) return;
-                try { await updateFinancePartner(p.id, { monthlySalaryPaisa: toPaisa(s) }); await load(); } catch (e) { fail(e); }
-              }}>Edit salary</button>
+              {/*  ⚠️ A PARTNER'S SHARE AND SALARY ARE NOT PROMPT MATERIAL —
+                   31 Aug 2026. Both were `window.prompt()`: the page froze
+                   while it waited, Escape threw the number away, and a figure
+                   that decides how the profit is split got no chance to be
+                   read back before it was saved. They are typed in the open
+                   now, with Enter to save and Escape to leave it alone.  */}
+              {editing?.id === p.id ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-[12px] text-body-soft font-semibold">{editing.field === "share" ? "Share %" : "Salary ৳"}</span>
+                  <input
+                    autoFocus
+                    className="ipt h-[34px] w-[110px]"
+                    value={editing.value}
+                    onChange={(e) => setEditing({ ...editing, value: e.target.value.replace(/[^\d.]/g, "") })}
+                    onKeyDown={(e) => { if (e.key === "Enter") void saveEdit(p); if (e.key === "Escape") setEditing(null); }}
+                  />
+                  <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void saveEdit(p)}>Save</button>
+                  <button className={btnGhost} onClick={() => setEditing(null)}>Cancel</button>
+                </span>
+              ) : (
+                <>
+                  <button className={btnGhost} onClick={() => setEditing({ id: p.id, field: "share", value: String(p.sharePercentBp / 100) })}>Edit share</button>
+                  <button className={btnGhost} onClick={() => setEditing({ id: p.id, field: "salary", value: String(p.monthlySalaryPaisa / 100) })}>Edit salary</button>
+                </>
+              )}
             </div>
           </Card>
         ))}
