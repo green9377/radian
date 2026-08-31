@@ -173,9 +173,11 @@ COD_COLLECTED payment.
 
 | | |
 |---|---|
-| **DEC-DLV-022** | one Fail action, with the reason picked from a list (owner: no auto follow-up) |
-| **9 × `alert()`** | `DeliveryLive.tsx` — a refused action freezes the board instead of explaining itself |
 | **row 20** | a prepaid parcel on the settle list — the only part of the rider's cash chain still unwalked |
 | **variant photos** | data, not code: Products → the product → Variants, one photo per combination |
+| **53 × `alert()`** | the rest of the admin — `ProductViews` (7), `OffersLive` (5), `ProductListView` (4), `OrderEditor` (4)… The delivery board is now the pattern to copy |
+
+Closed 31 Aug: **DEC-DLV-022** (fail reason from a list) and the delivery
+board's own nine `alert()`/`prompt()` calls.
 
 `RADIAN_PHASE6_DIRECTION.md` carries the detail and what has already closed.

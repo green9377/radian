@@ -291,7 +291,47 @@ gateway refund was proven in Phase 5.
 difference is an accounting fact about whether the expense is already posted,
 and getting it wrong is silent.
 
-### 🟠 6.4 — The freezing `alert()` is still on the delivery board
+### ✅ DEC-DLV-022 + 6.4 — CLOSED 31 Aug 2026. Why it failed, and a board that no longer freezes.
+
+**The reason is picked, not typed.** One action for a failed delivery and a
+reschedule (the owner, 30 Aug: the parcel did not arrive either way, and asking
+a rider at the door to decide which is asking for a guess) — no automatic
+follow-up, he ruled that out the same day.
+
+No new table: `ReasonMaster` already exists, scoped by `purpose`, with
+Inventory's WASTAGE and GIFT in it. Delivery takes `DELIVERY_FAIL` and serves
+its own endpoints — the table is shared, the purpose is owned, and one module
+never reads another's (house rule 4). Five reasons seeded in the owner's own
+words, editable like any master.
+
+`failReason` keeps its column and becomes the **label snapshot plus the note**,
+so renaming a reason never rewrites what an old parcel said — the same
+discipline as `variantLabel` on an order line. `failReasonId` is what the
+reports will group by.
+
+**And the board's `alert()`s are gone (6.4).** A browser alert blocks the
+renderer: the screen freezes with no visible reason, and the symptom looks
+nothing like the cause. That mismatch cost most of an afternoon on 29 Aug in
+`OrderEditor`, and the same trap was still sitting on the board. The `prompt()`
+that asked for the fail reason blocked everything and threw the answer away on
+Escape. `confirm()` on **Remove rider** stays — it asks a question.
+
+**Walked live 31 Aug:**
+- Fail on RAD-76123 (no carrier) → the board **said so on the page** —
+  *"RAD-76123 has no carrier yet — pick a rider or courier first"* — nothing
+  froze
+- Fail on RAD-52077 (rider Deshi, DLV-000006) → the box opened with all five
+  reasons; picked *Address wrong or not found*, note *"gate locked, guard sent
+  us away"*
+- Stored: `failReasonId: rsn_dlv_bad_addr` · `failReason: "Address wrong or not
+  found — gate locked, guard sent us away"` · order `failed` · board
+  "Failed — retry 1"
+
+⚠️ **53 `alert()` calls remain elsewhere in the admin** — `ProductViews` (7),
+`OffersLive` (5), `ProductListView` (4), `OrderEditor` (4), `FinanceForms` (3)
+and others. They ride their own phases; the pattern to copy is on this board.
+
+### ~~🟠 6.4 (original finding)~~ — The freezing `alert()` is still on the delivery board
 
 `DeliveryLive.tsx` carries **10** `alert()` / `prompt()` calls (line 369 is
 `alert("assign a rider/courier first")`; line 370 is a `prompt()` for the
