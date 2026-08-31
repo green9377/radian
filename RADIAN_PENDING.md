@@ -94,15 +94,24 @@ built differently, is the same shape as the courier bug and the COD bug.
    stock **42 → 41** · shift "1 bill · ৳60" · expected cash **৳1,809.50** ·
    Finance `1000 Cash Drawer` up by exactly ৳60
 
-**Not yet walked:** P7-3 (needs a counter return with a cash refund) and P7-4
-(needs a sale between midnight and 6 AM Dhaka to show the day boundary moving).
-Both are right in code and neither has been seen with eyes — say so.
+6. **P7-3 walked — and the whole reason for it showed on one screen.**
+   `RTN-000018` took the Red-Rose back off POS-000015 and paid ৳60 cash:
+   the drawer wrote `PAYOUT −৳60 · "Refund · RTN-000018"`, expected cash fell
+   ৳1,809.50 → **৳1,749.50**, Finance's Cash Drawer fell by the same ৳60, and
+   the rose came back on the shelf (41 → 42). Before the fix the notes left the
+   till and the drawer never knew: that ৳60 would have surfaced at day-close as
+   a shortage and been posted to `5700 Cash Short`, against the cashier.
+
+**Still not walked: P7-4 only.** Showing it needs a sale timestamped between
+midnight and 6 AM Dhaka; the code is right and matches the four other places
+that already use the shop's day, but nobody has watched the boundary move.
 
 ### Test rows left on the system, on purpose
 
-`POS-000015` (Red-Rose, ৳60) · `EXP-000001` (৳250.50 Transport) ·
-`SHF-000001` closed clean · **`SHF-000002` left OPEN** with ৳1,809.50 in it.
-Reversing them would write refunds and credits that never happened.
+`POS-000015` (Red-Rose ৳60, then fully returned by `RTN-000018`) ·
+`EXP-000001` (৳250.50 Transport & Conveyance) · `SHF-000001` closed clean ·
+**`SHF-000002` left OPEN** with ৳1,749.50 in it. Reversing them now would write
+credits that never happened.
 
 ---
 
