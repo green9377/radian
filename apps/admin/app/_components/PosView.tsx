@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
 import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 import QtyStepper from "./QtyStepper";
 /*
@@ -359,6 +359,20 @@ export default function PosSellView() {
   /*  A due is money owed by a person, so it needs a person (DEC-POS-008). This is
       the ONLY thing that asks for a name — a fully paid walk-in never does.  */
   const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
+
+  /*  DEC-POS-027 (owner, 31 Aug) — the credit ceiling WARNS, it never blocks.
+      So this is not in `errors`: the Complete button stays live and the words
+      sit beside it. `defaultCreditLimitPaisa` used to be a settings field
+      nothing on earth read.  */
+  const [credit, setCredit] = useState<ApiPosCredit | null>(null);
+  useEffect(() => {
+    if (!selectedCust?.id) { setCredit(null); return; }
+    posCreditStanding(selectedCust.id).then(setCredit).catch(() => setCredit(null));
+  }, [selectedCust?.id]);
+  const creditWarning =
+    credit && credit.limitPaisa > 0 && duePaisa > 0 && credit.outstandingPaisa + duePaisa > credit.limitPaisa
+      ? `${selectedCust?.name ?? "This customer"} already owes ${formatTaka(credit.outstandingPaisa)}; this bill takes it to ${formatTaka(credit.outstandingPaisa + duePaisa)}, over the ${formatTaka(credit.limitPaisa)} limit.`
+      : null;
 
   const errors: string[] = [];
   if (!shiftKnown) errors.push("Checking the counter…");
@@ -755,12 +769,19 @@ export default function PosSellView() {
               </div>
             )}
 
+            {creditWarning && lines.length > 0 && (
+              <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium"
+                style={{ background: "rgba(224,162,58,.18)", color: "#ffd79a" }}>
+                {creditWarning} <span className="opacity-80 font-normal">The sale can still go through.</span>
+              </div>
+            )}
+
             {errors.length > 0 && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
                 style={{ background: "rgba(255,155,123,.14)", color: "#ffc9a8" }}>
                 {errors[0]}
                 {!shiftOpen && (
-                  <button type="button" onClick={openShift} className="underline ml-1.5 font-semibold">Open the shift</button>
+                  <button type="button" onClick={askOpenShift} className="underline ml-1.5 font-semibold">Open the shift</button>
                 )}
                 {errors.length > 1 && <span className="opacity-70"> · +{errors.length - 1} more</span>}
               </div>

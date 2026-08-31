@@ -4474,6 +4474,15 @@ export const posListSales = (p?: { search?: string; days?: number }) => {
   return j<ApiPosSale[]>(`/pos/sales${q.toString() ? `?${q}` : ""}`);
 };
 export const posDue = () => j<ApiPosDue[]>(`/pos/due`);
+/** DEC-POS-027 — what the customer already owes the counter, and the shop's ceiling (0 = none) */
+export interface ApiPosCredit {
+  customerId: string;
+  limitPaisa: number;
+  outstandingPaisa: number;
+  billsOpen: number;
+  over: boolean;
+}
+export const posCreditStanding = (customerId: string) => j<ApiPosCredit>(`/pos/credit/${customerId}`);
 
 /** DEC-POS-022 — counter orders promised for a later day, soonest first */
 export interface ApiPosAdvance {

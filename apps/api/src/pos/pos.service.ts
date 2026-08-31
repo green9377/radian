@@ -998,6 +998,22 @@ export class PosService {
     const orderNo = order.orderNo;
 
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'CREATE', actorName });
+
+    /*  DEC-POS-027 — a due that puts the customer over the shop's ceiling is
+        allowed, and said out loud. On the record too, so "who let this run up"
+        has an answer later.  */
+    if (duePaisa > 0) {
+      const credit = await this.creditStanding(customer.id);
+      if (credit.over) {
+        await this.audit.event({
+          entityType: 'Order',
+          entityId: order.id,
+          kind: 'sales',
+          label: `⚠ ${customer.name} now owes ${(credit.outstandingPaisa / 100).toFixed(2)} — over the ${(credit.limitPaisa / 100).toFixed(2)} credit limit`,
+          actorName,
+        });
+      }
+    }
     await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'sales', label: `POS sale ${orderNo} · ${customer.name}`, actorName });
 
     // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
@@ -1041,6 +1057,37 @@ export class PosService {
       take: 200,
       include: { customer: { select: { id: true, name: true, phone: true } }, transactions: { where: { deletedAt: null } }, _count: { select: { lines: true } } },
     });
+  }
+
+  /**
+   * DEC-POS-027 (owner, 31 Aug 2026) — the counter's credit ceiling **warns,
+   * it never blocks**.
+   *
+   * `PosSetting.defaultCreditLimitPaisa` was a field the settings screen could
+   * write and **nothing in the system ever read**, so counter credit was
+   * unlimited: one customer could keep taking goods on due for ever and no
+   * screen ever said a word. Asked on 31 Aug, the owner's answer was a limit
+   * that speaks rather than one that refuses — the person at the counter knows
+   * things the ledger does not, and a till that stops a sale in front of a
+   * regular customer costs more than the risk.
+   *
+   * 0 = no ceiling at all, which is also a legitimate answer.
+   */
+  async creditStanding(customerId: string) {
+    const s = await this.settings();
+    const limitPaisa = s.defaultCreditLimitPaisa ?? 0;
+    const rows = await this.prisma.db.order.findMany({
+      where: { customerId, fulfillmentType: FulfillmentType.COUNTER, duePaisa: { gt: 0 } },
+      select: { duePaisa: true },
+    });
+    const outstandingPaisa = rows.reduce((n, o) => n + o.duePaisa, 0);
+    return {
+      customerId,
+      limitPaisa,
+      outstandingPaisa,
+      billsOpen: rows.length,
+      over: limitPaisa > 0 && outstandingPaisa > limitPaisa,
+    };
   }
 
   async dueBoard() {

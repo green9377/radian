@@ -132,18 +132,21 @@ close, so a fiction in either turns up later as an over/short nobody can
 explain (house rule 7). Opening now asks, prefilled from the shop's setting and
 the signed-in user.
 
-## ⚠️ Two POS questions for the owner — NOT invented, NOT implemented
+## ✅ Both POS questions ANSWERED by the owner, 31 Aug
 
-1. **No discount cap exists.** `PosDiscountRule` is **empty**, and DEC-POS-006
-   says an unconfigured category means no block — so today a cashier can take
-   100% off any bill with nobody's approval. The machinery (cap, manager
-   approval, audit) is built and waiting; the numbers are the owner's.
-   **What is the cap, and for which categories?**
-2. **`defaultCreditLimitPaisa` is a setting nothing reads.** It is written in
-   POS → Settings and never checked anywhere, so counter credit is unlimited: a
-   customer can keep taking goods on due for ever. DEC-POS-007/008 only require
-   that a due names a customer. **Is there a limit, per customer or one for the
-   shop, and does it block the sale or warn?**
+1. **`DEC-POS-026` — no discount cap at the counter.** Asked whether to write
+   caps, the answer was **no limit**. The machinery stays dormant at zero cost;
+   writing rules in POS → Settings would switch it on. Not an unfinished
+   setting — a decision. Do not propose percentages again.
+2. **`DEC-POS-027` — the credit ceiling WARNS, it never blocks.** Built and
+   deployed: `GET /pos/credit/:customerId`, an amber line beside the Complete
+   button naming what the customer already owes and what this bill would make
+   it, the sale still allowed, and the crossing written to the order timeline.
+   `PosSetting.defaultCreditLimitPaisa` is now read by something for the first
+   time; `0` = no ceiling, and it is 0 today, so **the owner has to set the
+   number in POS → Settings before it can say anything.**
+
+Both are written up in `RADIAN_POS_MODULE_ARCHITECTURE.md` §10.
 
 **Still not walked: P7-4 only.** Showing it needs a sale timestamped between
 midnight and 6 AM Dhaka; the code is right and matches the four other places
