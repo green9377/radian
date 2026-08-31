@@ -250,10 +250,35 @@ export class FinanceEventsService {
         data: { financePostedAt: new Date() },
       });
 
-      // money already taken before delivery was held as a liability — release
-      // exactly that, nothing taken later (that clears the receivable directly)
+      /*  Money already taken before delivery was held as a liability — release
+          exactly that, nothing taken later (that clears the receivable directly).
+
+          ═══ P7-15 (31 Aug 2026) — WHICH money is "already taken" ═══
+
+          This used to sum every payment row on the order. On a website order
+          that is right: the money really did arrive first and really is sitting
+          in 2100. At the counter it was wrong, and wrong on every single sale.
+          POS writes its payment rows inside the same transaction as the order,
+          so by the time revenue posts they already EXIST — but they have not
+          been booked yet. The release fired for them anyway, and then
+          `onPaymentRecorded` posted the same money again, correctly, against
+          1100. Receivable credited twice; 2100 debited for an advance nobody
+          ever credited.
+
+          Caught by walking POS-000017: a 60 taka bill paid 30 cash + 30 store
+          credit should have left 1100 untouched, and it moved −30.
+
+          `financePostedAt` is the honest test. A payment stamped before this
+          runs was booked while no revenue entry existed, which is exactly the
+          case where it landed in 2100. One stamped later — or not at all — went
+          to 1100 by itself and must not be released here.  */
       const advance = o.transactions
-        .filter((t) => !t.deletedAt && (t.kind === 'ADVANCE' || t.kind === 'PAYMENT') && t.createdAt <= new Date())
+        .filter(
+          (t) =>
+            !t.deletedAt &&
+            (t.kind === 'ADVANCE' || t.kind === 'PAYMENT') &&
+            (t as { financePostedAt?: Date | null }).financePostedAt != null,
+        )
         .reduce((n, t) => n + t.amountPaisa, 0);
       if (advance > 0)
         await this.finance.postEntry({
