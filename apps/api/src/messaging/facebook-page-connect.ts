@@ -111,9 +111,22 @@ export class FacebookPageConnectService {
     if (!appId) throw new BadRequestException('META_APP_ID is not set on the server');
     if (!appSecret) throw new BadRequestException('The Meta app secret is empty — fill it in on this screen first');
 
+    /*
+      `redirect_uri=` must be present and EMPTY. A code from the JS SDK's
+      FB.login has no redirect at all, but Meta still compares the parameter
+      against the one used in the dialog — and comparing "empty" with "absent"
+      fails: "Error validating verification code. Please make sure your
+      redirect_uri is identical to the one you used in the OAuth dialog
+      request" (hit on the first live connect, 31 Aug).
+
+      The WhatsApp flow next door gets away without it because it goes through
+      Facebook Login for Business with a config_id, where there is no redirect
+      to compare. Same endpoint, different rule.
+    */
     const res = await fetch(
       `${GRAPH}/oauth/access_token?client_id=${encodeURIComponent(appId)}` +
-        `&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code.trim())}`,
+        `&client_secret=${encodeURIComponent(appSecret)}` +
+        `&redirect_uri=&code=${encodeURIComponent(code.trim())}`,
     );
     const json = (await res.json().catch(() => ({}))) as {
       access_token?: string;
