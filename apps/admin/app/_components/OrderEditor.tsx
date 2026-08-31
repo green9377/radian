@@ -530,7 +530,16 @@ export default function OrderEditor({ id }: { id: string }) {
                           <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: ct.soft, color: ct.text }}>{craftedLine ? "Crafted · advance" : "Readymade"}</span>
                           <button type="button" onClick={() => setOpenMaterials((c) => (c === l.id ? null : l.id))} className="text-[11px] text-purple inline-flex items-center gap-1 hover:underline"><Icon name="box" size={13} /> {openMaterials === l.id ? "Hide details" : "Item details"}</button>
                         </div>
+                        {/*  DEC-PRD-014 — the variant leads, because it is what
+                            has to be MADE. Everything else on this line
+                            describes the same product; this is the only part
+                            that says which one came off the shelf.  */}
                         <div className="text-[13px] text-body-soft mt-0.5">
+                          {l.variantLabel && (
+                            <span className="inline-block text-[12px] font-bold px-2 py-0.5 rounded-full mr-1.5 align-middle" style={{ background: TONE.purple.soft, color: TONE.purple.text }}>
+                              {l.variantLabel}
+                            </span>
+                          )}
                           {l.sizeLabel}{l.bundleLabel ? ` · ${l.bundleLabel}` : ""}{l.addonLabels.length ? ` · + ${l.addonLabels.join(", ")}` : ""}{l.persoText ? ` · “${l.persoText}”` : ""}
                         </div>
                         <div className="text-[13px] text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-medium text-purple">{formatTaka(l.linePaisa)}</b></div>
@@ -557,6 +566,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             <table className="w-full text-[12.5px]">
                               <tbody>
                                 {[
+                                  ["Variant", l.variantLabel || "—"], // DEC-PRD-014
                                   ["Size", l.sizeLabel || "Standard"],
                                   ["Bundle", l.bundleLabel || "—"],
                                   ["Add-ons", l.addonLabels.length ? l.addonLabels.join(", ") : "—"],

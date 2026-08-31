@@ -28,6 +28,8 @@ type Line = {
   id: string;
   productId: string;
   name: string;
+  /** DEC-PRD-014 — which colour/size was sold; the name alone does not say */
+  variantLabel?: string;
   bg: string;
   qty: number;
   unitPaisa: number;
@@ -300,7 +302,12 @@ export default function OrderEditForm({ id }: { id: string }) {
                         <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: l.bg }} />
                         <div className="min-w-0">
                           <Link href={`/products/${l.productId}`} className="block truncate font-medium text-purple text-[13.5px] hover:underline">{l.name}</Link>
-                          <div className="text-[11.5px]" style={{ color: t.text }}>{formatTaka(l.unitPaisa)} each · {l.productType === "crafted" ? "crafted (advance)" : "readymade"}</div>
+                          {/* DEC-PRD-014 — which one was sold; without it every
+                              variant order reads as the parent product */}
+                          <div className="text-[11.5px]" style={{ color: t.text }}>
+                            {l.variantLabel ? <b className="font-bold">{l.variantLabel} · </b> : null}
+                            {formatTaka(l.unitPaisa)} each · {l.productType === "crafted" ? "made to order" : "readymade"}
+                          </div>
                         </div>
                         {gates.items ? (
                           <QtyStepper size="sm" value={q} min={1} onChange={(n) => setQty(l.id, n)} />

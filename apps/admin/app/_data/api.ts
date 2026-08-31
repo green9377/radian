@@ -1312,6 +1312,18 @@ export interface ApiOrderLine {
   id: string;
   productId: string;
   name: string;
+  /**
+   * DEC-PRD-014 — WHICH colour/size was actually sold.
+   *
+   * ⚠️ These two were in the database, on the API and missing from this type
+   * until 30 Aug 2026, so every screen in the admin showed a variant order as
+   * the parent product. A customer buys the Pink Small and the order reads
+   * "variant - bundle, upgrade, add on": nobody packing it can tell which one
+   * to make, and the stock came off the pink shelf while the page never said
+   * pink.
+   */
+  variantId?: string | null;
+  variantLabel?: string | null;
   sizeLabel?: string | null;
   bundleLabel?: string | null;
   addonLabels: string[];
@@ -1521,6 +1533,8 @@ export function adaptOrder(a: ApiOrder): any {
       productId: l.productId,
       name: l.name,
       bg: l.bg || "linear-gradient(160deg,#F1E6F8,#DFC8F0)",
+      // DEC-PRD-014 — the colour that was sold, carried through to the screens
+      variantLabel: l.variantLabel || undefined,
       sizeLabel: l.sizeLabel || "",
       bundleLabel: l.bundleLabel || null,
       addonLabels: l.addonLabels || [],

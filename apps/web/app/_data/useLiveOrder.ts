@@ -53,6 +53,15 @@ const STAGE_STATUS: Record<number, OrderStatus> = {
 export function useLiveOrder(order: Order | null): Order | null {
   const [live, setLive] = useState<Order | null>(order);
 
+  /*  ⚠️ THE EFFECT KEYS ON THESE THREE STRINGS, NOT ON `order`.
+      `findOrder()` builds a fresh array on every render, so depending on the
+      object would re-run the effect each time this hook set state — a fetch
+      loop against /shop/track for as long as the page is open. It happens to
+      return a stable reference today (the store's object, or a module-level
+      seed), which is exactly the kind of accident that stops being true after
+      an unrelated edit.  */
+  const key = order ? `${order.id}|${order.status}|${order.sender.phone}` : "";
+
   useEffect(() => {
     setLive(order);
     if (!order) return;
@@ -79,7 +88,8 @@ export function useLiveOrder(order: Order | null): Order | null {
     return () => {
       dropped = true;
     };
-  }, [order]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   return live;
 }

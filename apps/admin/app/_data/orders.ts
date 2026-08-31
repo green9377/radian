@@ -134,6 +134,14 @@ export interface OrderLine {
   productId: string;
   name: string;
   bg: string;
+  /**
+   * DEC-PRD-014 — the colour/size actually sold, as a snapshot.
+   *
+   * ⚠️ It was missing here until 30 Aug 2026, so every admin screen showed a
+   * variant order as the parent product. The stock came off the pink shelf and
+   * the page never said pink.
+   */
+  variantLabel?: string;
   sizeLabel: string;
   bundleLabel: string | null;
   addonLabels: string[];
