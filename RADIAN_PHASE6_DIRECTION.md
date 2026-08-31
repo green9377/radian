@@ -143,6 +143,27 @@ Same pattern as Phases 3–5: **the owner walks the module hands-on**, and the
 gaps below get closed. Every item here was verified in the code on 30 Aug, not
 copied from an older document.
 
+### ✅ Five faults the owner found by walking the shop — all closed 30 Aug
+
+He opened the site himself and reported four things in one message; a fifth
+came out of checking them. Every one was real, none was in the module the
+symptom pointed at, and every fix below was walked live before it was reported.
+
+| # | what he saw | what it actually was |
+|---|---|---|
+| **B** · DEC-SAL-015 | a plain COD order was refused | `assertCodAllowed` refused COD on any `CRAFTED` line. Radian ASSEMBLES what it sells, so **22 of 24 live products are CRAFTED** — cash was closed on practically the whole shop while the cart badge went on promising it. The browser's own `paymentOptions()` never had that test, so the site OFFERED cash and the server then refused the order. Owner's rule, in his words: a gift is paid in full · a self order may be cash or online · a product marked "payment required" needs payment either way. The CRAFTED test is gone from all three places (create, the edit re-check, the admin's new-order form) and the regression suite, which had been asserting the opposite |
+| **A** · DEC-SAL-016 | admin advances the order, the customer's steps never move | `buildOrder()` writes a snapshot to localStorage — `status: "placed"` — and every account page rendered THAT. The browser was remembering an order, not following one; `/track` was the only screen that ever called the server. `useLiveOrder` now corrects the snapshot over the same `orderNo + phone` route. Five new `Order` columns carry the real step times: `promisedBy`'s own comment already said on-time is `deliveredAt <= promisedBy` against a column that did not exist, and DEC-DLV-023 needs the same fact |
+| **D** · DEC-PRD-061 | the customer's uploaded photo never reaches the order | the schema had already admitted it — *"only the middle was never built"*. "Tap to upload" wrote `file.name` into the cart; no file left the device, checkout had no field, `OrderLine` had no column. **And a product with "photo required" took orders anyway**, because `persoImageRequired` was read and never tested. Public upload route (10 MB, not the review route's 3 — the photo is printed on the goods), uploaded from the PDP so checkout carries only a URL, and that URL is trusted only if it is on this shop's own media host |
+| **E** · DEC-PRD-014 | a variant order shows the main product | `variantId`/`variantLabel` have been on `OrderLine` since 3 August and the API returns them — the admin's own type never declared them, the adapter never mapped them, no screen drew them. Stock came off the pink shelf while the page never said pink |
+| **C** | the cart shows the product's photo, not the variant's | **not a code fault.** Cart, checkout and the order snapshot all read `variant.imageUrl ?? product image`, and the API falls back to the master value's photo. Every combination on the test product has `imageUrl: null` — no photo has ever been set. Admin → the product → Variants, one photo per combination |
+
+⚠️ Demo leftovers: RAD-92283 · RAD-51013 · RAD-75470 (now *preparing*, stock −1),
+all named "TEST · do not deliver", and assignment DLV-000001 on RAD-74146.
+
+⚠️ **The hPanel "Web console" button moves.** Clicking fixed coordinates silently
+misses it and looks exactly like a session limit — an hour went into that. Find
+the button in the DOM and click it there.
+
 ### ✅ 6.1 — CLOSED 30 Aug 2026. One path to a carrier.
 
 The owner's ruling: *"order screen a jen ak click a courier assign kra jay"* —
