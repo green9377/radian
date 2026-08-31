@@ -668,6 +668,35 @@ instead of a nameless "Staff", and the list prefixes **"Meta:"** instead of
   in the code (BULKSMSBD · MIMSMS · REVE) are one-way masking SMS. Receiving
   needs a two-way short/long code from the operator — a purchase decision, so
   the owner has to make it before anything is built.
+### The Facebook Page now connects by button — Setup → Integrations → Facebook Page
+
+Built rather than pasted, because the alternative was to generate a token in
+Meta's Graph Explorer and paste it into a form, which puts a live credential
+through a clipboard and a browser field. Meta's popup returns a **code**, the
+server swaps it for a user token, fetches the **Page** token from
+`/me/accounts`, and saves it. The token is never in the browser at all.
+
+```
+GET  messaging/facebook-page/config           what the popup needs; never the secret
+GET  messaging/facebook-page/status           debug_token: what Meta says the token can
+                                              do, and which scopes it withheld
+POST messaging/facebook-page/exchange         code -> Page token, server side
+POST messaging/facebook-page/backfill-names   repair the threads reading Guest
+```
+
+The card shows the scope check afterwards on purpose — Meta grants what it feels
+like, and a screen that only ever says "connected" is how three missing scopes
+went unnoticed for weeks. Live on the system right now, in its own words:
+
+> Connected, but missing `pages_show_list`, `pages_read_engagement`,
+> `pages_manage_metadata` — names will keep showing as Guest until this is
+> redone.
+
+**The one click left is the owner's**, and deliberately so: an OAuth consent is
+his account granting access, not something to be clicked on his behalf.
+Setup → Integrations → Facebook Page → **Reconnect the Page**, approve, then
+**Fill in the "Guest" names**.
+
 - **Facebook threads still read "Guest" — and today's work did NOT fix that.**
   Counted after the poller ran:
 
