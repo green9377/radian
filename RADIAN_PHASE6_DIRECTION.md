@@ -28,7 +28,9 @@ shop-wide and must not be duplicated) → `RADIAN_DELIVERY_MODULE_ARCHITECTURE.m
    pink / lavender / white, rose-gold accent. No page prose — explanations
    behind the small ⓘ (`Info`). One `MoneyBlock`, one `QtyStepper`, house
    count-cards everywhere.
-7. **Demo stays sandbox.** Going real must only ever mean flipping a key.
+7. **The system is not a demo** (owner, 30 Aug). Real orders and real
+   accounts live here; only the GATEWAY KEY is sandbox. Going live must only
+   ever mean flipping that key.
 
 ## 2. Ship path (every single time)
 
@@ -101,7 +103,7 @@ host that did not exist (money taken, nothing recorded) · CORS turning a paid
 order into a 500 · the success page showing a stranger's receipt · "COD due"
 printed on orders that were never COD.
 
-⚠️ **Demo leftovers from Phase 5:** the *Anniversary GIFT* product was given
+⚠️ **Test rows left from Phase 5:** the *Anniversary GIFT* product was given
 `stockQty: 5` to unblock a return test, and **RAD-86328 now reads delivered ·
 completed · refunded**. Offer OFR-000027 (10% Fresh flower) may still be
 running from Phase 4 — pause it before comparing prices.
@@ -157,7 +159,7 @@ symptom pointed at, and every fix below was walked live before it was reported.
 | **E** · DEC-PRD-014 | a variant order shows the main product | `variantId`/`variantLabel` have been on `OrderLine` since 3 August and the API returns them — the admin's own type never declared them, the adapter never mapped them, no screen drew them. Stock came off the pink shelf while the page never said pink |
 | **C** | the cart shows the product's photo, not the variant's | **not a code fault.** Cart, checkout and the order snapshot all read `variant.imageUrl ?? product image`, and the API falls back to the master value's photo. Every combination on the test product has `imageUrl: null` — no photo has ever been set. Admin → the product → Variants, one photo per combination |
 
-⚠️ Demo leftovers: RAD-92283 · RAD-51013 · RAD-75470 (now *preparing*, stock −1),
+⚠️ Test rows left on the system: RAD-92283 · RAD-51013 · RAD-75470 (now *preparing*, stock −1),
 all named "TEST · do not deliver", and assignment DLV-000001 on RAD-74146.
 
 ⚠️ **The hPanel "Web console" button moves.** Clicking fixed coordinates silently
@@ -190,7 +192,7 @@ row carries `Order.courierName = Steadfast` — assignment and mirror both, whic
 is exactly what the old path never did. (The board does not show it because
 RAD-74146 is still *placed*; the board is confirmed-orders-only, by design.)
 
-⚠️ Demo leftover: DLV-000001 on RAD-74146 is that test.
+⚠️ Test row left behind: DLV-000001 on RAD-74146 is that walk.
 
 ### ~~🔴 6.1 (original finding)~~ — Two different ways to assign a carrier, and one of them is invisible
 
@@ -235,7 +237,7 @@ back to 65 (46+19 zone, 57+8 payment, 60+5 self/gift).
 `OrdersReports` (`OrderViews.tsx:535`) computes **revenue, AOV, cancel rate,
 and the channel / zone / payment / gift splits from that array**. Past 100
 orders every number on that screen is quietly wrong, and it will look perfectly
-right on the demo because the demo has fewer.
+right here, because there are fewer than a hundred orders.
 
 This is REV-C4 from the 17 July Sales review — the one critical it left open,
 because it needs a real server-side aggregate endpoint. It is the same family
@@ -246,7 +248,7 @@ correct.**
 
 `cost → Dr 5200 / Cr 2300 accrued → remittance clears the accrual (Dr 2300,
 not Dr 5200)`. The screen, its dropdowns and its empty state are confirmed
-live, but the demo has never had a delivered assignment to settle, so the chain
+live, but there has never been a delivered assignment to settle, so the chain
 itself is unproven. **One delivered parcel proves it** — exactly how the
 gateway refund was proven in Phase 5.
 
@@ -310,7 +312,7 @@ now the rules Phase 6 builds to.
 | trap | what happens |
 |---|---|
 | `alert()` in an action handler | the admin looks frozen; the rule was right all along (29 Aug, most of an afternoon) |
-| a screen computing from a paged list | numbers look right on demo, lie in production (§6.2) |
+| a screen computing from a paged list | right under 100 rows, wrong past it, healthy-looking for ever here (§6.2) |
 | `isActive` used to find a finished delivery | DEC-DLV-015 — it will not find it |
 | a soft-deleted row keeps its number | number generators read the raw client and retry on P2002 |
 | routes under a `:id` route | put static routes ABOVE `:id` or `/orders/cancel-rules` is read as an order id |
