@@ -169,6 +169,15 @@ export interface PlaceOrderIn extends QuoteIn {
       ওই সারিটা CONVERTED হয়, নাহলে ১৫ মিনিট পর সদ্য order করা গ্রাহকের
       কাছেই "আপনার cart রাখা আছে" বার্তা চলে যেত।  */
   clientKey?: string;
+  /**
+   * DEC-RTN-015 part 2 — spend this customer's store credit on the order.
+   *
+   * The website has no login: identity is a typed phone, so a code has to come
+   * back from that number before anyone's credit can be touched. The order is
+   * placed either way; a wrong code simply means no credit was used.
+   */
+  useStoreCredit?: boolean;
+  creditCode?: string;
 }
 
 /* ─────────────────── অসমাপ্ত checkout (DEC-WA-004, DEC-WA-008) ───────────────────
@@ -238,6 +247,9 @@ export interface PlacedOrder {
       already proved, so regulars are never asked twice.  */
   needsPhoneVerify?: boolean;
   senderPhone?: string;
+  /** DEC-RTN-015 — what store credit actually came off this bill, and why not, when not */
+  storeCreditUsedPaisa?: number;
+  storeCreditNote?: string | null;
 }
 
 export interface PaymentSession {
@@ -390,6 +402,12 @@ export const resendPhoneCode = (phone: string, email?: string) =>
     expiresInSec: number;
     error?: string;
   }>("/shop/otp/send", { phone, purpose: "CHECKOUT", email });
+
+/*  DEC-RTN-015 part 2 — ask for a code so store credit can be spent. The answer
+    is the same for every number, so it can never be used to find out who shops
+    here or what they have saved.  */
+export const sendCreditCode = (phone: string) =>
+  post<{ sent: boolean }>("/shop/checkout/credit-code", { phone });
 
 export const confirmPhoneCode = (phone: string, code: string) =>
   post<{ ok: boolean }>("/shop/confirm-phone", { phone, code });
