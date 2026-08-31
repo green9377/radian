@@ -1148,11 +1148,24 @@ function FacebookPageConnectRow({ brand }: { brand: { grad: string; glow: string
     setNote(null);
     try {
       const r = await fbPageBackfillNames();
+      /*
+        Per channel, and never a bare "named none" — a zero after every thread
+        already has its name is good news, and reads as a failure unless the
+        sentence says which it is.
+      */
+      const rows = Object.entries(r.out ?? {});
+      const named = rows.reduce((n, [, v]) => n + v.named, 0);
+      const looked = rows.reduce((n, [, v]) => n + v.looked, 0);
       setNote({
-        ok: r.named > 0,
-        msg: r.named
-          ? `Named ${r.named} of ${r.looked} threads that were showing Guest.`
-          : `Looked at ${r.looked}, named none.${r.firstRefusal ? ` Meta said: ${r.firstRefusal}` : ""}`,
+        ok: r.ran,
+        msg: !r.ran
+          ? (r.reason ?? "Nothing is connected to look at.")
+          : named > 0
+            ? `Named ${named} thread(s) — ${rows
+                .filter(([, v]) => v.named > 0)
+                .map(([k, v]) => `${k.toLowerCase()} ${v.named}`)
+                .join(", ")}.`
+            : `Checked ${looked} thread(s) at Meta — every one already has its name.`,
       });
     } catch (e) {
       setNote({ ok: false, msg: (e as Error).message });

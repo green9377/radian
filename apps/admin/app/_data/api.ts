@@ -6596,10 +6596,17 @@ export const fbPageExchange = (b: { code: string }) =>
   j<ApiFbPageStatus & { pageName: string | null }>(
     "/messaging/facebook-page/exchange", { method: "POST", body: JSON.stringify(b) });
 
-/** Fill in the names of threads that have been reading "Guest". */
+/**
+ * Fill in the names of threads that have been reading "Guest".
+ * Answers per channel, because the poller now walks both.
+ */
+export type ApiNameBackfill = {
+  ran: boolean;
+  reason?: string;
+  out: Record<string, { looked: number; named: number }>;
+};
 export const fbPageBackfillNames = () =>
-  j<{ ran: boolean; reason?: string; looked: number; named: number; firstRefusal: string | null }>(
-    "/messaging/facebook-page/backfill-names", { method: "POST" });
+  j<ApiNameBackfill>("/messaging/facebook-page/backfill-names", { method: "POST" });
 
 export const waPreview = (b: ApiAudienceFilter) =>
   j<{ count: number; sample: { id: string; name: string; phone: string }[] }>(
