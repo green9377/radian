@@ -482,6 +482,40 @@ demo** (§4 rule 10).
 
 ---
 
+## ✅ THE VARIANT PHOTO — fixed and walked, 31 Aug (`2bd1355`)
+
+The owner: *"variant select hoyeo ase na, order page o variant ase na, main
+image tai order a ase."* Both halves were **one** fault, and it was not the
+photos or the API — those were right all along.
+
+`PdpView` treated `onPick` as a toggle: same id pressed = unchoose. On a
+two-list product the chooser resolves a press against the other list's current
+answer, so pressing **Pink** already lands on the pair **Pink · Large**.
+Pressing **Large** then resolves to that same pair — read as "you pressed what
+was already chosen" — and the whole selection was thrown away. The photo
+snapped back to the product's main image, Add to Cart returned to *"Choose an
+option"*, and anything ordered after that carried **no variant at all**. That is
+why the order showed the main image.
+
+Unchoosing now happens only on a **one-list** product, where pressing the same
+value again is the shopper actually asking to clear it.
+
+**Walked on the live shop** (Anniversary GIFT, Colour × Size):
+
+| press | big photo |
+|---|---|
+| Pink | Pink · Large's own photo |
+| then Large | **stays** on it (used to jump back to the main image) |
+| then Red | Red · Large's photo |
+| then Small | Red · Small's photo |
+
+And the cart line now reads **"Anniversary GIFT · Red · Small · Standard"** with
+the Red · Small photo, not the main one. ⚠️ The cart was walked; a new website
+ORDER was not placed — the order line is built from this same cart line, but say
+so rather than claim it was seen.
+
+---
+
 ## 🏠 EVERYTHING IS ON THE VPS — nowhere else (owner, 30 Aug)
 
 *"amder r akhon kichui others kothaw nei sob amder vps a ache. amder kon kaj
