@@ -104,13 +104,36 @@ export default function PosSellView() {
   const methods = usePaymentMethods(TILL_TENDERS);
   const shiftOpen = !!shift;
   const openingFloatPaisa = shift?.openingFloatPaisa ?? 0;
+  /*  P7-11 (31 Aug) — the drawer used to open with a hardcoded ৳2,000 under the
+      name "Cashier", whatever the shop had set and whoever was signed in. Both
+      are facts about money: the float is what somebody physically put in the
+      till, and the name is who answers for it at close. A fiction in either one
+      turns up later as an over/short nobody can explain (house rule 7 — no
+      business value lives in code).  */
+  const [openAsk, setOpenAsk] = useState<{ floatTaka: string; cashier: string } | null>(null);
+  const [openBusy, setOpenBusy] = useState(false);
+  async function askOpenShift() {
+    setSaleErr(null);
+    let deflt = 0;
+    try { deflt = (await posSettings()).openingFloatDefaultPaisa ?? 0; } catch { /* the field starts empty */ }
+    setOpenAsk({ floatTaka: deflt ? String(deflt / 100) : "", cashier: me?.name ?? "" });
+  }
   async function openShift() {
+    if (!openAsk) return;
+    if (!openAsk.cashier.trim()) { setSaleErr("Who is on the counter?"); return; }
+    setOpenBusy(true);
     setSaleErr(null);
     try {
-      const s = await posOpenShift({ cashierName: "Cashier", openingFloatPaisa: 200000 });
+      const s = await posOpenShift({
+        cashierName: openAsk.cashier.trim(),
+        openingFloatPaisa: Math.round((Number(openAsk.floatTaka) || 0) * 100),
+      });
       setShift(s);
+      setOpenAsk(null);
     } catch (e) {
       setSaleErr(e instanceof Error ? e.message : "Could not open shift");
+    } finally {
+      setOpenBusy(false);
     }
   }
 
@@ -477,7 +500,7 @@ export default function PosSellView() {
         <div className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[#e9f9ef] border-[#c2ecd3] text-[#0e7a3d]" : "bg-lavender border-lavender-deep text-body-soft")}>
           <Icon name="clock" size={15} />
           {shift ? <>Shift open · {shift.cashierName} (float {formatTaka(openingFloatPaisa)})</> : shiftKnown ? <>Shift closed</> : <>Checking the counter…</>}
-          {shiftKnown && !shift && <button type="button" onClick={openShift} className="ml-1 underline decoration-dotted">Open</button>}
+          {shiftKnown && !shift && <button type="button" onClick={askOpenShift} className="ml-1 underline decoration-dotted font-bold">Open</button>}
         </div>
         <button type="button" onClick={() => setShowHeld(true)} className="flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium bg-white border border-lavender-deep text-purple hover:border-orchid-mid">
           <Icon name="clock" size={15} /> Held bills
@@ -980,6 +1003,30 @@ export default function PosSellView() {
       )}
 
       {/* ===== held bills drawer ===== */}
+      {/* P7-11 — opening a drawer says what is in it and who is on it */}
+      {openAsk && (
+        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setOpenAsk(null))}>
+          <div className="bg-white rounded-[16px] shadow-lift p-6 w-full max-w-[380px]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-[17px] text-purple m-0 mb-4">Open the counter</h3>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Who is on the counter</label>
+            <input className="ipt h-[44px] mb-3" value={openAsk.cashier}
+              onChange={(e) => setOpenAsk({ ...openAsk, cashier: e.target.value })} />
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Cash in the drawer now ৳</label>
+            <input type="text" inputMode="decimal" className="ipt h-[44px] text-[15px]" placeholder="0.00"
+              value={openAsk.floatTaka}
+              onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setOpenAsk({ ...openAsk, floatTaka: v }); }} />
+            {saleErr && <p className="text-[12px] text-[#c0392b] mt-3 mb-0">{saleErr}</p>}
+            <div className="flex gap-2 mt-5">
+              <button type="button" onClick={() => setOpenAsk(null)} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Cancel</button>
+              <button type="button" onClick={openShift} disabled={openBusy}
+                className="flex-1 py-2.5 rounded-[11px] bg-purple hover:bg-purple-deep text-white font-bold text-[13px] disabled:opacity-50">
+                {openBusy ? "Opening…" : "Open the shift"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showHeld && (
         <div className="fixed inset-0 z-50 bg-black/30 flex justify-end" {...backdropClose(() => setShowHeld(false))}>
           <div className="bg-white w-full max-w-[380px] h-full p-5 overflow-auto shadow-lift" onClick={(e) => e.stopPropagation()}>

@@ -102,6 +102,49 @@ built differently, is the same shape as the courier bug and the COD bug.
    till and the drawer never knew: that ৳60 would have surfaced at day-close as
    a shortage and been posted to `5700 Cash Short`, against the cashier.
 
+7. **The advance order (DEC-POS-022) is exactly right.** `POS-000016`, one
+   Red-Rose paid ৳60 in full, taken 1 Sep. At order time: stock **stayed 42**,
+   Sales and COGS **did not move**, only the cash came in. At hand-over: stock
+   **42 → 41**, Sales **+৳60**, COGS **+৳20**, Inventory **−৳20**, Customer
+   Advance **−৳60** released, drawer untouched (the money came in earlier), and
+   it left the waiting list. A clean circle, nothing to fix.
+8. **A due collected on a 10-day-old bill goes into TODAY's drawer.**
+   `POS-000003` (rung up 21 Aug on the now-closed `SHF-000001`) collected ৳60:
+   the movement landed on `SHF-000002` as `SALE_CASH · "POS-000003 due"`,
+   drawer ৳1,809.50 → ৳1,869.50, Finance cash up the same ৳60, and the bill
+   left the due board. That is POS-REV-4 holding under a real closed shift.
+
+### P7-9 — the due board could not take cash either (fixed, walked)
+
+Collecting on POS-000003 answered *"Say which Cash the money went to — there
+are 2."* **on the page**, with no picker to answer it — P7-8 one screen over.
+`CollectDue` and `HandOver` rendered `PayDialog` without a `methods` prop, so it
+fell back to the built-in tenders, which carry no accounts. Both read the shop's
+list now. `PurchaseDetailView` already did; those three are all the callers.
+
+### P7-11 — the drawer opened with an invented ৳2,000, under the name "Cashier"
+
+The Sell screen's Open button sent `openingFloatPaisa: 200000` and
+`cashierName: "Cashier"`, hardcoded — whatever the shop's setting said (it says
+0) and whoever was signed in. Both are facts about money: the float is what
+somebody physically put in the till and the name is who answers for it at
+close, so a fiction in either turns up later as an over/short nobody can
+explain (house rule 7). Opening now asks, prefilled from the shop's setting and
+the signed-in user.
+
+## ⚠️ Two POS questions for the owner — NOT invented, NOT implemented
+
+1. **No discount cap exists.** `PosDiscountRule` is **empty**, and DEC-POS-006
+   says an unconfigured category means no block — so today a cashier can take
+   100% off any bill with nobody's approval. The machinery (cap, manager
+   approval, audit) is built and waiting; the numbers are the owner's.
+   **What is the cap, and for which categories?**
+2. **`defaultCreditLimitPaisa` is a setting nothing reads.** It is written in
+   POS → Settings and never checked anywhere, so counter credit is unlimited: a
+   customer can keep taking goods on due for ever. DEC-POS-007/008 only require
+   that a due names a customer. **Is there a limit, per customer or one for the
+   shop, and does it block the sale or warn?**
+
 **Still not walked: P7-4 only.** Showing it needs a sale timestamped between
 midnight and 6 AM Dhaka; the code is right and matches the four other places
 that already use the shop's day, but nobody has watched the boundary move.
