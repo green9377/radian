@@ -152,9 +152,15 @@ that already use the shop's day, but nobody has watched the boundary move.
 ### Test rows left on the system, on purpose
 
 `POS-000015` (Red-Rose ৳60, then fully returned by `RTN-000018`) ·
-`EXP-000001` (৳250.50 Transport & Conveyance) · `SHF-000001` closed clean ·
-**`SHF-000002` left OPEN** with ৳1,749.50 in it. Reversing them now would write
-credits that never happened.
+`POS-000016` (advance, handed over) · `EXP-000001` (৳250.50 Transport &
+Conveyance) · ৳60 collected on `POS-000003`. Reversing any of them now would
+write credits that never happened.
+
+**The counter was left in a correct state, not a test state:** `SHF-000001` and
+`SHF-000002` both closed with counted = expected (no over/short posted), and
+**`SHF-000003` is open** on Main Counter under **sobuj** with the ৳1,869.50 that
+is actually in the drawer — opened through the new dialog, which is what proved
+P7-11.
 
 ---
 
