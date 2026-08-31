@@ -569,7 +569,51 @@ count, not a substitute for it.
 
 ---
 
-## 📡 META WEBHOOKS — looked at properly, 31 Aug. The board was WRONG.
+## ✅ META WEBHOOKS ALL WORK — and I was wrong twice before getting here
+
+**The owner caught it with one question:** *"if the webhook is not working, how
+are Facebook and Instagram messages arriving in my inbox?"*
+
+He was right. Measured immediately afterwards:
+
+```
+now                      2026-08-31T17:27:13Z
+newest MESSENGER message 2026-08-31T17:27:20Z   ← arriving as the query ran
+```
+
+50 Instagram and 49 Messenger conversations, the newest **seconds old**. And
+`conversation.create` has exactly two writers in the whole codebase —
+`meta-webhook.ts` and `whatsapp-webhook.ts`. There is no poller. So those
+messages can only have come **through the webhook**. All three channels work.
+
+### The two mistakes, written down so they are not repeated
+
+1. **I read the wrong screen.** With use-case apps the Messenger and Instagram
+   subscriptions live under their own use cases; the legacy *Webhooks → Page /
+   Instagram* page shows a blank Callback URL even when the thing is working.
+   Blank there means "not configured **here**", not "not configured".
+2. **I used the absence of a log line as proof.** The API logs only a *verify
+   refusal* — it says nothing on an incoming message POST. So "no lines while he
+   pressed the button" proved only that no verify handshake happened. I read it
+   as "no messages are arriving", which the data flatly contradicts.
+
+The honest lesson, and it is the same one this project keeps teaching: **a
+screen that is empty and a log that is silent are both absences, and an absence
+is not evidence until you have proved the thing would have spoken.** The
+wrong-token probe proved the log speaks for *verify* — it never proved it speaks
+for *messages*.
+
+### What this leaves
+
+Nothing to fix. **Do not touch the Meta app.** The "Verify and save" that would
+not save was on the legacy page, and it does not matter.
+
+Still worth knowing: `pages_messaging` shows **Pending App Review**, which is
+about what the app may do for *other* businesses — the shop's own Page works.
+
+---
+
+## 📡 (superseded, kept for the reasoning) META WEBHOOKS — 31 Aug first pass
 
 Opened the Meta app (`Radian`) and read every webhook setting rather than
 trusting the note. What was written here for days — *"Meta webhooks still point
