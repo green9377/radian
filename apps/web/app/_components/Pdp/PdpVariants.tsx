@@ -152,7 +152,12 @@ export function VariantPicker({
         anything ordered after that carried no variant at all.
         Unchoosing may only happen when the pressed value is the one already
         chosen ON THIS LIST. Pressing the other list is always a choice.  */
-    if (target) onPick(target.id, chosen.get(axisId) === valueId);
+    /*  ⚠️ Only a ONE-list product may be unchosen by pressing again. On two
+        lists the shopper never chose half of it — pressing Pink made the shop
+        pick Large for them — so pressing Large is them CONFIRMING a value they
+        were handed, not asking to clear it. Reading it as "unchoose" is what
+        threw the selection away and sent the photo back to the main image.  */
+    if (target) onPick(target.id, axes.length === 1 && chosen.get(axisId) === valueId);
   };
 
   return (
