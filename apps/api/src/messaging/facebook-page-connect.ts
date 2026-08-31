@@ -151,7 +151,9 @@ export class FacebookPageConnectService {
       `Page connected — ${page.name ?? page.id} (${page.id}), ` +
         `missing scopes: ${(after as { missing?: string[] }).missing?.join(',') || 'none'}`,
     );
-    return { connected: true, pageId: page.id, pageName: page.name ?? null, ...after };
+    // Spread first: status() already carries `connected`, and the fields below
+    // are the ones that must win.
+    return { ...after, connected: true, pageId: page.id, pageName: page.name ?? null };
   }
 
   /**
