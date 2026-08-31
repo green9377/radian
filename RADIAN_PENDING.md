@@ -569,6 +569,98 @@ count, not a substitute for it.
 
 ---
 
+## ✅ ONE INBOX — what was fixed on 31 Aug, and what is still open
+
+The owner's four asks, and where each one landed. Everything below was walked on
+`admin.development.radianbd.com/inbox` after the build, not inferred.
+
+| ask | state |
+|---|---|
+| all four channels in one place, reply from there | ✅ already true by design; the gaps were per-channel, below |
+| Instagram messages arriving | ✅ **fixed** — 133 recovered on the first tick |
+| a reply typed in Meta's app showing in admin | ✅ **fixed** — both directions now land |
+| seeing which admin replied | ⚠️ **Meta does not expose it** — see below |
+
+### 1. Instagram — a poller under the webhook (`meta-poll.service.ts`)
+
+Meta holds the messages, lets our token read them, and pushes none of them. So
+the inbox stopped depending on being told and started asking: once a minute,
+"what changed?", then fetch it. 72 hours back on the first tick, so a channel
+dead for days repairs itself instead of only catching up from now.
+
+**The first tick picked up 133 messages** — including live customers nobody had
+answered:
+
+```
+18:15  jafiraah_   And how long would it take to be delivered?
+18:12  jafiraah_   I had a question. I have a flower in mind ... what's the delivery charge?
+15:14  jafiraah_   Hii, could you please show me bouquets w...
+```
+
+Both directions come through, so replies typed in Instagram's own app appear
+too, and the threads carry real usernames (`jafiraah_`, `titeer.12`) where the
+webhook path only ever managed **Guest**.
+
+`importMessage()` is now the single door for both paths, deduping on Meta's own
+message id — a message that arrives both ways is stored once. Proved by the
+container restart: the second backfill imported 0.
+
+`POST messaging/meta/sync` is the Sync-now button, so nobody waits out a minute.
+
+### 2. Facebook — the reply typed in Meta's inbox
+
+Cause found: the PAGE object was subscribed to `messages, messaging_postbacks`
+but **not `message_echoes`** — the field that carries our own outgoing messages.
+`onEcho` had been waiting since 8 Aug for an event Meta was never asked to send.
+Now subscribed. The same change for INSTAGRAM was **refused**:
+
+```
+Invalid Permissions - "You could not subscribe to some of the fields
+requested due to a permissions error"   (subcode 1929002)
+```
+
+That is the first real error in the whole hunt, and the thread worth pulling
+next — it is likely the same missing permission that stops Instagram delivery.
+
+### 3. "Which admin replied" — asked Meta, and Meta will not say
+
+Measured before answering. An outgoing message comes back as:
+
+```json
+"from": { "username": "radiangiftshop", "id": "17841467082693222" }
+```
+
+The shop account. Never the person. Meta Business Suite knows internally and
+does not expose it, so no amount of work on our side produces that name.
+
+**What our own data can tell apart:** a reply sent *through Radian* always
+carries its author (8 of 8 Messenger replies); one typed in Meta's app never can
+(188 of 194 Instagram replies). So the screen now says **"Replied from Meta"**
+instead of a nameless "Staff", and the list prefixes **"Meta:"** instead of
+"You:". An honest label beats a name we invented.
+
+> The only way to get a real name on every reply is for staff to reply **from
+> Radian**. That is a working decision for the owner, not a technical one.
+
+### 4. Still open
+
+- **WhatsApp: zero inbound, ever.** The subscription is active with `messages`
+  and 0 threads exist. Either nobody has messaged the number, or it is the same
+  fault as Instagram. Not yet distinguished — do not guess.
+- **SMS: there is no inbound path at all**, and this is not a bug. The gateways
+  in the code (BULKSMSBD · MIMSMS · REVE) are one-way masking SMS. Receiving
+  needs a two-way short/long code from the operator — a purchase decision, so
+  the owner has to make it before anything is built.
+- **Facebook threads still read "Guest".** `debug_token` named the cause: the
+  Page token carries only `pages_messaging, whatsapp_business_management,
+  whatsapp_business_messaging, public_profile`. Reading a profile needs
+  `pages_read_engagement`. Owner action — re-authorise the Page token.
+- **Attachments look wrong**: a polled attachment renders as
+  `[unsupported_type](https://lookaside.fbsbx.com/...)` instead of the picture.
+  Cosmetic, seen while walking, not chased.
+
+---
+
 ## 📨 META — everything on OUR side is proven; Instagram has simply not been tried
 
 **Instagram's silence has now been chased all the way to its end, and the
