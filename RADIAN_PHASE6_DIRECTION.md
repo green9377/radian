@@ -1,12 +1,18 @@
-# PHASE 6 DIRECTION — Orders & Delivery (written 30 Aug 2026)
+# PHASE 6 — Orders & Delivery · ✅ CLOSED 31 Aug 2026
 
-This file is written for the FIRST message of a new chat. It carries what the
-next session must know so nobody rediscovers the project from zero.
+> ⚠️ **THIS IS HISTORY. Do not start a session here.**
+> The first read of a new chat is **`RADIAN_PHASE7_DIRECTION.md`**.
+>
+> Everything below is kept for one purpose: finding out **why** a Phase 6
+> decision was made. Every ✅ section records what was walked on the system and
+> what the walking found — and the walking is what found all of it.
 
-Read in this order: `CLAUDE.md` (the standing brief) → **this file** →
-`RADIAN_PENDING.md` (the live board) → `RADIAN_GLOBAL_RULES.md` (what is
-shop-wide and must not be duplicated) → `RADIAN_DELIVERY_MODULE_ARCHITECTURE.md`
-(this module's own design and DEC rules).
+Written 30 Aug for the chat that then closed the phase.
+
+Read in this order: `CLAUDE.md` (the standing brief) → `RADIAN_PHASE7_DIRECTION.md`
+→ `RADIAN_ORDER_MAP_AND_TESTS.md` → `RADIAN_PENDING.md` (the live board) →
+`RADIAN_GLOBAL_RULES.md` (what is shop-wide and must not be duplicated) →
+`RADIAN_DELIVERY_MODULE_ARCHITECTURE.md` (this module's own design and DEC rules).
 
 ---
 
@@ -460,4 +466,5 @@ now the rules Phase 6 builds to.
 
 ---
 
-_Phase 5 closed 30 Aug 2026. Phase 6 opens on the owner's word._
+_Phase 5 closed 30 Aug 2026. **Phase 6 closed 31 Aug 2026** — see
+`RADIAN_PHASE7_DIRECTION.md`._

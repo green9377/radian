@@ -1,8 +1,40 @@
 # Radian — চলমান কাজের একমাত্র বোর্ড
 
 > **এটাই একমাত্র জায়গা** যেখানে "কী হয়েছে, কী বাকি" থাকে (CLAUDE.md নিয়ম ১১)。
-> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 26 Aug 2026._
+> প্রতিটা কাজ শুরু/শেষ হলে এই অংশ হালনাগাদ হবে। _Last updated: 31 Aug 2026._
 > নিচের A–F অংশ = ২৩ জুলাইয়ের পুরনো backlog — আংশিক শেষ, ধরলে আগে যাচাই。
+
+---
+
+## ✅ PHASE 6 CLOSED — 31 Aug 2026 (Orders & Delivery)
+
+**A new chat starts at `RADIAN_PHASE7_DIRECTION.md`** — what Phase 6 changed,
+what is on the menu for Phase 7, the test rows left on the system, and the
+traps.
+
+Closed in one day, **every item walked on the system before it was reported**:
+
+| | |
+|---|---|
+| 6.1 | one path to a carrier (`/orders/:id/courier` gone) |
+| 6.2 · REV-C4 | the report counts in Postgres, not over the first 100 orders — checked against psql |
+| 6.3 · DEC-DLV-016 | **the rider's cash could never be handed back** — the settle screen read `duePaisa`, which delivery has already zeroed. Whole chain walked: RMT-000001, RMT-000002 |
+| 6.4 | **not one `alert()` left in the admin** (46, in 22 files) — one shape, `Said.tsx` |
+| 6.5 | retry · bulk · prepaid settle · full slot · blackout · promise — all walked |
+| DEC-DLV-021 | a carrier swapped on the road is `SWAPPED`, never a failure |
+| DEC-DLV-022 | the fail reason comes from `ReasonMaster` (no auto follow-up) |
+| DEC-SAL-015 | COD was closed on 22 of 24 products — now only gift and "payment required" |
+| DEC-SAL-016 | the customer's order page asks the shop; five real step times on `Order` |
+| DEC-PRD-061 | the customer's photo is really uploaded, lands on the line, downloads in the admin |
+| DEC-PRD-014 | a variant order no longer reads as the parent product |
+
+**One thing left in Phase 6, and it is not code** — variant photos:
+Products → the product → **Variants**, one photo per combination. Cart,
+checkout and the order snapshot all read `variant.imageUrl ?? product image`.
+
+⚠️ **Two standing rules were added to CLAUDE.md (owner, 30 Aug):** every
+movement of money lands in Finance (§4 rule 4a), and **stop calling this a
+demo** (§4 rule 10).
 
 ---
 
