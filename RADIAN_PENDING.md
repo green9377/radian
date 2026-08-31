@@ -179,7 +179,24 @@ drift checker says three numbers are wrong right now** (`GET /finance/drift`,
 | What we owe suppliers | ৳11,513.94 | ৳0 | ৳11,513.94 |
 | What customers owe us | −৳12,642.76 (negative!) | ৳60 | ৳12,702.76 |
 
-### P7-12 — a purchase return tells Finance nothing
+### ✅ P7-12 FIXED, DEPLOYED AND WALKED — 31 Aug (`bb2dc5b` on the VPS)
+
+`onPurchaseReturned` now posts the three facts as one entry — `Cr 1150
+Inventory` for what went back, `Dr 2000 Supplier Payable` for the part cut from
+the bill, `Dr 1200 Supplier Advance` for whatever the supplier is left holding
+for us (the same shape as money paid ahead). The backfill sweeps old returns
+too, on the same idempotent rule.
+
+Walked on the one return that exists (৳60, all of it cut from the due):
+`1150` **10,334,481 → 10,328,481** and `2000` **1,151,394 → 1,145,394** — both
+by exactly ৳60, and `1200` stayed 0 because nothing was left over. The
+supplier-dues drift moved by the same ৳60.
+
+⚠️ Note the stock-value residual went −৳4,037.01 → **−৳4,097.01**, by that same
+৳60, and that is right: the shelf lost those goods back in August, the books
+only lost them now. It widens a gap whose cause is something else.
+
+### P7-12 — what it was: a purchase return told Finance nothing
 
 `purchases.createReturn` cuts the purchase's due, creates a `SupplierCredit`
 for the excess and sends the goods back out through Inventory — and there is
