@@ -29,7 +29,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { PayDialog, usePayRows } from "./MoneyBlock";
+import { PayDialog, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
 
 /*
   POS secondary screens (RADIAN_POS_MODULE_ARCHITECTURE.md §7).
@@ -664,7 +664,13 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
 }) {
   const bills = onlyOrderId ? row.orders.filter((o) => o.id === onlyOrderId) : row.orders;
   const owed = bills.reduce((s, o) => s + o.duePaisa, 0);
-  const pay = usePayRows(owed);
+  /*  P7-9 (31 Aug) — the shop's own payment list, the same one the sell screen
+      reads. Without it this dialog fell back to the built-in four, which carry
+      no accounts, so the "Which account…" picker never appeared and the server
+      refused every cash collection with "Say which Cash the money went to —
+      there are 2." Walked on the due board before it was fixed.  */
+  const methods = usePaymentMethods(TILL_TENDERS);
+  const pay = usePayRows(owed, methods[0]?.id ?? "CASH");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -700,7 +706,7 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
       note={bills.length === 1
         ? `${bills[0].orderNo} · ${new Date(bills[0].placedAt).toLocaleDateString()}`
         : `${bills.length} bills · oldest ${new Date(row.oldest).toLocaleDateString()}`}
-      pay={pay} busy={busy} error={err}
+      pay={pay} methods={methods} busy={busy} error={err}
       confirmLabel="Collect" leftLabel="Taking now"
       onConfirm={collect} onClose={onClose} />
   );
@@ -903,7 +909,9 @@ function HandOver({ row, busy, err, onClose, onDone }: {
   row: ApiPosAdvance; busy: boolean; err: string | null;
   onClose: () => void; onDone: (p: { method: string; amountPaisa: number }[]) => void;
 }) {
-  const pay = usePayRows(row.duePaisa);
+  // P7-9 — the shop's list here too, or a hand-over with money still owed dies the same way
+  const methods = usePaymentMethods(TILL_TENDERS);
+  const pay = usePayRows(row.duePaisa, methods[0]?.id ?? "CASH");
   const rest = pay.pays.filter((r) => r.amountPaisa > 0)
     .map((r) => ({ method: r.method.toLowerCase(), amountPaisa: r.amountPaisa, accountId: r.accountId }));
 
@@ -939,7 +947,7 @@ function HandOver({ row, busy, err, onClose, onDone }: {
       title="Hand over" who={`${row.orderNo} · ${row.customerName}`}
       owedPaisa={row.duePaisa} owedLabel="Still to collect"
       note={`${formatTaka(row.paidPaisa)} paid in advance · the stock leaves when this is done`}
-      pay={pay} busy={busy} error={err}
+      pay={pay} methods={methods} busy={busy} error={err}
       confirmLabel="Take & hand over" leftLabel="Taking now"
       dueAfterLabel="Still owed after this" clearedLabel="Settled"
       onConfirm={() => onDone(rest)} onClose={onClose} />
