@@ -38,10 +38,10 @@ krbe expance diye"* — cash may leave the drawer whenever it is needed, and eve
 withdrawal is recorded as an **expense under a heading**, so it lands in Finance
 as a cost. Nothing leaves the till silently.
 
-### All seven are FIXED in code — ⏳ NOT DEPLOYED, NOT WALKED
+### FIXED, DEPLOYED and WALKED — 31 Aug 2026 (`0289df6` on the VPS)
 
-Written 31 Aug. `tsc --noEmit` clean on api + admin + web; no-bangla passes.
-**Nobody has walked them on the system**, so not one of them may be called done.
+Every row below was seen working on **https://admin.development.radianbd.com**
+after the deploy, not just type-checked.
 
 | # | what changed |
 |---|---|
@@ -52,11 +52,57 @@ Written 31 Aug. `tsc --noEmit` clean on api + admin + web; no-bangla passes.
 | P7-5 | the invented ৳12,260 is gone; with no shift the screen says there is no drawer to count |
 | P7-6 | a shift always carries a register, and a register-less one blocks every counter until it is closed. Selftest added |
 | P7-7 | the count box holds paisa (own draft, `inputMode="decimal"`), so ৳15,156.76 can actually be counted |
+| **P7-8** | **found by walking, and the worst of the eight: the till could not take cash at all.** See below |
 
-⛔ **BLOCKER — the deploy.** Writing to the live admin, and to the hPanel web
-console, is refused for this session. The VPS still runs the old code and
-`SHF-000001` is still open with ৳15,156.76. Nothing above is verified until the
-deploy in CLAUDE.md §2 has run and somebody has walked it.
+### P7-8 — the counter could not ring up a cash sale (31 Aug)
+
+Ringing one Red-Rose for ৳60 in cash was refused with *"Say which Cash the
+money went to — there are 2."* and **the sell screen had no way to answer** —
+the "Which account…" picker never rendered.
+
+The first payment row is built before the shop's payment-method list arrives,
+so it took its id from the built-in fallback, which spelled the methods
+`"Cash"` / `"bKash"`, while the API returns the shop's own codes `"CASH"` /
+`"BKASH"`. `methods.find(m => m.id === r.method)` then matched nothing, so the
+row believed its method had no accounts. It still LOOKED right, because a
+`<select>` whose value matches no option displays the first one. This shop
+keeps two cash accounts (Cash Drawer, Cashhhh) and two bKash numbers, so cash
+and bKash were both impossible; only Nagad and Card, with one account each,
+went through.
+
+`COUNTER_METHODS` now carries the shop's uppercase codes, the lookup is
+case-insensitive, and the select renders the option's own id. The same question
+was asked of the drawer: `takeCashOut` had hardcoded account `1000`, which on a
+two-cash shop would have emptied a drawer the notes never sat in — it resolves
+through `PaymentMethodsService` now (DEC-GBL-006) and the dialog asks only when
+there is a real choice.
+
+⚠️ The lesson is the old one in a new place: **one fact spelled two ways is two
+facts.** A screen and an API that both "know" the payment methods, from lists
+built differently, is the same shape as the courier bug and the COD bug.
+
+### What the walk proved, in order
+
+1. `SHF-000001` (open 11 days) closed at **exactly ৳15,156.76** — paisa typed,
+   "Matches exactly ✓", **no over/short posted** (P7-1, P7-7)
+2. day-close with no shift now says *"No shift is open"* (P7-5)
+3. a new shift opened carrying **Main Counter** (P7-6)
+4. **Take cash out** → ৳250.50 under *Transport & Conveyance* → **`EXP-000001`
+   in Finance, posted to the ledger**, note carrying `SHF-000002`; drawer
+   ৳2,000 → ৳1,749.50; account 5460 = ৳250.50 (P7-2, DEC-POS-025)
+5. **POS-000015**, one Red-Rose, ৳60 cash into Cash Drawer:
+   stock **42 → 41** · shift "1 bill · ৳60" · expected cash **৳1,809.50** ·
+   Finance `1000 Cash Drawer` up by exactly ৳60
+
+**Not yet walked:** P7-3 (needs a counter return with a cash refund) and P7-4
+(needs a sale between midnight and 6 AM Dhaka to show the day boundary moving).
+Both are right in code and neither has been seen with eyes — say so.
+
+### Test rows left on the system, on purpose
+
+`POS-000015` (Red-Rose, ৳60) · `EXP-000001` (৳250.50 Transport) ·
+`SHF-000001` closed clean · **`SHF-000002` left OPEN** with ৳1,809.50 in it.
+Reversing them would write refunds and credits that never happened.
 
 ---
 

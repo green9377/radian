@@ -369,3 +369,17 @@ shortage at close.
 **Future review.** If a second counter is ever staffed at the same time, the
 question of *which* drawer a due collection or a refund comes out of stops
 having an obvious answer — today it is "the open one".
+
+### P7-8 — one payment list, spelled one way (31 Aug 2026)
+
+Not a new decision, an old one broken in a new place. DEC-GBL-001/006 say the
+shop has ONE payment list and that a method with several accounts must be told
+which. The admin's fallback list spelled the methods `"Cash"` / `"bKash"` while
+the API returns the shop's codes `"CASH"` / `"BKASH"`, so the row matched no
+method, never rendered the account picker, and every cash and bKash sale was
+refused by the server with a sentence the screen could not answer.
+
+**Rule for anything new:** a payment method is identified by the SHOP'S CODE,
+uppercase, as `/administration/payment-methods` returns it. Never by a label,
+never by a second list written by hand. Where a fallback list must exist for an
+offline screen, its ids are those same codes.
