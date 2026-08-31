@@ -210,7 +210,26 @@ fact of who is carrying a parcel. Recommendation: `/delivery/assignments`
 becomes the only path and `/orders/:id/courier` is removed. **Ask first** — it
 is a live button the owner may be using.
 
-### 🔴 6.2 — Orders → Reports does its arithmetic on the first 100 orders
+### ✅ 6.2 — CLOSED 30 Aug 2026. REV-C4, the last open critical from 17 July.
+
+`GET /orders/report` counts in Postgres — six grouped queries, no order rows
+crossing the wire, the same answer at 40 orders as at 40,000. It takes
+`from`/`to` for the day-by-day work that comes later; a blank or unparseable
+date is ignored rather than refused, and whatever was applied comes back in
+`range` so the screen can say what it counted.
+
+Revenue stays delivered-only (DEC-FIN-002 posts revenue at *delivered* — any
+other choice here disagrees with Finance's own books) and counter sales stay
+out, like every other online Sales screen (AUD-2). The headline cards now say
+how many orders are behind each number, so a reader can see what the average is
+an average of.
+
+**Checked against the database, not against the screen** (30 Aug, 65 orders):
+`orders=65 · delivered=5 · revenue=2440056 · cancelled=29` in psql; the page
+reads 65 · ৳24,400.56 · 5 delivered · 45% · AOV ৳4,880.11, and every split adds
+back to 65 (46+19 zone, 57+8 payment, 60+5 self/gift).
+
+### ~~🔴 6.2 (original finding)~~ — Orders → Reports does its arithmetic on the first 100 orders
 
 `listOrders()` hardcodes `pageSize: "100"` (`_data/api.ts:1410`), and
 `OrdersReports` (`OrderViews.tsx:535`) computes **revenue, AOV, cancel rate,
