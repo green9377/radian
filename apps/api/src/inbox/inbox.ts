@@ -33,28 +33,30 @@ import { ChannelSender } from '../messaging/channel-sender.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
-  INBOX — Phase 1 (web live chat, মানুষ উত্তর দেয়)।
+  INBOX — Phase 1 (web live chat, answered by a person).
   RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-001…006
 
-  Phase 1-এ AI নেই — `InboxSetting.aiGloballyEnabled` জন্ম থেকেই false।
-  তবু `Conversation.aiEnabled` আর INB-RULE-003 (staff লিখলেই off) আজই কাজ
-  করে, যাতে Phase 2-তে AI নামলে হাতবদলের নিয়মটা আগে থেকেই প্রমাণিত থাকে।
+  There is no AI in Phase 1 — `InboxSetting.aiGloballyEnabled` was born false.
+  Even so, `Conversation.aiEnabled` and INB-RULE-003 (a staff reply switches it
+  off) already work today, so that when AI lands in Phase 2 the hand-over rule
+  has already been proved rather than being written the same day it is needed.
 
-  WEB_CHAT-এর পরিচয় = `clientKey` (ব্রাউজারের localStorage-এ থাকা secret)।
-  যার হাতে key, thread টা তার — গ্রাহকের কোনো login লাগে না (DEC-INB-006-এর
-  guest পথ)। Login-করা গ্রাহক: storefront নিজের session থেকে name/phone
-  পাঠায়, INB-RULE-007 তাকে Customer-এর সাথে জুড়ে দেয়।
+  A WEB_CHAT identity is the `clientKey` — a secret in the browser's
+  localStorage. Whoever holds the key owns the thread, and the customer never
+  logs in (the guest path of DEC-INB-006). A logged-in customer is different:
+  the storefront sends name and phone from its own session and INB-RULE-007
+  joins the thread to the Customer row.
   ═══════════════════════════════════════════════════════════════════════════
 */
 
 const ENTITY = 'Conversation';
 
-/** guard যা বসায় (auth.guard.ts:60) — controller-এ actor পড়ার জন্য */
+/** What the guard puts there (auth.guard.ts:60), so a controller can read the actor. */
 interface ActorRequest {
   actor?: { id: string; name: string; role: string };
 }
 
-/** "01712345678" → "+8801712345678" — Customer.phone-এর ঘরের রূপ (INB-RULE-007) */
+/** "01712345678" -> "+8801712345678" — the shape Customer.phone is stored in (INB-RULE-007). */
 function normalizeBdPhone(raw: string): string {
   const digits = raw.replace(/[\s\-()]/g, '');
   if (/^01\d{9}$/.test(digits)) return `+880${digits.slice(1)}`;
@@ -62,7 +64,7 @@ function normalizeBdPhone(raw: string): string {
   return digits;
 }
 
-/** BD সময়ে এখন মধ্যরাত থেকে কত মিনিট — INB-RULE-008-এর ঘড়ি */
+/** Minutes since midnight in Bangladesh — the clock INB-RULE-008 reads. */
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000;
 function bdMinutesNow(): number {
   const bd = new Date(Date.now() + BD_OFFSET_MS);
@@ -112,7 +114,7 @@ export class InboxService {
     private readonly sender: ChannelSender,
   ) {}
 
-  /* ── settings (singleton, ঘরের ensureSingleton ধাঁচ) ─────────────────── */
+  /* ── settings (singleton, the house ensureSingleton shape) ───────────── */
 
   settings() {
     return ensureSingleton(
@@ -149,14 +151,14 @@ export class InboxService {
     return updated;
   }
 
-  /* ── গ্রাহকের দিক (public) ───────────────────────────────────────────── */
+  /* ── the customer's side (public) ────────────────────────────────────── */
 
   async startChat(dto: StartChatDto) {
     const s = await this.settings();
     if (!s.webChatEnabled) throw new BadRequestException('Chat is switched off right now');
 
     const phone = dto.phone?.trim() ? normalizeBdPhone(dto.phone) : null;
-    // INB-RULE-007 — ফোন মিললে FK, কপি নয়
+    // INB-RULE-007 — when the phone matches, an FK; never a copy.
     const customer = phone
       ? await this.prisma.db.customer.findFirst({ where: { phone }, select: { id: true, name: true } })
       : null;
@@ -175,7 +177,7 @@ export class InboxService {
     return this.publicView(convo.id, convo.clientKey);
   }
 
-  /** clientKey না মিললে thread-টা এই ব্রাউজারের নয় — এক শব্দও ফাঁস হবে না */
+  /** If the clientKey does not match, the thread is not this browser's — not one word leaks. */
   private async ownedConversation(conversationId: string, clientKey: string) {
     const convo = await this.prisma.db.conversation.findFirst({
       where: { id: conversationId, deletedAt: null },
@@ -192,9 +194,10 @@ export class InboxService {
     const convo = await this.ownedConversation(dto.conversationId, dto.clientKey);
     const s = await this.settings();
 
-    /*  INB-RULE-006 — পুরনো RESOLVED thread window-এর ভেতরে হলে নতুন
-        message-এ আবার খোলে; বাইরে হলেও এই একই thread-ই খোলে (WEB_CHAT-এ
-        ব্রাউজার-key-ই পরিচয়, নতুন thread মানে গ্রাহকের ইতিহাস হারানো)।  */
+    /*  INB-RULE-006 — a RESOLVED thread reopens on a new message if it is
+        inside the window; outside it, this same thread still reopens. On
+        WEB_CHAT the browser key IS the identity, so starting a fresh thread
+        would throw away the customer's history.  */
     await this.prisma.db.message.create({
       data: {
         conversationId: convo.id,
@@ -214,15 +217,16 @@ export class InboxService {
 
     await this.maybeOffHoursLine(convo.id, s);
 
-    /*  Phase 2 — AI জাগে এখানে, কিন্তু await নয়: গ্রাহকের request সাথে সাথে
-        ফেরে, উত্তরটা সে পরের poll-এ (৪ সে) পায়। Agent-এর ভেতরের সব ব্যর্থতা
-        সেখানেই গেলা হয় — এই request কখনো তাতে ভাঙে না।  */
+    /*  Phase 2 — the AI wakes here, but is not awaited: the customer's request
+        returns at once and the answer reaches them on the next poll (4s). Every
+        failure inside the agent is swallowed there, so this request can never
+        break because of one.  */
     void this.ai.respond(convo.id);
 
     return this.publicView(convo.id, convo.clientKey);
   }
 
-  /** DEC-INB-006 — guest পরে নাম/ফোন দিলে thread পিছন থেকে জুড়ে যায় */
+  /** DEC-INB-006 — when a guest gives a name or phone later, the thread is joined up retroactively. */
   async identify(dto: IdentifyDto) {
     const convo = await this.ownedConversation(dto.conversationId, dto.clientKey);
     const phone = dto.phone?.trim() ? normalizeBdPhone(dto.phone) : null;
@@ -240,7 +244,7 @@ export class InboxService {
     return this.publicView(convo.id, convo.clientKey);
   }
 
-  /** poll — গ্রাহকের ব্রাউজার কয়েক সেকেন্ড পরপর এটাই ডাকে */
+  /** The poll the customer's browser calls every few seconds. */
   async publicView(conversationId: string, clientKey: string) {
     const convo = await this.ownedConversation(conversationId, clientKey);
     const messages = await this.prisma.db.message.findMany({
@@ -259,8 +263,9 @@ export class InboxService {
       guestName: convo.guestName,
       identified: Boolean(convo.guestPhone || convo.customerId),
       messages: messages.map((m) => {
-        /*  aiMeta-র ভেতর থেকে শুধু products বাইরে যায় (DEC-INB-007-এর card)।
-            provider/model/tool-তালিকা ভেতরের কথা — গ্রাহকের ব্রাউজারে নয়।  */
+        /*  Only `products` leaves aiMeta (the card in DEC-INB-007). The
+            provider, the model and the tool list are house business and do not
+            belong in a customer's browser.  */
         const meta = m.aiMeta as { products?: unknown[] } | null;
         return {
           id: m.id,
@@ -274,8 +279,9 @@ export class InboxService {
     };
   }
 
-  /*  INB-RULE-008 — বন্ধের সময়ের সৌজন্য-বার্তা, এক thread-এ দিনে একবার।
-      শর্তে "AI globally off" আছে: AI চালু থাকলে সে-ই ২৪ ঘণ্টার উত্তরদাতা।  */
+  /*  INB-RULE-008 — the after-hours courtesy line, once per thread per day.
+      The condition includes "AI globally off": when the AI is on, it is the
+      one answering around the clock and the line would be noise.  */
   private async maybeOffHoursLine(conversationId: string, s: { aiGloballyEnabled: boolean; supportOpenMin: number; supportCloseMin: number; offHoursMessage: string }) {
     if (s.aiGloballyEnabled) return;
     const now = bdMinutesNow();
@@ -304,7 +310,7 @@ export class InboxService {
     });
   }
 
-  /* ── admin-এর দিক ────────────────────────────────────────────────────── */
+  /* ── the admin's side ────────────────────────────────────────────────── */
 
   async list(q: { status?: string; search?: string }) {
     const where: Prisma.ConversationWhereInput = { deletedAt: null };
@@ -329,7 +335,17 @@ export class InboxService {
           where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { body: true, authorType: true, createdAt: true },
+          /*
+            authorUser comes along so the list can tell a reply sent THROUGH
+            Radian (it carries its author) from one typed in Meta's own inbox
+            (it never can — Meta's API names only the shop account).
+          */
+          select: {
+            body: true,
+            authorType: true,
+            createdAt: true,
+            authorUser: { select: { name: true } },
+          },
         },
       },
     });
@@ -348,7 +364,7 @@ export class InboxService {
     }));
   }
 
-  /** sidebar-এর badge — মোট unread */
+  /** The sidebar badge — total unread. */
   async badge() {
     const agg = await this.prisma.db.conversation.aggregate({
       where: { deletedAt: null, status: { not: ConversationStatus.RESOLVED } },
@@ -382,7 +398,7 @@ export class InboxService {
     });
     if (!convo) throw new NotFoundException('Conversation not found');
 
-    // staff দেখল — unread শূন্য
+    // Staff has looked — unread goes to zero.
     if (convo.unreadForStaff > 0) {
       await this.prisma.db.conversation.update({
         where: { id },
@@ -392,10 +408,11 @@ export class InboxService {
     return convo;
   }
 
-  /*  Staff-এর reply। DEC-INB-008 (৫ আগস্ট, DEC-INB-004-কে বদলে): এটা আর
-      AI-কে স্থায়ীভাবে থামায় না — staff-এর STAFF message থাকা মানেই পরের
-      গ্রাহক-message-এ AI grace-জানালা মেনে অপেক্ষা করবে (sweeper দেখুন,
-      ai-agent.ts)। per-thread `aiEnabled` toggle এখন শুধুই মালিকের হাতের
+  /*  A staff reply. DEC-INB-008 (5 Aug, replacing DEC-INB-004): this no longer
+      stops the AI permanently — the presence of a STAFF message means that on
+      the next customer message the AI waits out the grace window instead (see
+      the sweeper, ai-agent.ts). The per-thread `aiEnabled` toggle is now only
+      the owner's own
       hard-off।  */
   async reply(id: string, dto: ReplyDto, actor: { id: string; name: string }) {
     const body = dto.body?.trim();
@@ -488,7 +505,7 @@ export class InboxService {
     return this.detail(id);
   }
 
-  /** DEC-INB-004-এর হাতে-ফেরানো দিক — per-thread AI on/off, audited */
+  /** The hand-back side of DEC-INB-004 — per-thread AI on/off, audited. */
   async setAi(id: string, enabled: boolean, actor: { id: string; name: string }) {
     const convo = await this.prisma.db.conversation.findFirst({ where: { id, deletedAt: null } });
     if (!convo) throw new NotFoundException('Conversation not found');
@@ -502,7 +519,7 @@ export class InboxService {
   }
 }
 
-/* ═══════════════ গ্রাহকের controller — @Public, দোকান থেকে ═══════════════ */
+/* ═════════════ the customer's controller — @Public, from the shop ═════════ */
 
 @Controller('shop/chat')
 export class ShopChatController {
@@ -533,7 +550,7 @@ export class ShopChatController {
   }
 }
 
-/* ═══════════════ admin controller — global guard-এর পেছনে ═══════════════ */
+/* ═══════════ the admin controller — behind the global guard ══════════════ */
 
 @Controller('inbox')
 export class InboxController {
@@ -542,8 +559,9 @@ export class InboxController {
     private readonly presence: InboxPresence,
   ) {}
 
-  /*  Inbox পর্দা প্রতি ১০ সেকেন্ডে তালিকা টানে — সেই ডাকই staff-উপস্থিতির
-      প্রমাণ (DEC-INB-008 rev)। আলাদা heartbeat নেই, দরকারও নেই।  */
+  /*  The inbox screen pulls the list every 10 seconds, and that call is itself
+      the proof a staff member is present (DEC-INB-008 rev). There is no
+      separate heartbeat, and there does not need to be.  */
   @Get()
   list(
     @Query('status') status?: string,

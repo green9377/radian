@@ -19,15 +19,21 @@ import {
 } from "../_data/api";
 
 /*
-  Inbox — সব channel-এর গ্রাহক-কথোপকথন এক পর্দায় (Phase 1: WEB_CHAT)।
-  RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-003/004।
+  Inbox — every channel's customer conversations on one screen.
+  RADIAN_INBOX_MODULE_ARCHITECTURE.md · DEC-INB-003/004.
 
-  বাঁয়ে thread-তালিকা (unread আগে চোখে পড়ে), ডানে খোলা কথোপকথন।
-  Staff reply পাঠালেই server ওই thread-এর AI বন্ধ করে দেয় (INB-RULE-003) —
-  UI-তে switch-টা দেখা যায়, Phase 2-তে ওটাই আসল কাজ করবে।
+  Thread list on the left, unread first; the open conversation on the right.
+  The moment a staff member replies, the server switches that thread's AI off
+  (INB-RULE-003) — the switch is visible in the UI and does the real work.
 
-  Poll: তালিকা ১০ সেকেন্ডে, খোলা thread ৫ সেকেন্ডে — দোকানের গ্রাহকের
-  widget-ও ৪ সেকেন্ডে টানে, তাই কথোপকথন প্রায়-তাজা থাকে।
+  Poll: the list every 10 seconds, the open thread every 5. The shop's own chat
+  widget pulls every 4, so a conversation stays close to live on both ends.
+
+  A reply can also arrive from outside Radian — typed into Meta's inbox, or the
+  Messenger/Instagram app on a phone. Those land here too (meta-poll.service.ts)
+  and are labelled "Replied from Meta", because Meta's API returns only the shop
+  account as the sender and never the person who typed it. Better an honest
+  label than a name we invented.
 */
 
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
@@ -171,7 +177,7 @@ export default function InboxView() {
       });
       setItems(rows);
     } catch {
-      /* সাময়িক — পরের poll-এ */
+      /* Temporary — the next poll will settle it. */
     }
   }, [tab, search]);
 
@@ -184,7 +190,7 @@ export default function InboxView() {
         if (el) el.scrollTop = el.scrollHeight;
       });
     } catch {
-      /* thread হারালে তালিকায় ফিরুন */
+      /* Thread is gone — go back to the list. */
     }
   }, []);
 
@@ -202,7 +208,7 @@ export default function InboxView() {
   }, [openId, loadDetail]);
 
   useEffect(() => {
-    // assignee dropdown — OWNER-only endpoint; না পারলে চুপচাপ লুকাই
+    // Assignee dropdown — an OWNER-only endpoint; if it refuses, hide it quietly.
     listAppUsers()
       .then(setUsers)
       .catch(() => setUsers(null));
@@ -457,7 +463,13 @@ export default function InboxView() {
                 </div>
                 <p className="text-[12px] text-gray-500 truncate mt-0.5">
                   {c.lastMessage
-                    ? `${c.lastMessage.authorType === "STAFF" ? "You: " : ""}${previewOf(c.lastMessage.body)}`
+                    ? `${
+                        c.lastMessage.authorType === "STAFF"
+                          ? c.lastMessage.authorUser?.name
+                            ? "You: "
+                            : "Meta: "
+                          : ""
+                      }${previewOf(c.lastMessage.body)}`
                     : "—"}
                 </p>
                 <div className="flex gap-1.5 mt-1 flex-wrap">
@@ -600,7 +612,20 @@ export default function InboxView() {
                       >
                         {!system && !fromCustomer && (
                           <p className="text-[10.5px] opacity-70 font-bold mb-0.5">
-                            {m.authorType === "AI" ? "AI" : m.authorUser?.name ?? "Staff"}
+                            {m.authorType === "AI"
+                              ? "AI"
+                              : (m.authorUser?.name ??
+                                /*
+                                  A staff reply sent THROUGH Radian always carries
+                                  its author (inbox.ts writes it). One that does
+                                  not was typed somewhere else - Meta's own inbox,
+                                  or the Messenger/Instagram app on a phone - and
+                                  Meta's API does not name the person, only the
+                                  shop account (checked 31 Aug: `from` comes back
+                                  as radiangiftshop). So the screen says where it
+                                  came from rather than inventing a who.
+                                */
+                                "Replied from Meta")}
                           </p>
                         )}
                         <MessageBody body={m.body} />
