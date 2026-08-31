@@ -1,33 +1,46 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InboxChannel } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationsService } from '../administration/integrations.service';
 import { MetaWebhookService } from './meta-webhook';
 
 /*
-  The net under the Instagram webhook.
+  The net under the Meta webhooks, for both channels.
 
   A webhook is a thing Meta chooses to send. A read is a thing we choose to do.
   On 31 Aug the difference stopped being academic: Instagram messages were
   sitting in Meta's inbox, our token could read every one of them, and Meta was
-  pushing none of them to the webhook - with every setting it exposes reporting
-  healthy (/{app-id}/subscriptions active and pointed at us, the account
-  subscribed to `messages`, the app Live, sending working). Two and a half days
-  of customer messages were lost that way before anyone noticed, because a
-  silent channel looks exactly like a quiet one.
+  pushing none of them - with every setting it exposes reporting healthy
+  (/{app-id}/subscriptions active and pointed at us, the account subscribed to
+  `messages`, the app Live, sending working). Two and a half days of customer
+  messages were lost that way before anyone noticed, because a silent channel
+  looks exactly like a quiet one.
 
-  So the inbox no longer depends only on being told. This asks.
+  The same read also solved a second thing nobody expected. Asking Meta for a
+  customer's name directly - GET /{psid}?fields=first_name,last_name - is
+  refused, and stays refused with every scope granted (five field lists tried,
+  all five refused, 31 Aug). Ask the CONVERSATION instead and the same name is
+  handed over without argument:
+
+      from: { name: "Mahisha Mouno", id: "28729587416665125" }   <- refused by /{psid}
+      from: { name: "Radian Flower & Gift Shop", id: "3416781..." }
+
+  Which is why 48 Messenger threads read "Guest" for weeks: the code was asking
+  the one endpoint Meta will not answer.
+
+  That second line is also the whole answer to "which of our admins replied":
+  an outgoing message is FROM THE PAGE. Meta names the shop, never the person -
+  true on Instagram and, now measured, true on Messenger too. Business Suite
+  knows internally and does not expose it, so no amount of work here produces
+  that name. The inbox says "Replied from Meta" instead of inventing one.
 
   The webhook stays the fast path - it arrives in a second and this runs once a
   minute. Both land through the same importMessage(), which dedupes on Meta's
-  own message id, so a message that comes both ways is still stored once.
-
-  Instagram only, for now. The Page token carries just `pages_messaging`
-  (checked with debug_token), so /me/conversations on the Page is refused until
-  that token is re-authorised with `pages_read_engagement`. Messenger's webhook
-  is delivering, so it does not need the net yet.
+  own message id, so a message that comes both ways is stored once.
 */
 
 const IG_GRAPH = 'https://graph.instagram.com/v23.0';
+const FB_GRAPH = 'https://graph.facebook.com/v23.0';
 
 /** Steady state: re-read anything touched in the last few minutes. */
 const WINDOW_MINUTES = 15;
@@ -36,17 +49,38 @@ const BACKFILL_HOURS = 72;
 const THREADS_PER_TICK = 50;
 const MESSAGES_PER_THREAD = 20;
 
-interface IgConversation {
-  id: string;
-  updated_time?: string;
+interface MetaParty {
+  id?: string;
+  /** Messenger says `name`, Instagram says `username`. Same thing to us. */
+  name?: string;
+  username?: string;
 }
 
-interface IgMessage {
+interface MetaConversation {
+  id: string;
+  updated_time?: string;
+  participants?: { data?: MetaParty[] };
+}
+
+interface MetaMessage {
   id: string;
   created_time?: string;
   message?: string;
-  from?: { id?: string; username?: string };
+  from?: MetaParty;
 }
+
+/** Everything that differs between the two channels, in one place. */
+interface ChannelSetup {
+  channel: InboxChannel;
+  host: string;
+  platform: 'instagram' | 'messenger';
+  token: string;
+  /** Ids that mean "us" — a message from one of these is a reply, not a customer. */
+  ours: Set<string>;
+}
+
+const nameOf = (p?: MetaParty): string | null =>
+  (p?.name || p?.username || '').trim() || null;
 
 @Injectable()
 export class MetaPollService implements OnModuleInit, OnModuleDestroy {
@@ -56,6 +90,7 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
   private firstTickDone = false;
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly integrations: IntegrationsService,
     private readonly meta: MetaWebhookService,
   ) {}
@@ -74,7 +109,7 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
-      await this.syncInstagram();
+      await this.syncAll();
     } catch (e) {
       this.log.warn(`tick failed: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -83,45 +118,109 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * One pass over Instagram. Also what the admin "Sync now" button calls, so
-   * the owner never has to wait out a minute to see whether it works.
+   * One pass over both channels. Also what the admin "Sync now" button calls,
+   * so nobody waits out a minute to find out whether it works.
    */
-  async syncInstagram(force = false): Promise<{
-    ran: boolean;
-    reason?: string;
-    threads: number;
-    imported: number;
-  }> {
-    const row = await this.integrations.credentials('SOCIAL', 'INSTAGRAM').catch(() => null);
-    const token = row?.isEnabled ? row.apiKey?.trim() : null;
-    if (!token) return { ran: false, reason: 'Instagram is not connected', threads: 0, imported: 0 };
-
-    const me = await this.get<{ id?: string; user_id?: string; username?: string }>(
-      token,
-      '/me?fields=id,user_id,username',
-    );
-    if (!me) return { ran: false, reason: 'Instagram did not answer', threads: 0, imported: 0 };
-
-    // Whoever we are, a message from us is a reply, not a customer message.
-    const ours = new Set([me.id, me.user_id].filter(Boolean) as string[]);
-
+  async syncAll(force = false) {
     const backfill = force || !this.firstTickDone;
-    const since = Date.now() - (backfill ? BACKFILL_HOURS * 3600_000 : WINDOW_MINUTES * 60_000);
     this.firstTickDone = true;
+    const since = Date.now() - (backfill ? BACKFILL_HOURS : WINDOW_MINUTES / 60) * 3600_000;
 
-    const convos = await this.get<{ data?: IgConversation[] }>(
-      token,
-      `/me/conversations?platform=instagram&fields=id,updated_time&limit=${THREADS_PER_TICK}`,
+    const results: Record<string, unknown> = {};
+    for (const setup of await this.setups()) {
+      results[setup.channel] = await this.syncOne(setup, since);
+    }
+    return results;
+  }
+
+  /**
+   * Fill in the names of threads that have been reading "Guest", without
+   * waiting for each of those customers to write again — some never will.
+   *
+   * Names come from the conversation listing, which is the only place Meta
+   * gives them up.
+   */
+  async backfillNames() {
+    const out: Record<string, { looked: number; named: number; reason?: string }> = {};
+
+    for (const setup of await this.setups()) {
+      const convos = await this.get<{ data?: MetaConversation[] }>(
+        setup,
+        `/me/conversations?platform=${setup.platform}&fields=id,participants&limit=100`,
+      );
+      const rows = convos?.data ?? [];
+      let named = 0;
+
+      for (const c of rows) {
+        for (const p of c.participants?.data ?? []) {
+          const name = nameOf(p);
+          if (!p.id || !name || setup.ours.has(p.id)) continue;
+          const r = await this.prisma.db.conversation.updateMany({
+            where: {
+              channel: setup.channel,
+              externalIdentity: p.id,
+              deletedAt: null,
+              OR: [{ guestName: null }, { guestName: '' }],
+            },
+            data: { guestName: name.slice(0, 120) },
+          });
+          named += r.count;
+        }
+      }
+
+      out[setup.channel] = { looked: rows.length, named };
+      this.log.log(`name backfill — ${setup.channel}: ${rows.length} threads at Meta, named ${named}`);
+    }
+
+    if (!Object.keys(out).length) return { ran: false, reason: 'No Meta channel is connected', out };
+    return { ran: true, out };
+  }
+
+  /** What is connected right now, and who "we" are on each channel. */
+  private async setups(): Promise<ChannelSetup[]> {
+    const list: ChannelSetup[] = [];
+
+    const ig = await this.integrations.credentials('SOCIAL', 'INSTAGRAM').catch(() => null);
+    const igToken = ig?.isEnabled ? ig.apiKey?.trim() : null;
+    if (igToken) {
+      const me = await this.get<{ id?: string; user_id?: string }>(
+        { host: IG_GRAPH, token: igToken } as ChannelSetup,
+        '/me?fields=id,user_id',
+      );
+      const ours = new Set([me?.id, me?.user_id, ig?.clientId].filter(Boolean) as string[]);
+      if (ours.size) {
+        list.push({
+          channel: InboxChannel.INSTAGRAM, host: IG_GRAPH, platform: 'instagram',
+          token: igToken, ours,
+        });
+      }
+    }
+
+    const fb = await this.integrations.credentials('SOCIAL', 'FACEBOOK_PAGE').catch(() => null);
+    const fbToken = fb?.isEnabled ? fb.apiKey?.trim() : null;
+    if (fbToken && fb?.clientId?.trim()) {
+      list.push({
+        channel: InboxChannel.MESSENGER, host: FB_GRAPH, platform: 'messenger',
+        token: fbToken, ours: new Set([fb.clientId.trim()]),
+      });
+    }
+
+    return list;
+  }
+
+  private async syncOne(setup: ChannelSetup, since: number) {
+    const convos = await this.get<{ data?: MetaConversation[] }>(
+      setup,
+      `/me/conversations?platform=${setup.platform}&fields=id,updated_time&limit=${THREADS_PER_TICK}`,
     );
-    const touched = (convos?.data ?? []).filter((c) => {
-      const t = c.updated_time ? Date.parse(c.updated_time) : 0;
-      return t >= since;
-    });
+    const touched = (convos?.data ?? []).filter(
+      (c) => (c.updated_time ? Date.parse(c.updated_time) : 0) >= since,
+    );
 
     let imported = 0;
     for (const c of touched) {
-      const detail = await this.get<{ messages?: { data?: IgMessage[] } }>(
-        token,
+      const detail = await this.get<{ messages?: { data?: MetaMessage[] } }>(
+        setup,
         `/${c.id}?fields=${encodeURIComponent(
           `messages.limit(${MESSAGES_PER_THREAD}){id,created_time,from,message}`,
         )}`,
@@ -134,25 +233,22 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
         if (at.getTime() < since) continue;
         if (!m.message?.trim() || !m.from?.id) continue;
 
-        const outbound = ours.has(m.from.id);
+        const outbound = setup.ours.has(m.from.id);
         /*
           On an outbound message the peer is the thread's other side, which the
-          message itself does not name - so it is taken from the customer's own
+          message itself does not name — so it is taken from the customer's own
           messages in the same thread.
         */
         const peer = outbound
-          ? messages.find((x) => x.from?.id && !ours.has(x.from.id))?.from
+          ? messages.find((x) => x.from?.id && !setup.ours.has(x.from.id))?.from
           : m.from;
         if (!peer?.id) continue;
 
         const added = await this.meta.importMessage({
-          channel: InboxChannel.INSTAGRAM,
+          channel: setup.channel,
           peerId: peer.id,
-          /*
-            The username comes free here, which is how a polled thread gets a
-            real name where the webhook path only ever managed "Guest".
-          */
-          peerName: peer.username ?? null,
+          // The name comes free here, which is the whole reason this works.
+          peerName: nameOf(peer),
           mid: m.id,
           body: m.message.trim(),
           outbound,
@@ -163,15 +259,17 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (imported > 0) {
-      this.log.log(`picked up ${imported} Instagram message(s) the webhook never delivered`);
+      this.log.log(
+        `picked up ${imported} ${setup.channel} message(s) the webhook never delivered`,
+      );
     }
-    return { ran: true, threads: touched.length, imported };
+    return { threads: touched.length, imported };
   }
 
-  private async get<T>(token: string, path: string): Promise<T | null> {
+  private async get<T>(setup: Pick<ChannelSetup, 'host' | 'token'>, path: string): Promise<T | null> {
     try {
-      const res = await fetch(`${IG_GRAPH}${path}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${setup.host}${path}`, {
+        headers: { Authorization: `Bearer ${setup.token}` },
       });
       if (!res.ok) {
         // Logged with Meta's own words. "It did not work" is not a diagnosis.

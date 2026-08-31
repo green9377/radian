@@ -53,14 +53,15 @@ export class MessagingController {
   ) {}
 
   /*
-    "Sync now" — go and fetch what Meta never pushed, and say plainly what came
-    back. Reaches 72 hours back, so it also repairs a channel that has been
-    silent for days rather than only catching up the last few minutes.
+    "Sync now" — go and fetch what Meta never pushed, on every connected
+    channel, and say plainly what came back. Reaches 72 hours back, so it also
+    repairs a channel that has been silent for days rather than only catching up
+    the last few minutes.
   */
   @Post('meta/sync')
   @Roles('OWNER', 'MANAGER')
   async metaSync() {
-    return this.metaPoll.syncInstagram(true);
+    return this.metaPoll.syncAll(true);
   }
 
   @Get('settings')
