@@ -4953,6 +4953,20 @@ export const deleteDeliveryMethod = (id: string) => j(`/delivery/methods/${id}`,
 export const addDeliverySlot = (methodId: string, b: Record<string, unknown>) => j<ApiDeliverySlot>(`/delivery/methods/${methodId}/slots`, { method: "POST", body: JSON.stringify(b) });
 export const updateDeliverySlot = (slotId: string, b: Record<string, unknown>) => j<ApiDeliverySlot>(`/delivery/slots/${slotId}`, { method: "PATCH", body: JSON.stringify(b) });
 export const deleteDeliverySlot = (slotId: string) => j(`/delivery/slots/${slotId}`, { method: "DELETE" });
+/*  DEC-DLV-022 — why a delivery failed, a master the owner keeps.
+
+    Delivery serves these itself rather than borrowing Inventory's
+    `/inventory/issue-reasons`: the ReasonMaster table is shared and scoped by
+    `purpose`, but the endpoint belongs to whoever owns the purpose. */
+export interface ApiFailReason { id: string; label: string; sortOrder: number }
+export const listFailReasons = () => j<ApiFailReason[]>(`/delivery/fail-reasons`);
+export const addFailReason = (label: string) =>
+  j<ApiFailReason>(`/delivery/fail-reasons`, { method: "POST", body: JSON.stringify({ label }) });
+export const updateFailReason = (id: string, b: { label?: string; isActive?: boolean }) =>
+  j<ApiFailReason>(`/delivery/fail-reasons/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deleteFailReason = (id: string) =>
+  j<{ ok: boolean }>(`/delivery/fail-reasons/${id}`, { method: "DELETE" });
+
 export const createAssignment = (b: Record<string, unknown>) => j<ApiAssignment>(`/delivery/assignments`, { method: "POST", body: JSON.stringify(b) });
 export const assignmentAction = (id: string, action: "out" | "delivered" | "fail" | "cancel", b: Record<string, unknown> = {}) =>
   j<ApiAssignment>(`/delivery/assignments/${id}/${action}`, { method: "POST", body: JSON.stringify(b) });

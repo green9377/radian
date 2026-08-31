@@ -467,7 +467,11 @@ export class DeliveryService {
         data: {
           status: AssignmentStatus.FAILED,
           failedAt: new Date(),
-          failReason: dto.failReason ?? 'not specified',
+          /*  DEC-DLV-022 — the reason comes from the list, and its label is
+              snapshotted beside the id. Renaming a reason later must not
+              rewrite what this parcel said, the same discipline as
+              `variantLabel` on an order line.  */
+          ...(await this.failReasonFields(dto)),
           isActive: false, // DLV-R04 — retry = new assignment
         },
         include: { rider: true, courier: true },
@@ -480,6 +484,98 @@ export class DeliveryService {
       data: { status: AssignmentStatus.CANCELLED, isActive: false },
       include: { rider: true, courier: true },
     });
+  }
+
+  /* ============== DEC-DLV-022 · why a delivery failed ==================
+
+     The owner, 30 Aug 2026: failed and rescheduled stay ONE action, with the
+     reason recorded. The parcel did not arrive either way — asking a rider at
+     the door to decide which of the two it was is asking for a guess, and the
+     reports can separate them afterwards.
+
+     ⚠️ The reasons live in `ReasonMaster`, scoped by `purpose`, which is the
+     same table Inventory keeps WASTAGE and GIFT in. One table, one row per
+     reason; each module owns its own purpose and reads nothing else. Delivery
+     does NOT call Inventory's endpoint for them (house rule 4) — it owns
+     DELIVERY_FAIL and serves it here.  */
+
+  private static readonly FAIL_PURPOSE = 'DELIVERY_FAIL';
+
+  /** the list a rider picks from — active, in the owner's own order */
+  async failReasons() {
+    return this.prisma.db.reasonMaster.findMany({
+      where: { purpose: DeliveryService.FAIL_PURPOSE, deletedAt: null, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: { id: true, label: true, sortOrder: true },
+    });
+  }
+
+  async addFailReason(label: string, actorName = 'Admin') {
+    const l = label.trim();
+    if (!l) throw new BadRequestException('Give the reason a name');
+    try {
+      const row = await this.prisma.db.reasonMaster.create({
+        data: { purpose: DeliveryService.FAIL_PURPOSE, label: l, sortOrder: 500 },
+      });
+      await this.audit.record({ entityType: 'ReasonMaster', entityId: row.id, action: 'CREATE', actorName });
+      return row;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')
+        throw new BadRequestException('That reason is already on the list');
+      throw e;
+    }
+  }
+
+  async updateFailReason(id: string, patch: { label?: string; isActive?: boolean }, actorName = 'Admin') {
+    const row = await this.prisma.db.reasonMaster.findFirst({
+      where: { id, purpose: DeliveryService.FAIL_PURPOSE, deletedAt: null },
+    });
+    if (!row) throw new NotFoundException('reason not found');
+    const label = patch.label?.trim();
+    const updated = await this.prisma.db.reasonMaster.update({
+      where: { id },
+      data: { ...(label ? { label } : {}), ...(patch.isActive === undefined ? {} : { isActive: patch.isActive }) },
+    });
+    await this.audit.record({ entityType: 'ReasonMaster', entityId: id, action: 'UPDATE', actorName });
+    return updated;
+  }
+
+  /*  Soft delete, like every master. Parcels already filed under this reason
+      keep pointing at it and keep their label snapshot — the history of why
+      deliveries failed is not something a tidy-up may erase.  */
+  async deleteFailReason(id: string, actorName = 'Admin') {
+    const row = await this.prisma.db.reasonMaster.findFirst({
+      where: { id, purpose: DeliveryService.FAIL_PURPOSE, deletedAt: null },
+    });
+    if (!row) throw new NotFoundException('reason not found');
+    await this.prisma.db.reasonMaster.update({ where: { id }, data: { deletedAt: new Date(), isActive: false } });
+    await this.audit.record({ entityType: 'ReasonMaster', entityId: id, action: 'DELETE', actorName });
+    return { ok: true };
+  }
+
+  /**
+   * The two columns a failure writes: which reason, and what it said at the
+   * time. A free-text note may travel with the pick — "gate locked, guard sent
+   * us away" is worth keeping and belongs to this parcel, not to the master.
+   *
+   * An id that is not a live DELIVERY_FAIL reason is dropped rather than
+   * refused: a delivery has already failed by the time anyone presses this,
+   * and blocking the record over a stale dropdown would lose the fact itself.
+   */
+  private async failReasonFields(dto: { failReasonId?: string; failReason?: string }) {
+    const note = dto.failReason?.trim();
+    if (!dto.failReasonId) {
+      return { failReasonId: null, failReason: note || 'not specified' };
+    }
+    const reason = await this.prisma.db.reasonMaster.findFirst({
+      where: { id: dto.failReasonId, purpose: DeliveryService.FAIL_PURPOSE, deletedAt: null },
+      select: { id: true, label: true },
+    });
+    if (!reason) return { failReasonId: null, failReason: note || 'not specified' };
+    return {
+      failReasonId: reason.id,
+      failReason: note ? `${reason.label} — ${note}` : reason.label,
+    };
   }
 
   /* ================= settling a carrier (DEC-DLV-016/017) =================

@@ -4240,10 +4240,16 @@ model NatureMaster {
 
 model ReasonMaster {
   id        String  @id @default(cuid())
-  purpose   String // WASTAGE | GIFT
+  /// WASTAGE | GIFT (Inventory) · DELIVERY_FAIL (Delivery, DEC-DLV-022).
+  /// One table, one row per reason, scoped by purpose — each module owns its
+  /// own purpose and never reads another's.
+  purpose   String
   label     String
   isActive  Boolean @default(true)
   sortOrder Int     @default(0)
+
+  /// DEC-DLV-022 — the parcels filed under this reason
+  failedAssignments DeliveryAssignment[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -4817,6 +4823,21 @@ model DeliveryAssignment {
   outAt      DateTime?
   deliveredAt DateTime?
   failedAt   DateTime?
+
+  /// DEC-DLV-022 — WHY it failed, picked from a list.
+  ///
+  /// The owner, 30 Aug 2026: a failed delivery and a reschedule stay ONE
+  /// action, with the reason recorded — so the reports can separate "the
+  /// customer was out" from "the address was wrong" later, without asking
+  /// staff to make that judgement at the door.
+  ///
+  /// `failReasonId` points at `ReasonMaster` (purpose DELIVERY_FAIL), which
+  /// the owner edits himself (house rule 7). `failReason` below stays and is
+  /// now the LABEL SNAPSHOT plus any note typed with it — renaming a reason
+  /// must not rewrite what an old parcel said, the same discipline as
+  /// `variantLabel` on an order line.
+  failReasonId String?
+  failReasonRef ReasonMaster? @relation(fields: [failReasonId], references: [id])
   failReason String?
   note       String?
   actorName  String?

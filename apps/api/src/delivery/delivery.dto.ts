@@ -125,6 +125,9 @@ export interface AssignDto {
 
 export interface AssignmentActionDto {
   actorName?: string;
+  /** DEC-DLV-022 — which reason off the list (ReasonMaster, DELIVERY_FAIL) */
+  failReasonId?: string;
+  /** the note typed with it; alone, it is the whole reason (older rows) */
   failReason?: string;
   consignmentNo?: string;
 }

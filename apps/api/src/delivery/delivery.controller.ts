@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -106,6 +107,38 @@ export class DeliveryController {
   @Delete('riders/:id')
   removeRider(@Param('id') id: string) {
     return this.delivery.removeRider(id);
+  }
+
+  /* ---- DEC-DLV-022 · why a delivery failed, a master the owner edits ----
+
+     Delivery serves its own reasons rather than borrowing Inventory's
+     `/inventory/issue-reasons`: the table is shared and scoped by purpose, but
+     the endpoint belongs to whoever owns the purpose (house rule 4). */
+  @Get('fail-reasons')
+  failReasons() {
+    return this.delivery.failReasons();
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Post('fail-reasons')
+  addFailReason(@Body() dto: { label?: string }, @Headers('x-actor-name') actor?: string) {
+    return this.delivery.addFailReason(dto?.label ?? '', actor ?? 'Admin');
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Patch('fail-reasons/:id')
+  updateFailReason(
+    @Param('id') id: string,
+    @Body() dto: { label?: string; isActive?: boolean },
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.delivery.updateFailReason(id, dto ?? {}, actor ?? 'Admin');
+  }
+
+  @Roles('OWNER', 'MANAGER')
+  @Delete('fail-reasons/:id')
+  deleteFailReason(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
+    return this.delivery.deleteFailReason(id, actor ?? 'Admin');
   }
 
   /* ---- couriers ---- */

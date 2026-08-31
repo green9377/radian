@@ -15,9 +15,11 @@ import {
   ApiAssignment,
   ApiBoardOrder,
   ApiCourierService,
+  ApiFailReason,
   ApiRider,
   addOrderPhoto,
   assignmentAction,
+  listFailReasons,
   bulkAssign,
   createAssignment,
   createRider,
@@ -249,6 +251,31 @@ export function DeliveryBoardLive() {
   const [couriers, setCouriers] = useState<ApiCourierService[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [assigning, setAssigning] = useState<ApiBoardOrder | null>(null);
+
+  /*  ⚠️ NO `alert()` ON THIS BOARD ANY MORE — 31 Aug 2026.
+
+      A browser alert BLOCKS the renderer: everything stops until somebody
+      presses OK, and until then the board is frozen with no visible reason.
+      The symptom (a dead screen) looks nothing like the cause (a rule saying
+      no), and that mismatch cost most of an afternoon on 29 Aug in
+      `OrderEditor` before the same thing was found here.
+
+      Every refusal now lands in a line on the page, in the shop's colours,
+      where the person can read it and carry on working.  */
+  const [boardErr, setBoardErr] = useState("");
+  const [boardNote, setBoardNote] = useState("");
+
+  /*  DEC-DLV-022 — the fail box. One action for a failed delivery and a
+      reschedule (the owner: the parcel did not arrive either way), with the
+      reason picked from the list he keeps and an optional note beside it. */
+  const [failing, setFailing] = useState<ApiBoardOrder | null>(null);
+  const [failReasons, setFailReasons] = useState<ApiFailReason[]>([]);
+  const [failReasonId, setFailReasonId] = useState("");
+  const [failNote, setFailNote] = useState("");
+
+  useEffect(() => {
+    listFailReasons().then(setFailReasons).catch(() => setFailReasons([]));
+  }, []);
   const [aKind, setAKind] = useState<"RIDER" | "COURIER">("RIDER");
   const [aRider, setARider] = useState("");
   const [aCourier, setACourier] = useState("");
@@ -334,9 +361,11 @@ export function DeliveryBoardLive() {
       /*  Never a silent partial success. If three of forty did not go, the
           screen says three, and says why for the first of them. */
       if (res.failedCount > 0) {
-        alert(`${res.assigned} assigned, ${res.failedCount} could not be — first reason: ${res.failed[0]?.reason ?? "unknown"}`);
+        setBoardErr(`${res.assigned} assigned, ${res.failedCount} could not be — first reason: ${res.failed[0]?.reason ?? "unknown"}`);
+      } else {
+        setBoardNote(`${res.assigned} parcel(s) assigned.`);
       }
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { setBoardErr(e instanceof Error ? e.message : "Could not assign those parcels."); }
     setBusy(null);
   };
 
@@ -361,18 +390,46 @@ export function DeliveryBoardLive() {
       setAssigning(null);
       setACn("");
       await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { setBoardErr(e instanceof Error ? e.message : "Could not assign that parcel."); }
     setBusy(null);
   };
 
   const act = async (o: ApiBoardOrder, action: "out" | "delivered" | "fail") => {
-    if (!o.assignment) { alert("assign a rider/courier first"); return; }
-    const failReason = action === "fail" ? prompt("Why did it fail? (recorded)") ?? "not specified" : undefined;
+    setBoardErr("");
+    setBoardNote("");
+    if (!o.assignment) {
+      setBoardErr(`${o.orderNo} has no carrier yet — pick a rider or courier first.`);
+      return;
+    }
+    /*  DEC-DLV-022 — a failure opens the box instead of a browser prompt. The
+        reason is picked, not typed, so the reports can group it later; the
+        note beside it is for what a list can never hold ("gate locked").  */
+    if (action === "fail") {
+      setFailing(o);
+      setFailReasonId(failReasons[0]?.id ?? "");
+      setFailNote("");
+      return;
+    }
     setBusy(o.id);
     try {
-      await assignmentAction(o.assignment.id, action, failReason ? { failReason } : {});
+      await assignmentAction(o.assignment.id, action, {});
       await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { setBoardErr(e instanceof Error ? e.message : "That did not work. Try again."); }
+    setBusy(null);
+  };
+
+  const doFail = async () => {
+    if (!failing?.assignment) return;
+    setBusy(failing.id);
+    setBoardErr("");
+    try {
+      await assignmentAction(failing.assignment.id, "fail", {
+        failReasonId: failReasonId || undefined,
+        failReason: failNote.trim() || undefined,
+      });
+      setFailing(null);
+      await load();
+    } catch (e) { setBoardErr(e instanceof Error ? e.message : "Could not record that."); }
     setBusy(null);
   };
 
@@ -383,7 +440,7 @@ export function DeliveryBoardLive() {
     try {
       await orderAction(o.id, "prepare");
       await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { setBoardErr(e instanceof Error ? e.message : "Could not start preparing that order."); }
     setBusy(null);
   };
 
@@ -405,6 +462,23 @@ export function DeliveryBoardLive() {
           <button onClick={() => void load()} className="border border-lavender-deep bg-white text-body-soft hover:text-purple text-[13px] font-medium px-4 py-2.5 rounded-[11px]">↻ Refresh</button>
         </div>
       </div>
+
+      {/*  A refusal reads as a rule saying no, beside the work it refused —
+           never as a frozen screen. See the note on `boardErr`.  */}
+      {boardErr && (
+        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#fdeef0", borderColor: "#f3c9cf", color: "#8c2f39" }}>
+          <Icon name="shield" size={16} />
+          <span className="flex-1">{boardErr}</span>
+          <button onClick={() => setBoardErr("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+      {boardNote && (
+        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#e9f9ef", borderColor: "#c2ecd3", color: "#0e7a3d" }}>
+          <Icon name="check" size={16} />
+          <span className="flex-1">{boardNote}</span>
+          <button onClick={() => setBoardNote("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
 
       {/* ---- toolbar: view, search, filters ---- */}
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
@@ -642,6 +716,51 @@ export function DeliveryBoardLive() {
           </div>
         </div>
       )}
+
+      {/*  DEC-DLV-022 — WHY IT DID NOT ARRIVE.
+
+          One action for a failed delivery and a reschedule: the owner's
+          ruling, 30 Aug. The parcel did not arrive either way, and asking a
+          rider at the door to decide which of the two it was is asking for a
+          guess. The reason is PICKED so the reports can group it; the note is
+          for what no list can hold ("gate locked, guard sent us away").
+
+          It replaces a `prompt()`, which blocked the whole board while it
+          waited and threw the answer away if anyone pressed Escape.  */}
+      {failing && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] grid place-items-center p-4" {...backdropClose(() => setFailing(null))}>
+          <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-[18px] text-purple m-0 mb-1">{failing.orderNo} did not arrive</h3>
+            <p className="text-[12.5px] text-body-soft mt-0 mb-4">
+              The parcel and its stock stay committed. Assign a carrier again to try once more.
+            </p>
+            <Guide>What happened</Guide>
+            <select className="ipt" value={failReasonId} onChange={(e) => setFailReasonId(e.target.value)}>
+              {failReasons.length === 0 && <option value="">— no reasons set up yet —</option>}
+              {failReasons.map((r) => (<option key={r.id} value={r.id}>{r.label}</option>))}
+            </select>
+            {failReasons.length === 0 && (
+              <p className="text-[12px] text-[#b45309] mt-1.5 mb-0">
+                Add them in Delivery → Settings; the note below is recorded either way.
+              </p>
+            )}
+            <div className="mt-3"><Guide>Anything else worth knowing (optional)</Guide>
+              <input className="ipt" value={failNote} onChange={(e) => setFailNote(e.target.value)} placeholder="e.g. gate locked, guard sent us away" />
+            </div>
+            <div className="flex gap-2.5 mt-5">
+              <button
+                onClick={() => void doFail()}
+                disabled={busy === failing.id}
+                className="flex-1 text-white text-[13.5px] font-bold py-2.5 rounded-[11px] disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                style={{ background: "#c0392b" }}
+              >
+                <Icon name="shield" size={15} /> Record the failure
+              </button>
+              <button onClick={() => setFailing(null)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -651,6 +770,8 @@ export function RidersLive() {
   const [rows, setRows] = useState<ApiRider[] | null>(null);
   const [demo, setDemo] = useState(false);
   const [editing, setEditing] = useState<Partial<ApiRider> | null>(null);
+  /** why the last thing was refused — on the page, never in a browser alert */
+  const [riderErr, setRiderErr] = useState("");
 
   const load = useCallback(async () => {
     try { setRows(await listRiders()); setDemo(false); } catch { setRows([]); setDemo(true); }
@@ -658,13 +779,25 @@ export function RidersLive() {
   useEffect(() => { void load(); }, [load]);
 
   const save = async () => {
-    if (!editing?.name?.trim()) { alert("name is required"); return; }
+    setRiderErr("");
+    if (!editing?.name?.trim()) { setRiderErr("A rider needs a name."); return; }
     try {
       if (editing.id) await updateRider(editing.id, editing as Record<string, unknown>);
       else await createRider(editing as Record<string, unknown>);
       setEditing(null);
       await load();
-    } catch (e) { alert(e instanceof Error ? e.message : "failed"); }
+    } catch (e) { setRiderErr(e instanceof Error ? e.message : "Could not save that rider."); }
+  };
+
+  const remove = async (r: ApiRider) => {
+    /*  `confirm()` stays — it asks a question, and blocking is the point
+        (CLAUDE.md: the Cancel-order confirm is kept for the same reason).  */
+    if (!confirm(`Remove ${r.name}?`)) return;
+    setRiderErr("");
+    try {
+      await deleteRider(r.id);
+      await load();
+    } catch (e) { setRiderErr(e instanceof Error ? e.message : "Could not remove that rider."); }
   };
 
   return (
@@ -703,7 +836,7 @@ export function RidersLive() {
                 <td className="px-4 py-3">{r.isActive ? <span className="text-[11px] font-semibold bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full">Active</span> : <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full">Off</span>}</td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => setEditing(r)} className="text-[13px] font-medium text-orchid hover:text-purple mr-3">Edit</button>
-                  <button onClick={async () => { if (confirm(`Remove ${r.name}?`)) { try { await deleteRider(r.id); await load(); } catch (e) { alert(e instanceof Error ? e.message : "failed"); } } }} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c]">Remove</button>
+                  <button onClick={() => void remove(r)} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c]">Remove</button>
                 </td>
               </tr>
             ))}
