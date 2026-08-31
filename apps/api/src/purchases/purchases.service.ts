@@ -1057,6 +1057,13 @@ export class PurchasesService {
         note: e instanceof Error ? e.message : String(e),
       });
     }
+
+    /*  P7-12 — and the books. Goods back, the bill's due cut, the supplier now
+        holding value for us: none of that reached Finance before 31 Aug because
+        there was no event to call. Fail-soft like every other hand-off
+        (DEC-FIN-010) — the return itself already stands.  */
+    await this.finance.onPurchaseReturned(created.id);
+
     return this.findOne(p.id);
   }
 

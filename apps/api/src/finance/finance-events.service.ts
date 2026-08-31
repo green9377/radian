@@ -500,6 +500,54 @@ export class FinanceEventsService {
     });
   }
 
+  /**
+   * ═══ P7-12 (31 Aug 2026) — GOODS WENT BACK TO THE SUPPLIER ═══
+   *
+   * `purchases.createReturn` cut the bill's due, created a `SupplierCredit` for
+   * the excess and sent the stock back out through Inventory — and had **no
+   * finance call in it at all**. There was nothing to call: this event did not
+   * exist, and the whole `finance/` folder mentioned purchase returns only in
+   * the books-reset wipe list. So the goods left, the debt fell, the supplier
+   * started owing us — and the ledger knew none of it (CLAUDE.md §4 rule 4a).
+   *
+   * Three facts, one entry:
+   *   Inventory falls by what went back (credit)
+   *   what we owe the supplier falls by the part cut from this bill (debit)
+   *   what the supplier now owes us becomes a Supplier Advance (debit) — it is
+   *   the same thing as money paid ahead: value they are holding for us
+   *
+   * The document's own numbers are used, not the stock movement's, because the
+   * split between "cut from the due" and "left as credit" is a commercial fact
+   * the return decided (DEC-PUR-006) and the two are equal by construction.
+   */
+  async onPurchaseReturned(returnId: string): Promise<void> {
+    if (!(await this.enabled())) return;
+    await this.safe('PURCHASE', returnId, async () => {
+      const r = await this.prisma.db.purchaseReturn.findUnique({
+        where: { id: returnId },
+        include: { purchase: { select: { purchaseNo: true, supplierName: true } } },
+      });
+      if (!r || r.totalPaisa <= 0) return;
+      if (await this.beforeGoLive(r.createdAt)) return;
+
+      const lines: LineInput[] = [];
+      if (r.dueCutPaisa > 0)
+        lines.push({ accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: r.dueCutPaisa });
+      if (r.creditPaisa > 0)
+        lines.push({ accountId: await this.accId(ACC.SUPPLIER_ADVANCE), debitPaisa: r.creditPaisa });
+      lines.push({ accountId: await this.accId(ACC.INVENTORY), creditPaisa: r.totalPaisa });
+
+      await this.finance.postEntry({
+        sourceType: 'PURCHASE',
+        sourceId: returnId,
+        sourceKey: `PURCHASE_RETURN:${returnId}:goods-back`,
+        entryDate: r.createdAt,
+        narration: `${r.returnNo} — goods returned to ${r.purchase?.supplierName ?? 'the supplier'}`,
+        lines,
+      });
+    });
+  }
+
   /** a purchase payment made directly on a bill (not through a supplier payment) */
   async onPurchasePayment(purchasePaymentId: string): Promise<void> {
     if (!(await this.enabled())) return;
@@ -644,7 +692,29 @@ export class FinanceEventsService {
       });
       if (now) posted += 1;
     }
-    return { found: rows.length, posted, alreadyPosted };
+
+    /*  P7-12 — purchase returns were in the same position: the door existed,
+        the event did not. Same rules, same idempotency.  */
+    const rets = await this.prisma.db.purchaseReturn.findMany({
+      where: { totalPaisa: { gt: 0 } },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    for (const r of rets) {
+      const seen = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE_RETURN:${r.id}:goods-back` },
+        select: { id: true },
+      });
+      if (seen) { alreadyPosted += 1; continue; }
+      await this.onPurchaseReturned(r.id);
+      const now = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE_RETURN:${r.id}:goods-back` },
+        select: { id: true },
+      });
+      if (now) posted += 1;
+    }
+
+    return { found: rows.length + rets.length, posted, alreadyPosted };
   }
 
   /* ==================== RETURNS ==================== */
