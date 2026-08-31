@@ -287,6 +287,41 @@ House rules 16/17 (bold clear buttons, no loose prose — explanations behind
 the ⓘ), house count-cards on the Orders and Delivery master screens, and
 **translate the Bangla comments in every file touched** (rule 9).
 
+### ✅ DEC-DLV-021 — CLOSED 31 Aug 2026. A carrier can be swapped on the road.
+
+Two things were in the way, and the second was another door nobody had told.
+
+`SWAPPED` is now a status of its own. The superseded assignment used to be
+written CANCELLED, which folds "this never left" together with "this left and
+somebody else finished it" — so the shop could never see how often a parcel
+changes hands mid-journey, the one number that says whether the fleet is
+breaking down. The order timeline says it in words too.
+
+And the swap dead-ended: `outForDelivery()` refused an order already out for
+delivery, so Delivery would accept the new rider and then not let him leave.
+The only way through was to fail the delivery first — the very thing the owner
+said must not happen.
+
+**Then the walk found the real one.** The order screen's *Out for delivery*
+called `orders.out-for-delivery` directly: the ORDER moved and the ASSIGNMENT
+did not. DLV-000002 sat at `ASSIGNED` while the order read *out for delivery* —
+the board showed a parcel nobody had taken out, analytics never saw it leave,
+and the swap was filed as CANCELLED because the assignment never said it was on
+the road. Out and Mark delivered now go through `assignmentAction` whenever a
+carrier is carrying the parcel, and the server asks the ORDER as well as the
+assignment whether it was out.
+
+**Walked live 31 Aug on RAD-75470:**
+`DLV-000004 → SWAPPED` · `DLV-000005 ASSIGNED (Deshi)` · timeline reads
+*"Carrier swapped on the road — now rider Deshi (DLV-000005), was DLV-000004"* ·
+and the new carrier then left successfully (`OUT_FOR_DELIVERY`), which is the
+dead end this fix removed. The "on its way" message is not re-sent on a swap.
+
+⚠️ **A deploy that never ran looked exactly like a bug.** The first walk showed
+CANCELLED and the code read correctly; the VPS was still on `b326f3c` because
+the console command had gone to a window that was not listening. Check
+`git log --oneline -1` on the VPS before concluding anything about behaviour.
+
 ## 7. The owner's answers — ANSWERED 30 Aug 2026
 
 All four were put to the owner before a line was written (rule 2). These are
