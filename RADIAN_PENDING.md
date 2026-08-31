@@ -373,6 +373,42 @@ So `2110 Customer Store Credit` stands at **৳931.50** the shop can never
 discharge, and a customer holding credit has no way to use it. A promise the
 shop cannot keep.
 
+### ✅ The books, end of 31 Aug — what was cleared and what is left
+
+| what the checker said | before | now |
+|---|---|---|
+| Value of the stock we hold | **−৳99,462.01** | −৳4,097.01 |
+| What customers owe us | **−৳12,642.76** (negative!) | **✅ 0 — the check reads `ok`** |
+| What we owe suppliers | **৳11,453.94** | ৳1,480.00 |
+| A money account below zero | (hidden) | **−৳5,772.95 — new, and it is the truth arriving** |
+
+**P7-15 cleanup, run live:** `{ looked: 24, fixed: 15, reversedPaisa: 1273276 }`
+— ৳12,732.76 reversed, which was the whole of the negative receivable. `1100`
+now reads **৳60**: the one genuinely unpaid test order, and nothing else.
+
+**P7-16 backfill, run live:** 14 purchase payments posted that never had been.
+Supplier payable fell from ৳11,453.94 to **৳1,480**.
+
+### ⚠️ The new red is not a new fault — it is the missing beginning
+
+Posting those historical purchase payments took money out of accounts that, in
+the books, never had any: **Cash Drawer −৳5,472.95** and **Other Wallet −৳300**.
+Nothing is wrong with the entries; what is missing is where the shop's money
+came from on day one. `goLiveDate` is null and **no opening balance has ever
+been posted** (`openingPosted: false`), so the books have the shop spending
+money it was never recorded as having.
+
+**Only the owner can close this**, and it is one plain question, not an
+accounting one: *how much money was in the drawer, in bKash and in the bank on
+the day we started keeping these books?* Finance already has the screen for it
+(`POST /finance/opening`, OWNER + PIN).
+
+**Also still open, both small and both measured:**
+- stock **−৳4,097.01** — the drift screen's own advice points at item costs
+  edited after stock was received, which moves the stock board without any
+  money moving. Not chased yet.
+- supplier payable **৳1,480** — what is left after the backfill. Not chased yet.
+
 ### What still has no explanation
 
 Supplier payable ৳11,513.94 against a register that says nothing is owed, and a
