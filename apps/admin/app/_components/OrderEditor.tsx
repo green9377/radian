@@ -290,7 +290,13 @@ export default function OrderEditor({ id }: { id: string }) {
   const orderNo = (o as { orderNo?: string }).orderNo ?? o.id;
 
   /* the form shows until the parcel is out — re-assigning supersedes (DLV-R01) */
-  const canAssign = !terminal && (!assignment || assignment.status === "ASSIGNED");
+  /*  DEC-DLV-021 — a parcel ON THE ROAD can still change hands, so the form
+      stays open while it is out. It closes once the parcel has landed or the
+      assignment is dead; re-assigning then would be rewriting history, not
+      swapping a carrier.  */
+  const canAssign =
+    !terminal && (!assignment || assignment.status === "ASSIGNED" || assignment.status === "OUT_FOR_DELIVERY");
+  const isSwap = assignment?.status === "OUT_FOR_DELIVERY";
   /* channel slug → readable name; falls back to the slug so nothing renders blank */
   const rawChannel = (o as unknown as { channel?: string }).channel ?? "";
   const channelName = rawChannel ? rawChannel.charAt(0).toUpperCase() + rawChannel.slice(1) : "Web";
@@ -616,7 +622,7 @@ export default function OrderEditor({ id }: { id: string }) {
               order. Phase 6: this creates a real DeliveryAssignment, so the
               parcel reaches the board, analytics, cost and COD settlement. */}
           {sec === "delivery" && (
-            <Panel title="Carrier hand-off" icon="truck" tone={assignment ? "green" : "blue"} hint="assigns through Delivery — the parcel lands on the delivery board and in its accounts; re-assigning replaces the previous assignment">
+            <Panel title="Carrier hand-off" icon="truck" tone={assignment ? "green" : "blue"} hint="assigns through Delivery — the parcel lands on the delivery board and in its accounts. A parcel already on the road can be swapped to another carrier, and that is never counted as a failed delivery.">
               <div className="p-5">
                 {assignment ? (
                   <>
@@ -708,7 +714,11 @@ export default function OrderEditor({ id }: { id: string }) {
                         className="text-[13px] px-5 py-2.5 rounded-[10px] font-bold text-white disabled:opacity-50 inline-flex items-center gap-1.5"
                         style={{ background: TONE.blue.solid }}
                       >
-                        <Icon name="truck" size={14} /> {assignment ? "Re-assign carrier" : "Assign carrier"}
+                        {/*  DEC-DLV-021 — the word changes with the situation.
+                            Swapping a parcel already on the road is a
+                            different act from re-assigning one still in the
+                            shop, and the button should not pretend otherwise. */}
+                        <Icon name="truck" size={14} /> {isSwap ? "Swap carrier — it is on the road" : assignment ? "Re-assign carrier" : "Assign carrier"}
                       </button>
                     </div>
                   </>

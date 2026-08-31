@@ -698,9 +698,21 @@ export class OrdersService {
 
   async outForDelivery(id: string, actorName = 'Admin') {
     const o = await this.get(id);
-    // REV-M1: a failed delivery is a retry, not a dead end — the parcel is
-    // already made and stock is already committed, so it can go out again.
-    if (o.deliveryStatus !== DeliveryStatus.preparing && o.deliveryStatus !== DeliveryStatus.failed)
+    /*  REV-M1: a failed delivery is a retry, not a dead end — the parcel is
+        already made and stock is already committed, so it can go out again.
+
+        DEC-DLV-021: and an order ALREADY out for delivery may go out again
+        too, because the carrier can change mid-journey. This used to throw,
+        which made the swap a dead end: Delivery would accept the new rider and
+        then refuse to let him leave, and the only way through was to fail the
+        delivery first — the very thing the owner said must not count against
+        anyone.  */
+    const swapping = o.deliveryStatus === DeliveryStatus.out_for_delivery;
+    if (
+      o.deliveryStatus !== DeliveryStatus.preparing &&
+      o.deliveryStatus !== DeliveryStatus.failed &&
+      !swapping
+    )
       throw new BadRequestException('order must be preparing (or a failed delivery) before out-for-delivery');
     if (o.deliveryStatus === DeliveryStatus.failed) await this.event(id, 'delivery', `Retrying delivery`, actorName);
     const updated = await this.prisma.db.order.update({
@@ -714,12 +726,18 @@ export class OrdersService {
       },
       include: FULL_INCLUDE,
     });
-    await this.event(id, 'delivery', `Out for delivery`, actorName);
-    // Queued, so the order page can show whether the customer was told.
-    void this.orderMessages
-      .queue(id, OrderMessageKind.ORDER_OUT_FOR_DELIVERY)
-      .then(() => this.orderMessages.sendDue(5))
-      .catch(() => undefined);
+    await this.event(id, 'delivery', swapping ? `Back on the road with the new carrier` : `Out for delivery`, actorName);
+    /*  Queued, so the order page can show whether the customer was told.
+
+        ⚠️ NOT ON A SWAP. "Your order is on its way" is true once. Sending it
+        again because the parcel changed hands tells the customer nothing they
+        did not know and reads like the shop lost track of their flowers.  */
+    if (!swapping) {
+      void this.orderMessages
+        .queue(id, OrderMessageKind.ORDER_OUT_FOR_DELIVERY)
+        .then(() => this.orderMessages.sendDue(5))
+        .catch(() => undefined);
+    }
     return this.shape(updated);
   }
 

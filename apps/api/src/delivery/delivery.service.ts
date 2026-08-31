@@ -323,15 +323,25 @@ export class DeliveryService {
       where: { orderId: dto.orderId, isActive: true, deletedAt: null },
     });
 
+    /*  DEC-DLV-021 — WAS THE PARCEL ALREADY ON THE ROAD?
+        Then this is a swap, not a cancellation: it left with one carrier and
+        somebody else is finishing it. A failed one keeps FAILED (its reason is
+        the record of why), and anything that never left is CANCELLED as
+        before.  */
+    const supersededStatus =
+      prevActive?.status === AssignmentStatus.FAILED
+        ? AssignmentStatus.FAILED
+        : prevActive?.status === AssignmentStatus.OUT_FOR_DELIVERY
+          ? AssignmentStatus.SWAPPED
+          : AssignmentStatus.CANCELLED;
+    const isSwap = supersededStatus === AssignmentStatus.SWAPPED;
+
     const assignmentNo = await this.nextNo();
     const created = await this.prisma.db.$transaction(async (tx) => {
       if (prevActive) {
         await tx.deliveryAssignment.update({
           where: { id: prevActive.id },
-          data: {
-            isActive: false,
-            status: prevActive.status === AssignmentStatus.FAILED ? prevActive.status : AssignmentStatus.CANCELLED,
-          },
+          data: { isActive: false, status: supersededStatus },
         });
       }
       return tx.deliveryAssignment.create({
@@ -364,9 +374,17 @@ export class DeliveryService {
     }
 
     await this.audit.record({ entityType: ENTITY, entityId: created.id, action: 'CREATE', actorName });
+    const who = kind === 'RIDER'
+      ? `rider ${riderName}`
+      : `courier ${courierName}${dto.consignmentNo ? ` (${dto.consignmentNo})` : ''}`;
     await this.audit.event({
       entityType: 'Order', entityId: dto.orderId, kind: 'delivery',
-      label: `Assigned to ${kind === 'RIDER' ? `rider ${riderName}` : `courier ${courierName}${dto.consignmentNo ? ` (${dto.consignmentNo})` : ''}`} — ${assignmentNo}`,
+      /*  DEC-DLV-021 — the timeline says a swap out loud. Somebody reading an
+          order later has to be able to tell "we changed carrier mid-journey"
+          from "we assigned it", and the two look identical otherwise.  */
+      label: isSwap
+        ? `Carrier swapped on the road — now ${who} (${assignmentNo}), was ${prevActive?.assignmentNo}`
+        : `Assigned to ${who} — ${assignmentNo}`,
       actorName,
     });
     return created;

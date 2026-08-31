@@ -4776,7 +4776,21 @@ enum AssignmentStatus {
   OUT_FOR_DELIVERY
   DELIVERED
   FAILED // keeps failReason; retry = NEW assignment (DLV-R04)
-  CANCELLED // superseded by a re-assign (DLV-R01) or order cancelled
+  CANCELLED // superseded before it left, or the order was cancelled
+
+  /// DEC-DLV-021 — the parcel changed hands WHILE IT WAS ON THE ROAD.
+  ///
+  /// The owner, 30 Aug 2026: a direct carrier swap must exist and **must not
+  /// count as a failure** — a rider's bike breaking is not the rider's
+  /// failure, and a failure rate that counts it stops meaning anything.
+  ///
+  /// Kept apart from CANCELLED on purpose. Both end an assignment nobody is
+  /// riding any more, but they answer different questions: CANCELLED is "this
+  /// never left", SWAPPED is "this left and somebody else finished it". Folded
+  /// together, the shop could never see how often a parcel changes hands
+  /// mid-journey, which is the one number that says whether the fleet is
+  /// breaking down.
+  SWAPPED
 }
 
 /// DEC-DLV-003 — who is carrying this order right now + full retry history.

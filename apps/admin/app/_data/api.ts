@@ -4860,7 +4860,10 @@ export interface ApiAssignment {
   riderId?: string | null; courierId?: string | null;
   rider?: { id: string; name: string } | null; courier?: { id: string; name: string } | null;
   consignmentNo?: string | null; trackingUrl?: string | null;
-  status: "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "FAILED" | "CANCELLED";
+  /*  DEC-DLV-021 — SWAPPED is "it left and somebody else finished it", kept
+      apart from CANCELLED ("it never left") so a mid-journey hand-over is
+      visible and never counted as a failure.  */
+  status: "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "FAILED" | "CANCELLED" | "SWAPPED";
   isActive: boolean; assignedAt: string; outAt?: string | null; deliveredAt?: string | null;
   failedAt?: string | null; failReason?: string | null; note?: string | null;
 }
