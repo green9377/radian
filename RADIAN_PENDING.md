@@ -516,6 +516,48 @@ so rather than claim it was seen.
 
 ---
 
+## ✅ THE SHOP'S OWN NUMBERS — set and walked, 31 Aug (`a2beb95`)
+
+**Credit limit ৳500 (a test number) is live and the warning works.** Walked on
+the sell screen with the Due test customer:
+
+> *"Due test already owes ৳448.68; this bill takes it to ৳508.68, over the ৳500
+> limit. The sale can still go through."*
+
+— and the button still read **Complete · ৳60**. It warns, it does not block
+(DEC-POS-027). Opening float set to ৳2,000 the same way.
+
+### P7-18 — the settings screen showed 0 for everything, and saved that 0 back
+
+Found while setting those numbers: the API had the float at 2,000 and the limit
+at 500, and the screen showed **0** in both boxes. They are uncontrolled inputs
+with `defaultValue`, which React reads only on the FIRST render — the settings
+arrive a moment later, so the boxes keep whatever they were born with. Worse,
+leaving a box then **saved that 0 over the real number**: a settings screen
+quietly deleting settings. Very likely why the credit limit read 0 all along.
+Keyed on the settings row now, so the fields remount when the real values land.
+
+### ⛔ Opening balances — deliberately NOT posted, and here is why
+
+`postOpening` can run **once ever** (`openingPostedAt` blocks it afterwards).
+Posting invented test amounts would burn the shop's one and only opening entry
+and leave no honest way to enter the real ones.
+
+So the amounts are still 0 and nothing was posted. What is needed is small and
+only the owner has it:
+
+| account | the books say | what is needed |
+|---|---|---|
+| `1000 Cash Drawer` | **−৳5,472.95** | what was really in the drawer on day one |
+| `1030 Other Wallet` | **−৳300.00** | the same for Rocket/Upay |
+| bKash / Bank | fine as they stand | only if they held something at the start |
+
+Enter the amounts on the accounts (no PIN), then `POST /finance/opening` —
+OWNER **and the 4-digit PIN**, which is the owner's to type. Never ask for it;
+set the numbers up and let him press it.
+
+---
+
 ## 🏠 EVERYTHING IS ON THE VPS — nowhere else (owner, 30 Aug)
 
 *"amder r akhon kichui others kothaw nei sob amder vps a ache. amder kon kaj
