@@ -569,7 +569,44 @@ count, not a substitute for it.
 
 ---
 
-## ✅ META WEBHOOKS ALL WORK — and I was wrong twice before getting here
+## ⚠️ META: MESSENGER WORKS, **INSTAGRAM HAS BEEN DEAD SINCE 29 AUG**
+
+⚠️ The section below said "all three channels work". **That was wrong**, and the
+owner caught it: *"fb ar sms ase but insta ar sms ase na"*. The proof was in the
+very query I had already run and did not read to the end.
+
+**Measured 31 Aug 17:31 UTC, per channel, not as a group:**
+
+| channel | newest message in the inbox | verdict |
+|---|---|---|
+| **Messenger** | **31 Aug 17:28:46** (three minutes old) | ✅ arriving |
+| **Instagram** | **29 Aug 05:29:36** | ❌ **nothing for two and a half days** |
+| WhatsApp | callback is ours, `messages` subscribed | ✅ configured |
+
+**29 August is the day the shop moved off Render onto the VPS.** That makes "the
+Instagram subscription did not survive the move" the obvious suspect — but it is
+a **suspicion, not a measurement**: Instagram's own callback setting has not been
+seen yet. Meta's use-case pages would not open to it, and the legacy Webhooks
+page shows blank for channels that demonstrably work, so blank there proves
+nothing.
+
+**Next step that would actually settle it:** `GET /{app-id}/subscriptions` in the
+Graph API Explorer with an **app** token — it lists every subscribed object with
+its callback URL, and ends the guessing in one call.
+
+### The standing lesson from today — three wrong calls in one afternoon
+
+1. "Messenger was never configured" — wrong screen.
+2. "No log line, so nothing is arriving" — the log only speaks for *verify*.
+3. "All three channels work" — read one channel's date, spoke for three.
+
+Every one was **a partial reading stated as a whole conclusion**. The rule from
+here: measure each channel separately, and label measured and inferred
+separately, in the same sentence where the claim is made.
+
+---
+
+## (superseded) META WEBHOOKS — the earlier reading
 
 **The owner caught it with one question:** *"if the webhook is not working, how
 are Facebook and Instagram messages arriving in my inbox?"*
