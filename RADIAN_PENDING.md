@@ -602,8 +602,42 @@ Two ways to finish, the owner's choice:
    three Meta forms get it — including re-verifying WhatsApp, which works today
    and would be touched only for this.
 
-Nothing in Meta was changed. A half-filled webhook form is worse than an empty
-one, so the forms were left exactly as found.
+Nothing in Meta was changed by me. A half-filled webhook form is worse than an
+empty one, so the forms were left exactly as found.
+
+### 31 Aug, evening — the owner tried it, and it still will not save
+
+He filled the Page callback URL and token and pressed **Verify and save** twice.
+Measured on the server both times:
+
+```
+docker logs radian_api_prod --since 10m | grep -iE 'webhook|verify'
+→ only ONE line, and it was my own probe
+```
+
+⚠️ **Meta never called us.** That is not a guess: the logging was proved first —
+a deliberate wrong-token probe from outside produced
+`WARN [WhatsAppWebhook] webhook verify refused — token did not match` within
+seconds, and nothing appeared at the moment he pressed. (Caddy logs no access
+lines at all, so counting there proves nothing — that was checked before being
+relied on.)
+
+So the token is not the problem yet; the request is not leaving Meta.
+
+**What was ruled out:** all three use cases ARE on the app (WhatsApp, Messenger,
+Instagram), so a missing product is not it. The Messenger use case has no
+webhooks tab of its own — it forces back to `permissions` — so the generic
+Webhooks page really is the right place.
+
+**The strongest lead, found on that permissions tab:**
+`pages_messaging` reads **"Pending App Review"** and `pages_manage_metadata` —
+the one whose description is literally *"allows your app to subscribe and
+receive webhooks about activity on the Page"* — reads **"Ready for testing", 0**.
+A Page subscription may simply not be grantable until those are live.
+
+**What is still needed to settle it:** the exact red text Meta shows at the
+moment the button is pressed. It disappears too fast to catch afterwards, and
+without it the next step is a guess.
 
 ---
 
