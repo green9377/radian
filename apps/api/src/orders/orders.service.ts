@@ -164,6 +164,150 @@ export class OrdersService {
     return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
+  /**
+   * REV-C4 — the order report, counted by the DATABASE.
+   *
+   * ⚠️ THE SCREEN USED TO DO THIS ARITHMETIC ITSELF, over `listOrders()`, which
+   * asks for `pageSize=100`. Revenue, average order value, the cancellation
+   * rate and every channel / zone / payment / gift split were sums over the
+   * hundred most recent orders. Under a hundred that is right by accident;
+   * past it every number on the page is quietly wrong, and it looks perfectly
+   * healthy on demo — the exact shape of fault Phase 5 kept finding, and the
+   * one critical the 17 July Sales review left open.
+   *
+   * ⚠️ REVENUE IS DELIVERED-ONLY, and that is not a display choice: DEC-FIN-002
+   * posts revenue at *delivered*, so anything else here would disagree with
+   * Finance's own books. A placed order is a promise, not a sale.
+   *
+   * ⚠️ Counter (POS) sales are excluded, like every other online Sales screen
+   * (AUD-2). They live in the same table and have their own reports; counting
+   * them here would double-count the shop's takings.
+   *
+   * Six grouped queries, no order rows crossing the wire. It stays one round
+   * trip whether the shop has done 40 orders or 40,000.
+   */
+  async report(q: { from?: string; to?: string }) {
+    const where: Prisma.OrderWhereInput = { fulfillmentType: 'DELIVERY' };
+
+    /*  A blank or unparseable date is ignored rather than refused — a report
+        is a read, and half a filter must never mean half a truth. Whatever is
+        applied comes back in `range` so the screen can say what it counted. */
+    const from = q.from ? new Date(q.from) : null;
+    const to = q.to ? new Date(q.to) : null;
+    const okFrom = from && !Number.isNaN(from.getTime()) ? from : null;
+    const okTo = to && !Number.isNaN(to.getTime()) ? to : null;
+    if (okFrom || okTo) {
+      where.placedAt = {
+        ...(okFrom ? { gte: okFrom } : {}),
+        ...(okTo ? { lte: okTo } : {}),
+      };
+    }
+
+    const delivered: Prisma.OrderWhereInput = {
+      ...where,
+      deliveryStatus: DeliveryStatus.delivered,
+    };
+
+    /*  `_sum.totalPaisa` is added only on the delivered set. Grouping the whole
+        set and summing everything would hand the page a "revenue" that counts
+        orders nobody has paid for yet.  */
+    const [total, cancelled, deliveredAgg, byChannel, byZone, byPayment, byGift] =
+      await Promise.all([
+        this.prisma.db.order.count({ where }),
+        this.prisma.db.order.count({ where: { ...where, salesStatus: SalesStatus.cancelled } }),
+        this.prisma.db.order.aggregate({
+          where: delivered,
+          _count: { _all: true },
+          _sum: { totalPaisa: true },
+        }),
+        this.prisma.db.order.groupBy({ by: ['channelId'], where, _count: { _all: true } }),
+        this.prisma.db.order.groupBy({ by: ['zone'], where, _count: { _all: true } }),
+        this.prisma.db.order.groupBy({ by: ['paymentMethod'], where, _count: { _all: true } }),
+        this.prisma.db.order.groupBy({ by: ['isGift'], where, _count: { _all: true } }),
+      ]);
+
+    /*  The same four splits again over delivered orders only, so each bar can
+        carry its own revenue — the screen shows "n orders · ৳x" per row, and
+        that ৳x has to obey the delivered-only rule as much as the headline
+        does.  */
+    const [revChannel, revZone, revPayment, revGift] = await Promise.all([
+      this.prisma.db.order.groupBy({ by: ['channelId'], where: delivered, _sum: { totalPaisa: true } }),
+      this.prisma.db.order.groupBy({ by: ['zone'], where: delivered, _sum: { totalPaisa: true } }),
+      this.prisma.db.order.groupBy({ by: ['paymentMethod'], where: delivered, _sum: { totalPaisa: true } }),
+      this.prisma.db.order.groupBy({ by: ['isGift'], where: delivered, _sum: { totalPaisa: true } }),
+    ]);
+
+    /*  Channels are named in their own table (One Data One Owner), so the ids
+        are resolved once here instead of the screen guessing from a slug.  */
+    const channelIds = byChannel
+      .map((r) => r.channelId)
+      .filter((v): v is string => !!v);
+    const channels = channelIds.length
+      ? await this.prisma.db.channel.findMany({
+          where: { id: { in: channelIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const channelName = new Map(channels.map((c) => [c.id, c.name]));
+
+    /*  Two grouped results joined on a plain string key. Prisma gives each
+        groupBy its own shape, so they are flattened to `{key, n}` and
+        `{key, revenue}` before meeting — trying to keep both Prisma types in
+        one generic buys nothing and costs a page of type noise.  */
+    type Counted = { key: string; label: string; n: number };
+    const rows = (counted: Counted[], revenues: { key: string; revenuePaisa: number }[]) => {
+      const rev = new Map(revenues.map((r) => [r.key, r.revenuePaisa]));
+      return counted
+        .map((r) => ({ label: r.label, n: r.n, revenuePaisa: rev.get(r.key) ?? 0 }))
+        .sort((a, b) => b.n - a.n);
+    };
+
+    const revenuePaisa = deliveredAgg._sum.totalPaisa ?? 0;
+    const deliveredCount = deliveredAgg._count._all;
+
+    return {
+      range: {
+        from: okFrom ? okFrom.toISOString() : null,
+        to: okTo ? okTo.toISOString() : null,
+      },
+      totalOrders: total,
+      deliveredOrders: deliveredCount,
+      cancelledOrders: cancelled,
+      revenuePaisa,
+      /** delivered orders only — an average over promises is not an average order */
+      aovPaisa: deliveredCount ? Math.round(revenuePaisa / deliveredCount) : 0,
+      cancelRatePct: total ? Math.round((cancelled / total) * 100) : 0,
+      channel: rows(
+        byChannel.map((r) => ({
+          key: r.channelId ?? '',
+          label: r.channelId ? (channelName.get(r.channelId) ?? 'Unknown') : 'Web',
+          n: r._count._all,
+        })),
+        revChannel.map((r) => ({ key: r.channelId ?? '', revenuePaisa: r._sum.totalPaisa ?? 0 })),
+      ),
+      zone: rows(
+        byZone.map((r) => ({
+          key: r.zone,
+          label: r.zone === 'DHAKA' ? 'Inside Dhaka' : 'Nationwide',
+          n: r._count._all,
+        })),
+        revZone.map((r) => ({ key: r.zone, revenuePaisa: r._sum.totalPaisa ?? 0 })),
+      ),
+      payment: rows(
+        byPayment.map((r) => ({
+          key: r.paymentMethod,
+          label: r.paymentMethod === PaymentMethod.cod ? 'Cash on delivery' : 'Online',
+          n: r._count._all,
+        })),
+        revPayment.map((r) => ({ key: r.paymentMethod, revenuePaisa: r._sum.totalPaisa ?? 0 })),
+      ),
+      type: rows(
+        byGift.map((r) => ({ key: String(r.isGift), label: r.isGift ? 'Gift' : 'Self', n: r._count._all })),
+        revGift.map((r) => ({ key: String(r.isGift), revenuePaisa: r._sum.totalPaisa ?? 0 })),
+      ),
+    };
+  }
+
   async findOne(id: string) {
     const o = await this.prisma.db.order.findFirst({ where: { id }, include: FULL_INCLUDE });
     if (!o) throw new NotFoundException('Order not found');

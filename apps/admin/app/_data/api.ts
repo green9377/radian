@@ -1308,6 +1308,40 @@ export type PaymentStatus =
   | "partially_refunded"
   | "refunded";
 
+/*  REV-C4 — the order report, counted in the database.
+
+    ⚠️ The screen used to work these out itself from `listOrders()`, which asks
+    for `pageSize: "100"`. Every figure was a sum over the hundred most recent
+    orders: right by accident under a hundred, quietly wrong past it, and
+    healthy-looking on demo for ever. Revenue counts DELIVERED orders only,
+    because DEC-FIN-002 posts revenue at delivered — anything else here would
+    disagree with Finance's own books.  */
+export interface ApiOrderReportRow {
+  label: string;
+  n: number;
+  revenuePaisa: number;
+}
+export interface ApiOrderReport {
+  range: { from: string | null; to: string | null };
+  totalOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  revenuePaisa: number;
+  aovPaisa: number;
+  cancelRatePct: number;
+  channel: ApiOrderReportRow[];
+  zone: ApiOrderReportRow[];
+  payment: ApiOrderReportRow[];
+  type: ApiOrderReportRow[];
+}
+export function orderReport(params?: { from?: string; to?: string }): Promise<ApiOrderReport> {
+  const q = new URLSearchParams();
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  const qs = q.toString();
+  return j<ApiOrderReport>(`/orders/report${qs ? `?${qs}` : ""}`);
+}
+
 export interface ApiOrderLine {
   id: string;
   productId: string;

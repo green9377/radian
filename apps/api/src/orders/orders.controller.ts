@@ -63,6 +63,15 @@ export class OrdersController {
     return this.online.list({ status, q, take: take ? Number(take) : undefined });
   }
 
+  /*  REV-C4 — the order report, counted in the database.
+
+      ⚠️ ABOVE `:id`, the same trap as its two neighbours: otherwise
+      /orders/report is read as an order whose id is the word "report".  */
+  @Get('report')
+  report(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.svc.report({ from, to });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
 import { Donut, HBar, LegendDot } from "./Charts";
@@ -16,7 +16,10 @@ import {
   ago,
   initials,
   genAvatar,
+  orderReport,
   type ApiOrder,
+  type ApiOrderReport,
+  type ApiOrderReportRow,
 } from "../_data/api";
 
 /*
@@ -532,49 +535,55 @@ export function OrdersScheduled() {
 }
 
 /* ════════════════════ 5. REPORTS ════════════════════ */
+/*
+  REV-C4 — THE NUMBERS ON THIS PAGE ARE COUNTED BY THE DATABASE, 30 Aug 2026.
+
+  ⚠️ They were not, and that is the fault this rewrite exists for. The page ran
+  `useOrders()` — which asks the API for `pageSize: "100"` — and then summed
+  that array: revenue, average order value, the cancellation rate, and every
+  channel / zone / payment / gift split. Under a hundred orders the answers are
+  right by accident. Past a hundred every figure on the screen is wrong, and it
+  goes on looking perfectly healthy on demo, where there will never be a
+  hundred. The one critical the 17 July Sales review left open, and the same
+  family as Phase 5's faults: a screen quietly lying about a rule that is
+  itself correct.
+
+  `GET /orders/report` now does the counting in Postgres — six grouped queries,
+  no order rows crossing the wire, and the same answer at 40 orders as at
+  40,000.
+*/
 export function OrdersReports() {
-  const { items, loading, error, reload } = useOrders();
+  const [rep, setRep] = useState<ApiOrderReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const rep = useMemo(() => {
-    const by = (pick: (o: ApiOrder) => string) => {
-      const m = new Map<string, { n: number; revenue: number }>();
-      for (const o of items) {
-        const k = pick(o);
-        const cur = m.get(k) ?? { n: 0, revenue: 0 };
-        cur.n++;
-        if (o.deliveryStatus === "delivered") cur.revenue += o.totalPaisa;
-        m.set(k, cur);
-      }
-      return [...m.entries()].sort((a, b) => b[1].n - a[1].n);
-    };
-    const delivered = items.filter((o) => o.deliveryStatus === "delivered");
-    const revenue = delivered.reduce((n, o) => n + o.totalPaisa, 0);
-    const cancelled = items.filter((o) => o.salesStatus === "cancelled").length;
-    return {
-      channel: by((o) => o.channel?.name ?? "Web"),
-      zone: by((o) => zoneLabel(o.zone)),
-      payment: by((o) => (o.paymentMethod === "cod" ? "Cash on delivery" : "Online")),
-      type: by((o) => (o.isGift ? "Gift" : "Self")),
-      revenue,
-      aov: delivered.length ? Math.round(revenue / delivered.length) : 0,
-      cancelRate: items.length ? Math.round((cancelled / items.length) * 100) : 0,
-    };
-  }, [items]);
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRep(await orderReport());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load the report");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => { void reload(); }, [reload]);
 
-  const Bars = ({ title, icon, tone, rows }: { title: string; icon: string; tone: Tone; rows: [string, { n: number; revenue: number }][] }) => {
-    const max = Math.max(1, ...rows.map((r) => r[1].n));
+  const Bars = ({ title, icon, tone, rows }: { title: string; icon: string; tone: Tone; rows: ApiOrderReportRow[] }) => {
+    const max = Math.max(1, ...rows.map((r) => r.n));
     return (
       <Panel title={title} icon={icon} tone={tone}>
         {rows.length === 0 ? <EmptyRow text="No data." tone={tone} /> : (
           <div className="p-4 flex flex-col gap-3">
-            {rows.map(([k, v]) => (
-              <div key={k}>
+            {rows.map((r) => (
+              <div key={r.label}>
                 <div className="flex justify-between text-[12.5px] mb-1">
-                  <span className="text-body font-medium">{k}</span>
-                  <span className="text-body-soft">{v.n} orders · {formatTaka(v.revenue)}</span>
+                  <span className="text-body font-medium">{r.label}</span>
+                  <span className="text-body-soft">{r.n} orders · {formatTaka(r.revenuePaisa)}</span>
                 </div>
                 <div className="h-[9px] rounded-full bg-lavender overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${Math.round((v.n / max) * 100)}%`, background: TONE[tone].solid }} />
+                  <div className="h-full rounded-full" style={{ width: `${Math.round((r.n / max) * 100)}%`, background: TONE[tone].solid }} />
                 </div>
               </div>
             ))}
@@ -584,28 +593,45 @@ export function OrdersReports() {
     );
   };
 
+  const n = (v: number | undefined) => (loading || rep === null ? "…" : String(v ?? 0));
+  const taka = (v: number | undefined) => (loading || rep === null ? "…" : formatTaka(v ?? 0));
+
   return (
     <div className={WRAP}>
       <PageHead eyebrow="Commerce · Sales" title="Order reports">
-        Where the orders and the money come from. Revenue counts delivered orders only — that is when Radian recognises a sale.
+        Where the orders and the money come from.
       </PageHead>
-      {error && <ErrorBox error={error} onRetry={reload} />}
+      {error && <ErrorBox error={error} onRetry={() => void reload()} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Stat label="Orders" value={loading ? "…" : String(items.length)} tone="purple" icon="bag" />
-        <Stat label="Revenue" value={loading ? "…" : formatTaka(rep.revenue)} tone="green" icon="cash" />
-        <Stat label="Average order" value={loading ? "…" : formatTaka(rep.aov)} tone="gold" icon="star" />
-        <Stat label="Cancellation rate" value={loading ? "…" : `${rep.cancelRate}%`} tone="rose" icon="trash" />
+        <Stat label="Orders" value={n(rep?.totalOrders)} tone="purple" icon="bag" />
+        <Stat
+          label="Revenue"
+          value={taka(rep?.revenuePaisa)}
+          tone="green"
+          icon="cash"
+          sub={rep ? `${rep.deliveredOrders} delivered` : undefined}
+        />
+        <Stat label="Average order" value={taka(rep?.aovPaisa)} tone="gold" icon="star" />
+        <Stat
+          label="Cancellation rate"
+          value={loading || rep === null ? "…" : `${rep.cancelRatePct}%`}
+          tone="rose"
+          icon="trash"
+          sub={rep ? `${rep.cancelledOrders} cancelled` : undefined}
+        />
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
-        <Bars title="By channel" icon="grid" tone="purple" rows={rep.channel} />
-        <Bars title="By zone" icon="truck" tone="blue" rows={rep.zone} />
-        <Bars title="By payment method" icon="cash" tone="green" rows={rep.payment} />
-        <Bars title="Self vs gift" icon="heart" tone="gold" rows={rep.type} />
+        <Bars title="By channel" icon="grid" tone="purple" rows={rep?.channel ?? []} />
+        <Bars title="By zone" icon="truck" tone="blue" rows={rep?.zone ?? []} />
+        <Bars title="By payment method" icon="cash" tone="green" rows={rep?.payment ?? []} />
+        <Bars title="Self vs gift" icon="heart" tone="gold" rows={rep?.type ?? []} />
       </div>
 
-      <NoteBox tone="purple">Product-level and day-by-day reporting arrives with a dedicated reporting endpoint — these figures are computed from the current order list.</NoteBox>
+      <NoteBox tone="purple">
+        Every order the shop has taken is counted, walk-in counter sales apart — those have their own reports. Revenue and the average order count delivered orders only, because that is the moment Radian recognises a sale. Product-level and day-by-day breakdowns are still to come.
+      </NoteBox>
     </div>
   );
 }
