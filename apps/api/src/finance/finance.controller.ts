@@ -399,6 +399,13 @@ export class FinanceController {
   /* ---- drift: do the books still match the shop? (G1) ----
          Runs by itself at 2 AM Bangladesh time and writes the verdict to the
          audit trail; these routes are for looking at it on demand. */
+  /*  P7-13 — post the OPENING and ADJUSTMENT stock movements the books never
+      heard about. Idempotent: run it twice and the second run posts nothing.  */
+  @Post('backfill/stock-movements')
+  backfillStock() {
+    return this.events.backfillStockMovements();
+  }
+
   @Get('drift')
   drift_() {
     return this.drift.run();

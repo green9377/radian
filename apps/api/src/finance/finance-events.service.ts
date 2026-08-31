@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { ACC, FinanceService } from './finance.service';
+import { ACC, ACC2, FinanceService } from './finance.service';
 import type { LineInput, PostEntryInput } from './finance.dto';
 
 /*  FINANCE EVENT CONSUMER — stage 2 of RADIAN_FINANCE_MODULE_ARCHITECTURE.md §4.
@@ -563,27 +563,88 @@ export class FinanceEventsService {
     if (!(await this.enabled())) return;
     await this.safe('INVENTORY', movementId, async () => {
       const m = await this.prisma.db.inventoryMovement.findUnique({ where: { id: movementId } });
-      if (!m || m.reason !== 'ADJUSTMENT' || m.valuePaisa === 0) return;
+      /*  P7-13 (31 Aug 2026) — OPENING belongs here too, and its absence is
+          most of why the books said the shop held ৳7,919 of stock while the
+          shelf held ৳107,381. Stock walks in through three doors: bought,
+          counted, or already there on day one. Only "bought" ever reached the
+          ledger, and this method — written, with account 5150 waiting — had
+          not one caller.  */
+      const handled = m?.reason === 'ADJUSTMENT' || m?.reason === 'OPENING';
+      if (!m || !handled || m.valuePaisa === 0) return;
       const value = Math.abs(m.valuePaisa);
       const up = m.valuePaisa > 0;
+      /*  DEC-INV-016 (owner, 31 Aug) — what a stocktake finds is a gain or a
+          loss of this period (5150). What was already on the shelf when the
+          books began is neither: it is where the shop started, so it faces
+          equity, not the profit and loss.  */
+      const other = await this.accId(
+        m.reason === 'OPENING' ? ACC2.OPENING_EQUITY : ACC.INV_ADJUSTMENT,
+      );
+      const narration =
+        m.reason === 'OPENING'
+          ? 'Stock the shop already had when the books began'
+          : up
+            ? 'Stocktake found extra stock'
+            : 'Stocktake found stock missing';
       await this.finance.postEntry({
         sourceType: 'INVENTORY',
         sourceId: movementId,
         sourceKey: `MOVEMENT:${movementId}:adjustment`,
         entryDate: m.createdAt,
-        narration: up ? 'Stocktake found extra stock' : 'Stocktake found stock missing',
+        narration,
         actorName: m.actor,
         lines: up
           ? [
               { accountId: await this.accId(ACC.INVENTORY), debitPaisa: value, itemId: m.itemId },
-              { accountId: await this.accId(ACC.INV_ADJUSTMENT), creditPaisa: value },
+              { accountId: other, creditPaisa: value },
             ]
           : [
-              { accountId: await this.accId(ACC.INV_ADJUSTMENT), debitPaisa: value },
+              { accountId: other, debitPaisa: value },
               { accountId: await this.accId(ACC.INVENTORY), creditPaisa: value, itemId: m.itemId },
             ],
       });
     });
+  }
+
+  /**
+   * P7-13 — bring the history in. Asked on 31 Aug whether to backfill or to
+   * draw a line and start clean, the owner's answer was: go back and post it
+   * all, so the books and the shelf finally agree.
+   *
+   * Every OPENING and ADJUSTMENT movement that carries value and was never
+   * posted. Safe to run again: each entry is keyed by its movement
+   * (`MOVEMENT:<id>:adjustment`, DEC-FIN-023), so a second run finds nothing
+   * left to do rather than doubling anything.
+   *
+   * ⚠️ It deliberately does NOT touch WASTAGE, GIFT or the sale doors — those
+   * already post through their own events, and this method exists precisely
+   * because a door that posts twice is worse than one that never posted.
+   */
+  async backfillStockMovements(): Promise<{ found: number; posted: number; alreadyPosted: number }> {
+    // 3300 Opening Balance is new (DEC-INV-016) — make sure the chart has it
+    // before the first entry tries to face it
+    await this.finance.ensureSeed();
+    const rows = await this.prisma.db.inventoryMovement.findMany({
+      where: { reason: { in: ['OPENING', 'ADJUSTMENT'] }, valuePaisa: { not: 0 } },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    let posted = 0;
+    let alreadyPosted = 0;
+    for (const r of rows) {
+      const seen = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `MOVEMENT:${r.id}:adjustment` },
+        select: { id: true },
+      });
+      if (seen) { alreadyPosted += 1; continue; }
+      await this.onStockAdjustment(r.id);
+      const now = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `MOVEMENT:${r.id}:adjustment` },
+        select: { id: true },
+      });
+      if (now) posted += 1;
+    }
+    return { found: rows.length, posted, alreadyPosted };
   }
 
   /* ==================== RETURNS ==================== */

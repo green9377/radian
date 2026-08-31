@@ -129,6 +129,12 @@ export const ACC2 = {
   /// "what referrals cost us" and "what the loyalty scheme costs us" are two
   /// answerable questions instead of one blurred one.
   LOYALTY_COST: '5453',
+  /// DEC-INV-016 (owner, 31 Aug 2026) — the other side of stock that was on the
+  /// shelf before the books began. Not profit and not a purchase: the shop
+  /// simply started with it. Kept apart from Partner Capital so "what the owner
+  /// put in" stays a separate question from "what was already here on day one",
+  /// and the owner can move it later if he decides it was his own money.
+  OPENING_EQUITY: '3300',
 } as const;
 
 /** Chart of Accounts — §3 of the architecture doc. Seeded once, admin-extendable. */
@@ -161,6 +167,8 @@ const CHART: SeedRow[] = [
   { code: ACC.PARTNER_CAPITAL, name: 'Partner Capital', type: 'EQUITY' , group: 'Owner' },
   { code: ACC.PARTNER_DRAWINGS, name: 'Partner Drawings / Capital Return', type: 'EQUITY' , group: 'Owner' },
   { code: ACC.RETAINED, name: 'Retained Earnings', type: 'EQUITY' , group: 'Owner' },
+  { code: ACC2.OPENING_EQUITY, name: 'Opening Balance', type: 'EQUITY' , group: 'Owner',
+    note: 'Stock and balances the shop already had when the books began (DEC-INV-016)' },
   // INCOME
   { code: ACC.SALES, name: 'Sales Income', type: 'INCOME' , group: 'Sales' },
   { code: ACC.DELIVERY_INCOME, name: 'Delivery Fee Income', type: 'INCOME' , group: 'Sales' },
