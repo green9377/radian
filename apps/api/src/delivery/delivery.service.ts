@@ -499,7 +499,25 @@ export class DeliveryService {
      on them, but the rider was still paid, and a list of only-COD parcels would
      silently lose the cost of every prepaid delivery — which in this shop is
      most of them. The owner chose this shape: one list, "Delivered — not
-     settled", and a parcel leaves it when both facts are true. */
+     settled", and a parcel leaves it when both facts are true.
+
+     ⚠️ THE CASH FIGURE IS WHAT WAS COLLECTED, NOT `order.duePaisa` — fixed
+     31 Aug 2026, found the first time this chain was ever walked.
+
+     It read `duePaisa`, and `orders.delivered()` sets that to ZERO the moment
+     the parcel is handed over: taking the cash IS the delivery (REV-C5). So by
+     the time a parcel reached this list its due was always 0 and every COD
+     delivery displayed as **prepaid**. Three consequences, worst last:
+
+       · the screen told the shop a cash parcel needed no cash back
+       · `settle()` used the same test, so `codHandedOver` could never become
+         true and `remitWithLines` was never reached — gross was always 0
+       · and once its cost was typed the parcel LEFT THIS LIST anyway, taking
+         the rider's cash off the board while it still sat in 1110 Cash with
+         Rider / Courier. Money the shop is owed, invisible.
+
+     The honest number is the COD_COLLECTED payment written at delivery. That
+     is the cash that physically went into someone's hand. */
   async unsettled(carrierId?: string) {
     const rows = await this.prisma.db.deliveryAssignment.findMany({
       where: {
@@ -522,11 +540,19 @@ export class DeliveryService {
       },
     });
 
+    const collected = await this.codCollectedFor(
+      rows.map((a) => a.order?.id).filter((v): v is string => !!v),
+    );
+
     /*  A parcel with no cash outstanding is not "settled" — it may still be
         waiting for its cost. The two facts travel separately all the way to
         the screen so it can grey the right box rather than hide the row. */
     return rows
-      .filter((a) => a.costRecordedAt === null || (a.order?.duePaisa ?? 0) > 0)
+      .filter(
+        (a) =>
+          a.costRecordedAt === null ||
+          (!a.codHandedOver && (collected.get(a.order?.id ?? '') ?? 0) > 0),
+      )
       .map((a) => ({
         assignmentId: a.id,
         assignmentNo: a.assignmentNo,
@@ -542,12 +568,37 @@ export class DeliveryService {
         orderNo: a.order?.orderNo,
         zone: a.order?.zone,
         address: a.order?.address,
-        /** what is still owed on the order — 0 on a prepaid one */
-        codDuePaisa: a.order?.duePaisa ?? 0,
+        /** the cash actually taken at the door — 0 on a prepaid parcel */
+        codDuePaisa: collected.get(a.order?.id ?? '') ?? 0,
         costPaisa: a.costPaisa,
         costRecorded: a.costRecordedAt !== null,
         codHandedOver: a.codHandedOver,
       }));
+  }
+
+  /**
+   * How much cash each of these orders put into a carrier's hand.
+   *
+   * The COD_COLLECTED payment `orders.delivered()` writes is the only honest
+   * record of that: `order.duePaisa` is zeroed by the same method, so it
+   * answers "does the customer still owe us" — a different question, and the
+   * one that made every COD parcel read as prepaid on the settle screen.
+   *
+   * Refunds are not netted off here. A refund is money going back to the
+   * customer from the shop's own account; it does not take anything out of the
+   * rider's pocket, and subtracting it would leave him holding cash the board
+   * says he does not have.
+   */
+  private async codCollectedFor(orderIds: string[]): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    if (orderIds.length === 0) return out;
+    const rows = await this.prisma.db.paymentTransaction.groupBy({
+      by: ['orderId'],
+      where: { orderId: { in: orderIds }, kind: 'COD_COLLECTED', deletedAt: null },
+      _sum: { amountPaisa: true },
+    });
+    for (const r of rows) if (r.orderId) out.set(r.orderId, r._sum.amountPaisa ?? 0);
+    return out;
   }
 
   /*  ⚠️ THE CHARGE IS EXPENSED ONCE, AND THIS IS WHERE THAT IS DECIDED.
@@ -566,8 +617,14 @@ export class DeliveryService {
     const ids = lines.map((l) => l.assignmentId);
     const found = await this.prisma.db.deliveryAssignment.findMany({
       where: { id: { in: ids }, deletedAt: null },
-      include: { order: { select: { duePaisa: true } } },
+      include: { order: { select: { id: true, duePaisa: true } } },
     });
+    /*  Same correction as `unsettled()`: whether this parcel put cash in a
+        carrier's hand is answered by the COD_COLLECTED payment, never by
+        `duePaisa` — which delivery has already zeroed.  */
+    const collected = await this.codCollectedFor(
+      found.map((a) => a.order?.id).filter((v): v is string => !!v),
+    );
     if (found.length !== ids.length) throw new BadRequestException('one of these parcels no longer exists');
     for (const a of found) {
       if (a.status !== AssignmentStatus.DELIVERED)
@@ -598,10 +655,11 @@ export class DeliveryService {
           data: {
             costPaisa: chg,
             costRecordedAt: now,
-            /*  Only a parcel that actually owed money can have its cash come
-                back. A prepaid parcel is left alone — marking it handed over
-                would invent a payment that never happened. */
-            codHandedOver: (a.order?.duePaisa ?? 0) > 0 ? cod > 0 : a.codHandedOver,
+            /*  Only a parcel that actually took cash at the door can have that
+                cash come back. A prepaid parcel is left alone — marking it
+                handed over would invent a payment that never happened. */
+            codHandedOver:
+              (collected.get(a.order?.id ?? '') ?? 0) > 0 ? cod > 0 : a.codHandedOver,
           },
         });
       }
