@@ -315,7 +315,32 @@ files it needs. Nothing of it was lost; it was only removed from the branch.
 working folder that has uncommitted work publishes that work. Copy the change,
 not the file.
 
-### 🔴 P7-15 — found while walking it: every POS payment credits the receivable twice
+### ✅ P7-15 FIXED, DEPLOYED AND WALKED — `2011020` on the VPS
+
+The release now counts only payments with `financePostedAt` set — the ones
+booked while no revenue entry existed, which is exactly the money that really
+landed in 2100. Anything stamped later, or not at all, reached 1100 on its own
+and is left alone.
+
+**Walked on POS-000018** (৳60, cash), against the same accounts read before and
+after:
+
+| | before | after | moved |
+|---|---|---|---|
+| `1100 Receivable` | −1,267,276 | −1,267,276 | **0** ✓ |
+| `2100 Customer Advance` | 4,385,030 | 4,385,030 | **0** ✓ |
+| `1000 Cash Drawer` | 414,099 | 420,099 | +৳60 ✓ |
+| `4000 Sales` | 5,344,732 | 5,350,732 | +৳60 ✓ |
+
+The identical sale moved 1100 by **−৳30** yesterday. It moves it by nothing now.
+
+⚠️ **Only new sales are right.** What the old behaviour already wrote is still
+in the books and is the likely bulk of the standing **−৳12,642.76** negative
+receivable. Putting that right is a **correcting entry**, which is the owner's
+decision and not a side effect of a bug fix — the drift check still reads
+`wrong` on customer dues, and it should, until he says what to do.
+
+### P7-15 — what it was: every POS payment credited the receivable twice
 
 `onOrderDelivered` releases "money taken earlier" by summing **all** the order's
 payment transactions and posting `Dr 2100 Customer Advance / Cr 1100
