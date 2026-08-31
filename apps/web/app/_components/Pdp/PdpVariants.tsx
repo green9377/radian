@@ -63,7 +63,12 @@ export function VariantPicker({
    * quiet, leaking the number below would make that switch meaningless.
    */
   showStock: boolean;
-  onPick: (id: string) => void;
+  /**
+   * DEC-PRD-045 fix (31 Aug 2026) — the second argument says whether the
+   * customer pressed the value that was ALREADY chosen on that same list.
+   * Only then does pressing again mean "unchoose"; see the note on `pickValue`.
+   */
+  onPick: (id: string, sameValuePressed: boolean) => void;
 }) {
   const active = variants.find((v) => v.id === activeId);
 
@@ -138,7 +143,16 @@ export function VariantPicker({
       ? near
       : variants.filter((v) => partsOf(v).some((p) => p.attributeId === axisId && p.valueId === valueId));
     const target = pool.find((v) => v.stockQty > 0) ?? pool[0];
-    if (target) onPick(target.id);
+    /*  ⚠️ 31 Aug 2026 — the owner's bug: "variant select hoyeo ase na".
+        On a two-list product, pressing Pink already resolves to the pair
+        Pink · Large. Pressing Large then resolves to the SAME pair, and the
+        toggle upstairs read that as "you pressed what was already chosen" and
+        cleared the whole selection — the big photo snapped back to the
+        product's own image, Add to Cart went back to "Choose an option", and
+        anything ordered after that carried no variant at all.
+        Unchoosing may only happen when the pressed value is the one already
+        chosen ON THIS LIST. Pressing the other list is always a choice.  */
+    if (target) onPick(target.id, chosen.get(axisId) === valueId);
   };
 
   return (
