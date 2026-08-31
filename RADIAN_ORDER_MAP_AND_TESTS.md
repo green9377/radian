@@ -187,9 +187,43 @@ COD_COLLECTED payment.
 |---|---|
 | **row 20** | a prepaid parcel on the settle list — the only part of the rider's cash chain still unwalked |
 | **variant photos** | data, not code: Products → the product → Variants, one photo per combination |
-| **53 × `alert()`** | the rest of the admin — `ProductViews` (7), `OffersLive` (5), `ProductListView` (4), `OrderEditor` (4)… The delivery board is now the pattern to copy |
 
-Closed 31 Aug: **DEC-DLV-022** (fail reason from a list) and the delivery
-board's own nine `alert()`/`prompt()` calls.
+Closed 31 Aug: **DEC-DLV-022** (fail reason from a list) and **every remaining
+`alert()` and `prompt()` in the admin** — see below.
+
+---
+
+## 6. No `alert()` left in the admin — 31 Aug 2026
+
+A browser alert BLOCKS the renderer. Everything stops until somebody presses
+OK, and until then the page is frozen with no visible reason. The symptom — a
+dead screen — looks nothing like the cause, which is almost always a business
+rule doing its job. That cost most of an afternoon on 29 Aug in `OrderEditor`,
+and 46 more were still sitting in twenty-two files.
+
+One shape for all of them: **`useSay()` holds the sentence, `<Said>` draws it**
+(`_components/Said.tsx`), in the shop's colours beside the work it refused.
+Screens that already had an on-page error state kept it rather than growing a
+second one.
+
+**Four `prompt()` calls were worse than cosmetic**, and each got real UI:
+
+| where | why it mattered |
+|---|---|
+| offer approval | signed itself with `prompt("Your name (audited)", "Admin")`. An **audited** approval whose signature is free text **with a default** is not an audit trail — pressing Enter signs somebody else's name. It uses the signed-in user now |
+| expense approval | the same fault, falling back to the literal string `"admin"` |
+| partner share & salary | numbers that decide how the profit is split, typed into a prompt with no chance to be read back |
+| bulk product discount | sets a price on every selected product |
+
+Also gone: a **"Start return"** button whose entire behaviour was an alert
+saying it was a prototype. It links to the Returns module, which owns that
+record.
+
+**`confirm()` stays — all 64 of them.** It asks a QUESTION and blocking is the
+point: *"Remove this rider?"* must not be answerable by looking away.
+
+**Walked live 31 Aug** on the action queue: a refused confirm put
+*"cannot confirm from salesStatus=completed"* on the page with a dismiss ✕, and
+no alert fired (checked by trapping `window.alert`).
 
 `RADIAN_PHASE6_DIRECTION.md` carries the detail and what has already closed.
