@@ -668,7 +668,23 @@ instead of a nameless "Staff", and the list prefixes **"Meta:"** instead of
   in the code (BULKSMSBD · MIMSMS · REVE) are one-way masking SMS. Receiving
   needs a two-way short/long code from the operator — a purchase decision, so
   the owner has to make it before anything is built.
-- **Facebook threads still read "Guest".** `debug_token` named the cause: the
+- **Facebook threads still read "Guest" — and today's work did NOT fix that.**
+  Counted after the poller ran:
+
+  ```
+  INSTAGRAM  named 65   Guest 1     <- the poller gets the username free
+  MESSENGER  named  1   Guest 48    <- unchanged
+  ```
+
+  One hypothesis was tested and killed rather than assumed: that the profile
+  call simply asks for a field Meta refuses on a PSID. Five different field
+  lists were tried against a live PSID with the Page token —
+  `name,first_name,last_name` · `first_name,last_name` · `first_name` · `name` ·
+  `first_name,last_name,profile_pic` — and **all five fail identically**
+  ("Unsupported get request ... missing permissions"). So it is the token, not
+  the fields.
+
+  **Facebook threads still read "Guest".** `debug_token` named the cause: the
   Page token carries only `pages_messaging, whatsapp_business_management,
   whatsapp_business_messaging, public_profile`. Reading a profile needs
   `pages_read_engagement`. Owner action — re-authorise the Page token.
