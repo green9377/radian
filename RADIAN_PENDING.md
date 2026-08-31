@@ -642,6 +642,23 @@ instead of a nameless "Staff", and the list prefixes **"Meta:"** instead of
 > The only way to get a real name on every reply is for staff to reply **from
 > Radian**. That is a working decision for the owner, not a technical one.
 
+### Owner's decisions, 31 Aug
+
+- **SMS leaves the inbox.** *"SMS বাদ — inbox থেকে সরিয়ে দাও."* Done. SMS keeps
+  working for OTP and marketing; it is only off the inbox screen, because a
+  channel that can never receive should not sit there looking broken.
+- **The admin's name is still wanted.** *"meta account a dukle dekha jay page ar
+  kon admin theke reply dewa hoiche. ata amder akhane ana jabe na?"* He is right
+  that Business Suite shows it. What is measured and what is not:
+  - **Instagram — asked, and Meta says no.** An outgoing message returns
+    `from: {username: radiangiftshop}`. The person is not in the payload.
+  - **Facebook — NOT yet asked, because we cannot.** Reading Page conversations
+    needs `pages_read_engagement` and the Page token has only `pages_messaging`.
+    So "Facebook cannot do it either" would be a guess, and guesses are what
+    cost this project a day. **The Page token has to be re-authorised first**;
+    the same re-authorisation also fixes the "Guest" names. One action, two
+    answers.
+
 ### 4. Still open
 
 - **WhatsApp: zero inbound, ever.** The subscription is active with `messages`
