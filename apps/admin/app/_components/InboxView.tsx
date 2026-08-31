@@ -73,6 +73,16 @@ const CHANNELS = {
 
 type ChannelKey = keyof typeof CHANNELS;
 
+/*
+  SMS is deliberately NOT one of the cards (owner, 31 Aug). The gateways Radian
+  uses - BULKSMSBD, MIMSMS, REVE - are one-way masking SMS: they send and cannot
+  receive. An inbound SMS would need a two-way short or long code bought from the
+  operator, and until that exists an "SMS 0, not connected yet" card only looks
+  like something is broken. It stays in CHANNELS so any old row still renders its
+  tag.
+*/
+const CHANNEL_CARDS = (Object.keys(CHANNELS) as ChannelKey[]).filter((k) => k !== "SMS");
+
 const channelOf = (k: string) => CHANNELS[k as ChannelKey] ?? CHANNELS.WEB_CHAT;
 
 /*
@@ -256,9 +266,9 @@ export default function InboxView() {
         </p>
         <h1 className="text-[26px] font-extrabold text-gray-900">Inbox</h1>
         <p className="text-[13px] text-gray-500 mt-1 max-w-2xl">
-          Every customer conversation, one screen. Live chat today — Messenger,
-          Instagram, WhatsApp land here when connected. Reply, and the AI
-          steps aside for that thread automatically.
+          Every customer conversation on one screen — live chat, Messenger,
+          Instagram and WhatsApp. Reply, and the AI steps aside for that thread
+          automatically.
         </p>
 
         {/* AI controls — DEC-INB-003/005, plus the provider seam. */}
@@ -318,7 +328,7 @@ export default function InboxView() {
           </p>
         </button>
 
-        {(Object.keys(CHANNELS) as ChannelKey[]).map((k) => {
+        {CHANNEL_CARDS.map((k) => {
           const c = CHANNELS[k];
           const st = stats[k] ?? { total: 0, unread: 0, open: 0 };
           const on = channel === k;
