@@ -167,6 +167,71 @@ P7-11.
 
 ---
 
+## 🔎 INVENTORY & PURCHASES — first read, 31 Aug 2026 (nothing changed yet)
+
+Read off the code, then checked against the live books. **The system's own
+drift checker says three numbers are wrong right now** (`GET /finance/drift`,
+`worst: "wrong"`), and two of the three have a cause I can point at:
+
+| check | the books say | the shop says | gap |
+|---|---|---|---|
+| Value of the stock we hold | **৳7,919.81** | **৳107,381.82** | **−৳99,462.01** |
+| What we owe suppliers | ৳11,513.94 | ৳0 | ৳11,513.94 |
+| What customers owe us | −৳12,642.76 (negative!) | ৳60 | ৳12,702.76 |
+
+### P7-12 — a purchase return tells Finance nothing
+
+`purchases.createReturn` cuts the purchase's due, creates a `SupplierCredit`
+for the excess and sends the goods back out through Inventory — and there is
+**no `finance.*` call anywhere in it**. There is no `onPurchaseReturn` event to
+call: the only mentions of `purchaseReturn` / `supplierCredit` in the whole
+`finance/` folder are in the books-reset wipe list. So goods leave, the debt
+falls, the supplier now owes us — and the ledger hears none of it. Breaks
+CLAUDE.md §4 rule 4a.
+
+### P7-13 — stock that appears out of nowhere never reaches the books
+
+`finance-events.onStockAdjustment` is fully written, has an account waiting
+(`5150 Inventory Adjustment`) — and **zero callers**. `5150` has never held a
+single paisa. Counted live off the movement ledger:
+
+| door | movements | value | does it reach Finance? |
+|---|---|---|---|
+| OPENING | 13 | **+৳75,235.00** | ❌ no |
+| ADJUSTMENT | 14 | **+৳20,190.00** | ❌ no |
+| PURCHASE | 43 | +৳15,330.00 | ✅ `onPurchaseReceived` |
+| WASTAGE | 6 | −৳2,446.40 | ✅ via `onStockIssue` (5100 = ৳2,446.40 ✓) |
+| GIFT | 1 | −৳33.00 | ✅ via `onStockIssue` (5110 = ৳33 ✓) |
+| PURCHASE_RETURN | 1 | −৳60.00 | ❌ no (P7-12) |
+
+**৳95,425 of stock walked onto the shelf without the ledger being told** —
+which is most of the ৳99,462 stock-value gap; the rest is AVCO/cost-edit noise.
+⚠️ Wastage and gift DO post — that was checked, not assumed, before saying so.
+
+### P7-14 — store credit can be given but never spent
+
+`returns.service` is the **only** writer of `CustomerCredit`, and it only ever
+issues. Nothing at the counter, at checkout or on an order can redeem it, and
+`finance-events.onStoreCreditUsed` — written, waiting — has **zero callers**.
+So `2110 Customer Store Credit` stands at **৳931.50** the shop can never
+discharge, and a customer holding credit has no way to use it. A promise the
+shop cannot keep.
+
+### What still has no explanation
+
+Supplier payable ৳11,513.94 against a register that says nothing is owed, and a
+**negative** receivable of −৳12,642.76. P7-12 accounts for ৳60 of the first.
+The rest needs looking at, not guessing at — some of it is probably test data
+from before Finance existed (`goLiveDate` is null and no opening balance was
+ever posted, so nothing is gated).
+
+**Three questions for the owner before any of this is wired up** — see the chat
+of 31 Aug: what the credit side of opening stock is, whether the ৳95k history
+gets backfilled or left behind a go-live date, and where store credit may be
+spent.
+
+---
+
 ## ✅ PHASE 6 CLOSED — 31 Aug 2026 (Orders & Delivery)
 
 **A new chat starts at `RADIAN_PHASE7_DIRECTION.md`** — what Phase 6 changed,
