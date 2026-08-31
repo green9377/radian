@@ -24,6 +24,7 @@ import {
   WhatsAppWebhookService,
 } from './whatsapp-webhook';
 import { MetaWebhookController, MetaWebhookService } from './meta-webhook';
+import { MetaPollService } from './meta-poll.service';
 import {
   WhatsAppCoexistenceController,
   WhatsAppCoexistenceService,
@@ -44,7 +45,19 @@ export class MessagingController {
     private readonly sweeper: MessagingSweeper,
     private readonly settings: MessagingSettingsService,
     private readonly templates: WhatsAppTemplatesService,
+    private readonly metaPoll: MetaPollService,
   ) {}
+
+  /*
+    "Sync now" — go and fetch what Meta never pushed, and say plainly what came
+    back. Reaches 72 hours back, so it also repairs a channel that has been
+    silent for days rather than only catching up the last few minutes.
+  */
+  @Post('meta/sync')
+  @Roles('OWNER', 'MANAGER')
+  async metaSync() {
+    return this.metaPoll.syncInstagram(true);
+  }
 
   @Get('settings')
   @Roles('OWNER', 'MANAGER')
@@ -239,6 +252,7 @@ export class CheckoutLeadController {
     WhatsAppTemplatesService,
     WhatsAppWebhookService,
     MetaWebhookService,
+    MetaPollService,
     WhatsAppCoexistenceService,
     OtpService,
     ChannelSender,
