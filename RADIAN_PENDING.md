@@ -569,40 +569,71 @@ count, not a substitute for it.
 
 ---
 
-## ⚠️ META: MESSENGER WORKS, **INSTAGRAM HAS BEEN DEAD SINCE 29 AUG**
+## 📨 META — everything on OUR side is proven; Instagram has simply not been tried
 
-⚠️ The section below said "all three channels work". **That was wrong**, and the
-owner caught it: *"fb ar sms ase but insta ar sms ase na"*. The proof was in the
-very query I had already run and did not read to the end.
+**Instagram's silence has now been chased all the way to its end, and the
+earlier guesses in this file were all wrong.** Written down in the order the
+evidence arrived, because the wrong turns are the useful part.
 
-**Measured 31 Aug 17:31 UTC, per channel, not as a group:**
+### What was measured, 31 Aug
 
-| channel | newest message in the inbox | verdict |
+| question | how it was answered | answer |
 |---|---|---|
-| **Messenger** | **31 Aug 17:28:46** (three minutes old) | ✅ arriving |
-| **Instagram** | **29 Aug 05:29:36** | ❌ **nothing for two and a half days** |
-| WhatsApp | callback is ours, `messages` subscribed | ✅ configured |
+| Is anything arriving? | `docker logs radian_api_prod \| grep MetaWebhook` | MESSENGER **9**, INSTAGRAM **0** |
+| Are we refusing them? | same log, `bad or missing signature` | **0** — nothing was refused |
+| Could a missing secret silence it? | `signatureOk` returns false when no secret → it would have logged a refusal | **no** |
+| Is the Instagram token alive? | `GET graph.instagram.com/me` | ✅ `radiangiftshop` |
+| Is the app subscribed to that account? | `GET /{ig-id}/subscribed_apps` | ✅ `["messages"]` |
+| Where does Meta think it is delivering? | `GET /{app-id}/subscriptions` with an app token | ✅ all three at our VPS, `active=true` |
+| Does OUR endpoint handle an Instagram payload? | posted a **signed** `object:"instagram"` body at the live URL | ✅ signature passed, thread created, message stored (row deleted after) |
 
-**29 August is the day the shop moved off Render onto the VPS.** That makes "the
-Instagram subscription did not survive the move" the obvious suspect — but it is
-a **suspicion, not a measurement**: Instagram's own callback setting has not been
-seen yet. Meta's use-case pages would not open to it, and the legacy Webhooks
-page shows blank for channels that demonstrably work, so blank there proves
-nothing.
+Meta's own answer, in its own words:
 
-**Next step that would actually settle it:** `GET /{app-id}/subscriptions` in the
-Graph API Explorer with an **app** token — it lists every subscribed object with
-its callback URL, and ends the guessing in one call.
+```
+INSTAGRAM                  https://api.development.radianbd.com/webhooks/meta   active  messages
+PAGE                       https://api.development.radianbd.com/webhooks/meta   active  messages, messaging_postbacks
+WHATSAPP_BUSINESS_ACCOUNT  https://api.development.radianbd.com/webhooks/whatsapp active  ...
+```
 
-### The standing lesson from today — three wrong calls in one afternoon
+### So what is left
+
+Every link in the chain has been tested except one: **nobody has sent an
+Instagram DM since the webhook was pointed at the VPS.** The Page webhook was
+saved at about 17:07 and Messenger messages started arriving at 17:07:39 — the
+very first minute. Instagram has had the same correct configuration for the
+same short window and has received no message to deliver.
+
+**The one test still owed:** send one DM to `@radiangiftshop` from another
+Instagram account, then look at the inbox. If it lands, the case is closed. If
+it does not, the next place to look is the Instagram app's own
+**Settings → Messages → Connected tools / Allow access to messages** toggle —
+the only remaining switch that sits outside both our code and the app config.
+
+### Known, separate, and real: threads show "Guest"
+
+The same log carries a second fault, unrelated to delivery:
+
+```
+WARN no profile for MESSENGER 28729587416665125 (400): Object with ID ... does not
+exist, cannot be loaded due to missing permissions
+```
+
+Every inbound Messenger thread today failed its profile lookup, so the customer's
+name is never filled in and the thread reads **Guest**. The token or its
+permissions are the suspect. Not fixed — recorded.
+
+### The standing lesson — four wrong calls in one afternoon
 
 1. "Messenger was never configured" — wrong screen.
 2. "No log line, so nothing is arriving" — the log only speaks for *verify*.
+   (It does speak for messages too, which is what finally cracked this.)
 3. "All three channels work" — read one channel's date, spoke for three.
+4. "Instagram still points at Render" — plausible, dated right, and **false**.
+   Meta said so itself the moment it was asked properly.
 
-Every one was **a partial reading stated as a whole conclusion**. The rule from
-here: measure each channel separately, and label measured and inferred
-separately, in the same sentence where the claim is made.
+Every one was **a partial reading stated as a whole conclusion**. The rule:
+measure each channel separately, ask the system that owns the answer, and say
+which part is measured and which is inferred in the same sentence as the claim.
 
 ---
 
