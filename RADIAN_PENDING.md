@@ -569,7 +569,53 @@ count, not a substitute for it.
 
 ---
 
-## ✅ ONE INBOX — what was fixed on 31 Aug, and what is still open
+## ✅ ONE INBOX — closed, 31 Aug. Read the correction below before anything else.
+
+**The fifth wrong call of the day, and the one that mattered.** After the Page
+was reconnected with every scope Meta offers, the profile lookup **still failed,
+identically**. So "the scopes are why threads say Guest" — which this file
+asserted two hours earlier — was wrong.
+
+What was actually wrong was the **question**, not the permission:
+
+```
+GET /{psid}?fields=first_name,last_name   refused, with every scope granted
+GET /me/conversations                     from: { name: "Mahisha Mouno",
+                                                  id: "28729587416665125" }
+```
+
+The same person, the same token, one minute apart. The code had been asking the
+one endpoint Meta will not answer, and 48 threads read "Guest" for weeks because
+of it. **The name was never missing. It was one call to the left.**
+
+### What that fixed, measured on the system
+
+```
+name backfill — INSTAGRAM:  50 threads at Meta, named  1
+name backfill — MESSENGER: 100 threads at Meta, named 38
+picked up 34 MESSENGER message(s) the webhook never delivered
+```
+
+The inbox now reads `Mahisha Mouno · FB · Meta: same price` — the right name,
+and the right note that the reply was typed in Meta's own app rather than here.
+
+**That third line is the finding nobody was looking for: the Facebook webhook
+had been dropping messages too**, quietly, exactly like Instagram. It went
+unnoticed because Messenger "worked" — some messages arrived, so nobody counted.
+The poller now covers both channels for that reason.
+
+### "Which admin replied" — closed, both channels
+
+An outgoing Page message is **from the Page**:
+`from: { name: "Radian Flower & Gift Shop", id: "341678165697164" }`. Never the
+person. Facebook is the same as Instagram on this. Business Suite knows it
+internally and does not expose it, so no amount of work here produces that name.
+`"Replied from Meta"` stands, and the only way to get a real name on a reply is
+for staff to reply from Radian.
+
+---
+
+## What was fixed on 31 Aug, and what is still open
 
 The owner's four asks, and where each one landed. Everything below was walked on
 `admin.development.radianbd.com/inbox` after the build, not inferred.
