@@ -595,19 +595,50 @@ PAGE                       https://api.development.radianbd.com/webhooks/meta   
 WHATSAPP_BUSINESS_ACCOUNT  https://api.development.radianbd.com/webhooks/whatsapp active  ...
 ```
 
-### So what is left
+### The test was run, and it failed — but it named the fault exactly
 
-Every link in the chain has been tested except one: **nobody has sent an
-Instagram DM since the webhook was pointed at the VPS.** The Page webhook was
-saved at about 17:07 and Messenger messages started arriving at 17:07:39 — the
-very first minute. Instagram has had the same correct configuration for the
-same short window and has received no message to deliver.
+The owner sent an Instagram DM at **17:49:40**. Nothing reached the API.
 
-**The one test still owed:** send one DM to `@radiangiftshop` from another
-Instagram account, then look at the inbox. If it lands, the case is closed. If
-it does not, the next place to look is the Instagram app's own
-**Settings → Messages → Connected tools / Allow access to messages** toggle —
-the only remaining switch that sits outside both our code and the app config.
+Then the Instagram token was pointed at Meta's own inbox, and the message was
+**there**:
+
+```
+now  2026-08-31T17:52:51 UTC        (threads at Meta: 50)
+2026-08-31T17:49:40  hshshjshshhshshsh   <- the owner's test, 3 minutes old
+2026-08-31T17:31:24  jafiraah_
+2026-08-31T12:36:19  titeer.12
+```
+
+So the fault is now pinned with no guesswork left in it:
+
+> **The messages exist at Meta and our token can read them. Meta is simply not
+> pushing them to the webhook, even though `/{app-id}/subscriptions` says the
+> instagram object is active and pointed at our URL.**
+
+**Done in response:** the app was re-subscribed to the account
+(`POST /me/subscribed_apps`), which also widened the fields —
+`messages` alone became `messages, messaging_postbacks, message_reactions`.
+Meta answered `{"success":true}`. Whether that repairs the push is not yet
+known; it needs one more DM to find out.
+
+**If it still does not push, the two switches left are both outside the API:**
+the app's **Live / Development** mode (in Development, Meta only pushes for
+accounts holding an app role — the app has exactly two administrators and no
+testers), and the Instagram app's **Settings → Messages → Connected tools**.
+
+### ⭐ The durable answer, whichever way that goes — read, do not only listen
+
+Today proved something worth building on: **the Instagram token can read the
+inbox directly** (`GET /me/conversations`). A webhook is a thing Meta chooses to
+send; a read is a thing we choose to do. The inbox should not depend only on the
+former.
+
+Proposed (NOT built — needs the owner's word): a small poller that every minute
+asks Meta for conversations updated since the last check and imports any message
+the webhook did not bring, through the same `conversationFor` + dedupe path, so
+a message that arrives twice still lands once. The webhook stays the fast path;
+the poll is the net under it. This is the same fail-soft shape the money
+hand-offs already use.
 
 ### Known, separate, and real: threads show "Guest"
 
