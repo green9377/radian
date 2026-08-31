@@ -417,11 +417,14 @@ export class PosService {
       );
     }
 
-    const cash = await this.prisma.db.financeAccount.findUnique({
-      where: { code: ACC.CASH },
-      select: { id: true },
-    });
-    if (!cash) throw new BadRequestException('the cash account is not set up in Finance yet');
+    /*  Which cash — asked the same way the till asks it (DEC-GBL-006). Walked
+        31 Aug: this shop has TWO cash accounts, so hardcoding `1000` would have
+        emptied a drawer the money never sat in. When there is only one the
+        cashier is never bothered; when there are two, `resolveAccount` refuses
+        with the same sentence the sell screen shows.  */
+    const cashId = await this.payMethods.resolveAccount('cash', dto.fromAccountId);
+    if (!cashId) throw new BadRequestException('no cash account is set up in Finance yet');
+    const cash = { id: cashId };
 
     let docNo: string;
     if (dto.kind === 'EXPENSE') {

@@ -31,6 +31,8 @@ export interface CloseShiftDto {
 export interface PosCashOutDto {
   kind: 'EXPENSE' | 'DROP';
   amountPaisa: number;
+  /** which cash the notes came out of — needed only when the shop keeps more than one */
+  fromAccountId?: string;
   /** EXPENSE — the heading it is spent under (a Finance EXPENSE account) */
   accountId?: string;
   /** DROP — where the cash is going (a Finance money account: bank, safe) */

@@ -99,11 +99,19 @@ export interface PayOption {
   /** DEC-GBL-006 — the accounts under this method; asked for only when >1 */
   accounts?: { id: string; label: string }[];
 }
+/*  P7-8 (31 Aug 2026) — the ids here are the SHOP'S CODES, uppercase, exactly
+    what `/administration/payment-methods` returns. They used to be written
+    "Cash" / "bKash", and that one difference in spelling closed the till:
+    the first payment row is created before the real list arrives, so it took
+    the fallback id "Cash"; when the list landed as "CASH" nothing matched, the
+    "Which account…" picker never appeared, and the API — with two cash
+    accounts on this shop — refused every cash sale with "Say which Cash the
+    money went to". A cashier reading that had no way to answer it.  */
 export const COUNTER_METHODS: PayOption[] = [
-  { id: "Cash", label: "Cash" },
-  { id: "bKash", label: "bKash" },
-  { id: "Nagad", label: "Nagad" },
-  { id: "Card", label: "Card" },
+  { id: "CASH", label: "Cash" },
+  { id: "BKASH", label: "bKash" },
+  { id: "NAGAD", label: "Nagad" },
+  { id: "CARD", label: "Card" },
 ];
 
 /*  DEC-GBL-001 — the shop's own list, read once and shared by every money
@@ -481,11 +489,15 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNT
         {pay.pays.map((r) => {
           /*  DEC-GBL-006 — one bKash number, no question; three, and the row
               has to say which one, or nobody can reconcile the statement.  */
-          const accounts = methods.find((m) => m.id === r.method)?.accounts ?? [];
+          /*  P7-8 — matched case-insensitively and the select shows the option's
+              OWN id, so a row created from the fallback list before the shop's
+              list arrived cannot quietly lose its accounts.  */
+          const opt = methods.find((m) => m.id.toLowerCase() === r.method.toLowerCase());
+          const accounts = opt?.accounts ?? [];
           return (
             <div key={r.id} className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
-                <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={r.method}
+                <select className="ipt h-[40px] flex-1 min-w-0 text-[13px]" value={opt?.id ?? r.method}
                   onChange={(e) => pay.setMethod(r.id, e.target.value)}>
                   {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
@@ -671,7 +683,8 @@ export function RefundDialog({
               {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
             {(() => {
-              const accounts = methods.find((m) => m.id === method)?.accounts ?? [];
+              // P7-8 — same case-insensitive match as the payment rows
+              const accounts = methods.find((m) => m.id.toLowerCase() === method.toLowerCase())?.accounts ?? [];
               if (accounts.length < 2 || !onAccount) return null;
               return (
                 <select className="ipt h-[36px] text-[12.5px] mt-2" value={accountId ?? ""}

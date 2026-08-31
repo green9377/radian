@@ -4456,6 +4456,7 @@ export const posTakeCashOut = (
   b: {
     kind: "EXPENSE" | "DROP";
     amountPaisa: number;
+    fromAccountId?: string;
     accountId?: string;
     toAccountId?: string;
     payeeName?: string;

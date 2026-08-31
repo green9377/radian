@@ -195,7 +195,13 @@ function CashOutDialog({
   useEffect(() => { financeAccounts().then(setAccounts).catch(() => setErr("Could not load the headings from Finance")); }, []);
 
   const headings = accounts.filter((a) => a.type === "EXPENSE" && a.isActive);
-  const destinations = accounts.filter((a) => a.isMoneyAccount && a.isActive && a.code !== "1000");
+  /*  DEC-GBL-006 — the shop may keep more than one cash account, and the sell
+      screen already refuses a cash tender without saying which. The drawer asks
+      the same question, and only when there is really a choice.  */
+  const cashAccounts = accounts.filter((a) => a.isMoneyAccount && a.isActive && a.payMethod === "CASH");
+  const [fromAccountId, setFromAccountId] = useState("");
+  const fromId = cashAccounts.length === 1 ? cashAccounts[0].id : fromAccountId;
+  const destinations = accounts.filter((a) => a.isMoneyAccount && a.isActive && a.id !== fromId);
   const amountPaisa = Math.round((Number(amount) || 0) * 100);
   const tooMuch = amountPaisa > expectedCashPaisa;
 
@@ -205,10 +211,12 @@ function CashOutDialog({
     if (tooMuch) { setErr(`Only ${formatTaka(expectedCashPaisa)} is in the drawer.`); return; }
     if (kind === "EXPENSE" && !accountId) { setErr("Pick what this money was spent on."); return; }
     if (kind === "DROP" && !toAccountId) { setErr("Pick where the cash is going."); return; }
+    if (!fromId) { setErr("Say which cash the notes came out of."); return; }
     setBusy(true);
     try {
       const r = await posTakeCashOut(shiftId, {
         kind, amountPaisa,
+        fromAccountId: fromId,
         accountId: kind === "EXPENSE" ? accountId : undefined,
         toAccountId: kind === "DROP" ? toAccountId : undefined,
         payeeName: payeeName.trim() || undefined,
@@ -247,6 +255,16 @@ function CashOutDialog({
         <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Amount ৳</label>
         <input type="text" inputMode="decimal" className="ipt h-[44px] text-[15px] mb-3" placeholder="0.00"
           value={amount} onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setAmount(v); }} />
+
+        {cashAccounts.length > 1 && (
+          <>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Out of which cash</label>
+            <select className="ipt h-[44px] mb-3" value={fromAccountId} onChange={(e) => setFromAccountId(e.target.value)}>
+              <option value="">Pick the drawer…</option>
+              {cashAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </>
+        )}
 
         {kind === "EXPENSE" ? (
           <>
