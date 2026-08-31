@@ -312,3 +312,60 @@ pending owner migration + live-verify:
   and cash payout/drop entry (G1/G2); branch on sale (needs Branch module, G3);
   editable Settings + discount-rule editor (G6); held-cart DB persistence (currently
   local to the Sell page).
+
+---
+
+## 10. Decisions added after the lock — Phase 7 (31 Aug 2026)
+
+### DEC-POS-025 — Cash leaving the till is an expense, never a shortage
+
+**Business problem.** Cash goes out of a counter drawer in real life: a rider is
+paid for a trip, tea is bought, a courier is settled, notes are moved to the
+safe. The system had no honest way to say so. `POST /pos/shifts/:id/cash` could
+write a PAYOUT that lowered the expected cash and told Finance nothing, and no
+screen in the admin ever called it. So the only trace of money leaving was a
+short drawer at day-close, which posts to `5700 Cash Short` — an expense
+recorded against the cashier's honesty instead of against what it was spent on.
+That also breaks the standing rule that every movement of money lands in
+Finance (CLAUDE.md §4 rule 4a).
+
+**Decision (owner, 31 Aug 2026).** *"jkhon ja dorkar hobe cash theke ber krbe
+expance diye"* — money may be taken out of the drawer whenever the shop needs
+it, and **every withdrawal is recorded at the moment it happens, under a
+heading**. Two shapes, and only two:
+
+- **Spent it** → Finance writes an `Expense` (category + amount + optional
+  payee), paid from the cash account. The ledger posts `Dr <category> / Cr Cash`.
+- **Moved to bank/safe** → Finance writes a transfer between two money
+  accounts. Nothing is spent; the same money is somewhere else.
+
+In both cases POS writes one negative `PosCashMovement`, so expected cash falls
+by exactly what left and the count at close still matches. The two records name
+each other by document number.
+
+**Reason.** The drawer and the books have to fall by the same amount at the same
+moment, or day-close turns a legitimate payment into an accusation. Making the
+heading compulsory is what turns the withdrawal into a cost the P&L can see;
+a free-text "reason" would have satisfied the screen and left Finance blind.
+
+**Alternatives considered.**
+- *Let the shortage at close explain itself* — rejected: by then nobody
+  remembers, and `5700 Cash Short` is the wrong account for a real expense.
+- *Let POS post the journal itself* — rejected: Finance owns the ledger
+  (DEC-FIN-010, house rule 4). POS asks; Finance writes.
+- *One "petty cash" heading for everything* — rejected: it hides what the shop
+  actually spends on, which is the only reason to record it at all.
+
+**Impact.** POS (drawer, day-close), Finance (Expense, Transfer, journal),
+Audit. Cap: a withdrawal larger than what is in the drawer is refused. If the
+shop's approval threshold applies, the expense sits PENDING in Finance while
+the cash has already gone — visible there, and deliberate.
+
+**Related.** DEC-POS-010 (shift and drawer), DEC-FIN-010 (fail-soft hand-off),
+CLAUDE.md §4 rule 4a. **P7-3** is the same fault on the returns side: a cash
+refund now also comes out of the open drawer, instead of surfacing as a
+shortage at close.
+
+**Future review.** If a second counter is ever staffed at the same time, the
+question of *which* drawer a due collection or a refund comes out of stops
+having an obvious answer — today it is "the open one".

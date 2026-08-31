@@ -174,6 +174,11 @@ async function main() {
     await refuses('a second shift on the same register is refused',
       () => pos.openShift({ registerId: register.id, cashierName: `${TAG} Cashier` }),
       'already open');
+    /*  P7-6 (31 Aug) — and one asked for with NO register is refused too. That
+        was the hole: `SHF-000001` sat open with `registerId = null` from 20 to
+        31 August, invisible to the per-register check, so the till happily
+        offered to open a second drawer beside it.  */
+    ok('P7-6 a shift always carries the counter it was opened on', !!shift.registerId, shift.registerId ?? 'null');
 
     /* ---------------------------------------------------------------- 2 */
     console.log('\n=== 2. a paid counter sale ===');

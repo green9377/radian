@@ -9,6 +9,11 @@ import {
   posAnalyticsToday,
   posListSales,
   posCurrentShift,
+  posShiftSummary,
+  posTakeCashOut,
+  financeAccounts,
+  type ApiFinanceAccount,
+  type ApiPosShiftSummary,
   posCloseShift,
   posDue,
   posCollectDue,
@@ -69,6 +74,11 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "gr
     invents sales or dues teaches the shop to trust numbers that are not real.
     Empty API answer = empty screen.  */
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+/*  P7-1 — a bare clock time is only honest inside one day. Sales history spans
+    90 days and the shift board can span several, so anything that is not
+    guaranteed to be today carries its date.  */
+const fmtDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 const methodLabel = (s: ApiPosSale) => (s.transactions?.length ? Array.from(new Set(s.transactions.map((t) => t.method))).join(" + ") : "—");
 
 /* ================= OVERVIEW ================= */
@@ -152,16 +162,148 @@ export function PosOverview() {
 }
 
 /* ================= SHIFT / TODAY ================= */
+
+/** how long a drawer has been open, in the plainest words (P7-1) */
+function openFor(openedAt: string): { text: string; stale: boolean } {
+  const days = Math.floor((Date.now() - new Date(openedAt).getTime()) / 86400000);
+  if (days <= 0) return { text: "opened today", stale: false };
+  if (days === 1) return { text: "open since yesterday", stale: true };
+  return { text: `open for ${days} days`, stale: true };
+}
+
+/**
+ * P7-2 — the one way cash leaves the till.
+ *
+ * The owner's rule, 31 Aug: money comes out whenever the shop needs it, and it
+ * is always recorded as an expense under a heading. So the heading is not
+ * optional here and there is no free-text "reason" standing in for one — that
+ * is what makes it reach Finance as a cost instead of surfacing as a mysterious
+ * shortage at day-close.
+ */
+function CashOutDialog({
+  shiftId, expectedCashPaisa, onClose, onDone,
+}: { shiftId: string; expectedCashPaisa: number; onClose: () => void; onDone: (expected: number) => void }) {
+  const [kind, setKind] = useState<"EXPENSE" | "DROP">("EXPENSE");
+  const [accounts, setAccounts] = useState<ApiFinanceAccount[]>([]);
+  const [accountId, setAccountId] = useState("");
+  const [toAccountId, setToAccountId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [payeeName, setPayeeName] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { financeAccounts().then(setAccounts).catch(() => setErr("Could not load the headings from Finance")); }, []);
+
+  const headings = accounts.filter((a) => a.type === "EXPENSE" && a.isActive);
+  const destinations = accounts.filter((a) => a.isMoneyAccount && a.isActive && a.code !== "1000");
+  const amountPaisa = Math.round((Number(amount) || 0) * 100);
+  const tooMuch = amountPaisa > expectedCashPaisa;
+
+  async function submit() {
+    setErr(null);
+    if (amountPaisa <= 0) { setErr("Type how much is coming out of the drawer."); return; }
+    if (tooMuch) { setErr(`Only ${formatTaka(expectedCashPaisa)} is in the drawer.`); return; }
+    if (kind === "EXPENSE" && !accountId) { setErr("Pick what this money was spent on."); return; }
+    if (kind === "DROP" && !toAccountId) { setErr("Pick where the cash is going."); return; }
+    setBusy(true);
+    try {
+      const r = await posTakeCashOut(shiftId, {
+        kind, amountPaisa,
+        accountId: kind === "EXPENSE" ? accountId : undefined,
+        toAccountId: kind === "DROP" ? toAccountId : undefined,
+        payeeName: payeeName.trim() || undefined,
+        note: note.trim() || undefined,
+      });
+      onDone(r.expectedCashPaisa);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not record it");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(onClose)}>
+      <div className="bg-white rounded-[16px] shadow-lift p-6 w-full max-w-[420px]" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-display text-[17px] text-purple m-0 mb-1">Take cash out of the drawer</h3>
+        <p className="text-[12.5px] text-body-soft mb-4">In the drawer now: <span className="font-semibold text-purple">{formatTaka(expectedCashPaisa)}</span></p>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {(["EXPENSE", "DROP"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKind(k)}
+              className={
+                "py-2.5 rounded-[11px] text-[13px] font-bold border transition " +
+                (kind === k
+                  ? "bg-purple text-white border-purple shadow-soft"
+                  : "bg-white text-body-soft border-lavender-deep hover:border-orchid-mid")
+              }
+            >
+              {k === "EXPENSE" ? "Spent it" : "Moved to bank/safe"}
+            </button>
+          ))}
+        </div>
+
+        <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Amount ৳</label>
+        <input type="text" inputMode="decimal" className="ipt h-[44px] text-[15px] mb-3" placeholder="0.00"
+          value={amount} onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setAmount(v); }} />
+
+        {kind === "EXPENSE" ? (
+          <>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">What was it spent on</label>
+            <select className="ipt h-[44px] mb-3" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+              <option value="">Pick a heading…</option>
+              {headings.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Paid to (optional)</label>
+            <input className="ipt h-[44px] mb-3" placeholder="Who took the money" value={payeeName} onChange={(e) => setPayeeName(e.target.value)} />
+          </>
+        ) : (
+          <>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Where it is going</label>
+            <select className="ipt h-[44px] mb-3" value={toAccountId} onChange={(e) => setToAccountId(e.target.value)}>
+              <option value="">Pick an account…</option>
+              {destinations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </>
+        )}
+
+        <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Note (optional)</label>
+        <input className="ipt h-[44px]" placeholder="Anything to remember" value={note} onChange={(e) => setNote(e.target.value)} />
+
+        {err && <p className="text-[12px] text-[#c0392b] mt-3 mb-0">{err}</p>}
+
+        <div className="flex gap-2 mt-5">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Cancel</button>
+          <button type="button" onClick={submit} disabled={busy} className="flex-1 py-2.5 rounded-[11px] bg-purple hover:bg-purple-deep text-white font-bold text-[13px] disabled:opacity-50">
+            {busy ? "Recording…" : "Take it out"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PosShiftBoard() {
   const [shift, setShift] = useState<ApiPosShift | null>(null);
-  const [sales, setSales] = useState<ApiPosSale[]>([]);
-  const [a, setA] = useState<ApiPosAnalytics | null>(null);
+  const [sum, setSum] = useState<ApiPosShiftSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cashOut, setCashOut] = useState(false);
   useEffect(() => {
-    posCurrentShift().then(setShift).catch(() => {});
-    posListSales({ days: 1 }).then((r) => { if (r.length) setSales(r); }).catch(() => {});
-    posAnalyticsToday().then(setA).catch(() => {});
+    posCurrentShift()
+      .then(async (s) => {
+        setShift(s);
+        if (s) setSum(await posShiftSummary(s.id).catch(() => null));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
-  const expected = shift ? (shift.openingFloatPaisa + (shift.cashMovements?.reduce((s, m) => s + m.amountPaisa, 0) ?? 0)) : 0;
+  /*  P7-1 — the drawer figure comes from the shift, and so does everything
+      beside it. The panel used to print TODAY's takings under the words "Sales
+      this shift"; on a drawer that had been open since 20 August that read
+      "0 transactions" next to ৳15,156.76 of cash.  */
+  const expected = sum?.expectedCashPaisa ?? 0;
+  const age = shift ? openFor(shift.openedAt) : null;
   return (
     <div className={wrap}>
       <Head title="Today / Shift" sub="The running picture — who is on the counter and what's in the drawer right now." />
@@ -169,41 +311,70 @@ export function PosShiftBoard() {
         {shift ? (
           <div className="rounded-[18px] p-5 text-white shadow-soft relative overflow-hidden" style={{ background: "linear-gradient(160deg,#159b63,#0d5f3f)" }}>
             <div className="absolute -right-6 -top-6 w-[90px] h-[90px] rounded-full bg-white/10" />
-            <div className="flex items-center gap-2 mb-3"><span className="w-[9px] h-[9px] rounded-full bg-white" /><h3 className="font-display text-[16px] text-white m-0">Shift open</h3></div>
+            <div className="flex items-center gap-2 mb-3"><span className="w-[9px] h-[9px] rounded-full bg-white" /><h3 className="font-display text-[16px] text-white m-0">Shift open{sum?.shiftNo ? ` · ${sum.shiftNo}` : ""}</h3></div>
             <div className="space-y-2 text-[13px]">
               <div className="flex justify-between"><span className="text-white/75">Cashier</span><span className="font-medium">{shift.cashierName}</span></div>
-              <div className="flex justify-between"><span className="text-white/75">Opened</span><span>{fmtTime(shift.openedAt)}</span></div>
+              <div className="flex justify-between"><span className="text-white/75">Counter</span><span className="font-medium">{sum?.registerName ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-white/75">Opened</span><span>{fmtDateTime(shift.openedAt)}</span></div>
               <div className="flex justify-between"><span className="text-white/75">Opening float</span><span>{formatTaka(shift.openingFloatPaisa)}</span></div>
               <div className="flex justify-between border-t border-white/20 pt-2"><span className="text-white/90 font-medium">Expected cash</span><span className="font-semibold text-white text-[15px]">{formatTaka(expected)}</span></div>
             </div>
-            <Link href="/pos/day-close" className="block text-center mt-4 bg-white hover:bg-white/90 text-[#0d5f3f] text-[13.5px] py-2.5 rounded-[11px] font-semibold">Start day-close</Link>
+            {age?.stale && (
+              <div className="mt-3 rounded-[11px] bg-white/15 px-3 py-2 text-[12px] font-medium">
+                This drawer has been {age.text}. Count it and close the shift.
+              </div>
+            )}
+            <button type="button" onClick={() => setCashOut(true)} className="w-full mt-4 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[13px] py-2.5 rounded-[11px] font-bold">
+              Take cash out
+            </button>
+            <Link href="/pos/day-close" className="block text-center mt-2 bg-white hover:bg-white/90 text-[#0d5f3f] text-[13.5px] py-2.5 rounded-[11px] font-bold">Start day-close</Link>
           </div>
         ) : (
           <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-2">No open shift</h3>
-            <p className="text-[13px] text-body-soft mb-0">Open a shift from the Sell screen to start taking counter sales.</p>
-            <Link href="/pos/sell" className="inline-block mt-3 bg-purple text-white text-[13px] px-4 py-2 rounded-[10px] font-medium">Go to Sell</Link>
+            <h3 className="font-display text-[16px] text-purple m-0 mb-2">{loading ? "Looking for an open shift…" : "No open shift"}</h3>
+            {!loading && (
+              <>
+                <p className="text-[13px] text-body-soft mb-0">Open a shift from the Sell screen to start taking counter sales.</p>
+                <Link href="/pos/sell" className="inline-block mt-3 bg-purple text-white text-[13px] px-4 py-2 rounded-[10px] font-medium">Go to Sell</Link>
+              </>
+            )}
           </div>
         )}
 
         <div className={card + " p-5"}>
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <Stat label="Sales this shift" value={formatTaka(a?.salesPaisa ?? 0)} tone="plum" />
-            <Stat label="Transactions" value={String(a?.count ?? 0)} tone="orchid" />
-            <Stat label="Avg. bill" value={formatTaka(a?.avgPaisa ?? 0)} tone="green" />
+            <Stat label="Sales this shift" value={formatTaka(sum?.salesPaisa ?? 0)} tone="plum" />
+            <Stat label="Transactions" value={String(sum?.count ?? 0)} tone="orchid" />
+            <Stat label="Avg. bill" value={formatTaka(sum?.avgPaisa ?? 0)} tone="green" />
           </div>
           <h3 className="font-display text-[15px] text-purple m-0 mb-2">Sales this shift</h3>
           <div className="flex flex-col">
-            {sales.map((s) => (
+            {(sum?.sales ?? []).map((s) => (
               <div key={s.id} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[13px]">
-                <span className="text-body-soft">{fmtTime(s.placedAt)} · {s.customer?.name ?? s.senderName}</span>
-                <span className="font-medium">{formatTaka(s.totalPaisa)} <span className="text-body-soft font-normal">· {methodLabel(s)}</span></span>
+                <span className="text-body-soft">{fmtDateTime(s.placedAt)} · {s.customerName}</span>
+                <span className="font-medium">
+                  {formatTaka(s.totalPaisa)}
+                  {s.duePaisa > 0 && <span className="text-[#b45309] font-normal"> · {formatTaka(s.duePaisa)} due</span>}
+                </span>
               </div>
             ))}
-            {sales.length === 0 && <div className="text-[13px] text-body-soft py-4">No sales this shift yet.</div>}
+            {shift && (sum?.sales.length ?? 0) === 0 && <div className="text-[13px] text-body-soft py-4">No sales on this shift yet.</div>}
+            {!shift && !loading && <div className="text-[13px] text-body-soft py-4">Nothing to show until a shift is open.</div>}
           </div>
         </div>
       </div>
+
+      {cashOut && shift && (
+        <CashOutDialog
+          shiftId={shift.id}
+          expectedCashPaisa={expected}
+          onClose={() => setCashOut(false)}
+          onDone={(next) => {
+            setCashOut(false);
+            setSum((s) => (s ? { ...s, expectedCashPaisa: next } : s));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -241,7 +412,7 @@ export function PosSalesHistory() {
             {list.map((s) => (
               <tr key={s.id} className="border-t border-lavender-deep hover:bg-lavender/30">
                 <td className="px-4 py-2.5 font-medium text-purple">{s.orderNo}{s.isGift && <span className="text-orchid text-[11px]"> · gift</span>}</td>
-                <td className="px-4 py-2.5 text-body-soft">{fmtTime(s.placedAt)}</td>
+                <td className="px-4 py-2.5 text-body-soft">{fmtDateTime(s.placedAt)}</td>
                 <td className="px-4 py-2.5">{s.customer?.name ?? s.senderName}</td>
                 <td className="px-4 py-2.5">{s._count?.lines ?? 0}</td>
                 <td className="px-4 py-2.5 text-body-soft">{methodLabel(s)}</td>
@@ -283,15 +454,36 @@ export function PosSalesHistory() {
 /* ================= DAY-CLOSE ================= */
 export function PosDayClose() {
   const [shift, setShift] = useState<ApiPosShift | null>(null);
-  useEffect(() => { posCurrentShift().then(setShift).catch(() => {}); }, []);
-  const expected = shift ? (shift.openingFloatPaisa + (shift.cashMovements?.reduce((s, m) => s + m.amountPaisa, 0) ?? 0)) : 1226000;
-  const [actual, setActual] = useState<number>(0);
+  const [sum, setSum] = useState<ApiPosShiftSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    posCurrentShift()
+      .then(async (s) => {
+        setShift(s);
+        if (s) setSum(await posShiftSummary(s.id).catch(() => null));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+  /*  P7-5 — this used to fall back to the literal 1226000 when no shift was
+      open, so a screen whose whole job is counting money printed ৳12,260 that
+      belonged to nothing. A money screen shows what it knows or shows nothing.  */
+  const expected = sum?.expectedCashPaisa ?? 0;
+  /*  P7-7 — the count is kept in PAISA and the box holds its own draft while it
+      is being typed. It used to be a controlled number input rewritten as
+      Math.round(actual/100) on every keystroke, so the decimal point never
+      survived: a drawer expecting ৳15,156.76 could not be counted, and closing
+      it wrote a 24-paisa "over" that never existed.  */
+  const [draft, setDraft] = useState("");
+  const actual = Math.round((Number(draft) || 0) * 100);
+  const counted = draft.trim() !== "" && Number.isFinite(Number(draft));
   const over = actual - expected;
   const [closed, setClosed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   async function doClose() {
     if (!shift) { setErr("No open shift to close."); return; }
+    if (!counted) { setErr("Count the drawer first — type what is actually in it."); return; }
     setBusy(true); setErr(null);
     try { await posCloseShift(shift.id, { countedCashPaisa: actual }); setClosed(true); }
     catch (e) { setErr(e instanceof Error ? e.message : "Could not close the shift"); }
@@ -300,29 +492,52 @@ export function PosDayClose() {
   return (
     <div className={wrap}>
       <Head title="Day-close" sub="Count the drawer and match it against the system — shortfall or excess is flagged, never blocked." />
+      {!loading && !shift && (
+        <div className={card + " p-6 max-w-[820px] text-center"}>
+          <h3 className="font-display text-[16px] text-purple m-0 mb-2">No shift is open</h3>
+          <p className="text-[13px] text-body-soft mb-3">There is no drawer to count. Open a shift on the Sell screen when the counter starts.</p>
+          <Link href="/pos/sell" className="inline-block bg-purple text-white text-[13px] px-4 py-2 rounded-[10px] font-semibold">Go to Sell</Link>
+        </div>
+      )}
+      {shift && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start max-w-[820px]">
         <div className={card + " p-5"}>
-          <h3 className="font-display text-[16px] text-purple m-0 mb-3">System expects</h3>
+          <h3 className="font-display text-[16px] text-purple m-0 mb-3">System expects{sum?.shiftNo ? ` · ${sum.shiftNo}` : ""}</h3>
           <div className="space-y-2 text-[13px]">
-            <div className="flex justify-between"><span className="text-body-soft">Opening float</span><span>{formatTaka(shift?.openingFloatPaisa ?? 0)}</span></div>
-            <div className="flex justify-between"><span className="text-body-soft">Cash movements</span><span className="text-[#0e7a3d]">+ {formatTaka(expected - (shift?.openingFloatPaisa ?? 0))}</span></div>
+            <div className="flex justify-between"><span className="text-body-soft">Opening float</span><span>{formatTaka(shift.openingFloatPaisa)}</span></div>
+            <div className="flex justify-between"><span className="text-body-soft">Cash movements</span><span className="text-[#0e7a3d]">+ {formatTaka(expected - shift.openingFloatPaisa)}</span></div>
             <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Expected cash</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
           </div>
+          {sum && (
+            <div className="mt-3 pt-3 border-t border-lavender-deep space-y-2 text-[13px]">
+              <div className="flex justify-between"><span className="text-body-soft">Bills on this shift</span><span>{sum.count}</span></div>
+              <div className="flex justify-between"><span className="text-body-soft">Sales</span><span>{formatTaka(sum.salesPaisa)}</span></div>
+              {sum.duePaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Still owed on them</span><span className="text-[#b45309]">{formatTaka(sum.duePaisa)}</span></div>}
+              <div className="flex justify-between"><span className="text-body-soft">Open since</span><span>{fmtDateTime(sum.openedAt)}</span></div>
+            </div>
+          )}
         </div>
         <div className={card + " p-5"}>
           <h3 className="font-display text-[16px] text-purple m-0 mb-3">Counted in drawer</h3>
-          <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Actual cash counted ৳</label>
-          <input type="number" min={0} className="ipt h-[46px] text-[16px]" placeholder="0" value={actual ? Math.round(actual / 100) : ""} onChange={(e) => setActual(Math.max(0, Number(e.target.value)) * 100)} />
-          {actual > 0 && (
+          <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Actual cash counted ৳ (paisa allowed)</label>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="ipt h-[46px] text-[16px]"
+            placeholder={(expected / 100).toFixed(2)}
+            value={draft}
+            onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
+          />
+          {counted && (
             <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#e9f9ef] text-[#0e7a3d]" : over > 0 ? "bg-[#eef4ff] text-[#1d4ed8]" : "bg-[#fdecea] text-[#c0392b]")}>
               {over === 0 ? "Matches exactly ✓" : over > 0 ? `Excess: ${formatTaka(over)} (more in drawer)` : `Shortfall: ${formatTaka(-over)} (missing)`}
             </div>
           )}
-          <button type="button" onClick={doClose} disabled={!shift || busy || closed} className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[13.5px] py-3 rounded-[12px] font-medium disabled:opacity-50">{closed ? "Shift closed ✓" : busy ? "Closing…" : "Close shift"}</button>
+          <button type="button" onClick={doClose} disabled={busy || closed} className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[14px] py-3 rounded-[12px] font-bold disabled:opacity-50">{closed ? "Shift closed ✓" : busy ? "Closing…" : "Close shift"}</button>
           {err && <p className="text-[11.5px] text-[#c0392b] mt-2 mb-0">{err}</p>}
-          <p className="text-[11.5px] text-body-soft mt-2 mb-0">Closing hands the completed shift event to Finance later (POS never writes the ledger).</p>
         </div>
       </div>
+      )}
     </div>
   );
 }

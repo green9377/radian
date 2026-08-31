@@ -91,8 +91,13 @@ export default function PosSellView() {
 
   // ---- shift (live from :4000/pos) ----
   const [shift, setShift] = useState<ApiPosShift | null>(null);
+  /*  P7-6 — until the answer arrives, the till must not claim the counter is
+      closed. It used to paint "Shift closed · Open" for the first moment of
+      every load, and pressing that button while a drawer was already open is
+      how a second shift gets created.  */
+  const [shiftKnown, setShiftKnown] = useState(false);
   const [saleErr, setSaleErr] = useState<string | null>(null);
-  useEffect(() => { posCurrentShift().then(setShift).catch(() => {}); }, []);
+  useEffect(() => { posCurrentShift().then(setShift).catch(() => {}).finally(() => setShiftKnown(true)); }, []);
 
   /*  DEC-GBL-001 (was DEC-POS-021, POS-only) — the counter offers what the SHOP
       takes, from the one list every money screen reads.  */
@@ -333,7 +338,8 @@ export default function PosSellView() {
   const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
 
   const errors: string[] = [];
-  if (!shiftOpen) errors.push("Open a shift to start selling.");
+  if (!shiftKnown) errors.push("Checking the counter…");
+  else if (!shiftOpen) errors.push("Open a shift to start selling.");
   if (lines.length === 0) errors.push("Add at least one item.");
   if (needsApproval) errors.push("Discount over limit — needs manager approval.");
   if (needsCustomer) errors.push(`${formatTaka(duePaisa)} unpaid — add a customer name or phone.`);
@@ -470,8 +476,8 @@ export default function PosSellView() {
         </div>
         <div className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[#e9f9ef] border-[#c2ecd3] text-[#0e7a3d]" : "bg-lavender border-lavender-deep text-body-soft")}>
           <Icon name="clock" size={15} />
-          {shift ? <>Shift open · {shift.cashierName} (float {formatTaka(openingFloatPaisa)})</> : <>Shift closed</>}
-          {!shift && <button type="button" onClick={openShift} className="ml-1 underline decoration-dotted">Open</button>}
+          {shift ? <>Shift open · {shift.cashierName} (float {formatTaka(openingFloatPaisa)})</> : shiftKnown ? <>Shift closed</> : <>Checking the counter…</>}
+          {shiftKnown && !shift && <button type="button" onClick={openShift} className="ml-1 underline decoration-dotted">Open</button>}
         </div>
         <button type="button" onClick={() => setShowHeld(true)} className="flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium bg-white border border-lavender-deep text-purple hover:border-orchid-mid">
           <Icon name="clock" size={15} /> Held bills

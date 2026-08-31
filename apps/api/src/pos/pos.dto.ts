@@ -18,6 +18,28 @@ export interface CloseShiftDto {
   actorName?: string;
 }
 
+/**
+ * P7-2 (owner, 31 Aug 2026) — *"jkhon ja dorkar hobe cash theke ber krbe
+ * expance diye"*: money may leave the till whenever it is needed, and every
+ * withdrawal is recorded as an expense with a heading, so it lands in Finance
+ * as a cost. Nothing leaves the drawer silently.
+ *
+ * DROP is the other half — cash moved to the bank or the safe. That is not a
+ * cost, it is the same money in another place, so it becomes a Finance
+ * transfer rather than an expense.
+ */
+export interface PosCashOutDto {
+  kind: 'EXPENSE' | 'DROP';
+  amountPaisa: number;
+  /** EXPENSE — the heading it is spent under (a Finance EXPENSE account) */
+  accountId?: string;
+  /** DROP — where the cash is going (a Finance money account: bank, safe) */
+  toAccountId?: string;
+  payeeName?: string;
+  note?: string;
+  actorName?: string;
+}
+
 export interface CashMovementDto {
   kind: 'PAYOUT' | 'DROP' | 'ADJUSTMENT';
   amountPaisa: number; // signed for ADJUSTMENT; positive amount for PAYOUT/DROP (removed)

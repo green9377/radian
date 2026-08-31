@@ -17,13 +17,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMethodsService } from '../common/payment-methods.service';
 import { paidPaisa } from '../common/discount-window';
+import { startOfBdDay } from '../common/bd-day';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
+import { FinanceService, ACC } from '../finance/finance.service';
 import {
   OpenShiftDto,
   CloseShiftDto,
   CashMovementDto,
+  PosCashOutDto,
   CreatePosSaleDto,
   CollectDueDto,
   DiscountRuleInput,
@@ -48,7 +51,10 @@ export class PosService {
     private readonly audit: AuditService,
     private readonly inventory: InventoryService,
     // Finance consumes the completed counter sale — fail-soft (DEC-FIN-010)
-    private readonly finance: FinanceEventsService,
+    private readonly financeEvents: FinanceEventsService,
+    /*  P7-2 — Finance still WRITES the expense/transfer when cash leaves the
+        till; POS only asks. One-way, the same direction as every other module.  */
+    private readonly finance: FinanceService,
     /*  DEC-GBL-001 — one payment list for the whole shop  */
     private readonly payMethods: PaymentMethodsService,
   ) {}
@@ -248,10 +254,41 @@ export class PosService {
     });
   }
 
+  /**
+   * P7-6 (31 Aug) — TWO DRAWERS COULD BE OPEN AT ONCE, and the older one could
+   * never be closed from any screen.
+   *
+   * The clash was looked for PER REGISTER, but a shift could be created with no
+   * register at all (nothing ever required one). `SHF-000001` was exactly that:
+   * open since 20 Aug with `registerId = null`, holding eleven days of takings.
+   * `/pos/shifts/current?registerId=COUNTER-1` could not see it, so the till
+   * offered to open a second shift — and after that `currentShift()` (asked with
+   * no register, which is how due collection and day-close ask) would hand the
+   * cash to whichever opened LAST, leaving the first drawer stranded.
+   *
+   * Two doors to one fact, the shape this project keeps finding. So: a shift now
+   * always carries a register, and a register-less one left over from before
+   * blocks every register until somebody closes it.
+   */
   async openShift(dto: OpenShiftDto) {
     if (!dto.cashierName?.trim()) throw new BadRequestException('cashierName is required');
-    const open = await this.currentShift(dto.registerId);
-    if (open) throw new BadRequestException('a shift is already open on this register');
+
+    // always stamp a register — the counter it was opened on is part of the fact
+    const registerId = dto.registerId ?? (await this.registers())[0]?.id ?? null;
+    if (!registerId) throw new BadRequestException('no counter is set up yet — add one in POS settings');
+
+    const clash = await this.prisma.db.posShift.findFirst({
+      where: { status: PosShiftStatus.OPEN, OR: [{ registerId }, { registerId: null }] },
+      include: { register: { select: { name: true } } },
+    });
+    if (clash) {
+      throw new BadRequestException(
+        clash.registerId
+          ? `${clash.shiftNo} is already open on ${clash.register?.name ?? 'this counter'} (${clash.cashierName}) — close that shift first`
+          : `${clash.shiftNo} is already open with no counter on it (${clash.cashierName}) — close it from Day-close before opening a new one`,
+      );
+    }
+
     const s = await this.settings();
     // POS-REV-2 — the number is allocated inside the retry, not before it
     const shift = await this.withNextNo(
@@ -259,7 +296,7 @@ export class PosService {
       (shiftNo) => this.prisma.db.posShift.create({
         data: {
           shiftNo,
-          registerId: dto.registerId,
+          registerId,
           cashierName: dto.cashierName.trim(),
           openingFloatPaisa: dto.openingFloatPaisa ?? s.openingFloatDefaultPaisa,
         },
@@ -273,6 +310,60 @@ export class PosService {
   private async expectedCash(shiftId: string, openingFloatPaisa: number): Promise<number> {
     const moves = await this.prisma.db.posCashMovement.findMany({ where: { shiftId, deletedAt: null } });
     return moves.reduce((sum, m) => sum + m.amountPaisa, openingFloatPaisa);
+  }
+
+  /**
+   * P7-1 (31 Aug) — what THIS shift took. The screen used to print today's
+   * figure under the words "Sales this shift", which are not the same sentence:
+   * `SHF-000001` sat open from 20 to 31 August, so the drawer said ৳15,156.76
+   * while the panel beside it said "0 transactions". A cashier handing over a
+   * drawer cannot reconcile against a number that belongs to the calendar.
+   *
+   * The shift owns the bills rung up on it (`Order.posShiftId`), so that is what
+   * is counted here. The Overview keeps its "today" figure, where the word is true.
+   */
+  async shiftSummary(shiftId: string) {
+    const shift = await this.prisma.db.posShift.findFirst({
+      where: { id: shiftId },
+      include: { register: true, cashMovements: { where: { deletedAt: null } } },
+    });
+    if (!shift) throw new NotFoundException('shift not found');
+
+    const sales = await this.prisma.db.order.findMany({
+      where: { posShiftId: shiftId, fulfillmentType: FulfillmentType.COUNTER },
+      orderBy: { placedAt: 'desc' },
+      select: {
+        id: true, orderNo: true, placedAt: true, totalPaisa: true, duePaisa: true,
+        paymentMethod: true, paymentStatus: true, salesStatus: true, senderName: true,
+        customer: { select: { name: true } },
+      },
+    });
+
+    const salesPaisa = sales.reduce((s, o) => s + o.totalPaisa, 0);
+    const duePaisa = sales.reduce((s, o) => s + o.duePaisa, 0);
+    return {
+      shiftId,
+      shiftNo: shift.shiftNo,
+      cashierName: shift.cashierName,
+      registerName: shift.register?.name ?? null,
+      openedAt: shift.openedAt.toISOString(),
+      openingFloatPaisa: shift.openingFloatPaisa,
+      expectedCashPaisa: await this.expectedCash(shiftId, shift.openingFloatPaisa),
+      salesPaisa,
+      count: sales.length,
+      avgPaisa: sales.length ? Math.round(salesPaisa / sales.length) : 0,
+      duePaisa,
+      sales: sales.map((o) => ({
+        id: o.id,
+        orderNo: o.orderNo,
+        placedAt: o.placedAt.toISOString(),
+        customerName: o.customer?.name ?? o.senderName,
+        totalPaisa: o.totalPaisa,
+        duePaisa: o.duePaisa,
+        paymentStatus: o.paymentStatus,
+        salesStatus: o.salesStatus,
+      })),
+    };
   }
 
   async addCashMovement(shiftId: string, dto: CashMovementDto) {
@@ -291,6 +382,91 @@ export class PosService {
     return this.prisma.db.posCashMovement.create({
       data: { shiftId, kind: dto.kind as PosCashKind, amountPaisa: signed, note: dto.note, actorName: dto.actorName ?? shift.cashierName },
     });
+  }
+
+  /**
+   * ═══ P7-2 — CASH LEAVING THE TILL (owner, 31 Aug 2026) ═══
+   *
+   * *"jkhon ja dorkar hobe cash theke ber krbe expance diye"* — money may come
+   * out of the drawer whenever the shop needs it, and every withdrawal is
+   * booked as an expense under a heading.
+   *
+   * ⚠️ What this replaces: `POST /pos/shifts/:id/cash` could write a PAYOUT that
+   * changed the expected cash and **told Finance nothing** (there was no screen
+   * for it either). So the only trace money had ever left was a shortage at
+   * close — posted to `5700 Cash Short`, which reads as the cashier losing it.
+   * A real expense recorded as a cashier's mistake is worse than no record.
+   *
+   * Ownership is unchanged (house rule 4): Finance writes the expense and the
+   * journal; POS writes only the drawer movement, because the drawer is POS's
+   * own fact. The two are tied by the document number in each other's note.
+   */
+  async takeCashOut(shiftId: string, dto: PosCashOutDto) {
+    const shift = await this.prisma.db.posShift.findFirst({ where: { id: shiftId } });
+    if (!shift) throw new NotFoundException('shift not found');
+    if (shift.status !== PosShiftStatus.OPEN) throw new BadRequestException('shift is closed');
+    if (!Number.isInteger(dto.amountPaisa) || dto.amountPaisa <= 0) {
+      throw new BadRequestException('Amount must be a positive whole number of paisa');
+    }
+    const actorName = dto.actorName ?? shift.cashierName;
+
+    const drawerAtStart = await this.expectedCash(shiftId, shift.openingFloatPaisa);
+    if (dto.amountPaisa > drawerAtStart) {
+      throw new BadRequestException(
+        `only ${(drawerAtStart / 100).toFixed(2)} is in the drawer — you cannot take out ${(dto.amountPaisa / 100).toFixed(2)}`,
+      );
+    }
+
+    const cash = await this.prisma.db.financeAccount.findUnique({
+      where: { code: ACC.CASH },
+      select: { id: true },
+    });
+    if (!cash) throw new BadRequestException('the cash account is not set up in Finance yet');
+
+    let docNo: string;
+    if (dto.kind === 'EXPENSE') {
+      if (!dto.accountId) throw new BadRequestException('pick what this money was spent on');
+      const exp = await this.finance.createExpense({
+        accountId: dto.accountId,
+        paidFromId: cash.id,
+        amountPaisa: dto.amountPaisa,
+        payeeName: dto.payeeName ?? null,
+        note: [dto.note?.trim(), `paid from the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
+        actorName,
+      });
+      docNo = exp?.expenseNo ?? 'expense';
+    } else {
+      if (!dto.toAccountId) throw new BadRequestException('pick where the cash is going');
+      if (dto.toAccountId === cash.id) throw new BadRequestException('that is the drawer itself');
+      const tr = await this.finance.createTransfer({
+        fromId: cash.id,
+        toId: dto.toAccountId,
+        amountPaisa: dto.amountPaisa,
+        note: [dto.note?.trim(), `taken out of the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
+        actorName,
+      });
+      docNo = (tr as { transferNo?: string } | null)?.transferNo ?? 'transfer';
+    }
+
+    /*  the drawer's own record — negative, so expected cash falls by exactly
+        what was taken and the count at close still matches  */
+    const move = await this.prisma.db.posCashMovement.create({
+      data: {
+        shiftId,
+        kind: dto.kind === 'DROP' ? PosCashKind.DROP : PosCashKind.PAYOUT,
+        amountPaisa: -dto.amountPaisa,
+        note: [docNo, dto.note?.trim()].filter(Boolean).join(' · '),
+        actorName,
+      },
+    });
+    await this.audit.record({
+      entityType: 'PosShift',
+      entityId: shiftId,
+      action: 'UPDATE',
+      actorName,
+      changes: { cashOut: dto.amountPaisa, kind: dto.kind, document: docNo },
+    });
+    return { movement: move, document: docNo, expectedCashPaisa: drawerAtStart - dto.amountPaisa };
   }
 
   async closeShift(shiftId: string, dto: CloseShiftDto) {
@@ -312,7 +488,7 @@ export class PosService {
     });
     await this.audit.record({ entityType: 'PosShift', entityId: shiftId, action: 'UPDATE', actorName: dto.actorName ?? shift.cashierName, changes: { expected, counted: dto.countedCashPaisa, over } });
     // Finance consumes the completed shift close (DEC-POS-010) — POS never writes the ledger itself
-    await this.book(shiftId, `shift close ${shift.shiftNo}`, () => this.finance.onPosShiftClosed(shiftId), dto.actorName ?? shift.cashierName);
+    await this.book(shiftId, `shift close ${shift.shiftNo}`, () => this.financeEvents.onPosShiftClosed(shiftId), dto.actorName ?? shift.cashierName);
     return closed;
   }
 
@@ -837,10 +1013,10 @@ export class PosService {
     // still looks like it balanced.
     /*  DEC-POS-022 — no goods have moved, so there is no revenue and no cost of
         goods yet; only the money that came in is booked below.  */
-    if (!isAdvance) await this.book(order.id, `POS sale ${orderNo}`, () => this.finance.onPosSale(order.id), actorName);
+    if (!isAdvance) await this.book(order.id, `POS sale ${orderNo}`, () => this.financeEvents.onPosSale(order.id), actorName);
     const tenders = await this.prisma.db.paymentTransaction.findMany({ where: { orderId: order.id } });
     for (const t of tenders) {
-      await this.book(order.id, `${t.method} tender on ${orderNo}`, () => this.finance.onPaymentRecorded(t.id), actorName);
+      await this.book(order.id, `${t.method} tender on ${orderNo}`, () => this.financeEvents.onPaymentRecorded(t.id), actorName);
     }
 
     return this.prisma.db.order.findFirst({ where: { id: order.id }, include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } } });
@@ -982,7 +1158,7 @@ export class PosService {
     }
 
     // …and only now is it revenue and cost of goods
-    await this.book(o.id, `POS sale ${o.orderNo} (advance handed over)`, () => this.finance.onPosSale(o.id), actorName);
+    await this.book(o.id, `POS sale ${o.orderNo} (advance handed over)`, () => this.financeEvents.onPosSale(o.id), actorName);
     await this.audit.event({ entityType: 'Order', entityId: o.id, kind: 'sales', label: `Advance order ${o.orderNo} handed over`, actorName });
 
     return this.prisma.db.order.findFirst({ where: { id: o.id } });
@@ -1057,7 +1233,7 @@ export class PosService {
 
     // POS-REV-5 — awaited and flagged, like every other finance hand-off in this file
     for (const id of txnIds) {
-      await this.book(o.id, `due collected on ${o.orderNo}`, () => this.finance.onPaymentRecorded(id), actorName);
+      await this.book(o.id, `due collected on ${o.orderNo}`, () => this.financeEvents.onPaymentRecorded(id), actorName);
     }
 
     /* POS-REV-4 — if there was cash and no shift open, say so on the order timeline.
@@ -1091,9 +1267,20 @@ export class PosService {
 
   /* ------------------------------------------------ analytics (server-side, DEC-POS-014) */
 
+  /**
+   * P7-4 (31 Aug) — "today" means the SHOP's day, not the server's.
+   *
+   * This used `setHours(0, 0, 0, 0)`, which is midnight wherever the container
+   * happens to think it is — UTC in production, so the till's day silently ran
+   * from 6 AM Dhaka to 6 AM Dhaka. A shop that sells at midnight (this one
+   * advertises it) put those bills on the previous day: POS-000014 was rung up
+   * at 3:24 AM Dhaka on 26 Aug and counted towards the 25th.
+   *
+   * Every other part of the system already turns a moment into a Dhaka day the
+   * same way — delivery analytics, the discount window, capacity, the inbox.
+   */
   async analyticsToday() {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const start = new Date(startOfBdDay(new Date()));
     const orders = await this.prisma.db.order.findMany({
       where: { fulfillmentType: FulfillmentType.COUNTER, placedAt: { gte: start } },
       select: { totalPaisa: true, duePaisa: true },

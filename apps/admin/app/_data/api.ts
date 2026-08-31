@@ -4425,6 +4425,43 @@ export const posCurrentShift = (registerId?: string) =>
   j<ApiPosShift | null>(`/pos/shifts/current${registerId ? `?registerId=${registerId}` : ""}`);
 export const posOpenShift = (b: { registerId?: string; cashierName: string; openingFloatPaisa?: number }) =>
   j<ApiPosShift>(`/pos/shifts/open`, { method: "POST", body: JSON.stringify(b) });
+/** P7-1 — what this shift took, from the shift's own bills */
+export interface ApiPosShiftSummary {
+  shiftId: string;
+  shiftNo: string;
+  cashierName: string;
+  registerName: string | null;
+  openedAt: string;
+  openingFloatPaisa: number;
+  expectedCashPaisa: number;
+  salesPaisa: number;
+  count: number;
+  avgPaisa: number;
+  duePaisa: number;
+  sales: {
+    id: string;
+    orderNo: string;
+    placedAt: string;
+    customerName: string;
+    totalPaisa: number;
+    duePaisa: number;
+    paymentStatus: string;
+    salesStatus: string;
+  }[];
+}
+export const posShiftSummary = (id: string) => j<ApiPosShiftSummary>(`/pos/shifts/${id}/summary`);
+/** P7-2 — cash out of the till, always under a heading (Finance writes the expense) */
+export const posTakeCashOut = (
+  shiftId: string,
+  b: {
+    kind: "EXPENSE" | "DROP";
+    amountPaisa: number;
+    accountId?: string;
+    toAccountId?: string;
+    payeeName?: string;
+    note?: string;
+  },
+) => j<{ document: string; expectedCashPaisa: number }>(`/pos/shifts/${shiftId}/cash-out`, { method: "POST", body: JSON.stringify(b) });
 export const posCloseShift = (id: string, b: { countedCashPaisa: number; note?: string }) =>
   j<ApiPosShift>(`/pos/shifts/${id}/close`, { method: "POST", body: JSON.stringify(b) });
 export const posCreateSale = (b: PosSaleInput) =>

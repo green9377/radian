@@ -24,6 +24,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { BD_OFFSET_MS, DAY_MS, startOfBdDay, endOfBdDay } from './bd-day';
+
 export interface DiscountWindow {
   /** `null`/`undefined` = starts now */
   discountStartsAt?: Date | null;
@@ -90,17 +92,7 @@ export function discountStartsMs(w: DiscountWindow): number | null {
   return windowStartMs(w.discountStartsAt);
 }
 
-const BD_OFFSET_MS = 6 * 60 * 60 * 1000;
-const DAY_MS = 86_400_000;
-
-/** the start of that date's Bangladesh day, in epoch ms */
-function startOfBdDay(d: Date): number {
-  return Math.floor((d.getTime() + BD_OFFSET_MS) / DAY_MS) * DAY_MS - BD_OFFSET_MS;
-}
-/** the last moment of that date's Bangladesh day */
-function endOfBdDay(d: Date): number {
-  return startOfBdDay(d) + DAY_MS - 1;
-}
+/*  the shop's day lives in one place now — `common/bd-day.ts` (P7-4)  */
 
 /**
  * What the customer pays.

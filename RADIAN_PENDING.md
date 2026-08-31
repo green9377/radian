@@ -6,6 +6,60 @@
 
 ---
 
+## 🟣 PHASE 7 OPEN — 31 Aug 2026 · **POS (the counter)**
+
+The owner picked POS: it has never had a Phase, counter sales live in the SAME
+`Order` table (DEC-POS-001), and money moves at the till.
+
+**Also settled the same minute — DEC-DLV-023 is DROPPED.** The missed-promise
+follow-up list will not be built. With no auto follow-up on a failed delivery
+(DEC-DLV-022), the owner does not want the list either. `Order.promisedBy` and
+`Order.deliveredAt` both stay — the on-time KPI reads them — but nothing
+collects a "we were late" queue. Do not propose it again without him asking.
+
+### What the first read found — **nothing changed yet, waiting on his ruling**
+
+Read off the code and then checked against the live system (admin + API).
+
+| # | what | how it was seen |
+|---|---|---|
+| **P7-1** | **`SHF-000001` has been open since 20 Aug** — 11 days, 15 cash movements, expected ৳15,156.76. Nothing prompts a close. And Today/Shift prints **"Sales this shift ৳0 · 0 transactions"** beside that drawer, because the number comes from `analyticsToday` (TODAY) while the label says the shift | `/pos/shifts/current` on the live API |
+| **P7-2** | **Cash can leave the drawer and Finance never hears.** `POST /pos/shifts/:id/cash` (PAYOUT · DROP · ADJUSTMENT) has **no Finance hand-off at all**, and no screen in the admin. Money out of the till therefore shows up only as a shortage at close → posted to `5700 Cash Short`, i.e. the cashier is blamed for an expense. Breaks CLAUDE.md §4 rule 4a | `grep posCashMovement` outside `pos/` finds only the books-reset wipe |
+| **P7-3** | **A cash refund on a counter return never leaves the drawer.** Returns writes a REFUND `PaymentTransaction` and Finance credits CASH, but no `PosCashMovement` is written → expected cash stays high → the day closes short by exactly the refund. Same shape as DEC-DLV-016 | `returns.service.ts` cash path vs `expectedCash()` |
+| **P7-4** | **The till's "today" starts at 6 AM Dhaka.** `analyticsToday` uses the server's own midnight (UTC); the rest of the system uses `BD_OFFSET_MS` (+6). A midnight sale lands on the previous day — POS-000014 was rung up 26 Aug 3:24 AM Dhaka and is stamped 25 Aug | `pos.service.ts` `setHours(0,0,0,0)` vs `delivery-analytics`, `inbox`, `capacity`, `discount-window` |
+| **P7-5** | **Day-close invents ৳12,260** when no shift is open — `PosViews.tsx` line 287 falls back to the literal `1226000`. A money screen must never print a made-up number | code, reproducible by closing the shift |
+| **P7-6** | **Two shifts can be open at once.** `openShift` looks for a clash **per register**, and `SHF-000001` has `registerId = null`, so opening one on COUNTER-1 succeeds. After that `currentShift()` (no register) hands due-collection cash to whichever opened last, and the older drawer can never be closed from the screen | `/pos/shifts/current?registerId=…` returns NONE while the unfiltered call returns SHF-000001 |
+
+| **P7-7** | **The day-close count box cannot hold paisa.** It is a controlled `number` input rewritten as `Math.round(actual/100)` on every keystroke, so the decimal point never survives typing. The drawer this morning expects **৳15,156.76**, which therefore cannot be entered — the closest possible count is ৳15,157, and the shift closes with a fabricated 24-paisa "over" posted to `4300 Cash Over`. Every till with paisa in it writes a false over/short at close | `PosViews.tsx` 287–318; the live drawer figure |
+
+**Owner's rule, 31 Aug → now `DEC-POS-025`** (written up in
+`RADIAN_POS_MODULE_ARCHITECTURE.md` §10): *"jkhon ja dorkar hobe cash theke ber
+krbe expance diye"* — cash may leave the drawer whenever it is needed, and every
+withdrawal is recorded as an **expense under a heading**, so it lands in Finance
+as a cost. Nothing leaves the till silently.
+
+### All seven are FIXED in code — ⏳ NOT DEPLOYED, NOT WALKED
+
+Written 31 Aug. `tsc --noEmit` clean on api + admin + web; no-bangla passes.
+**Nobody has walked them on the system**, so not one of them may be called done.
+
+| # | what changed |
+|---|---|
+| P7-1 | `GET /pos/shifts/:id/summary` — the shift's OWN bills. Today/Shift and Day-close read it, so "Sales this shift" is that shift now, and a drawer open more than a day says so on the card |
+| P7-2 | `POST /pos/shifts/:id/cash-out` + a **Take cash out** dialog on Today/Shift. Spent it → Finance `Expense` under a heading; Moved to bank/safe → Finance transfer. POS writes only the drawer movement (DEC-POS-025) |
+| P7-3 | a cash refund writes a negative `PosCashMovement` on the open drawer; with no shift open it says so on the order timeline instead of vanishing |
+| P7-4 | `analyticsToday` uses the SHOP's day. The arithmetic moved to `common/bd-day.ts`, and `discount-window.ts` imports it — one copy instead of five |
+| P7-5 | the invented ৳12,260 is gone; with no shift the screen says there is no drawer to count |
+| P7-6 | a shift always carries a register, and a register-less one blocks every counter until it is closed. Selftest added |
+| P7-7 | the count box holds paisa (own draft, `inputMode="decimal"`), so ৳15,156.76 can actually be counted |
+
+⛔ **BLOCKER — the deploy.** Writing to the live admin, and to the hPanel web
+console, is refused for this session. The VPS still runs the old code and
+`SHF-000001` is still open with ৳15,156.76. Nothing above is verified until the
+deploy in CLAUDE.md §2 has run and somebody has walked it.
+
+---
+
 ## ✅ PHASE 6 CLOSED — 31 Aug 2026 (Orders & Delivery)
 
 **A new chat starts at `RADIAN_PHASE7_DIRECTION.md`** — what Phase 6 changed,

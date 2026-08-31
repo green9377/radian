@@ -6,6 +6,7 @@ import type {
   OpenShiftDto,
   CloseShiftDto,
   CashMovementDto,
+  PosCashOutDto,
   CreatePosSaleDto,
   PosPaymentDto,
   CollectDueDto,
@@ -53,6 +54,11 @@ export class PosController {
   openShift(@Body() dto: OpenShiftDto) {
     return this.pos.openShift(dto);
   }
+  /* P7-1 — the shift's own takings, not the calendar day's */
+  @Get('shifts/:id/summary')
+  shiftSummary(@Param('id') id: string) {
+    return this.pos.shiftSummary(id);
+  }
   @Post('shifts/:id/close')
   closeShift(@Param('id') id: string, @Body() dto: CloseShiftDto) {
     return this.pos.closeShift(id, dto);
@@ -60,6 +66,13 @@ export class PosController {
   @Post('shifts/:id/cash')
   cashMovement(@Param('id') id: string, @Body() dto: CashMovementDto) {
     return this.pos.addCashMovement(id, dto);
+  }
+  /*  P7-2 — cash out of the till, always with a heading behind it. Finance
+      writes the expense (or the transfer, for a bank drop); POS only records
+      that the drawer is lighter.  */
+  @Post('shifts/:id/cash-out')
+  takeCashOut(@Param('id') id: string, @Body() dto: PosCashOutDto) {
+    return this.pos.takeCashOut(id, dto);
   }
 
   /* sales */

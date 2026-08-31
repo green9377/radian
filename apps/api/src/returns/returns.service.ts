@@ -801,6 +801,44 @@ export class ReturnsService {
       if (refundTxn) {
         await this.book(id, `refund on ${r.returnNo}`, () => this.finance.onPaymentRecorded(refundTxn.id), actorName);
       }
+
+      /*  ═══ P7-3 (31 Aug 2026) — CASH HANDED BACK COMES OUT OF THE DRAWER ═══
+          Finance was told (it credits the cash account), the customer was told,
+          and the till was not. So the notes physically left the drawer while
+          `expectedCash` still counted them: at day-close the drawer came up
+          short by exactly the refund, that shortage posted to `5700 Cash Short`,
+          and the cashier carried the blame for money the shop gave back on
+          purpose. Same shape as DEC-DLV-016 — one module zeroing what another
+          reads.
+          A cash refund on ANY order is taken from the counter drawer, online or
+          counter, because that is where the notes are. If no shift is open,
+          nothing is invented: the order timeline says so, exactly as a due
+          collection with no drawer does (POS-REV-4).  */
+      if (refundTxn && refundTxn.method === PaymentMethod.cash) {
+        const drawer = await this.prisma.db.posShift.findFirst({
+          where: { status: 'OPEN' },
+          orderBy: { openedAt: 'desc' },
+          select: { id: true, shiftNo: true },
+        });
+        if (drawer) {
+          await this.prisma.db.posCashMovement.create({
+            data: {
+              shiftId: drawer.id,
+              kind: 'PAYOUT',
+              amountPaisa: -cashOut,
+              note: `Refund · ${r.returnNo}`,
+              actorName,
+            },
+          });
+        } else {
+          await this.orderEvent(
+            order.id,
+            'system',
+            `⚠ ${(cashOut / 100).toFixed(2)} tk refunded in cash with NO shift open — it is in the ledger but no drawer recorded it leaving. Open a shift and record it.`,
+            actorName,
+          );
+        }
+      }
     }
 
     await this.audit.record({ entityType: ENTITY, entityId: id, action: 'UPDATE', actorName });
