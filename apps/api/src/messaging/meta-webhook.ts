@@ -131,6 +131,32 @@ export class MetaWebhookService {
     const psid = ev.sender?.id?.trim();
     const body = this.text(ev);
     if (!psid || !body) return;
+    await this.importMessage({
+      channel, peerId: psid, mid: ev.message?.mid ?? null, body, outbound: false,
+    });
+  }
+
+  /**
+   * The single door every inbound message comes through, whichever way it
+   * arrived — Meta pushed it to the webhook, or the poller went and fetched it
+   * (meta-poll.service.ts, built after Meta went quiet on Instagram for two and
+   * a half days while swearing everything was healthy).
+   *
+   * Both paths dedupe on Meta's own message id, so a message that comes both
+   * ways is stored once. Returns true only when a row was actually written.
+   */
+  async importMessage(input: {
+    channel: InboxChannel;
+    peerId: string;
+    mid: string | null;
+    body: string;
+    outbound: boolean;
+    peerName?: string | null;
+    at?: Date;
+  }): Promise<boolean> {
+    const { channel, peerId, mid, outbound } = input;
+    const body = input.body.trim();
+    if (!peerId || !body) return false;
 
     try {
       /*
@@ -139,37 +165,47 @@ export class MetaWebhookService {
         already existed left an empty thread behind — the "—" rows the owner
         saw on 7 Aug.
       */
-      if (ev.message?.mid) {
+      if (mid) {
         const seen = await this.prisma.db.message.findFirst({
-          where: { externalMessageId: ev.message.mid },
+          where: { externalMessageId: mid },
           select: { id: true },
         });
-        if (seen) return;
+        if (seen) return false;
       }
 
-      const convo = await this.conversationFor(channel, psid);
+      const convo = await this.conversationFor(channel, peerId, input.peerName ?? null);
 
       await this.prisma.db.message.create({
         data: {
           conversationId: convo.id,
-          direction: MessageDirection.IN,
-          authorType: MessageAuthor.CUSTOMER,
+          direction: outbound ? MessageDirection.OUT : MessageDirection.IN,
+          /*
+            On an outbound message the real author is unknown from here —
+            whoever was holding the phone or sitting in Meta's own inbox. STAFF
+            with no authorUserId renders as plain "Staff".
+          */
+          authorType: outbound ? MessageAuthor.STAFF : MessageAuthor.CUSTOMER,
           body: body.slice(0, 2000),
-          externalMessageId: ev.message?.mid ?? null,
+          externalMessageId: mid,
+          ...(input.at ? { createdAt: input.at } : {}),
         },
       });
 
       await this.prisma.db.conversation.update({
         where: { id: convo.id },
-        data: {
-          status: ConversationStatus.OPEN,
-          lastMessageAt: new Date(),
-          unreadForStaff: { increment: 1 },
-        },
+        data: outbound
+          ? { status: ConversationStatus.WAITING_CUSTOMER, lastMessageAt: input.at ?? new Date() }
+          : {
+              status: ConversationStatus.OPEN,
+              lastMessageAt: input.at ?? new Date(),
+              unreadForStaff: { increment: 1 },
+            },
       });
+      return true;
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return false;
       this.log.warn(`inbound ${channel} failed: ${e instanceof Error ? e.message : e}`);
+      return false;
     }
   }
 
@@ -191,36 +227,13 @@ export class MetaWebhookService {
     const psid = ev.recipient?.id?.trim();
     const body = this.text(ev);
     if (!mid || !psid || !body) return;
-
-    try {
-      const seen = await this.prisma.db.message.findFirst({
-        where: { externalMessageId: mid },
-        select: { id: true },
-      });
-      if (seen) return; // sent through Radian — already recorded
-
-      const convo = await this.conversationFor(channel, psid);
-
-      await this.prisma.db.message.create({
-        data: {
-          conversationId: convo.id,
-          direction: MessageDirection.OUT,
-          // The real author is unknown from here — whoever is holding the
-          // phone. STAFF with no authorUserId renders as plain "Staff".
-          authorType: MessageAuthor.STAFF,
-          body: body.slice(0, 2000),
-          externalMessageId: mid,
-        },
-      });
-
-      await this.prisma.db.conversation.update({
-        where: { id: convo.id },
-        data: { status: ConversationStatus.WAITING_CUSTOMER, lastMessageAt: new Date() },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return;
-      this.log.warn(`echo ${channel} failed: ${e instanceof Error ? e.message : e}`);
-    }
+    /*
+      Replies sent THROUGH Radian arrive here too — inbox.ts/ai-agent.ts tag
+      their own Message row with Meta's message id the moment the send
+      succeeds, so importMessage's dedupe finds it and this is a no-op for
+      them. Only a mid Radian never saw becomes a row.
+    */
+    await this.importMessage({ channel, peerId: psid, mid, body, outbound: true });
   }
 
   /**
@@ -229,7 +242,16 @@ export class MetaWebhookService {
    * two concurrent webhook deliveries each create a thread, which is how one
    * Instagram customer ended up with a new thread per message.
    */
-  private async conversationFor(channel: InboxChannel, psid: string) {
+  private async conversationFor(
+    channel: InboxChannel,
+    psid: string,
+    /*
+      The poller already knows the username — it came back with the message —
+      so it hands it over rather than making us ask Meta again for something
+      Meta has repeatedly refused to answer.
+    */
+    knownName: string | null = null,
+  ) {
     const existing = await this.prisma.db.conversation.findFirst({
       where: { channel, externalIdentity: psid, deletedAt: null },
       orderBy: { lastMessageAt: 'desc' },
@@ -238,7 +260,7 @@ export class MetaWebhookService {
       // A thread created while the profile was unreadable stays "Guest"
       // forever unless somebody tries again.
       if (!existing.guestName) {
-        const name = await this.profileName(channel, psid);
+        const name = knownName || (await this.profileName(channel, psid));
         if (name) {
           await this.prisma.db.conversation.update({
             where: { id: existing.id }, data: { guestName: name },
@@ -256,7 +278,7 @@ export class MetaWebhookService {
           externalIdentity: psid,
           // Meta gives a scoped id, not a phone number, so the name is fetched
           // separately — and a failure there must not lose the message.
-          guestName: await this.profileName(channel, psid),
+          guestName: knownName || (await this.profileName(channel, psid)),
         },
       });
     } catch (e) {
