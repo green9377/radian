@@ -244,7 +244,42 @@ because it needs a real server-side aggregate endpoint. It is the same family
 as the faults Phase 5 found: **the screen lying about a rule that is itself
 correct.**
 
-### 🟠 6.3 — The rider cash chain has never been exercised
+### ✅ 6.3 — CLOSED 31 Aug 2026. The rider cash chain, walked for the first time.
+
+**And walking it is the only reason the fault was found.** The code read
+correctly; it had simply never run.
+
+`unsettled()` and `settle()` both asked `order.duePaisa` — and
+`orders.delivered()` zeroes that the moment the parcel is handed over, because
+taking the cash IS the delivery (REV-C5). So every COD parcel reached the settle
+screen showing **prepaid**, `codHandedOver` could never become true,
+`remitWithLines` was never reached (gross was always 0), and once its cost was
+typed the parcel left the list anyway — **taking the rider's cash off the board
+while it still sat in 1110**. Money the shop is owed, invisible, for ever.
+
+Both now read the COD_COLLECTED payment written at delivery: the cash that
+physically went into someone's hand. Refunds are deliberately not netted off — a
+refund leaves the shop's own account and takes nothing out of the rider's pocket.
+
+**The whole circle, on RAD-75470 (COD ৳2,670, rider Deshi, cost ৳150):**
+
+| account | before | after delivery | after settle |
+|---|---|---|---|
+| 1110 Cash with Rider / Courier | 0 | **267000** | **0** |
+| 2300 Accrued | 0 | 0 | **0** (raised at cost, cleared by the remittance) |
+| 5200 Delivery Cost | 0 | 0 | **15000** — expensed once |
+| 1000 Cash Drawer | 45649 | 45649 | **297649** (+252000 = gross − charge) |
+
+`RMT-000001` created; the parcel left the unsettled list. The rule that matters
+held: **the remittance debits 2300, never 5200** — the charge is expensed on the
+parcel and the remittance only clears the accrual. Getting that wrong would have
+doubled every delivery cost in the accounts, silently.
+
+⚠️ Still not walked: a PREPAID parcel on the same list (test 20). The filter
+keeps it by `costRecordedAt === null` and the code reads right, but reading is
+what made this whole section look finished for a month.
+
+### ~~🟠 6.3 (original finding)~~ — The rider cash chain has never been exercised
 
 `cost → Dr 5200 / Cr 2300 accrued → remittance clears the accrual (Dr 2300,
 not Dr 5200)`. The screen, its dropdowns and its empty state are confirmed

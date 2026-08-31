@@ -120,11 +120,21 @@ the system and the result seen** — a type-check proves nothing about a seam.
 17. 2-hour, same-day and midnight against real slot cut-offs
     (DEC-DLV-018, DEC-INT-003)
 
-### C · The rider's money — never yet exercised
-18. Delivered parcel → record its cost → `Dr 5200 / Cr 2300`
-19. Remit the rider's cash → clears the accrual (`Dr 2300`, **not** 5200)
-20. A prepaid parcel also appears on the settle list — the rider was still paid
-21. `costRecordedAt`, not `costPaisa > 0`, decides "priced yet"
+### C · The rider's money — **walked 31 Aug 2026**, and it found a fault
+18. ✅ Delivered parcel → record its cost → `Dr 5200 / Cr 2300`
+19. ✅ Remit the rider's cash → clears the accrual (`Dr 2300`, **not** 5200).
+    Walked on RAD-75470: 1110 went 0 → 267000 → 0, cash drawer +252000,
+    5200 = 15000 (expensed once), `RMT-000001`
+20. ⬜ A prepaid parcel also appears on the settle list — the rider was still
+    paid. **Still not walked.** The code reads right; so did everything else
+    in this section for a month
+21. ✅ `costRecordedAt`, not `costPaisa > 0`, decides "priced yet"
+
+⚠️ What the walk found: the settle screen asked `order.duePaisa`, which
+delivery has already zeroed — so every COD parcel read as *prepaid*, the cash
+could never be remitted, and the parcel left the board with the money still
+sitting in 1110. Fixed; both `unsettled()` and `settle()` now read the
+COD_COLLECTED payment.
 
 ### D · What the customer sees
 22. Admin advances the order → the customer's own page follows
@@ -165,7 +175,7 @@ the system and the result seen** — a type-check proves nothing about a seam.
 |---|---|
 | **DEC-DLV-022** | one Fail action, with the reason picked from a list (owner: no auto follow-up) |
 | **9 × `alert()`** | `DeliveryLive.tsx` — a refused action freezes the board instead of explaining itself |
-| **C · rows 18–21** | the rider's cash chain, never walked |
+| **row 20** | a prepaid parcel on the settle list — the only part of the rider's cash chain still unwalked |
 | **variant photos** | data, not code: Products → the product → Variants, one photo per combination |
 
 `RADIAN_PHASE6_DIRECTION.md` carries the detail and what has already closed.
