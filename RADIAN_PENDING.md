@@ -558,6 +558,44 @@ set the numbers up and let him press it.
 
 ---
 
+## 📡 META WEBHOOKS — looked at properly, 31 Aug. The board was WRONG.
+
+Opened the Meta app (`Radian`) and read every webhook setting rather than
+trusting the note. What was written here for days — *"Meta webhooks still point
+at the dead Render host"* — **is not true**:
+
+| product | callback URL in Meta | state |
+|---|---|---|
+| **WhatsApp Business** | `https://api.development.radianbd.com/webhooks/whatsapp` | ✅ already ours. `messages` and `message_template_status_update` both **Subscribed** |
+| **Page (Messenger)** | *empty* | ❌ **never configured at all** — not Render, not us. Meta says "Add a callback URL and verify token above to subscribe" |
+| **Instagram** | *empty* | ❌ same |
+
+So Messenger and Instagram messages were never arriving because the webhook was
+never set up — not because it pointed somewhere stale. Our endpoint is alive and
+correct: `/webhooks/whatsapp` answers `forbidden` to a wrong verify token, and
+`/webhooks/meta` (the Messenger + Instagram door) checks the **same** token.
+
+### What is left, and why it needs the owner
+
+Both empty forms need the **webhook verify token**, and our own API refuses to
+hand it over — `integrations.service.ts` masks every secret on purpose
+(*"a key in the page payload is a key on the wire"*). That rule is right and was
+not worked around.
+
+Two ways to finish, the owner's choice:
+
+1. **He pastes the existing token** into the two forms. Callback URL for both:
+   `https://api.development.radianbd.com/webhooks/meta`
+   Then subscribe: Page → `messages`, `messaging_postbacks`; Instagram → `messages`.
+2. **A new token everywhere**: set a fresh one in Setup → Integrations, then all
+   three Meta forms get it — including re-verifying WhatsApp, which works today
+   and would be touched only for this.
+
+Nothing in Meta was changed. A half-filled webhook form is worse than an empty
+one, so the forms were left exactly as found.
+
+---
+
 ## 🏠 EVERYTHING IS ON THE VPS — nowhere else (owner, 30 Aug)
 
 *"amder r akhon kichui others kothaw nei sob amder vps a ache. amder kon kaj
