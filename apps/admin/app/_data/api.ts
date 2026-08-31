@@ -7287,7 +7287,13 @@ export interface ApiInboxListItem {
   guestPhone: string | null;
   customer: { id: string; name: string; phone: string; ordersCount: number } | null;
   assignee: { id: string; name: string } | null;
-  lastMessage: { body: string; authorType: string; createdAt: string } | null;
+  lastMessage: {
+    body: string;
+    authorType: string;
+    createdAt: string;
+    /* Null on a reply typed in Meta's own inbox — Meta never names the person. */
+    authorUser: { name: string } | null;
+  } | null;
 }
 
 export interface ApiInboxMessage {
