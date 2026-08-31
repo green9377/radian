@@ -366,9 +366,17 @@ screen printed *"−৳120 in"* — which reads as the rider owing the shop when
 truth is the reverse. `netPaisa` is null when no receipt was issued, and the
 sentence now says what happened.
 
-⬜ Still not walked: **a blackout date and a full slot**, and the **2-hour /
-same-day / midnight promises against real slot cut-offs** (DEC-DLV-018,
-DEC-INT-003).
+**Blackout, a full slot and the promise — walked 31 Aug, all three hold:**
+
+| | |
+|---|---|
+| **a full slot** (owner's rule) | Morning capacity dropped to 1, one order taken, the second refused — *"That time slot just filled up — please pick the next available slot."* |
+| **a blackout** (DEC-DLV-019) | one placed on 11 Sep → *"Delivery is paused on 2026-09-11 (Shop closed — walk test) — please pick another date."* |
+| **the promise** (DEC-INT-003) | RAD-57835, slot *"Morning · 9:00 AM – 3:00 PM"* on 9 Sep → `promisedBy = 2026-09-09T09:00:00Z`. That is 3:00 PM in Dhaka: the **end** of the window, with the +6 offset applied. Taking the start would have reported most of a good day as late, and dropping the offset would have flattered every late delivery by six hours |
+
+⚠️ **Both changes were put back**: Morning capacity to 10, the blackout
+deleted, and both verified — a test that leaves a trap on the system is worse
+than no test. Test rows left behind: RAD-57835 (9 Sep, Morning).
 
 ### ~~🟢 6.5 (original list)~~ — Walk the fulfilment circle properly, the parts Phase 5 did not
 

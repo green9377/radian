@@ -119,9 +119,13 @@ the system and the result seen** — a type-check proves nothing about a seam.
 14. Courier parcel with a consignment id → tracking URL built from the
     courier's own template
 15. Deliver an unpaid online order → **refused** (REV-C5)
-16. A blackout date and a full slot → refused at checkout
-17. 2-hour, same-day and midnight against real slot cut-offs
-    (DEC-DLV-018, DEC-INT-003)
+16. ✅ A blackout date and a full slot → refused at checkout. Walked 31 Aug:
+    *"That time slot just filled up"* and *"Delivery is paused on 2026-09-11
+    (Shop closed — walk test)"*. Both settings were put back afterwards
+17. ✅ The promise against real slot cut-offs (DEC-INT-003). RAD-57835,
+    *"Morning · 9:00 AM – 3:00 PM"* → `promisedBy 09:00Z` = **3 PM Dhaka**,
+    the END of the window with the +6 offset applied. The start would report a
+    good day as late; no offset would flatter every late delivery by six hours
 
 ### C · The rider's money — **walked 31 Aug 2026**, and it found a fault
 18. ✅ Delivered parcel → record its cost → `Dr 5200 / Cr 2300`
