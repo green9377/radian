@@ -269,8 +269,51 @@ shows **PAID ৳60 / NOTHING OWED** with *"Store credit used: 30.00"* on the
 timeline. After it: credit **৳100 → ৳70**, `2110` **৳931.50 → ৳901.50**, cash
 drawer and the shift both **+৳30**.
 
-**Still to do: part 2 — the website.** The owner asked for both places; checkout
-cannot spend credit yet.
+### ✅ P7-14 part 2 — the website, proved by a code (`282dccb` on the VPS)
+
+The counter knows who is standing there; the website does not. There is no
+login — identity at checkout is a phone number somebody typed, and the OTP that
+exists runs AFTER the order, to prove the number is reachable. A naive version
+of this feature would have let anyone who knows a number read what that person
+has saved, and spend it.
+
+So: **nothing is shown and nothing is promised.** The payment step asks *"Have
+store credit with us?"*, sends a code to the number already typed, and the code
+travels **with the order**. The server verifies it, asks Returns for a quote,
+and spends the smallest of balance / the shop's share-of-bill cap / what is
+still outstanding. The confirmation reports what actually came off.
+
+Fail-soft throughout (DEC-WA-010's own rule): a wrong code, an expired one or an
+empty balance never turn a placed order into an error.
+`POST /shop/checkout/credit-code` answers `{sent:true}` for **every** number, so
+it cannot be used to find out who shops here or what they have — checked live.
+
+Credit lands in the order's `paidPaisa`, the same convention as the counter, so
+the gateway asks for the reduced amount and the rider collects the reduced
+amount without either needing to know why.
+
+⚠️ **Walked only as far as the endpoint.** The customer-side journey (cart →
+phone → code → order) has not been walked, because it writes a real website
+order. Say so rather than implying it was.
+
+### ⚠️ 31 Aug — I broke the VPS build for about ten minutes, and how
+
+The push before this one copied `apps/api/src/shop/checkout.ts` wholesale out of
+the working folder, and that copy carried the **owner's own in-progress rate
+limiting** — `RateLimit`, `RateLimitGuard`, `QUOTE_LIMIT`, `TRACK_LIMIT`. Those
+two files (`common/rate-limit.guard.ts`, `common/rate-limits.ts`) exist **only in
+the working folder and are untracked**, so they never reached the repo and the
+VPS build died on two TS2307s. The live API kept serving — the image never
+built — but nothing could ship until it was undone.
+
+`282dccb` restores checkout.ts to origin plus only the store-credit work.
+
+**The owner's rate-limit work is still his to commit**, together with the two
+files it needs. Nothing of it was lost; it was only removed from the branch.
+
+**The rule this breaks, already in CLAUDE.md:** copying whole files out of a
+working folder that has uncommitted work publishes that work. Copy the change,
+not the file.
 
 ### 🔴 P7-15 — found while walking it: every POS payment credits the receivable twice
 
