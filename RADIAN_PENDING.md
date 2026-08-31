@@ -251,7 +251,52 @@ single paisa. Counted live off the movement ledger:
 which is most of the ৳99,462 stock-value gap; the rest is AVCO/cost-edit noise.
 ⚠️ Wastage and gift DO post — that was checked, not assumed, before saying so.
 
-### P7-14 — store credit can be given but never spent
+### ✅ P7-14 part 1 — store credit can be SPENT at the counter (`671f946`, walked)
+
+**DEC-RTN-015 (owner, 31 Aug):** a bill may be paid by credit only up to a share
+of it — a setting (`ReturnSetting.storeCreditMaxBillBps`, default 50%), not a
+number in code; credit never expires; and it is never paid out as cash.
+
+Returns owns the ledger and is still the only writer: `quoteCredit()` answers
+what a customer may put on a bill this size, `spendCredit()` checks the balance
+and the cap, writes the CONSUMED row and hands it to `onStoreCreditUsed` —
+which discharged `2110` for the first time since the account existed.
+
+Walked on **POS-000017** (Due test, one Red-Rose, ৳60):
+the strip read *"Store credit · ৳100 saved · Use ৳30 · Credit can pay 50% of a
+bill — ৳30 on this one"*; using it dropped the cash row to **৳30**; the bill
+shows **PAID ৳60 / NOTHING OWED** with *"Store credit used: 30.00"* on the
+timeline. After it: credit **৳100 → ৳70**, `2110` **৳931.50 → ৳901.50**, cash
+drawer and the shift both **+৳30**.
+
+**Still to do: part 2 — the website.** The owner asked for both places; checkout
+cannot spend credit yet.
+
+### 🔴 P7-15 — found while walking it: every POS payment credits the receivable twice
+
+`onOrderDelivered` releases "money taken earlier" by summing **all** the order's
+payment transactions and posting `Dr 2100 Customer Advance / Cr 1100
+Receivable`. That is right for a website order, where the money really did
+arrive before delivery and was parked in 2100.
+
+At the counter it is wrong. POS writes the payment rows inside the same
+transaction as the order, so by the time revenue posts they already exist —
+but they have **not been booked yet**. The release fires anyway, and then
+`onPaymentRecorded` posts the same money again, this time correctly against
+1100. So the receivable is credited twice and 2100 is debited for an advance
+that was never credited.
+
+**Seen, not deduced:** POS-000017 should have left `1100` unchanged
+(+৳60 revenue, −৳30 cash, −৳30 credit). It moved **−৳30** — exactly one extra
+credit. This is a strong candidate for the standing **−৳12,642.76 negative
+receivable** drift, which no amount of test data explains on its own.
+
+**The fix, one line of rule:** the release must count only transactions that
+were **already posted** (`financePostedAt` set) when revenue lands — those are
+the ones that really went to 2100. Nothing else changes. Not done yet: it
+touches the most delicate posting path in the system and deserves its own pass.
+
+### P7-14 — what it was: store credit could be given but never spent
 
 `returns.service` is the **only** writer of `CustomerCredit`, and it only ever
 issues. Nothing at the counter, at checkout or on an order can redeem it, and
