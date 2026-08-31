@@ -808,7 +808,15 @@ export class DeliveryService {
       settled: lines.length,
       grossPaisa: gross,
       chargePaisa: charge,
-      netPaisa: gross - charge,
+      /*  Null when no cash came back, not a negative number — 31 Aug 2026,
+          seen while walking a prepaid settlement. `gross - charge` returned
+          −12000 there, which reads as "the rider owes us ৳120" when the truth
+          is the opposite: nothing was handed over and the SHOP now owes HIM
+          that ৳120, accrued in 2300. A "net received" of a receipt that was
+          never issued is a number with no meaning, and on a money screen a
+          meaningless number is a misleading one. What the shop owes is on the
+          accrual, where it belongs.  */
+      netPaisa: gross > 0 ? gross - charge : null,
       carrierName,
       remittance,
     };

@@ -119,9 +119,16 @@ export function DeliverySettle() {
         })),
       });
       setPicked(new Set()); setCod({}); setCost({});
+      /*  ⚠️ A PREPAID SETTLEMENT BANKS NOTHING, and this line used to say it
+          banked a NEGATIVE amount — "−৳120 in", which reads as the rider owing
+          the shop when the truth is the reverse: no cash came back and the shop
+          now owes him that ৳120, sitting in 2300 Accrued. Seen while walking a
+          prepaid parcel on 31 Aug. The API returns `netPaisa: null` when there
+          was no receipt, and the sentence says what actually happened.  */
       setOk(
-        `${res.settled} parcel(s) settled — ${formatTaka(res.netPaisa)} in` +
-        (res.remittance ? `, ${res.remittance.remittanceNo}` : ", nothing to bank"),
+        res.remittance
+          ? `${res.settled} parcel(s) settled — ${formatTaka(res.netPaisa ?? 0)} banked, ${res.remittance.remittanceNo}`
+          : `${res.settled} parcel(s) settled — no cash to bank; ${formatTaka(res.chargePaisa)} is owed to the carrier`,
       );
       await load();
     } catch (e) {

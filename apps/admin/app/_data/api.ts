@@ -4993,7 +4993,8 @@ export const listUnsettled = (carrierId?: string) =>
 
 export const settleCarrier = (b: Record<string, unknown>) =>
   j<{
-    settled: number; grossPaisa: number; chargePaisa: number; netPaisa: number;
+    /** `netPaisa` is null when no cash came back — there is no receipt to net */
+    settled: number; grossPaisa: number; chargePaisa: number; netPaisa: number | null;
     carrierName: string; remittance: { id: string; remittanceNo: string } | null;
   }>(`/delivery/settle`, { method: "POST", body: JSON.stringify(b) });
 
