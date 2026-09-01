@@ -29,6 +29,17 @@ import { WhatsAppWebhookService } from './whatsapp-webhook';
 const GRAPH = 'https://graph.facebook.com/v25.0';
 const IG_GRAPH = 'https://graph.instagram.com/v23.0';
 
+/** Messenger says `name`, Instagram says `username`. Same thing to us. */
+interface MetaPerson {
+  id?: string;
+  name?: string;
+  username?: string;
+}
+
+interface MetaThread {
+  participants?: { data?: MetaPerson[] };
+}
+
 interface MetaMessaging {
   sender?: { id?: string };
   recipient?: { id?: string };
@@ -380,11 +391,11 @@ export class MetaWebhookService {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!res.ok) return null;
-      const j = (await res.json()) as {
-        data?: { participants?: { data?: { id?: string; name?: string; username?: string }[] }[] };
-      };
-      for (const c of j.data ?? []) {
-        for (const person of c.participants?.data ?? []) {
+      const j = (await res.json()) as { data?: MetaThread[] };
+      const threads: MetaThread[] = j.data ?? [];
+      for (const c of threads) {
+        const people: MetaPerson[] = c.participants?.data ?? [];
+        for (const person of people) {
           if (person.id !== id) continue;
           const name = (person.name || person.username || '').trim();
           if (name) return name.slice(0, 120);
