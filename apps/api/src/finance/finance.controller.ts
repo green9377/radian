@@ -416,6 +416,14 @@ export class FinanceController {
     };
   }
 
+  /*  1 Sep — post the restock the books never heard about. Finance looked for
+      refType 'RETURN' while Inventory writes 'SALE_RETURN', so no sales return
+      ever put its goods back on the books. Idempotent.  */
+  @Post('backfill/return-restock')
+  backfillReturnRestock() {
+    return this.events.backfillReturnRestock();
+  }
+
   @Get('drift')
   drift_() {
     return this.drift.run();

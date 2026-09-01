@@ -747,6 +747,57 @@ export class FinanceEventsService {
    * already post through their own events, and this method exists precisely
    * because a door that posts twice is worse than one that never posted.
    */
+  /**
+   * Post the restock the books never heard about.
+   *
+   * Every completed return is replayed through `onReturnCompleted`. That is
+   * safe to run twice: `postEntry` is idempotent on `sourceKey` (DEC-FIN-023),
+   * so the store-credit and compensation entries that already exist are
+   * skipped and only the missing `:restock` ones are written.
+   */
+  async backfillReturnRestock(): Promise<{
+    found: number;
+    posted: number;
+    alreadyPosted: number;
+    restockedPaisa: number;
+  }> {
+    const rows = await this.prisma.db.salesReturn.findMany({
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let posted = 0;
+    let alreadyPosted = 0;
+    let restockedPaisa = 0;
+
+    for (const r of rows) {
+      const key = `RETURN:${r.id}:restock`;
+      const seen = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: key },
+        select: { id: true },
+      });
+      if (seen) {
+        alreadyPosted += 1;
+        continue;
+      }
+      await this.onReturnCompleted(r.id);
+      const now = await this.prisma.db.journalEntry.findFirst({
+        where: { sourceKey: key },
+        select: { id: true, lines: { select: { debitPaisa: true } } },
+      });
+      if (now) {
+        posted += 1;
+        restockedPaisa += now.lines.reduce((n, l) => n + l.debitPaisa, 0);
+      }
+    }
+
+    this.logger.log(
+      `return restock backfill — ${rows.length} returns, ${posted} posted, ` +
+        `${alreadyPosted} already there, ${restockedPaisa / 100} taka back into stock`,
+    );
+    return { found: rows.length, posted, alreadyPosted, restockedPaisa };
+  }
+
   async backfillStockMovements(): Promise<{ found: number; posted: number; alreadyPosted: number }> {
     // 3300 Opening Balance is new (DEC-INV-016) — make sure the chart has it
     // before the first entry tries to face it
@@ -1029,9 +1080,29 @@ export class FinanceEventsService {
           ],
         });
 
-      // goods that came back into stock reduce the cost of sales again
+      /*
+        Goods that came back into stock reduce the cost of sales again.
+
+        ⚠️ `refType` is 'SALE_RETURN', not 'RETURN'. Inventory writes it that
+        way (inventory.service.ts, both branches) and the Returns module reads
+        it that way — Finance alone looked for 'RETURN', found nothing every
+        single time, and posted no entry at all. Silent, because zero rows is
+        not an error.
+
+        Found 1 Sep by taking the stock drift apart: 16 SALE_RETURN movements
+        worth ৳3,560 had put stock back on the shelf and the books had never
+        been told, so inventory read ৳3,560 light and COGS ৳3,560 heavy. Not
+        one `:restock` entry existed in the whole ledger.
+
+        Both spellings are accepted so nothing written under the old literal is
+        stranded — this is a read, and being generous here costs nothing.
+      */
       const back = await this.prisma.db.inventoryMovement.findMany({
-        where: { refType: 'RETURN', refId: returnId, reason: 'SALE_RETURN' },
+        where: {
+          refType: { in: ['SALE_RETURN', 'RETURN'] },
+          refId: returnId,
+          reason: 'SALE_RETURN',
+        },
         select: { valuePaisa: true },
       });
       const restock = back.reduce((n, m) => n + Math.abs(m.valuePaisa), 0);
