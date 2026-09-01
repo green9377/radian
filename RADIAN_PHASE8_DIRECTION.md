@@ -153,6 +153,37 @@ Nothing here is chosen. **Ask the owner first** — this is a menu, not a plan.
     new ever; the backlog is swept file-by-file as files are touched.
 11. **Variant photos** — data, not code. Products → the product → Variants.
 
+## 5b. How far is it from real trading? (asked 1 Sep — measured, not guessed)
+
+**The shop was built mobile-first. The admin was not.** Counted in the repo:
+
+```
+apps/web    142 tsx files   105 of them (74%) use breakpoints   382 uses
+apps/admin  373 tsx files   112 of them (30%) use breakpoints   678 uses
+            347 fixed w-[NNNpx] and 50 min-w-[NNNpx] in the admin
+```
+
+So a customer on a phone is largely served today; **the owner and his staff on
+a phone are not**. That splits the road into three, and only one of them is
+big engineering:
+
+| | what it is | who does most of it |
+|---|---|---|
+| **Phase 8 — make it clear, then real data** | the SSLCommerz **live key**, opening balances, the ৳1,500 decision, `WHATSAPP_*` and `RESEND_API_KEY` (without them a customer gets no order message at all), and entering the real catalogue, stock, suppliers and staff | **mostly the owner.** Days, not weeks |
+| **Phase 9 — the admin on a phone** | 261 of 373 admin files have no breakpoint at all, and the new inbox shell is `h-[100dvh]` with a fixed 360px list | **engineering.** A real phase |
+| **Phase 10 — the cutover** | 395 indexed URLs on `radianbd.com` in shapes this system does not serve; a redirect map and the old shop's data | engineering + a decision the owner has twice deferred |
+
+⚠️ **He can trade on `development.radianbd.com` at the end of Phase 8.** Phases
+9 and 10 make it comfortable and move the address — neither has to come first.
+
+Everything after that (HR/payroll, Marketing, Intelligence, the Bangla backlog)
+is improvement while trading, not a gate in front of it.
+
+⚠️ **Not verified:** the storefront has not been opened on a real phone. The
+viewport meta is correct and 74% of its files are responsive, but nobody has
+looked. That is one minute of the owner's time and worth spending before
+Phase 8 closes.
+
 ## 6. ⚠️ The bare domain is NOT ours to point anywhere
 
 `radianbd.com` runs the owner's **existing, trading shop** — getCommerce, its
