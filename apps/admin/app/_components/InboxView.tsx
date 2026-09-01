@@ -17,6 +17,7 @@ import {
   setInboxAi,
   updateInboxSettings,
 } from "../_data/api";
+import { Info } from "./ItemEditor";
 
 /*
   Inbox — every channel's customer conversations on one screen.
@@ -35,8 +36,6 @@ import {
   account as the sender and never the person who typed it. Better an honest
   label than a name we invented.
 */
-
-const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 
 const STATUS_TABS = [
   { key: "ALL", label: "All" },
@@ -259,71 +258,87 @@ export default function InboxView() {
   };
 
   return (
-    <div className={WRAP}>
-      <div className="mb-5">
-        <p className="text-[11px] font-bold tracking-[.14em] text-gray-400 uppercase">
-          Commerce · Support
-        </p>
-        <h1 className="text-[26px] font-extrabold text-gray-900">Inbox</h1>
-        <p className="text-[13px] text-gray-500 mt-1 max-w-2xl">
-          Every customer conversation on one screen — live chat, Messenger,
-          Instagram and WhatsApp. Reply, and the AI steps aside for that thread
-          automatically.
-        </p>
+    /*
+      THE SHELL HOLDS STILL. 1 Sep 2026.
 
-        {/* AI controls — DEC-INB-003/005, plus the provider seam. */}
+      The owner: "sms joto barte thake ataw avabe niche namte thake pura inbox."
+      He was right and it was a real bug, not a taste: the panes had a
+      `min-h-[65vh]` and nothing above it, so a long thread grew the PAGE. The
+      list slid off the top, the composer walked off the bottom, and answering
+      a chatty customer meant scrolling the whole screen to find the box.
+
+      A chat screen is an app, not a document. So: the page is exactly one
+      viewport tall and never scrolls. Exactly two things scroll, each inside
+      itself — the thread list and the messages. Everything else (filters,
+      thread header, composer) is pinned where the hand expects it.
+
+      `min-h-0` on every flex child is what makes that true. Without it a flex
+      item refuses to shrink below its content and the overflow silently moves
+      up to the page — which is precisely how this broke in the first place.
+    */
+    <div className="h-[100dvh] flex flex-col overflow-hidden px-6 md:px-8 pt-6 pb-6 max-w-[1600px] mx-auto w-full">
+      {/* ── title row: the name, and the one switch that changes everything ── */}
+      <div className="shrink-0 flex items-start gap-4 flex-wrap">
+        <div className="flex-1 min-w-[240px]">
+          <p className="text-[11px] font-extrabold tracking-[.16em] text-[#a78bb5] uppercase">
+            Commerce · Support
+          </p>
+          <h1 className="text-[30px] font-extrabold text-gray-900 leading-tight flex items-center gap-2">
+            Inbox
+            <Info text="Every customer conversation on one screen — live chat, Messenger, Instagram and WhatsApp. Reply here and the AI steps aside for that thread. A reply typed in Meta's own app appears here too, marked 'Replied from Meta', because Meta names only the shop account and never the person who typed it." />
+          </h1>
+        </div>
+
+        {/* DEC-INB-003/005 — the AI switch is a switch you can read across the room. */}
         {settings && (
-          <div className="mt-3 flex items-center gap-3 flex-wrap bg-white border border-gray-200 rounded-xl px-4 py-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => void patchSettings({ aiGloballyEnabled: !settings.aiGloballyEnabled })}
-              className={`text-[12px] font-bold px-3 py-1.5 rounded-full transition ${
+              className={`text-[13px] font-extrabold px-4 h-11 rounded-2xl transition-transform active:scale-[0.98] flex items-center gap-2 ${
                 settings.aiGloballyEnabled
-                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  ? "bg-emerald-500 text-white shadow-[0_6px_18px_rgba(16,185,129,0.35)]"
+                  : "bg-white text-gray-400 border-2 border-gray-200"
               }`}
             >
-              AI auto-reply: {settings.aiGloballyEnabled ? "ON" : "OFF"}
+              <span className={`w-2.5 h-2.5 rounded-full ${settings.aiGloballyEnabled ? "bg-white" : "bg-gray-300"}`} />
+              AI auto-reply {settings.aiGloballyEnabled ? "ON" : "OFF"}
             </button>
-            <label className="text-[12px] text-gray-500 flex items-center gap-1.5">
-              Provider
-              <select
-                value={settings.aiProvider}
-                onChange={(e) =>
-                  void patchSettings({ aiProvider: e.target.value as "ANTHROPIC" | "OPENAI" })
-                }
-                className="border border-gray-200 rounded-lg px-2 py-1 text-[12px] outline-none"
-              >
-                <option value="ANTHROPIC">Claude (Anthropic)</option>
-                <option value="OPENAI">OpenAI</option>
-              </select>
-            </label>
-            <span className="text-[11.5px] text-gray-400">
-              model: {settings.aiModel} · the key lives in the server env, never here
-            </span>
+            <select
+              value={settings.aiProvider}
+              onChange={(e) =>
+                void patchSettings({ aiProvider: e.target.value as "ANTHROPIC" | "OPENAI" })
+              }
+              className="h-11 rounded-2xl border-2 border-gray-200 bg-white px-3 text-[13px] font-bold text-gray-700 outline-none focus:border-[#cf43ea]"
+            >
+              <option value="ANTHROPIC">Claude (Anthropic)</option>
+              <option value="OPENAI">OpenAI</option>
+            </select>
+            <Info text={`Model in use: ${settings.aiModel}. The API key lives in the server environment and is never shown on this screen.`} />
           </div>
         )}
       </div>
 
       {/*
-        One card per channel. Four channels will land here and the first
-        question every morning is "where is the work" — that has to be legible
-        before anything is clicked. The cards are the channel filter too: a
-        number you can see but not act on is half a feature.
+        One card per channel, and each one is the filter too. The first question
+        every morning is "where is the work", and a number you can see but not
+        act on is half a feature. Channel colours rather than brand colours on
+        purpose: which channel a customer came from changes the tone, the
+        deadline and the reply, so it has to be recognisable at a glance.
       */}
-      <div className="grid gap-3 mb-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="shrink-0 grid gap-3 mt-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <button
           onClick={() => setChannel("ALL")}
-          className={`text-left rounded-2xl px-4 py-3 border transition ${
+          className={`text-left rounded-2xl pl-4 pr-4 py-3 border-2 transition-transform active:scale-[0.99] ${
             channel === "ALL"
-              ? "border-transparent bg-[#470066] text-white shadow-lg"
-              : "border-gray-200 bg-white hover:border-gray-300"
+              ? "border-transparent bg-[#470066] text-white shadow-[0_8px_22px_rgba(70,0,102,0.28)]"
+              : "border-gray-200 bg-white hover:border-[#cf43ea]"
           }`}
         >
-          <p className={`text-[11.5px] font-bold ${channel === "ALL" ? "text-white/70" : "text-gray-500"}`}>
+          <p className={`text-[12px] font-extrabold ${channel === "ALL" ? "text-white/75" : "text-gray-500"}`}>
             Everything
           </p>
-          <p className="text-[24px] font-extrabold leading-tight">{totalAll}</p>
-          <p className={`text-[11px] ${channel === "ALL" ? "text-white/70" : "text-gray-400"}`}>
+          <p className="text-[28px] font-extrabold leading-none mt-1">{totalAll}</p>
+          <p className={`text-[11.5px] font-bold mt-1.5 ${channel === "ALL" ? "text-white/75" : "text-gray-400"}`}>
             {unreadAll > 0 ? `${unreadAll} unread` : "all read"}
           </p>
         </button>
@@ -337,79 +352,79 @@ export default function InboxView() {
             <button
               key={k}
               onClick={() => setChannel(k)}
-              className={`text-left rounded-2xl px-4 py-3 border transition ${
-                on ? "border-transparent shadow-lg" : "border-gray-200 bg-white hover:border-gray-300"
+              className={`relative text-left rounded-2xl pl-5 pr-4 py-3 border-2 overflow-hidden transition-transform active:scale-[0.99] ${
+                on ? "border-transparent shadow-[0_8px_22px_rgba(0,0,0,0.18)]" : "border-gray-200 bg-white hover:border-gray-300"
               }`}
               style={on ? { background: c.fg, color: "#fff" } : undefined}
             >
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: on ? "#fff" : c.dot }}
-                />
-                <p
-                  className="text-[11.5px] font-bold truncate"
-                  style={{ color: on ? "rgba(255,255,255,.75)" : idle ? "#cbd5e1" : "#6b7280" }}
-                >
-                  {c.label}
-                </p>
-              </div>
+              {/* the coloured spine — the channel is legible before the number is read */}
+              <span
+                className="absolute left-0 top-0 bottom-0 w-1.5"
+                style={{ background: on ? "rgba(255,255,255,.55)" : idle ? "#e5e7eb" : c.dot }}
+              />
               <p
-                className="text-[24px] font-extrabold leading-tight"
-                style={{ color: on ? "#fff" : idle ? "#cbd5e1" : "#111827" }}
+                className="text-[12px] font-extrabold truncate"
+                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#c3c9d4" : "#6b7280" }}
+              >
+                {c.label}
+              </p>
+              <p
+                className="text-[28px] font-extrabold leading-none mt-1"
+                style={{ color: on ? "#fff" : idle ? "#c3c9d4" : "#111827" }}
               >
                 {st.total}
               </p>
               <p
-                className="text-[11px]"
-                style={{ color: on ? "rgba(255,255,255,.75)" : idle ? "#e2e8f0" : c.fg }}
+                className="text-[11.5px] font-bold mt-1.5"
+                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#dbe0e8" : c.fg }}
               >
-                {idle ? "not connected yet" : st.unread > 0 ? `${st.unread} unread` : "all read"}
+                {idle ? "nothing yet" : st.unread > 0 ? `${st.unread} unread` : "all read"}
               </p>
             </button>
           );
         })}
       </div>
 
-      <div className="flex gap-5 items-start">
+      {/* ── the two panes. This row owns the rest of the screen and no more. ── */}
+      <div className="flex-1 min-h-0 flex gap-5 mt-5">
         {/* left: the thread list */}
-        <div className="w-[340px] shrink-0 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-[0_2px_10px_rgba(70,0,102,0.04)]">
-          <div className="p-3 border-b border-gray-100">
+        <div className="w-[360px] shrink-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
+          <div className="shrink-0 p-3.5 border-b-2 border-[#f6f4f9]">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name or phone…"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-purple-400"
+              className="w-full h-11 rounded-2xl border-2 border-gray-200 px-4 text-[13.5px] font-medium outline-none focus:border-[#cf43ea]"
             />
-            <div className="flex gap-1 mt-2 flex-wrap">
+            <div className="flex gap-1.5 mt-2.5 flex-wrap">
               {STATUS_TABS.map((t) => {
                 const n =
                   t.key === "ALL"
                     ? (items?.length ?? 0)
                     : (items ?? []).filter((c) => c.status === t.key).length;
                 return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition ${
-                    tab === t.key
-                      ? "bg-[#470066] text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {t.label}
-                  {n > 0 && <span className="ml-1 opacity-60">{n}</span>}
-                </button>
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`px-3 py-1.5 rounded-full text-[12px] font-extrabold transition ${
+                      tab === t.key
+                        ? "bg-[#470066] text-white shadow-[0_4px_12px_rgba(70,0,102,0.25)]"
+                        : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
+                    }`}
+                  >
+                    {t.label}
+                    {n > 0 && <span className="ml-1.5 opacity-65">{n}</span>}
+                  </button>
                 );
               })}
             </div>
 
             <button
               onClick={() => setUnreadOnly((v) => !v)}
-              className={`mt-2 w-full px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition ${
+              className={`mt-2.5 w-full h-10 rounded-2xl text-[12.5px] font-extrabold transition ${
                 unreadOnly
-                  ? "bg-[#cf43ea] text-white"
-                  : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                  ? "bg-[#cf43ea] text-white shadow-[0_4px_14px_rgba(207,67,234,0.35)]"
+                  : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
               }`}
             >
               {unreadOnly ? "Showing unread only" : `Unread only${unreadAll ? ` (${unreadAll})` : ""}`}
@@ -423,26 +438,23 @@ export default function InboxView() {
                   setUnreadOnly(false);
                   setSearch("");
                 }}
-                className="mt-1.5 w-full text-[11px] text-gray-400 hover:text-gray-600"
+                className="mt-2 w-full text-[11.5px] font-bold text-gray-400 hover:text-[#cf43ea]"
               >
                 Clear filters
               </button>
             )}
           </div>
 
-          <div className="max-h-[65vh] overflow-y-auto divide-y divide-gray-50">
-            {items === null && (
-              <p className="p-4 text-[13px] text-gray-400">Loading…</p>
-            )}
+          {/* the first of the two things that scroll */}
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y-2 divide-[#faf8fc]">
+            {items === null && <p className="p-5 text-[13px] font-bold text-gray-300">Loading…</p>}
             {items?.length === 0 && (
-              <p className="p-4 text-[13px] text-gray-400">
+              <p className="p-5 text-[13px] font-bold text-gray-300">
                 No conversations yet — the shop&apos;s Live Chat lands here.
               </p>
             )}
             {shown?.length === 0 && items && items.length > 0 && (
-              <p className="p-4 text-[13px] text-gray-400">
-                Nothing matches these filters.
-              </p>
+              <p className="p-5 text-[13px] font-bold text-gray-300">Nothing matches these filters.</p>
             )}
             {shown?.map((c) => (
               <button
@@ -451,27 +463,27 @@ export default function InboxView() {
                   setOpenId(c.id);
                   setDetail(null);
                 }}
-                className={`w-full text-left px-4 py-3 hover:bg-purple-50/50 transition ${
-                  openId === c.id ? "bg-purple-50" : ""
+                className={`w-full text-left px-4 py-3.5 transition ${
+                  openId === c.id ? "bg-[#f7f0fb]" : "hover:bg-[#fbf9fd]"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className="w-2 h-2 rounded-full shrink-0"
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ background: channelOf(c.channel).dot }}
                     title={channelOf(c.channel).label}
                   />
-                  <span className="text-[13.5px] font-bold text-gray-900 flex-1 truncate">
+                  <span className="text-[14px] font-extrabold text-gray-900 flex-1 truncate">
                     {displayName(c)}
                   </span>
                   {c.unreadForStaff > 0 && (
-                    <span className="min-w-5 h-5 px-1.5 grid place-items-center rounded-full bg-[#cf43ea] text-white text-[11px] font-bold">
+                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-full bg-[#cf43ea] text-white text-[11px] font-extrabold">
                       {c.unreadForStaff}
                     </span>
                   )}
-                  <span className="text-[11px] text-gray-400">{ago(c.lastMessageAt)}</span>
+                  <span className="text-[11px] font-bold text-gray-400">{ago(c.lastMessageAt)}</span>
                 </div>
-                <p className="text-[12px] text-gray-500 truncate mt-0.5">
+                <p className="text-[12.5px] text-gray-500 truncate mt-1">
                   {c.lastMessage
                     ? `${
                         c.lastMessage.authorType === "STAFF"
@@ -482,26 +494,26 @@ export default function InboxView() {
                       }${previewOf(c.lastMessage.body)}`
                     : "—"}
                 </p>
-                <div className="flex gap-1.5 mt-1 flex-wrap">
+                <div className="flex gap-1.5 mt-1.5 flex-wrap">
                   <ChannelTag channel={c.channel} />
                   <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
                       c.status === "OPEN"
                         ? "bg-amber-100 text-amber-700"
                         : c.status === "WAITING_CUSTOMER"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-green-100 text-green-700"
+                          ? "bg-sky-100 text-sky-700"
+                          : "bg-emerald-100 text-emerald-700"
                     }`}
                   >
                     {c.status === "WAITING_CUSTOMER" ? "WAITING" : c.status}
                   </span>
                   {c.customer && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
                       {c.customer.ordersCount} orders
                     </span>
                   )}
                   {c.assignee && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
                       → {c.assignee.name}
                     </span>
                   )}
@@ -512,25 +524,23 @@ export default function InboxView() {
         </div>
 
         {/* right: the open conversation */}
-        <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden min-h-[65vh] flex flex-col">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
           {!openId ? (
             <div className="flex-1 grid place-items-center">
-              <p className="text-[13.5px] text-gray-400">
-                Pick a conversation from the left
-              </p>
+              <p className="text-[14px] font-bold text-gray-300">Pick a conversation from the left</p>
             </div>
           ) : !detail ? (
             <div className="flex-1 grid place-items-center">
-              <p className="text-[13.5px] text-gray-400">Loading…</p>
+              <p className="text-[14px] font-bold text-gray-300">Loading…</p>
             </div>
           ) : (
             <>
-              {/* header */}
-              <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+              {/* header — pinned */}
+              <div className="shrink-0 px-5 py-3.5 border-b-2 border-[#f6f4f9] flex items-center gap-2.5 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
                       style={{
                         background: channelOf(detail.channel).bg,
                         color: channelOf(detail.channel).fg,
@@ -538,11 +548,11 @@ export default function InboxView() {
                     >
                       {channelOf(detail.channel).label}
                     </span>
-                    <p className="text-[15px] font-bold text-gray-900">
+                    <p className="text-[17px] font-extrabold text-gray-900 truncate">
                       {detail.customer?.name || detail.guestName || "Guest"}
                     </p>
                   </div>
-                  <p className="text-[12px] text-gray-500">
+                  <p className="text-[12px] font-medium text-gray-400 mt-0.5">
                     {detail.customer?.phone || detail.guestPhone || "No phone shared"}
                     {detail.customer && ` · ${detail.customer.ordersCount} orders`}
                   </p>
@@ -551,15 +561,15 @@ export default function InboxView() {
                 {/* DEC-INB-008 — replying no longer silences the AI; this is the only hard off. */}
                 <button
                   onClick={() => void act(() => setInboxAi(detail.id, !detail.aiEnabled))}
-                  title="Off silences the AI completely in this thread. Replying does not switch it off — it only gives you a few minutes to answer first."
-                  className={`text-[11.5px] font-bold px-2.5 py-1.5 rounded-full transition ${
+                  className={`text-[12px] font-extrabold px-3.5 h-10 rounded-2xl transition ${
                     detail.aiEnabled
                       ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                   }`}
                 >
                   AI {detail.aiEnabled ? "on" : "off"}
                 </button>
+                <Info text="Off silences the AI completely in this thread. Replying does not switch it off — it only gives you a few minutes to answer first." />
 
                 {users && (
                   <select
@@ -567,7 +577,7 @@ export default function InboxView() {
                     onChange={(e) =>
                       void act(() => assignInboxConversation(detail.id, e.target.value || null))
                     }
-                    className="text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
+                    className="h-10 text-[12.5px] font-bold border-2 border-gray-200 rounded-2xl px-2.5 outline-none focus:border-[#cf43ea]"
                   >
                     <option value="">Unassigned</option>
                     {users
@@ -583,22 +593,25 @@ export default function InboxView() {
                 {detail.status === "RESOLVED" ? (
                   <button
                     onClick={() => void act(() => reopenInboxConversation(detail.id))}
-                    className="text-[12px] font-bold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition"
+                    className="text-[12.5px] font-extrabold px-4 h-10 rounded-2xl bg-amber-400 text-white shadow-[0_4px_14px_rgba(251,191,36,0.4)] hover:opacity-90 transition"
                   >
                     Reopen
                   </button>
                 ) : (
                   <button
                     onClick={() => void act(() => resolveInboxConversation(detail.id))}
-                    className="text-[12px] font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition"
+                    className="text-[12.5px] font-extrabold px-4 h-10 rounded-2xl bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)] hover:opacity-90 transition"
                   >
                     Resolve
                   </button>
                 )}
               </div>
 
-              {/* messages */}
-              <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5 bg-[#FBF9FD]">
+              {/* the second of the two things that scroll */}
+              <div
+                ref={listRef}
+                className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-3 bg-[#FBF9FD]"
+              >
                 {detail.messages.map((m) => {
                   const fromCustomer = m.authorType === "CUSTOMER";
                   const system = m.authorType === "SYSTEM";
@@ -610,38 +623,38 @@ export default function InboxView() {
                       <div
                         className={
                           system
-                            ? "mx-auto text-center text-[11.5px] text-gray-400 bg-white border border-gray-200 rounded-full px-4 py-1.5"
-                            : `max-w-[70%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-snug ${
+                            ? "mx-auto text-center text-[11.5px] font-bold text-gray-400 bg-white border-2 border-gray-100 rounded-full px-4 py-1.5"
+                            : `max-w-[72%] rounded-3xl px-4 py-3 text-[14px] leading-snug ${
                                 fromCustomer
-                                  ? "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                                  ? "bg-white text-gray-800 border-2 border-[#f0edf5] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
                                   : m.authorType === "AI"
-                                    ? "bg-purple-100 text-purple-900 rounded-br-md"
-                                    : "bg-[#470066] text-white rounded-br-md"
+                                    ? "bg-purple-100 text-purple-900 rounded-br-lg"
+                                    : "bg-[#470066] text-white rounded-br-lg shadow-[0_4px_14px_rgba(70,0,102,0.25)]"
                               }`
                         }
                       >
                         {!system && !fromCustomer && (
-                          <p className="text-[10.5px] opacity-70 font-bold mb-0.5">
+                          <p className="text-[10.5px] opacity-70 font-extrabold mb-1 tracking-wide">
                             {m.authorType === "AI"
                               ? "AI"
                               : (m.authorUser?.name ??
                                 /*
                                   A staff reply sent THROUGH Radian always carries
                                   its author (inbox.ts writes it). One that does
-                                  not was typed somewhere else - Meta's own inbox,
-                                  or the Messenger/Instagram app on a phone - and
-                                  Meta's API does not name the person, only the
-                                  shop account (checked 31 Aug: `from` comes back
-                                  as radiangiftshop). So the screen says where it
-                                  came from rather than inventing a who.
+                                  not was typed somewhere else — Meta's own inbox,
+                                  or the Messenger/Instagram app on a phone — and
+                                  Meta's API names only the shop account, never
+                                  the person (checked on both channels, 31 Aug).
+                                  So the screen says where it came from rather
+                                  than inventing a who.
                                 */
                                 "Replied from Meta")}
                           </p>
                         )}
                         <MessageBody body={m.body} />
                         <p
-                          className={`text-[10px] mt-1 ${
-                            fromCustomer || system ? "text-gray-400" : "opacity-60"
+                          className={`text-[10.5px] font-bold mt-1.5 ${
+                            fromCustomer || system ? "text-gray-300" : "opacity-55"
                           }`}
                         >
                           {new Date(m.createdAt).toLocaleTimeString([], {
@@ -655,10 +668,10 @@ export default function InboxView() {
                 })}
               </div>
 
-              {/* composer */}
-              <div className="border-t border-gray-100 p-3">
-                {error && <p className="text-[12px] text-red-500 px-1 pb-1">{error}</p>}
-                <div className="flex items-end gap-2">
+              {/* composer — pinned, and it never walks off the bottom again */}
+              <div className="shrink-0 border-t-2 border-[#f6f4f9] p-3.5">
+                {error && <p className="text-[12px] font-bold text-rose-500 px-1 pb-1.5">{error}</p>}
+                <div className="flex items-end gap-2.5">
                   <textarea
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
@@ -669,13 +682,13 @@ export default function InboxView() {
                       }
                     }}
                     rows={2}
-                    placeholder="Reply to the customer… (AI waits a few minutes for you before answering)"
-                    className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-[13.5px] outline-none focus:border-purple-400"
+                    placeholder="Reply to the customer…"
+                    className="flex-1 resize-none rounded-2xl border-2 border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-[#cf43ea]"
                   />
                   <button
                     disabled={busy || !draft.trim()}
                     onClick={() => void send()}
-                    className="px-5 h-11 rounded-xl bg-[#470066] text-white font-bold text-[13.5px] hover:opacity-90 transition disabled:opacity-40"
+                    className="px-7 h-[52px] rounded-2xl bg-[#470066] text-white font-extrabold text-[14px] shadow-[0_6px_18px_rgba(70,0,102,0.3)] hover:opacity-90 transition-transform active:scale-[0.98] disabled:opacity-30 disabled:shadow-none"
                   >
                     Send
                   </button>
