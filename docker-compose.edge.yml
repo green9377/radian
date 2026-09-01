@@ -10,6 +10,11 @@
 # It never needs rebuilding for a code change - only when a domain is added
 # (Caddyfile + .env.edge), and then a `restart` is enough.
 
+# Its own project name. Run without it from the stack's folder, compose puts
+# the edge in the SAME project as that stack and then calls the stack's four
+# containers orphans. One --remove-orphans on the edge and the shop is gone.
+name: radian_edge
+
 services:
   caddy:
     image: caddy:2-alpine
