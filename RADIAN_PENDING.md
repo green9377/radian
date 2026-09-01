@@ -569,6 +569,73 @@ count, not a substitute for it.
 
 ---
 
+## ✅ P7-4 PROVED — on the two real midnight sales, no test row needed
+
+The board said this needed "a sale timestamped between midnight and 6 AM
+Dhaka". Two were already sitting on the system:
+
+```
+POS-000002   utc 08-20 20:44 | Dhaka 08-21 02:44 | server day 08-20 | SHOP day 08-21  <<<
+POS-000014   utc 08-25 21:24 | Dhaka 08-26 03:24 | server day 08-25 | SHOP day 08-26  <<<
+```
+
+POS-000014 is the very row that exposed the fault. Every other sale of the
+eighteen falls on the same day either way — only these two cross, and both now
+land on the correct shop day.
+
+**Verified in the code as well:** `pos.service.ts` no longer contains
+`setHours(0,0,0,0)`; `analyticsToday` calls `startOfBdDay` from
+`common/bd-day.ts`, and `discount-window.ts` imports the same one copy.
+
+⚠️ **Not walked, and worth saying plainly:** nobody has watched the till's
+number change at 3 AM Dhaka. The data proves the boundary is real and the code
+proves which side of it a sale falls on; seeing it move live still needs a sale
+in that window.
+
+---
+
+## ✅ SUPPLIER DUES — the last ৳430, taken apart per bill
+
+No more arithmetic in the head. Per bill, books against register:
+
+| bill | status | register | books | diff |
+|---|---|---|---|---|
+| PUR-000002 | RECEIVED | 1,960 | 1,960 | 0 |
+| PUR-000007 | RECEIVED | 40 | 90 | **+50** |
+| PUR-000008 | RECEIVED | 80 | 100 | **+20** |
+| PUR-000011 | RECEIVED | 400 | 400 | 0 |
+| PUR-000012 | ADVANCE_PAID | 500 | 0 | −500 · correct, and already excluded |
+| PUR-000013 | RECEIVED | 2,000 | 3,000 | **+1,000** |
+
+Plus two ledger entries that map to **no bill at all**:
+
+```
+SUPPLIER_PAYMENT  SPY-000001  Ajgor  ৳500     debits 2000
+SUPPLIER_PAYMENT  SPY-000002  Apu    ৳1,000   debits 2000
+   both: NO allocation row, no PurchasePayment row, and both suppliers'
+   openingDuePaisa is 0
+```
+
+**So the ৳430 is two faults pulling opposite ways:**
+
+1. **+৳1,070 — advances that were never released.** P7-17 moved these payments
+   into 1200 Supplier Advance because they were paid before the goods. But
+   these three bills have since been RECEIVED, and `onPurchaseReceived` is what
+   moves an advance across — it ran *before* the reclassification, so it never
+   did. The books still owe the full bill while the money sits in 1200.
+2. **−৳1,500 — unallocated supplier payments reducing the payable.** Two
+   payments allocated to nothing at all, against suppliers with no opening due
+   (one of them, "Apu", has no bills whatsoever). They reduce what the books
+   say we owe while the register knows nothing about them.
+
+**Both are the same family as P7-17, and #2 needs the owner's word before it is
+touched**: standard treatment says money paid to a supplier with nothing
+allocated is an **advance we are holding** (1200), not less payable — but that
+moves ৳1,500 in live books, and CLAUDE.md §4 rule 2 says ask rather than
+assume.
+
+---
+
 ## 📊 THE DRIFT BOARD, END OF 1 SEP — one red left, and it is the owner's
 
 ```
