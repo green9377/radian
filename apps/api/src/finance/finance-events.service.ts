@@ -18,6 +18,13 @@ import type { LineInput, PostEntryInput } from './finance.dto';
     "Finance owns nothing operational, it only reads and keeps the books").
 */
 
+/**
+ * How Returns marks the stock it sends back out on a replacement — written by
+ * `returns.service.ts` as `"<orderNo> · replacement <returnNo>"`. Finance reads
+ * it to tell a replacement apart from an ordinary sale line on the same order.
+ */
+const REPLACEMENT_NOTE = /· replacement RTN-/;
+
 @Injectable()
 export class FinanceEventsService {
   private readonly logger = new Logger(FinanceEventsService.name);
@@ -295,9 +302,31 @@ export class FinanceEventsService {
   }
 
   /** AVCO value of what left stock for this order (Inventory owns the number) */
+  /**
+   * What the goods on THIS ORDER cost, out of the stock ledger.
+   *
+   * ⚠️ P8-1 — a replacement handed out on a return leaves the shelf through
+   * `inventory.postSaleForOrder` **against the original order** (DEC-RTN-017),
+   * so its movement looks exactly like a second sale on a bill that was
+   * already delivered and already costed. It is excluded here and booked by
+   * `onReturnCompleted` instead, because the order's `:cogs` entry is keyed
+   * and a second post against it is silently swallowed — which is precisely
+   * how ৳405.15 of goods left the shop with the books never hearing.
+   */
   private async saleMovementValue(orderId: string): Promise<number> {
     const moves = await this.prisma.db.inventoryMovement.findMany({
       where: { refType: 'ORDER', refId: orderId, reason: 'SALE' },
+      select: { valuePaisa: true, note: true },
+    });
+    return moves
+      .filter((m) => !REPLACEMENT_NOTE.test(m.note ?? ''))
+      .reduce((n, m) => n + Math.abs(m.valuePaisa), 0);
+  }
+
+  /** the goods sent back out on one return's replacement, at their own cost */
+  private async replacementMovementValue(orderId: string, returnNo: string): Promise<number> {
+    const moves = await this.prisma.db.inventoryMovement.findMany({
+      where: { refType: 'ORDER', refId: orderId, reason: 'SALE', note: { contains: `replacement ${returnNo}` } },
       select: { valuePaisa: true },
     });
     return moves.reduce((n, m) => n + Math.abs(m.valuePaisa), 0);
@@ -470,23 +499,128 @@ export class FinanceEventsService {
 
   /* ==================== PURCHASE & SUPPLIER ==================== */
 
-  /** goods received from a supplier — stock goes up, we owe them */
+  /** what the stock ledger says arrived on this bill, at the cost it posted */
+  private async purchaseMovementValue(purchaseId: string): Promise<number> {
+    const moves = await this.prisma.db.inventoryMovement.findMany({
+      where: { refId: purchaseId, reason: 'PURCHASE' },
+      select: { valuePaisa: true },
+    });
+    return moves.reduce((n, m) => n + Math.abs(m.valuePaisa), 0);
+  }
+
+  /** how much of this bill's goods is already standing in 2050, unbilled */
+  private async goodsNotBilled(purchaseId: string): Promise<number> {
+    const acc = await this.accId(ACC2.GOODS_NOT_BILLED);
+    const lines = await this.prisma.db.journalLine.findMany({
+      where: { accountId: acc, entry: { sourceType: 'PURCHASE', sourceId: purchaseId } },
+      select: { debitPaisa: true, creditPaisa: true },
+    });
+    return lines.reduce((n, l) => n + l.creditPaisa - l.debitPaisa, 0);
+  }
+
+  /**
+   * ═══ P8-3 (1 Sep 2026) — GOODS FROM A BILL THAT IS NOT FINISHED YET ═══
+   *
+   * A purchase may be received in several deliveries (DEC-PUR-001), and
+   * Finance books the bill only when the LAST box lands (PUR-REV-2 — rightly,
+   * because that entry carries the whole bill and firing it early booked all
+   * of it against one delivery). Between the first delivery and the last, the
+   * goods are on the shelf and the books have never heard of them: PUR-000012
+   * had ৳900 of stock standing in the shop and ৳0 in the ledger.
+   *
+   * So each delivery is booked as it arrives, at the value the stock ledger
+   * gave it, against **2050 Goods Received, Not Billed** — a liability,
+   * because we hold goods we have not agreed a bill for. `onPurchaseReceived`
+   * clears it when the bill completes, so nothing is counted twice.
+   *
+   * Keyed on the MOVEMENT, which is the event itself: replaying it posts
+   * nothing, and a second delivery cannot land on the first one's key.
+   */
+  async onPurchaseGoodsIn(movementId: string): Promise<void> {
+    if (!(await this.enabled())) return;
+    await this.safe('PURCHASE', movementId, async () => {
+      const m = await this.prisma.db.inventoryMovement.findUnique({ where: { id: movementId } });
+      if (!m || m.reason !== 'PURCHASE' || !m.refId) return;
+      const value = Math.abs(m.valuePaisa);
+      if (value <= 0) return;
+      const p = await this.prisma.db.purchase.findUnique({
+        where: { id: m.refId },
+        select: { id: true, purchaseNo: true, status: true, deletedAt: true, purchaseDate: true },
+      });
+      if (!p || p.deletedAt) return;
+      // the bill is already booked in full — its own entry carries these goods
+      if (p.status === 'RECEIVED') return;
+      if (await this.beforeGoLive(m.createdAt)) return;
+
+      await this.finance.postEntry({
+        sourceType: 'PURCHASE',
+        sourceId: p.id,
+        sourceKey: `MOVEMENT:${movementId}:goods-in`,
+        entryDate: m.createdAt,
+        narration: `${p.purchaseNo} — goods arrived, the bill is not finished yet`,
+        lines: [
+          { accountId: await this.accId(ACC.INVENTORY), debitPaisa: value },
+          { accountId: await this.accId(ACC2.GOODS_NOT_BILLED), creditPaisa: value },
+        ],
+      });
+    });
+  }
+
+  /**
+   * Goods received from a supplier — stock goes up, we owe them.
+   *
+   * ⚠️ P8-4 (1 Sep 2026) — **stock is booked at the value the stock ledger
+   * gave it, not at the bill's grand total.** Those are two different numbers
+   * whenever the bill carries a discount or a round-off: the ledger costs the
+   * goods line by line, the bill is what the supplier is owed. Booking the
+   * grand total into 1150 made the books disagree with the shelf by ৳334.21
+   * across thirteen bills — a gap no stock movement could ever explain,
+   * because no stock had moved.
+   *
+   * The difference is what the bill saved or cost over the goods themselves,
+   * and it belongs in `5150 Inventory Adjustment` with the other small gains
+   * and losses of the period. What this buys: 1150 now equals the stock
+   * ledger **by construction**, so the drift check can only ever fire on a
+   * posting that is genuinely missing.
+   */
   async onPurchaseReceived(purchaseId: string): Promise<void> {
     if (!(await this.enabled())) return;
     await this.safe('PURCHASE', purchaseId, async () => {
       const p = await this.prisma.db.purchase.findUnique({ where: { id: purchaseId } });
       if (!p || p.deletedAt || p.grandTotalPaisa <= 0) return;
       if (await this.beforeGoLive(p.purchaseDate)) return;
+
+      const goods = await this.purchaseMovementValue(purchaseId);
+      const held = await this.goodsNotBilled(purchaseId);
+      /*  VAT on a supplier bill is the government's, reclaimable — it was never
+          part of what the stock cost. Nothing on the system carries purchase VAT
+          yet, and the old entry would have capitalised it into the shelf. */
+      const vat = p.vatPaisa ?? 0;
+      const basis = p.grandTotalPaisa - vat - goods; // bill-level discount / round-off
+      const lines: LineInput[] = [
+        { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), creditPaisa: p.grandTotalPaisa },
+      ];
+      if (vat > 0) lines.push({ accountId: await this.accId(ACC.VAT_INPUT), debitPaisa: vat });
+      // the goods not already standing in 2050 from an earlier delivery
+      if (goods - held > 0)
+        lines.push({ accountId: await this.accId(ACC.INVENTORY), debitPaisa: goods - held });
+      else if (goods - held < 0)
+        lines.push({ accountId: await this.accId(ACC.INVENTORY), creditPaisa: held - goods });
+      if (held > 0) lines.push({ accountId: await this.accId(ACC2.GOODS_NOT_BILLED), debitPaisa: held });
+      if (basis !== 0)
+        lines.push(
+          basis > 0
+            ? { accountId: await this.accId(ACC.INV_ADJUSTMENT), debitPaisa: basis }
+            : { accountId: await this.accId(ACC.INV_ADJUSTMENT), creditPaisa: -basis },
+        );
+
       await this.finance.postEntry({
         sourceType: 'PURCHASE',
         sourceId: purchaseId,
         sourceKey: `PURCHASE:${purchaseId}:received`,
         entryDate: p.receivedAt ?? p.purchaseDate,
         narration: `${p.purchaseNo} received from ${p.supplierName}`,
-        lines: [
-          { accountId: await this.accId(ACC.INVENTORY), debitPaisa: p.grandTotalPaisa },
-          { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), creditPaisa: p.grandTotalPaisa },
-        ],
+        lines,
       });
 
       /*  P7-17 — money paid BEFORE the goods came is an advance sitting in
@@ -497,21 +631,7 @@ export class FinanceEventsService {
           Counted from the LEDGER, never from the payment rows — the same
           discipline P7-15 had to be taught. Only what actually reached 1200
           may be taken out of it.  */
-      const advanceAcc = await this.accId(ACC.SUPPLIER_ADVANCE);
-      const payments = await this.prisma.db.purchasePayment.findMany({
-        where: { purchaseId, deletedAt: null },
-        select: { id: true },
-      });
-      let advanced = 0;
-      for (const pay of payments) {
-        const e = await this.prisma.db.journalEntry.findUnique({
-          where: { sourceKey: `PURCHASE_PAYMENT:${pay.id}:paid` },
-          include: { lines: true },
-        });
-        advanced += (e?.lines ?? [])
-          .filter((l) => l.accountId === advanceAcc)
-          .reduce((n, l) => n + l.debitPaisa, 0);
-      }
+      const advanced = await this.advanceHeldFor(purchaseId);
       if (advanced > 0) {
         await this.finance.postEntry({
           sourceType: 'PURCHASE',
@@ -521,11 +641,45 @@ export class FinanceEventsService {
           narration: `${p.purchaseNo} — advance paid earlier applied to the bill`,
           lines: [
             { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: advanced },
-            { accountId: advanceAcc, creditPaisa: advanced },
+            { accountId: await this.accId(ACC.SUPPLIER_ADVANCE), creditPaisa: advanced },
           ],
         });
       }
     });
+  }
+
+  /**
+   * How much of this bill's money is still sitting in 1200 Supplier Advance.
+   *
+   * ⚠️ P8-2 — this used to read only the payment's own `:paid` entry, and that
+   * is why ৳1,070 never came out of 1200. The P7-17 cleanup put those payments
+   * into the advance account through a SECOND, correcting entry
+   * (`:advance-fix`) — and it ran *after* those three bills had already been
+   * received, so the release had come and gone before there was anything to
+   * release. Reading every line the ledger holds against the advance account,
+   * and subtracting whatever has already been applied, cannot go stale that
+   * way: it asks the books what is there now.
+   */
+  private async advanceHeldFor(purchaseId: string): Promise<number> {
+    const advanceAcc = await this.accId(ACC.SUPPLIER_ADVANCE);
+    const payments = await this.prisma.db.purchasePayment.findMany({
+      where: { purchaseId, deletedAt: null },
+      select: { id: true },
+    });
+    let held = 0;
+    for (const pay of payments) {
+      const lines = await this.prisma.db.journalLine.findMany({
+        where: { accountId: advanceAcc, entry: { sourceId: pay.id } },
+        select: { debitPaisa: true, creditPaisa: true },
+      });
+      held += lines.reduce((n, l) => n + l.debitPaisa - l.creditPaisa, 0);
+    }
+    const applied = await this.prisma.db.journalLine.findMany({
+      where: { accountId: advanceAcc, entry: { sourceType: 'PURCHASE', sourceId: purchaseId } },
+      select: { debitPaisa: true, creditPaisa: true },
+    });
+    held -= applied.reduce((n, l) => n + l.creditPaisa - l.debitPaisa, 0);
+    return Math.max(held, 0);
   }
 
   /**
@@ -537,23 +691,53 @@ export class FinanceEventsService {
     await this.safe('SUPPLIER_PAYMENT', supplierPaymentId, async () => {
       const sp = await this.prisma.db.supplierPayment.findUnique({
         where: { id: supplierPaymentId },
-        include: { supplier: { select: { name: true } } },
+        include: { supplier: { select: { name: true } }, allocations: { select: { amountPaisa: true } } },
       });
       if (!sp || sp.deletedAt || sp.amountPaisa <= 0) return;
       if (await this.beforeGoLive(sp.paidAt)) return;
+
+      /*
+        ═══ P8-5 (1 Sep 2026) — MONEY AGAINST NO BILL IS NOT A PAYMENT ═══
+
+        This used to debit 2000 Supplier Payable with the whole amount, however
+        much of it was actually put against a bill. `SPY-000001` (৳500 to
+        Ajgor) and `SPY-000002` (৳1,000 to Apu) carry no allocation at all —
+        Apu has no bills in the register whatsoever — so ৳1,500 of the books'
+        supplier debt was discharged against nothing. The purchase register
+        knew nothing of it, and that is most of the ৳430 the two sides
+        disagreed by.
+
+        Money handed to a supplier with no bill behind it is value THEY are
+        holding for us — the same thing as paying ahead (DEC-PUR-004), and the
+        drift checker's own advice line has said so all along. So: the part put
+        against bills clears the payable, and the rest goes to 1200 Supplier
+        Advance, where `onPurchaseReceived` will move it across when the goods
+        finally arrive.
+      */
+      const allocated = Math.min(
+        sp.allocations.reduce((n, a) => n + a.amountPaisa, 0),
+        sp.amountPaisa,
+      );
+      const onAccount = sp.amountPaisa - allocated;
+      const lines: LineInput[] = [];
+      if (allocated > 0)
+        lines.push({ accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: allocated });
+      if (onAccount > 0)
+        lines.push({ accountId: await this.accId(ACC.SUPPLIER_ADVANCE), debitPaisa: onAccount });
+      lines.push({
+        accountId: await this.moneyAccountFor(sp.method, (sp as { accountId?: string | null }).accountId),
+        creditPaisa: sp.amountPaisa,
+      });
+
       await this.finance.postEntry({
         sourceType: 'SUPPLIER_PAYMENT',
         sourceId: sp.id,
         sourceKey: `SUPPLIER_PAYMENT:${sp.id}:paid`,
         entryDate: sp.paidAt,
-        narration: `${sp.paymentNo} — paid ${sp.supplier?.name ?? 'supplier'}`,
-        lines: [
-          { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: sp.amountPaisa },
-          {
-            accountId: await this.moneyAccountFor(sp.method, (sp as { accountId?: string | null }).accountId),
-            creditPaisa: sp.amountPaisa,
-          },
-        ],
+        narration: onAccount > 0 && allocated === 0
+          ? `${sp.paymentNo} — paid ${sp.supplier?.name ?? 'supplier'} against no bill (held as an advance)`
+          : `${sp.paymentNo} — paid ${sp.supplier?.name ?? 'supplier'}`,
+        lines,
       });
       await this.prisma.db.supplierPayment.update({
         where: { id: sp.id },
@@ -1036,6 +1220,232 @@ export class FinanceEventsService {
     return { looked: payments.length, fixed, movedPaisa };
   }
 
+  /**
+   * P8-2 cleanup — release advances that are still sitting in 1200 against
+   * bills whose goods have long since arrived.
+   *
+   * The release normally happens inside `onPurchaseReceived`. For these three
+   * bills it had already run before P7-17 moved the money into 1200, so there
+   * was nothing to release at the time and nothing has looked since. Keyed, so
+   * a second run posts nothing.
+   */
+  async applyHeldSupplierAdvances(): Promise<{ looked: number; fixed: number; appliedPaisa: number }> {
+    await this.finance.ensureSeed();
+    const purchases = await this.prisma.db.purchase.findMany({
+      where: { status: 'RECEIVED', deletedAt: null },
+      select: { id: true, purchaseNo: true, receivedAt: true, purchaseDate: true },
+    });
+
+    let fixed = 0;
+    let appliedPaisa = 0;
+    for (const p of purchases) {
+      const held = await this.advanceHeldFor(p.id);
+      if (held <= 0) continue;
+      const sourceKey = `PURCHASE:${p.id}:advance-applied-late`;
+      const done = await this.prisma.db.journalEntry.findUnique({ where: { sourceKey }, select: { id: true } });
+      if (done) continue;
+      await this.finance.postEntry({
+        sourceType: 'PURCHASE',
+        sourceId: p.id,
+        sourceKey,
+        entryDate: p.receivedAt ?? p.purchaseDate,
+        narration: `${p.purchaseNo} — advance paid earlier applied to the bill (P8-2)`,
+        isManual: true,
+        actorName: 'system',
+        lines: [
+          { accountId: await this.accId(ACC.SUPPLIER_PAYABLE), debitPaisa: held },
+          { accountId: await this.accId(ACC.SUPPLIER_ADVANCE), creditPaisa: held },
+        ],
+      });
+      fixed += 1;
+      appliedPaisa += held;
+    }
+    return { looked: purchases.length, fixed, appliedPaisa };
+  }
+
+  /**
+   * P8-5 cleanup — a supplier payment that discharged a payable it was never
+   * put against. Moves only the unallocated part, and only the part the ledger
+   * itself shows went to 2000.
+   */
+  async fixUnallocatedSupplierPayments(): Promise<{ looked: number; fixed: number; movedPaisa: number }> {
+    await this.finance.ensureSeed();
+    const payableAcc = await this.accId(ACC.SUPPLIER_PAYABLE);
+    const advanceAcc = await this.accId(ACC.SUPPLIER_ADVANCE);
+    const payments = await this.prisma.db.supplierPayment.findMany({
+      where: { deletedAt: null, amountPaisa: { gt: 0 } },
+      select: {
+        id: true,
+        paymentNo: true,
+        paidAt: true,
+        amountPaisa: true,
+        allocations: { select: { amountPaisa: true } },
+        supplier: { select: { name: true } },
+      },
+    });
+
+    let fixed = 0;
+    let movedPaisa = 0;
+    for (const sp of payments) {
+      const allocated = Math.min(sp.allocations.reduce((n, a) => n + a.amountPaisa, 0), sp.amountPaisa);
+      const onAccount = sp.amountPaisa - allocated;
+      if (onAccount <= 0) continue;
+
+      const entry = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `SUPPLIER_PAYMENT:${sp.id}:paid` },
+        include: { lines: true },
+      });
+      const onPayable = (entry?.lines ?? [])
+        .filter((l) => l.accountId === payableAcc)
+        .reduce((n, l) => n + l.debitPaisa, 0);
+      const move = Math.min(onAccount, onPayable);
+      if (move <= 0) continue;
+
+      const sourceKey = `SUPPLIER_PAYMENT:${sp.id}:on-account-fix`;
+      const done = await this.prisma.db.journalEntry.findUnique({ where: { sourceKey }, select: { id: true } });
+      if (done) continue;
+
+      await this.finance.postEntry({
+        sourceType: 'SUPPLIER_PAYMENT',
+        sourceId: sp.id,
+        sourceKey,
+        entryDate: sp.paidAt,
+        narration: `${sp.paymentNo} — paid ${sp.supplier?.name ?? 'supplier'} against no bill, held as an advance (P8-5)`,
+        isManual: true,
+        actorName: 'system',
+        lines: [
+          { accountId: advanceAcc, debitPaisa: move },
+          { accountId: payableAcc, creditPaisa: move },
+        ],
+      });
+      fixed += 1;
+      movedPaisa += move;
+    }
+    return { looked: payments.length, fixed, movedPaisa };
+  }
+
+  /**
+   * P8-4 cleanup — bills already booked into stock at their grand total.
+   *
+   * Brings 1150 back to what the stock ledger actually posted and puts the
+   * bill-level discount / round-off into 5150 where it belongs. Nothing is
+   * rewritten: this is a correcting entry, keyed like every other.
+   */
+  async fixPurchaseGoodsBasis(): Promise<{ looked: number; fixed: number; movedPaisa: number }> {
+    await this.finance.ensureSeed();
+    const inventoryAcc = await this.accId(ACC.INVENTORY);
+    const purchases = await this.prisma.db.purchase.findMany({
+      where: { status: 'RECEIVED', deletedAt: null },
+      select: { id: true, purchaseNo: true, receivedAt: true, purchaseDate: true },
+    });
+
+    let fixed = 0;
+    let movedPaisa = 0;
+    for (const p of purchases) {
+      const entry = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: `PURCHASE:${p.id}:received` },
+        include: { lines: true },
+      });
+      if (!entry) continue;
+      const booked = entry.lines
+        .filter((l) => l.accountId === inventoryAcc)
+        .reduce((n, l) => n + l.debitPaisa - l.creditPaisa, 0);
+      const goods = await this.purchaseMovementValue(p.id);
+      const diff = booked - goods; // what the books put on the shelf over the goods
+      if (diff === 0) continue;
+
+      const sourceKey = `PURCHASE:${p.id}:goods-basis-fix`;
+      const done = await this.prisma.db.journalEntry.findUnique({ where: { sourceKey }, select: { id: true } });
+      if (done) continue;
+
+      await this.finance.postEntry({
+        sourceType: 'PURCHASE',
+        sourceId: p.id,
+        sourceKey,
+        entryDate: p.receivedAt ?? p.purchaseDate,
+        narration: `${p.purchaseNo} — stock valued as the stock ledger valued it (P8-4)`,
+        isManual: true,
+        actorName: 'system',
+        lines:
+          diff > 0
+            ? [
+                { accountId: await this.accId(ACC.INV_ADJUSTMENT), debitPaisa: diff },
+                { accountId: inventoryAcc, creditPaisa: diff },
+              ]
+            : [
+                { accountId: inventoryAcc, debitPaisa: -diff },
+                { accountId: await this.accId(ACC.INV_ADJUSTMENT), creditPaisa: -diff },
+              ],
+      });
+      fixed += 1;
+      movedPaisa += Math.abs(diff);
+    }
+    return { looked: purchases.length, fixed, movedPaisa };
+  }
+
+  /** P8-3 cleanup — goods standing in the shop from a bill still being received */
+  async backfillGoodsNotBilled(): Promise<{ looked: number; posted: number }> {
+    await this.finance.ensureSeed();
+    const open = await this.prisma.db.purchase.findMany({
+      where: { deletedAt: null, status: { notIn: ['RECEIVED', 'CANCELLED'] } },
+      select: { id: true },
+    });
+    let posted = 0;
+    for (const p of open) {
+      const moves = await this.prisma.db.inventoryMovement.findMany({
+        where: { refId: p.id, reason: 'PURCHASE' },
+        select: { id: true },
+      });
+      for (const m of moves) {
+        const seen = await this.prisma.db.journalEntry.findUnique({
+          where: { sourceKey: `MOVEMENT:${m.id}:goods-in` },
+          select: { id: true },
+        });
+        if (seen) continue;
+        await this.onPurchaseGoodsIn(m.id);
+        const now = await this.prisma.db.journalEntry.findUnique({
+          where: { sourceKey: `MOVEMENT:${m.id}:goods-in` },
+          select: { id: true },
+        });
+        if (now) posted += 1;
+      }
+    }
+    return { looked: open.length, posted };
+  }
+
+  /**
+   * P8-1 cleanup — replay every completed return so the replacement cost lands.
+   *
+   * `backfillReturnRestock` cannot do this: it skips any return that already
+   * has a `:restock` entry, which is every return that matters here.
+   * `onReturnCompleted` is idempotent on each of its four keys, so replaying
+   * all of them writes only what is missing.
+   */
+  async backfillReplacementCost(): Promise<{ looked: number; posted: number; costPaisa: number }> {
+    await this.finance.ensureSeed();
+    const rows = await this.prisma.db.salesReturn.findMany({
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    let posted = 0;
+    let costPaisa = 0;
+    for (const r of rows) {
+      const key = `RETURN:${r.id}:replacement-cost`;
+      const seen = await this.prisma.db.journalEntry.findUnique({ where: { sourceKey: key }, select: { id: true } });
+      if (seen) continue;
+      await this.onReturnCompleted(r.id);
+      const now = await this.prisma.db.journalEntry.findUnique({
+        where: { sourceKey: key },
+        select: { lines: { select: { debitPaisa: true } } },
+      });
+      if (now) {
+        posted += 1;
+        costPaisa += now.lines.reduce((n, l) => n + l.debitPaisa, 0);
+      }
+    }
+    return { looked: rows.length, posted, costPaisa };
+  }
+
   /* ==================== RETURNS ==================== */
 
   /**
@@ -1116,6 +1526,39 @@ export class FinanceEventsService {
           lines: [
             { accountId: await this.accId(ACC.INVENTORY), debitPaisa: restock },
             { accountId: await this.accId(ACC.COGS), creditPaisa: restock },
+          ],
+        });
+
+      /*
+        ═══ P8-1 (1 Sep 2026) — THE REPLACEMENT THAT LEFT THE SHOP FOR FREE ═══
+
+        A replacement sends new goods out to the customer (DEC-RTN-017), and
+        that stock-out is written **against the original order**. The order's
+        cost entry is keyed `ORDER:<id>:cogs` and was posted the day it was
+        delivered, so the second stock-out reached a key that already existed
+        and `postEntry` swallowed it as a duplicate. Silently: nothing failed,
+        nothing was logged, and the goods simply left.
+
+        Found 1 Sep by taking the ৳160.64 stock drift apart — POS-000013 sent
+        out ৳400 of roses on RTN-000016 and POS-000003 ৳5.15 on RTN-000011,
+        and the two together are the whole sales-side gap.
+
+        The shape is the mirror of the restock above: the returned unit came
+        back at cost (Dr stock / Cr COGS), the new one goes out at cost
+        (Dr COGS / Cr stock). The shop therefore bears the cost of exactly one
+        unit — which is the truth of a replacement — instead of none.
+      */
+      const replaced = await this.replacementMovementValue(r.orderId, r.returnNo);
+      if (replaced > 0)
+        await this.finance.postEntry({
+          sourceType: 'RETURN',
+          sourceId: returnId,
+          sourceKey: `RETURN:${returnId}:replacement-cost`,
+          entryDate: r.updatedAt,
+          narration: `${r.returnNo} — cost of the replacement handed over`,
+          lines: [
+            { accountId: await this.accId(ACC.COGS), debitPaisa: replaced },
+            { accountId: await this.accId(ACC.INVENTORY), creditPaisa: replaced },
           ],
         });
     });

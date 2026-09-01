@@ -424,6 +424,25 @@ export class FinanceController {
     return this.events.backfillReturnRestock();
   }
 
+  /*  P8 (1 Sep) — the four things the books and the shop still disagreed about,
+      each one a correcting entry with its own key. Run it twice and the second
+      run posts nothing:
+        advances held against bills whose goods arrived long ago   (P8-2)
+        supplier money paid against no bill at all                 (P8-5)
+        stock booked at the bill total instead of the goods' cost  (P8-4)
+        goods standing in the shop from a half-received bill       (P8-3)
+        the cost of a replacement that left the shop for free      (P8-1)  */
+  @Post('backfill/settle-drift')
+  async settleDrift() {
+    return {
+      heldAdvances: await this.events.applyHeldSupplierAdvances(),
+      unallocatedPayments: await this.events.fixUnallocatedSupplierPayments(),
+      stockBasis: await this.events.fixPurchaseGoodsBasis(),
+      goodsNotBilled: await this.events.backfillGoodsNotBilled(),
+      replacements: await this.events.backfillReplacementCost(),
+    };
+  }
+
   @Get('drift')
   drift_() {
     return this.drift.run();

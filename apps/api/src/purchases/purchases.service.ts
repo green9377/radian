@@ -175,6 +175,34 @@ export class PurchasesService {
    * timeline never heard about it, unlike every other integration in this file. Awaited
    * and flagged now, in the same shape as `afterReceive()`.
    */
+  /**
+   * P8-3 — a delivery that does not finish the bill.
+   *
+   * Finance books a purchase only when the last box lands, so until then the
+   * goods stand in the shop with the ledger knowing nothing. Each movement is
+   * booked as it arrives against 2050 Goods Received, Not Billed, and the
+   * receipt entry clears it. Keyed on the movement, so this is safe to call
+   * after every delivery.
+   */
+  private async postGoodsInToFinance(purchaseId: string, purchaseNo: string, actor: string) {
+    try {
+      const moves = await this.prisma.db.inventoryMovement.findMany({
+        where: { refId: purchaseId, reason: 'PURCHASE' },
+        select: { id: true },
+      });
+      for (const m of moves) await this.finance.onPurchaseGoodsIn(m.id);
+    } catch (e) {
+      await this.audit.event({
+        entityType: ENTITY,
+        entityId: purchaseId,
+        kind: 'system',
+        label: `⚠ Finance posting failed on ${purchaseNo} — the goods that arrived are not in the books`,
+        actorName: actor,
+        note: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
   private async postReceiptToFinance(purchaseId: string, purchaseNo: string, actor: string) {
     try {
       await this.finance.onPurchaseReceived(purchaseId);
@@ -804,10 +832,6 @@ export class PurchasesService {
        first of three deliveries booked the whole bill against one box, and because the
        sourceKey is `PURCHASE:<id>:received` the two later calls were silently swallowed
        as duplicates — so it never corrected itself either. */
-    if (fullyReceived) {
-      await this.postReceiptToFinance(id, p.purchaseNo, actor);
-    }
-
     await this.audit.record({
       entityType: ENTITY,
       entityId: id,
@@ -840,6 +864,19 @@ export class PurchasesService {
         };
       }),
     );
+
+    /*  P8-4 (1 Sep 2026) — THE BOOKS FOLLOW THE STOCK LEDGER, SO THEY GO SECOND.
+        This call used to sit ABOVE `afterReceive`, which is what writes the
+        stock movements. That was harmless while Finance booked the bill's
+        grand total, and became a real fault the moment it started booking what
+        the stock ledger says arrived: it would have found no movements at all
+        and put the whole bill into 5150. Order of operations is the rule
+        (CLAUDE.md §4 rule 8) — stock first, then the books.
+
+        P8-3 — and a delivery that does NOT finish the bill still reaches the
+        books, as goods received but not billed. */
+    if (fullyReceived) await this.postReceiptToFinance(id, p.purchaseNo, actor);
+    else await this.postGoodsInToFinance(id, p.purchaseNo, actor);
 
     return this.findOne(id);
   }

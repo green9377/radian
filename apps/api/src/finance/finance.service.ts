@@ -135,6 +135,14 @@ export const ACC2 = {
   /// put in" stays a separate question from "what was already here on day one",
   /// and the owner can move it later if he decides it was his own money.
   OPENING_EQUITY: '3300',
+  /// P8-3 (1 Sep 2026) — goods standing in the shop from a bill that is not
+  /// fully received yet. Finance books a purchase only on FULL receipt
+  /// (PUR-REV-2, and rightly so: the entry carries the whole bill), so between
+  /// the first delivery and the last the stock is on the shelf and the books
+  /// know nothing about it. This holds that value until the bill completes,
+  /// and is cleared by the receipt entry itself. It is NOT Supplier Payable:
+  /// no bill has been agreed for these goods yet.
+  GOODS_NOT_BILLED: '2050',
 } as const;
 
 /** Chart of Accounts — §3 of the architecture doc. Seeded once, admin-extendable. */
@@ -162,6 +170,8 @@ const CHART: SeedRow[] = [
   { code: ACC.STORE_CREDIT, name: 'Customer Store Credit', type: 'LIABILITY' , group: 'Customer Liability' },
   { code: ACC.LOAN_PAYABLE, name: 'Loan Payable', type: 'LIABILITY' , group: 'Loan' },
   { code: ACC.ACCRUED, name: 'Accrued Expense / Salary Payable', type: 'LIABILITY' , group: 'Payable' },
+  { code: ACC2.GOODS_NOT_BILLED, name: 'Goods Received, Not Billed', type: 'LIABILITY', group: 'Payable',
+    note: 'Goods already on the shelf from a bill that is not fully received yet (P8-3)' },
   { code: ACC.VAT_PAYABLE, name: 'VAT Payable (NBR)', type: 'LIABILITY', note: 'Collected VAT — the government’s money, not income' , group: 'Tax' },
   // EQUITY
   { code: ACC.PARTNER_CAPITAL, name: 'Partner Capital', type: 'EQUITY' , group: 'Owner' },

@@ -972,7 +972,7 @@ instead of a nameless "Staff", and the list prefixes **"Meta:"** instead of
 
 ### Owner's decisions, 31 Aug
 
-- **SMS leaves the inbox.** *"SMS বাদ — inbox থেকে সরিয়ে দাও."* Done. SMS keeps
+- **SMS leaves the inbox.** *"SMS bad - inbox theke soriye dao."* Done. SMS keeps
   working for OTP and marketing; it is only off the inbox screen, because a
   channel that can never receive should not sit there looking broken.
 - **The admin's name is still wanted.** *"meta account a dukle dekha jay page ar
