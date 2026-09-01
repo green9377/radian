@@ -569,6 +569,59 @@ count, not a substitute for it.
 
 ---
 
+## ✅ THE DRIFT CHECKER IS FIXED — 1 Sep. It was the yardstick, as suspected.
+
+The board has said since 31 Aug: *do not chase supplier drift until this is
+settled — the yardstick itself is bent.* It was. Measured against the live
+database **before** a line was changed:
+
+```
+purchase due   Ajgor 2,400 + Renae Kenneh 500 + kamal mama 2,080  =  4,980
+adjustments    ONE −5,000 credit note on "kamal" — a FOURTH supplier,
+               soft-deleted, with no bills at all (note: "555")
+Math.max(4,980 − 5,000, 0)                                        =      0
+```
+
+So the check announced the shop owed suppliers **nothing** while six bills were
+open — and looked healthy doing it, because the clamp turned −৳20 into a tidy
+zero.
+
+**Two real faults, both in the checker:**
+
+1. **It netted every supplier together and clamped once.** A credit with one
+   supplier is not a payment to another. The balance is now carried **per
+   supplier** and floored per supplier before summing — and per bill too, since
+   over-paying one bill is not a credit against the next. A supplier in credit
+   is holding *our* money: an advance (1200), now named in the advice instead of
+   silently cancelling somebody else's bill.
+2. **It counted bills whose goods had not arrived.** Finance creates the payable
+   in `onPurchaseReceived`; a bill still `ORDERED` or `ADVANCE_PAID` is a
+   commitment, not a debt. The register was claiming ৳500 owed on PUR-000012 and
+   the books were being blamed for the difference.
+
+**Walked on the system after the build:**
+
+```
+supplier-dues   real 0.00 → 4,480.00      severity wrong → watch
+advice          a raw cuid → "kamal (deleted) ৳5,000"
+wrong checks    3 → 2
+```
+
+### What is still red, and what it is
+
+| check | books | real | gap | whose job |
+|---|---|---|---|---|
+| supplier-dues | ৳4,050 | ৳4,480 | **−৳430** · watch | mine — small, needs its own pass |
+| stock-value | ৳103,244.81 | ৳107,341.82 | **−৳4,097.01** · wrong | mine — item costs edited after receipt |
+| negative-money | −৳5,772.95 | — | **wrong** | **the owner's** — no opening balances have ever been posted |
+
+⚠️ **The ৳430 is a real number for the first time.** It was not chased today on
+purpose: the board's own warning is that arithmetic-in-the-head against a moving
+target is how half a day went last time. It is a WATCH, it is small, and it
+deserves a query rather than a guess.
+
+---
+
 ## 🖼️ INBOX, 1 Sep — attachments, the shell, and one AI switch
 
 ### DEC-INB-011 — THE AI SWITCH IS ONE SWITCH (owner, 1 Sep)
