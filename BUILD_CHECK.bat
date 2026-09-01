@@ -21,7 +21,7 @@ REM ═════════════════════════�
 cd /d "%~dp0apps\api"
 
 echo ==================================================
-echo   [0/3] No Bengali in the product (owner's rule)...
+echo   [0/4] No Bengali in the product (owner's rule)...
 echo ==================================================
 call node scripts\no-bangla.selftest.mjs
 if errorlevel 1 (
@@ -32,8 +32,23 @@ if errorlevel 1 (
   exit /b 1
 )
 
+REM  Phase 9 - the admin on a phone. Counts what is still desktop-only and
+REM  fails only if a file GAINS some. Nothing new may arrive while the old
+REM  325 are being swept.
 echo ==================================================
-echo   [1/3] Regenerating Prisma client (on THIS PC)...
+echo   [1/4] The admin on a phone (nothing new)...
+echo ==================================================
+call node "%~dp0apps\admin\scripts\mobile-ready.selftest.mjs"
+if errorlevel 1 (
+  echo.
+  echo   *** NEW DESKTOP-ONLY MARKUP - a phone is 375px wide. Fix before pushing. ***
+  echo.
+  pause
+  exit /b 1
+)
+
+echo ==================================================
+echo   [2/4] Regenerating Prisma client (on THIS PC)...
 echo ==================================================
 call npx prisma generate
 if errorlevel 1 (
@@ -46,7 +61,7 @@ if errorlevel 1 (
 
 echo.
 echo ==================================================
-echo   [2/3] Building ^(1-2 minutes^)...
+echo   [3/4] Building ^(1-2 minutes^)...
 echo ==================================================
 call npm run build
 set "RC=%errorlevel%"

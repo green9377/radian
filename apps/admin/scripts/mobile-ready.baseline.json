@@ -1,0 +1,492 @@
+{
+  "app/_components/AccessGate.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/AdminSystem.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/AdministrationOverview.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/AnalyticsLenses.tsx": {
+    "bare": 2,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/AssemblyActions.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/AssemblyViews.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/AuditView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/AuthGate.tsx": {
+    "bare": 0,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/BadgeRulesView.tsx": {
+    "bare": 0,
+    "wide": 0,
+    "tables": 1
+  },
+  "app/_components/BannersView.tsx": {
+    "bare": 0,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/BillUI.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/BrandsView.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/CapacityView.tsx": {
+    "bare": 0,
+    "wide": 4,
+    "tables": 0
+  },
+  "app/_components/CategoriesView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/CategoryEditor.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/CategoryPageView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/CollectionsView.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/CompanySettings.tsx": {
+    "bare": 6,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/CustomerConsent.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/CustomerDuplicates.tsx": {
+    "bare": 1,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/CustomerEditor.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/CustomerListView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 1
+  },
+  "app/_components/CustomerOccasions.tsx": {
+    "bare": 1,
+    "wide": 3,
+    "tables": 1
+  },
+  "app/_components/CustomerOverview.tsx": {
+    "bare": 2,
+    "wide": 1,
+    "tables": 1
+  },
+  "app/_components/CustomerRisk.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/CustomerSegments.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/DeliveryConfig.tsx": {
+    "bare": 3,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/DeliveryLive.tsx": {
+    "bare": 1,
+    "wide": 10,
+    "tables": 2
+  },
+  "app/_components/DeliveryOps.tsx": {
+    "bare": 5,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/DeliveryPerformance.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/DeliverySettle.tsx": {
+    "bare": 1,
+    "wide": 4,
+    "tables": 1
+  },
+  "app/_components/DeliveryUI.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/ExecutiveDashboard.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/FinanceExtras.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 2
+  },
+  "app/_components/FinanceForms.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 3
+  },
+  "app/_components/FinanceLive.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 3
+  },
+  "app/_components/FinanceMore.tsx": {
+    "bare": 5,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/FinanceMushak.tsx": {
+    "bare": 2,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/FinanceOverview.tsx": {
+    "bare": 3,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/FinanceUI.tsx": {
+    "bare": 0,
+    "wide": 4,
+    "tables": 1
+  },
+  "app/_components/FooterView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/ForecastView.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/InboxView.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/Integrations.tsx": {
+    "bare": 0,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/InventoryActions.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/InventoryViews.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/ItemEditor.tsx": {
+    "bare": 0,
+    "wide": 4,
+    "tables": 0
+  },
+  "app/_components/ItemListView.tsx": {
+    "bare": 2,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/ItemSettingsView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/ItemUI.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/ItemsOverview.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/JournalView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/KpiCentre.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 1
+  },
+  "app/_components/MarketingHub.tsx": {
+    "bare": 3,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/MarketingViews.tsx": {
+    "bare": 4,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/MessagingView.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/ModuleShell.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/MoneyBlock.tsx": {
+    "bare": 3,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/MyAccess.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/NewOrderForm.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/NotificationsBell.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/OfferDetail.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 1
+  },
+  "app/_components/OffersLive.tsx": {
+    "bare": 1,
+    "wide": 4,
+    "tables": 3
+  },
+  "app/_components/OrderEditForm.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/OrderEditor.tsx": {
+    "bare": 2,
+    "wide": 3,
+    "tables": 1
+  },
+  "app/_components/OrderListView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/OrderViews.tsx": {
+    "bare": 9,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/PageLayoutView.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/PagesFaqsView.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/PaymentMethodsView.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/PayrollViews.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/PosSaleView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/PosView.tsx": {
+    "bare": 1,
+    "wide": 6,
+    "tables": 0
+  },
+  "app/_components/PosViews.tsx": {
+    "bare": 5,
+    "wide": 9,
+    "tables": 4
+  },
+  "app/_components/ProductEditor.tsx": {
+    "bare": 0,
+    "wide": 3,
+    "tables": 0
+  },
+  "app/_components/ProductFunnelViews.tsx": {
+    "bare": 2,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/ProductListView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 1
+  },
+  "app/_components/ProductTrash.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 1
+  },
+  "app/_components/ProductViews.tsx": {
+    "bare": 17,
+    "wide": 8,
+    "tables": 6
+  },
+  "app/_components/PurchaseNewView.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/RecoveryView.tsx": {
+    "bare": 0,
+    "wide": 0,
+    "tables": 1
+  },
+  "app/_components/ReferralView.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/ReportsCentre.tsx": {
+    "bare": 0,
+    "wide": 0,
+    "tables": 1
+  },
+  "app/_components/ReturnViews.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/ReviewsView.tsx": {
+    "bare": 0,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/SectionTextView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/SeoView.tsx": {
+    "bare": 1,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/SetPassword.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/ShopHoursView.tsx": {
+    "bare": 4,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/SpecialDateField.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/StorefrontOverview.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/SupplierDetailView.tsx": {
+    "bare": 2,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/TagsView.tsx": {
+    "bare": 2,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/TrackingView.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/TrustStripView.tsx": {
+    "bare": 0,
+    "wide": 1,
+    "tables": 0
+  },
+  "app/_components/UnitsView.tsx": {
+    "bare": 1,
+    "wide": 2,
+    "tables": 0
+  },
+  "app/_components/WhatsappView.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  },
+  "app/_components/ZonesAvailability.tsx": {
+    "bare": 1,
+    "wide": 0,
+    "tables": 0
+  }
+}

@@ -6,6 +6,44 @@
 
 ---
 
+## 🟠 PHASE 9 IS SET UP AND WAITING — **the admin on a phone**
+
+Everything Phase 9 needs is ready; **the phase itself has not started.** The
+hand-over is `RADIAN_PHASE9_DIRECTION.md` — read that, not this section.
+
+**The surprise, and it changes the size of the job:** 225 of the admin's 373
+`.tsx` files are three-line wrappers with no markup at all. Every pixel lives
+in `app/_components` — 148 files, and **112 of them already use breakpoints**.
+So "261 files have no breakpoint" was true and misleading.
+
+**The debt, counted:** 135 `grid-cols-N` with no breakpoint · 149 fixed widths
+≥300px · 41 `<table>` — **325 things in 98 files**. Widths under 300px (634 of
+them: icons, badges) are deliberately not counted.
+
+⚠️ **And the first fault is not markup at all: there is NO MENU on a phone.**
+`AdminSidebar` is `hidden md:flex` and nothing replaces it — the nine
+`md:hidden` uses in the admin are all a "back" link inside an editor. A screen
+can only be reached by typing its URL. Everything else is cosmetic beside it.
+
+**Built today so the phase can be measured, not argued about:**
+`apps/admin/scripts/mobile-ready.selftest.mjs`, in the same shape as the
+no-Bangla tripwire — a ratchet on today's 325, failing only when a file GAINS
+desktop-only markup. Wired into `BUILD_CHECK.bat` as step [1/4]. **Verified**
+with a probe file: it failed `0 -> 3` and passed again when the probe went.
+
+**The storefront was checked at 375×812 on the live shop** (the Phase 8 file
+said nobody had looked): home, /products, a category, a product, /cart, /track
+— **no horizontal scroll anywhere**, viewport meta correct, header collapses to
+a hamburger. Two small faults: the chat launcher covers the sticky **Buy Now**
+bar on a product page, and the search placeholder is clipped.
+
+⚠️ **A Phase 10 correction found while looking:** products are served at
+**`/p/<slug>`**, not the flat `/<slug>` that CLAUDE.md and the Phase 6 file
+both assert (walked: the flat form is the 404 page). That makes the cutover
+simpler than the docs claim — the old shop's URLs map by shape.
+
+---
+
 ## 🟣 PHASE 8 — 1 Sep 2026 · **Purchases, the whole circle** (owner's pick)
 
 Asked what Phase 8 should walk, the owner chose **Purchases**, and then:
