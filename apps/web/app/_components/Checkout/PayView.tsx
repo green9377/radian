@@ -18,6 +18,23 @@ import { formatTaka } from "../../_data/products";
   second time and they do not come back. So there are no fields, no
   validation, just "Pay".
 
+  ⚠️ S-03 (31 Aug 2026) — ONE FIELD NOW EXISTS, AND IT IS THE ONLY ONE.
+
+  Order numbers run RAD-50000..RAD-99998. Fifty thousand is a morning's work
+  for a script, and walking them read out the shop's order book: which orders
+  exist, which are unpaid, what each is worth. The phone number is the same
+  proof `/track` has always asked for.
+
+  What the rule above still buys, and why the page is not simply a form now:
+  the field appears ONLY when there is money to take. "Already paid",
+  "cancelled" and "pay on delivery" all still answer on sight, with nothing
+  typed — those are the three states where a customer arrives worried, and
+  making them prove who they are before being told "you already paid" would be
+  the cruellest possible version of this page.
+
+  The number is not a hurdle for the person who should be here: this link
+  arrives by WhatsApp, on that very phone.
+
   ⚠️ NOTHING PERSONAL IS SHOWN — not the name, not the address, not what they
   bought. Only the order number and what is still owed. This link travels over
   WhatsApp, and a WhatsApp message can end up in the wrong hands.
@@ -35,6 +52,7 @@ export default function PayView({ orderNo }: { orderNo: string }) {
   const [due, setDue] = useState<AmountDue | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     let stale = false;
@@ -46,10 +64,29 @@ export default function PayView({ orderNo }: { orderNo: string }) {
     };
   }, [orderNo]);
 
+  /*  Enough digits to be a Bangladeshi number. The real check is the server's;
+      this only stops the button firing on an obviously half-typed number and
+      coming back with a refusal that reads like the order is gone.  */
+  const phoneLooksReady = phone.replace(/\D/g, "").length >= 10;
+
   async function pay() {
     setBusy(true);
     setError(null);
-    const s = await createPaymentSessionByNo(orderNo);
+
+    /*  Fetched again WITH the number: the first load withheld the amount, and
+        the customer should see what they are about to pay before the gateway
+        does. It also catches a wrong number here, on our own page, instead of
+        on SSLCommerz.  */
+    const checked = await fetchAmountDue(orderNo, phone);
+    if (!checked?.found || checked.needsPhone) {
+      setBusy(false);
+      setError(
+        "That number doesn't match this order. Please use the number the order was placed with — or call us and we'll finish it for you.",
+      );
+      return;
+    }
+
+    const s = await createPaymentSessionByNo(orderNo, phone);
     if (s.ok) {
       window.location.href = s.data.gatewayUrl;
       return;
@@ -129,9 +166,21 @@ export default function PayView({ orderNo }: { orderNo: string }) {
           <h1 className="mt-2 font-display text-[24px] font-bold text-neutral-900">
             Pay on delivery
           </h1>
+          {/*  S-03 — the figure is withheld until the phone proves who is
+              asking, and `?? 0` would have printed a confident "৳0" instead.
+              A sentence without the number is honest; a wrong number is not. */}
           <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
-            This order is cash on delivery — {formatTaka(due.duePaisa ?? 0)} to
-            our rider when it arrives. There&rsquo;s nothing to pay here.
+            {due.duePaisa === undefined ? (
+              <>
+                This order is cash on delivery — you pay our rider when it
+                arrives. There&rsquo;s nothing to pay here.
+              </>
+            ) : (
+              <>
+                This order is cash on delivery — {formatTaka(due.duePaisa)} to
+                our rider when it arrives. There&rsquo;s nothing to pay here.
+              </>
+            )}
           </p>
         </>
       ) : (
@@ -144,18 +193,46 @@ export default function PayView({ orderNo }: { orderNo: string }) {
             we&rsquo;ll start preparing it right away.
           </p>
 
-          <div className="mt-6 rounded-2xl bg-[#faf7fd] px-5 py-4">
-            <p className="text-[12px] font-semibold text-neutral-500">Amount due</p>
-            <p className="font-display text-[30px] font-bold leading-tight text-neutral-900">
-              {formatTaka(due.duePaisa ?? 0)}
-            </p>
-          </div>
+          {/*  The amount only exists once the number has proved who is asking
+              (S-03). Before that the box would be a confident lie.  */}
+          {due.duePaisa !== undefined && (
+            <div className="mt-6 rounded-2xl bg-[#faf7fd] px-5 py-4">
+              <p className="text-[12px] font-semibold text-neutral-500">Amount due</p>
+              <p className="font-display text-[30px] font-bold leading-tight text-neutral-900">
+                {formatTaka(due.duePaisa)}
+              </p>
+            </div>
+          )}
+
+          {/*  One field, and it is the same proof /track has always asked for.
+              `tel` so a phone opens the number pad; autoComplete so the
+              browser offers the number it already knows.  */}
+          <label className="mt-6 block">
+            <span className="text-[12.5px] font-semibold text-neutral-700">
+              Your phone number
+            </span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && phoneLooksReady && !busy) void pay();
+              }}
+              placeholder="01XXXXXXXXX"
+              className="mt-1.5 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-[15px] outline-none focus:border-purple-400"
+            />
+            <span className="mt-1.5 block text-[11.5px] text-neutral-500">
+              The number this order was placed with.
+            </span>
+          </label>
 
           <button
             type="button"
             onClick={() => void pay()}
-            disabled={busy}
-            className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#a021b8] to-[#d98cb3] py-4 text-[15px] font-extrabold text-white shadow-lg transition-transform active:scale-[0.98] disabled:opacity-50"
+            disabled={busy || !phoneLooksReady}
+            className="mt-4 w-full rounded-2xl bg-gradient-to-r from-[#a021b8] to-[#d98cb3] py-4 text-[15px] font-extrabold text-white shadow-lg transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             {busy ? "Opening secure payment…" : "Pay now"}
           </button>

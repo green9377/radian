@@ -1808,6 +1808,7 @@ export class InventoryService {
       actorName: actor,
       note: dto.note,
     });
+    await this.bookStockMovements(rows); // P7-13 — opening stock faces equity (DEC-INV-016)
     return { posted: rows.length };
   }
 
@@ -2019,6 +2020,32 @@ export class InventoryService {
   }
 
   /** quick single-item fix — ADJUSTMENT, signed delta */
+  /**
+   * P7-13 (31 Aug 2026) — the ledger hears about stock that was counted or was
+   * already here.
+   *
+   * Stock walks onto the shelf through three doors: bought, counted, or there
+   * on day one. Only "bought" ever reached Finance, so on 31 Aug the books said
+   * the shop held ৳7,919 of stock while the shelf held ৳107,381 — ৳95,425 of it
+   * arrived through OPENING and ADJUSTMENT, and `onStockAdjustment` (written,
+   * with account 5150 waiting) had never been called by anything.
+   *
+   * Fail-soft like every other hand-off (DEC-FIN-010): a posting problem must
+   * never undo a stock movement that physically happened. `sourceKey` makes it
+   * safe to call twice (DEC-FIN-023).
+   */
+  private async bookStockMovements(rows: { id: string; reason: MovementReason; valuePaisa: number }[]) {
+    for (const r of rows) {
+      if (r.valuePaisa === 0) continue;
+      if (r.reason !== 'ADJUSTMENT' && r.reason !== 'OPENING') continue;
+      try {
+        await this.finance.onStockAdjustment(r.id);
+      } catch {
+        /* onStockAdjustment is already fail-soft; this is belt and braces */
+      }
+    }
+  }
+
   async adjust(dto: AdjustmentDto) {
     const actor = dto.actorName ?? 'Admin';
     const item = await this.requireMovableItem(dto.itemId);
@@ -2045,6 +2072,7 @@ export class InventoryService {
       actorName: actor,
       note: dto.note,
     });
+    await this.bookStockMovements(rows); // P7-13
     return rows[0];
   }
 
@@ -2123,13 +2151,14 @@ export class InventoryService {
       });
     }
 
-    await this.prisma.db.$transaction(async (raw) => {
+    const posted = await this.prisma.db.$transaction(async (raw) => {
       const tx = asTx(raw);
-      if (drafts.length) await this.postMovements(tx, drafts);
+      const made = drafts.length ? await this.postMovements(tx, drafts) : [];
       await tx.stocktake.update({
         where: { id },
         data: { status: 'APPLIED', appliedAt: new Date() },
       });
+      return made;
     });
 
     await this.audit.event({
@@ -2139,6 +2168,7 @@ export class InventoryService {
       label: `Stocktake ${doc.stocktakeNo} applied — ${drafts.length} adjustment(s)`,
       actorName: actor,
     });
+    await this.bookStockMovements(posted); // P7-13 — what the count found is a gain or a loss
     return this.getStocktake(id);
   }
 

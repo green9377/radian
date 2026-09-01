@@ -8,8 +8,11 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Public, Roles, type AuthedRequest } from '../auth/auth.guard';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { FORGOT_LIMIT } from '../common/rate-limits';
 import { RegistryService } from './registry.service';
 import { AccessService } from './access.service';
 import { PaymentMethodsService, type AccountDetailsDto } from '../common/payment-methods.service';
@@ -387,7 +390,12 @@ export class AdministrationController {
   }
 
   /** answers identically whether the address exists or not — see the service */
+  /*  S-02 — the identical answer already stops this being used to find out who
+      works here. The limit stops it being used to fill somebody's inbox, or to
+      mint reset tokens by the thousand.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(FORGOT_LIMIT)
   @Post('forgot-password')
   forgot(@Body() dto: { email?: string }) {
     return this.people_.forgot(dto.email);

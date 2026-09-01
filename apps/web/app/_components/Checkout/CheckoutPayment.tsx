@@ -2,9 +2,11 @@
 
 import { defaultPayment, paymentOptions, type PaymentId } from "../../_data/payment";
 import type { ResolvedLine } from "../../_data/cart";
-import { useCheckoutStore } from "../../_store/useCheckoutStore";
+import { normalizePhone, useCheckoutStore } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
 import { Continue, QCard } from "./CheckoutFields";
+import { useState } from "react";
+import { sendCreditCode } from "../../_data/checkoutApi";
 
 /*
   Q5 — Payment
@@ -121,7 +123,87 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
         </p>
       )}
 
+      <StoreCredit />
+
       <Continue label="Review order" onClick={onContinue} />
     </QCard>
+  );
+}
+
+
+/**
+ * DEC-RTN-015 part 2 — spending store credit on the website.
+ *
+ * ⚠️ There is no login here. Identity at checkout is a phone number somebody
+ * typed, so if this simply showed a balance, anyone who knows a number could
+ * read what that person has saved — and spend it. Hence: nothing is shown and
+ * nothing is promised. The customer asks for a code, it goes to their own
+ * phone, and it travels with the order. The exact amount taken off appears on
+ * the confirmation, from the server's own answer.
+ *
+ * The order is never at risk: a wrong code, an expired one or an empty balance
+ * all place the order anyway, with no credit used (the same rule as the phone
+ * check, DEC-WA-010).
+ */
+function StoreCredit() {
+  const s = useCheckoutStore();
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const phone = normalizePhone(s.senderDial, s.senderPhone);
+
+  async function ask() {
+    if (!phone) return;
+    setBusy(true);
+    try {
+      await sendCreditCode(phone);
+      setSent(true);
+      s.set("useStoreCredit", true);
+    } catch {
+      /* the order does not depend on this; silence beats a scary red box */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!phone) return null;
+
+  return (
+    <div className="mt-4 rounded-[14px] border border-lavender-deep bg-lavender/40 p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-[13.5px] font-semibold text-purple m-0">Have store credit with us?</p>
+          <p className="text-[12px] text-body-soft m-0 mt-0.5">
+            We will send a code to {phone} — credit can only be spent from the phone it belongs to.
+          </p>
+        </div>
+        {!sent && (
+          <button
+            type="button"
+            onClick={ask}
+            disabled={busy}
+            className="rounded-[11px] border-2 border-purple text-purple font-bold text-[13px] px-4 py-2 disabled:opacity-50"
+          >
+            {busy ? "Sending…" : "Send code"}
+          </button>
+        )}
+      </div>
+
+      {sent && (
+        <div className="mt-3">
+          <label className="block text-[12px] text-body-soft font-medium mb-1">Code from your phone</label>
+          <input
+            inputMode="numeric"
+            value={s.creditCode}
+            onChange={(e) => s.set("creditCode", e.target.value.replace(/\D/g, "").slice(0, 8))}
+            className="w-full max-w-[200px] rounded-[11px] border-2 border-lavender-deep px-3 py-2 text-[16px] tracking-[0.3em] font-semibold text-purple"
+            placeholder="••••"
+          />
+          <p className="text-[11.5px] text-body-soft mt-1.5 mb-0">
+            Whatever credit you have — up to the shop's share of one bill — comes off automatically.
+            Your order goes through either way.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

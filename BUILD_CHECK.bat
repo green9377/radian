@@ -21,7 +21,7 @@ REM ═════════════════════════�
 cd /d "%~dp0apps\api"
 
 echo ==================================================
-echo   [0/3] No Bengali in the product (owner's rule)...
+echo   [0/4] No Bengali in the product (owner's rule)...
 echo ==================================================
 call node scripts\no-bangla.selftest.mjs
 if errorlevel 1 (
@@ -32,8 +32,24 @@ if errorlevel 1 (
   exit /b 1
 )
 
+REM  ⚠️ Before the build, on purpose. These are security rules, and a broken
+REM     one leaves the build perfectly green - which is exactly why it has to
+REM     be its own gate. S-01..S-05, the 31 Aug 2026 remediation.
 echo ==================================================
-echo   [1/3] Regenerating Prisma client (on THIS PC)...
+echo   [1/4] Security rules (S-01..S-05, no database)...
+echo ==================================================
+call node scripts\security.selftest.mjs
+if errorlevel 1 (
+  echo.
+  echo   *** A LOCKED SECURITY RULE IS BROKEN - see the list above. ***
+  echo   *** Read RADIAN_SECURITY_AUDIT_VERDICT.md before changing it. ***
+  echo.
+  pause
+  exit /b 1
+)
+
+echo ==================================================
+echo   [2/4] Regenerating Prisma client (on THIS PC)...
 echo ==================================================
 call npx prisma generate
 if errorlevel 1 (
@@ -46,7 +62,7 @@ if errorlevel 1 (
 
 echo.
 echo ==================================================
-echo   [2/3] Building ^(1-2 minutes^)...
+echo   [3/4] Building ^(1-2 minutes^)...
 echo ==================================================
 call npm run build
 set "RC=%errorlevel%"

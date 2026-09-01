@@ -22,6 +22,7 @@ import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
 import { FinanceService, ACC } from '../finance/finance.service';
+import { ReturnsService } from '../returns/returns.service';
 import {
   OpenShiftDto,
   CloseShiftDto,
@@ -57,6 +58,9 @@ export class PosService {
     private readonly finance: FinanceService,
     /*  DEC-GBL-001 — one payment list for the whole shop  */
     private readonly payMethods: PaymentMethodsService,
+    /*  DEC-RTN-015 — Returns owns the store-credit ledger; POS only asks it to
+        spend some. One-way, like every other module edge here.  */
+    private readonly returns: ReturnsService,
   ) {}
 
   /* ------------------------------------------------ helpers */
@@ -869,7 +873,20 @@ export class PosService {
         `tendered ${(paid / 100).toFixed(2)} for a ${(totalPaisa / 100).toFixed(2)} bill — enter what you are keeping, and give ${((paid - totalPaisa) / 100).toFixed(2)} as change`,
       );
     }
-    const duePaisa = Math.max(0, totalPaisa - paid);
+    /*  DEC-RTN-015 — store credit is not a tender. No money moves: a liability
+        the shop was already carrying is discharged, so it comes off the bill
+        BEFORE the due is worked out. Returns owns the ledger and checks the
+        balance and the cap; the amount is applied after the order exists, so
+        the CONSUMED row can name it.  */
+    const creditAsked = Math.max(0, dto.storeCreditPaisa ?? 0);
+    if (creditAsked > 0 && !(dto.customerId || dto.customerPhone?.trim()))
+      throw new BadRequestException('Store credit belongs to a customer — say who this is');
+    if (creditAsked > 0 && paid + creditAsked > totalPaisa)
+      throw new BadRequestException(
+        `${(creditAsked / 100).toFixed(2)} of credit plus ${(paid / 100).toFixed(2)} tendered is more than the ${(totalPaisa / 100).toFixed(2)} bill`,
+      );
+
+    const duePaisa = Math.max(0, totalPaisa - paid - creditAsked);
 
     /*  DEC-POS-022 — an advance order is a promise, not a hand-over. The goods
         stay on the shelf until the day comes, so nothing about stock happens
@@ -936,7 +953,13 @@ export class PosService {
           address: 'Counter sale',
           paymentMethod: PaymentMethod.counter,
           paymentStatus,
-          paidPaisa: paid,
+          /*  DEC-RTN-015 — credit counts as settled on the ORDER, even though no
+              money moved. Every other place asks "total − paid − refunded" to
+              decide what is still owed (the due board, collectDue, the advance
+              list); leaving credit out of `paidPaisa` would make all of them
+              chase money the customer does not owe. What actually came in is
+              still readable, line by line, from the payment rows.  */
+          paidPaisa: paid + creditAsked,
           duePaisa,
           subtotalPaisa,
           discountPaisa,
@@ -998,6 +1021,50 @@ export class PosService {
     const orderNo = order.orderNo;
 
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'CREATE', actorName });
+
+    /*  DEC-RTN-015 — now the bill exists, spend the credit against it. Returns
+        writes the CONSUMED row and hands it to Finance; if it refuses (the
+        balance moved between the screen and the save), the sale stands and the
+        refusal is on the order's timeline rather than swallowed.  */
+    if (creditAsked > 0) {
+      try {
+        await this.returns.spendCredit({
+          customerId: customer.id,
+          amountPaisa: creditAsked,
+          billTotalPaisa: totalPaisa,
+          orderId: order.id,
+          actorName,
+        });
+        await this.audit.event({
+          entityType: 'Order', entityId: order.id, kind: 'payment',
+          label: `Store credit used: ${(creditAsked / 100).toFixed(2)}`,
+          actorName,
+        });
+      } catch (e) {
+        await this.audit.event({
+          entityType: 'Order', entityId: order.id, kind: 'system',
+          label: `⚠ Store credit of ${(creditAsked / 100).toFixed(2)} could NOT be applied — the bill shows it settled but the credit was not taken. Collect it or fix the credit ledger.`,
+          actorName,
+          note: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    /*  DEC-POS-027 — a due that puts the customer over the shop's ceiling is
+        allowed, and said out loud. On the record too, so "who let this run up"
+        has an answer later.  */
+    if (duePaisa > 0) {
+      const credit = await this.creditStanding(customer.id);
+      if (credit.over) {
+        await this.audit.event({
+          entityType: 'Order',
+          entityId: order.id,
+          kind: 'sales',
+          label: `⚠ ${customer.name} now owes ${(credit.outstandingPaisa / 100).toFixed(2)} — over the ${(credit.limitPaisa / 100).toFixed(2)} credit limit`,
+          actorName,
+        });
+      }
+    }
     await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'sales', label: `POS sale ${orderNo} · ${customer.name}`, actorName });
 
     // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
@@ -1041,6 +1108,37 @@ export class PosService {
       take: 200,
       include: { customer: { select: { id: true, name: true, phone: true } }, transactions: { where: { deletedAt: null } }, _count: { select: { lines: true } } },
     });
+  }
+
+  /**
+   * DEC-POS-027 (owner, 31 Aug 2026) — the counter's credit ceiling **warns,
+   * it never blocks**.
+   *
+   * `PosSetting.defaultCreditLimitPaisa` was a field the settings screen could
+   * write and **nothing in the system ever read**, so counter credit was
+   * unlimited: one customer could keep taking goods on due for ever and no
+   * screen ever said a word. Asked on 31 Aug, the owner's answer was a limit
+   * that speaks rather than one that refuses — the person at the counter knows
+   * things the ledger does not, and a till that stops a sale in front of a
+   * regular customer costs more than the risk.
+   *
+   * 0 = no ceiling at all, which is also a legitimate answer.
+   */
+  async creditStanding(customerId: string) {
+    const s = await this.settings();
+    const limitPaisa = s.defaultCreditLimitPaisa ?? 0;
+    const rows = await this.prisma.db.order.findMany({
+      where: { customerId, fulfillmentType: FulfillmentType.COUNTER, duePaisa: { gt: 0 } },
+      select: { duePaisa: true },
+    });
+    const outstandingPaisa = rows.reduce((n, o) => n + o.duePaisa, 0);
+    return {
+      customerId,
+      limitPaisa,
+      outstandingPaisa,
+      billsOpen: rows.length,
+      over: limitPaisa > 0 && outstandingPaisa > limitPaisa,
+    };
   }
 
   async dueBoard() {

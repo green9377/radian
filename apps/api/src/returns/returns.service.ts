@@ -914,8 +914,89 @@ export class ReturnsService {
         returnWindowDays: dto.returnWindowDays,
         approvalThresholdPaisa: dto.approvalThresholdPaisa,
         restockDefaultPerishable: dto.restockDefaultPerishable,
+        // DEC-RTN-015 — how much of a bill store credit may pay for
+        ...(dto.storeCreditMaxBillBps === undefined
+          ? {}
+          : ({ storeCreditMaxBillBps: Math.min(10000, Math.max(0, dto.storeCreditMaxBillBps)) } as object)),
       },
     });
+  }
+
+  /**
+   * ═══ DEC-RTN-015 (owner, 31 Aug 2026) — SPENDING STORE CREDIT ═══
+   *
+   * Until today credit was a one-way street: `returns.complete` was the only
+   * writer of `CustomerCredit` and it only ever ISSUED. Nothing at the counter,
+   * at checkout or on an order could redeem it, `onStoreCreditUsed` had zero
+   * callers, and `2110 Customer Store Credit` stood at ৳931.50 the shop had no
+   * way to discharge. A customer holding credit had been promised something the
+   * shop could not give (P7-14).
+   *
+   * The owner's three rules, asked on 31 Aug:
+   *   · a bill may be paid by credit only up to `storeCreditMaxBillBps` — the
+   *     rest comes in real money, so the drawer keeps taking cash
+   *   · credit never expires
+   *   · it is **never** paid out as cash: it buys goods, nothing else. That is
+   *     the whole reason a shop offers credit instead of a refund.
+   *
+   * Returns owns the credit ledger, so this is the one place a CONSUMED row is
+   * written. Callers (POS today, checkout next) ask here and hand the answer to
+   * their own money maths.
+   */
+  async quoteCredit(customerId: string, billTotalPaisa: number) {
+    const [{ balancePaisa }, s] = await Promise.all([
+      this.creditBalance(customerId),
+      this.settings(),
+    ]);
+    /*  cast: a machine that has not run BUILD_CHECK.bat still has the client
+        from before DEC-RTN-015 added this column  */
+    const capBps = (s as { storeCreditMaxBillBps?: number }).storeCreditMaxBillBps ?? 5000;
+    const capPaisa = Math.floor((Math.max(0, billTotalPaisa) * capBps) / 10000);
+    return {
+      customerId,
+      balancePaisa,
+      capBps,
+      capPaisa,
+      /** the most this customer can put on this bill, right now */
+      usablePaisa: Math.max(0, Math.min(balancePaisa, capPaisa)),
+    };
+  }
+
+  /** spend it — one CONSUMED row, checked against the balance and the cap */
+  async spendCredit(dto: {
+    customerId: string;
+    amountPaisa: number;
+    billTotalPaisa: number;
+    orderId?: string;
+    actorName?: string;
+  }) {
+    const actorName = dto.actorName ?? 'Admin';
+    if (!Number.isInteger(dto.amountPaisa) || dto.amountPaisa <= 0)
+      throw new BadRequestException('Store credit amount must be a positive whole number of paisa');
+    const q = await this.quoteCredit(dto.customerId, dto.billTotalPaisa);
+    if (dto.amountPaisa > q.balancePaisa)
+      throw new BadRequestException(
+        `Only ${(q.balancePaisa / 100).toFixed(2)} of store credit is left on this customer`,
+      );
+    if (dto.amountPaisa > q.capPaisa)
+      throw new BadRequestException(
+        `Store credit can pay at most ${q.capBps / 100}% of a bill — ${(q.capPaisa / 100).toFixed(2)} on this one. The rest has to come in money.`,
+      );
+
+    const row = await this.prisma.db.customerCredit.create({
+      data: {
+        customerId: dto.customerId,
+        kind: CustomerCreditKind.CONSUMED,
+        amountPaisa: -dto.amountPaisa, // the ledger sums to a balance
+        refType: 'ORDER',
+        refId: dto.orderId ?? null,
+        note: 'Spent on a purchase',
+        actorName,
+      },
+    });
+    // the liability the shop has been carrying is discharged (2110 → 1100)
+    await this.book(row.id, 'store credit used', () => this.finance.onStoreCreditUsed(row.id), actorName);
+    return { creditId: row.id, spentPaisa: dto.amountPaisa, leftPaisa: q.balancePaisa - dto.amountPaisa };
   }
 
   /* ============================ store credit ============================ */

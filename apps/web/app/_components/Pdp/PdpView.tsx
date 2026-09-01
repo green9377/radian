@@ -997,7 +997,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       returns to the product's own photo and price. There used
                       to be no way back at all - you had to reload (owner,
                       8 August).  */
-                  onPick={(id) => setVariantId((cur) => (cur === id ? "" : id))}
+                  /*  press the SAME value again to clear it; pressing the other
+                      list is always a choice, never an unchoosing (31 Aug)  */
+                  onPick={(id, samePressed) =>
+                    setVariantId((cur) => (samePressed && cur === id ? "" : id))
+                  }
                 />
               )}
               {detail.variant && <VariantRow group={detail.variant} />}

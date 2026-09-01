@@ -72,6 +72,12 @@ export interface CheckoutState {
 
   /* Q5 — Payment */
   payment: PaymentId | null;
+
+  /*  DEC-RTN-015 part 2 — store credit on this order. Deliberately NOT
+      persisted: a one-time code must not survive the browser being closed and
+      come back to be reused on somebody else's order.  */
+  useStoreCredit: boolean;
+  creditCode: string;
 }
 
 interface CheckoutStore extends CheckoutState {
@@ -107,6 +113,9 @@ const EMPTY: CheckoutState = {
   slotId: null,
 
   payment: null,
+
+  useStoreCredit: false,
+  creditCode: "",
 };
 
 type Persisted = Pick<

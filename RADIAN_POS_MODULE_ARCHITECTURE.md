@@ -383,3 +383,52 @@ refused by the server with a sentence the screen could not answer.
 uppercase, as `/administration/payment-methods` returns it. Never by a label,
 never by a second list written by hand. Where a fallback list must exist for an
 offline screen, its ids are those same codes.
+
+### DEC-POS-026 — no discount cap at the counter (owner, 31 Aug 2026)
+
+**Business problem.** `PosDiscountRule` is empty, so DEC-POS-006's cap allows
+anything: a cashier can take 100% off a bill with nobody's approval. Asked
+whether to write caps, the owner's answer was **no limit**.
+
+**Decision.** The counter has no discount ceiling. Nothing is enforced, nothing
+asks for a manager, and that is deliberate — not an unfinished setting.
+
+**Reason.** This is one shop with the owner in it. A cap is a control for
+counters he cannot see, and inventing percentages he has not asked for would be
+guessing at his business.
+
+**Alternatives.** A default cap "to be safe" — rejected: a rule the owner never
+chose is exactly what house rule 2 forbids. Deleting the machinery — rejected:
+it is written, tested and dormant at zero cost, and the day a second branch
+opens the answer may change. Writing rules in POS → Settings switches it on.
+
+**Impact.** POS only. The discount, its percent and the audit trail are all
+still recorded on every bill — what is gone is the refusal.
+
+### DEC-POS-027 — the credit ceiling warns, it never blocks (owner, 31 Aug 2026)
+
+**Business problem.** `PosSetting.defaultCreditLimitPaisa` could be written in
+POS → Settings and **nothing in the system ever read it**. Counter credit was
+therefore unlimited: one customer could keep taking goods on due for ever and
+no screen said a word. A settings field that does nothing is worse than no
+field, because somebody sets it and believes they are protected.
+
+**Decision.** The limit is real now, and it **speaks rather than refuses**. When
+a due would put a customer's total counter debt over the ceiling, the till says
+so beside the Complete button — in taka, naming what is already owed and what
+the bill would make it — and the sale still goes through. The crossing is
+written to the order's timeline, so "who let this run up" has an answer later.
+`0` means no ceiling, which is a legitimate setting.
+
+**Reason.** The owner's words when the choice was put to him. The person at the
+counter knows things the ledger does not — that the customer is a neighbour,
+that the money is coming on Thursday — and a till that refuses a regular in
+front of other customers costs more than the risk it avoids. A warning that is
+recorded gives the shop the argument later without losing the sale now.
+
+**Alternatives.** *Block over the limit* — rejected by the owner. *Say nothing*
+— that was the old behaviour and it is how a due quietly becomes a bad debt.
+
+**Impact.** POS sale (`GET /pos/credit/:customerId`, the warning line on the
+sell screen, the timeline event). The limit is the shop's one number in POS →
+Settings; per-customer limits do not exist and were not asked for.

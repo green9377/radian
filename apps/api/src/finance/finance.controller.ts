@@ -399,6 +399,23 @@ export class FinanceController {
   /* ---- drift: do the books still match the shop? (G1) ----
          Runs by itself at 2 AM Bangladesh time and writes the verdict to the
          audit trail; these routes are for looking at it on demand. */
+  /*  P7-13 — post the OPENING and ADJUSTMENT stock movements the books never
+      heard about. Idempotent: run it twice and the second run posts nothing.  */
+  @Post('backfill/stock-movements')
+  backfillStock() {
+    return this.events.backfillStockMovements();
+  }
+
+  /*  P7-15 — undo the advance releases the old bug wrote on counter sales.
+      Reverses only what the ledger itself shows was never an advance.  */
+  @Post('backfill/fix-advance-release')
+  async fixAdvanceRelease() {
+    return {
+      customerSide: await this.events.fixWrongAdvanceReleases(),
+      supplierSide: await this.events.fixAdvancesPostedAsPayable(),
+    };
+  }
+
   @Get('drift')
   drift_() {
     return this.drift.run();

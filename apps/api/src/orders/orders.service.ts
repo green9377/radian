@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -469,6 +470,10 @@ export class OrdersService {
        redemption rows MUST be written in the SAME transaction as the order.
        Fail-soft (writing after create) would let the discount stand while the
        limit/first-order guard and analytics silently lose the record. */
+    /*  S-05 — filled inside the transaction, read after it. An offer whose cap
+        was reached between the quote and this moment lands here, and becomes a
+        line on the order's own timeline below, where staff will see it.  */
+    const overRedeemed: string[] = [];
     const order = await this.prisma.db.$transaction(async (tx) => {
       const created = await tx.order.create({
         data: {
@@ -529,7 +534,62 @@ export class OrdersService {
         include: FULL_INCLUDE,
       });
       // atomic with the order (REV-OFR-1)
+      /*
+        ⚠️ S-05 (31 Aug 2026) — THE CAPS ARE RE-CHECKED HERE, AT THE MOMENT OF
+        WRITING, AND NOT ONLY WHERE THEY WERE FIRST JUDGED.
+
+        `OffersService.quote` counts redemptions against `totalLimit` and
+        `perCustomerLimit` — but that count happens while the customer is still
+        filling in the checkout. Minutes can pass between the count and this
+        insert, and in those minutes the last slot of a coupon can go. The gap
+        was quote-to-place, which is as long as a person takes to type an
+        address.
+
+        Re-counting inside this transaction shrinks that to the width of the
+        transaction itself.
+
+        ⚠️ AND IT DOES NOT CLOSE IT COMPLETELY — SAYING SO PLAINLY BECAUSE A
+        HALF-FIXED RACE THAT IS WRITTEN UP AS FIXED IS WORSE THAN AN OPEN ONE.
+        Postgres reads committed data, so two transactions running at the same
+        instant can still both count `limit - 1` and both insert. Closing that
+        last millisecond needs either a `redeemedCount` column updated
+        conditionally, or `pg_advisory_xact_lock` on the offer id — both are
+        bigger changes than this one, and one of them puts raw SQL in the
+        middle of order creation, which is the last transaction in this system
+        anybody should be brave with.
+
+        ⚠️ WHAT HAPPENS WHEN THE CAP IS ALREADY FULL IS DELIBERATELY UNCHANGED:
+        the row is still written. By this line the discount is already inside
+        `totalPaisa`, so skipping the row would leave money given away with no
+        record that it was — the count would then under-report for ever, which
+        is the worse of the two wrongs. Refusing the order instead is a
+        BUSINESS decision, not a technical one, and it is the owner's to make.
+        Until he makes it, the event is recorded and surfaced rather than
+        quietly decided here.
+      */
       for (const a of quoteApplied) {
+        const offer = await tx.offer.findUnique({
+          where: { id: a.offerId },
+          select: { totalLimit: true, perCustomerLimit: true, name: true },
+        });
+
+        if (offer?.totalLimit) {
+          const used = await tx.offerRedemption.count({
+            where: { offerId: a.offerId, deletedAt: null },
+          });
+          if (used >= offer.totalLimit)
+            overRedeemed.push(`${offer.name} — total limit ${offer.totalLimit} was already reached`);
+        }
+        if (offer?.perCustomerLimit) {
+          const mine = await tx.offerRedemption.count({
+            where: { offerId: a.offerId, customerId: dto.customerId, deletedAt: null },
+          });
+          if (mine >= offer.perCustomerLimit)
+            overRedeemed.push(
+              `${offer.name} — this customer's limit of ${offer.perCustomerLimit} was already reached`,
+            );
+        }
+
         await tx.offerRedemption.create({
           data: {
             offerId: a.offerId,
@@ -546,6 +606,14 @@ export class OrdersService {
 
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'CREATE', actorName });
     await this.event(order.id, 'sales', `Order ${orderNo} placed via ${channel.name}`, actorName);
+
+    /*  S-05 — the discount stood, and the order is real. This is not an error
+        and must not read like one; it is a note so the shop knows a cap was
+        passed and by which order, rather than finding out from the totals at
+        the end of a campaign.  */
+    for (const why of overRedeemed) {
+      await this.event(order.id, 'system', `⚠ Offer limit passed after quoting — ${why}`, actorName);
+    }
 
     if (quoteApplied.length) {
       await this.event(
@@ -654,28 +722,74 @@ export class OrdersService {
 
     // REV-C2: stock deduction + status move in one transaction, so a failure
     // can never leave stock committed against an order that never started.
+    /*
+      ⚠️ S-05 (31 Aug 2026) — THE SHORTFALL CHECK ABOVE IS NOT THE GUARD.
+
+      It reads stock, then this transaction writes it, and between the two
+      anybody may take the last unit — a second order reaching preparing, a POS
+      sale at the counter, an inventory correction. Both passes read "20 in
+      stock", both decrement 20, and the shelf ends at −20. `decrement` is
+      atomic in itself but it is unconditional, so it will happily go negative.
+
+      The check above stays: it is what produces the good message naming every
+      short item, which is what the staff actually need. What changes is that
+      the DECREMENT now carries the condition itself — `stockQty >= qty` in the
+      WHERE — so the database refuses the second pass rather than the arithmetic
+      allowing it. A refusal here throws, and the throw rolls back the whole
+      transaction, so the order does not move to preparing either.
+    */
     const updated = await this.prisma.db.$transaction(async (tx) => {
       for (const l of lines) {
         const p = l.productId ? pMap.get(l.productId) : undefined;
         if (!p || p.stockMode !== 'MANUAL') continue;
-        // MANUAL stock: variant line → variant-এর ঘর; নইলে product-এর ঘর (DEC-MOD-003 / DEC-PRD-014)
-        if (l.variantId && vMap.has(l.variantId)) {
-          await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { decrement: l.qty } } });
-        } else {
-          await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
+        // MANUAL stock: a variant line comes off the variant's own shelf,
+        // otherwise off the product's (DEC-MOD-003 / DEC-PRD-014)
+        const useVariant = !!l.variantId && vMap.has(l.variantId);
+        const hit = useVariant
+          ? await tx.productVariant.updateMany({
+              where: { id: l.variantId!, stockQty: { gte: l.qty } },
+              data: { stockQty: { decrement: l.qty } },
+            })
+          : await tx.product.updateMany({
+              where: { id: p.id, stockQty: { gte: l.qty } },
+              data: { stockQty: { decrement: l.qty } },
+            });
+
+        if (hit.count === 0) {
+          /*  Only reachable when somebody took the stock between the check and
+              here. Same sentence the door uses, so staff recognise it — and it
+              says the honest thing, which is "try again", not "you did
+              something wrong".  */
+          throw new ConflictException(
+            `${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''} just went out of stock — ` +
+              'somebody else took the last of it. Restock it or take it off the order, then try again.',
+          );
         }
       }
-      /*  add-on-ও একই মুহূর্তে কাটে (DEC-MOD-003-এর একই ঘড়ি) — শুধু গোনা
-          add-on (stockQty ≠ null)। ঋণাত্মকে নামতে দেওয়া হয় না; দরজার gate
-          পেরিয়ে আসা order-এ ঘাটতি মানে মাঝখানে কেউ বেচে দিয়েছে — তখনো
-          কাটা হয় ০ পর্যন্তই, আর ঘটনাটা timeline-এ ওঠে (নিচে)।  */
+      /*  Add-ons come off at the same moment (the same clock as DEC-MOD-003),
+          and only counted ones (stockQty is not null). Stock is never allowed
+          below zero; a shortfall on an order that already passed the door
+          means somebody sold it in the meantime — it is still cut only as far
+          as zero, and the event goes onto the timeline (below).
+
+          ⚠️ S-05 — the CLAMP-AT-ZERO RULE IS DELIBERATELY UNCHANGED. Products
+          above refuse; add-ons absorb. That asymmetry is the owner's (4 Aug):
+          a missing greeting card must not hold a bouquet hostage. All that
+          changes here is that the read-then-write became two conditional
+          writes, so two prepares cannot both read the same figure.  */
       const addonNeed = this.addonDemand(lines);
       for (const [addonId, qty] of addonNeed) {
-        const a = await tx.addOn.findFirst({ where: { id: addonId }, select: { stockQty: true } });
-        if (a?.stockQty !== null && a !== null) {
-          await tx.addOn.update({
-            where: { id: addonId },
-            data: { stockQty: Math.max(0, a.stockQty - qty) },
+        const took = await tx.addOn.updateMany({
+          where: { id: addonId, stockQty: { gte: qty } },
+          data: { stockQty: { decrement: qty } },
+        });
+        if (took.count === 0) {
+          /*  Either short, or untracked. `stockQty: { not: null }` separates
+              them: an untracked add-on matches nothing and is left alone,
+              exactly as before; a short one lands on zero.  */
+          await tx.addOn.updateMany({
+            where: { id: addonId, stockQty: { not: null } },
+            data: { stockQty: 0 },
           });
         }
       }

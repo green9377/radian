@@ -3272,6 +3272,10 @@ model ReturnSetting {
   returnWindowDays         Int      @default(0) // 0 = off (staff discretion); past window = warn, never block
   approvalThresholdPaisa   Int      @default(0) // 0 = off; refund value ≥ this ⇒ needs approval
   restockDefaultPerishable Boolean  @default(false) // perishable/crafted default = WRITE_OFF
+  /// DEC-RTN-015 (owner, 31 Aug 2026) — how much of one bill store credit may
+  /// pay for. Returns owns the credit, so Returns owns the rule; POS and the
+  /// website both read it (house rule 15). 10000 = the whole bill.
+  storeCreditMaxBillBps    Int      @default(5000)
   updatedAt                DateTime @updatedAt
 }
 

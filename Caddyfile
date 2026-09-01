@@ -1,24 +1,86 @@
-# Radian — Caddy reverse proxy (docker-compose.prod.yml-এর সাথে)。
+# Radian - Caddy reverse proxy (works with docker-compose.prod.yml).
 #
-# Caddy কী করে: বাইরের সব request নেয়, HTTPS সার্টিফিকেট নিজে Let's Encrypt
-# থেকে এনে নিজেই নবায়ন করে, তারপর ভেতরের সঠিক container-এ পাঠায়。
-# Nginx + Certbot-এর কাজটা তিন লাইনে。
+# What Caddy does: takes every request from outside, fetches and renews its own
+# HTTPS certificate from Let's Encrypt, then passes the request to the right
+# container inside. Nginx + Certbot's job in three lines.
 #
-# ডোমেইনের নাম .env.production থেকে আসে (WEB_DOMAIN / ADMIN_DOMAIN / API_DOMAIN)。
-# DNS-এ তিনটার A record-ই VPS-এর IP-তে থাকতে হবে, নইলে সার্টিফিকেট আসবে না。
+# Domain names come from .env.production (WEB_DOMAIN / ADMIN_DOMAIN /
+# API_DOMAIN / MEDIA_DOMAIN). All four need an A record pointing at the VPS IP,
+# or no certificate arrives.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY HEADERS (S-01, 31 Aug 2026)
+#
+# They live HERE and not in next.config.ts on purpose. A header in next.config
+# costs a 6-minute image rebuild to change; a header here costs
+# `docker compose up -d caddy`, which is seconds. And one file holding the
+# policy for all four sites is one file where they cannot drift apart.
+#
+# ⚠️ EVERY LINE BELOW IS THE SINGLE-LINE `header` FORM, DELIBERATELY.
+# Caddy refuses to start on a config it cannot parse, and this one file is in
+# front of the shop, the admin, the API and the images at once - a typo here
+# takes down all four. The single-line form is the one already proven in this
+# deployment, so nothing new is being risked on a syntax nobody has run.
+#
+# ⚠️ THE SHOP AND THE ADMIN GET DIFFERENT POLICIES, AND THAT IS THE POINT.
+#
+# The shop injects third-party scripts at runtime (_data/tracking.ts): Google
+# Tag Manager, Meta, TikTok, Snap, Pinterest, Clarity - and GTM's whole purpose
+# is to load further scripts nobody listed in advance. A script-src that GTM
+# survives is a script-src that stops nothing, so the shop gets only the
+# directives that do not touch scripts. Anything more would trade working
+# marketing for imaginary safety.
+#
+# The admin loads no third party at all, and it is the origin where the session
+# token lives (localStorage, AuthGate.tsx). So it gets a real policy, and the
+# part that earns its keep is connect-src: even if a script were injected, it
+# has nowhere to send what it read.
+#
+# ⚠️ script-src on the admin still carries 'unsafe-inline' and 'unsafe-eval'.
+# Next.js emits inline hydration scripts, and removing them needs nonce
+# middleware, which makes every page dynamic and is application code. That is a
+# separate, deliberate job - not something to smuggle into a header change.
+# ─────────────────────────────────────────────────────────────────────────────
 
 {$WEB_DOMAIN} {
 	encode gzip
 	reverse_proxy web:3000
+
+	# One year, subdomains included. No `preload`: preload is a one-way door and
+	# the bare radianbd.com still runs the owner's old shop.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header X-Content-Type-Options "nosniff"
+	# SAMEORIGIN rather than DENY: the shop is the one site somebody may one day
+	# have a reason to embed (a Facebook shop tab). Framing from anywhere else -
+	# the clickjacking case - is still refused.
+	header X-Frame-Options "SAMEORIGIN"
+	# Keeps the referrer on same-site hops so analytics still works, sends only
+	# the origin off-site, and nothing at all when leaving HTTPS.
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=()"
+	# Script directives are deliberately absent - see the note above. base-uri
+	# stops an injected <base> from re-pointing every relative URL on the page;
+	# object-src stops plugin embeds. Neither of them touches the pixels.
+	header Content-Security-Policy "base-uri 'self'; object-src 'none'; frame-ancestors 'self'"
 }
 
 {$ADMIN_DOMAIN} {
 	encode gzip
 	reverse_proxy admin:3001
 
-	# admin-এ আসল login আছে (AuthGate + API-র global AuthGuard)。 তবু
-	# search engine যেন ভুলেও ঢুকতে না পারে。
+	# The admin has a real lock (AuthGate + the API's global AuthGuard). This is
+	# so a search engine never even learns the address.
 	header X-Robots-Tag "noindex, nofollow"
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	# no-referrer, not strict-origin: admin URLs carry order numbers and row ids,
+	# and none of that belongs in anybody else's logs.
+	header Referrer-Policy "no-referrer"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=(), payment=()"
+	# img-src keeps ik.imagekit.io because review photos approved before the
+	# 29 Aug media move still point there (reviews.ts still accepts those URLs).
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://{$MEDIA_DOMAIN} https://ik.imagekit.io; connect-src 'self' https://{$API_DOMAIN}"
 }
 
 {$API_DOMAIN} {
@@ -26,16 +88,40 @@
 	reverse_proxy api:4000
 
 	header X-Robots-Tag "noindex, nofollow"
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "no-referrer"
+	# It answers JSON and 303 redirects. Nothing is allowed to load, because
+	# nothing needs to - and CORS, not this, governs who may CALL it.
+	header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
 }
 
-# Images (29 Aug 2026) — served straight from disk, no container in the way.
+# Images (29 Aug 2026) - served straight from disk, no container in the way.
 # The folder is ./media on the VPS, written by the API (media.ts, MEDIA_DIR)
-# and mounted here read-only. Filenames are unique per upload and never
-# reused, so a one-year immutable cache header is safe and is what makes
-# repeat visits fast. nosniff keeps uploaded SVGs inert (media.ts explains).
+# and mounted here read-only. Filenames are unique per upload and never reused,
+# so a one-year immutable cache header is safe and is what makes repeat visits
+# fast.
 {$MEDIA_DOMAIN} {
 	root * /srv/media
 	file_server
+
 	header Cache-Control "public, max-age=31536000, immutable"
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "no-referrer"
+	# ⚠️ THIS IS THE SECOND HALF OF S-04, AND IT IS THE HALF NO CLEVER UPLOAD
+	# CAN GET AROUND.
+	#
+	# A response's CSP applies when the browser loads that response AS A
+	# DOCUMENT - typing the URL, an iframe. It is ignored for subresources, so
+	# every <img src> on the shop and the admin is completely untouched by this
+	# line.
+	#
+	# What it closes: if a file that is really HTML ever reaches this folder,
+	# navigating to it runs nothing, submits nothing, and has no origin.
+	# media.ts now checks the magic bytes so it should never get there; this is
+	# the wall standing behind that check.
+	header Content-Security-Policy "default-src 'none'; sandbox; frame-ancestors 'none'"
 }

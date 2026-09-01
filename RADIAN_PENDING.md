@@ -94,15 +94,359 @@ built differently, is the same shape as the courier bug and the COD bug.
    stock **42 → 41** · shift "1 bill · ৳60" · expected cash **৳1,809.50** ·
    Finance `1000 Cash Drawer` up by exactly ৳60
 
-**Not yet walked:** P7-3 (needs a counter return with a cash refund) and P7-4
-(needs a sale between midnight and 6 AM Dhaka to show the day boundary moving).
-Both are right in code and neither has been seen with eyes — say so.
+6. **P7-3 walked — and the whole reason for it showed on one screen.**
+   `RTN-000018` took the Red-Rose back off POS-000015 and paid ৳60 cash:
+   the drawer wrote `PAYOUT −৳60 · "Refund · RTN-000018"`, expected cash fell
+   ৳1,809.50 → **৳1,749.50**, Finance's Cash Drawer fell by the same ৳60, and
+   the rose came back on the shelf (41 → 42). Before the fix the notes left the
+   till and the drawer never knew: that ৳60 would have surfaced at day-close as
+   a shortage and been posted to `5700 Cash Short`, against the cashier.
+
+7. **The advance order (DEC-POS-022) is exactly right.** `POS-000016`, one
+   Red-Rose paid ৳60 in full, taken 1 Sep. At order time: stock **stayed 42**,
+   Sales and COGS **did not move**, only the cash came in. At hand-over: stock
+   **42 → 41**, Sales **+৳60**, COGS **+৳20**, Inventory **−৳20**, Customer
+   Advance **−৳60** released, drawer untouched (the money came in earlier), and
+   it left the waiting list. A clean circle, nothing to fix.
+8. **A due collected on a 10-day-old bill goes into TODAY's drawer.**
+   `POS-000003` (rung up 21 Aug on the now-closed `SHF-000001`) collected ৳60:
+   the movement landed on `SHF-000002` as `SALE_CASH · "POS-000003 due"`,
+   drawer ৳1,809.50 → ৳1,869.50, Finance cash up the same ৳60, and the bill
+   left the due board. That is POS-REV-4 holding under a real closed shift.
+
+### P7-9 — the due board could not take cash either (fixed, walked)
+
+Collecting on POS-000003 answered *"Say which Cash the money went to — there
+are 2."* **on the page**, with no picker to answer it — P7-8 one screen over.
+`CollectDue` and `HandOver` rendered `PayDialog` without a `methods` prop, so it
+fell back to the built-in tenders, which carry no accounts. Both read the shop's
+list now. `PurchaseDetailView` already did; those three are all the callers.
+
+### P7-11 — the drawer opened with an invented ৳2,000, under the name "Cashier"
+
+The Sell screen's Open button sent `openingFloatPaisa: 200000` and
+`cashierName: "Cashier"`, hardcoded — whatever the shop's setting said (it says
+0) and whoever was signed in. Both are facts about money: the float is what
+somebody physically put in the till and the name is who answers for it at
+close, so a fiction in either turns up later as an over/short nobody can
+explain (house rule 7). Opening now asks, prefilled from the shop's setting and
+the signed-in user.
+
+## ✅ Both POS questions ANSWERED by the owner, 31 Aug
+
+1. **`DEC-POS-026` — no discount cap at the counter.** Asked whether to write
+   caps, the answer was **no limit**. The machinery stays dormant at zero cost;
+   writing rules in POS → Settings would switch it on. Not an unfinished
+   setting — a decision. Do not propose percentages again.
+2. **`DEC-POS-027` — the credit ceiling WARNS, it never blocks.** Built and
+   deployed: `GET /pos/credit/:customerId`, an amber line beside the Complete
+   button naming what the customer already owes and what this bill would make
+   it, the sale still allowed, and the crossing written to the order timeline.
+   `PosSetting.defaultCreditLimitPaisa` is now read by something for the first
+   time; `0` = no ceiling, and it is 0 today, so **the owner has to set the
+   number in POS → Settings before it can say anything.**
+
+Both are written up in `RADIAN_POS_MODULE_ARCHITECTURE.md` §10.
+
+**Still not walked: P7-4 only.** Showing it needs a sale timestamped between
+midnight and 6 AM Dhaka; the code is right and matches the four other places
+that already use the shop's day, but nobody has watched the boundary move.
 
 ### Test rows left on the system, on purpose
 
-`POS-000015` (Red-Rose, ৳60) · `EXP-000001` (৳250.50 Transport) ·
-`SHF-000001` closed clean · **`SHF-000002` left OPEN** with ৳1,809.50 in it.
-Reversing them would write refunds and credits that never happened.
+`POS-000015` (Red-Rose ৳60, then fully returned by `RTN-000018`) ·
+`POS-000016` (advance, handed over) · `EXP-000001` (৳250.50 Transport &
+Conveyance) · ৳60 collected on `POS-000003`. Reversing any of them now would
+write credits that never happened.
+
+**The counter was left in a correct state, not a test state:** `SHF-000001` and
+`SHF-000002` both closed with counted = expected (no over/short posted), and
+**`SHF-000003` is open** on Main Counter under **sobuj** with the ৳1,869.50 that
+is actually in the drawer — opened through the new dialog, which is what proved
+P7-11.
+
+---
+
+## 🔎 INVENTORY & PURCHASES — first read, 31 Aug 2026 (nothing changed yet)
+
+Read off the code, then checked against the live books. **The system's own
+drift checker says three numbers are wrong right now** (`GET /finance/drift`,
+`worst: "wrong"`), and two of the three have a cause I can point at:
+
+| check | the books say | the shop says | gap |
+|---|---|---|---|
+| Value of the stock we hold | **৳7,919.81** | **৳107,381.82** | **−৳99,462.01** |
+| What we owe suppliers | ৳11,513.94 | ৳0 | ৳11,513.94 |
+| What customers owe us | −৳12,642.76 (negative!) | ৳60 | ৳12,702.76 |
+
+### ✅ P7-12 FIXED, DEPLOYED AND WALKED — 31 Aug (`bb2dc5b` on the VPS)
+
+`onPurchaseReturned` now posts the three facts as one entry — `Cr 1150
+Inventory` for what went back, `Dr 2000 Supplier Payable` for the part cut from
+the bill, `Dr 1200 Supplier Advance` for whatever the supplier is left holding
+for us (the same shape as money paid ahead). The backfill sweeps old returns
+too, on the same idempotent rule.
+
+Walked on the one return that exists (৳60, all of it cut from the due):
+`1150` **10,334,481 → 10,328,481** and `2000` **1,151,394 → 1,145,394** — both
+by exactly ৳60, and `1200` stayed 0 because nothing was left over. The
+supplier-dues drift moved by the same ৳60.
+
+⚠️ Note the stock-value residual went −৳4,037.01 → **−৳4,097.01**, by that same
+৳60, and that is right: the shelf lost those goods back in August, the books
+only lost them now. It widens a gap whose cause is something else.
+
+### P7-12 — what it was: a purchase return told Finance nothing
+
+`purchases.createReturn` cuts the purchase's due, creates a `SupplierCredit`
+for the excess and sends the goods back out through Inventory — and there is
+**no `finance.*` call anywhere in it**. There is no `onPurchaseReturn` event to
+call: the only mentions of `purchaseReturn` / `supplierCredit` in the whole
+`finance/` folder are in the books-reset wipe list. So goods leave, the debt
+falls, the supplier now owes us — and the ledger hears none of it. Breaks
+CLAUDE.md §4 rule 4a.
+
+### ✅ P7-13 FIXED, DEPLOYED AND WALKED — 31 Aug (`9a19d29` on the VPS)
+
+`onStockAdjustment` handles OPENING as well as ADJUSTMENT; `opening()`,
+`adjust()` and `applyStocktake()` all hand off after their transaction,
+fail-soft. **DEC-INV-016 (owner):** what a stocktake finds is a gain or loss of
+this period (`5150`); what was already on the shelf when the books began faces
+equity — new account **`3300 Opening Balance`**, kept apart from Partner
+Capital so "what the owner put in" stays a separate question from "what was
+already here on day one".
+
+`POST /finance/backfill/stock-movements` brought the history in, as the owner
+asked. Run live: **`{ found: 27, posted: 27 }`**, and the books moved:
+
+| | before | after |
+|---|---|---|
+| `1150 Inventory` | ৳7,919.81 | **৳1,03,344.81** |
+| `3300 Opening Balance` | — | **৳75,235.00** |
+| `5150 Inventory Adjustment` | ৳0 | **−৳20,190.00** |
+| **stock-value drift** | **−৳99,462.01** | **−৳4,037.01** |
+
+**96% of the gap is closed.** The remaining ৳4,037.01 is its own question — the
+drift screen's own advice points at item costs edited after stock was received,
+which moves the stock board without any money moving. Not chased yet.
+
+The backfill is keyed by movement id, so running it again posts nothing.
+
+### P7-13 — what it was: stock that appears out of nowhere never reached the books
+
+`finance-events.onStockAdjustment` is fully written, has an account waiting
+(`5150 Inventory Adjustment`) — and **zero callers**. `5150` has never held a
+single paisa. Counted live off the movement ledger:
+
+| door | movements | value | does it reach Finance? |
+|---|---|---|---|
+| OPENING | 13 | **+৳75,235.00** | ❌ no |
+| ADJUSTMENT | 14 | **+৳20,190.00** | ❌ no |
+| PURCHASE | 43 | +৳15,330.00 | ✅ `onPurchaseReceived` |
+| WASTAGE | 6 | −৳2,446.40 | ✅ via `onStockIssue` (5100 = ৳2,446.40 ✓) |
+| GIFT | 1 | −৳33.00 | ✅ via `onStockIssue` (5110 = ৳33 ✓) |
+| PURCHASE_RETURN | 1 | −৳60.00 | ❌ no (P7-12) |
+
+**৳95,425 of stock walked onto the shelf without the ledger being told** —
+which is most of the ৳99,462 stock-value gap; the rest is AVCO/cost-edit noise.
+⚠️ Wastage and gift DO post — that was checked, not assumed, before saying so.
+
+### ✅ P7-14 part 1 — store credit can be SPENT at the counter (`671f946`, walked)
+
+**DEC-RTN-015 (owner, 31 Aug):** a bill may be paid by credit only up to a share
+of it — a setting (`ReturnSetting.storeCreditMaxBillBps`, default 50%), not a
+number in code; credit never expires; and it is never paid out as cash.
+
+Returns owns the ledger and is still the only writer: `quoteCredit()` answers
+what a customer may put on a bill this size, `spendCredit()` checks the balance
+and the cap, writes the CONSUMED row and hands it to `onStoreCreditUsed` —
+which discharged `2110` for the first time since the account existed.
+
+Walked on **POS-000017** (Due test, one Red-Rose, ৳60):
+the strip read *"Store credit · ৳100 saved · Use ৳30 · Credit can pay 50% of a
+bill — ৳30 on this one"*; using it dropped the cash row to **৳30**; the bill
+shows **PAID ৳60 / NOTHING OWED** with *"Store credit used: 30.00"* on the
+timeline. After it: credit **৳100 → ৳70**, `2110` **৳931.50 → ৳901.50**, cash
+drawer and the shift both **+৳30**.
+
+### ✅ P7-14 part 2 — the website, proved by a code (`282dccb` on the VPS)
+
+The counter knows who is standing there; the website does not. There is no
+login — identity at checkout is a phone number somebody typed, and the OTP that
+exists runs AFTER the order, to prove the number is reachable. A naive version
+of this feature would have let anyone who knows a number read what that person
+has saved, and spend it.
+
+So: **nothing is shown and nothing is promised.** The payment step asks *"Have
+store credit with us?"*, sends a code to the number already typed, and the code
+travels **with the order**. The server verifies it, asks Returns for a quote,
+and spends the smallest of balance / the shop's share-of-bill cap / what is
+still outstanding. The confirmation reports what actually came off.
+
+Fail-soft throughout (DEC-WA-010's own rule): a wrong code, an expired one or an
+empty balance never turn a placed order into an error.
+`POST /shop/checkout/credit-code` answers `{sent:true}` for **every** number, so
+it cannot be used to find out who shops here or what they have — checked live.
+
+Credit lands in the order's `paidPaisa`, the same convention as the counter, so
+the gateway asks for the reduced amount and the rider collects the reduced
+amount without either needing to know why.
+
+⚠️ **Walked only as far as the endpoint.** The customer-side journey (cart →
+phone → code → order) has not been walked, because it writes a real website
+order. Say so rather than implying it was.
+
+### ⚠️ 31 Aug — I broke the VPS build for about ten minutes, and how
+
+The push before this one copied `apps/api/src/shop/checkout.ts` wholesale out of
+the working folder, and that copy carried the **owner's own in-progress rate
+limiting** — `RateLimit`, `RateLimitGuard`, `QUOTE_LIMIT`, `TRACK_LIMIT`. Those
+two files (`common/rate-limit.guard.ts`, `common/rate-limits.ts`) exist **only in
+the working folder and are untracked**, so they never reached the repo and the
+VPS build died on two TS2307s. The live API kept serving — the image never
+built — but nothing could ship until it was undone.
+
+`282dccb` restores checkout.ts to origin plus only the store-credit work.
+
+**The owner's rate-limit work is still his to commit**, together with the two
+files it needs. Nothing of it was lost; it was only removed from the branch.
+
+**The rule this breaks, already in CLAUDE.md:** copying whole files out of a
+working folder that has uncommitted work publishes that work. Copy the change,
+not the file.
+
+### ✅ P7-15 FIXED, DEPLOYED AND WALKED — `2011020` on the VPS
+
+The release now counts only payments with `financePostedAt` set — the ones
+booked while no revenue entry existed, which is exactly the money that really
+landed in 2100. Anything stamped later, or not at all, reached 1100 on its own
+and is left alone.
+
+**Walked on POS-000018** (৳60, cash), against the same accounts read before and
+after:
+
+| | before | after | moved |
+|---|---|---|---|
+| `1100 Receivable` | −1,267,276 | −1,267,276 | **0** ✓ |
+| `2100 Customer Advance` | 4,385,030 | 4,385,030 | **0** ✓ |
+| `1000 Cash Drawer` | 414,099 | 420,099 | +৳60 ✓ |
+| `4000 Sales` | 5,344,732 | 5,350,732 | +৳60 ✓ |
+
+The identical sale moved 1100 by **−৳30** yesterday. It moves it by nothing now.
+
+⚠️ **Only new sales are right.** What the old behaviour already wrote is still
+in the books and is the likely bulk of the standing **−৳12,642.76** negative
+receivable. Putting that right is a **correcting entry**, which is the owner's
+decision and not a side effect of a bug fix — the drift check still reads
+`wrong` on customer dues, and it should, until he says what to do.
+
+### P7-15 — what it was: every POS payment credited the receivable twice
+
+`onOrderDelivered` releases "money taken earlier" by summing **all** the order's
+payment transactions and posting `Dr 2100 Customer Advance / Cr 1100
+Receivable`. That is right for a website order, where the money really did
+arrive before delivery and was parked in 2100.
+
+At the counter it is wrong. POS writes the payment rows inside the same
+transaction as the order, so by the time revenue posts they already exist —
+but they have **not been booked yet**. The release fires anyway, and then
+`onPaymentRecorded` posts the same money again, this time correctly against
+1100. So the receivable is credited twice and 2100 is debited for an advance
+that was never credited.
+
+**Seen, not deduced:** POS-000017 should have left `1100` unchanged
+(+৳60 revenue, −৳30 cash, −৳30 credit). It moved **−৳30** — exactly one extra
+credit. This is a strong candidate for the standing **−৳12,642.76 negative
+receivable** drift, which no amount of test data explains on its own.
+
+**The fix, one line of rule:** the release must count only transactions that
+were **already posted** (`financePostedAt` set) when revenue lands — those are
+the ones that really went to 2100. Nothing else changes. Not done yet: it
+touches the most delicate posting path in the system and deserves its own pass.
+
+### P7-14 — what it was: store credit could be given but never spent
+
+`returns.service` is the **only** writer of `CustomerCredit`, and it only ever
+issues. Nothing at the counter, at checkout or on an order can redeem it, and
+`finance-events.onStoreCreditUsed` — written, waiting — has **zero callers**.
+So `2110 Customer Store Credit` stands at **৳931.50** the shop can never
+discharge, and a customer holding credit has no way to use it. A promise the
+shop cannot keep.
+
+### ✅ The books, end of 31 Aug — what was cleared and what is left
+
+| what the checker said | before | now |
+|---|---|---|
+| Value of the stock we hold | **−৳99,462.01** | −৳4,097.01 |
+| What customers owe us | **−৳12,642.76** (negative!) | **✅ 0 — the check reads `ok`** |
+| What we owe suppliers | **৳11,453.94** | ৳1,480.00 |
+| A money account below zero | (hidden) | **−৳5,772.95 — new, and it is the truth arriving** |
+
+**P7-15 cleanup, run live:** `{ looked: 24, fixed: 15, reversedPaisa: 1273276 }`
+— ৳12,732.76 reversed, which was the whole of the negative receivable. `1100`
+now reads **৳60**: the one genuinely unpaid test order, and nothing else.
+
+**P7-16 backfill, run live:** 14 purchase payments posted that never had been.
+Supplier payable fell from ৳11,453.94 to **৳1,480**.
+
+### ⚠️ The new red is not a new fault — it is the missing beginning
+
+Posting those historical purchase payments took money out of accounts that, in
+the books, never had any: **Cash Drawer −৳5,472.95** and **Other Wallet −৳300**.
+Nothing is wrong with the entries; what is missing is where the shop's money
+came from on day one. `goLiveDate` is null and **no opening balance has ever
+been posted** (`openingPosted: false`), so the books have the shop spending
+money it was never recorded as having.
+
+**Only the owner can close this**, and it is one plain question, not an
+accounting one: *how much money was in the drawer, in bKash and in the bank on
+the day we started keeping these books?* Finance already has the screen for it
+(`POST /finance/opening`, OWNER + PIN).
+
+### P7-17 — money paid before the goods is an advance, not a payment
+
+Finishing the supplier number turned up one more. After P7-16 the books swung
+the other way — ৳1,480 owed where the register said ৳4,980 — because **every**
+purchase payment posted `Dr 2000 Supplier Payable`, including money handed over
+before the goods, and therefore before any payable existed. DEC-PUR-004 already
+says a pre-receive payment is an advance; the ledger did not know.
+
+Now: it posts to `1200 Supplier Advance` and says so, and `onPurchaseReceived`
+moves it across when the goods arrive — reading the amount **from the ledger**,
+not from the payment rows, which is P7-15's lesson applied on the way in.
+Cleanup run live: **4 payments moved, ৳2,570**.
+
+Supplier payable now reads **৳4,050** against a register due of about ৳4,485.
+
+### ⚠️ Part of what is still red is the CHECKER, not the books
+
+`supplierDues()` in `finance-drift.service.ts` reports `real: 0` — it says the
+shop owes suppliers **nothing at all**, while the purchase register plainly has
+about ৳4,485 open on six bills (PUR-000002, 07, 08, 11, 12, 13). Its own
+arithmetic should produce that number, so something in it is wrong; the
+`supplierAdjustment` sum inside `Math.max(…, 0)` is the first suspect.
+
+**Do not chase the last few hundred taka of supplier drift until this is
+settled** — the yardstick itself is bent, and half a day was nearly spent
+measuring against it.
+
+**Also still open, and small:**
+- stock **−৳4,097.01** — the drift screen's own advice points at item costs
+  edited after stock was received, which moves the stock board without any
+  money moving. Not chased yet.
+
+### What still has no explanation
+
+Supplier payable ৳11,513.94 against a register that says nothing is owed, and a
+**negative** receivable of −৳12,642.76. P7-12 accounts for ৳60 of the first.
+The rest needs looking at, not guessing at — some of it is probably test data
+from before Finance existed (`goLiveDate` is null and no opening balance was
+ever posted, so nothing is gated).
+
+**Three questions for the owner before any of this is wired up** — see the chat
+of 31 Aug: what the credit side of opening stock is, whether the ৳95k history
+gets backfilled or left behind a go-live date, and where store credit may be
+spent.
 
 ---
 

@@ -7,6 +7,7 @@ import {
   Query,
   ServiceUnavailableException,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -14,6 +15,8 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Public } from '../auth/auth.guard';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { PERSO_PHOTO_LIMIT, REVIEW_PHOTO_LIMIT } from '../common/rate-limits';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -78,8 +81,6 @@ const FOLDERS = [
 ] as const;
 type Folder = (typeof FOLDERS)[number];
 
-const RASTER = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-
 /*
   SVG — allowed for icons only, and I was wrong to refuse it outright earlier.
 
@@ -99,6 +100,12 @@ const RASTER = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
   If that happens, either sanitise on upload or keep serving icons through
   <img> and never <object>.
 
+  S-04 / S-01 (31 Aug 2026) added a third reason, and it is the sturdiest:
+  `sniffImage` below now requires the file's FIRST REAL TAG to be <svg>, so a
+  document that is really HTML can no longer arrive here wearing an SVG label;
+  and Caddy serves the whole media host under
+  `default-src 'none'; sandbox`, which makes even a direct navigation inert.
+
   Icons need SVG: they inherit the brand purple through `currentColor`, and a
   PNG icon arrives stuck in whatever colour it was drawn.
 
@@ -109,9 +116,6 @@ const RASTER = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
   reasons above cover it unchanged.
 */
 const VECTOR_OK = new Set(['icons', 'brand']);
-const ICON_EXTRA = ['image/svg+xml'];
-
-const ALLOWED = RASTER;
 
 export interface UploadResult {
   url: string;
@@ -145,15 +149,6 @@ export class MediaService {
   async upload(file: UploadedImage | undefined, folder: string): Promise<UploadResult> {
     if (!file) throw new BadRequestException('No file received');
 
-    const vector = VECTOR_OK.has(folder);
-    const accepted = vector ? [...ALLOWED, ...ICON_EXTRA] : ALLOWED;
-    if (!accepted.includes(file.mimetype)) {
-      throw new BadRequestException(
-        `${file.mimetype} is not an accepted image type. Use JPG, PNG or WebP${
-          vector ? ' — or SVG here' : ''
-        }.`,
-      );
-    }
     if (file.size > MAX_BYTES) {
       throw new BadRequestException(
         `Image is ${(file.size / 1024 / 1024).toFixed(1)} MB. The limit is 10 MB.`,
@@ -163,20 +158,73 @@ export class MediaService {
       throw new BadRequestException(`Unknown folder "${folder}"`);
     }
 
-    return this.putObject(file, folder as Folder);
+    /*
+      ═══════════════════════════════════════════════════════════════════════
+      S-04 (31 Aug 2026) — THE FILE'S OWN BYTES DECIDE WHAT IT IS.
+
+      What was here before compared `file.mimetype`, and multer copies that
+      straight from the request's Content-Type header. The uploader writes it.
+      So `evil.html` announced as `image/png` passed the check, `safeName` kept
+      the .html on the end, and Caddy then served it as text/html from the
+      media host — a page on a radianbd.com subdomain, written by a stranger.
+
+      Two changes close it, and each would be enough on its own:
+
+        1. the type comes from the first bytes, which the uploader cannot lie
+           about without actually sending that kind of file;
+        2. the stored extension is DERIVED from that type, never carried over
+           from the name they typed. Whatever they call it, a JPEG lands as
+           .jpg.
+
+      The declared mimetype is now ignored entirely. It never told us anything
+      true, and keeping it as a second condition would only mean refusing real
+      images whose browser guessed the header badly.
+      ═══════════════════════════════════════════════════════════════════════
+    */
+    const kind = sniffImage(file.buffer);
+    const vector = VECTOR_OK.has(folder);
+
+    if (!kind) {
+      throw new BadRequestException(
+        `That file is not an image we can use. Please upload a JPG, PNG or WebP${
+          vector ? ' — or an SVG here' : ''
+        }.`,
+      );
+    }
+    if (kind === 'image/svg+xml' && !vector) {
+      /*  Unchanged rule, now actually enforced: SVG lives in `icons` and
+          `brand` only. Before this, the rule was enforced against a header
+          anyone could set.  */
+      throw new BadRequestException(
+        'SVG can only be used for icons and brand logos. Please upload a JPG, PNG or WebP here.',
+      );
+    }
+
+    return this.putObject(file, folder as Folder, kind);
   }
 
   /**
    * The only function that knows where files live. Keep it that way —
    * moving providers again should be a rewrite of this body and nothing else.
    */
-  private async putObject(file: UploadedImage, folder: Folder): Promise<UploadResult> {
+  private async putObject(
+    file: UploadedImage,
+    folder: Folder,
+    kind: ImageKind,
+  ): Promise<UploadResult> {
     const { dir, base } = this.storage;
 
     // Never overwrite: two products called "rose.jpg" must not replace each
     // other. The unique prefix also makes every URL immutable, which is what
     // lets Caddy serve them with a one-year cache header.
-    const name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}-${safeName(file.originalname)}`;
+    //
+    // S-04 — the readable half still comes from what the customer called it,
+    // because "rose-bouquet" in a filename is what makes a file findable on
+    // disk later. Only the EXTENSION is ours, and the extension is the half
+    // that decides how Caddy serves it.
+    const name =
+      `${Date.now().toString(36)}${randomBytes(3).toString('hex')}` +
+      `-${safeStem(file.originalname)}.${EXT_FOR[kind]}`;
     const rel = `radian/${folder}/${name}`;
 
     try {
@@ -193,13 +241,99 @@ export class MediaService {
   }
 }
 
-/** Strip anything that is not a plain filename. The client's name is untrusted. */
-function safeName(name: string): string {
+/**
+ * Strip anything that is not a plain filename, AND drop whatever extension the
+ * client put on it. The name is untrusted twice over: for the path separators
+ * it may contain, and for the `.html` it may end with (S-04). What comes back
+ * is a stem; `putObject` adds the extension the bytes earned.
+ */
+function safeStem(name: string): string {
   const cleaned = name
     .replace(/[^a-zA-Z0-9._-]/g, '-')
     .replace(/-+/g, '-')
     .slice(-80);
-  return cleaned || 'image';
+  /*  Everything from the first dot onwards goes. Not just the last one:
+      `x.html.png` must not keep `.html` in the middle either, because some
+      servers still route on a compound extension.  */
+  const stem = cleaned.replace(/\..*$/, '');
+  return stem || 'image';
+}
+
+/* ─────────────────── S-04: what the bytes say ─────────────────── */
+
+export type ImageKind =
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp'
+  | 'image/avif'
+  | 'image/svg+xml';
+
+/** the ONLY extensions this system ever writes */
+const EXT_FOR: Record<ImageKind, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+  'image/svg+xml': 'svg',
+};
+
+/**
+ * Identify an image from its opening bytes. Null means "not one of ours",
+ * which is a refusal — never a guess.
+ */
+export function sniffImage(buf: Buffer | undefined): ImageKind | null {
+  if (!buf || buf.length < 12) return null;
+
+  // FF D8 FF — every JPEG, whatever else follows.
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+
+  // 89 'P' 'N' 'G' CR LF SUB LF — the full eight-byte signature, because the
+  // first four alone also match a few unrelated formats.
+  if (
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
+  )
+    return 'image/png';
+
+  // RIFF????WEBP — a RIFF container whose form type is WEBP. Checking only
+  // "RIFF" would also accept a .wav.
+  if (
+    buf.toString('ascii', 0, 4) === 'RIFF' &&
+    buf.toString('ascii', 8, 12) === 'WEBP'
+  )
+    return 'image/webp';
+
+  /*  ISO-BMFF: a box length, then 'ftyp', then the brand. AVIF and HEIF share
+      the container, so the brand is what separates them, and it can sit either
+      in the major-brand slot or later in the compatible-brands list.  */
+  if (buf.toString('ascii', 4, 8) === 'ftyp') {
+    const brands = buf.toString('ascii', 8, Math.min(buf.length, 64));
+    if (/avif|avis/.test(brands)) return 'image/avif';
+    return null;
+  }
+
+  /*  SVG is text, so there is no signature to match — which is exactly why it
+      is the one that needs checking hardest. The test is that the first real
+      tag IS <svg>: an XML declaration, comments and a doctype may come first,
+      and nothing else may.
+
+      This is what stops `<html><script>…` being accepted as "an SVG" on the
+      strength of an <svg> tag hidden further down the file.  */
+  const head = buf.toString('utf8', 0, Math.min(buf.length, 2048));
+  let rest = head.replace(/^﻿/, '').trimStart();
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const before = rest;
+    rest = rest
+      .replace(/^<\?xml[^>]*\?>/i, '')
+      .replace(/^<!--[\s\S]*?-->/, '')
+      .replace(/^<!DOCTYPE[^>]*>/i, '')
+      .trimStart();
+    if (rest === before) break;
+  }
+  if (/^<svg[\s>]/i.test(rest)) return 'image/svg+xml';
+
+  return null;
 }
 
 @Controller('media')
@@ -227,7 +361,12 @@ export class MediaController {
    * this endpoint's: a review is born PENDING and nothing shows on the site
    * until he approves it, photo included.
    */
+  /*  S-02 — public, and it writes to the VPS disk. Without a limit, a stranger
+      with no account fills a 200 GB disk 3 MB at a time and it costs them
+      nothing.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(REVIEW_PHOTO_LIMIT)
   @Post('upload/review-photo')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -260,7 +399,13 @@ export class MediaController {
    * the folder is hard-coded so nothing can wander, one file at a time, and
    * JPG/PNG/WebP/AVIF only — never SVG, whatever it claims to be.
    */
+  /*  S-02 — the same disk, at 10 MB a time. The allowance is higher than the
+      review route's because this upload is part of BUYING: three personalised
+      gifts mean three photos, and a retry over a phone connection is normal.
+      Refusing that is refusing an order.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(PERSO_PHOTO_LIMIT)
   @Post('upload/perso-photo')
   @UseInterceptors(
     FileInterceptor('file', {

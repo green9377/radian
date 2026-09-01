@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { PaymentMethod, PaymentSessionStatus } from '@prisma/client';
@@ -23,6 +24,9 @@ import { AdministrationModule } from '../administration/administration.module';
 import { IntegrationsService } from '../administration/integrations.service';
 import { MessagingModule } from '../messaging/messaging.controller';
 import { OrderMessagesService } from '../messaging/order-messages.service';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { PAY_LOOKUP_LIMIT } from '../common/rate-limits';
+import { phoneMatchesOrder } from '../common/phone-match';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -165,12 +169,39 @@ export class SslCommerzService {
 
   /* ---- what is still owed, by order number ---- */
 
-  /**
-   * For /pay/{orderNo}. No phone is asked for — this is a way back in, and
-   * every extra field loses people. Nothing personal is returned either: only
-   * the order number and what is due.
-   */
-  async amountDue(orderNoIn: string) {
+  /*
+    ═══════════════════════════════════════════════════════════════════════════
+    S-03 (31 Aug 2026) — WHAT AN ORDER NUMBER ALONE MAY BUY.
+
+    This used to answer everything from the order number by itself, and the
+    header above said why: /pay/{orderNo} is a way back in for somebody whose
+    payment failed, and every extra field on that page loses people.
+
+    That reasoning still holds. What it missed is that `nextOrderNo()` picks
+    from RAD-50000..RAD-99998 — fifty thousand possibilities. Walk them and you
+    have the shop's order book: how many orders exist, which are unpaid, and
+    what each one is worth.
+
+    ⚠️ THE FIX IS A SPLIT, NOT A GATE, AND THE SPLIT IS THE WHOLE POINT.
+
+    A blanket phone requirement here would have broken the page it matters most
+    on. `OrderSuccessView` calls this route with nothing but `?id=` in the URL —
+    the customer has just paid, came back from the gateway on a different
+    device or with cleared storage, and has no phone to give. Refusing them
+    would show "we cannot find your order" to somebody whose money we just
+    took. So:
+
+      no phone  → does it exist, is it paid, cancelled, COD.  NO MONEY FIGURE.
+      phone     → the above plus what is owed, once the number matches, exactly
+                  as `track` matches it.
+
+    So enumeration now yields no amounts, and the one caller that cannot supply
+    a phone keeps working unchanged. `session-by-no` below takes the phone
+    without exception — nothing legitimate opens a payment session for an order
+    it cannot identify.
+    ═══════════════════════════════════════════════════════════════════════════
+  */
+  async amountDue(orderNoIn: string, phoneIn?: string) {
     const orderNo = (orderNoIn ?? '').trim().toUpperCase();
     if (!orderNo) throw new BadRequestException('order number required');
 
@@ -179,30 +210,74 @@ export class SslCommerzService {
       select: {
         id: true, orderNo: true, totalPaisa: true, paidPaisa: true,
         refundPaisa: true, salesStatus: true, paymentMethod: true,
+        senderPhone: true, recipientPhone: true,
+        customer: { select: { phone: true } },
       },
     });
     if (!order) return { found: false as const };
 
     const duePaisa = Math.max(0, order.totalPaisa - (order.paidPaisa - order.refundPaisa));
+    const identified = this.identifies(order, phoneIn);
+
     return {
       found: true as const,
       orderNo: order.orderNo,
-      duePaisa,
       paid: duePaisa <= 0,
       cancelled: order.salesStatus === 'cancelled',
       // COD is paid to the rider, so there is nothing to take online.
       isCod: order.paymentMethod === PaymentMethod.cod,
+      /*  Undefined, not 0. A zero would read on the page as "nothing to pay"
+          and is the kind of helpful-looking default that sells a bouquet for
+          free. The page asks for the phone when this is missing.  */
+      duePaisa: identified ? duePaisa : undefined,
+      /** the page uses this to decide whether to ask for the number */
+      needsPhone: !identified,
     };
   }
 
-  /** Straight to the gateway from an order number. */
-  async createSessionByNo(orderNoIn: string) {
+  /** shared by both lookups — the same rule `track` uses (common/phone-match) */
+  private identifies(
+    order: {
+      senderPhone?: string | null;
+      recipientPhone?: string | null;
+      customer?: { phone: string | null } | null;
+    },
+    phoneIn?: string,
+  ): boolean {
+    if (!phoneIn?.trim()) return false;
+    return phoneMatchesOrder(phoneIn, [
+      order.senderPhone,
+      order.customer?.phone,
+      order.recipientPhone,
+    ]);
+  }
+
+  /**
+   * Straight to the gateway from an order number.
+   *
+   * ⚠️ S-03 — THE PHONE IS REQUIRED HERE, WITH NO EXCEPTION. Opening a payment
+   * session is an action, not a look, and nothing legitimate opens one for an
+   * order it cannot identify. `/pay` reaches this from a WhatsApp message sent
+   * to that very number, so the person who should be here always has it.
+   */
+  async createSessionByNo(orderNoIn: string, phoneIn?: string) {
     const orderNo = (orderNoIn ?? '').trim().toUpperCase();
     const order = await this.prisma.db.order.findFirst({
       where: { orderNo, deletedAt: null },
-      select: { id: true, salesStatus: true },
+      select: {
+        id: true, salesStatus: true,
+        senderPhone: true, recipientPhone: true,
+        customer: { select: { phone: true } },
+      },
     });
-    if (!order) throw new BadRequestException('order not found');
+
+    /*  ⚠️ ONE SENTENCE FOR "NO SUCH ORDER" AND FOR "WRONG NUMBER", the same
+        way `track` does it. Two different answers would turn this into a way
+        to confirm which order numbers are real, which is the thing being
+        closed.  */
+    if (!order || !this.identifies(order, phoneIn))
+      throw new BadRequestException('no order found for that number and phone');
+
     if (order.salesStatus === 'cancelled')
       throw new BadRequestException('this order was cancelled');
     return this.createSession(order.id);
@@ -350,6 +425,26 @@ export class SslCommerzService {
    * browser, and both land here — often within the same second. The first one
    * to move the row off INITIATED wins; the second finds it already SUCCESS
    * and returns, so the order is never paid twice.
+   *
+   * ⚠️ S-05 (31 Aug 2026) — "THE FIRST ONE WINS" IS NOW ACTUALLY ENFORCED.
+   *
+   * It used to be read-then-write: read the status, return early if it had
+   * moved, and further down update unconditionally. Between those two lines is
+   * a gap, and the very comment above admits both callers arrive inside the
+   * same second — which is precisely the width of that gap. Two passes could
+   * both read INITIATED and both go on to record the payment.
+   *
+   * The claim was never enforced by anything; it was a description of what was
+   * hoped for. Now the transition IS the lock: an `updateMany` that names
+   * `status: INITIATED` in its WHERE, and a count of 0 meaning somebody else
+   * got there first.
+   *
+   * What kept this from ever becoming a double credit is worth writing down,
+   * because it is why this is a defect and not an incident: `addPayment`
+   * refuses to collect more than is outstanding, so the second pass threw
+   * instead of taking the money twice. It threw a 500 at SSLCommerz, who then
+   * retried — noise, and a fright for whoever read the log, but the books
+   * stayed right.
    */
   async settle(valId: string, tranIdHint?: string): Promise<PaymentSessionStatus> {
     const { id, pass, live } = await this.resolvedCreds();
@@ -372,8 +467,12 @@ export class SslCommerzService {
 
     const ok = v.status === 'VALID' || v.status === 'VALIDATED';
     if (!ok) {
-      await this.prisma.db.paymentSession.update({
-        where: { id: session.id },
+      /*  S-05 — conditional for the same reason as the SUCCESS write below: a
+          late FAILED must never paint over a SUCCESS another caller has
+          already recorded. That would leave the money taken and the session
+          reading as a failure.  */
+      await this.prisma.db.paymentSession.updateMany({
+        where: { id: session.id, status: PaymentSessionStatus.INITIATED },
         data: { status: PaymentSessionStatus.FAILED, valId, raw: v as object },
       });
       return PaymentSessionStatus.FAILED;
@@ -384,8 +483,8 @@ export class SslCommerzService {
         floating-point multiplication of money is how ৳15 goes missing.  */
     const paidPaisa = Math.round(parseFloat(v.amount ?? '0') * 100);
     if (v.currency && v.currency !== 'BDT') {
-      await this.prisma.db.paymentSession.update({
-        where: { id: session.id },
+      await this.prisma.db.paymentSession.updateMany({
+        where: { id: session.id, status: PaymentSessionStatus.INITIATED },
         data: { status: PaymentSessionStatus.FAILED, valId, raw: v as object },
       });
       this.log.error(`currency mismatch on ${tranId}: ${v.currency}`);
@@ -401,19 +500,37 @@ export class SslCommerzService {
       );
     }
 
-    await this.prisma.db.$transaction(async (tx) => {
-      await tx.paymentSession.update({
-        where: { id: session.id },
-        data: {
-          status: PaymentSessionStatus.SUCCESS,
-          valId,
-          bankTranId: v.bank_tran_id,
-          cardType: v.card_type,
-          raw: v as object,
-          settledAt: new Date(),
-        },
-      });
+    /*  ⚠️ S-05 — THE CLAIM AND THE LOCK ARE NOW THE SAME LINE.
+
+        `status: INITIATED` in the WHERE means the database decides the race:
+        whichever of the IPN and the browser redirect gets here first flips the
+        row and gets `count: 1`; the other finds nothing left to flip and gets
+        0. One winner, chosen by the one thing both callers share.
+
+        The early return above stays — it saves the common case a write — but
+        it is now an optimisation, not the guard it was being asked to be.  */
+    const claimed = await this.prisma.db.paymentSession.updateMany({
+      where: { id: session.id, status: PaymentSessionStatus.INITIATED },
+      data: {
+        status: PaymentSessionStatus.SUCCESS,
+        valId,
+        bankTranId: v.bank_tran_id,
+        cardType: v.card_type,
+        raw: v as object,
+        settledAt: new Date(),
+      },
     });
+
+    if (claimed.count === 0) {
+      /*  The other caller is recording this same payment right now. Say what
+          it will say — not an error: nothing is wrong, and this is the normal
+          shape of an IPN and a redirect arriving together.  */
+      const now = await this.prisma.db.paymentSession.findUnique({
+        where: { id: session.id },
+        select: { status: true },
+      });
+      return now?.status ?? PaymentSessionStatus.SUCCESS;
+    }
 
     /*  Outside the transaction, deliberately: `addPayment` owns the money
         arithmetic on an order (increment, not overwrite — ORD-REV-2) and runs
@@ -645,16 +762,33 @@ export class PaymentController {
   }
 
   /* The two calls the /pay page makes. */
+
+  /*  S-03 — `phone` is optional and what it unlocks is the AMOUNT. Without it
+      the answer still says whether the order exists and whether it is paid,
+      because `OrderSuccessView` has nothing else to go on after a customer
+      returns from the gateway on a fresh device.
+
+      ⚠️ The number goes in the QUERY STRING, which is the one thing to be
+      unhappy about here: query strings reach access logs and Referer headers.
+      It is accepted for two reasons — the route is a GET that browsers and
+      the gateway both reach by navigation, and Caddy now sends
+      `Referrer-Policy: no-referrer` from the API and `strict-origin` from the
+      shop, so it does not travel off-site. If this ever needs to be tighter,
+      the move is a POST, and that is a change to both apps.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(PAY_LOOKUP_LIMIT)
   @Get('due/:orderNo')
-  due(@Param('orderNo') orderNo: string) {
-    return this.svc.amountDue(orderNo);
+  due(@Param('orderNo') orderNo: string, @Query('phone') phone?: string) {
+    return this.svc.amountDue(orderNo, phone);
   }
 
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(PAY_LOOKUP_LIMIT)
   @Post('session-by-no')
-  sessionByNo(@Body() body: { orderNo: string }) {
-    return this.svc.createSessionByNo(body?.orderNo ?? '');
+  sessionByNo(@Body() body: { orderNo: string; phone?: string }) {
+    return this.svc.createSessionByNo(body?.orderNo ?? '', body?.phone);
   }
 
   /** the storefront polls this on /order-success while the IPN lands */

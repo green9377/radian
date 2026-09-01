@@ -169,6 +169,15 @@ export interface PlaceOrderIn extends QuoteIn {
       ওই সারিটা CONVERTED হয়, নাহলে ১৫ মিনিট পর সদ্য order করা গ্রাহকের
       কাছেই "আপনার cart রাখা আছে" বার্তা চলে যেত।  */
   clientKey?: string;
+  /**
+   * DEC-RTN-015 part 2 — spend this customer's store credit on the order.
+   *
+   * The website has no login: identity is a typed phone, so a code has to come
+   * back from that number before anyone's credit can be touched. The order is
+   * placed either way; a wrong code simply means no credit was used.
+   */
+  useStoreCredit?: boolean;
+  creditCode?: string;
 }
 
 /* ─────────────────── অসমাপ্ত checkout (DEC-WA-004, DEC-WA-008) ───────────────────
@@ -238,6 +247,9 @@ export interface PlacedOrder {
       already proved, so regulars are never asked twice.  */
   needsPhoneVerify?: boolean;
   senderPhone?: string;
+  /** DEC-RTN-015 — what store credit actually came off this bill, and why not, when not */
+  storeCreditUsedPaisa?: number;
+  storeCreditNote?: string | null;
 }
 
 export interface PaymentSession {
@@ -391,16 +403,35 @@ export const resendPhoneCode = (phone: string, email?: string) =>
     error?: string;
   }>("/shop/otp/send", { phone, purpose: "CHECKOUT", email });
 
+/*  DEC-RTN-015 part 2 — ask for a code so store credit can be spent. The answer
+    is the same for every number, so it can never be used to find out who shops
+    here or what they have saved.  */
+export const sendCreditCode = (phone: string) =>
+  post<{ sent: boolean }>("/shop/checkout/credit-code", { phone });
+
 export const confirmPhoneCode = (phone: string, code: string) =>
   post<{ ok: boolean }>("/shop/confirm-phone", { phone, code });
 
 export const createPaymentSession = (orderId: string) =>
   post<PaymentSession>("/shop/payment/session", { orderId });
 
-/* ── `/pay/{orderNo}` — WhatsApp-এর "পেমেন্ট হয়নি" বার্তার বোতাম (DEC-WA-003) ──
-   ⚠️ ফোন নম্বর চাওয়া হয় না। এটা হারানো order ফেরানোর পথ; টাকা দেওয়ার
-   পাতায় বাড়তি প্রতিটা ঘর মানে আরও কিছু মানুষ ঝরে যাওয়া। তাই server-ও
-   ব্যক্তিগত কিছু ফেরত পাঠায় না — শুধু order নম্বর আর বাকি টাকা। */
+/* ── `/pay/{orderNo}` — the "payment did not go through" button in the
+   WhatsApp message (DEC-WA-003) ──
+
+   The server still returns nothing personal: the order number, the state, and
+   the amount owed. No name, no address, no basket.
+
+   ⚠️ S-03 (31 Aug 2026) — THE PHONE NUMBER IS NOW ASKED FOR, AND THAT IS A
+   CHANGE TO A PAGE THE OWNER LOCKED AS "ONE BUTTON, NO FIELDS".
+
+   Why it had to give: order numbers run RAD-50000..RAD-99998, so anybody could
+   walk all fifty thousand and read the shop's whole order book — how many
+   orders exist, which are unpaid, what each is worth.
+
+   What was kept: the amount and the Pay button need the number, but simply
+   FINDING the order does not. So the page still loads, still names the order,
+   and still says "already paid" or "cancelled" without asking anything. The
+   field appears only when there is actually money to take. */
 
 export interface AmountDue {
   found: boolean;
@@ -409,12 +440,18 @@ export interface AmountDue {
   paid?: boolean;
   cancelled?: boolean;
   isCod?: boolean;
+  /** true when the amount was withheld because no matching phone was given */
+  needsPhone?: boolean;
 }
 
-export async function fetchAmountDue(orderNo: string): Promise<AmountDue | null> {
+export async function fetchAmountDue(
+  orderNo: string,
+  phone?: string,
+): Promise<AmountDue | null> {
   try {
+    const q = phone?.trim() ? `?phone=${encodeURIComponent(phone.trim())}` : "";
     const res = await fetch(
-      `${baseFor()}/shop/payment/due/${encodeURIComponent(orderNo)}`,
+      `${baseFor()}/shop/payment/due/${encodeURIComponent(orderNo)}${q}`,
       { cache: "no-store" },
     );
     if (!res.ok) return null;
@@ -424,8 +461,8 @@ export async function fetchAmountDue(orderNo: string): Promise<AmountDue | null>
   }
 }
 
-export const createPaymentSessionByNo = (orderNo: string) =>
-  post<PaymentSession>("/shop/payment/session-by-no", { orderNo });
+export const createPaymentSessionByNo = (orderNo: string, phone: string) =>
+  post<PaymentSession>("/shop/payment/session-by-no", { orderNo, phone });
 
 /* ── `/cart/{leadId}` — abandoned বার্তার "Return to cart" বোতাম (DEC-WA-004) ──
    ⚠️ server ব্যক্তিগত কিছু ফেরত পাঠায় না — নাম, ফোন, ঠিকানা কিছুই নয়।

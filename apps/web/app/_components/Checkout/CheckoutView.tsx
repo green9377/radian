@@ -473,6 +473,12 @@ export default function CheckoutView() {
       couponCode: couponCode ?? undefined,
       paymentMethod: payment === "cod" ? "cod" : "online",
 
+      /*  DEC-RTN-015 part 2 — the credit, with the code that proves the number.
+          The server applies whatever it can and says how much; a bad code costs
+          the customer nothing but the credit.  */
+      useStoreCredit: c.useStoreCredit && c.creditCode.length > 0 ? true : undefined,
+      creditCode: c.useStoreCredit && c.creditCode ? c.creditCode : undefined,
+
       senderName: c.senderName.trim(),
       senderPhone,
       senderEmail: c.senderEmail.trim() || undefined,

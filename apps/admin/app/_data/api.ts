@@ -4386,8 +4386,21 @@ export interface PosSaleInput {
   adjustmentPaisa?: number; adjustmentNote?: string; taxRateBps?: number;
   payMode: "full" | "partial";
   payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number; accountId?: string }[];
+  /** DEC-RTN-015 — part of the bill settled with the customer's store credit */
+  storeCreditPaisa?: number;
   actorName?: string;
 }
+
+/** DEC-RTN-015 — what this customer could put on a bill of this size, right now */
+export interface ApiCreditQuote {
+  customerId: string;
+  balancePaisa: number;
+  capBps: number;
+  capPaisa: number;
+  usablePaisa: number;
+}
+export const creditQuote = (customerId: string, totalPaisa: number) =>
+  j<ApiCreditQuote>(`/returns/credit/${customerId}/quote?totalPaisa=${Math.max(0, Math.round(totalPaisa))}`);
 
 /** DEC-POS-018 — what the till may sell: items, never products */
 export interface ApiPosCatalogueRow {
@@ -4474,6 +4487,15 @@ export const posListSales = (p?: { search?: string; days?: number }) => {
   return j<ApiPosSale[]>(`/pos/sales${q.toString() ? `?${q}` : ""}`);
 };
 export const posDue = () => j<ApiPosDue[]>(`/pos/due`);
+/** DEC-POS-027 — what the customer already owes the counter, and the shop's ceiling (0 = none) */
+export interface ApiPosCredit {
+  customerId: string;
+  limitPaisa: number;
+  outstandingPaisa: number;
+  billsOpen: number;
+  over: boolean;
+}
+export const posCreditStanding = (customerId: string) => j<ApiPosCredit>(`/pos/credit/${customerId}`);
 
 /** DEC-POS-022 — counter orders promised for a later day, soonest first */
 export interface ApiPosAdvance {

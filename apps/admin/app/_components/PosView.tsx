@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
+import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posOpenShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiCreditQuote, creditQuote, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
 import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
 import QtyStepper from "./QtyStepper";
 /*
@@ -104,13 +104,36 @@ export default function PosSellView() {
   const methods = usePaymentMethods(TILL_TENDERS);
   const shiftOpen = !!shift;
   const openingFloatPaisa = shift?.openingFloatPaisa ?? 0;
+  /*  P7-11 (31 Aug) — the drawer used to open with a hardcoded ৳2,000 under the
+      name "Cashier", whatever the shop had set and whoever was signed in. Both
+      are facts about money: the float is what somebody physically put in the
+      till, and the name is who answers for it at close. A fiction in either one
+      turns up later as an over/short nobody can explain (house rule 7 — no
+      business value lives in code).  */
+  const [openAsk, setOpenAsk] = useState<{ floatTaka: string; cashier: string } | null>(null);
+  const [openBusy, setOpenBusy] = useState(false);
+  async function askOpenShift() {
+    setSaleErr(null);
+    let deflt = 0;
+    try { deflt = (await posSettings()).openingFloatDefaultPaisa ?? 0; } catch { /* the field starts empty */ }
+    setOpenAsk({ floatTaka: deflt ? String(deflt / 100) : "", cashier: me?.name ?? "" });
+  }
   async function openShift() {
+    if (!openAsk) return;
+    if (!openAsk.cashier.trim()) { setSaleErr("Who is on the counter?"); return; }
+    setOpenBusy(true);
     setSaleErr(null);
     try {
-      const s = await posOpenShift({ cashierName: "Cashier", openingFloatPaisa: 200000 });
+      const s = await posOpenShift({
+        cashierName: openAsk.cashier.trim(),
+        openingFloatPaisa: Math.round((Number(openAsk.floatTaka) || 0) * 100),
+      });
       setShift(s);
+      setOpenAsk(null);
     } catch (e) {
       setSaleErr(e instanceof Error ? e.message : "Could not open shift");
+    } finally {
+      setOpenBusy(false);
     }
   }
 
@@ -317,9 +340,26 @@ export default function PosSellView() {
   const adjustmentPaisa = sum.extraPaisa; // charges + adjustment — one number for the order
   const total = sum.totalPaisa;
 
+  /*  DEC-RTN-015 — store credit on this bill. Not a tender: no money moves, a
+      liability the shop was already carrying is discharged, so it sits above
+      the payment rows and comes off the bill before anything is owed. The cap
+      and the balance are the server's answer, never the browser's.  */
+  const [quote, setQuote] = useState<ApiCreditQuote | null>(null);
+  const [creditPaisa, setCreditPaisa] = useState(0);
+  useEffect(() => {
+    if (!selectedCust?.id || total <= 0) { setQuote(null); setCreditPaisa(0); return; }
+    creditQuote(selectedCust.id, total).then(setQuote).catch(() => setQuote(null));
+  }, [selectedCust?.id, total]);
+  useEffect(() => {
+    // never let a stale amount outlive the bill it was quoted against
+    setCreditPaisa((c) => Math.min(c, quote?.usablePaisa ?? 0));
+  }, [quote?.usablePaisa]);
+
   /*  DEC-POS-017 retired (owner, 20 Aug): there is no Full/Partial choice. Money
       is taken as many ways as the customer likes; whatever is left is the due.  */
-  const pay = usePayRows(total, methods[0]?.id ?? "CASH");
+  /*  what the customer still has to hand over after credit is applied  */
+  const payablePaisa = Math.max(0, total - creditPaisa);
+  const pay = usePayRows(payablePaisa, methods[0]?.id ?? "CASH");
   const { paidPaisa: paid, duePaisa, changePaisa, overpaidNoChange } = pay;
 
   /*  The cap lives on the server and it refuses in words; the screen no longer
@@ -336,6 +376,21 @@ export default function PosSellView() {
   /*  A due is money owed by a person, so it needs a person (DEC-POS-008). This is
       the ONLY thing that asks for a name — a fully paid walk-in never does.  */
   const needsCustomer = duePaisa > 0 && !custName.trim() && !custPhone.trim();
+
+  /*  DEC-POS-027 (owner, 31 Aug) — the credit ceiling WARNS, it never blocks.
+      So this is not in `errors`: the Complete button stays live and the words
+      sit beside it. `defaultCreditLimitPaisa` used to be a settings field
+      nothing on earth read.  */
+  const [credit, setCredit] = useState<ApiPosCredit | null>(null);
+  useEffect(() => {
+    if (!selectedCust?.id) { setCredit(null); return; }
+    posCreditStanding(selectedCust.id).then(setCredit).catch(() => setCredit(null));
+  }, [selectedCust?.id]);
+
+  const creditWarning =
+    credit && credit.limitPaisa > 0 && duePaisa > 0 && credit.outstandingPaisa + duePaisa > credit.limitPaisa
+      ? `${selectedCust?.name ?? "This customer"} already owes ${formatTaka(credit.outstandingPaisa)}; this bill takes it to ${formatTaka(credit.outstandingPaisa + duePaisa)}, over the ${formatTaka(credit.limitPaisa)} limit.`
+      : null;
 
   const errors: string[] = [];
   if (!shiftKnown) errors.push("Checking the counter…");
@@ -436,6 +491,8 @@ export default function PosSellView() {
         /*  the server still takes a word for this; it is derived now, never asked
             (DEC-POS-017 retired) — anything left unpaid makes it a partial sale  */
         payMode: duePaisa > 0 ? "partial" : "full",
+        // DEC-RTN-015 — settled with the customer's credit, not with money
+        storeCreditPaisa: creditPaisa > 0 ? creditPaisa : undefined,
         payments: pay.pays
           .filter((p) => p.amountPaisa > 0)
           .map((p) => ({
@@ -477,7 +534,7 @@ export default function PosSellView() {
         <div className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[#e9f9ef] border-[#c2ecd3] text-[#0e7a3d]" : "bg-lavender border-lavender-deep text-body-soft")}>
           <Icon name="clock" size={15} />
           {shift ? <>Shift open · {shift.cashierName} (float {formatTaka(openingFloatPaisa)})</> : shiftKnown ? <>Shift closed</> : <>Checking the counter…</>}
-          {shiftKnown && !shift && <button type="button" onClick={openShift} className="ml-1 underline decoration-dotted">Open</button>}
+          {shiftKnown && !shift && <button type="button" onClick={askOpenShift} className="ml-1 underline decoration-dotted font-bold">Open</button>}
         </div>
         <button type="button" onClick={() => setShowHeld(true)} className="flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium bg-white border border-lavender-deep text-purple hover:border-orchid-mid">
           <Icon name="clock" size={15} /> Held bills
@@ -732,12 +789,19 @@ export default function PosSellView() {
               </div>
             )}
 
+            {creditWarning && lines.length > 0 && (
+              <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium"
+                style={{ background: "rgba(224,162,58,.18)", color: "#ffd79a" }}>
+                {creditWarning} <span className="opacity-80 font-normal">The sale can still go through.</span>
+              </div>
+            )}
+
             {errors.length > 0 && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
                 style={{ background: "rgba(255,155,123,.14)", color: "#ffc9a8" }}>
                 {errors[0]}
                 {!shiftOpen && (
-                  <button type="button" onClick={openShift} className="underline ml-1.5 font-semibold">Open the shift</button>
+                  <button type="button" onClick={askOpenShift} className="underline ml-1.5 font-semibold">Open the shift</button>
                 )}
                 {errors.length > 1 && <span className="opacity-70"> · +{errors.length - 1} more</span>}
               </div>
@@ -777,6 +841,27 @@ export default function PosSellView() {
 
             <div className="px-4 shrink-0 pb-1">
               <div className="rounded-[12px] px-3 py-3" style={{ background: "rgba(255,255,255,.07)" }}>
+                {quote && quote.usablePaisa > 0 && (
+                  <div className="rounded-[12px] px-3 py-2.5 mb-2.5"
+                    style={{ background: "rgba(216,87,239,.16)", border: "1px solid rgba(216,87,239,.35)" }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] text-[#f0d5fa] font-medium">
+                        Store credit · {formatTaka(quote.balancePaisa)} saved
+                      </span>
+                      <button type="button"
+                        onClick={() => setCreditPaisa(creditPaisa > 0 ? 0 : quote.usablePaisa)}
+                        className={"text-[12px] font-bold px-3 py-1.5 rounded-[9px] " +
+                          (creditPaisa > 0 ? "bg-white text-purple" : "bg-white/15 text-white border border-white/30")}>
+                        {creditPaisa > 0 ? "Remove" : `Use ${formatTaka(quote.usablePaisa)}`}
+                      </button>
+                    </div>
+                    {quote.usablePaisa < quote.balancePaisa && (
+                      <div className="text-[11.5px] text-[#d9b3ea] mt-1">
+                        Credit can pay {quote.capBps / 100}% of a bill — {formatTaka(quote.capPaisa)} on this one.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <PaymentLines pay={pay} methods={methods} maxHeight={168} />
               </div>
             </div>
@@ -980,6 +1065,30 @@ export default function PosSellView() {
       )}
 
       {/* ===== held bills drawer ===== */}
+      {/* P7-11 — opening a drawer says what is in it and who is on it */}
+      {openAsk && (
+        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setOpenAsk(null))}>
+          <div className="bg-white rounded-[16px] shadow-lift p-6 w-full max-w-[380px]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-[17px] text-purple m-0 mb-4">Open the counter</h3>
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Who is on the counter</label>
+            <input className="ipt h-[44px] mb-3" value={openAsk.cashier}
+              onChange={(e) => setOpenAsk({ ...openAsk, cashier: e.target.value })} />
+            <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Cash in the drawer now ৳</label>
+            <input type="text" inputMode="decimal" className="ipt h-[44px] text-[15px]" placeholder="0.00"
+              value={openAsk.floatTaka}
+              onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setOpenAsk({ ...openAsk, floatTaka: v }); }} />
+            {saleErr && <p className="text-[12px] text-[#c0392b] mt-3 mb-0">{saleErr}</p>}
+            <div className="flex gap-2 mt-5">
+              <button type="button" onClick={() => setOpenAsk(null)} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Cancel</button>
+              <button type="button" onClick={openShift} disabled={openBusy}
+                className="flex-1 py-2.5 rounded-[11px] bg-purple hover:bg-purple-deep text-white font-bold text-[13px] disabled:opacity-50">
+                {openBusy ? "Opening…" : "Open the shift"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showHeld && (
         <div className="fixed inset-0 z-50 bg-black/30 flex justify-end" {...backdropClose(() => setShowHeld(false))}>
           <div className="bg-white w-full max-w-[380px] h-full p-5 overflow-auto shadow-lift" onClick={(e) => e.stopPropagation()}>

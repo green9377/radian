@@ -73,4 +73,6 @@ export interface ReturnSettingsDto {
   returnWindowDays?: number;
   approvalThresholdPaisa?: number;
   restockDefaultPerishable?: boolean;
+  /** DEC-RTN-015 — how much of one bill store credit may pay for (bps; 10000 = all) */
+  storeCreditMaxBillBps?: number;
 }

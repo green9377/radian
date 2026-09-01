@@ -86,6 +86,12 @@ export class PosController {
   }
 
   /* due */
+  /* DEC-POS-027 — what this customer already owes the counter, and the ceiling */
+  @Get('credit/:customerId')
+  creditStanding(@Param('customerId') customerId: string) {
+    return this.pos.creditStanding(customerId);
+  }
+
   @Get('due')
   dueBoard() {
     return this.pos.dueBoard();

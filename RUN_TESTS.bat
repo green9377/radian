@@ -50,6 +50,8 @@ REM  These need no database and take two seconds. If a locked rule about
 REM  pricing or stock is already broken, placing a test order proves nothing.
 node apps\api\scripts\no-bangla.selftest.mjs
 if errorlevel 1 goto :ruleBroken
+node apps\api\scripts\security.selftest.mjs
+if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\split-stores.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\discount-window.selftest.mjs

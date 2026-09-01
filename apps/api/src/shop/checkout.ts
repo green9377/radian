@@ -9,8 +9,12 @@ import {
   Query,
   Injectable,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
-import { DeliveryZone, PaymentMethod } from '@prisma/client';
+import { DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { QUOTE_LIMIT, TRACK_LIMIT } from '../common/rate-limits';
+import { phoneMatchesOrder } from '../common/phone-match';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -26,6 +30,8 @@ import { WhatsAppCloudModule, WhatsAppCloudService } from '../common/whatsapp-cl
 import { MessagingModule } from '../messaging/messaging.controller';
 import { OrderMessagesService } from '../messaging/order-messages.service';
 import { OtpService } from '../messaging/otp.service';
+import { ReturnsService } from '../returns/returns.service';
+import { ReturnsModule } from '../returns/returns.module';
 import { OtpPurpose } from '@prisma/client';
 import { CheckoutLeadsService } from '../messaging/checkout-leads.service';
 
@@ -124,6 +130,24 @@ export interface PlaceOrderIn extends QuoteIn {
 
   /** Marks this browser's unfinished checkout as converted once the order lands. */
   clientKey?: string;
+
+  /**
+   * DEC-RTN-015 part 2 — spend the customer's store credit on this order.
+   *
+   * ⚠️ The website has no login: identity here is a typed phone number, so
+   * without a code anyone who knows a number could spend that person's credit,
+   * and even showing the balance would tell a stranger what somebody else has
+   * saved. So the customer asks for a code (`/shop/checkout/credit-code`), it
+   * goes to that number, and it travels with the order. Nothing about the
+   * credit is revealed until the code comes back right.
+   *
+   * Fail-soft on purpose: a wrong code, an expired one or an empty balance
+   * NEVER turns a placed order into an error (the same rule as the phone
+   * verification below, DEC-WA-010). The order stands and the answer says how
+   * much was actually applied — which may be nothing.
+   */
+  useStoreCredit?: boolean;
+  creditCode?: string;
 
   /** MKT-D02 — the advertising marks, caught on the storefront's first view */
   utmSource?: string;
@@ -315,6 +339,8 @@ export class CheckoutService {
     private readonly orderMessages: OrderMessagesService,
     private readonly leads: CheckoutLeadsService,
     private readonly otp: OtpService,
+    /*  DEC-RTN-015 — Returns owns the store-credit ledger; checkout only asks  */
+    private readonly returns: ReturnsService,
   ) {}
 
   /* ══════════════════ 1. price the cart ══════════════════ */
@@ -1224,6 +1250,56 @@ Queued rather than sent directly: COD and prepaid say different
         Fail-soft and unwaited, exactly like the confirmation above: a code
         that will not send must never turn a placed order into an error.
         An already-verified number is not asked again.  */
+    /*  DEC-RTN-015 part 2 — the credit, proved by a code that went to this
+        number. Everything here is fail-soft: the order is already placed and
+        nothing below may undo it.  */
+    let storeCreditUsedPaisa = 0;
+    let storeCreditNote: string | null = null;
+    if (dto.useStoreCredit) {
+      try {
+        const proved = dto.creditCode
+          ? (await this.otp.verify(order.senderPhone, OtpPurpose.CHECKOUT, dto.creditCode)).ok
+          : false;
+        if (!proved) {
+          storeCreditNote = 'The code did not match, so no store credit was used on this order.';
+        } else {
+          const outstanding = Math.max(0, order.totalPaisa - order.paidPaisa);
+          const q = await this.returns.quoteCredit(order.customerId, order.totalPaisa);
+          const amount = Math.min(q.usablePaisa, outstanding);
+          if (amount > 0) {
+            await this.returns.spendCredit({
+              customerId: order.customerId,
+              amountPaisa: amount,
+              billTotalPaisa: order.totalPaisa,
+              orderId: order.id,
+              actorName: order.senderName || 'Customer',
+            });
+            /*  the same convention the counter uses: credit counts as settled
+                on the ORDER, so the gateway asks for the reduced amount and the
+                rider collects the reduced amount, both without knowing why  */
+            const paid = order.paidPaisa + amount;
+            await this.prisma.db.order.update({
+              where: { id: order.id },
+              data: {
+                paidPaisa: paid,
+                duePaisa: Math.max(0, order.totalPaisa - paid),
+                ...(order.totalPaisa - paid <= 0 ? { paymentStatus: PaymentStatus.paid } : {}),
+              },
+            });
+            storeCreditUsedPaisa = amount;
+          } else {
+            storeCreditNote =
+              q.balancePaisa > 0
+                ? 'Your store credit could not be used on this order.'
+                : 'There is no store credit on this number.';
+          }
+        }
+      } catch (e) {
+        storeCreditNote = 'Store credit could not be applied to this order.';
+        this.log?.warn?.(`store credit failed on ${order.orderNo}: ${e}`);
+      }
+    }
+
     const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
     if (needsPhoneVerify) {
       void this.otp
@@ -1247,7 +1323,31 @@ Queued rather than sent directly: COD and prepaid say different
           blocks anything — the order is already placed either way.  */
       needsPhoneVerify,
       senderPhone: order.senderPhone,
+      /*  DEC-RTN-015 — what was actually taken off this bill, and why nothing
+          was when nothing was. The screen shows the customer the real number
+          rather than what they hoped for.  */
+      storeCreditUsedPaisa,
+      storeCreditNote,
     };
+  }
+
+  /**
+   * DEC-RTN-015 part 2 — send a code so the customer can prove the number is
+   * theirs before spending credit on it.
+   *
+   * Always answers the same way, whether or not that number has a customer or
+   * a balance: an endpoint that says "no such number" is a way to find out who
+   * shops here, and one that says "no credit" is a way to find out what they
+   * have saved.
+   */
+  async sendCreditCode(phone: string) {
+    const clean = (phone ?? '').trim();
+    if (clean) {
+      void this.otp
+        .send({ phone: clean, purpose: OtpPurpose.CHECKOUT })
+        .catch((e) => this.log?.warn?.(`credit code send failed: ${e}`));
+    }
+    return { sent: true };
   }
 
   /**
@@ -1400,15 +1500,19 @@ Queued rather than sent directly: COD and prepaid say different
     /*  Sender's phone, the customer's CRM phone, or the receiver's — whoever
         legitimately holds the number also legitimately holds one of these.
         Matched loosely on the trailing 10 digits so "+880 17..." and
-        "017..." are the same number.  */
-    const tail = (s: string | null | undefined) =>
-      (s ?? '').replace(/\D/g, '').slice(-10);
+        "017..." are the same number.
+
+        S-03 (31 Aug) — the matching itself moved to `common/phone-match.ts`,
+        unchanged, because the payment lookups now ask the identical question.
+        Two copies of one security rule is one copy that eventually stops
+        getting fixed.  */
     const ok =
-      order &&
-      tail(phone).length >= 10 &&
-      [order.senderPhone, order.customer?.phone, order.recipientPhone].some(
-        (p) => tail(p) === tail(phone),
-      );
+      !!order &&
+      phoneMatchesOrder(phone, [
+        order.senderPhone,
+        order.customer?.phone,
+        order.recipientPhone,
+      ]);
 
     /*  ⚠️ The SAME sentence for "no such order" and "wrong phone" — see the
         controller note. Different answers would leak which numbers exist.  */
@@ -1506,7 +1610,12 @@ export class CheckoutController {
     return this.svc.slotLoad(date ?? '');
   }
 
+  /*  S-02 — roomy on purpose. This fires on every cart change, so a shopper
+      adjusting quantities sends several a second; the limit is here to stop a
+      script hammering the offer engine, not to police a cart.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(QUOTE_LIMIT)
   @Post('checkout/quote')
   quote(@Body() dto: QuoteIn) {
     return this.svc.quote(dto);
@@ -1525,7 +1634,13 @@ export class CheckoutController {
    * nonexistent order, so this endpoint cannot be used to CONFIRM that a
    * given number exists (an enumeration probe learns nothing).
    */
+  /*  S-02 — the pair is the lock; this is what stops the pair being guessed.
+      Shares one allowance with the two payment lookups (bucket
+      'order-lookup'), because all three answer the same question and counting
+      them apart would just mean three times the guesses.  */
   @Public()
+  @UseGuards(RateLimitGuard)
+  @RateLimit(TRACK_LIMIT)
   @Get('track')
   track(@Query('orderNo') orderNo?: string, @Query('phone') phone?: string) {
     return this.svc.track(orderNo ?? '', phone ?? '');
@@ -1539,6 +1654,13 @@ export class CheckoutController {
    * placed before the code was ever sent, and a wrong code does not undo it.
    */
   @Public()
+  /*  DEC-RTN-015 part 2 — a code to this number, so credit can only be spent
+      by whoever can read that phone. Never says whether the number is known.  */
+  @Post('checkout/credit-code')
+  creditCode(@Body() b: { phone?: string }) {
+    return this.svc.sendCreditCode(b.phone ?? '');
+  }
+
   @Post('confirm-phone')
   confirmPhone(@Body() b: { phone?: string; code?: string }) {
     return this.svc.confirmPhone(b?.phone ?? '', b?.code ?? '');
@@ -1546,7 +1668,7 @@ export class CheckoutController {
 }
 
 @Module({
-  imports: [PrismaModule, ProductDetailModule, OffersModule, OrdersModule, WhatsAppCloudModule, MessagingModule],
+  imports: [PrismaModule, ProductDetailModule, OffersModule, OrdersModule, WhatsAppCloudModule, MessagingModule, ReturnsModule],
   providers: [CheckoutService],
   controllers: [CheckoutController],
   exports: [CheckoutService],
