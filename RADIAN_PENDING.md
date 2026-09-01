@@ -569,6 +569,52 @@ count, not a substitute for it.
 
 ---
 
+## 📊 THE DRIFT BOARD, END OF 1 SEP — one red left, and it is the owner's
+
+```
+watch  supplier-dues    books   4,050.00   real   4,480.00   diff   −430.00
+ok     customer-dues    books      60.00   real      60.00   diff      0.00
+watch  stock-value      books 106,804.81   real 106,965.45   diff   −160.64
+ok     carrier-cash · unposted-sales · unposted-purchases · posting-failures
+ok     unbalanced · goods-out
+wrong  negative-money   −5,772.95                          ← THE OWNER'S
+```
+
+**Everything that was mine is now a watch, and small.** The one `wrong` is
+`negative-money`, and it stays red until the owner posts the opening balances —
+Finance → Money accounts → **Post opening balances**, with the real cash, bKash
+and bank counts. Those numbers are his; nobody else can invent them.
+
+### The stock check now asks the right question
+
+It used to compare the books against **current quantity × TODAY's cost**. Those
+are not the same question: the books hold the cost **at the moment of each
+movement**, so editing an item's cost afterwards moved the valuation while no
+money moved at all — and the check called that drift, then apologised for it in
+its own advice line.
+
+`InventoryMovement.valuePaisa` is the cost at post time — the number Finance
+posts from. Both sides now move on the same events, so any gap left is a real
+posting failure and nothing else.
+
+**Checked before changing it:** all 22 items' shelf quantities agree with their
+own movement history, **0 differ** — the movement ledger is complete, so it is
+safe to measure against.
+
+The revaluation is not discarded, it is reported where it belongs:
+
+> at today's costs the same shelf is worth ৳1,07,341.82, ৳376.37 more than it
+> was bought for. That is a price change, not drift — no money moved, and
+> nothing above counts it.
+
+```
+stock-value   −4,097.01  →  −537.01  →  −160.64
+              (the restock backfill)   (the right basis)
+              severity wrong → watch
+```
+
+---
+
 ## ✅ STOCK DRIFT — 1 Sep. A sales return put goods back on the shelf and never told the books.
 
 Taking **−৳4,097.01** apart turned it into named pieces instead of a mystery:
