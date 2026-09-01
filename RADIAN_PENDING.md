@@ -6,6 +6,157 @@
 
 ---
 
+## 🟣 PHASE 8 — 1 Sep 2026 · **Purchases, the whole circle** (owner's pick)
+
+Asked what Phase 8 should walk, the owner chose **Purchases**, and then:
+*"okey joto test ache gormil ache sob thik kro."* So the job became the drift
+board itself — every number the books and the shop disagreed about, taken
+apart to a named cause and fixed where the fault is, not with a correcting
+entry over the top of it.
+
+### Every gap named, in paisa. Nothing here is an estimate.
+
+The board closed Phase 7 with two watches and one red. Measured against the
+live database, the two watches decompose exactly:
+
+```
+supplier-dues  −430.00  =  +1,070.00 advances never released
+                          −1,500.00 supplier money against no bill
+stock-value    −160.64  =    −900.00 goods from a half-received bill
+                          +  405.15 replacements that left for free
+                          +  334.21 stock booked at the bill, not the goods
+negative-money −5,772.95   ← still the owner's: no opening balance was ever posted
+```
+
+Each addend was read off the ledger and the register side by side, per bill and
+per order — the tables are below.
+
+### P8-1 — a replacement's goods left the shop and cost nothing
+
+`DEC-RTN-017` sends the new unit out through `inventory.postSaleForOrder`
+**against the original order**. That order's cost entry is keyed
+`ORDER:<id>:cogs` and was written the day it was delivered, so the second
+stock-out arrived at a key that already existed and `postEntry` swallowed it as
+a duplicate. Nothing failed, nothing was logged, and the goods simply left.
+
+| bill | goods that left | the books took out | never booked |
+|---|---|---|---|
+| POS-000013 | ৳950.00 | ৳550.00 | **৳400.00** (RTN-000016, 8 units) |
+| POS-000003 | ৳655.15 | ৳650.00 | **৳5.15** (RTN-000011, 1 unit) |
+
+Now the replacement carries its own entry (`RETURN:<id>:replacement-cost`) and
+`saleMovementValue` no longer counts it, so the two can never collide. The
+shape is the mirror of the restock that already existed: the returned unit came
+back at cost, the new one goes out at cost, and the shop bears exactly one.
+
+### P8-2 — ৳1,070 of advances that could never come out of 1200
+
+`onPurchaseReceived` releases a supplier advance by reading the payment's own
+`:paid` entry. But P7-17 did not rewrite those entries — it could not, a posted
+entry is never rewritten — it wrote a **second**, correcting entry
+(`:advance-fix`). And it ran *after* those three bills had already been
+received, so the release had come and gone before there was anything to
+release. The money has sat in 1200 ever since: 1200 holds four debits, ৳2,570,
+and **not one credit in its whole life**.
+
+| bill | held in 1200 | status |
+|---|---|---|
+| PUR-000007 | ৳50 | RECEIVED — release it |
+| PUR-000008 | ৳20 | RECEIVED — release it |
+| PUR-000013 | ৳1,000 | RECEIVED — release it |
+| PUR-000012 | ৳1,500 | ADVANCE_PAID — correctly still an advance |
+
+`advanceHeldFor()` asks the ledger what is in the account **now**, minus what
+has already been applied, so it cannot go stale that way again.
+
+### P8-3 — goods from a half-received bill are invisible to the books
+
+Finance books a purchase only on FULL receipt (PUR-REV-2, and rightly: that
+entry carries the whole bill, and firing it on the first of three deliveries
+once booked all of it against one box). The consequence nobody had counted:
+between the first delivery and the last, **the stock is on the shelf and the
+ledger has never heard of it**. PUR-000012 has 45 units, ৳900, standing in the
+shop since 23 August against ৳0 in the books.
+
+Each delivery now posts as it arrives against a new account —
+**`2050 Goods Received, Not Billed`** — and the receipt entry clears it when
+the bill completes. It is not Supplier Payable: no bill has been agreed for
+those goods yet. Keyed on the movement, so a second delivery cannot land on the
+first one's key.
+
+### P8-4 — the books valued stock at the bill; the shelf valued it at the goods
+
+Two different numbers whenever a bill carries a discount or a round-off. Across
+thirteen received bills: subtotal ৳14,430, discount ৳92.79, round-off ৳427,
+grand total ৳14,764.21 — and the stock ledger costed the same goods at
+৳14,430. The books put the grand total on the shelf, so they read ৳334.21 more
+than the shelf ever held. A gap no stock movement could explain, because no
+stock had moved.
+
+Now `1150` takes **what the stock ledger posted**, purchase VAT goes to
+`1500 VAT Input` (reclaimable, never part of what stock cost — no bill carries
+any yet), and the bill-level discount / round-off goes to `5150`. What this
+buys is bigger than ৳334: **1150 equals the stock ledger by construction**, so
+that check can now only fire on a posting that is genuinely missing.
+
+⚠️ One order-of-operations fault found while doing it: in `receive()` the
+finance call sat **above** `afterReceive`, which is what writes the stock
+movements. Harmless while it booked the grand total; it would have put whole
+bills into 5150 the moment it started booking what the ledger says arrived.
+Stock first, then the books (CLAUDE.md §4 rule 8). The QUICK path already had
+it the right way round.
+
+### P8-5 — money paid to a supplier against no bill discharged the debt anyway
+
+`onSupplierPayment` debited `2000 Supplier Payable` with the whole amount,
+however much of it was actually put against a bill.
+
+```
+SPY-000001  22 Aug 11:58  CASH  ৳500    Ajgor  — 0 allocations
+SPY-000002  22 Aug 11:58  CASH  ৳1,000  Apu    — 0 allocations, and Apu has
+                                                 no bills in the register at all
+```
+
+So ৳1,500 of supplier debt was cleared against nothing, and the purchase
+register knew none of it. Money handed to a supplier with no bill behind it is
+value **they** are holding for us — the same thing as paying ahead
+(DEC-PUR-004), and the drift checker's own advice line has said exactly that
+all along. The allocated part now clears the payable; the rest goes to
+`1200 Supplier Advance`, where `onPurchaseReceived` moves it across when the
+goods arrive.
+
+⚠️ **This is a treatment, not a verdict on the two rows.** If those two
+payments are stale test data rather than money that really left, deleting them
+is a different answer and it is the owner's to give. Nothing about them is
+destroyed either way — both fixes are keyed entries that can be reversed.
+
+### What is shipped, and what is NOT yet true
+
+`82f3f5c` on **main**: five fixes, `POST /finance/backfill/settle-drift` for
+the five keyed cleanups, `tsc --noEmit` green on the API, no-bangla selftest
+green (and one Bengali line that had crept into this file, from 21 commits
+back, put back into roman letters).
+
+⚠️ **Not deployed and NOT walked.** Mid-session the VPS was taken over by the
+`two-stacks` migration: `/root/apps/radian` is now on branch `two-stacks`
+(`b74288e`), `docker-compose.prod.yml` no longer exists there, the old
+`*_prod` containers were removed and `radian_api_dev` / `radian_web_dev` /
+`radian_admin_dev` / `radian_postgres_dev` came up in their place. The API I
+built and started from `main` at 13:0x UTC was gone by 13:16.
+
+**Checked, so nobody has to worry about it:** the new stack mounts the SAME
+data volume `radian_radian_pg_prod`, and the database is intact — 104 orders,
+and `/health` answers again. Nothing was lost. But `main` is not what is
+running, so **every number above is measured, and none of it is walked.** The
+cleanup has not been run against the live books.
+
+**Next, in order:** `two-stacks` and `main` have to meet — then deploy, run
+`POST /finance/backfill/settle-drift`, and read the drift board. Expected
+after it: supplier-dues **books ৳4,480 = register ৳4,480**, stock-value
+**0**, and `negative-money` still red until the owner posts opening balances.
+
+---
+
 ## 🟣 PHASE 7 OPEN — 31 Aug 2026 · **POS (the counter)**
 
 The owner picked POS: it has never had a Phase, counter sales live in the SAME
