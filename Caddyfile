@@ -1,40 +1,84 @@
-# Radian — Caddy reverse proxy (docker-compose.prod.yml-এর সাথে)。
+# Radian - the edge. One Caddy in front of BOTH stacks.
 #
-# Caddy কী করে: বাইরের সব request নেয়, HTTPS সার্টিফিকেট নিজে Let's Encrypt
-# থেকে এনে নিজেই নবায়ন করে, তারপর ভেতরের সঠিক container-এ পাঠায়。
-# Nginx + Certbot-এর কাজটা তিন লাইনে。
+# It takes every request from outside, fetches and renews its own Let's
+# Encrypt certificates, and hands the request to the right container. Only
+# ports 80/443 are open; everything else talks on the internal docker network.
 #
-# ডোমেইনের নাম .env.production থেকে আসে (WEB_DOMAIN / ADMIN_DOMAIN / API_DOMAIN)。
-# DNS-এ তিনটার A record-ই VPS-এর IP-তে থাকতে হবে, নইলে সার্টিফিকেট আসবে না。
+# Domain names come from .env.edge. Every one of them needs an A record
+# pointing at the VPS, DNS-only (a proxied/orange record breaks certificate
+# issuance - that has already cost us a night).
+#
+# Container names are the hostnames here, so they must match ${STACK} in
+# docker-compose.stack.yml: radian_web_dev, radian_web_live, and so on.
 
-{$WEB_DOMAIN} {
+# ─────────────────────────────────────────────────────────────────────────
+# DEVELOPMENT - where we build and break things
+# ─────────────────────────────────────────────────────────────────────────
+
+{$DEV_WEB_DOMAIN} {
 	encode gzip
-	reverse_proxy web:3000
-}
+	reverse_proxy radian_web_dev:3000
 
-{$ADMIN_DOMAIN} {
-	encode gzip
-	reverse_proxy admin:3001
-
-	# admin-এ আসল login আছে (AuthGate + API-র global AuthGuard)。 তবু
-	# search engine যেন ভুলেও ঢুকতে না পারে。
+	# A full second copy of the shop. Without this, Google indexes it and it
+	# competes with the real one on the shop's own product names.
 	header X-Robots-Tag "noindex, nofollow"
 }
 
-{$API_DOMAIN} {
+{$DEV_ADMIN_DOMAIN} {
 	encode gzip
-	reverse_proxy api:4000
-
+	reverse_proxy radian_admin_dev:3001
 	header X-Robots-Tag "noindex, nofollow"
 }
 
-# Images (29 Aug 2026) — served straight from disk, no container in the way.
-# The folder is ./media on the VPS, written by the API (media.ts, MEDIA_DIR)
-# and mounted here read-only. Filenames are unique per upload and never
-# reused, so a one-year immutable cache header is safe and is what makes
-# repeat visits fast. nosniff keeps uploaded SVGs inert (media.ts explains).
-{$MEDIA_DOMAIN} {
-	root * /srv/media
+{$DEV_API_DOMAIN} {
+	encode gzip
+	reverse_proxy radian_api_dev:4000
+	header X-Robots-Tag "noindex, nofollow"
+}
+
+{$DEV_MEDIA_DOMAIN} {
+	root * /srv/media-dev
+	file_server
+	header Cache-Control "public, max-age=31536000, immutable"
+	header X-Content-Type-Options "nosniff"
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# LIVE - the real shop
+#
+# ⚠️ AT CUTOVER the bare domain joins the web block below, like this:
+#     {$LIVE_WEB_DOMAIN}, radianbd.com, www.radianbd.com {
+#   and nothing else in this file changes. Until that day radianbd.com is
+#   the owner's existing shop and is not ours to point anywhere.
+# ─────────────────────────────────────────────────────────────────────────
+
+{$LIVE_WEB_DOMAIN} {
+	encode gzip
+	reverse_proxy radian_web_live:3000
+
+	# Removed on the day the bare domain is added - until then this is a
+	# rehearsal, and two indexed copies of one shop help nobody.
+	header X-Robots-Tag "noindex, nofollow"
+}
+
+{$LIVE_ADMIN_DOMAIN} {
+	encode gzip
+	reverse_proxy radian_admin_live:3001
+	header X-Robots-Tag "noindex, nofollow"
+}
+
+{$LIVE_API_DOMAIN} {
+	encode gzip
+	reverse_proxy radian_api_live:4000
+	header X-Robots-Tag "noindex, nofollow"
+}
+
+# Images served straight from disk, no application in the way. Filenames are
+# unique per upload and never reused, so a one-year immutable cache is safe
+# and is what makes a repeat visit fast. nosniff keeps uploaded SVGs inert
+# (media.ts explains why).
+{$LIVE_MEDIA_DOMAIN} {
+	root * /srv/media-live
 	file_server
 	header Cache-Control "public, max-age=31536000, immutable"
 	header X-Content-Type-Options "nosniff"

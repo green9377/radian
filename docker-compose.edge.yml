@@ -1,0 +1,54 @@
+# Radian - the edge. Caddy alone, in front of both stacks.
+#
+# Why it is its own compose: one process can hold ports 80/443. With Caddy
+# inside a stack, rebuilding that stack takes the OTHER shop's HTTPS down with
+# it. Here it starts once and stays up while either stack is rebuilt.
+#
+#   docker network create radian_edge          # once, before anything
+#   docker compose -f docker-compose.edge.yml --env-file .env.edge up -d
+#
+# It never needs rebuilding for a code change - only when a domain is added
+# (Caddyfile + .env.edge), and then a `restart` is enough.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: radian_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DEV_WEB_DOMAIN: ${DEV_WEB_DOMAIN}
+      DEV_ADMIN_DOMAIN: ${DEV_ADMIN_DOMAIN}
+      DEV_API_DOMAIN: ${DEV_API_DOMAIN}
+      DEV_MEDIA_DOMAIN: ${DEV_MEDIA_DOMAIN}
+      LIVE_WEB_DOMAIN: ${LIVE_WEB_DOMAIN}
+      LIVE_ADMIN_DOMAIN: ${LIVE_ADMIN_DOMAIN}
+      LIVE_API_DOMAIN: ${LIVE_API_DOMAIN}
+      LIVE_MEDIA_DOMAIN: ${LIVE_MEDIA_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Absolute paths from .env.edge - the two media folders live in two
+      # different clones, so a relative path would only ever find one.
+      - ${DEV_MEDIA_DIR}:/srv/media-dev:ro
+      - ${LIVE_MEDIA_DIR}:/srv/media-live:ro
+      # The certificates. Losing this volume means asking Let's Encrypt for
+      # everything again, and they rate-limit that.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - edge
+
+networks:
+  edge:
+    external: true
+    name: radian_edge
+
+volumes:
+  caddy_data:
+    external: true
+    name: radian_caddy_data
+  caddy_config:
+    external: true
+    name: radian_caddy_config
