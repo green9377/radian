@@ -170,7 +170,27 @@ export class MetaWebhookService {
           where: { externalMessageId: mid },
           select: { id: true },
         });
-        if (seen) return false;
+        if (seen) {
+          /*
+            The message is already stored, but the NAME may not be. The webhook
+            arrives first and cannot read a profile (Meta refuses /{psid}), so
+            the thread is born "Guest"; the poller comes along a minute later
+            holding the name and used to return right here, leaving the thread
+            nameless forever. That is the fault the owner hit twice — the
+            backfill repaired yesterday's threads while every new one kept
+            arriving as Guest.
+          */
+          if (input.peerName?.trim()) {
+            await this.prisma.db.conversation.updateMany({
+              where: {
+                channel, externalIdentity: peerId, deletedAt: null,
+                OR: [{ guestName: null }, { guestName: '' }],
+              },
+              data: { guestName: input.peerName.trim().slice(0, 120) },
+            });
+          }
+          return false;
+        }
       }
 
       const convo = await this.conversationFor(channel, peerId, input.peerName ?? null);
@@ -319,7 +339,7 @@ export class MetaWebhookService {
         */
         const body = await res.text();
         this.log.warn(`no profile for ${channel} ${id} (${res.status}): ${body.slice(0, 300)}`);
-        return null;
+        return this.nameFromConversations(channel, id, token, host);
       }
       const j = (await res.json()) as {
         name?: string; username?: string; first_name?: string; last_name?: string;
@@ -330,6 +350,48 @@ export class MetaWebhookService {
       return name;
     } catch (e) {
       this.log.warn(`profile lookup failed for ${channel} ${id}: ${e instanceof Error ? e.message : e}`);
+      return null;
+    }
+  }
+
+  /**
+   * The name, asked for the way Meta will actually answer.
+   *
+   * `GET /{psid}?fields=first_name,last_name` is refused — with every scope
+   * granted, and with all five field lists tried (31 Aug). The SAME person's
+   * name comes back without argument from the conversation listing:
+   *
+   *     from: { name: "Mahisha Mouno", id: "28729587416665125" }
+   *
+   * So the profile lookup above is kept (it works on some accounts and costs
+   * one call) and this is what happens when it is refused. 48 Messenger threads
+   * read "Guest" for weeks because nothing here knew about this door.
+   */
+  private async nameFromConversations(
+    channel: InboxChannel,
+    id: string,
+    token: string,
+    host: string,
+  ): Promise<string | null> {
+    const platform = channel === InboxChannel.INSTAGRAM ? 'instagram' : 'messenger';
+    try {
+      const res = await fetch(
+        `${host}/me/conversations?platform=${platform}&fields=participants&limit=50`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) return null;
+      const j = (await res.json()) as {
+        data?: { participants?: { data?: { id?: string; name?: string; username?: string }[] }[] };
+      };
+      for (const c of j.data ?? []) {
+        for (const person of c.participants?.data ?? []) {
+          if (person.id !== id) continue;
+          const name = (person.name || person.username || '').trim();
+          if (name) return name.slice(0, 120);
+        }
+      }
+      return null;
+    } catch {
       return null;
     }
   }
