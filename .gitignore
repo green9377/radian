@@ -24,7 +24,11 @@ _*.txt
 # OS / editor junk
 .DS_Store
 Thumbs.db
-CLAUDE.md
+
+# CLAUDE.md used to be ignored here. It is the standing brief every session
+# reads first, it had grown to 38KB, and being ignored meant it lived on ONE
+# laptop with no backup anywhere (owner, 1 Sep 2026: put it in git). The repo
+# is private and the file carries no secrets - checked before committing.
 
 # ship note - consumed by RADIAN_SHIP.bat, never committed
 _SHIP_MSG.txt
