@@ -424,9 +424,34 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  /** 1150 Inventory vs the stock board's own valuation */
+  /**
+   * 1150 Inventory vs the stock ledger — **on the same basis**.
+   *
+   * This used to compare the books against `current quantity × TODAY's cost`,
+   * and those are not the same question. The books hold the cost **at the
+   * moment of each movement**; editing an item's cost afterwards moves the
+   * valuation and no money moves at all. The check then called that drift,
+   * and its own advice had to apologise for it.
+   *
+   * `InventoryMovement.valuePaisa` is the cost at post time — the very number
+   * Finance posts from. Summing it gives what the stock ledger says the shelf
+   * cost, on exactly the basis the books use. Both sides then move on the same
+   * events, so any gap left is a real posting failure and nothing else.
+   *
+   * Checked before changing it (1 Sep): every one of the 22 items' shelf
+   * quantity agrees with its own movement history, 0 differ. The movement
+   * ledger is complete, so it is safe to measure against.
+   *
+   * The revaluation is not thrown away — it is reported in the advice, where
+   * it belongs: worth knowing, never a fault. Finding it was what split the
+   * −৳4,097 into ৳3,720 of real missing postings and ৳376 of price changes.
+   *
+   * No item filter: the books take value from every movement, so the
+   * comparison must too. `InventoryMovement` has no soft delete.
+   */
   private async stockValue(books: number): Promise<DriftCheck> {
-    const [items, stocks] = await Promise.all([
+    const [moved, items, stocks] = await Promise.all([
+      this.prisma.db.inventoryMovement.aggregate({ _sum: { valuePaisa: true } }),
       this.prisma.db.item.findMany({
         where: { isStockTracked: true, itemType: { not: 'SERVICE' } },
         select: {
@@ -438,6 +463,10 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
       }),
       this.prisma.db.inventoryStock.findMany({ select: { itemId: true, qtyMilli: true } }),
     ]);
+
+    const real = moved._sum.valuePaisa ?? 0;
+
+    // the same shelf valued at today's costs — for the advice line only
     const costOf = new Map(
       items.map((i) => [
         i.id,
@@ -445,22 +474,30 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
       ]),
     );
     const qty = new Map<string, number>();
-    for (const s of stocks) qty.set(s.itemId, (qty.get(s.itemId) ?? 0) + s.qtyMilli);
-
-    let real = 0;
+    for (const st of stocks) qty.set(st.itemId, (qty.get(st.itemId) ?? 0) + st.qtyMilli);
+    let atTodaysCost = 0;
     for (const [itemId, milli] of qty) {
       const cost = costOf.get(itemId);
       if (cost == null || milli <= 0) continue; // negative stock is its own alarm
-      real += Math.round((milli * cost) / 1000);
+      atTodaysCost += Math.round((milli * cost) / 1000);
     }
+    const revaluation = atTodaysCost - real;
+
+    const revalNote =
+      Math.abs(revaluation) >= NOISE_PAISA
+        ? ` Separately: at today's costs the same shelf is worth ${taka(atTodaysCost)}, ` +
+          `${taka(Math.abs(revaluation))} ${revaluation > 0 ? 'more' : 'less'} than it was bought for. ` +
+          'That is a price change, not drift — no money moved, and nothing above counts it.'
+        : '';
 
     return this.money(
       'stock-value',
       'Value of the stock we hold',
-      'The stock sitting in the shop is money. If the books disagree with the stock board, one of them was changed without the other.',
+      'The stock sitting in the shop is money. Every stock movement should reach the books at the cost it was posted at, so these two must agree.',
       books,
       real,
-      'Run a stocktake. Also check that item costs were not edited after stock was received — changing a cost moves this number without any money moving.',
+      `A gap here means a stock movement never reached the books. Open Stock → Movements for the period and compare with Finance → Journal.${revalNote}`,
+      `Matches — nothing to do.${revalNote}`,
     );
   }
 
