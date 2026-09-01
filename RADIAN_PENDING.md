@@ -569,6 +569,65 @@ count, not a substitute for it.
 
 ---
 
+## 🖼️ INBOX, 1 Sep — attachments, the shell, and one AI switch
+
+### DEC-INB-011 — THE AI SWITCH IS ONE SWITCH (owner, 1 Sep)
+
+> *"protta chat ar upore ai off on option ache ja dorkar nai. akdom uporer off
+> ar on sob jaygay auto kaj krbe alaadavabe jen na thake."*
+
+The per-thread AI toggle of **DEC-INB-004 is withdrawn** — the button, the
+route, the service method, and the gate in `ai-agent.ts`. Only
+`InboxSetting.aiGloballyEnabled` decides, everywhere.
+
+The reason it had to go, not just be hidden: a thread somebody switched off
+months ago would have stayed off forever once the global switch went on, and
+that one customer would never get an answer with nobody able to say why. That
+is the exact shape of fault this project keeps paying for.
+
+`Conversation.aiEnabled` stays in the schema — nothing is destroyed — but
+**nothing reads it**. House rule 15: if it is true about the SHOP, it is
+written once.
+
+⚠️ `InboxSetting.aiDefaultForNew` is now a setting with no effect. Left alone
+today rather than half-removed; it should either drive something or go.
+
+### Attachments — three of six kinds had no case
+
+What is actually stored, counted rather than assumed:
+
+```
+[image]   [ig_post]   [ig_reel]   [audio]   [file]   [unsupported_type]
+```
+
+The matcher knew `image·video·audio·file·sticker·share`, so **`ig_post`,
+`ig_reel` and `unsupported_type` fell straight through** and printed as raw
+signed URL — unclickable, and wide enough to push a horizontal scrollbar across
+the thread.
+
+Now the matcher takes any kind and the kind only chooses how to draw it. Asked
+directly, **Meta returns `image_data.url` for a shared post exactly as for a
+photo**, which is why the picture kinds are drawn alike. Video plays, audio
+plays, a file is a card, an expired CDN link falls back to that card instead of
+a broken-image icon, and no URL is ever printed.
+
+**The poller carried no attachments at all** — a message with only an
+attachment has an empty `message`, so polled photos arrived as nothing. It now
+asks for `attachments` and writes the same `[kind](url)` the webhook does.
+
+### The shell holds still
+
+The panes had `min-h-[65vh]` and no ceiling, so a long thread grew the *page*:
+the list slid off the top and the composer walked off the bottom. The page is
+now exactly one viewport and never scrolls; exactly two things do. Measured
+live: `page scrolls: false`, two scrollers, no horizontal scroller.
+
+`min-h-0` on every flex child is what makes it true — without it a flex item
+refuses to shrink below its content and the overflow quietly moves up to the
+page.
+
+---
+
 ## ✅ ONE INBOX — closed, 31 Aug. Read the correction below before anything else.
 
 **The fifth wrong call of the day, and the one that mattered.** After the Page
