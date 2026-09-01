@@ -34,6 +34,19 @@ services:
     image: postgres:16-alpine
     container_name: radian_postgres_${STACK}
     restart: always
+    # Continuous backup (owner, 1 Sep 2026 - "proti second"). Postgres copies
+    # every write-ahead log segment into ./backups/wal, and archive_timeout
+    # closes a segment at least once a minute even on a quiet shop. With the
+    # base backup in ./backups/base, the books can be restored to ANY moment,
+    # not just to last night.
+    #
+    # ⚠️ If the archive command ever fails, Postgres keeps the segments and the
+    # disk fills. The folder must exist and stay writable.
+    command: >
+      postgres
+      -c archive_mode=on
+      -c archive_command='test ! -f /backups/wal/%f && cp %p /backups/wal/%f'
+      -c archive_timeout=60
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
