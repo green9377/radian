@@ -14,7 +14,6 @@ import {
   replyInboxConversation,
   reopenInboxConversation,
   resolveInboxConversation,
-  setInboxAi,
   updateInboxSettings,
 } from "../_data/api";
 import { Info } from "./ItemEditor";
@@ -85,33 +84,106 @@ const CHANNEL_CARDS = (Object.keys(CHANNELS) as ChannelKey[]).filter((k) => k !=
 const channelOf = (k: string) => CHANNELS[k as ChannelKey] ?? CHANNELS.WEB_CHAT;
 
 /*
-  Attachments arrive as `[image](https://...)` — the webhook keeps Meta's CDN
-  URL so the picture itself can be shown. The URL expires eventually, so a
-  broken image quietly falls back to the plain label.
+  ATTACHMENTS. 1 Sep 2026.
+
+  An attachment is stored as `[kind](url)` — the webhook and the poller both
+  write that shape, keeping Meta's CDN link so the thing itself can be shown.
+
+  The old matcher only knew image·video·audio·file·sticker·share, so the kinds
+  Instagram actually sends most — `ig_post`, `ig_reel`, `unsupported_type` —
+  fell through and printed as raw text: a wall of signed URL that was not
+  clickable and pushed a horizontal scrollbar across the whole thread (owner,
+  1 Sep, with a screenshot).
+
+  So the matcher now takes ANY kind, and the kind only decides how to draw it.
+  Asked directly, Meta hands back `image_data.url` for a shared post exactly as
+  it does for a photo, which is why treating the picture kinds alike works.
+
+  Everything is clickable, and nothing is allowed to widen the bubble: a URL is
+  never printed, only ever wrapped in a link with a human label.
 */
-const ATTACHMENT = /^\[(image|video|audio|file|sticker|share)\]\((https?:\/\/\S+)\)$/;
+const ATTACHMENT = /^\[([a-z_]+)\]\((https?:\/\/\S+)\)$/;
+
+/** Kinds Meta serves as a picture, whatever they are called. */
+const PICTURE = new Set(["image", "sticker", "ig_post", "ig_reel", "story", "share", "unsupported_type"]);
+
+const KIND_LABEL: Record<string, string> = {
+  ig_post: "Shared an Instagram post",
+  ig_reel: "Shared a reel",
+  story: "Shared a story",
+  share: "Shared a post",
+  unsupported_type: "Attachment",
+  file: "File",
+  video: "Video",
+  audio: "Voice message",
+  image: "Photo",
+  sticker: "Sticker",
+};
+
+/** What is shown when the CDN link has expired, or the kind cannot be drawn. */
+function AttachmentCard({ kind, url }: { kind: string; url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-2.5 rounded-2xl bg-black/10 px-3 py-2.5 hover:bg-black/15 transition max-w-full"
+    >
+      <span className="grid place-items-center w-9 h-9 rounded-xl bg-black/15 text-[16px] shrink-0">
+        {kind === "video" ? "▶" : kind === "audio" ? "♪" : kind === "file" ? "▤" : "◍"}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-extrabold truncate">
+          {KIND_LABEL[kind] ?? "Attachment"}
+        </span>
+        <span className="block text-[11.5px] opacity-70 font-bold">Tap to open</span>
+      </span>
+    </a>
+  );
+}
+
+/*
+  A picture, until the link expires. Meta signs these CDN URLs and they stop
+  working after a while, so a thread from last week would otherwise show a row
+  of broken-image icons — and a staff member still needs to know the customer
+  sent something.
+*/
+function Picture({ kind, url }: { kind: string; url: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <AttachmentCard kind={kind} url={url} />;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="block">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={KIND_LABEL[kind] ?? "attachment"}
+        className="max-w-full w-auto max-h-[300px] rounded-2xl block"
+        onError={() => setFailed(true)}
+      />
+    </a>
+  );
+}
 
 function MessageBody({ body }: { body: string }) {
   const m = body.match(ATTACHMENT);
-  if (!m) return <>{body}</>;
+  // Plain text still has to wrap — a long unbroken word must not widen the pane.
+  if (!m) return <span className="block break-words whitespace-pre-wrap">{body}</span>;
   const [, kind, url] = m;
-  if (kind === "image" || kind === "sticker") {
+
+  if (PICTURE.has(kind)) return <Picture kind={kind} url={url} />;
+
+  if (kind === "video") {
     return (
-      <a href={url} target="_blank" rel="noreferrer">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={url} alt="attachment"
-          className="max-w-[240px] max-h-[240px] rounded-xl"
-          onError={(e) => { e.currentTarget.outerHTML = `[${kind}]`; }}
-        />
-      </a>
+      // eslint-disable-next-line jsx-a11y/media-has-caption
+      <video src={url} controls className="max-w-full max-h-[300px] rounded-2xl block" />
     );
   }
-  return (
-    <a href={url} target="_blank" rel="noreferrer" className="underline font-semibold">
-      [{kind}] open attachment
-    </a>
-  );
+
+  if (kind === "audio") {
+    return <audio src={url} controls className="max-w-full block" />;
+  }
+
+  return <AttachmentCard kind={kind} url={url} />;
 }
 
 /** The one-line preview in the thread list should not show a raw CDN URL. */
@@ -558,19 +630,10 @@ export default function InboxView() {
                   </p>
                 </div>
 
-                {/* DEC-INB-008 — replying no longer silences the AI; this is the only hard off. */}
-                <button
-                  onClick={() => void act(() => setInboxAi(detail.id, !detail.aiEnabled))}
-                  className={`text-[12px] font-extrabold px-3.5 h-10 rounded-2xl transition ${
-                    detail.aiEnabled
-                      ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                  }`}
-                >
-                  AI {detail.aiEnabled ? "on" : "off"}
-                </button>
-                <Info text="Off silences the AI completely in this thread. Replying does not switch it off — it only gives you a few minutes to answer first." />
-
+                {/*
+                  DEC-INB-011 (the owner, 1 Sep) — there is no per-thread AI
+                  switch. One switch at the top of the Inbox, true everywhere.
+                */}
                 {users && (
                   <select
                     value={detail.assignee?.id ?? ""}
@@ -610,7 +673,7 @@ export default function InboxView() {
               {/* the second of the two things that scroll */}
               <div
                 ref={listRef}
-                className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-3 bg-[#FBF9FD]"
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-3 bg-[#FBF9FD]"
               >
                 {detail.messages.map((m) => {
                   const fromCustomer = m.authorType === "CUSTOMER";
@@ -624,7 +687,7 @@ export default function InboxView() {
                         className={
                           system
                             ? "mx-auto text-center text-[11.5px] font-bold text-gray-400 bg-white border-2 border-gray-100 rounded-full px-4 py-1.5"
-                            : `max-w-[72%] rounded-3xl px-4 py-3 text-[14px] leading-snug ${
+                            : `max-w-[72%] min-w-0 break-words rounded-3xl px-4 py-3 text-[14px] leading-snug ${
                                 fromCustomer
                                   ? "bg-white text-gray-800 border-2 border-[#f0edf5] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
                                   : m.authorType === "AI"

@@ -504,19 +504,6 @@ export class InboxService {
     });
     return this.detail(id);
   }
-
-  /** The hand-back side of DEC-INB-004 — per-thread AI on/off, audited. */
-  async setAi(id: string, enabled: boolean, actor: { id: string; name: string }) {
-    const convo = await this.prisma.db.conversation.findFirst({ where: { id, deletedAt: null } });
-    if (!convo) throw new NotFoundException('Conversation not found');
-    await this.prisma.db.conversation.update({ where: { id }, data: { aiEnabled: enabled } });
-    await this.audit.record({
-      entityType: ENTITY, entityId: id, action: 'UPDATE',
-      actorName: actor.name, actorId: actor.id,
-      changes: { aiEnabled: { from: convo.aiEnabled, to: enabled, why: 'manual toggle' } },
-    });
-    return this.detail(id);
-  }
 }
 
 /* ═════════════ the customer's controller — @Public, from the shop ═════════ */
@@ -614,10 +601,12 @@ export class InboxController {
     return this.svc.assign(id, dto.assigneeId ?? null, req.actor ?? { id: '', name: 'Admin' });
   }
 
-  @Post(':id/ai')
-  setAi(@Param('id') id: string, @Body() dto: { enabled: boolean }, @Req() req: ActorRequest) {
-    return this.svc.setAi(id, Boolean(dto.enabled), req.actor ?? { id: '', name: 'Admin' });
-  }
+  /*
+    There is no per-thread AI route any more (DEC-INB-011, the owner, 1 Sep).
+    One switch, at the top of the Inbox, and it is true everywhere. A thread
+    someone had quietly switched off would otherwise stay off forever, and that
+    one customer would never get an answer with nobody able to say why.
+  */
 }
 
 @Module({

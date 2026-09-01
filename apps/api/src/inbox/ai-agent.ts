@@ -15,30 +15,34 @@ import { ChannelSender } from '../messaging/channel-sender.service';
 /*
   AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md।
 
-  মালিকের ৫ আগস্টের তিন রায় এই ফাইলের মেরুদণ্ড:
+  Three rulings from the owner on 5 Aug are the backbone of this file:
 
-  DEC-INB-008 rev — উপস্থিতি-ভিত্তিক: staff Inbox-এ active থাকলে AI তাকে
-  `staffGraceSec` (৩০ সে) আগে সুযোগ দেয়; কেউ active না থাকলে AI সাথে সাথে
-  উত্তর দেয়। মালিক: "customer 1st sms-এ কখনোই ৩ মিনিট wait করার মানে নাই।"
+  DEC-INB-008 rev — presence-based: if a staff member is active in the Inbox
+  the AI gives them `staffGraceSec` (30s) first; if nobody is active the AI
+  answers at once. The owner: a customer should never wait three minutes for a
+  reply to their first message.
 
-  DEC-INB-009 — escalation-এ AI আগে চুপ: staff-কে খবর, জানালাটা তাদের।
-  জানালা পেরোলে তখনই "একটু অপেক্ষা করুন — আমাদের একজন expert…" লাইনটা।
+  DEC-INB-009 — on an escalation the AI stays quiet first: staff are told, and
+  the window is theirs. Only once it passes does the "please hold on, one of our
+  experts will speak with you" line go out.
 
-  DEC-INB-010 — সে Radian টিমের একজন, কখনোই "আমি AI/bot" নয়; জিজ্ঞেস করলে
-  স্বাভাবিকভাবে "Radian support" বলে কাজের কথায় ফেরে — মিথ্যা জীবনীও বানায়
-  না। আর ভাষা মানে হরফসহ: Banglish পেলে Banglish-এই, বাংলা হরফে নয়।
+  DEC-INB-010 — it speaks as a member of the Radian team and never says "I am
+  an AI/bot"; asked directly, it answers naturally as Radian support and returns
+  to the work, and it invents no personal biography either. And language means
+  the script too: Banglish in, Banglish out, never Bangla letters.
 
-  ব্যর্থতার নীতি আগের মতোই: যেকোনো exception = নীরবতা; thread unread হয়ে
-  মানুষের কাছে। AI মরলে দোকান ভাঙে না।
+  The failure rule is unchanged: any exception means silence, and the thread
+  goes unread to a person. The shop does not break because the AI does.
 */
 
 const MONEY_WORDS = [
   'discount', 'refund', 'money back', 'cheaper', 'price kom', 'com dam', 'komano',
+  /* Bangla money words, kept as data: this is a live matcher, not prose. */
   'ছাড়', 'ডিসকাউন্ট', 'রিফান্ড', 'টাকা ফেরত', 'কম দাম', 'দাম কম', 'কমানো',
   'chhar', 'char den', 'discount den', 'taka ferot', 'taka fert', 'kom dam', 'dam kom',
 ];
 
-/** কোন হরফ/ভাষায় লিখছে — ধরা-বাঁধা লাইনগুলোর জন্য (DEC-INB-010) */
+/** Which script the customer is writing in — for the fixed lines (DEC-INB-010). */
 type Lang = 'bn' | 'banglish' | 'en';
 function detectLang(text: string): Lang {
   if (/[ঀ-৿]/.test(text)) return 'bn';
@@ -53,6 +57,7 @@ function detectLang(text: string): Lang {
 }
 
 const WAIT_LINE: Record<Lang, string> = {
+  /* The Bangla wait line is a message to a customer, not a comment. */
   bn: 'একটু অপেক্ষা করুন — আমাদের একজন expert আপনার সাথে কথা বলবেন। 🌸',
   banglish: 'Ektu wait koren — amader ekjon expert apnar sathe kotha bolben. 🌸',
   en: 'Please hold on a moment — one of our experts will be with you shortly. 🌸',
@@ -120,9 +125,11 @@ const TOOLS: AiToolDef[] = [
 ];
 
 function systemPrompt(customerName: string | null, lang: Lang): string {
-  /*  প্রথম চেষ্টায় শুধু "mirror the language" বলা ছিল — Haiku Banglish পেলেও
-      বাংলা হরফে ফিরত (৫ আগস্ট, মালিক ধরলেন)। এখন হরফটা server-ই ধরে দেয়
-      আর হুকুমটা সরাসরি; তবু ভুল হলে নিচে rescript() এক পাসে শুধরে নেয়।  */
+  /*  The first attempt only said "mirror the language" — and Haiku answered in
+      Bangla script even when the customer wrote Banglish (5 Aug, the owner
+      caught it). Now the server decides the script and the instruction is
+      blunt; if it still comes back wrong, rescript() below fixes it in one
+      pass.  */
   const langLine =
     lang === 'banglish'
       ? 'THE CUSTOMER IS WRITING ROMANISED BANGLISH. You MUST reply in Banglish using LATIN LETTERS ONLY (e.g. "Ji vai, amader kache..."). You are FORBIDDEN from using Bangla script (অ-ৎ) in this reply.'
@@ -161,8 +168,8 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     private readonly sender: ChannelSender,
   ) {}
 
-  /*  DEC-INB-008/009-এর ঘড়ি: প্রতি মিনিটে একবার দেখা — কোন thread-এ গ্রাহক
-      অপেক্ষায় আছে আর staff-এর জানালা পেরিয়ে গেছে।  */
+  /*  The clock behind DEC-INB-008/009: once a minute, look for a thread where
+      a customer is waiting and the staff window has passed.  */
   onModuleInit() {
     this.sweepTimer = setInterval(() => {
       void this.sweep().catch((e) =>
@@ -174,13 +181,13 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     if (this.sweepTimer) clearInterval(this.sweepTimer);
   }
 
-  /*  fire-and-forget — গ্রাহকের request এতে কখনো ভাঙে না।
+  /*  Fire-and-forget — a customer's request never breaks because of this.
 
-      DEC-INB-008 rev (মালিক, ৫ আগস্ট): "customer 1st sms-এ কখনোই ৩ মিনিট
-      wait করার মানে নেই।"
-        • কেউ Inbox-এ active নেই → AI **সাথে সাথে** উত্তর দেয়।
-        • Staff active → তাকে `staffGraceSec` (default ৩০ সে) আগে সুযোগ;
-          সে না লিখলে AI লেখে।  */
+      DEC-INB-008 rev (the owner, 5 Aug): a customer should never wait three
+      minutes for an answer to their first message.
+        - nobody active in the Inbox -> the AI answers IMMEDIATELY.
+        - a staff member active -> they get `staffGraceSec` (default 30s)
+          first, and the AI writes only if they do not.  */
   async respond(conversationId: string): Promise<void> {
     try {
       if (!this.presence.anyStaffActive()) {
@@ -196,8 +203,9 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
           ),
         );
       }, graceMs);
-      /*  respondInner নিজেই দেখে শেষ message এখনো গ্রাহকের কিনা — staff এর
-          মধ্যে লিখে ফেললে সে চুপচাপ ফিরে যায়। তাই দেরি-পথটা নিরাপদ।  */
+      /*  respondInner checks for itself whether the last message is still the
+          customer's — if a staff member got there first it returns quietly. So
+          the delayed path is safe.  */
     } catch (e) {
       this.logger.warn(
         `AI reply failed for ${conversationId}: ${e instanceof Error ? e.message : String(e)}`,
@@ -205,22 +213,27 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /* ═══════════════ sweeper — কেউ উত্তরহীন থাকবে না ═══════════════ */
+  /* ═════════════ sweeper — nobody is left without an answer ══════════════ */
 
-  /*  Safety net — deploy/restart-এ হারানো setTimeout, escalation-এর অপেক্ষার
-      লাইন, যেকোনো ফাঁক গলে পড়া thread: প্রতি মিনিটে একবার ঝাঁট।  */
+  /*  Safety net — a setTimeout lost to a deploy or restart, an escalation's
+      waiting line, any thread that slipped through a gap: swept once a
+      minute.  */
   private async sweep(): Promise<void> {
     const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
     if (!settings?.aiGloballyEnabled) return;
 
     const graceMs = Math.max(5, settings.staffGraceSec) * 1000;
     const cutoff = new Date(Date.now() - graceMs);
-    const floor = new Date(Date.now() - 24 * 60 * 60 * 1000); // পুরনো কবর খোঁড়া নয়
+    const floor = new Date(Date.now() - 24 * 60 * 60 * 1000); // not digging up old graves
 
     const candidates = await this.prisma.db.conversation.findMany({
       where: {
         deletedAt: null,
-        aiEnabled: true, // মালিকের hard-off সম্মানিত
+        /*
+          No longer filtered on aiEnabled — the owner removed the per-thread
+          switch on 1 Sep (see respondInner below). Kept as a comment rather
+          than a filter so the sweeper and the responder cannot disagree.
+        */
         status: ConversationStatus.OPEN,
         lastMessageAt: { lt: cutoff, gt: floor },
       },
@@ -239,7 +252,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /* ═══════════════ মূল উত্তর-যন্ত্র ═══════════════ */
+  /* ═══════════════════ the answering engine itself ═══════════════════════ */
 
   private async respondInner(conversationId: string): Promise<void> {
     const settings = await this.prisma.db.inboxSetting.findFirst({ where: { id: 'singleton' } });
@@ -257,11 +270,25 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
         },
       },
     });
-    if (!convo || !convo.aiEnabled) return;
+    /*
+      DEC-INB-011 (the owner, 1 Sep 2026) — THE AI SWITCH IS ONE SWITCH.
+      "akdom uporer off ar on sob jaygay auto kaj krbe alaadavabe jen na thake."
+
+      This used to also read `convo.aiEnabled`, the per-thread toggle from
+      DEC-INB-004. It is gone. A thread someone had quietly switched off months
+      ago would stay off forever after the global switch was turned on, and
+      nobody would know why that one customer never got an answer — the exact
+      shape of fault this project keeps paying for.
+
+      The column stays in the schema (nothing is destroyed) but nothing reads it
+      any more. `aiGloballyEnabled`, checked above, is the only authority. This
+      is house rule 15: if it is true about the SHOP, it is written once.
+    */
+    if (!convo) return;
 
     const ordered = [...convo.messages].reverse();
     const last = ordered[ordered.length - 1];
-    if (!last || last.direction !== 'IN') return; // উত্তর হয়ে গেছে / দেওয়ার কিছু নেই
+    if (!last || last.direction !== 'IN') return; // already answered, or nothing to answer
 
     const lang = detectLang(last.body);
     const lastStaffAt = [...ordered].reverse().find((m) => m.authorType === 'STAFF')?.createdAt;
@@ -269,9 +296,10 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
       convo.escalatedAt !== null &&
       (lastStaffAt === undefined || lastStaffAt < convo.escalatedAt);
 
-    /*  DEC-INB-009 — escalation ঝুলে আছে: টাকার আলাপে AI ঢোকে না, শুধু
-        অপেক্ষার লাইনটা বলে (গ্রাহকের হরফে), একবার। staff উত্তর দিলে
-        escalatedUnanswered মিথ্যা হয়ে যায়, থread স্বাভাবিক ধারায় ফেরে।  */
+    /*  DEC-INB-009 — an escalation is still open: the AI does not enter a
+        conversation about money, it only says the waiting line once, in the
+        customer's own script. Once a staff member answers,
+        escalatedUnanswered goes false and the thread returns to normal.  */
     if (escalatedUnanswered) {
       await this.say(conversationId, WAIT_LINE[lang], {
         kind: 'wait_line', lang, escalatedAt: convo.escalatedAt,
@@ -279,12 +307,13 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    /* ── টাকার keyword gate — model-এর আগে (INB-RULE-001) ────────────── */
+    /* ── the money keyword gate, ahead of the model (INB-RULE-001) ─────── */
     const lastLower = last.body.toLowerCase();
     if (MONEY_WORDS.some((w) => lastLower.includes(w))) {
       await this.escalate(conversationId, EscalationReason.MONEY_TOPIC, settings);
-      /*  DEC-INB-009 + মালিকের ৩০-সেকেন্ড নীতি: staff active থাকলে চুপ —
-          জানালাটা তার; না থাকলে গ্রাহককে এক্ষুনি ভরসার লাইনটা।  */
+      /*  DEC-INB-009 plus the owner's 30-second rule: if a staff member is
+          active, stay quiet — the window is theirs. If not, the customer gets
+          the reassuring line straight away.  */
       if (!this.presence.anyStaffActive()) {
         await this.say(conversationId, WAIT_LINE[lang], {
           kind: 'wait_line', lang, gate: 'keyword',
@@ -360,9 +389,10 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     if (!finalText.trim()) return;
     let reply = finalText.trim();
 
-    /*  হরফের safety net — Banglish চাওয়া সত্ত্বেও বাংলা হরফ বেরোলে এক পাসে
-        rescript। tool নেই, খরচ নগণ্য; ব্যর্থ হলে যা আছে তাই যায় (উত্তরহীনতার
-        চেয়ে ভুল হরফ কম খারাপ)।  */
+    /*  Script safety net — if Bangla letters come out despite Banglish being
+        asked for, rescript in one pass. No tools, negligible cost; if it fails
+        the original goes as it is, because the wrong script is less bad than no
+        answer at all.  */
     if (lang === 'banglish' && /[ঀ-৿]/.test(reply)) {
       try {
         const { turn } = await provider.chat({
@@ -375,7 +405,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
         });
         if (turn.text.trim() && !/[ঀ-৿]/.test(turn.text)) reply = turn.text.trim();
       } catch {
-        /* rescue ব্যর্থ — মূল উত্তরটাই যাক */
+        /* the rescue failed — let the original answer go */
       }
     }
 
@@ -426,8 +456,9 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** INB-RULE-005 — assignee-তালিকা, খালি হলে সব OWNER; thread OPEN-ই থাকে
-      (sweeper-এর নজরে), unread বাড়ে যাতে badge জ্বলে */
+  /** INB-RULE-005 — the assignee list, or every OWNER when it is empty. The
+      thread stays OPEN (so the sweeper keeps watching it) and unread goes up so
+      the badge lights. */
   private async escalate(
     conversationId: string,
     reason: EscalationReason,
