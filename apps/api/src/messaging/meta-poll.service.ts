@@ -62,11 +62,49 @@ interface MetaConversation {
   participants?: { data?: MetaParty[] };
 }
 
+interface MetaAttachment {
+  mime_type?: string;
+  name?: string;
+  file_url?: string;
+  image_data?: { url?: string; preview_url?: string };
+  video_data?: { url?: string; preview_url?: string };
+}
+
 interface MetaMessage {
   id: string;
   created_time?: string;
   message?: string;
   from?: MetaParty;
+  attachments?: { data?: MetaAttachment[] };
+}
+
+/*
+  An attachment becomes the same `[kind](url)` the webhook writes, so the admin
+  renders both paths identically and there is one shape to reason about.
+
+  Meta hands a shared Instagram post back as plain `image_data` exactly as it
+  does a photo (checked against a live message, 1 Sep), so the picture kinds all
+  come through here as `image`. A message with only an attachment has an empty
+  `message`, which is why polled photos used to arrive as nothing at all.
+*/
+function bodyOf(m: MetaMessage): string | null {
+  const text = m.message?.trim();
+  if (text) return text;
+
+  const a = m.attachments?.data?.[0];
+  if (!a) return null;
+
+  const image = a.image_data?.url || a.image_data?.preview_url;
+  if (image) return `[image](${image})`;
+
+  const video = a.video_data?.url || a.video_data?.preview_url;
+  if (video) return `[video](${video})`;
+
+  if (a.file_url) {
+    const kind = a.mime_type?.startsWith('audio/') ? 'audio' : 'file';
+    return `[${kind}](${a.file_url})`;
+  }
+  return null;
 }
 
 /** Everything that differs between the two channels, in one place. */
@@ -222,7 +260,7 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
       const detail = await this.get<{ messages?: { data?: MetaMessage[] } }>(
         setup,
         `/${c.id}?fields=${encodeURIComponent(
-          `messages.limit(${MESSAGES_PER_THREAD}){id,created_time,from,message}`,
+          `messages.limit(${MESSAGES_PER_THREAD}){id,created_time,from,message,attachments}`,
         )}`,
       );
       const messages = detail?.messages?.data ?? [];
@@ -231,7 +269,8 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
       for (const m of [...messages].reverse()) {
         const at = m.created_time ? new Date(m.created_time) : new Date();
         if (at.getTime() < since) continue;
-        if (!m.message?.trim() || !m.from?.id) continue;
+        const body = bodyOf(m);
+        if (!body || !m.from?.id) continue;
 
         const outbound = setup.ours.has(m.from.id);
         /*
@@ -250,7 +289,7 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
           // The name comes free here, which is the whole reason this works.
           peerName: nameOf(peer),
           mid: m.id,
-          body: m.message.trim(),
+          body,
           outbound,
           at,
         });

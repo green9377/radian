@@ -7394,9 +7394,6 @@ export const reopenInboxConversation = (id: string) =>
 export const assignInboxConversation = (id: string, assigneeId: string | null) =>
   j<ApiInboxDetail>(`/inbox/${id}/assign`, { method: "POST", body: JSON.stringify({ assigneeId }) });
 
-export const setInboxAi = (id: string, enabled: boolean) =>
-  j<ApiInboxDetail>(`/inbox/${id}/ai`, { method: "POST", body: JSON.stringify({ enabled }) });
-
 export const getInboxSettings = () => j<ApiInboxSetting>("/inbox/settings");
 
 export const updateInboxSettings = (dto: Partial<ApiInboxSetting>) =>
