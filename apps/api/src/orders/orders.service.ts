@@ -1721,13 +1721,29 @@ export class OrdersService {
     }
   }
 
+  /*
+    The prefix is per environment (owner, 1 Sep 2026). Both stacks can talk to
+    the SAME SSLCommerz merchant account, and the gateway's transaction id is
+    built from this number - so a settlement report with `RAD-73412` from the
+    live shop and `RAD-73412` from development in it cannot be reconciled by a
+    human. `ORDER_NO_PREFIX=DEV` on the development stack keeps the two
+    tellable apart at a glance, in the books and in support.
+
+    Unset means RAD, so production and every existing order are untouched.
+  */
+  private orderNoPrefix(): string {
+    const raw = (process.env.ORDER_NO_PREFIX ?? '').trim().toUpperCase();
+    return /^[A-Z]{2,6}$/.test(raw) ? raw : 'RAD';
+  }
+
   private async nextOrderNo(): Promise<string> {
+    const prefix = this.orderNoPrefix();
     for (let i = 0; i < 20; i++) {
       const n = 50000 + Math.floor(Math.random() * 49999);
-      const no = `RAD-${n}`;
+      const no = `${prefix}-${n}`;
       const dupe = await this.prisma.db.order.findFirst({ where: { orderNo: no }, select: { id: true } });
       if (!dupe) return no;
     }
-    return `RAD-${Date.now()}`;
+    return `${prefix}-${Date.now()}`;
   }
 }

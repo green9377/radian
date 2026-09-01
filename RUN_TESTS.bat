@@ -54,6 +54,8 @@ node apps\api\scripts\split-stores.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\discount-window.selftest.mjs
 if errorlevel 1 goto :ruleBroken
+node apps\api\scripts\outbound-guard.selftest.mjs
+if errorlevel 1 goto :ruleBroken
 goto :rulesOk
 
 :ruleBroken

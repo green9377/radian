@@ -1,6 +1,7 @@
 import { Injectable, Logger, Module } from '@nestjs/common';
 import { AdministrationModule } from '../administration/administration.module';
 import { IntegrationsService } from '../administration/integrations.service';
+import { OutboundGuard } from './outbound-guard';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -67,7 +68,10 @@ export interface SendResult {
 export class WhatsAppCloudService {
   private readonly log = new Logger('WhatsAppCloud');
 
-  constructor(private readonly integrations: IntegrationsService) {}
+  constructor(
+    private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
+  ) {}
 
   /** Admin first, env as fallback; null means the feature is simply off. */
   private async creds(): Promise<{ phoneId: string; token: string } | null> {
@@ -107,6 +111,16 @@ export class WhatsAppCloudService {
     if (!msisdn)
       return { ok: false, configured: true, error: `unusable phone: ${to}` };
 
+    /*  DOOR A. Last thing before the wire - see common/outbound-guard.ts.
+        Deliberately after msisdn(), so the guard sees the same number Meta
+        will, and deliberately not in any of the callers. */
+    const verdict = this.guard.check('WHATSAPP', msisdn, 'whatsapp');
+    if (!verdict.allowed)
+      return { ok: false, configured: true, error: `BLOCKED: ${verdict.reason}` };
+    const target = verdict.redirectTo
+      ? (this.msisdn(verdict.redirectTo) ?? msisdn)
+      : msisdn;
+
     try {
       const res = await fetch(`${GRAPH}/${c.phoneId}/messages`, {
         method: 'POST',
@@ -116,7 +130,7 @@ export class WhatsAppCloudService {
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: msisdn,
+          to: target,
           ...payload,
         }),
       });

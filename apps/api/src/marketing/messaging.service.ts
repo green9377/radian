@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
 import { IntegrationsService } from '../administration/integrations.service';
+import { OutboundGuard } from '../common/outbound-guard';
 
 /*
   EMAIL & SMS — MKT-D19.
@@ -44,6 +45,7 @@ export class MessagingService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
   ) {}
 
   /*
@@ -211,6 +213,33 @@ export class MessagingService {
     if (!conf.fromAddress) throw new BadRequestException('Set the address emails are sent from');
 
     const from = { name: conf.fromName ?? 'Radian', email: conf.fromAddress };
+
+    /*  DOOR C (email). Blocked is not thrown: a broadcast has to carry on past
+        one refused address, and the row below is the record that it happened.
+        common/outbound-guard.ts explains why this is here and not at the
+        callers. */
+    const emailVerdict = this.guard.check('EMAIL', input.to, 'email');
+    if (!emailVerdict.allowed) {
+      const blocked: SendResult = {
+        ok: false,
+        error: `BLOCKED: ${emailVerdict.reason}`,
+      };
+      await this.log({
+        channel: 'EMAIL',
+        to: input.to,
+        subject: input.subject,
+        body: input.html,
+        provider: conf.provider,
+        result: blocked,
+        customerId: input.customerId,
+        outreachId: input.outreachId,
+        broadcastId: input.broadcastId,
+        isTest: input.isTest,
+        actorName: input.actorName,
+      });
+      return blocked;
+    }
+
     let result: SendResult;
 
     try {
@@ -321,8 +350,34 @@ export class MessagingService {
     /*  Bangladeshi numbers reach the gateways as 8801XXXXXXXXX — no plus, no
         leading zero. Every gateway wants it that way and every one of them
         fails silently if it is wrong. */
-    const to = normaliseBd(input.to);
+    let to = normaliseBd(input.to);
     if (!to) throw new BadRequestException(`"${input.to}" does not look like a Bangladeshi mobile number`);
+
+    /*  DOOR C (SMS). After normaliseBd, so the guard judges the number the
+        gateway will actually dial. */
+    const smsVerdict = this.guard.check('SMS', to, 'sms');
+    if (!smsVerdict.allowed) {
+      const blocked: SendResult = {
+        ok: false,
+        error: `BLOCKED: ${smsVerdict.reason}`,
+      };
+      await this.log({
+        channel: 'SMS',
+        to,
+        body: input.text,
+        provider: conf.provider,
+        result: blocked,
+        customerId: input.customerId,
+        outreachId: input.outreachId,
+        broadcastId: input.broadcastId,
+        isTest: input.isTest,
+        actorName: input.actorName,
+      });
+      return blocked;
+    }
+    /*  Catch-all mode: every message really goes to one test number. The log
+        below then records where it actually went, not where it was aimed. */
+    if (smsVerdict.redirectTo) to = normaliseBd(smsVerdict.redirectTo) || to;
 
     let result: SendResult;
     try {

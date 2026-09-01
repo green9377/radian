@@ -126,6 +126,57 @@ the owner's own Drive; that folder must not be shared.
 
 ---
 
+## 4b. The outbound guard — who a build may message
+
+_Added 1 Sep 2026, first step of the DEV/PROD split._
+
+Development is **not** a sandbox here (owner's ruling): it holds the real SMS
+gateway, real WhatsApp credentials and real customers' phone numbers. So the
+guard does not switch messaging off. It says **who this stack may reach**.
+
+`common/outbound-guard.ts` sits inside the three doors that actually call a
+provider, immediately before the fetch:
+
+| door | file | covers |
+|---|---|---|
+| A | `common/whatsapp-cloud.ts` `sendRaw()` | every WhatsApp message |
+| B | `messaging/channel-sender.service.ts` `post()` | Messenger and Instagram |
+| C | `marketing/messaging.service.ts` `sendSms()` / `sendEmail()` | SMS and email |
+
+⚠️ **It is deliberately NOT at the callers.** OtpService, OrderMessagesService,
+the sweeper, the AI agent, the inbox Reply button and the admin's test button
+are callers, and a guard placed there is a guard the next caller forgets. At
+the door, a new caller inherits it. This is the ChannelSender lesson again.
+
+Four settings, all off unless set - so **an unset production stack behaves
+exactly as it did before this existed**:
+
+| setting | effect |
+|---|---|
+| `OUTBOUND_DISABLED=true` | everything stops. Also a button: `POST /administration/outbound/stop` |
+| `OUTBOUND_ALLOWLIST` | comma separated. **Empty means no restriction.** `01712…`, `8801712…` and `+8801712…` are one person |
+| `OUTBOUND_MAX_PER_HOUR` | ceiling per stack. `0`/unset = unlimited |
+| `OUTBOUND_REDIRECT_TO` | catch-all: every SMS/WhatsApp really goes to one test number instead of being blocked |
+
+A blocked SMS or email is written to `MessageLog` as `FAILED` with
+`BLOCKED: <reason>`; WhatsApp and Meta blocks return the same reason to their
+caller, which records it where that channel already keeps its record - rather
+than opening a second home for the same fact. `GET /administration/outbound`
+shows the rules in force and the last 50 blocks, with numbers masked.
+
+`node apps/api/scripts/outbound-guard.selftest.mjs` checks the decision AND
+reads the three sources to prove each still calls the guard **before** its
+fetch. Delete a guard and it fails. It runs in `BUILD_CHECK.bat` and
+`RUN_TESTS.bat`.
+
+### Order numbers carry the environment
+
+`ORDER_NO_PREFIX` (unset = `RAD`). Both stacks may use the same SSLCommerz
+merchant account and the gateway's transaction id is built from the order
+number - so without this a settlement report holds `RAD-73412` from the live
+shop and `RAD-73412` from development and nobody can tell them apart.
+Development sets `DEV`. Existing orders are untouched; only new ones change.
+
 ## 5. DNS — the fact that will bite
 
 `radianbd.com` is on Cloudflare (`pola` / `matteo.ns.cloudflare.com`).

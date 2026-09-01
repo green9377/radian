@@ -32,6 +32,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
+echo ==================================================
+echo   [0b/4] Outbound guard - every door still guarded...
+echo ==================================================
+call node scripts\outbound-guard.selftest.mjs
+if errorlevel 1 (
+  echo.
+  echo   *** A MESSAGE CAN LEAVE UNGUARDED. Fix before pushing. ***
+  echo.
+  pause
+  exit /b 1
+)
+
 REM  Phase 9 - the admin on a phone. Counts what is still desktop-only and
 REM  fails only if a file GAINS some. Nothing new may arrive while the old
 REM  325 are being swept.

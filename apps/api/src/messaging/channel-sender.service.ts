@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InboxChannel } from '@prisma/client';
 import { IntegrationsService } from '../administration/integrations.service';
 import { WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { OutboundGuard } from '../common/outbound-guard';
 
 /*
   One place that knows how to get a reply out to a customer, whatever channel
@@ -34,6 +35,7 @@ export class ChannelSender {
   constructor(
     private readonly wa: WhatsAppCloudService,
     private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
   ) {}
 
   async send(
@@ -97,6 +99,17 @@ export class ChannelSender {
     recipient: string,
     body: string,
   ): Promise<SendOutcome> {
+    /*  DOOR B, for Messenger and Instagram both - the two senders above meet
+        here, so one check covers them. `skipped` is deliberately NOT set: a
+        blocked message is a thing that happened and the person who pressed
+        Reply has to see why (common/outbound-guard.ts). */
+    const verdict = this.guard.check(
+      channel === InboxChannel.INSTAGRAM ? 'INSTAGRAM' : 'MESSENGER',
+      recipient,
+      'inbox reply',
+    );
+    if (!verdict.allowed) return { ok: false, error: `BLOCKED: ${verdict.reason}` };
+
     try {
       const res = await fetch(url, {
         method: 'POST',
