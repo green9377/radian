@@ -11,6 +11,13 @@
   TypeScript and this must run under plain node. The mirror check in PART 3
   fails if the source moves and this file does not.
 
+  PART 1 also covers the fail-safe: off the live stack, an EMPTY allowlist
+  blocks everything rather than allowing everything (owner, 1 Sep 2026).
+
+  ⚠️ The runtime half lives in src/common/outbound-guard.spec.ts, which builds
+  the real services and proves nothing reaches the wire. This file is the
+  cheap gate; that one is the proof.
+
   PART 2 — THE DOORS. This is the half that matters in a year. It reads the
   three source files and proves that each one calls the guard BEFORE it calls
   fetch. A fourth door, or a guard quietly deleted, fails here - which is the
@@ -49,6 +56,9 @@ function normaliseRecipient(raw) {
   return digits;
 }
 
+const isLiveStack = (env) =>
+  ['live', 'prod', 'production'].includes(String(env.STACK ?? '').toLowerCase());
+
 function makeGuard(env) {
   let sent = [];
   const list = (env.OUTBOUND_ALLOWLIST ?? '')
@@ -59,6 +69,11 @@ function makeGuard(env) {
     const who = normaliseRecipient(recipient);
     if (String(env.OUTBOUND_DISABLED ?? '').toLowerCase() === 'true')
       return { allowed: false, reason: 'kill' };
+    /*  The fail-safe. An empty list means "everyone" ONLY on the live stack;
+        anywhere else it means nobody, so a forgotten variable cannot turn a
+        development build loose on real customers. */
+    if (!list.length && !isLiveStack(env))
+      return { allowed: false, reason: 'unconfigured' };
     if (list.length && !list.includes(who))
       return { allowed: false, reason: 'allowlist' };
     if (cap) {
@@ -73,16 +88,28 @@ function makeGuard(env) {
 
 console.log('\nOUTBOUND GUARD — the decision\n');
 
-/* Production: nothing set. Nothing may change for the live shop. */
+/* The live stack with nothing set. Nothing may change for the live shop. */
+{
+  const g = makeGuard({ STACK: 'live' });
+  check('live stack, no settings: everything goes through',
+    g('01712345678').allowed && g('anyone@example.com').allowed && g('4839201').allowed);
+}
+
+/* THE FAIL-SAFE. A development stack with a forgotten allowlist sends nothing. */
+{
+  const g = makeGuard({ STACK: 'dev' });
+  check('dev stack with NO allowlist blocks everything',
+    !g('01712345678').allowed && !g('anyone@example.com').allowed);
+}
 {
   const g = makeGuard({});
-  check('production (no settings) lets everything through',
-    g('01712345678').allowed && g('anyone@example.com').allowed && g('4839201').allowed);
+  check('an UNSET stack is treated as development, not as live',
+    !g('01712345678').allowed);
 }
 
 /* The allowlist. */
 {
-  const g = makeGuard({ OUTBOUND_ALLOWLIST: '01712345678, sobuj@example.com' });
+  const g = makeGuard({ STACK: 'dev', OUTBOUND_ALLOWLIST: '01712345678, sobuj@example.com' });
   check('allowlisted number passes', g('01712345678').allowed);
   check('the same number written +8801… passes', g('+8801712345678').allowed);
   check('the same number written 8801… passes', g('8801712345678').allowed);
@@ -94,13 +121,13 @@ console.log('\nOUTBOUND GUARD — the decision\n');
 
 /* The kill switch beats everything, including the allowlist. */
 {
-  const g = makeGuard({ OUTBOUND_DISABLED: 'true', OUTBOUND_ALLOWLIST: '01712345678' });
+  const g = makeGuard({ STACK: 'live', OUTBOUND_DISABLED: 'true', OUTBOUND_ALLOWLIST: '01712345678' });
   check('kill switch blocks even an allowlisted number', !g('01712345678').allowed);
 }
 
 /* The hourly ceiling. */
 {
-  const g = makeGuard({ OUTBOUND_MAX_PER_HOUR: '3' });
+  const g = makeGuard({ STACK: 'live', OUTBOUND_MAX_PER_HOUR: '3' });
   const seen = [g('01712345678'), g('01712345678'), g('01712345678'), g('01712345678')];
   check('first three go, the fourth is stopped',
     seen[0].allowed && seen[1].allowed && seen[2].allowed && !seen[3].allowed);
@@ -108,7 +135,7 @@ console.log('\nOUTBOUND GUARD — the decision\n');
 
 /* Catch-all. */
 {
-  const g = makeGuard({ OUTBOUND_REDIRECT_TO: '01700000000' });
+  const g = makeGuard({ STACK: 'live', OUTBOUND_REDIRECT_TO: '01700000000' });
   const v = g('01911223344');
   check('catch-all allows but redirects the number', v.allowed && v.redirectTo === '01700000000');
   check('catch-all leaves email alone', !g('a@b.com').redirectTo);
@@ -173,6 +200,7 @@ console.log('\nOUTBOUND GUARD — mirror of the source\n');
 
 const guardSrc = readFileSync(join(SRC, 'common', 'outbound-guard.ts'), 'utf8');
 const mirrored = [
+  'STACK',
   'OUTBOUND_DISABLED',
   'OUTBOUND_ALLOWLIST',
   'OUTBOUND_MAX_PER_HOUR',
@@ -182,9 +210,15 @@ for (const key of mirrored) {
   check(`source still reads ${key}`, guardSrc.includes(key),
     'this test mirrors the source by hand — change one, change both');
 }
-check('an empty allowlist still means no restriction',
-  guardSrc.includes('allow.length &&'),
-  'production behaviour depends on this staying true');
+check('the source still asks whether this is the live stack',
+  guardSrc.includes('isLiveStack'),
+  'the fail-safe depends on this');
+check('an empty allowlist is still refused off the live stack',
+  guardSrc.includes('!allow.length && !this.isLiveStack()'),
+  'this one line is what stops a forgotten variable from reaching customers');
+check('the persistent trail is still written',
+  guardSrc.includes('this.audit?.event'),
+  'a block that is not written down is a block nobody can review');
 
 /* ════════════════ verdict ════════════════ */
 

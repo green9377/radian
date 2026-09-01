@@ -78,7 +78,12 @@ async function main() {
     else if (TEST_WORDS.test(e.narration ?? '')) { verdict = 'PRACTICE'; why = 'the narration says so'; }
     else if (e.sourceType === 'OPENING') { verdict = 'OPENING'; why = 'the go-live opening balance'; }
     else if (e.sourceType === 'ORDER' || e.sourceType === 'PAYMENT') {
-      const mentioned = /\b(RAD-[A-Z0-9-]+)\b/.exec(e.narration ?? '')?.[1];
+      /*  The prefix is per environment now (ORDER_NO_PREFIX), so this must not
+          look for RAD. Hardcoding it made every DEV- order's entry read
+          "points at an order that is not there any more" - a wrong verdict on
+          a real entry. The real test is the next line: the number has to be
+          one of THIS shop's order numbers. */
+      const mentioned = /\b([A-Z]{2,6}-[A-Z0-9-]+)\b/.exec(e.narration ?? '')?.[1];
       if (mentioned && orderNos.has(mentioned)) { verdict = 'LOOKS REAL'; why = `backed by order ${mentioned}`; }
       else { verdict = 'PRACTICE'; why = 'points at an order that is not there any more'; }
     } else if (e.isManual) { verdict = 'UNCLEAR'; why = 'entered by hand — only you can say'; }

@@ -56,6 +56,10 @@ node apps\api\scripts\discount-window.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\outbound-guard.selftest.mjs
 if errorlevel 1 goto :ruleBroken
+pushd apps\api
+call npx jest src/common/outbound-guard.spec.ts --silent
+if errorlevel 1 (popd & goto :ruleBroken)
+popd
 goto :rulesOk
 
 :ruleBroken

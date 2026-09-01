@@ -1,4 +1,6 @@
-import { Controller, Get, Injectable, Logger, Post } from '@nestjs/common';
+import { Controller, Get, Injectable, Logger, Optional, Post } from '@nestjs/common';
+import { ActivityKind } from '@prisma/client';
+import { AuditService } from './audit.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -30,15 +32,27 @@ import { Controller, Get, Injectable, Logger, Post } from '@nestjs/common';
   ── HOW IT DECIDES ──────────────────────────────────────────────────────────
     1. kill switch  - OUTBOUND_DISABLED=true, or the runtime switch below,
                       stops everything at once and without a deploy
-    2. allowlist    - OUTBOUND_ALLOWLIST, comma separated. EMPTY MEANS NO
-                      RESTRICTION, which is what keeps production unchanged
-    3. rate limit   - OUTBOUND_MAX_PER_HOUR. 0 or unset means unlimited, again
-                      so that production behaviour does not change
+    2. allowlist    - OUTBOUND_ALLOWLIST, comma separated. What an EMPTY list
+                      means depends on the stack, and that is the whole point
+                      of the next paragraph
+    3. rate limit   - OUTBOUND_MAX_PER_HOUR. 0 or unset means unlimited
     4. redirect     - OUTBOUND_REDIRECT_TO sends everything to one test
                       number instead of blocking it. Off unless set
 
-  Nothing here is on by default. A production stack that sets none of these
-  behaves exactly as it did before this file existed.
+  ── AN EMPTY ALLOWLIST IS NOT THE SAME ANSWER IN BOTH STACKS ────────────────
+  (owner, 1 Sep 2026.) On the LIVE stack an empty list means "no restriction" -
+  the shop must be able to message its customers, and that is the behaviour
+  that existed before this file.
+
+  Anywhere else an empty list means **BLOCK EVERYTHING**. A development stack
+  must never become unrestricted because somebody forgot to fill a variable in,
+  or copied an env file, or a deploy dropped it. Forgetting must fail towards
+  silence, not towards thirty real customers.
+
+  "Live" is `STACK=live` (or prod/production). Anything else, INCLUDING AN
+  UNSET STACK, is treated as development. A live shop that forgets to set STACK
+  therefore goes quiet and somebody notices within minutes; the opposite
+  mistake cannot be undone.
 */
 
 export type OutboundChannel =
@@ -97,6 +111,11 @@ export function maskRecipient(raw: string): string {
 export class OutboundGuard {
   private readonly log = new Logger('OutboundGuard');
 
+  /*  Optional on purpose: the guard has to work in a unit test and at startup
+      before anything else is ready. Without it the block is still logged and
+      still returned - it simply is not written down.  */
+  constructor(@Optional() private readonly audit?: AuditService) {}
+
   /** Flipped from the admin. Env is the floor; this can only tighten. */
   private runtimeKill = false;
 
@@ -125,6 +144,12 @@ export class OutboundGuard {
     return this.runtimeKill || this.env('OUTBOUND_DISABLED').toLowerCase() === 'true';
   }
 
+  /** Only a stack that says it is live gets "empty means everyone". */
+  private isLiveStack(): boolean {
+    const s = this.env('STACK').toLowerCase();
+    return s === 'live' || s === 'prod' || s === 'production';
+  }
+
   /**
    * The whole decision. Call it immediately before the provider call, never
    * earlier - anything between the check and the fetch is a gap.
@@ -141,6 +166,14 @@ export class OutboundGuard {
     }
 
     const allow = this.allowlist();
+    if (!allow.length && !this.isLiveStack()) {
+      return this.deny(
+        channel,
+        who,
+        purpose,
+        'this is not the live stack and no OUTBOUND_ALLOWLIST is set, so nothing may be messaged from it',
+      );
+    }
     if (allow.length && !allow.includes(who)) {
       return this.deny(
         channel,
@@ -188,6 +221,25 @@ export class OutboundGuard {
     };
     this.notes.unshift(note);
     if (this.notes.length > KEEP_NOTES) this.notes.length = KEEP_NOTES;
+
+    /*  PERSISTENT TRAIL. The in-memory list above dies with the process, and
+        "which messages did development stop last week" is a real question.
+        ActivityEvent already exists for exactly this - a free-text timeline
+        with a `system` kind - so this needs no new table and no migration, and
+        it survives a restart and is shared by every container.
+
+        Fired and forgotten: the decision is synchronous because all three
+        doors call it that way, and AuditService.event() already swallows its
+        own failures. A trail that cannot be written must never stop a block
+        from being applied.  */
+    void this.audit?.event({
+      entityType: 'OutboundGuard',
+      entityId: channel,
+      kind: ActivityKind.system,
+      label: `Blocked ${channel} to ${note.recipient}`,
+      actorName: 'OutboundGuard',
+      note: `${reason} · purpose=${purpose}`,
+    });
     /* Loud on purpose. A message that does not arrive and says nothing is the
        failure this whole file is here to prevent. */
     this.log.warn(
@@ -203,9 +255,14 @@ export class OutboundGuard {
     return {
       killSwitch: this.killed(),
       killSwitchFromEnv: this.env('OUTBOUND_DISABLED').toLowerCase() === 'true',
+      stack: this.env('STACK') || '(unset)',
+      liveStack: this.isLiveStack(),
       allowlistCount: allow.length,
       allowlist: allow.map(maskRecipient),
-      restricted: allow.length > 0,
+      /*  What an empty list means here, said out loud, because it is the one
+          thing somebody reading this screen must not have to guess.  */
+      restricted: allow.length > 0 || !this.isLiveStack(),
+      emptyAllowlistMeans: this.isLiveStack() ? 'everyone (live stack)' : 'nobody (not the live stack)',
       maxPerHour: this.maxPerHour(),
       sentLastHour: this.sent.filter((t) => t > cut).length,
       redirectTo: this.env('OUTBOUND_REDIRECT_TO') ? maskRecipient(this.env('OUTBOUND_REDIRECT_TO')) : null,

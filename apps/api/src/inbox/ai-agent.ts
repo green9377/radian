@@ -88,7 +88,7 @@ const TOOLS: AiToolDef[] = [
   },
   {
     name: 'order_status',
-    description: 'Look up order(s) by order number (RAD-xxxxx) or customer phone. Read-only.',
+    description: 'Look up order(s) by order number (RAD-xxxxx, DEV-xxxxx or POS-xxxxxx) or customer phone. Read-only.',
     parameters: {
       type: 'object',
       properties: {

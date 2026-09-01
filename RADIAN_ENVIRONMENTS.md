@@ -148,13 +148,20 @@ the sweeper, the AI agent, the inbox Reply button and the admin's test button
 are callers, and a guard placed there is a guard the next caller forgets. At
 the door, a new caller inherits it. This is the ChannelSender lesson again.
 
-Four settings, all off unless set - so **an unset production stack behaves
-exactly as it did before this existed**:
+⚠️ **An empty allowlist is not the same answer in both stacks.** On `STACK=live`
+it means *everyone* — the shop must be able to reach its customers, which is the
+behaviour that existed before the guard. **Anywhere else, including an unset
+STACK, it means nobody.** A development build must never become unrestricted
+because a variable was forgotten, an env file was copied, or a deploy dropped a
+line. A live shop that loses `STACK` goes quiet and somebody notices within
+minutes; the opposite mistake cannot be undone.
+
+Four settings:
 
 | setting | effect |
 |---|---|
 | `OUTBOUND_DISABLED=true` | everything stops. Also a button: `POST /administration/outbound/stop` |
-| `OUTBOUND_ALLOWLIST` | comma separated. **Empty means no restriction.** `01712…`, `8801712…` and `+8801712…` are one person |
+| `OUTBOUND_ALLOWLIST` | comma separated. `01712…`, `8801712…` and `+8801712…` are one person. **What an empty list means depends on the stack — see below** |
 | `OUTBOUND_MAX_PER_HOUR` | ceiling per stack. `0`/unset = unlimited |
 | `OUTBOUND_REDIRECT_TO` | catch-all: every SMS/WhatsApp really goes to one test number instead of being blocked |
 
@@ -164,10 +171,27 @@ caller, which records it where that channel already keeps its record - rather
 than opening a second home for the same fact. `GET /administration/outbound`
 shows the rules in force and the last 50 blocks, with numbers masked.
 
-`node apps/api/scripts/outbound-guard.selftest.mjs` checks the decision AND
-reads the three sources to prove each still calls the guard **before** its
-fetch. Delete a guard and it fails. It runs in `BUILD_CHECK.bat` and
-`RUN_TESTS.bat`.
+Every block is also written to **`ActivityEvent`** (`entityType='OutboundGuard'`,
+kind `system`) — a persistent trail that survives a restart and is shared by
+every container, using a table that already exists rather than a migration.
+
+⚠️ **The runtime kill switch is memory only.** `POST /administration/outbound/stop`
+holds until the API restarts, and a redeploy or a crash silently turns it back
+OFF. For a stop that must survive, set `OUTBOUND_DISABLED=true` in the env file.
+Today there is one API container, so the two never disagree; a second container
+would each hold their own.
+
+**Two tests, and they check different things.**
+`apps/api/scripts/outbound-guard.selftest.mjs` is the cheap gate: it mirrors the
+decision and reads the three sources to prove each still calls the guard
+**before** its fetch — delete one and it fails. It runs in `BUILD_CHECK.bat`
+and `RUN_TESTS.bat`.
+
+`apps/api/src/common/outbound-guard.spec.ts` is the proof: it builds the REAL
+services (OTP, order messages, inbox sender, admin SMS/email), replaces
+`global.fetch` with a recorder, and asks the only question that matters — did
+anything reach the wire? 18 cases, no network, no database, no customer.
+`npx jest src/common/outbound-guard.spec.ts`.
 
 ### Order numbers carry the environment
 
