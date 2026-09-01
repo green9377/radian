@@ -569,6 +569,63 @@ count, not a substitute for it.
 
 ---
 
+## ✅ STOCK DRIFT — 1 Sep. A sales return put goods back on the shelf and never told the books.
+
+Taking **−৳4,097.01** apart turned it into named pieces instead of a mystery:
+
+```
+books 1150                103,244.81
+sum(movement valuePaisa)  106,965.45   <- what the stock ledger says it cost
+qty × CURRENT cost        107,341.82   <- what the checker compares against
+```
+
+So **৳3,720.64 was real** (movements the books never received) and **৳376.37 was
+pure revaluation** — item costs edited after receipt, where no money ever moved.
+Two different things that the one number had been hiding.
+
+Then, per source:
+
+```
+1150 by source    INVENTORY +92,885.60   ORDER −4,345.00   PURCHASE +14,704.21
+RETURN lines on 1150                     0.  Not one, ever.
+COGS 5000 by source                      ORDER only, +4,385 — never reduced
+```
+
+### The cause, in one line
+
+**Inventory writes the movement with `refType: 'SALE_RETURN'`. Finance looked
+for `refType: 'RETURN'`.**
+
+It found nothing every single time and posted nothing — silently, because zero
+rows is not an error. The Returns module reads the same movements correctly, so
+the shelf was always right; only the books were never told. 16 movements worth
+**৳3,560** of stock came back: inventory light by that much, COGS heavy by that
+much, **profit understated**.
+
+Two doors to one fact, one of them silent — the shape
+`RADIAN_PHASE7_DIRECTION.md` §4 warns about, found again.
+
+### Fixed and walked
+
+- the lookup accepts both spellings, so nothing already written is stranded
+- `POST finance/backfill/return-restock` replays every completed return,
+  idempotent on `sourceKey` (DEC-FIN-023)
+
+```
+backfill live   {"found":17, "posted":15, "alreadyPosted":0, "restockedPaisa":356000}
+stock-value     books 103,244.81 → 106,804.81      diff −4,097.01 → −537.01
+```
+
+Two of the seventeen had no goods coming back (credit only), which is why 15.
+
+⚠️ **−৳537.01 remains** and is still graded *wrong* only because the threshold is
+৳500. Most of it is the revaluation, which is not drift at all — **the checker
+compares stock at TODAY's cost against books holding the cost at the time of
+each movement.** That is the next honest fix: value the check at moved-in cost
+and report revaluation separately, rather than calling it drift.
+
+---
+
 ## ✅ THE DRIFT CHECKER IS FIXED — 1 Sep. It was the yardstick, as suspected.
 
 The board has said since 31 Aug: *do not chase supplier drift until this is
