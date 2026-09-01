@@ -143,11 +143,27 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  private lastNameSweep = 0;
+
   private async tick() {
     if (this.running) return;
     this.running = true;
     try {
       await this.syncAll();
+
+      /*
+        The net under the net. Every ten minutes, make sure no thread is still
+        reading "Guest" — two API calls, and it repairs whatever the live path
+        missed without anyone pressing a button.
+
+        This exists because the same fault came back twice: the backfill fixed
+        the old threads and every NEW one still arrived nameless. A repair that
+        only runs when someone remembers to run it is not a repair.
+      */
+      if (Date.now() - this.lastNameSweep > 10 * 60_000) {
+        this.lastNameSweep = Date.now();
+        await this.backfillNames();
+      }
     } catch (e) {
       this.log.warn(`tick failed: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -207,7 +223,10 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
       }
 
       out[setup.channel] = { looked: rows.length, named };
-      this.log.log(`name backfill — ${setup.channel}: ${rows.length} threads at Meta, named ${named}`);
+      // Silent when there is nothing to fix — this now runs on its own.
+      if (named > 0) {
+        this.log.log(`name backfill — ${setup.channel}: named ${named} of ${rows.length} threads`);
+      }
     }
 
     if (!Object.keys(out).length) return { ran: false, reason: 'No Meta channel is connected', out };
