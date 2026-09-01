@@ -318,7 +318,14 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
    */
   private async supplierDues(books: number): Promise<DriftCheck> {
     const [suppliers, purchases, payments, adjustments] = await Promise.all([
-      this.prisma.db.supplier.findMany({ select: { id: true, name: true, openingDuePaisa: true } }),
+      /*
+        The RAW client, not `db`: a credit note can sit against a supplier that
+        has since been soft-deleted, and the deleted row still owes the advice
+        line a name. Reading it filtered printed a cuid at the owner instead
+        (walked 1 Sep). Only `name` is used from a deleted row — the money
+        below still comes from the adjustment itself.
+      */
+      this.prisma.supplier.findMany({ select: { id: true, name: true, openingDuePaisa: true, deletedAt: true } }),
       this.prisma.db.purchase.findMany({
         select: {
           supplierId: true,
@@ -343,7 +350,9 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
     const add = (key: string, paisa: number) =>
       balance.set(key, (balance.get(key) ?? 0) + paisa);
 
-    for (const s of suppliers) if (s.openingDuePaisa) add(s.id, s.openingDuePaisa);
+    for (const s of suppliers) {
+      if (s.openingDuePaisa && !s.deletedAt) add(s.id, s.openingDuePaisa);
+    }
 
     // an allocation with no purchaseId is a payment against the opening due
     for (const p of payments) {
@@ -364,12 +373,13 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
     let real = 0;
     let advancePaisa = 0;
     const credits: string[] = [];
-    const nameOf = new Map(suppliers.map((s) => [s.id, s.name]));
+    const nameOf = new Map(suppliers.map((s) => [s.id, s] as const));
     for (const [key, paisa] of balance) {
       if (paisa > 0) real += paisa;
       else if (paisa < 0) {
         advancePaisa += -paisa;
-        credits.push(`${nameOf.get(key) ?? key} ${taka(-paisa)}`);
+        const who = nameOf.get(key);
+        credits.push(`${who ? who.name : key}${who?.deletedAt ? ' (deleted)' : ''} ${taka(-paisa)}`);
       }
     }
 
