@@ -7741,10 +7741,12 @@ model EscalationEvent {
 model InboxSetting {
   id String @id @default("singleton")
 
-  /// The Phase 2 kill switch. There is no AI in Phase 1, so false is the truth.
+  /// DEC-INB-011 (owner, 1 Sep 2026) - THE ONLY AI SWITCH. Off here is off
+  /// everywhere, on here is on everywhere. `aiDefaultForNew` (DEC-INB-004)
+  /// lived beside it and died with the per-thread toggle: it seeded a
+  /// Conversation.aiEnabled that nothing reads any more. Dropped rather than
+  /// left on the settings screen doing nothing.
   aiGloballyEnabled Boolean @default(false)
-  /// DEC-INB-004 - the AI's starting state on a new thread.
-  aiDefaultForNew   Boolean @default(true)
 
   /// The owner's ruling (5 August): built for two providers, Anthropic for
   /// now. "ANTHROPIC" | "OPENAI" - the key lives in env

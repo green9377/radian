@@ -91,7 +91,6 @@ interface ReplyDto {
 }
 interface SettingsDto {
   aiGloballyEnabled?: boolean;
-  aiDefaultForNew?: boolean;
   aiProvider?: 'ANTHROPIC' | 'OPENAI';
   aiModel?: string;
   staffGraceSec?: number;
@@ -129,7 +128,6 @@ export class InboxService {
       where: { id: s.id },
       data: {
         aiGloballyEnabled: dto.aiGloballyEnabled,
-        aiDefaultForNew: dto.aiDefaultForNew,
         aiProvider: dto.aiProvider,
         aiModel: dto.aiModel,
         staffGraceSec: dto.staffGraceSec,
@@ -163,13 +161,18 @@ export class InboxService {
       ? await this.prisma.db.customer.findFirst({ where: { phone }, select: { id: true, name: true } })
       : null;
 
+    /*  DEC-INB-011 (owner, 1 Sep 2026) — ONE AI switch, and it is the global
+        one. `aiDefaultForNew` used to seed this row's own `aiEnabled`, which
+        nothing has read since the per-thread toggle was withdrawn: a setting
+        that could only ever write a value no code would look at. Removed
+        rather than left half-alive — a dead switch on a settings screen is a
+        promise the system does not keep.  */
     const convo = await this.prisma.db.conversation.create({
       data: {
         channel: InboxChannel.WEB_CHAT,
         guestName: dto.name?.trim() || null,
         guestPhone: phone,
         customerId: customer?.id ?? null,
-        aiEnabled: s.aiDefaultForNew,
       },
     });
 
