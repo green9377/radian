@@ -326,7 +326,16 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
         below still comes from the adjustment itself.
       */
       this.prisma.supplier.findMany({ select: { id: true, name: true, openingDuePaisa: true, deletedAt: true } }),
+      /*
+        RECEIVED only. Finance creates the payable in `onPurchaseReceived` — a
+        bill still ORDERED or ADVANCE_PAID is a commitment, not a debt, and the
+        money paid on it sits in 1200 Supplier Advance until the goods arrive
+        (DEC-PUR / P7-17). Counting those here made the register claim ৳500 was
+        owed on PUR-000012, which the books rightly knew nothing about, and the
+        difference was blamed on the books (walked 1 Sep).
+      */
       this.prisma.db.purchase.findMany({
+        where: { status: 'RECEIVED' },
         select: {
           supplierId: true,
           grandTotalPaisa: true,
