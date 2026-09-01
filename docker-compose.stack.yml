@@ -40,12 +40,18 @@ services:
     # base backup in ./backups/base, the books can be restored to ANY moment,
     # not just to last night.
     #
+    # ⚠️ The segments are GZIPPED on the way out. A WAL segment is 16MB whether
+    # or not anything happened in it, and archive_timeout closes one every
+    # minute - uncompressed that is 4.6GB a day of mostly zeroes, measured.
+    # Compressed, an idle minute costs a few KB. Restoring needs
+    # `gunzip -c %f.gz > %p` as the restore_command.
+    #
     # ⚠️ If the archive command ever fails, Postgres keeps the segments and the
-    # disk fills. The folder must exist and stay writable.
+    # disk fills. The folder must exist, stay writable, and be owned by uid 70.
     command: >
       postgres
       -c archive_mode=on
-      -c archive_command='test ! -f /backups/wal/%f && cp %p /backups/wal/%f'
+      -c archive_command='test ! -f /backups/wal/%f.gz && gzip -c %p > /backups/wal/%f.gz'
       -c archive_timeout=60
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
