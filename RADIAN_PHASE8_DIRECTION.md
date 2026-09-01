@@ -107,24 +107,40 @@ everything else: ok
 
 ## 5. What is on the table for Phase 8
 
-Nothing here is chosen. **Ask the owner first** — this is a menu, not a plan.
+### ✅ The engineering side is CLOSED — 1 Sep evening
 
-### Blocking "clear", and small
+Everything on this list that was ours to do is done, deployed and walked on the
+live system. Full account in `RADIAN_PENDING.md`; in one screen:
 
-1. **The owner posts opening balances.** Finance → Money accounts → *Post
-   opening balances*, with the real cash / bKash / bank counts. It is the last
-   `wrong` on the drift board and nobody else can invent those numbers.
-2. **The ৳430, waiting on ONE decision.** It is two faults pulling opposite
-   ways, both measured per bill (PENDING has the table):
-   - **+৳1,070** advances never released against bills that have since been
-     RECEIVED — a straight fix, no decision needed.
-   - **−৳1,500** two supplier payments (`SPY-000001` ৳500 Ajgor,
-     `SPY-000002` ৳1,000 Apu) allocated to **nothing at all**, reducing the
-     payable. Standard treatment: an unallocated payment is an **advance we are
-     holding** (1200), not less payable. **That moves real money between
-     accounts, so ask before touching it.**
-3. **`aiDefaultForNew` is a dead setting** since DEC-INB-011 — it should either
-   drive something or go. Half-removed is the worst of the three.
+```
+supplier-dues  −৳430.00  →  ok, 0    books ৳4,480 = the purchase register
+stock-value    −৳160.64  →  ok, 0    1150 = the stock ledger, to the paisa
+negative-money −৳5,772.95   wrong    ← the owner's, and only his to close
+everything else                ok
+```
+
+- **P8-1** a replacement's goods left the shop costing nothing (৳405.15)
+- **P8-2** ৳1,070 of advances that could never come out of 1200
+- **P8-3** goods from a half-received bill were invisible → **2050 Goods
+  Received, Not Billed**, and half-received is now a state the books describe
+- **P8-4** stock booked at the bill total, not at what the goods cost (৳334.21)
+- **P8-5** ৳1,500 paid to suppliers against no bill discharged the payable
+- **DEC-INB-011 finished** — `aiDefaultForNew` is gone: DTO, settings write,
+  admin type, schema, migration. A dead switch on a settings screen is a
+  promise the system does not keep
+- **the live path walked too** — `PUR-000015`, a real bill in two deliveries,
+  drift `ok · 0` at every step (not just the backfill: the next bill too)
+
+### What is left in Phase 8 is the OWNER'S, and he has said he will do it later
+
+1. **Opening balances.** Finance → Money accounts → *Post opening balances*.
+   `1000 Cash Drawer` reads **−৳5,472.95** and `1030 Other Wallet` **−৳300**
+   because the shop's day-one money was never recorded. Nobody else can invent
+   those numbers.
+2. **The SSLCommerz live key** — the only thing still in sandbox.
+3. **`WHATSAPP_*` and `RESEND_API_KEY`** — never set anywhere. Without them a
+   customer gets no order message at all.
+4. **The real catalogue, stock, suppliers and staff.**
 
 ### The owner's own next list
 

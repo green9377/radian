@@ -204,6 +204,29 @@ move) and the shelf went to 39 stems. **0 posting failures.**
 stems are really on the shelf and the ৳40 really left the drawer, so reversing
 it would write a refund that never happened.
 
+### ✅ DEC-INB-011 finished — the last dead switch is gone
+
+`InboxSetting.aiDefaultForNew` seeded `Conversation.aiEnabled` on a new thread.
+The per-thread toggle was withdrawn this morning, so nothing has read that
+column since: the setting could only ever write a value no code would look at,
+while still sitting on the settings screen looking like it did something.
+
+Gone from the DTO, the settings write, the admin type and the schema, with
+migration `20260901160000_drop_ai_default_for_new`. `Conversation.aiEnabled`
+stays — nothing is destroyed, and it is the record of what a thread was once
+set to.
+
+**Walked:** migration applied on the live database (the column is not in
+`information_schema` any more), and `POST /shop/chat/start` — the one path that
+read the setting — opened a new conversation normally. That test thread was
+soft-deleted afterwards so it does not sit in the owner's inbox.
+
+⚠️ The local Prisma client could NOT be regenerated here (this sandbox cannot
+reach `binaries.prisma.sh`), so `node_modules/.prisma` still carries the old
+field. Harmless — nothing references it and `tsc` is green on api and admin —
+but the API image runs `prisma generate` itself at build time, which is what
+the live system runs on. Worth knowing before someone trusts the local client.
+
 ### ⚠️ What happened to the machine in the middle of this
 
 Mid-session `/root/apps/radian` moved to the `two-stacks` branch, the `*_prod`
