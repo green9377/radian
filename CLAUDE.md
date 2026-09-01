@@ -3,17 +3,22 @@
 > ## 📌 READ `RADIAN_GOLDEN_RULES.md` FIRST
 >
 > `RADIAN_GOLDEN_RULES.md` in the repository root is the **permanent
-> engineering decision framework** for Radian (owner, 1 Sep 2026). Read it and
+> engineering decision framework** for Radian (owner, 2 Sep 2026). Read it and
 > follow it before proposing or implementing anything — architecture, code,
 > integrations, testing, data, deployment, security, production readiness.
 >
 > It carries, among others: DEV is a full rehearsal for Production · no feature
-> is removed just because the environment is DEV · real technology, real
-> workflow, controlled target · DEV and PROD are isolated · DEV must pass
-> before PROD · Production is never the testing ground · an environment
-> mismatch protects itself · end-to-end verification · no hidden production
-> surprises · architecture before code · approval before a significant
-> architectural, security or production change.
+> is removed just because the environment is DEV · real technology and real
+> workflow, with real customers protected from ACCIDENTAL contact — and the
+> mechanism for that protection is still an OPEN DESIGN DECISION · DEV and PROD
+> are isolated · DEV must pass before PROD · Production is never the testing
+> ground · an environment mismatch protects itself · end-to-end verification ·
+> no hidden production surprises · architecture before code · approval before a
+> significant architectural, security or production change.
+>
+> ⚠️ Not everything in that file is approved. The twelve rules are; the rest
+> carries an explicit status — approved principle, implemented on an unmerged
+> branch, proposed, or open decision. Those are four different things.
 >
 > **When a proposed change conflicts with those rules: stop, explain the
 > conflict, propose the safest alternative, and wait for the owner.**
