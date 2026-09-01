@@ -1,5 +1,30 @@
 # Radian Business OS — প্রকল্পের স্থায়ী ব্রিফ
 
+> ## 📌 READ `RADIAN_GOLDEN_RULES.md` FIRST
+>
+> `RADIAN_GOLDEN_RULES.md` in the repository root is the **permanent
+> engineering decision framework** for Radian (owner, 2 Sep 2026). Read it and
+> follow it before proposing or implementing anything — architecture, code,
+> integrations, testing, data, deployment, security, production readiness.
+>
+> It carries, among others: DEV is a full rehearsal for Production · no feature
+> is removed just because the environment is DEV · real technology and real
+> workflow, with real customers protected from ACCIDENTAL contact — and the
+> mechanism for that protection is still an OPEN DESIGN DECISION · DEV and PROD
+> are isolated · DEV must pass before PROD · Production is never the testing
+> ground · an environment mismatch protects itself · end-to-end verification ·
+> no hidden production surprises · architecture before code · approval before a
+> significant architectural, security or production change.
+>
+> ⚠️ Not everything in that file is approved. The twelve rules are; the rest
+> carries an explicit status — approved principle, implemented on an unmerged
+> branch, proposed, or open decision. Those are four different things.
+>
+> **When a proposed change conflicts with those rules: stop, explain the
+> conflict, propose the safest alternative, and wait for the owner.**
+>
+> This file below remains the standing brief. The Golden Rules outrank it.
+
 > **এটা কী:** নতুন কোনো কথোপকথন শুরু হলে Claude এই ফাইলটা নিজে থেকে পড়ে。
 > উদ্দেশ্য একটাই — প্রতিবার শূন্য থেকে প্রকল্প আবিষ্কার না করা。
 >
