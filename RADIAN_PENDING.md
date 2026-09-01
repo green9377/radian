@@ -130,30 +130,69 @@ payments are stale test data rather than money that really left, deleting them
 is a different answer and it is the owner's to give. Nothing about them is
 destroyed either way — both fixes are keyed entries that can be reversed.
 
-### What is shipped, and what is NOT yet true
+### ✅ DEPLOYED AND WALKED — 1 Sep, on the live system
 
-`82f3f5c` on **main**: five fixes, `POST /finance/backfill/settle-drift` for
-the five keyed cleanups, `tsc --noEmit` green on the API, no-bangla selftest
-green (and one Bengali line that had crept into this file, from 21 commits
-back, put back into roman letters).
+`82f3f5c` on **main**, deployed onto the new development stack
+(`docker compose -f docker-compose.stack.yml --env-file .env.development up -d
+--build api`, VPS on `bd96828`). `tsc --noEmit` green, no-bangla selftest green
+— including one Bengali line that had crept into this file 21 commits back and
+had been failing the check unnoticed; it is in roman letters now.
 
-⚠️ **Not deployed and NOT walked.** Mid-session the VPS was taken over by the
-`two-stacks` migration: `/root/apps/radian` is now on branch `two-stacks`
-(`b74288e`), `docker-compose.prod.yml` no longer exists there, the old
-`*_prod` containers were removed and `radian_api_dev` / `radian_web_dev` /
-`radian_admin_dev` / `radian_postgres_dev` came up in their place. The API I
-built and started from `main` at 13:0x UTC was gone by 13:16.
+`POST /finance/backfill/settle-drift`, run once against the live books:
 
-**Checked, so nobody has to worry about it:** the new stack mounts the SAME
-data volume `radian_radian_pg_prod`, and the database is intact — 104 orders,
-and `/health` answers again. Nothing was lost. But `main` is not what is
-running, so **every number above is measured, and none of it is walked.** The
-cleanup has not been run against the live books.
+```
+heldAdvances         looked 13  fixed 3  ৳1,070.00
+unallocatedPayments  looked  2  fixed 2  ৳1,500.00
+stockBasis           looked 13  fixed 3  ৳  371.79
+goodsNotBilled       looked  1  posted 1 (PUR-000012, ৳900)
+replacements         looked 17  posted 2  ৳  405.15
+```
 
-**Next, in order:** `two-stacks` and `main` have to meet — then deploy, run
-`POST /finance/backfill/settle-drift`, and read the drift board. Expected
-after it: supplier-dues **books ৳4,480 = register ৳4,480**, stock-value
-**0**, and `negative-money` still red until the owner posts opening balances.
+**The drift board, before and after, read off the live API:**
+
+```
+BEFORE                                                AFTER
+watch supplier-dues  405,000 vs 448,000  −43,000  →  ok  448,000 = 448,000   0
+watch stock-value 10,676,481 vs 10,692,545 −16,064 → ok 10,692,545 = same    0
+wrong negative-money  −577,295                    →  wrong −577,295  ← his
+everything else ok                                   everything else ok
+```
+
+**Every check the system can answer for itself now reads `ok`.** The one red
+left is the one nobody but the owner can close.
+
+Proved rather than assumed:
+
+- **run twice, and the second run posts nothing** — every count came back 0.
+  That is what "keyed" is supposed to mean, and now it has been watched
+- `1150 Inventory` = **10,692,545** = the stock ledger's own total, to the
+  paisa. Not close: equal, and equal by construction from here on
+- `2000 Supplier Payable` = **৳4,480** = the purchase register, exactly
+- `1200 Supplier Advance` = **৳3,000** — PUR-000012's ৳1,500 (goods not here
+  yet, correctly still an advance) plus the two unallocated payments ৳1,500
+- `2050 Goods Received, Not Billed` = **৳900** — PUR-000012's 45 units, which
+  the books had never heard of until today
+- **0 posting failures** in the hour, and the shop renders
+
+### ⚠️ What happened to the machine in the middle of this
+
+Mid-session `/root/apps/radian` moved to the `two-stacks` branch, the `*_prod`
+containers were removed and `radian_api_dev` / `radian_web_dev` /
+`radian_admin_dev` / `radian_postgres_dev` came up in their place. The API
+built from `main` at 13:0x UTC was gone by 13:16, and for a few minutes
+`/health` answered nothing at all.
+
+**Checked before anything else, and worth writing down:** the new stack mounts
+the SAME external volume `radian_radian_pg_prod` and the database is intact —
+104 orders, all books present. `two-stacks` was then merged into `main`
+(`abe84cc`), so main is the single truth again and the deploy above ran from
+it.
+
+⚠️ The general lesson: **two people rebuilding one box at the same time is how
+a deploy disappears without anybody making a mistake.** The compose file that
+replaced the old one is now `docker-compose.stack.yml` with `.env.development`
+— `docker-compose.prod.yml` no longer exists, and anything still saying
+otherwise is stale.
 
 ---
 
