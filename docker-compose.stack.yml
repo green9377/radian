@@ -1,0 +1,138 @@
+# Radian - ONE stack: database + api + admin + web.
+#
+# The same file runs BOTH stacks. What tells them apart is the folder it runs
+# in and the env file it reads:
+#
+#   development   /root/apps/radian        .env.development   STACK=dev
+#   live          /root/apps/radian-live   .env.live          STACK=live
+#
+#   docker compose -f docker-compose.stack.yml --env-file .env.development up -d --build
+#
+# Two folders means two compose projects, so nothing of one stack can be
+# mistaken for the other. Container names carry ${STACK} for the same reason:
+# at 2am the name on the screen has to say which shop it belongs to.
+#
+# HTTPS IS NOT HERE. One process can hold ports 80/443, and there are two
+# stacks - so Caddy lives alone in docker-compose.edge.yml and reaches both
+# over the external network `radian_edge`. Rebuilding one stack then never
+# touches the other stack's certificates.
+#
+# THE DATABASE VOLUME IS EXTERNAL, ON PURPOSE (${PG_VOLUME}). A volume named
+# by compose is prefixed with the project name, so a renamed folder or a
+# renamed key silently produces an EMPTY database that looks like data loss.
+# Naming it outright means a wrong name fails loudly instead.
+#
+# Postgres deliberately publishes no port. 5432 open to the internet is found
+# by bots within days - measured, not feared.
+#
+# ${CPU_LIMIT} is what keeps one shop off the other's throat on a shared box.
+# A rebuild or a load test on development would otherwise take all four cores
+# while a customer is checking out on the live shop. dev asks for 2, live 4.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: radian_postgres_${STACK}
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT}"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: radian_api_${STACK}
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ${ENV_FILE}
+    volumes:
+      # Data, not code: uploaded images land here (media.ts writes to
+      # MEDIA_DIR=/media) and the edge serves the same folder read-only.
+      - ./media:/media
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT}"
+    networks:
+      - internal
+      - edge
+    expose:
+      - "4000"
+
+  admin:
+    build:
+      context: ./apps/admin
+      dockerfile: Dockerfile.prod
+      args:
+        # Build-time. Changing these in the env file does nothing without a
+        # rebuild - the value is baked into the bundle.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
+    container_name: radian_admin_${STACK}
+    restart: always
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT}"
+    networks:
+      - edge
+    expose:
+      - "3001"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_WEB_URL}
+        NEXT_PUBLIC_IMAGE_BASE: ${NEXT_PUBLIC_IMAGE_BASE}
+    container_name: radian_web_${STACK}
+    restart: always
+    depends_on:
+      - api
+    env_file:
+      - ${ENV_FILE}
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT}"
+    networks:
+      - edge
+    expose:
+      - "3000"
+
+networks:
+  # Shared with the edge and with the other stack. Created once by hand:
+  #   docker network create radian_edge
+  edge:
+    external: true
+    name: radian_edge
+  # Private to this stack. The database is only ever on this one.
+  internal:
+
+volumes:
+  pgdata:
+    external: true
+    name: ${PG_VOLUME}
