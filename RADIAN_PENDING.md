@@ -174,6 +174,36 @@ Proved rather than assumed:
   the books had never heard of until today
 - **0 posting failures** in the hour, and the shop renders
 
+### ✅ The LIVE PATH walked too — a whole new purchase, end to end
+
+The backfill proved the history. It says nothing about what happens to the next
+bill, and "fixing the repair, not the path" is a trap this project has already
+sprung. So one real purchase was put through the new code, in two deliveries:
+
+**`PUR-000015`** — kamal mama, 2 Red-Rose at ৳20, ৳40 paid in cash **before**
+the goods (so the advance path is exercised too), received one stem at a time.
+Four entries, and each one is the rule it is supposed to be:
+
+| entry | what it did | why |
+|---|---|---|
+| `JV-000265` paid | Dr **1200** ৳40 · Cr 1000 ৳40 | money before goods is an advance, not a payment (DEC-PUR-004) |
+| `JV-000266` goods-in | Dr **1150** ৳20 · Cr **2050** ৳20 | **the first stem reached the books the moment it reached the shelf** — this is what was invisible before |
+| `JV-000267` received | Dr 1150 ৳20 · Dr **2050** ৳20 · Cr **2000** ৳40 | the second stem, 2050 cleared, and the payable is the bill |
+| `JV-000268` advance-applied | Dr 2000 ৳40 · Cr 1200 ৳40 | the advance becomes the payment. Bill due **৳0** |
+
+**The drift board read `ok · diff 0` at all three moments** — after creating,
+after the half delivery, and after the bill closed. Half-received used to be
+the state where the books were silently ৳900 light; now it is a state the books
+can describe.
+
+Also checked, because a purchase can quietly damage costs: **Red-Rose's cost
+stayed ৳20** (bought at exactly its own cost, so the moving average did not
+move) and the shelf went to 39 stems. **0 posting failures.**
+
+`PUR-000015` stays on the system, noted *"TEST P8 — live path walk"*: the two
+stems are really on the shelf and the ৳40 really left the drawer, so reversing
+it would write a refund that never happened.
+
 ### ⚠️ What happened to the machine in the middle of this
 
 Mid-session `/root/apps/radian` moved to the `two-stacks` branch, the `*_prod`
