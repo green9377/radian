@@ -73,6 +73,9 @@ const DAY_MS = 86400000;
 /** the audit trail doubles as the drift history — no new table, and it is permanent */
 const DRIFT_ENTITY = 'FinanceDrift';
 
+/** Advice text is read by a person, so paisa become taka there. */
+const taka = (paisa: number) => `৳${(paisa / 100).toLocaleString('en-IN')}`;
+
 @Injectable()
 export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(FinanceDriftService.name);
@@ -290,10 +293,49 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
   /* ---------------------------------------------------------- checks */
 
   /** 2000 Supplier Payable vs what the purchase register actually shows */
+  /**
+   * 2000 Supplier Payable vs the purchase register.
+   *
+   * ⚠️ PER SUPPLIER, and each one floored at zero before they are added up.
+   * This used to net the whole shop together and then clamp once, and on
+   * 1 Sep that made the check announce the shop owed suppliers NOTHING while
+   * six bills were plainly open. What it was really doing:
+   *
+   *     purchase due  Ajgor ৳2,400 + Renae ৳500 + kamal mama ৳2,080 = ৳4,980
+   *     adjustment    a single −৳5,000 credit note on "kamal", a FOURTH
+   *                   supplier with no bills at all
+   *     max(4,980 − 5,000, 0)                                       = 0
+   *
+   * A credit with one supplier is not a payment to another. Netting them is
+   * not just imprecise, it is the wrong question — and because the clamp
+   * turned −৳20 into a tidy 0, the check looked healthy while being blind.
+   * Half a day was nearly spent measuring the books against this yardstick.
+   *
+   * A supplier whose balance goes negative is holding OUR money: that is an
+   * advance (1200), not a reduction of what we owe. So it is reported
+   * separately in the advice instead of quietly cancelling somebody else's
+   * bill.
+   */
   private async supplierDues(books: number): Promise<DriftCheck> {
     const [suppliers, purchases, payments, adjustments] = await Promise.all([
-      this.prisma.db.supplier.findMany({ select: { id: true, openingDuePaisa: true } }),
+      /*
+        The RAW client, not `db`: a credit note can sit against a supplier that
+        has since been soft-deleted, and the deleted row still owes the advice
+        line a name. Reading it filtered printed a cuid at the owner instead
+        (walked 1 Sep). Only `name` is used from a deleted row — the money
+        below still comes from the adjustment itself.
+      */
+      this.prisma.supplier.findMany({ select: { id: true, name: true, openingDuePaisa: true, deletedAt: true } }),
+      /*
+        RECEIVED only. Finance creates the payable in `onPurchaseReceived` — a
+        bill still ORDERED or ADVANCE_PAID is a commitment, not a debt, and the
+        money paid on it sits in 1200 Supplier Advance until the goods arrive
+        (DEC-PUR / P7-17). Counting those here made the register claim ৳500 was
+        owed on PUR-000012, which the books rightly knew nothing about, and the
+        difference was blamed on the books (walked 1 Sep).
+      */
       this.prisma.db.purchase.findMany({
+        where: { status: 'RECEIVED' },
         select: {
           supplierId: true,
           grandTotalPaisa: true,
@@ -302,27 +344,57 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
         },
       }),
       this.prisma.db.supplierPayment.findMany({
-        select: { allocations: { select: { purchaseId: true, amountPaisa: true } } },
+        select: { supplierId: true, allocations: { select: { purchaseId: true, amountPaisa: true } } },
       }),
-      this.prisma.db.supplierAdjustment.findMany({ select: { amountPaisa: true } }),
+      this.prisma.db.supplierAdjustment.findMany({ select: { supplierId: true, amountPaisa: true } }),
     ]);
 
-    // same arithmetic the Supplier module uses for its own board — deliberately
-    // duplicated rather than imported, because Finance must not depend on it
-    const openingPaid = payments
-      .flatMap((p) => p.allocations)
-      .filter((a) => a.purchaseId === null)
-      .reduce((s, a) => s + a.amountPaisa, 0);
-    const openingTotal = suppliers.reduce((s, x) => s + x.openingDuePaisa, 0);
-    const openingRemaining = Math.max(openingTotal - openingPaid, 0);
+    /*
+      One running balance per supplier. Purchases with no supplierId are legacy
+      free-text rows (DEC-PUR-003) — they still owe money, so they are kept
+      under their own key rather than dropped.
+    */
+    const UNLINKED = '(unlinked purchases)';
+    const balance = new Map<string, number>();
+    const add = (key: string, paisa: number) =>
+      balance.set(key, (balance.get(key) ?? 0) + paisa);
 
-    const purchaseDue = purchases.reduce((s, p) => {
+    for (const s of suppliers) {
+      if (s.openingDuePaisa && !s.deletedAt) add(s.id, s.openingDuePaisa);
+    }
+
+    // an allocation with no purchaseId is a payment against the opening due
+    for (const p of payments) {
+      for (const a of p.allocations) {
+        if (a.purchaseId === null) add(p.supplierId, -a.amountPaisa);
+      }
+    }
+
+    for (const p of purchases) {
       const paid = p.payments.reduce((a, x) => a + x.amountPaisa, 0);
       const cut = p.returns.reduce((a, r) => a + r.dueCutPaisa, 0);
-      return s + Math.max(p.grandTotalPaisa - cut - paid, 0);
-    }, 0);
-    const adj = adjustments.reduce((s, a) => s + a.amountPaisa, 0);
-    const real = Math.max(openingRemaining + purchaseDue + adj, 0);
+      // floored per BILL as well: an over-paid bill is not a credit on the next
+      add(p.supplierId ?? UNLINKED, Math.max(p.grandTotalPaisa - cut - paid, 0));
+    }
+
+    for (const a of adjustments) add(a.supplierId, a.amountPaisa);
+
+    let real = 0;
+    let advancePaisa = 0;
+    const credits: string[] = [];
+    const nameOf = new Map(suppliers.map((s) => [s.id, s] as const));
+    for (const [key, paisa] of balance) {
+      if (paisa > 0) real += paisa;
+      else if (paisa < 0) {
+        advancePaisa += -paisa;
+        const who = nameOf.get(key);
+        credits.push(`${who ? who.name : key}${who?.deletedAt ? ' (deleted)' : ''} ${taka(-paisa)}`);
+      }
+    }
+
+    const creditNote = credits.length
+      ? ` Separately, we are in credit with ${credits.join(', ')} — that is an advance we are holding (1200), not a reduction of what we owe, so it is NOT netted off above.`
+      : '';
 
     return this.money(
       'supplier-dues',
@@ -330,7 +402,8 @@ export class FinanceDriftService implements OnModuleInit, OnModuleDestroy {
       'The books and the purchase register must agree, or a supplier bill has been paid or entered in only one of them.',
       books,
       real,
-      'Open Suppliers and compare bill by bill. A bill entered straight into the books, or a purchase saved while the API was down, shows up here.',
+      `Open Suppliers and compare bill by bill. A bill entered straight into the books, or a purchase saved while the API was down, shows up here.${creditNote}`,
+      `Matches — nothing to do.${creditNote}`,
     );
   }
 
