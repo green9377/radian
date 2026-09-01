@@ -167,6 +167,7 @@ export class CheckoutLeadsService {
       const r = await this.wa.sendRaw(
         l.phone as string,
         this.wa.template(TPL.abandoned, [l.name?.trim() || 'there', support], 'en', l.id),
+        { origin: 'abandoned-cart', kind: 'abandoned-cart' },
       );
       await this.prisma.db.checkoutLead.update({
         where: { id: l.id },

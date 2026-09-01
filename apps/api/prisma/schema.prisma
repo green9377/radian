@@ -7729,6 +7729,20 @@ model EscalationEvent {
   acknowledgedBy   AppUser?  @relation("EscalationAck", fields: [acknowledgedById], references: [id])
   acknowledgedAt   DateTime?
 
+  /// ── notification trail (owner, 2 Sep 2026) ────────────────────────────
+  /// The escalation used to be a row and a badge: nobody was actually told.
+  /// These say who was told, when, and how it went.
+  ///
+  /// `notifiedMap` is { AppUser.id: ISO time } and is what makes the dedupe
+  /// work per person - the same escalation notifies one person ONCE, however
+  /// many times the sweeper wakes up.
+  employeeNotifiedAt DateTime?
+  employeeNotifiedTo String?
+  ownerNotifiedAt    DateTime?
+  notifiedMap        Json     @default("{}")
+  notifyAttempts     Int      @default(0)
+  lastNotifyError    String?
+
   createdAt DateTime @default(now())
 
   @@index([conversationId])
@@ -7835,4 +7849,140 @@ model PhoneOtp {
 
   @@index([phone, purpose, createdAt])
   @@index([expiresAt])
+}
+
+
+// ============================================================
+// OUTBOUND SAFETY - the guard's configuration and state
+// Owner's locked decisions, 2 Sep 2026. RADIAN_GOLDEN_RULES.md.
+//
+// The shape of the problem: DEV is a full real-system rehearsal, so an
+// authorised person must be able to message ANY real recipient on purpose.
+// Nothing here asks who the recipient is. What it stops is the message
+// nobody meant to send - a runaway loop, a duplicate job, an automation
+// firing when it should not, a bulk send larger than the one confirmed.
+// ============================================================
+
+/// One configurable limit. Seeded per environment at first start and edited
+/// from Administration -> Limits (OWNER + PIN).
+///
+/// ⚠️ A value here can never leave the range in `outbound-limits.const.ts`.
+/// Configuration may tighten or loosen inside the boundary; it may not
+/// remove the boundary. That is the owner's rule, not a preference.
+model OutboundLimit {
+  id String @id @default(cuid())
+
+  /// GLOBAL - every message. CHANNEL - SMS/WHATSAPP/... ORIGIN - otp,
+  /// order-message, campaign, ai-reply, inbox-reply, escalation.
+  scope OutboundLimitScope
+  /// empty for GLOBAL; the channel or origin name otherwise
+  key   String             @default("")
+
+  metric        OutboundLimitMetric
+  windowMinutes Int
+  value         Int
+  onBreach      OutboundBreachAction @default(TRIP)
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  @@unique([scope, key, metric])
+}
+
+enum OutboundLimitScope {
+  GLOBAL
+  CHANNEL
+  ORIGIN
+}
+
+enum OutboundLimitMetric {
+  /// messages in the window
+  TOTAL
+  /// how many DIFFERENT people were reached in the window - the shape a bulk
+  /// accident makes, and the one a single wrong message does not
+  DISTINCT
+  /// the same person, the same kind of message, twice
+  REPEAT
+}
+
+enum OutboundBreachAction {
+  WARN
+  BLOCK
+  TRIP
+}
+
+/// The two switches, and why they are two.
+///
+/// `manualKill` is a person deciding on silence: it stops EVERYTHING,
+/// including the escalation SMS, because whoever pressed it knows.
+///
+/// `breakerTrippedAt` is the system deciding: it stops customer-facing
+/// messages only, and the operational alert still goes out - otherwise the
+/// system falls silent at exactly the moment somebody needs to be told.
+model OutboundSetting {
+  id String @id @default("singleton")
+
+  manualKill        Boolean   @default(false)
+  manualKillById    String?
+  manualKillAt      DateTime?
+  manualKillReason  String?
+
+  /// Turning it back OFF is OWNER + PIN + a reason (owner, 2 Sep 2026):
+  /// letting the shop speak again is as serious as silencing it.
+  manualKillClearedById     String?
+  manualKillClearedAt       DateTime?
+  manualKillClearedReason   String?
+
+  breakerTrippedAt     DateTime?
+  breakerTrippedReason String?
+  breakerTrippedMetric String?
+  /// Never automatic. A trip means something is wrong, and a timer that
+  /// clears it just lets the same fault run again.
+  breakerResetById String?
+  breakerResetAt   DateTime?
+
+  updatedAt DateTime @updatedAt
+}
+
+/// A declared send. The number is stated BEFORE the sending starts, and the
+/// guard refuses past it.
+///
+/// This is what makes a runaway loop structurally impossible rather than
+/// merely unlikely: a loop never declares thirty thousand, it declares one
+/// and then calls thirty thousand times.
+model OutboundBatch {
+  id String @id @default(cuid())
+
+  channel String
+  origin  String
+
+  declaredCount Int
+  actualCount   Int @default(0)
+
+  requestedById String?
+  confirmedById String?
+  confirmedAt   DateTime?
+
+  status     OutboundBatchStatus @default(DRAFT)
+  /// a few masked recipients, so the person confirming sees who this is
+  sampleJson Json?
+  note       String?
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+enum OutboundBatchStatus {
+  DRAFT
+  CONFIRMED
+  RUNNING
+  DONE
+  STOPPED
+  /// the guard refused past the declared size - the loop case
+  OVERFLOW
 }

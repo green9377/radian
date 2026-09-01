@@ -210,7 +210,13 @@ export class OrderMessagesService {
       });
       return 'FAILED';
     }
-    const r = await this.wa.sendRaw(o.senderPhone, payload);
+    const r = await this.wa.sendRaw(o.senderPhone, payload, {
+      origin: 'order-message',
+      /*  The kind is the repeat guard's key: the same order confirmation must
+          not go twice, but a confirmation and a delivered notice are different
+          messages to the same person and both should arrive.  */
+      kind: `order:${m.kind}`,
+    });
 
     await this.prisma.db.orderMessage.update({
       where: { id },

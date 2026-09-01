@@ -181,18 +181,24 @@ export class OtpService {
         /*  sendRaw, not send: the reason matters here. "no WhatsApp on that
             number" and "our keys are wrong" both stop the send, and only the
             first should quietly move to the next channel.  */
-        const r = await this.wa.sendRaw(to, this.wa.otpMessage(code));
+        const r = await this.wa.sendRaw(to, this.wa.otpMessage(code), {
+          origin: 'otp', kind: `otp:${channel}`,
+        });
         return { ok: r.ok, error: r.ok ? undefined : r.error };
       }
       if (channel === OtpChannel.SMS) {
         // No customerId — see the note at the top of this file.
         const r = await this.messaging.sendSms({
+          origin: 'otp',
+          kind: 'otp',
           to,
           text: `${code} is your Radian verification code. It expires in ${EXPIRY_MINUTES} minutes. Do not share it with anyone.`,
         });
         return { ok: r.ok, error: r.ok ? undefined : r.error };
       }
       const r = await this.messaging.sendEmail({
+        origin: 'otp',
+        kind: 'otp',
         to,
         subject: `${code} is your Radian verification code`,
         html:

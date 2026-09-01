@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CommonModule } from '../common/common.module';
+import { AuthModule } from '../auth/auth.module';
+import { OutboundLimitsController } from './outbound-limits.controller';
 import { AdministrationController } from './administration.controller';
 import { RegistryService } from './registry.service';
 import { AccessService } from './access.service';
@@ -22,8 +24,8 @@ import { IntegrationsService } from './integrations.service';
  * export করা।
  */
 @Module({
-  imports: [PrismaModule, CommonModule],
-  controllers: [AdministrationController],
+  imports: [PrismaModule, CommonModule, AuthModule],
+  controllers: [AdministrationController, OutboundLimitsController],
   providers: [
     RegistryService,
     AccessService,

@@ -443,7 +443,10 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
       Without this the AI answers into a screen only staff can see, and the
       customer waits on a reply that was written and never sent.
     */
-    const r = await this.sender.send(convo, body);
+    /*  'ai-reply', not 'inbox-reply': a stuck model loops faster than a
+        person types, and the limit that catches it should name the right
+        sender.  */
+    const r = await this.sender.send(convo, body, 'ai-reply');
     if (!r.ok && !r.skipped) {
       this.logger.warn(`AI reply not delivered for ${conversationId}: ${r.error}`);
       return;

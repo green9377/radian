@@ -4,6 +4,8 @@ import { AuditService } from './audit.service';
 import { StorefrontCacheService } from './storefront-cache.service';
 import { StorefrontCacheInterceptor } from './storefront-cache.interceptor';
 import { PaymentMethodsService } from './payment-methods.service';
+import { OutboundGuard } from './outbound-guard';
+import { OutboundSettingsService } from './outbound-settings.service';
 
 /**
  * CommonModule — the cross-cutting services every module may inject.
@@ -15,15 +17,28 @@ import { PaymentMethodsService } from './payment-methods.service';
  * DEC-GBL-001 — PaymentMethodsService lives here for the same reason: the
  * shop's payment list belongs to no single module, and POS, Purchases,
  * Suppliers and Returns all have to read the same answer.
+ *
+ * OutboundGuard is here because it is global by nature: three different
+ * modules own the three doors a message can leave by, and each has to reach
+ * the same rules. Being in a @Global module means a new door inherits it by
+ * injecting it, without a module edit anyone can forget.
  */
 @Global()
 @Module({
   providers: [
     AuditService,
+    OutboundSettingsService,
+    OutboundGuard,
     PaymentMethodsService,
     StorefrontCacheService,
     { provide: APP_INTERCEPTOR, useClass: StorefrontCacheInterceptor },
   ],
-  exports: [AuditService, PaymentMethodsService, StorefrontCacheService],
+  exports: [
+    AuditService,
+    OutboundGuard,
+    OutboundSettingsService,
+    PaymentMethodsService,
+    StorefrontCacheService,
+  ],
 })
 export class CommonModule {}

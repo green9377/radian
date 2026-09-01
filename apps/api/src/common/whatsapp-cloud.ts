@@ -1,6 +1,7 @@
 import { Injectable, Logger, Module } from '@nestjs/common';
 import { AdministrationModule } from '../administration/administration.module';
 import { IntegrationsService } from '../administration/integrations.service';
+import { OutboundGuard } from './outbound-guard';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -67,7 +68,10 @@ export interface SendResult {
 export class WhatsAppCloudService {
   private readonly log = new Logger('WhatsAppCloud');
 
-  constructor(private readonly integrations: IntegrationsService) {}
+  constructor(
+    private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
+  ) {}
 
   /** Admin first, env as fallback; null means the feature is simply off. */
   private async creds(): Promise<{ phoneId: string; token: string } | null> {
@@ -99,6 +103,10 @@ export class WhatsAppCloudService {
   async sendRaw(
     to: string,
     payload: Record<string, unknown>,
+    /*  Who asked for this, so the guard can count it against the right
+        limit and say which sender misbehaved. Anything that does not say
+        is treated as an ordinary customer message.  */
+    meta: { origin?: string; kind?: string; batchId?: string } = {},
   ): Promise<SendResult> {
     const c = await this.creds();
     if (!c)
@@ -106,6 +114,19 @@ export class WhatsAppCloudService {
     const msisdn = this.msisdn(to);
     if (!msisdn)
       return { ok: false, configured: true, error: `unusable phone: ${to}` };
+
+    /*  DOOR A. Last thing before the wire - see common/outbound-guard.ts.
+        After msisdn(), so the guard judges the number Meta will dial, and
+        deliberately not in any of the callers.  */
+    const verdict = await this.guard.check({
+      channel: 'WHATSAPP',
+      recipient: msisdn,
+      origin: meta.origin ?? 'whatsapp',
+      kind: meta.kind,
+      batchId: meta.batchId,
+    });
+    if (!verdict.allowed)
+      return { ok: false, configured: true, error: `BLOCKED: ${verdict.reason}` };
 
     try {
       const res = await fetch(`${GRAPH}/${c.phoneId}/messages`, {

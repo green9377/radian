@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InboxChannel } from '@prisma/client';
 import { IntegrationsService } from '../administration/integrations.service';
 import { WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { OutboundGuard } from '../common/outbound-guard';
 
 /*
   One place that knows how to get a reply out to a customer, whatever channel
@@ -34,30 +35,37 @@ export class ChannelSender {
   constructor(
     private readonly wa: WhatsAppCloudService,
     private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
   ) {}
 
   async send(
     convo: { id: string; channel: InboxChannel; externalIdentity: string | null },
     body: string,
+    /*  'inbox-reply' when a person pressed Reply, 'ai-reply' when the agent
+        wrote it. They are counted separately on purpose: a stuck model loops
+        faster than a person types, and the limit that catches it should say
+        so.  */
+    origin: 'inbox-reply' | 'ai-reply' = 'inbox-reply',
   ): Promise<SendOutcome> {
     if (convo.channel === InboxChannel.WEB_CHAT) return { ok: true, skipped: true };
     if (!convo.externalIdentity) return { ok: false, error: 'no external identity on the thread' };
 
     switch (convo.channel) {
       case InboxChannel.WHATSAPP: {
-        const r = await this.wa.sendRaw(convo.externalIdentity, {
-          type: 'text',
-          text: { body },
-        });
+        const r = await this.wa.sendRaw(
+          convo.externalIdentity,
+          { type: 'text', text: { body } },
+          { origin, kind: 'inbox' },
+        );
         if (!r.ok && !r.configured) return { ok: false, skipped: true, error: r.error };
         return { ok: r.ok, error: r.error };
       }
 
       case InboxChannel.MESSENGER:
-        return this.sendMessenger(convo.externalIdentity, body);
+        return this.sendMessenger(convo.externalIdentity, body, origin);
 
       case InboxChannel.INSTAGRAM:
-        return this.sendInstagram(convo.externalIdentity, body);
+        return this.sendInstagram(convo.externalIdentity, body, origin);
 
       default:
         return { ok: false, skipped: true, error: `no sender for ${convo.channel}` };
@@ -65,10 +73,10 @@ export class ChannelSender {
   }
 
   /** Messenger goes out through the Facebook Page. */
-  private async sendMessenger(psid: string, body: string): Promise<SendOutcome> {
+  private async sendMessenger(psid: string, body: string, origin: string): Promise<SendOutcome> {
     const creds = await this.creds('FACEBOOK_PAGE', 'FACEBOOK_PAGE_TOKEN');
     if (!creds.token) return { ok: false, skipped: true, error: 'Facebook Page is not connected' };
-    return this.post(InboxChannel.MESSENGER, `${GRAPH}/me/messages`, creds.token, psid, body);
+    return this.post(InboxChannel.MESSENGER, `${GRAPH}/me/messages`, creds.token, psid, body, origin);
   }
 
   /*
@@ -81,12 +89,12 @@ export class ChannelSender {
     The recipient id is scoped to the Instagram account, so a Page token here
     would be refused even though both are "Meta".
   */
-  private async sendInstagram(igsid: string, body: string): Promise<SendOutcome> {
+  private async sendInstagram(igsid: string, body: string, origin: string): Promise<SendOutcome> {
     const creds = await this.creds('INSTAGRAM', 'INSTAGRAM_TOKEN', 'INSTAGRAM_ACCOUNT_ID');
     if (!creds.token) return { ok: false, skipped: true, error: 'Instagram is not connected' };
     const account = creds.accountId || 'me';
     return this.post(
-      InboxChannel.INSTAGRAM, `${IG_GRAPH}/${account}/messages`, creds.token, igsid, body,
+      InboxChannel.INSTAGRAM, `${IG_GRAPH}/${account}/messages`, creds.token, igsid, body, origin,
     );
   }
 
@@ -96,7 +104,20 @@ export class ChannelSender {
     token: string,
     recipient: string,
     body: string,
+    origin: string,
   ): Promise<SendOutcome> {
+    /*  DOOR B, for Messenger and Instagram both - the two senders above meet
+        here, so one check covers them. `skipped` is deliberately NOT set: a
+        refusal is a thing that happened, and the person who pressed Reply has
+        to see why (common/outbound-guard.ts).  */
+    const verdict = await this.guard.check({
+      channel: channel === InboxChannel.INSTAGRAM ? 'INSTAGRAM' : 'MESSENGER',
+      recipient,
+      origin,
+      kind: 'inbox',
+    });
+    if (!verdict.allowed) return { ok: false, error: `BLOCKED: ${verdict.reason}` };
+
     try {
       const res = await fetch(url, {
         method: 'POST',

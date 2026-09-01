@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { ensureSingleton } from '../common/singleton';
 import { IntegrationsService } from '../administration/integrations.service';
+import { OutboundGuard } from '../common/outbound-guard';
 
 /*
   EMAIL & SMS — MKT-D19.
@@ -44,6 +45,7 @@ export class MessagingService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly integrations: IntegrationsService,
+    private readonly guard: OutboundGuard,
   ) {}
 
   /*
@@ -196,6 +198,10 @@ export class MessagingService {
     broadcastId?: string;
     isTest?: boolean;
     actorName?: string;
+    /** who asked - see common/outbound-guard.ts */
+    origin?: string;
+    kind?: string;
+    batchId?: string;
   }): Promise<SendResult> {
     /*  FIRST, before anything about configuration.
         MKT-RULE-009 has no exception, so it must not sit behind a check that
@@ -211,6 +217,28 @@ export class MessagingService {
     if (!conf.fromAddress) throw new BadRequestException('Set the address emails are sent from');
 
     const from = { name: conf.fromName ?? 'Radian', email: conf.fromAddress };
+
+    /*  DOOR C (email). A refusal is not thrown: a broadcast has to carry on
+        past one refused address, and the row below is the record that it
+        happened.  */
+    const emailVerdict = await this.guard.check({
+      channel: 'EMAIL',
+      recipient: input.to,
+      origin: input.origin ?? 'email',
+      kind: input.kind,
+      batchId: input.batchId,
+    });
+    if (!emailVerdict.allowed) {
+      const blocked: SendResult = { ok: false, error: `BLOCKED: ${emailVerdict.reason}` };
+      await this.log({
+        channel: 'EMAIL', to: input.to, subject: input.subject, body: input.html,
+        provider: conf.provider, result: blocked,
+        customerId: input.customerId, outreachId: input.outreachId,
+        broadcastId: input.broadcastId, isTest: input.isTest, actorName: input.actorName,
+      });
+      return blocked;
+    }
+
     let result: SendResult;
 
     try {
@@ -309,6 +337,10 @@ export class MessagingService {
     broadcastId?: string;
     isTest?: boolean;
     actorName?: string;
+    /** who asked - see common/outbound-guard.ts */
+    origin?: string;
+    kind?: string;
+    batchId?: string;
   }): Promise<SendResult> {
     // first, for the same reason as sendEmail above
     await this.refuseIfOptedOut(input.customerId);
@@ -323,6 +355,25 @@ export class MessagingService {
         fails silently if it is wrong. */
     const to = normaliseBd(input.to);
     if (!to) throw new BadRequestException(`"${input.to}" does not look like a Bangladeshi mobile number`);
+
+    /*  DOOR C (SMS). After normaliseBd, so the guard judges the number the
+        gateway will actually dial.  */
+    const smsVerdict = await this.guard.check({
+      channel: 'SMS',
+      recipient: to,
+      origin: input.origin ?? 'sms',
+      kind: input.kind,
+      batchId: input.batchId,
+    });
+    if (!smsVerdict.allowed) {
+      const blocked: SendResult = { ok: false, error: `BLOCKED: ${smsVerdict.reason}` };
+      await this.log({
+        channel: 'SMS', to, body: input.text, provider: conf.provider, result: blocked,
+        customerId: input.customerId, outreachId: input.outreachId,
+        broadcastId: input.broadcastId, isTest: input.isTest, actorName: input.actorName,
+      });
+      return blocked;
+    }
 
     let result: SendResult;
     try {
