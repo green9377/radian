@@ -2,21 +2,38 @@
 REM ============================================================================
 REM  RADIAN REGRESSION SUITE - "is everything still working" in one click
 REM
-REM  WHERE IT RUNS (changed 24 Aug 2026)
-REM  This pointed at http://localhost:4000, and the owner shut the local
-REM  server down on 17 August. So every run since then has failed to connect,
-REM  and 25 locked business rules went unchecked without anybody noticing -
-REM  the tool was not broken, its address was out of date.
+REM  WHERE IT RUNS (changed 2 Sep 2026 - and this is the SECOND time)
 REM
-REM  It now runs against the DEMO deployment by default, which is where the
-REM  work actually lives. Demo is exactly the place for this: it writes real
-REM  test orders, and that is what demo data is for.
+REM  24 Aug: it had pointed at http://localhost:4000, which the owner shut down
+REM  on 17 August. Every run since had failed to connect and the locked business
+REM  rules went unchecked, unnoticed. The address was fixed - to Render.
 REM
-REM    RUN_TESTS.bat            demo, the quick pass
-REM    RUN_TESTS.bat full       demo, deep (delivered -> Finance). Leaves one
+REM  Render was suspended on 29 Aug. So from that day until today the suite was
+REM  aimed at a host that answers nothing, and the same thing happened AGAIN:
+REM  rules unchecked, nobody the wiser. A suite that cannot reach its target
+REM  looks exactly like a suite nobody ran.
+REM
+REM  It now runs against DEV - api.development.radianbd.com - which is where
+REM  the system actually lives, and where test orders belong.
+REM
+REM  The line below is not what keeps this safe. The suite WRITES: it places
+REM  orders, pays for them, and with `full` walks one to delivered and into the
+REM  Finance journal. So the real protection is an ALLOWLIST inside
+REM  apps\api\scripts\regression-suite.js, which refuses any host that is not
+REM  development or localhost - the old Render URL and radianbd.com by name.
+REM  Editing the line below cannot aim this at a real shop.
+REM
+REM    RUN_TESTS.bat            DEV, the quick pass
+REM    RUN_TESTS.bat full       DEV, deep (delivered -> Finance). Leaves one
 REM                             delivered test order behind, on purpose
 REM    RUN_TESTS.bat local      localhost:4000, if START_RADIAN.bat is running
 REM    RUN_TESTS.bat local full both
+REM
+REM  WHAT IT SENDS: placing an order queues the WhatsApp confirmation and
+REM  checkout calls sendDue() straight away. On DEV the WhatsApp integration is
+REM  connected with working credentials, so a run WILL message the suite's
+REM  fake numbers unless outbound is stopped first (Administration - outbound
+REM  kill switch) or the integration is switched off.
 REM
 REM  It will ask for the admin email/password. Those stay on this machine.
 REM
@@ -24,9 +41,9 @@ REM  WARNING: never point this at the real shop. It places orders.
 REM ============================================================================
 cd /d "%~dp0"
 
-set "DEMO_API=https://radian-api-qnt6.onrender.com"
-set "TARGET=%DEMO_API%"
-set "WHERE=DEMO"
+set "DEV_API=https://api.development.radianbd.com"
+set "TARGET=%DEV_API%"
+set "WHERE=DEV"
 set "DEEP="
 
 REM  Both words are optional and may arrive in either order.
@@ -73,8 +90,8 @@ exit /b 1
 REM  The demo API sleeps on the free tier. The first request can take 30-50
 REM  seconds to wake it, and a suite that dies on a cold start looks exactly
 REM  like a suite that found a bug.
-if "%WHERE%"=="DEMO" (
-  echo   Waking the demo API - this can take up to a minute...
+if "%WHERE%"=="DEV" (
+  echo   Checking the DEV API answers...
   REM  ⚠️ `process.exitCode`, never `process.exit()`. Calling exit() from
   REM  inside the async loop tore down a handle libuv was still holding and
   REM  Windows printed a raw C assertion over the results:

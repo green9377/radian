@@ -52,7 +52,61 @@
   ═══════════════════════════════════════════════════════════════════════════
 */
 
+/*  ═══════════════════════════════════════════════════════════════════════
+    WHERE THIS SUITE IS ALLOWED TO RUN - an allowlist, not a warning.
+
+    This file WRITES. It places orders, pays for them, cancels them, and with
+    --full walks one all the way to delivered and into the Finance journal.
+    Pointed at the wrong host, it invents orders in a real shop's books and
+    sends whatever that shop sends when an order is placed.
+
+    Two things made this a guard rather than a comment:
+
+      1. RUN_TESTS.bat aimed at radian-api-qnt6.onrender.com from the day
+         Render was suspended (29 Aug) until 2 Sep. The suite could not have
+         passed - and nobody noticed, because a suite that cannot reach its
+         target looks the same as one nobody ran.
+      2. radianbd.com is a REAL SHOP - the owner's existing one today, ours
+         after the cutover. A one-character edit is all that stands between
+         "development" and it.
+
+    An allowlist refuses the future production URL too, without anyone having
+    to remember to add it to a denylist. To run somewhere new, add it here on
+    purpose - that friction is the point. There is deliberately no override
+    environment variable: an escape hatch is the thing that gets used at 2am.
+    ═══════════════════════════════════════════════════════════════════════ */
+const ALLOWED_TARGETS = [
+  'https://api.development.radianbd.com',
+  'http://localhost:4000',
+  'http://127.0.0.1:4000',
+];
+
 const API = (process.env.API || 'http://localhost:4000').replace(/\/$/, '');
+
+if (!ALLOWED_TARGETS.includes(API)) {
+  const why =
+    /onrender\.com/i.test(API)
+      ? 'that is the old Render API. It was suspended on 29 Aug 2026 and answers nothing.'
+      : /(^|\/\/|\.)radianbd\.com/i.test(API) && !/development\.radianbd\.com/i.test(API)
+        ? 'that is a REAL SHOP. This suite places and pays for orders - never there.'
+        : 'it is not on the allowlist.';
+
+  console.error('');
+  console.error('  ================= REFUSING TO RUN =================');
+  console.error(`  target : ${API}`);
+  console.error(`  reason : ${why}`);
+  console.error('');
+  console.error('  Allowed targets:');
+  for (const t of ALLOWED_TARGETS) console.error(`    ${t}`);
+  console.error('');
+  console.error('  Set API to one of those, or add a new one to');
+  console.error('  ALLOWED_TARGETS in apps/api/scripts/regression-suite.js');
+  console.error('  on purpose. This suite WRITES - it is not read-only.');
+  console.error('  ==================================================');
+  console.error('');
+  process.exit(1);
+}
+
 const FULL = process.argv.includes('--full');
 
 /*  Every test order lands on one known fake customer — easy to find in the admin  */
