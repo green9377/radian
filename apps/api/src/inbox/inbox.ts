@@ -361,6 +361,10 @@ export class InboxService {
       lastMessageAt: c.lastMessageAt,
       guestName: c.guestName,
       guestPhone: c.guestPhone,
+      // DEC-INB-009 — null on WhatsApp by Meta's design; the screen draws
+      // initials instead.
+      guestAvatarUrl: c.guestAvatarUrl,
+      guestHandle: c.guestHandle,
       customer: c.customer,
       assignee: c.assignee,
       lastMessage: c.messages[0] ?? null,

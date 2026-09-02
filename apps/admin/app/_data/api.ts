@@ -7319,6 +7319,9 @@ export interface ApiInboxListItem {
   lastMessageAt: string;
   guestName: string | null;
   guestPhone: string | null;
+  /// DEC-INB-009 — Messenger and Instagram only; WhatsApp gives neither.
+  guestAvatarUrl: string | null;
+  guestHandle: string | null;
   customer: { id: string; name: string; phone: string; ordersCount: number } | null;
   assignee: { id: string; name: string } | null;
   lastMessage: {
@@ -7346,6 +7349,9 @@ export interface ApiInboxDetail {
   aiEnabled: boolean;
   guestName: string | null;
   guestPhone: string | null;
+  /// DEC-INB-009 — Messenger and Instagram only; WhatsApp gives neither.
+  guestAvatarUrl: string | null;
+  guestHandle: string | null;
   customer: {
     id: string; name: string; phone: string; email: string | null;
     ordersCount: number; lastOrderAt: string | null;

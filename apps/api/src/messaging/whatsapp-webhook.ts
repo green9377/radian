@@ -174,7 +174,7 @@ export class WhatsAppWebhookService {
         for (const m of v.messages ?? []) await this.onMessage(v, m);
         for (const e of v.message_echoes ?? []) await this.onEcho(e);
         for (const h of v.history ?? []) await this.onHistory(h);
-        if (v.state_sync?.length) this.onStateSync(v.state_sync);
+        if (v.state_sync?.length) await this.onStateSync(v.state_sync);
       }
     }
   }
@@ -314,14 +314,46 @@ export class WhatsAppWebhookService {
   }
 
   /**
-   * The phone's address book. Deliberately log-only: Customers owns customer
-   * records (One Data One Owner), and a contact in someone's phone is not a
-   * customer of the shop.
+   * The phone's address book, replayed after onboarding.
+   *
+   * Still NOT a customer record (One Data One Owner — Customers owns those).
+   * All it does is put a name on the thread: history arrives with numbers
+   * only, so without this every imported conversation reads "Guest" and staff
+   * cannot tell one from another.
+   *
+   * Only ever fills a blank. A name already on the thread came from the
+   * customer's own WhatsApp profile or from staff, and both beat a label out
+   * of somebody's phone book.
    */
-  private onStateSync(rows: NonNullable<WaValue['state_sync']>) {
+  private async onStateSync(rows: NonNullable<WaValue['state_sync']>) {
+    let named = 0;
+
+    for (const r of rows) {
+      if (r.action !== 'add') continue;
+
+      const waId = r.contact?.phone_number?.replace(/\D/g, '');
+      const name = (r.contact?.full_name || r.contact?.first_name)?.trim();
+      if (!waId || !name) continue;
+
+      const hit = await this.prisma.db.conversation
+        .updateMany({
+          where: {
+            channel: InboxChannel.WHATSAPP,
+            externalIdentity: waId,
+            guestName: null,
+            deletedAt: null,
+          },
+          data: { guestName: name.slice(0, 120) },
+        })
+        .catch(() => ({ count: 0 }));
+
+      named += hit.count;
+    }
+
     const added = rows.filter((r) => r.action === 'add').length;
     this.log.log(
-      `contact sync — ${added} added/changed, ${rows.length - added} removed`,
+      `contact sync — ${added} added/changed, ${rows.length - added} removed, ` +
+        `${named} thread(s) named`,
     );
   }
 
@@ -444,12 +476,25 @@ export class WhatsAppWebhookService {
         }
       : {};
 
+    /*
+      A thread built from history has no name — the history payload carries
+      only the number. So the first live message is the first chance to stop
+      calling this person "Guest". Fill it in, never overwrite: a name the
+      owner typed himself beats one WhatsApp guessed.
+    */
+    const name =
+      profileName?.trim() && !existing?.guestName
+        ? { guestName: profileName.trim().slice(0, 120) }
+        : {};
+
     if (existing) {
-      if (Object.keys(ad).length) {
+      const patch = { ...ad, ...name };
+      if (Object.keys(patch).length) {
         await this.prisma.db.conversation.update({
           where: { id: existing.id },
-          data: ad,
+          data: patch,
         });
+        return { ...existing, ...patch };
       }
       return existing;
     }

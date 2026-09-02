@@ -56,6 +56,80 @@ function displayName(c: ApiInboxListItem): string {
 }
 
 /*
+  DEC-INB-009 — the face beside the name.
+
+  Messenger and Instagram hand us a profile picture; WhatsApp never does, and
+  that is Meta's restriction on every platform, not a gap here. So initials are
+  the normal case, not the error case, and they are drawn to look deliberate:
+  the same name always gets the same brand colour, so a thread is recognisable
+  by its tile before the text is read.
+*/
+const AVATAR_TONES = [
+  { bg: "#f3e8ff", fg: "#6b21a8" }, // brand purple
+  { bg: "#fce7f3", fg: "#9d174d" }, // brand pink
+  { bg: "#ede9fe", fg: "#5b21b6" }, // soft lavender
+  { bg: "#fdf0e3", fg: "#9a5b21" }, // rose gold
+];
+
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  const first = words[0][0] ?? "";
+  const last = words.length > 1 ? (words[words.length - 1][0] ?? "") : "";
+  return (first + last).toUpperCase();
+}
+
+function Avatar({
+  name,
+  url,
+  size = 38,
+}: {
+  name: string;
+  url?: string | null;
+  size?: number;
+}) {
+  const [broken, setBroken] = useState(false);
+  // Meta's picture URLs are signed and expire, so a dead one is expected —
+  // it falls back to initials instead of showing a torn-image icon.
+  const showPhoto = Boolean(url) && !broken;
+  const tone =
+    AVATAR_TONES[
+      Math.abs(
+        [...name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7),
+      ) % AVATAR_TONES.length
+    ];
+
+  return (
+    <span
+      className="shrink-0 rounded-full overflow-hidden grid place-items-center font-extrabold"
+      style={{
+        width: size,
+        height: size,
+        background: showPhoto ? "#f1f5f9" : tone.bg,
+        color: tone.fg,
+        fontSize: Math.round(size * 0.36),
+      }}
+      title={name}
+    >
+      {showPhoto ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url as string}
+          alt={name}
+          width={size}
+          height={size}
+          className="w-full h-full object-cover"
+          onError={() => setBroken(true)}
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        initials(name)
+      )}
+    </span>
+  );
+}
+
+/*
   One colour and one short word per channel. Four channels will land in this
   list, and "who is this and where did they come from" has to be answerable
   without opening the thread — the reply, the tone and the deadline all differ
@@ -539,14 +613,25 @@ export default function InboxView() {
                   openId === c.id ? "bg-[#f7f0fb]" : "hover:bg-[#fbf9fd]"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ background: channelOf(c.channel).dot }}
-                    title={channelOf(c.channel).label}
-                  />
-                  <span className="text-[14px] font-extrabold text-gray-900 flex-1 truncate">
-                    {displayName(c)}
+                <div className="flex items-center gap-2.5">
+                  <span className="relative shrink-0">
+                    <Avatar name={displayName(c)} url={c.guestAvatarUrl} size={38} />
+                    {/* the channel dot rides the tile, so it costs no width */}
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white"
+                      style={{ background: channelOf(c.channel).dot }}
+                      title={channelOf(c.channel).label}
+                    />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[14px] font-extrabold text-gray-900 truncate">
+                      {displayName(c)}
+                    </span>
+                    {c.guestHandle && (
+                      <span className="block text-[11.5px] font-semibold text-gray-400 truncate">
+                        @{c.guestHandle}
+                      </span>
+                    )}
                   </span>
                   {c.unreadForStaff > 0 && (
                     <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-full bg-[#cf43ea] text-white text-[11px] font-extrabold">
@@ -620,11 +705,17 @@ export default function InboxView() {
                     >
                       {channelOf(detail.channel).label}
                     </span>
+                    <Avatar
+                      name={detail.customer?.name || detail.guestName || "Guest"}
+                      url={detail.guestAvatarUrl}
+                      size={30}
+                    />
                     <p className="text-[17px] font-extrabold text-gray-900 truncate">
                       {detail.customer?.name || detail.guestName || "Guest"}
                     </p>
                   </div>
                   <p className="text-[12px] font-medium text-gray-400 mt-0.5">
+                    {detail.guestHandle && `@${detail.guestHandle} · `}
                     {detail.customer?.phone || detail.guestPhone || "No phone shared"}
                     {detail.customer && ` · ${detail.customer.ordersCount} orders`}
                   </p>

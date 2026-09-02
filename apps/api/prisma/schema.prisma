@@ -7641,6 +7641,17 @@ model Conversation {
   guestName  String?
   guestPhone String?
 
+  /// DEC-INB-009 - the face and the handle beside the name, so staff know who
+  /// they are answering at a glance.
+  ///
+  /// Meta's own URLs expire, so this is a cache, never the source: empty is
+  /// always allowed and the screen falls back to initials.
+  ///
+  /// WhatsApp fills NEITHER — Cloud API does not expose a customer's photo or
+  /// handle to businesses, on any platform. Messenger and Instagram fill both.
+  guestAvatarUrl String?
+  guestHandle    String?
+
   /// WEB_CHAT's browser secret: whoever holds this key owns the thread.
   /// On other channels the external identity (PSID/phone) does that job.
   clientKey String @unique @default(cuid())
