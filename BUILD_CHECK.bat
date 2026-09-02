@@ -43,6 +43,14 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+call node scripts\escalation.selftest.mjs
+if errorlevel 1 (
+  echo.
+  echo   *** AN ESCALATION MAY REACH NOBODY. Fix before pushing. ***
+  echo.
+  pause
+  exit /b 1
+)
 
 REM  Phase 9 - the admin on a phone. Counts what is still desktop-only and
 REM  fails only if a file GAINS some. Nothing new may arrive while the old

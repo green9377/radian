@@ -122,8 +122,9 @@ export class InboxService {
     );
   }
 
-  async updateSettings(dto: SettingsDto, actorName: string) {
-    const s = await this.settings();
+  async updateSettings(dto: SettingsDto, actor: { id?: string; name: string }) {
+    const before = await this.settings();
+    const s = before;
     const updated = await this.prisma.db.inboxSetting.update({
       where: { id: s.id },
       data: {
@@ -139,13 +140,38 @@ export class InboxService {
         webChatEnabled: dto.webChatEnabled,
       },
     });
-    await this.audit.record({
-      entityType: 'InboxSetting',
-      entityId: s.id,
-      action: 'UPDATE',
-      actorName,
-      changes: dto as Record<string, unknown>,
-    });
+    /*  BEFORE -> AFTER, not just after (owner, 2 Sep 2026).
+
+        `changes: dto` recorded what was asked for, which is the one thing
+        nobody needs later: the new value is already sitting in the row. The
+        question a month afterwards is always "the AI was on - who turned it
+        off, and what was it before?" - and that answer was being thrown away.
+
+        Only fields that actually moved are written, so saving a form without
+        touching anything leaves no entry pretending something happened.
+
+        X1 (owner, locked): switching the AI on needs NO PIN. It is the safe
+        direction - a customer gets an answer instead of silence. The PIN
+        guards the outbound kill switch (X2), which is a different door.  */
+    const changes: Record<string, unknown> = {};
+    for (const key of Object.keys(dto) as (keyof SettingsDto)[]) {
+      const to = dto[key];
+      if (to === undefined) continue;
+      const from = (before as Record<string, unknown>)[key as string];
+      if (JSON.stringify(from) === JSON.stringify(to)) continue;
+      changes[key as string] = { from, to };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await this.audit.record({
+        entityType: 'InboxSetting',
+        entityId: s.id,
+        action: 'UPDATE',
+        actorName: actor.name,
+        actorId: actor.id || undefined,
+        changes,
+      });
+    }
     return updated;
   }
 
@@ -575,7 +601,7 @@ export class InboxController {
 
   @Patch('settings')
   updateSettings(@Body() dto: SettingsDto, @Req() req: ActorRequest) {
-    return this.svc.updateSettings(dto, req.actor?.name ?? 'Admin');
+    return this.svc.updateSettings(dto, req.actor ?? { name: 'Admin' });
   }
 
   @Get(':id')

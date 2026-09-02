@@ -10,6 +10,7 @@ import {
 import { CheckoutLeadStatus, OtpPurpose } from '@prisma/client';
 import { MarketingModule } from '../marketing/marketing.module';
 import { OtpService } from './otp.service';
+import { EscalationNotifier } from './escalation-notifier.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
@@ -262,6 +263,7 @@ export class CheckoutLeadController {
     WhatsAppCoexistenceService,
     OtpService,
     ChannelSender,
+    EscalationNotifier,
   ],
   controllers: [
     MessagingController,
@@ -276,6 +278,7 @@ export class CheckoutLeadController {
     CheckoutLeadsService,
     ChannelSender,
     OtpService,
+    EscalationNotifier,
   ],
 })
 export class MessagingModule {}

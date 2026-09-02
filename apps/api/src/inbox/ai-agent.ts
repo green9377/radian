@@ -11,6 +11,7 @@ import { InboxAiTools, ToolProduct } from './ai-tools';
 import { InboxPresence } from './presence';
 import { AiMessage, AiToolDef, providerFor } from './ai-provider';
 import { ChannelSender } from '../messaging/channel-sender.service';
+import { EscalationNotifier } from '../messaging/escalation-notifier.service';
 
 /*
   AI first-responder — RADIAN_INBOX_MODULE_ARCHITECTURE.md।
@@ -166,6 +167,7 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
     private readonly tools: InboxAiTools,
     private readonly presence: InboxPresence,
     private readonly sender: ChannelSender,
+    private readonly notifier: EscalationNotifier,
   ) {}
 
   /*  The clock behind DEC-INB-008/009: once a minute, look for a thread where
@@ -478,16 +480,23 @@ export class InboxAiAgent implements OnModuleInit, OnModuleDestroy {
       });
       notify = owners.map((o) => o.id);
     }
-    await this.prisma.db.escalationEvent.create({
+    const event = await this.prisma.db.escalationEvent.create({
       data: {
         conversationId,
         reason,
         notifiedUserIds: notify as Prisma.InputJsonValue,
       },
+      select: { id: true },
     });
     await this.prisma.db.conversation.update({
       where: { id: conversationId },
       data: { escalatedAt: new Date(), unreadForStaff: { increment: 1 } },
     });
+
+    /*  Rung 0 of the ladder. Awaited, not fired and forgotten: this whole
+        method is already called from a background path, and a customer who
+        asked for a person should not wait on the next ticker. It cannot
+        throw - see escalation-notifier.service.ts.  */
+    await this.notifier.notifyNew(event.id);
   }
 }
