@@ -119,6 +119,17 @@ export function normalizeLoginPhone(raw: string): string | null {
   return normalizeBdPhone(raw);
 }
 
+/**
+ * Which channel actually carried the last code — "WhatsApp", "SMS", "email".
+ *
+ * The screen used to say "on WhatsApp" whatever happened, and the owner's
+ * first real code arrived by SMS (2 Sep). A screen that names the wrong app
+ * sends the customer hunting in the wrong place, so it now says what the
+ * server did. A FAILED channel is still never named: that would turn a login
+ * box into a way of asking who has WhatsApp.
+ */
+export let lastOtpChannel: string | null = null;
+
 /** Ask for a code. Returns null when sent, or the reason it was not. */
 export async function requestLoginOtp(phone: string): Promise<string | null> {
   try {
@@ -127,8 +138,33 @@ export async function requestLoginOtp(phone: string): Promise<string | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone, purpose: "LOGIN" }),
     });
-    const j = (await res.json()) as { sent?: boolean; error?: string; message?: string };
-    if (j.sent) return null;
+    const j = (await res.json()) as {
+      sent?: boolean;
+      via?: string | null;
+      error?: string;
+      message?: string;
+      statusCode?: number;
+    };
+    if (j.sent) {
+      lastOtpChannel =
+        { WHATSAPP: "WhatsApp", SMS: "SMS", EMAIL: "email" }[j.via ?? ""] ?? null;
+      return null;
+    }
+
+    /*
+      Two shapes come back, and reading them in the wrong order is what put
+      "Bad Request" on the screen where "Please wait 57 seconds" belonged
+      (found by the owner, 2 Sep):
+
+        refused   { message: "Please wait 57 seconds…", error: "Bad Request",
+                    statusCode: 400 }   ← Nest: `error` is the HTTP class name
+        undelivered { sent: false, error: "We could not reach that number…" }
+                                        ← ours: `error` IS the sentence
+
+      So statusCode is the tell: when it is there, the sentence is in
+      `message`. A customer should never be shown either word "Bad Request".
+    */
+    if (j.statusCode) return j.message || "That did not work. Try again.";
     return j.error || j.message || "We could not send the code. Try again.";
   } catch {
     return "We could not reach Radian. Check your connection and try again.";
