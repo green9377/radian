@@ -58,6 +58,8 @@ node apps\api\scripts\outbound-guard.selftest.mjs
 if errorlevel 1 goto :ruleBroken
 node apps\api\scripts\escalation.selftest.mjs
 if errorlevel 1 goto :ruleBroken
+node apps\api\src\administration\registry.drift.mjs
+if errorlevel 1 goto :ruleBroken
 goto :rulesOk
 
 :ruleBroken

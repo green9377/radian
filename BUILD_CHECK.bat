@@ -52,6 +52,25 @@ if errorlevel 1 (
   exit /b 1
 )
 
+REM  ADM-RULE-001 - the sidebar and registry.def.ts are ONE list. registry.def.ts
+REM  is GENERATED from AdminSidebar.tsx, and the failure mode of the two drifting
+REM  apart is SILENCE: a screen nobody can reach, or a permission node for a page
+REM  that does not exist. This check has existed since the Administration module
+REM  was built and was wired into nothing - so on 2 Sep two hand-added rows sat in
+REM  the generated file for a whole deploy without one gate noticing. Now it bites.
+echo ==================================================
+echo   [0c/4] Sidebar and access registry are one list...
+echo ==================================================
+call node src\administration\registry.drift.mjs
+if errorlevel 1 (
+  echo.
+  echo   *** SIDEBAR AND REGISTRY DISAGREE. Run registry.gen.mjs - never edit ***
+  echo   *** registry.def.ts by hand.                                        ***
+  echo.
+  pause
+  exit /b 1
+)
+
 REM  Phase 9 - the admin on a phone. Counts what is still desktop-only and
 REM  fails only if a file GAINS some. Nothing new may arrive while the old
 REM  325 are being swept.

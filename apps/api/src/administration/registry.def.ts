@@ -1250,18 +1250,6 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 118
   },
   {
-    "key": "marketing.bulk-send",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Bulk messaging",
-    "domain": "Growth",
-    "href": "/marketing/bulk-send",
-    "legacyRoles": [
-      "OWNER"
-    ],
-    "sortOrder": 119
-  },
-  {
     "key": "marketing.overview",
     "parentKey": "marketing",
     "kind": "SCREEN",
@@ -1818,18 +1806,6 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER"
     ],
     "sortOrder": 173
-  },
-  {
-    "key": "administration.limits",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "Outbound safety limits",
-    "domain": "Setup",
-    "href": "/administration/outbound",
-    "legacyRoles": [
-      "OWNER"
-    ],
-    "sortOrder": 174
   },
   {
     "key": "administration.overview",
