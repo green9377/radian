@@ -7340,6 +7340,11 @@ export interface ApiInboxMessage {
   body: string;
   createdAt: string;
   authorUser: { name: string } | null;
+  /// DEC-INB-010 — our own copy of the file, not Meta's expiring link.
+  mediaUrl: string | null;
+  mediaMime: string | null;
+  mediaKind: string | null;
+  mediaName: string | null;
 }
 
 export interface ApiInboxDetail {

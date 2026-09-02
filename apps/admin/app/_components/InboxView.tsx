@@ -51,8 +51,16 @@ function ago(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-function displayName(c: ApiInboxListItem): string {
-  return c.customer?.name || c.guestName || "Guest";
+/*
+  The owner's rule (2 Sep): never leave a thread reading "Guest" when we know
+  the number. A hundred conversations came in from the phone with numbers and
+  no names, and "Guest · Guest · Guest" cannot be worked through — the number
+  at least tells one from another, and staff recognise regulars by it.
+
+  "Guest" is now only for a web-chat visitor who has given nothing at all.
+*/
+function displayName(c: { customer?: { name: string } | null; guestName?: string | null; guestPhone?: string | null }): string {
+  return c.customer?.name || c.guestName || c.guestPhone || "Guest";
 }
 
 /*
@@ -77,6 +85,72 @@ function initials(name: string): string {
   const first = words[0][0] ?? "";
   const last = words.length > 1 ? (words[words.length - 1][0] ?? "") : "";
   return (first + last).toUpperCase();
+}
+
+/*
+  DEC-INB-010 — the picture, the voice note and the file, shown as themselves.
+
+  Until now a customer sending a photo of the bouquet they wanted produced the
+  word "[image]", and staff had to open WhatsApp on a phone to see it. The file
+  is ours (copied out of Meta, whose links expire), so it can simply be drawn.
+
+  A caption that is only the placeholder is dropped — the picture says it.
+*/
+function MessageMedia({
+  m,
+}: {
+  m: {
+    mediaUrl?: string | null;
+    mediaKind?: string | null;
+    mediaMime?: string | null;
+    mediaName?: string | null;
+  };
+}) {
+  if (!m.mediaUrl) return null;
+  const url = m.mediaUrl;
+
+  if (m.mediaKind === "image" || m.mediaKind === "sticker") {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="block mb-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={m.mediaKind === "sticker" ? "Sticker" : "Photo"}
+          className={
+            m.mediaKind === "sticker"
+              ? "w-28 h-28 object-contain"
+              : "rounded-2xl max-h-72 w-auto object-cover"
+          }
+        />
+      </a>
+    );
+  }
+
+  if (m.mediaKind === "audio") {
+    // Voice notes are how customers actually order here, so the player is
+    // full width rather than a link that has to be opened.
+    return (
+      <audio controls preload="none" src={url} className="mb-2 w-56 max-w-full" />
+    );
+  }
+
+  if (m.mediaKind === "video") {
+    return (
+      <video controls preload="metadata" src={url} className="mb-2 rounded-2xl max-h-72 w-auto" />
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      download={m.mediaName ?? undefined}
+      className="mb-2 flex items-center gap-2 underline font-bold break-all"
+    >
+      📎 {m.mediaName || "Attachment"}
+    </a>
+  );
 }
 
 function Avatar({
@@ -706,12 +780,12 @@ export default function InboxView() {
                       {channelOf(detail.channel).label}
                     </span>
                     <Avatar
-                      name={detail.customer?.name || detail.guestName || "Guest"}
+                      name={displayName(detail)}
                       url={detail.guestAvatarUrl}
                       size={30}
                     />
                     <p className="text-[17px] font-extrabold text-gray-900 truncate">
-                      {detail.customer?.name || detail.guestName || "Guest"}
+                      {displayName(detail)}
                     </p>
                   </div>
                   <p className="text-[12px] font-medium text-gray-400 mt-0.5">
@@ -805,6 +879,7 @@ export default function InboxView() {
                                 "Replied from Meta")}
                           </p>
                         )}
+                        <MessageMedia m={m} />
                         <MessageBody body={m.body} />
                         <p
                           className={`text-[10.5px] font-bold mt-1.5 ${

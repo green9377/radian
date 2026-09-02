@@ -7708,6 +7708,23 @@ model Message {
 
   body String
 
+  /// DEC-INB-010 - the picture, the voice note, the file itself.
+  ///
+  /// Meta's own media URLs need the access token and expire in minutes, so
+  /// they cannot be put in a browser. The file is copied once into our own
+  /// media store and THIS is the URL staff open - it keeps working after Meta's
+  /// link is dead, and it is what makes "[image]" an actual image.
+  ///
+  /// Null on a plain text message, and null when the copy failed: the text is
+  /// stored either way, because losing the message to save the picture would
+  /// be the worse trade.
+  mediaUrl  String?
+  mediaMime String?
+  /// image | audio | video | document | sticker - what to draw, not how.
+  mediaKind String?
+  /// The sender's own filename, for documents.
+  mediaName String?
+
   /// The channel's own message id - stops duplicate webhooks (Phase 3).
   externalMessageId String? @unique
 

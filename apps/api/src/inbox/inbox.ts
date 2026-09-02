@@ -398,6 +398,8 @@ export class InboxService {
           select: {
             id: true, direction: true, authorType: true, body: true,
             createdAt: true, authorUser: { select: { name: true } },
+            // DEC-INB-010 — our own copy of the file, not Meta's expiring link.
+            mediaUrl: true, mediaMime: true, mediaKind: true, mediaName: true,
           },
         },
         escalations: { orderBy: { createdAt: 'desc' }, take: 10 },
