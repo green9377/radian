@@ -3,19 +3,15 @@ import { normalizeBdPhone } from "../_store/useCheckoutStore";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  AUTH (MOCK) — WhatsApp login।
+  AUTH — WhatsApp login. No password: in Bangladesh a code on WhatsApp is
+  what people expect, and it is the number we already deliver to.
 
-  Customer BD ফোন দেয় → আমরা "WhatsApp-এ code পাঠালাম" (আসলে পাঠাই না)
-  → code মিলে গেলে session। Password নেই — BD-তে WhatsApp/OTP-ই স্বাভাবিক।
+  The code half is REAL as of 2 Sep 2026 — see §OTP below.
 
-  ⚠️ এটা mock। কোনো আসল যাচাই হয় না — যেকোনো valid BD ফোন +
-     DEMO_OTP দিলেই ঢোকা যায়। শুধু UI/flow বানানো, যাতে backend এলে
-     swap সহজ হয়।
-
-  ⇄ SWAP HERE — Auth/Customer module lock হলে:
-     requestOtp() → POST /auth/otp/request (আসল WhatsApp Business API),
-     verifyOtp()  → POST /auth/otp/verify → JWT/session cookie,
-     DEMO_CUSTOMER → GET /me।
+  The profile half below (DEMO_CUSTOMER and the addresses) is still demo
+  data, and is the next thing to replace: GET /me once the Customer module
+  exposes it. Logging in is now safe; what the account SHOWS afterwards is
+  not yet the customer's own.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -99,20 +95,59 @@ export const SEED_DELIVERY_ADDRESSES: Address[] = [
   },
 ];
 
-/* ─────────────────── MOCK OTP ─────────────────── */
+/* ─────────────────── OTP ───────────────────
+
+   DEC-WA-010. Real, as of 2 Sep 2026.
+
+   ⚠️ What was here until today: a DEMO_OTP of "123456" that let anybody into
+   anybody's account — order history, addresses, the lot — on a system taking
+   real orders. It was written when nothing behind it existed. Nothing behind
+   it is missing any more, so it is gone; if a code cannot be sent, login
+   fails rather than falling back to something that always works.
+
+   The server decides the channel (WhatsApp → SMS → email) and never says
+   which one failed, so a login screen cannot be used to find out who has
+   WhatsApp.
+*/
 
 export const OTP_LENGTH = 6;
-/** demo-তে সবসময় এই code কাজ করে (আসল কিছু পাঠানো হয় না) */
-export const DEMO_OTP = "123456";
+
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
 /** valid BD ফোন? → normalized (+880…) নাকি null */
 export function normalizeLoginPhone(raw: string): string | null {
   return normalizeBdPhone(raw);
 }
 
-/** mock verify — যেকোনো ফোনে DEMO_OTP মিললেই pass */
-export function verifyOtp(code: string): boolean {
-  return code.replace(/\s/g, "") === DEMO_OTP;
+/** Ask for a code. Returns null when sent, or the reason it was not. */
+export async function requestLoginOtp(phone: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API}/shop/otp/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, purpose: "LOGIN" }),
+    });
+    const j = (await res.json()) as { sent?: boolean; error?: string; message?: string };
+    if (j.sent) return null;
+    return j.error || j.message || "We could not send the code. Try again.";
+  } catch {
+    return "We could not reach Radian. Check your connection and try again.";
+  }
+}
+
+/** True only if the server says the code is right. Never decided here. */
+export async function verifyOtp(phone: string, code: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API}/shop/otp/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, purpose: "LOGIN", code: code.replace(/\s/g, "") }),
+    });
+    const j = (await res.json()) as { ok?: boolean };
+    return j.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 /** logged-in customer বানাও — entered phone বসিয়ে DEMO profile */

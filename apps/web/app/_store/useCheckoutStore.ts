@@ -205,25 +205,48 @@ export function useCheckoutHydrated(): boolean {
    only.
 */
 
-const BD_LOCAL = /^01[3-9]\d{8}$/;
+/*
+  The nine digits that actually identify a Bangladeshi mobile: 1, then the
+  operator digit, then eight more. Everything before them is decoration.
+*/
+const BD_CORE = /^1[3-9]\d{8}$/;
 const INTL_LOCAL = /^\d{6,14}$/;
 
-/** "+880" + "01712345678" → "+8801712345678" */
-export function normalizePhone(dial: string, raw: string): string | null {
-  const clean = raw.replace(/[\s\-()]/g, "");
+/**
+ * Strip everything a person might reasonably type in front of the number and
+ * return the nine core digits, or null.
+ *
+ * The owner's rule (2 Sep): the field takes the number WITH the 0 or WITHOUT
+ * it, and works out the rest itself. It used to demand the leading 0, so a
+ * customer who typed 1519779378 — or pasted +8801519779378 out of WhatsApp —
+ * was told their own number was invalid, at checkout, with a full cart.
+ *
+ * Accepted, all the same number:
+ *   01519779378 · 1519779378 · 8801519779378 · +8801519779378 · 0088 01519 779378
+ */
+function bdCore(raw: string): string | null {
+  let s = raw.replace(/[\s\-().]/g, "").replace(/^\+/, "");
+  s = s.replace(/^00/, "");   // 00 = the international prefix, dialled aloud
+  s = s.replace(/^880/, "");  // the country code, typed or pasted
+  s = s.replace(/^0/, "");    // the trunk 0, which BD numbers are written with
+  return BD_CORE.test(s) ? s : null;
+}
 
+/** Any dial code + what was typed → E.164, or null. */
+export function normalizePhone(dial: string, raw: string): string | null {
   if (dial === DEFAULT_DIAL) {
-    return BD_LOCAL.test(clean) ? dial + clean.slice(1) : null;
+    const core = bdCore(raw);
+    return core ? dial + core : null;
   }
 
   // drop the leading 0 (trunk prefix) on a foreign number — +44 07... → +447...
-  const local = clean.replace(/^0+/, "");
+  const local = raw.replace(/[\s\-().]/g, "").replace(/^\+/, "").replace(/^0+/, "");
   return INTL_LOCAL.test(local) ? dial + local : null;
 }
 
 export function normalizeBdPhone(raw: string): string | null {
-  const clean = raw.replace(/[\s\-()]/g, "");
-  return BD_LOCAL.test(clean) ? "+880" + clean.slice(1) : null;
+  const core = bdCore(raw);
+  return core ? "+880" + core : null;
 }
 
 /* ─────────────────── VALIDATION ─────────────────── */
