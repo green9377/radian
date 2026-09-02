@@ -200,8 +200,27 @@ export class OutboundGuard {
     const limits = await this.settings.limits();
     const now = Date.now();
 
-    /* ── 4 · the repeat guard ───────────────────────────────────────── */
-    const repeat = limits.find((l) => l.metric === OutboundLimitMetric.REPEAT);
+    /* ── 4 · the repeat guard ─────────────────────────────────────────
+       A one-time code is the one message that is MEANT to be sent again.
+       "Resend code" is a button the customer is invited to press, and the
+       second code is deliberately the same KIND as the first - which is
+       exactly what this guard matches on.
+
+       Found on 2 Sep 2026 by the owner, an hour after login went real: the
+       first code arrived and every attempt after it died here. The screen
+       said "we could not reach that number", so it read as the customer's
+       phone being at fault when it was our own guard.
+
+       Repetition is not the danger here. VOLUME is, and clauses 3, 5 and 6
+       still hold for OTP - as do OtpService's own limits, which are the
+       right place for it: one code a minute and five an hour, PER NUMBER.
+       This guard cannot tell a customer pressing Resend from a loop; those
+       limits can.
+    */
+    const repeat =
+      req.origin === 'otp'
+        ? undefined
+        : limits.find((l) => l.metric === OutboundLimitMetric.REPEAT);
     if (repeat) {
       const cut = now - repeat.windowMinutes * 60_000;
       const seen = this.sent.filter(
