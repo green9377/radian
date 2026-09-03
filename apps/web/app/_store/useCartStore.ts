@@ -144,6 +144,14 @@ interface CartStore {
    * go stale when the subtotal changes.
    */
   couponCode: string | null;
+  /**
+   * R3 (4 Sep 2026) — a code the SHOP has just turned down, kept only so the
+   * screen can still say why. The code itself is gone from `couponCode` the
+   * moment the quote refuses it: a refused code used to stay in the store,
+   * ride into the order payload and block the whole checkout with a 400 —
+   * and there was no button to take it out. Not persisted.
+   */
+  couponRejected: { code: string; reason: string } | null;
   /** Undo bar — a removed line sits here for 6 seconds */
   lastRemoved: RemovedLine | null;
 
@@ -153,6 +161,8 @@ interface CartStore {
   removeAddon: (lineId: string, addonKey: string) => void;
   setSize: (lineId: string, sizeId: string) => void;
   setCoupon: (code: string | null) => void;
+  /** R3 — the quote said no to `code`: drop it, remember why */
+  rejectCoupon: (code: string, reason: string) => void;
   restore: () => void;
   clearRemoved: () => void;
   clear: () => void;
@@ -167,6 +177,7 @@ export const useCartStore = create<CartStore>()(
     (set) => ({
       items: [],
       couponCode: null,
+      couponRejected: null,
       lastRemoved: null,
 
       add: (item) => {
@@ -232,9 +243,16 @@ export const useCartStore = create<CartStore>()(
         })),
 
       setCoupon: (code) =>
-        set({ couponCode: code ? code.trim().toUpperCase() : null }),
+        set({ couponCode: code ? code.trim().toUpperCase() : null, couponRejected: null }),
 
-      clear: () => set({ items: [], lastRemoved: null, couponCode: null }),
+      rejectCoupon: (code, reason) =>
+        set((s) =>
+          s.couponCode === code.trim().toUpperCase()
+            ? { couponCode: null, couponRejected: { code: s.couponCode, reason } }
+            : {},
+        ),
+
+      clear: () => set({ items: [], lastRemoved: null, couponCode: null, couponRejected: null }),
 
       replaceAll: (items) => set({ items, lastRemoved: null }),
     }),

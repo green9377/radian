@@ -141,6 +141,8 @@ export interface ApiProductDetail {
     /** DEC-PRD-032 — the struck-through price while an offer runs */
     wasPaisa?: number | null;
     stockQty: number;
+    /** R1 — may this option be sold right now (server-decided) */
+    soldOut?: boolean;
   }[];
   sizes: ApiSize[];
   sizeLabel: string;

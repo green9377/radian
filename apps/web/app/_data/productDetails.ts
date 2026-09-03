@@ -143,6 +143,9 @@ export interface PickedVariant {
   wasPaisa?: number | null;
   /** 0 = this colour is out; the others carry on */
   stockQty: number;
+  /** R1 — the shop's own verdict on this option, made beside `availability`.
+   *  Absent on the mock, where nothing can run out. */
+  soldOut?: boolean;
 }
 
 /** 2. SIZE — the same product at a different price */

@@ -47,12 +47,12 @@ export function availabilityOf(p: {
   soldOutMode: 'STOCK_OUT' | 'PRE_ORDER';
   preorderDate: Date | null;
   /**
-   * DEC-PRD-014 — এই product-এর variant-গুলোর মজুদ। মালিক, ২ আগস্ট ২০২৬:
-   * *"variant থাকলে variant-এর stock-ই চলবে, product-এর ঘরটা তখন যোগফল
-   * দেখাবে।"*
+   * DEC-PRD-014 — the stock of this product's variants. Owner, 2 Aug 2026:
+   * "with variants, the variants' stock rules; the product's own box then
+   * only shows the sum."
    *
-   * ⚠️ না দিলে (`undefined`) আগের নিয়মই চলে — Sales-এর মতো যেসব জায়গা
-   * এখনো variant পড়ে না, তারা যেন হঠাৎ অন্য উত্তর না পায়।
+   * Leave it `undefined` (or empty) for a product without variants and the
+   * product's own box decides, as before.
    */
   variantStock?: number[];
   /** DEC-PRD-032 — any variant linked to a stockroom Item (its true count
@@ -60,29 +60,29 @@ export function availabilityOf(p: {
   hasTrackedVariant?: boolean;
 }): Availability {
   const counted = p.stockMode === 'MANUAL' && p.supplierId === null;
+  if (!counted) return { state: 'IN_STOCK' };
 
   /*
-    DEC-PRD-014 — variant-ই আসল গোনা।
+    DEC-PRD-014 — with variants, the variants ARE the count (owner, 2 Aug 2026).
 
-    ⚠️ কেন যোগফল, আর কেন শর্ত দিয়ে। এক product-এ দুই জায়গায় সংখ্যা
-    লেখা যেত — Stock tab-এ একটা, প্রতিটা রঙে একটা। মালিকের ২ আগস্টের
-    রায়: variant থাকলে variant-ই চলবে।
+    ⚠️ R1, 4 Sep 2026 — the "all zero means the boxes were never filled, so
+    the product's own box decides" fallback is GONE. It let the shop sell a
+    colour whose shelf read 0 (the product box said 500) and Preparing then
+    refused the same line against the same shelf — two gates, two answers,
+    and a customer told "yes" and then "no". Preparing has always judged a
+    variant line against ITS shelf (REV-M4); this gate now says the same thing
+    at the door. The owner's ruling: if every variant is 0, nothing is sold.
 
-    ⚠️ কিন্তু **সবগুলো শূন্য হলে নয়**। ঘরগুলো এখনো ভরা হয়নি এমন হতেই
-    পারে, আর তখন হঠাৎ product-টা "Out of stock" হয়ে যাওয়া মানে দোকানে
-    জিনিস থাকা অবস্থায় বিক্রি বন্ধ। তাই শূন্য যোগফল মানে "variant-রা
-    কিছু বলছে না" — তখন product-এর নিজের হিসাবই চলে।
+    A variant counted in Inventory (itemId set) is judged there, not here —
+    `hasTrackedVariant` is for callers that could not resolve that number.
   */
-  const fromVariants = (p.variantStock ?? []).reduce((n, q) => n + q, 0);
-  if (fromVariants > 0) return { state: 'IN_STOCK' };
-
-  /*  DEC-PRD-032 — a variant whose count lives in Inventory (itemId set) is
-      not hand-counted here. If at least one such variant exists while the
-      hand-counted ones read zero, the product stays buyable — the same
-      reasoning that keeps TRACKED products outside this gate.  */
-  if (p.hasTrackedVariant) return { state: 'IN_STOCK' };
-
-  if (!counted || p.stockQty > 0) return { state: 'IN_STOCK' };
+  const variantStock = p.variantStock ?? [];
+  if (variantStock.length > 0) {
+    if (variantStock.reduce((n, q) => n + q, 0) > 0) return { state: 'IN_STOCK' };
+    if (p.hasTrackedVariant) return { state: 'IN_STOCK' };
+  } else if (p.hasTrackedVariant || p.stockQty > 0) {
+    return { state: 'IN_STOCK' };
+  }
 
   if (p.soldOutMode === 'PRE_ORDER') {
     /*  A date in the past is not a promise, it is an embarrassment — the page

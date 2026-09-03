@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   getOrder,
@@ -29,7 +29,7 @@ import {
   formatTaka,
   shortDate,
   clockTime,
-  hasCrafted,
+  codClosedReason,
   type Order,
   type TimelineKind,
 } from "../_data/orders";
@@ -200,6 +200,20 @@ export default function OrderEditor({ id }: { id: string }) {
   const [cust, setCust] = useState<ApiCustomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  /*  R4 (4 Sep 2026) — a double-click on "Start preparing" moved the order
+      TWO stages. The first click finished, the page re-rendered, the primary
+      button became "Out for delivery" in the same spot, and the second click
+      of the same double-click pressed it. `busy` alone cannot stop that: it
+      is React state, so a click that lands before the render sees it as
+      free, and it is already false again by the time the button has changed
+      its name. Two guards, neither of them state:
+        · `inFlight` — a ref, flipped synchronously, so a second click while
+          a request is out is dropped before anything is sent
+        · `cooldown` — after a successful transition the primary button stays
+          shut for a moment, so the NEXT stage can only be reached by a fresh,
+          deliberate click, never by the tail of the last one  */
+  const inFlight = useRef(false);
+  const [cooldown, setCooldown] = useState(false);
   /** why the last action was refused — shown on the page, never in an alert */
   const [actErr, setActErr] = useState("");
   const [sec, setSec] = useState<SecId>("summary");
@@ -256,16 +270,25 @@ export default function OrderEditor({ id }: { id: string }) {
     prisma-exception-filter (owner, 20 Aug): a rule saying no must read as a
     rule saying no, not as something broken.
   */
-  async function act(fn: () => Promise<unknown>) {
+  async function act(fn: () => Promise<unknown>, opts: { transition?: boolean } = {}) {
+    if (inFlight.current) return; // R4 — one request at a time, decided synchronously
+    inFlight.current = true;
     setBusy(true);
     setActErr("");
+    let moved = false;
     try {
       await fn();
+      moved = true;
       await reload();
     } catch (e) {
       setActErr(e instanceof Error ? e.message : "That did not work. Try again.");
     } finally {
+      inFlight.current = false;
       setBusy(false);
+      if (moved && opts.transition) {
+        setCooldown(true);
+        window.setTimeout(() => setCooldown(false), 1500);
+      }
     }
   }
 
@@ -284,7 +307,11 @@ export default function OrderEditor({ id }: { id: string }) {
   const cancelled = o.salesStatus === "cancelled";
   const terminal = cancelled || o.salesStatus === "completed";
   const failed = o.deliveryStatus === "failed" || o.deliveryStatus === "stock_reverted";
-  const crafted = hasCrafted(o);
+  /*  R2 / DEC-SAL-015 — the notice on the Payment tab used to say "crafted
+      item — cash on delivery is blocked". CRAFTED stopped being a COD rule on
+      30 Aug (the shop assembles nearly everything it sells); the server's
+      `assertCodAllowed` and the website already knew. This screen did not.  */
+  const codClosed = codClosedReason(o);
   const due = Math.max(0, o.payment.duePaisa);
   const paidNet = o.payment.paidPaisa - o.payment.refundPaisa;
   const custName = cust?.name ?? o.sender.name;
@@ -419,7 +446,7 @@ export default function OrderEditor({ id }: { id: string }) {
           <Stepper steps={JOURNEY} current={journeyIndex(o)} tone={cancelled ? "rose" : deliveryTone(o.deliveryStatus)} dead={cancelled} deadLabel="Order cancelled — per-line refund applied" />
         </div>
         {nextStep && !terminal && (
-          <button type="button" disabled={busy} onClick={() => act(nextStep.run)} className="text-white text-[13px] px-4 py-2.5 rounded-[11px] font-bold disabled:opacity-50 inline-flex items-center gap-2 shrink-0" style={{ background: TONE[nextStep.tone].solid }}>
+          <button type="button" disabled={busy || cooldown} onClick={() => act(nextStep.run, { transition: true })} className="text-white text-[13px] px-4 py-2.5 rounded-[11px] font-bold disabled:opacity-50 inline-flex items-center gap-2 shrink-0" style={{ background: TONE[nextStep.tone].solid }}>
             <Icon name="check" size={15} /> {busy ? "Working…" : nextStep.label}
           </button>
         )}
@@ -841,7 +868,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 )}
 
                 <div className="mt-4 flex flex-col gap-2">
-                  {crafted && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] border" style={{ background: TONE.amber.bg, borderColor: TONE.amber.border, color: TONE.amber.text }}>This order has a crafted item — advance payment applies and cash on delivery is blocked.</div>}
+                  {codClosed && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] border" style={{ background: TONE.amber.bg, borderColor: TONE.amber.border, color: TONE.amber.text }}>{codClosed}</div>}
                   {o.isGift && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] border" style={{ background: TONE.gold.bg, borderColor: TONE.gold.border, color: TONE.gold.text }}>Gift order — cash on delivery is never offered.</div>}
                 </div>
               </div>

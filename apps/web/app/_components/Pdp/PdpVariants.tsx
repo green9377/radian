@@ -72,11 +72,14 @@ export function VariantPicker({
 }) {
   const active = variants.find((v) => v.id === activeId);
 
-  /*  ⚠️ Stock only closes the door when at least one of them has stock. All
-      zeroes means the fields have not been filled in yet — and then none of
-      them is called "Sold out". PdpView uses this exact same condition, so the
-      two places say the same thing.  */
+  /*  R1, 4 Sep 2026 — whether an option is sold out is the SHOP's verdict
+      (`soldOut`, decided on the server beside `availability`), not a guess
+      made from the numbers here. The old guess — "all zeroes means the boxes
+      were never filled, so nothing is sold out" — let a colour with an empty
+      shelf be bought and then refused at Preparing. It survives only as a
+      fallback for a payload without the flag. PdpView reads the same flag.  */
   const anyStock = variants.some((v) => v.stockQty > 0);
+  const isOut = (v: PickedVariant) => v.soldOut ?? (anyStock && v.stockQty === 0);
 
   /*  ── DEC-PRD-045 · one row of buttons per list ────────────────────────
       A product in three sizes and three colours arrives here as nine
@@ -142,7 +145,7 @@ export function VariantPicker({
     const pool = near.length
       ? near
       : variants.filter((v) => partsOf(v).some((p) => p.attributeId === axisId && p.valueId === valueId));
-    const target = pool.find((v) => v.stockQty > 0) ?? pool[0];
+    const target = pool.find((v) => !isOut(v)) ?? pool[0];
     /*  ⚠️ 31 Aug 2026 — the owner's bug: "variant select hoyeo ase na".
         On a two-list product, pressing Pink already resolves to the pair
         Pink · Large. Pressing Large then resolves to the SAME pair, and the
@@ -193,8 +196,7 @@ export function VariantPicker({
                 /*  Not sold in this combination at all, or sold and run out.
                     Both end the same way for the customer, so both look the
                     same: the button is there, and it is shut.  */
-                const out =
-                  near.length === 0 || (anyStock && near.every((v) => v.stockQty === 0));
+                const out = near.length === 0 || near.every(isOut);
                 /*  Only worth printing on a single-list product. With two
                     lists a price belongs to the PAIR, and printing it under
                     one half of the pair is how a page tells a lie.  */

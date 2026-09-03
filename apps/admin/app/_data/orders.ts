@@ -150,6 +150,9 @@ export interface OrderLine {
   persoImageUrl?: string;
   /** per-line: drives cancel/refund branch (locked) */
   productType: ProductType;
+  /** R2 / DEC-SAL-015 — this product needs payment up front; with a gift,
+   *  the only thing that closes Cash on Delivery. CRAFTED does not. */
+  advanceRequired?: boolean;
   qty: number;
   unitPaisa: number;
   linePaisa: number;
@@ -275,6 +278,16 @@ export { formatTaka, shortDate, ago };
 /** any crafted / made-to-order line? → COD blocked, advance applies */
 export function hasCrafted(o: Order): boolean {
   return o.lines.some((l) => l.productType === "crafted");
+}
+
+/** R2 / DEC-SAL-015 — why Cash on Delivery is closed on this order, if it is.
+ *  Two reasons exist and only two: a gift, and a product the owner marked
+ *  "payment required". CRAFTED is not one of them (30 Aug 2026). */
+export function codClosedReason(o: Order): string | null {
+  if (o.isGift) return "This is a gift order — gifts are paid in full, so cash on delivery is not available.";
+  const needy = o.lines.find((l) => l.advanceRequired);
+  if (needy) return `"${needy.name}" needs advance payment, so cash on delivery is not available on this order.`;
+  return null;
 }
 
 /** does this order still need a staff action? (drives "Needs action" stat) */

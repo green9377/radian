@@ -113,6 +113,7 @@ export default function CartView() {
     promise.
   */
   const couponCode = useCartStore((s) => s.couponCode);
+  const rejectCoupon = useCartStore((s) => s.rejectCoupon);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(true);
   useEffect(() => {
@@ -131,11 +132,14 @@ export default function CartView() {
       if (stale) return;
       setQuote(q);
       setQuoting(false);
+      /*  R3 — a code the shop refused must not stay in the store, or it
+          rides into the order and the whole checkout fails on it.  */
+      if (q?.couponError && couponCode) rejectCoupon(couponCode, q.couponError);
     });
     return () => {
       stale = true;
     };
-  }, [items, zone, couponCode]);
+  }, [items, zone, couponCode, rejectCoupon]);
 
   /*
     Names of everything this cart has held, kept as they go past.

@@ -28,6 +28,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from './orders.service';
+import { DeliveryService } from '../delivery/delivery.service';
+import { availabilityOf } from '../common/availability';
 import { resolvePromisedBy } from './promise';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -67,6 +69,7 @@ async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
   const prisma = app.get(PrismaService);
   const orders = app.get(OrdersService);
+  const delivery = app.get(DeliveryService);
 
   const cleanup = async () => {
     const custs = await prisma.customer.findMany({ where: { phone: { startsWith: TAG } }, select: { id: true } });
@@ -97,12 +100,15 @@ async function main() {
           died on its foreign key before a single assertion. Marketing owns the
           row; this only clears the ones this file made.  */
       await prisma.orderAttribution.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.deliveryAssignment.deleteMany({ where: { orderId: { in: orderIds } } }); // R5 rows
       await prisma.orderMessage.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.reviewInvite.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     }
     const prods = await prisma.product.findMany({ where: { slug: { startsWith: TAG.toLowerCase() } }, select: { id: true } });
-    await prisma.product.deleteMany({ where: { id: { in: prods.map((p) => p.id) } } });
+    const prodIds = prods.map((p) => p.id);
+    await prisma.productVariant.deleteMany({ where: { productId: { in: prodIds } } });
+    await prisma.product.deleteMany({ where: { id: { in: prodIds } } });
     const its = await prisma.item.findMany({ where: { sku: { startsWith: TAG } }, select: { id: true } });
     const itemIds = its.map((i) => i.id);
     if (itemIds.length) {
@@ -120,7 +126,8 @@ async function main() {
     console.log(JSON.stringify(await cleanup()));
 
     const category = await prisma.category.findFirst({ where: { deletedAt: null } });
-    const channel = await prisma.channel.findFirst();
+    // the order door reads through the soft-delete filter, so the fixture must too (R1 run, 4 Sep)
+    const channel = await prisma.channel.findFirst({ where: { deletedAt: null, isActive: true } });
     if (!category || !channel) throw new Error('seed at least one category and one channel first');
 
     const customer = await prisma.customer.create({
@@ -332,6 +339,137 @@ async function main() {
     const stored = await prisma.order.findUnique({ where: { id: withSlot.id }, select: { promisedBy: true } });
     ok('an order created with a slot carries a promisedBy', stored?.promisedBy !== null,
       dhaka(stored?.promisedBy));
+
+    /* --------------------------------------------------------------- 7 */
+    console.log('\n=== 7. R1 — a colour with an empty shelf cannot be sold (4 Sep 2026) ===');
+
+    /*  Found on the go-live walk: the product box said 500, both variant
+        shelves said 0, the shop sold Pink · Small, and Preparing refused the
+        same line against the same shelf. The gate now says what Preparing
+        says. Pure rule first, then the order door itself.  */
+    const base = {
+      stockMode: 'MANUAL' as const, stockQty: 500, supplierId: null,
+      soldOutMode: 'STOCK_OUT' as const, preorderDate: null,
+    };
+    ok('R1 every variant at 0 is OUT_OF_STOCK, whatever the product box says',
+      availabilityOf({ ...base, variantStock: [0, 0] }).state === 'OUT_OF_STOCK');
+    ok('R1 one variant with stock keeps the product buyable',
+      availabilityOf({ ...base, variantStock: [0, 3] }).state === 'IN_STOCK');
+    ok('R1 with no variants the product box decides, as before',
+      availabilityOf({ ...base, stockQty: 2 }).state === 'IN_STOCK' &&
+      availabilityOf({ ...base, stockQty: 0 }).state === 'OUT_OF_STOCK');
+    ok('R1 a TRACKED product stays outside the gate (Inventory is its truth)',
+      availabilityOf({ ...base, stockMode: 'TRACKED', variantStock: [0, 0] }).state === 'IN_STOCK');
+    ok('R1 a variant counted in Inventory is not judged from its hand box',
+      availabilityOf({ ...base, variantStock: [0], hasTrackedVariant: true }).state === 'IN_STOCK');
+    ok('R1 PRE_ORDER still answers when every variant is 0',
+      availabilityOf({ ...base, soldOutMode: 'PRE_ORDER', variantStock: [0] }).state === 'PRE_ORDER');
+
+    const values = await prisma.variantValue.findMany({ take: 2, select: { id: true } });
+    if (values.length < 2) throw new Error('need two VariantValue rows (any colour labels) to build the R1 fixture');
+    const shelf = await prisma.product.create({
+      data: {
+        name: `${TAG} Shelf Test`, slug: `${TAG.toLowerCase()}-shelf`,
+        categoryId: category.id, productType: 'READYMADE', zone: 'NATIONWIDE', natureType: 'ARTIFICIAL',
+        costPaisa: 100, sellingPricePaisa: 1000, stockMode: 'MANUAL', stockQty: 500,
+        variants: {
+          create: [
+            { variantValueId: values[0].id, comboKey: 'a', stockQty: 0 },
+            { variantValueId: values[1].id, comboKey: 'b', stockQty: 2 },
+          ],
+        },
+      },
+      include: { variants: true },
+    });
+    const empty = shelf.variants.find((v) => v.stockQty === 0)!;
+    const stocked = shelf.variants.find((v) => v.stockQty === 2)!;
+    const door = (variantId: string) =>
+      orders.create({
+        customerId: customer.id, channelId: channel.id, zone: 'DHAKA', address: 'selftest',
+        paymentMethod: 'cod', deliveryPaisa: 0, applyOffers: false, actorName: 'selftest',
+        lines: [{ productId: shelf.id, qty: 1, variantId }],
+      } as never);
+    await refuses('R1 the order door refuses the option whose shelf is 0',
+      () => door(empty.id), 'sold out');
+    const sold = await door(stocked.id);
+    ok('R1 …and takes the option that has stock', !!sold?.id);
+
+    await prisma.productVariant.update({ where: { id: stocked.id }, data: { stockQty: 0 } });
+    await refuses('R1 with every shelf at 0 nothing is sold, though the product box still says 500',
+      () => door(stocked.id), 'out of stock');
+
+    /* --------------------------------------------------------------- 8 */
+    console.log('\n=== 8. R4 — one click, one step, even when two arrive together (4 Sep 2026) ===');
+
+    /*  A double-click on "Start preparing" moved an order TWO stages on the
+        go-live walk. The screen is guarded now; this is the server's half:
+        two identical transitions at once → exactly one wins, the shelf moves
+        once, the cash is booked once.  */
+    await prisma.productVariant.update({ where: { id: stocked.id }, data: { stockQty: 5 } });
+    const race = await prisma.order.findUniqueOrThrow({ where: { id: sold.id } });
+    await orders.confirm(race.id, 'selftest');
+    const prepTwice = await Promise.allSettled([
+      orders.startPreparing(race.id, 'selftest'),
+      orders.startPreparing(race.id, 'selftest'),
+    ]);
+    const prepWon = prepTwice.filter((r) => r.status === 'fulfilled').length;
+    ok('R4 two "start preparing" at once → exactly one goes through', prepWon === 1, `${prepWon} succeeded`);
+    const shelfAfter = await prisma.productVariant.findUniqueOrThrow({ where: { id: stocked.id } });
+    ok('R4 …and the shelf moved exactly once', shelfAfter.stockQty === 4, `stock ${shelfAfter.stockQty}`);
+    const prepLoser = prepTwice.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    ok('R4 …the loser is told the order already moved, not given a stock error',
+      /already moved|cannot start preparing/i.test(String(prepLoser?.reason?.message ?? '')),
+      String(prepLoser?.reason?.message ?? '').slice(0, 70));
+
+    await orders.outForDelivery(race.id, 'selftest');
+    const delTwice = await Promise.allSettled([
+      orders.delivered(race.id, 'selftest'),
+      orders.delivered(race.id, 'selftest'),
+    ]);
+    const delWon = delTwice.filter((r) => r.status === 'fulfilled').length;
+    ok('R4 two "delivered" at once → exactly one goes through', delWon === 1, `${delWon} succeeded`);
+    const codRows = await prisma.paymentTransaction.count({ where: { orderId: race.id, kind: 'COD_COLLECTED' } });
+    ok('R4 …and the cash is booked exactly once', codRows === 1, `${codRows} COD_COLLECTED rows`);
+
+    /* --------------------------------------------------------------- 9 */
+    console.log('\n=== 9. R5 — the order cannot outrun its own delivery record (4 Sep 2026) ===');
+
+    /*  Go-live walk: order sent out from the order screen, rider assigned
+        AFTER, order marked delivered from the order screen → assignment
+        stayed ASSIGNED for ever, books said "cash with rider", settle board
+        (DELIVERED rows only) never listed the parcel.  */
+    const rider = await prisma.rider.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!rider) throw new Error('need one active Rider to run the R5 fixture');
+
+    // (a) a rider handed a parcel that is already on the road is on the road
+    const late = await door(stocked.id);
+    await orders.confirm(late.id, 'selftest');
+    await orders.startPreparing(late.id, 'selftest');
+    await orders.outForDelivery(late.id, 'selftest');
+    const lateAsg = await delivery.assign({ orderId: late.id, kind: 'RIDER', riderId: rider.id, actorName: 'selftest' });
+    ok('R5 assigning a rider to a parcel already out creates the record OUT_FOR_DELIVERY, not ASSIGNED',
+      lateAsg.status === 'OUT_FOR_DELIVERY' && !!lateAsg.outAt, lateAsg.status);
+    await refuses('R5 the order screen may not mark it delivered past the rider\'s record',
+      () => orders.delivered(late.id, 'selftest'), 'Delivery panel');
+    const viaDelivery = await delivery.assignmentAction(lateAsg.id, 'delivered', { actorName: 'selftest' });
+    const lateOrder = await prisma.order.findUniqueOrThrow({ where: { id: late.id } });
+    ok('R5 …delivered through Delivery moves BOTH: assignment DELIVERED, order completed',
+      viaDelivery.status === 'DELIVERED' && lateOrder.deliveryStatus === 'delivered' && lateOrder.salesStatus === 'completed');
+    const onBoard = await delivery.unsettled(rider.id);
+    ok('R5 …and the parcel is on the settle board with its COD to hand over',
+      onBoard.some((r: { orderId?: string; order?: { id: string } }) => (r.orderId ?? r.order?.id) === late.id));
+
+    // (b) assigned before going out — the order screen may not send it out around Delivery
+    const early = await door(stocked.id);
+    await orders.confirm(early.id, 'selftest');
+    await orders.startPreparing(early.id, 'selftest');
+    const earlyAsg = await delivery.assign({ orderId: early.id, kind: 'RIDER', riderId: rider.id, actorName: 'selftest' });
+    ok('R5 assigned while preparing is ASSIGNED, as before', earlyAsg.status === 'ASSIGNED');
+    await refuses('R5 the order screen may not send it out around the rider\'s record',
+      () => orders.outForDelivery(early.id, 'selftest'), 'Delivery panel');
+    const wentOut = await delivery.assignmentAction(earlyAsg.id, 'out', { actorName: 'selftest' });
+    const earlyOrder = await prisma.order.findUniqueOrThrow({ where: { id: early.id } });
+    ok('R5 …out through Delivery moves both', wentOut.status === 'OUT_FOR_DELIVERY' && earlyOrder.deliveryStatus === 'out_for_delivery');
   } catch (e) {
     fail += 1;
     const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);

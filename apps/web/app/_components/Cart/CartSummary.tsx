@@ -64,9 +64,10 @@ export default function CartSummary({
     তাই cart-এ apply করলে checkout-এ বসেই থাকে, আবার লিখতে হয় না।
   */
   const couponCode = useCartStore((s) => s.couponCode);
+  const couponRejected = useCartStore((s) => s.couponRejected);
   const setCoupon = useCartStore((s) => s.setCoupon);
 
-  const [code, setCode] = useState(couponCode ?? "");
+  const [code, setCode] = useState(couponCode ?? couponRejected?.code ?? "");
   const [open, setOpen] = useState(false);
 
   const { totals, held } = cart;
@@ -88,7 +89,9 @@ export default function CartSummary({
   /*  While a fresh quote is in flight the LAST total stays on screen. A cart
       that blanks its total between keystrokes reads as "it lost my order".  */
   const totalPaisa = quote?.totalPaisa ?? null;
-  const couponError = quote?.couponError ?? null;
+  /*  R3 — the refusal outlives the code: the store drops a refused code at
+      once (so it cannot block the order) and keeps the reason here.  */
+  const couponError = quote?.couponError ?? couponRejected?.reason ?? null;
   const appliedCoupon = quote?.applied.find((a) => a.code) ?? null;
   const canCheckout = totals.activeQty > 0;
 

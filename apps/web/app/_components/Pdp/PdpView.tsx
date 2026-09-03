@@ -455,14 +455,16 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   /*
     DEC-PRD-012 - one colour running out does not mean the product has.
 
-    Variant stock only closes the door when AT LEAST ONE variant has stock. If
-    every one is zero we assume the owner has not filled those boxes in yet,
-    and the product's own count governs. Otherwise a page would have read
-    "Sold out" with 30 roses standing in the shop, purely because the variant
-    boxes were empty.
+    ⚠️ R1, 4 Sep 2026 — the "every variant zero means the boxes were never
+    filled, so the product's own count governs" guess is gone. It sold a
+    colour whose shelf read 0 and Preparing then refused it. The SHOP now says
+    per option whether it may be sold (`soldOut`, decided beside
+    `availability` on the server); when all options are 0, `availability`
+    itself reads OUT_OF_STOCK. The old `stockQty === 0` test stays only as a
+    fallback for a payload without the flag.
   */
-  const anyVariantStock = vList.some((v) => v.stockQty > 0);
-  const variantOut = anyVariantStock && !!variant && variant.stockQty === 0;
+  const variantOut =
+    !!variant && (variant.soldOut ?? (vList.some((v) => v.stockQty > 0) && variant.stockQty === 0));
 
   /*  ── DEC-PRD-045 · a two-list product must be answered ────────────────
       With one list, choosing nothing has always been allowed: the product's

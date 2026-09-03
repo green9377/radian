@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import {
   StockMode,
   SoldOutMode,
   AddedFrom,
+  AssignmentStatus,
 } from '@prisma/client';
 /*  DEC-PDP-09 — the SAME function the storefront answers with. Imported rather
     than re-derived: two copies of "is it buyable" is how a page ends up saying
@@ -47,7 +49,14 @@ const NOT_DELETED = { deletedAt: null };
 const FULL_INCLUDE = {
   channel: true,
   customer: { select: { id: true, name: true, phone: true } },
-  lines: { where: NOT_DELETED, orderBy: { createdAt: 'asc' } },
+  lines: {
+    where: NOT_DELETED,
+    orderBy: { createdAt: 'asc' },
+    /*  R2 (4 Sep 2026) — the one COD flag, DEC-SAL-015, carried with the
+        line so a screen can say WHY cash is closed without guessing from
+        CRAFTED (which is not a COD rule and never was, since 30 Aug).  */
+    include: { product: { select: { advanceRequired: true } } },
+  },
   photos: { where: NOT_DELETED, orderBy: { capturedAt: 'asc' } },
   transactions: { where: NOT_DELETED, orderBy: { createdAt: 'asc' } },
 } satisfies Prisma.OrderInclude;
@@ -349,22 +358,34 @@ export class OrdersService {
       supplierId: string | null;
       soldOutMode: SoldOutMode;
       preorderDate: Date | null;
-      /** DEC-PRD-014 — variant থাকলে এদের যোগফলই আসল মজুদ */
-      variants?: { stockQty: number }[];
+      /** DEC-PRD-014 — with variants, their shelves are the real stock */
+      variants?: { id: string; stockQty: number; itemId: string | null }[];
     }[],
-    want: Iterable<string>,
+    want: Iterable<{ productId: string; variantId?: string | null }>,
   ) {
     const byId = new Map(products.map((p) => [p.id, p]));
     const blocked: string[] = [];
-    for (const id of want) {
-      const p = byId.get(id);
+    for (const { productId, variantId } of want) {
+      const p = byId.get(productId);
       if (!p) continue; // missing products are another check's problem
-      if (
-        !isBuyable(
-          availabilityOf({ ...p, variantStock: p.variants?.map((v) => v.stockQty) }),
-        )
-      )
+      const variants = p.variants ?? [];
+      /*  R1 (4 Sep 2026) — a variant counted in Inventory is not judged from
+          its hand-typed box; the rest are. Preparing judges a variant line
+          against ITS shelf (REV-M4), so this door must ask the same shelf, or
+          the shop says yes at checkout and no an hour later.  */
+      const a = availabilityOf({
+        ...p,
+        variantStock: variants.filter((v) => !v.itemId).map((v) => v.stockQty),
+        hasTrackedVariant: variants.some((v) => !!v.itemId),
+      });
+      if (!isBuyable(a)) {
         blocked.push(p.name);
+        continue;
+      }
+      if (variantId && p.stockMode === 'MANUAL' && p.supplierId === null) {
+        const v = variants.find((x) => x.id === variantId);
+        if (v && !v.itemId && v.stockQty <= 0) blocked.push(`${p.name} (that option is sold out)`);
+      }
     }
     if (blocked.length)
       throw new BadRequestException(
@@ -386,10 +407,11 @@ export class OrdersService {
           ঘরে নয়। এটা না আনলে রঙে-রঙে stock রাখা product-এর প্রতিটা order
           "out of stock" বলে ফিরিয়ে দেওয়া হতো।  */
       include: {
-        variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
-        /*  ৫ আগস্ট — line-এর ছবি-snapshot। `bg` কলামটা প্রথম দিন থেকে ছিল,
-            কিন্তু কেউ কখনো লিখত না — admin আর রসিদে প্রতিটা order-ই তাই
-            বেগুনি placeholder দেখাত, ছবি upload করা থাকলেও।  */
+        variants: { where: { deletedAt: null, isActive: true }, select: { id: true, stockQty: true, itemId: true } },
+        /*  5 Aug — the line's picture snapshot. The `bg` column existed from
+            day one but nothing ever wrote it, so the admin and the receipt
+            showed a purple placeholder for every order, even with photos
+            uploaded.  */
         images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const }, take: 1, select: { url: true } },
       },
     });
@@ -397,7 +419,7 @@ export class OrdersService {
     /* DEC-PDP-09 — before a single paisa is worked out. Refusing after the
        totals are built would still be correct, but it wastes the offer engine
        and reads as an afterthought in the code. */
-    this.assertBuyable(products, dto.lines.map((l) => l.productId));
+    this.assertBuyable(products, dto.lines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
     /*  মালিকের রায়, ৪ আগস্ট ২০২৬: add-on-ও বিক্রির জিনিস — inventory-তে না
         থাকলে বিক্রি হবে না। null stockQty = গোনা হয় না (সীমাহীন), সংখ্যা
         থাকলে সেটাই সীমা। product-এর DEC-PDP-09 gate-এর একই স্পিরিট, একই
@@ -563,11 +585,10 @@ export class OrdersService {
     const o = await this.get(id);
     if (o.salesStatus !== SalesStatus.placed)
       throw new BadRequestException(`cannot confirm from salesStatus=${o.salesStatus}`);
-    const updated = await this.prisma.db.order.update({
-      where: { id },
-      // DEC-SAL-016 — the moment, not just the state
-      data: { salesStatus: SalesStatus.confirmed, confirmedAt: new Date() },
-      include: FULL_INCLUDE,
+    const updated = await this.prisma.db.$transaction(async (tx) => {
+      // DEC-SAL-016 — the moment, not just the state · R4 — one winner
+      await this.claim(tx, id, { salesStatus: SalesStatus.placed }, { salesStatus: SalesStatus.confirmed, confirmedAt: new Date() });
+      return tx.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     });
     await this.event(id, 'sales', `Order confirmed`, actorName);
 
@@ -655,6 +676,14 @@ export class OrdersService {
     // REV-C2: stock deduction + status move in one transaction, so a failure
     // can never leave stock committed against an order that never started.
     const updated = await this.prisma.db.$transaction(async (tx) => {
+      /*  R4 — take the step BEFORE touching a single shelf. If another
+          request already took it, this one stops here and no stock moves.  */
+      await this.claim(
+        tx, id,
+        { salesStatus: SalesStatus.confirmed, deliveryStatus: DeliveryStatus.unassigned },
+        // DEC-SAL-016 — the moment, not just the state
+        { deliveryStatus: DeliveryStatus.preparing, preparingAt: new Date() },
+      );
       for (const l of lines) {
         const p = l.productId ? pMap.get(l.productId) : undefined;
         if (!p || p.stockMode !== 'MANUAL') continue;
@@ -679,12 +708,7 @@ export class OrdersService {
           });
         }
       }
-      return tx.order.update({
-        where: { id },
-        // DEC-SAL-016 — the moment, not just the state
-        data: { deliveryStatus: DeliveryStatus.preparing, preparingAt: new Date() },
-        include: FULL_INCLUDE,
-      });
+      return tx.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     });
     await this.event(id, 'delivery', `Preparing — stock −qty (DEC-MOD-003)`, actorName);
     // DEC-INV-015 stage 1: parallel ledger copy (fail-soft — see mirrorToInventory)
@@ -696,8 +720,9 @@ export class OrdersService {
     return this.shape(updated);
   }
 
-  async outForDelivery(id: string, actorName = 'Admin') {
+  async outForDelivery(id: string, actorName = 'Admin', opts: { viaAssignmentId?: string } = {}) {
     const o = await this.get(id);
+    await this.assertNotOutrunningDelivery(id, 'out', opts.viaAssignmentId); // R5
     /*  REV-M1: a failed delivery is a retry, not a dead end — the parcel is
         already made and stock is already committed, so it can go out again.
 
@@ -715,16 +740,20 @@ export class OrdersService {
     )
       throw new BadRequestException('order must be preparing (or a failed delivery) before out-for-delivery');
     if (o.deliveryStatus === DeliveryStatus.failed) await this.event(id, 'delivery', `Retrying delivery`, actorName);
-    const updated = await this.prisma.db.order.update({
-      where: { id },
-      data: {
-        deliveryStatus: DeliveryStatus.out_for_delivery,
-        /*  DEC-SAL-016 — the FIRST time it left, kept through a retry. A
-            second attempt after a failure must not erase how long this parcel
-            has really been on the road.  */
-        ...(o.outForDeliveryAt ? {} : { outForDeliveryAt: new Date() }),
-      },
-      include: FULL_INCLUDE,
+    const updated = await this.prisma.db.$transaction(async (tx) => {
+      // R4 — one winner: the state read above must still be the state on the row
+      await this.claim(
+        tx, id,
+        { deliveryStatus: o.deliveryStatus },
+        {
+          deliveryStatus: DeliveryStatus.out_for_delivery,
+          /*  DEC-SAL-016 — the FIRST time it left, kept through a retry. A
+              second attempt after a failure must not erase how long this parcel
+              has really been on the road.  */
+          ...(o.outForDeliveryAt ? {} : { outForDeliveryAt: new Date() }),
+        },
+      );
+      return tx.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     });
     await this.event(id, 'delivery', swapping ? `Back on the road with the new carrier` : `Out for delivery`, actorName);
     /*  Queued, so the order page can show whether the customer was told.
@@ -742,10 +771,11 @@ export class OrdersService {
   }
 
   // delivered → salesCount +1, Customer LTV/ordersCount +1 (locked §4)। cancel-before-delivered = গোনা হয় না।
-  async delivered(id: string, actorName = 'Admin') {
+  async delivered(id: string, actorName = 'Admin', opts: { viaAssignmentId?: string } = {}) {
     const o = await this.get(id);
     if (o.deliveryStatus !== DeliveryStatus.out_for_delivery)
       throw new BadRequestException('order must be out-for-delivery before delivered');
+    await this.assertNotOutrunningDelivery(id, 'delivered', opts.viaAssignmentId); // R5
 
     /* REV-C5: an order may not close with money unaccounted for.
        · COD — handing the parcel over IS the moment cash is taken, so the
@@ -765,6 +795,13 @@ export class OrdersService {
     // REV-C2: one transaction — stock counters, customer mirror and the status
     // move together, so a mid-way failure can never double-count anything.
     const updated = await this.prisma.db.$transaction(async (tx) => {
+      /*  R4 — take the step FIRST. A second "delivered" arriving together
+          with this one stops here, before it can book the cash twice.  */
+      await this.claim(
+        tx, id,
+        { deliveryStatus: DeliveryStatus.out_for_delivery },
+        { deliveryStatus: DeliveryStatus.delivered, salesStatus: SalesStatus.completed, deliveredAt: new Date() },
+      );
       if (outstanding > 0) {
         await tx.paymentTransaction.create({
           data: { orderId: id, kind: 'COD_COLLECTED', method: o.paymentMethod, amountPaisa: outstanding, note: 'Collected on delivery', actorName },
@@ -807,10 +844,7 @@ export class OrdersService {
       return tx.order.update({
         where: { id },
         data: {
-          deliveryStatus: DeliveryStatus.delivered,
-          salesStatus: SalesStatus.completed,
-          // DEC-SAL-016 — and the one `promisedBy` is measured against
-          deliveredAt: new Date(),
+          // status + deliveredAt (DEC-SAL-016) were claimed at the top of this transaction (R4)
           duePaisa: Math.max(0, bumped.totalPaisa - bumped.paidPaisa),
           paymentStatus: this.derivePaymentStatus(bumped.paymentMethod, bumped.totalPaisa, bumped.paidPaisa, bumped.refundPaisa, outstanding > 0 ? 'COD_COLLECTED' : ''),
         },
@@ -1216,9 +1250,10 @@ export class OrdersService {
     if (dto.addLines?.length) {
       const products = await this.prisma.db.product.findMany({
         where: { id: { in: dto.addLines.map((l) => l.productId) } },
-        /*  DEC-PRD-014 — উপরের create-এর মতোই, একই কারণে। ছবি-snapshot-ও তাই। */
+        /*  DEC-PRD-014 — same as `create` above, for the same reason; the
+            picture snapshot too.  */
         include: {
-          variants: { where: { deletedAt: null, isActive: true }, select: { stockQty: true } },
+          variants: { where: { deletedAt: null, isActive: true }, select: { id: true, stockQty: true, itemId: true } },
           images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const }, take: 1, select: { url: true } },
         },
       });
@@ -1226,7 +1261,7 @@ export class OrdersService {
       /* DEC-PDP-09 — the second door into an order. Gating `create` alone
          would mean a sold-out item cannot start an order but can be added to
          one a minute later. */
-      this.assertBuyable(products, dto.addLines.map((l) => l.productId));
+      this.assertBuyable(products, dto.addLines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
       for (const l of dto.addLines) {
         const data = this.buildLine(l, pMap);
         await this.prisma.db.orderLine.create({ data: { ...data, order: { connect: { id } } } });
@@ -1343,6 +1378,59 @@ export class OrdersService {
     const o = await this.prisma.db.order.findFirst({ where: { id } });
     if (!o) throw new NotFoundException('Order not found');
     return o;
+  }
+
+  /*  R4 (4 Sep 2026) — ONE WINNER PER TRANSITION.
+
+      Every lifecycle step read the order, checked its state, then wrote the
+      next one. Two requests arriving together (a double-click, two tabs, a
+      rider app retrying) both read the same state, both passed, and both
+      wrote — stock came off twice, or a parcel was "delivered" twice. The
+      flip now carries the state it expects in its WHERE, so under READ
+      COMMITTED the second writer waits on the row, re-checks, matches
+      nothing, and is told the order has already moved. The read-and-check
+      above each transition stays: it is what produces the human sentence.  */
+  private async claim(
+    /*  the soft-delete extension gives `$transaction` its own client type;
+        only `order.updateMany` is needed here, so that is all that is asked  */
+    tx: { order: { updateMany: (args: Prisma.OrderUpdateManyArgs) => Promise<{ count: number }> } },
+    id: string,
+    expect: Prisma.OrderWhereInput,
+    data: Prisma.OrderUpdateManyMutationInput,
+  ) {
+    const r = await tx.order.updateMany({ where: { id, ...expect }, data });
+    if (r.count !== 1)
+      throw new ConflictException('This order has already moved on — reload the page to see where it is.');
+  }
+
+  /*  R5 (4 Sep 2026) — THE PARCEL'S OWN RECORD MUST NOT BE OUTRUN.
+
+      An order could be sent out, and marked delivered, straight from the
+      order screen while a rider assignment for it still read ASSIGNED. The
+      books then said "cash with rider" and the settle board — which only
+      lists DELIVERED assignments — never showed the parcel, so the money was
+      never squared. Delivery owns the assignment (house rule 4), so the order
+      does not rewrite it; it REFUSES to move past it. Delivery's own actions
+      call these methods with the assignment they are advancing, and pass.  */
+  private async assertNotOutrunningDelivery(
+    orderId: string,
+    step: 'out' | 'delivered',
+    viaAssignmentId?: string,
+  ) {
+    const live = await this.prisma.db.deliveryAssignment.findFirst({
+      where: { orderId, isActive: true, deletedAt: null },
+      include: { rider: { select: { name: true } }, courier: { select: { name: true } } },
+    });
+    if (!live || live.id === viaAssignmentId) return;
+    const who = live.rider?.name ?? live.courier?.name ?? 'the carrier';
+    if (step === 'out' && live.status === AssignmentStatus.ASSIGNED)
+      throw new BadRequestException(
+        `This parcel is assigned to ${who} (${live.assignmentNo}) — send it out from the Delivery panel, so Delivery and the books stay in step.`,
+      );
+    if (step === 'delivered' && live.status !== AssignmentStatus.DELIVERED)
+      throw new BadRequestException(
+        `This parcel is with ${who} (${live.assignmentNo}) — mark it delivered from the Delivery panel, so the rider's cash and the settle board stay in step.`,
+      );
   }
   private async ensureExists(id: string) {
     const o = await this.prisma.db.order.findFirst({ where: { id }, select: { id: true } });

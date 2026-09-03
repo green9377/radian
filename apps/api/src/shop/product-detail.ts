@@ -388,6 +388,10 @@ export interface ShopProductDetail {
     /** Its own stock. 0 means this colour is gone while the others sell on.
      *  On a variant tied to an Item this is Inventory's live count. */
     stockQty: number;
+    /** R1 (4 Sep 2026) — may THIS variant be sold right now. Decided here,
+     *  beside `availability`, with the same `counted` test, so the page and
+     *  the order door never disagree about one colour. */
+    soldOut: boolean;
   }[];
   sizes: { id: string; label: string; sub: string | null; pricePaisa: number }[];
   /** the heading above the size chooser — "Bouquet Size", "Cake Weight" */
@@ -965,6 +969,12 @@ export class ProductDetailService {
           (DEC-PDP-09), because its real count lives in Inventory.  */
       variantStock: p.stockMode === 'MANUAL' ? p.variants.map(variantCount) : undefined,
     });
+    /*  R1 — one colour can be gone while the others sell on. The same test
+        as `availabilityOf` (hand-counted, our own stock), applied per shelf;
+        `variantCount` already reads Inventory for a linked variant.  */
+    const variantCounted = p.stockMode === 'MANUAL' && p.supplierId === null;
+    const variantSoldOut = (v: { itemId: string | null; stockQty: number }) =>
+      variantCounted && variantCount(v) <= 0;
 
     return {
       slug: p.slug,
@@ -1186,6 +1196,7 @@ export class ProductDetailService {
           return offerCutOf(paid) > 0 ? Math.max(paid, ownStruck ?? 0) : ownStruck;
         })(),
         stockQty: variantCount(v),
+        soldOut: variantSoldOut(v),
         };
       }),
       /*  DEC-PRD-059 — the size row prints prices too; the cut follows them  */

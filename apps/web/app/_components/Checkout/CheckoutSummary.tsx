@@ -72,6 +72,8 @@ export function CheckoutSummary({
   quote: Quote | null;
 }) {
   const { lines, held } = cart;
+  /*  R3 — the shop's refusal of a typed code outlives the code itself  */
+  const couponRejected = useCartStore((s) => s.couponRejected);
 
   return (
     /* top = header + sticky StepBar, or the summary slides under the bar */
@@ -150,7 +152,7 @@ export function CheckoutSummary({
       {/* ─── promo code — directly above the total (locked) ─── */}
       <CouponRow
         applied={quote?.applied.find((a) => a.code)?.code ?? null}
-        couponError={quote?.couponError ?? null}
+        couponError={quote?.couponError ?? couponRejected?.reason ?? null}
       />
 
       <div className="flex items-center justify-between gap-3 border-t-[1.5px] border-lavender-deep pt-4 mt-4">
@@ -260,10 +262,13 @@ function CouponRow({
   couponError: string | null;
 }) {
   const couponCode = useCartStore((s) => s.couponCode);
+  const couponRejected = useCartStore((s) => s.couponRejected);
   const setCoupon = useCartStore((s) => s.setCoupon);
 
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState(couponCode ?? "");
+  /*  R3 — a refused code is no longer in the store, but the box still
+      shows what was typed, so the customer can correct it or clear it.  */
+  const [code, setCode] = useState(couponCode ?? couponRejected?.code ?? "");
 
   function onApply() {
     setCoupon(code.trim().toUpperCase() || null);

@@ -72,6 +72,7 @@ export default function CheckoutView() {
 
   const items = useCartStore((s) => s.items);
   const couponCode = useCartStore((s) => s.couponCode);
+  const rejectCoupon = useCartStore((s) => s.rejectCoupon);
   const clearCart = useCartStore((s) => s.clear);
 
   const { zone } = useZoneStore();
@@ -235,12 +236,16 @@ export default function CheckoutView() {
       deliveryMethodId: liveMethodPicked ? method.id : undefined,
       deliverySlotId: liveMethodPicked ? (c.slotId ?? undefined) : undefined,
     }).then((q) => {
-      if (!stale) setQuote(q);
+      if (stale) return;
+      setQuote(q);
+      /*  R3 — a code the shop refused is dropped here too; the checkout can
+          be reached with one already sitting in the store.  */
+      if (q?.couponError && couponCode) rejectCoupon(couponCode, q.couponError);
     });
     return () => {
       stale = true;
     };
-  }, [items, zone, couponCode, c.payment, phoneForOffers, method.id, c.slotId, liveMethodPicked]);
+  }, [items, zone, couponCode, c.payment, phoneForOffers, method.id, c.slotId, liveMethodPicked, rejectCoupon]);
 
   const totals = useMemo(
     () =>
@@ -470,7 +475,10 @@ export default function CheckoutView() {
       zone: zoneCodeFor(zone),
       deliveryMethodId: method.id,
       deliverySlotId: c.slotId ?? undefined,
-      couponCode: couponCode ?? undefined,
+      /*  R3 — only a code the last quote actually accepted goes on the order.
+          The store already drops a refused one; this is the belt to that
+          brace, so a stale code can never be the reason an order fails.  */
+      couponCode: quote?.couponError ? undefined : (couponCode ?? undefined),
       paymentMethod: payment === "cod" ? "cod" : "online",
 
       /*  DEC-RTN-015 part 2 — the credit, with the code that proves the number.

@@ -1365,6 +1365,9 @@ export interface ApiOrderLine {
   /** DEC-PRD-061 — the customer's own photo, printed onto this item */
   persoImageUrl?: string | null;
   productType: "READYMADE" | "CRAFTED";
+  /** R2 / DEC-SAL-015 — the product's own "payment required" flag, the ONE
+   *  thing (with a gift) that closes Cash on Delivery. Not CRAFTED. */
+  product?: { advanceRequired: boolean } | null;
   qty: number;
   unitPaisa: number;
   linePaisa: number;
@@ -1575,6 +1578,7 @@ export function adaptOrder(a: ApiOrder): any {
       persoText: l.persoText || undefined,
       persoImageUrl: l.persoImageUrl || undefined, // DEC-PRD-061
       productType: l.productType === "CRAFTED" ? "crafted" : "readymade",
+      advanceRequired: l.product?.advanceRequired === true, // R2 / DEC-SAL-015
       qty: l.qty,
       unitPaisa: l.unitPaisa,
       linePaisa: l.linePaisa,

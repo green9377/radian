@@ -364,6 +364,14 @@ export class DeliveryService {
           trackingUrl,
           note: dto.note,
           actorName,
+          /*  R5 (4 Sep 2026) — a carrier given a parcel that is ALREADY on the
+              road (a swap, or an order sent out before anyone was assigned)
+              is carrying it now. Born ASSIGNED, this row could never be marked
+              delivered through Delivery ("cannot deliver from ASSIGNED"), the
+              order screen went round it, and the settle board — DELIVERED rows
+              only — never saw the cash. Born on the road, the record tells the
+              truth from its first second.  */
+          ...(wasOnTheRoad ? { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: new Date() } : {}),
         },
         include: { rider: true, courier: true },
       });
@@ -427,8 +435,8 @@ export class DeliveryService {
         if (a.courier?.trackingUrlTemplate)
           trackingUrl = a.courier.trackingUrlTemplate.replace('{cn}', dto.consignmentNo);
       }
-      // DLV-R03 — the order transition carries the business rules
-      await this.orders.outForDelivery(a.orderId, actorName);
+      // DLV-R03 — the order transition carries the business rules (R5: told which assignment is moving)
+      await this.orders.outForDelivery(a.orderId, actorName, { viaAssignmentId: a.id });
       return this.prisma.db.deliveryAssignment.update({
         where: { id },
         data: { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: new Date(), consignmentNo, trackingUrl },
@@ -448,7 +456,7 @@ export class DeliveryService {
         if (proof === 0)
           throw new BadRequestException('A delivery photo is required before marking delivered — add one on the order');
       }
-      await this.orders.delivered(a.orderId, actorName); // COD collect + LTV mirror live there
+      await this.orders.delivered(a.orderId, actorName, { viaAssignmentId: a.id }); // COD collect + LTV mirror live there
       return this.prisma.db.deliveryAssignment.update({
         where: { id },
         data: { status: AssignmentStatus.DELIVERED, deliveredAt: new Date(), isActive: false },
