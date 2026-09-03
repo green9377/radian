@@ -147,8 +147,15 @@ async function main() {
     console.log('=== 0. clearing anything a previous run left behind ===');
     console.log(JSON.stringify(await cleanup()));
 
-    const unit = await prisma.unit.findFirst({ where: { isActive: true } });
-    if (!unit) throw new Error('no active Unit exists — seed one unit before running this');
+    /*  `deletedAt: null` matters more than it looks. This is the RAW client, so
+        it sees soft-deleted rows too - and on 3 Sep 2026 the first active Unit
+        it returned was `1kg`, which had been deleted. The service then refused
+        it ("That unit does not exist") and four selftests died before their
+        first assertion. The service reads through `prisma.db`, which filters
+        deleted rows; a fixture that picks its material must filter the same
+        way or it hands the service something the service cannot see.  */
+    const unit = await prisma.unit.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!unit) throw new Error('no active, undeleted Unit exists — seed one unit before running this');
     const U = unit.id;
 
     const wh = await prisma.warehouse.create({ data: { code: WH_CODE, name: 'Selftest store' } });

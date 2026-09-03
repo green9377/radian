@@ -122,9 +122,18 @@ async function main() {
        Making record() non-fatal must not have quietly taken that away. */
     let strictThrew = false;
     try {
+      /*  BigInt was the bad payload here. Prisma serialises it happily now, so
+          the case proved nothing - it passed by not failing, which is the
+          worst way for a test to be green. A circular object still cannot
+          become JSON, and this file already proves record() SWALLOWS one
+          (section 2 above). Same payload, the other function: that contrast
+          IS the rule - Item.purge() writes its trace before destroying a row
+          and would rather keep the row than lose it silently.  */
+      const unserialisable: Record<string, unknown> = { name: 'loop' };
+      unserialisable.self = unserialisable;
       await audit.recordOrThrow({
         entityType: TYPE, entityId: 'e3', action: 'DELETE', actorName: 'selftest',
-        changes: { ltvPaisa: BigInt(1) } as never,
+        changes: unserialisable,
       });
     } catch {
       strictThrew = true;

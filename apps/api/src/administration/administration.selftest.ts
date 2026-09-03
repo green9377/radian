@@ -308,8 +308,15 @@ async function main() {
        ================================================================ */
     console.log('\n--- invite and reset links ---');
     {
+      /*  A template became REQUIRED on invite (owner, 18 Aug 2026): "an account
+          that reaches nothing is a key ring with no keys". The admin screen
+          sends one (AccessPeople.tsx); this fixture predated the rule and sent
+          none, so the file died here. It makes its OWN template so cleanup -
+          which removes positions whose name starts with MARK - takes it away
+          again, and no existing position is touched.  */
+      const inviteTemplate = await access.createPosition(`${MARK} invitee template`, null, MARK);
       const invited = await people.invite(
-        { name: `${MARK} invited`, email: MARK_EMAIL },
+        { name: `${MARK} invited`, email: MARK_EMAIL, positionId: inviteTemplate.id },
         MARK,
       );
       const token = new URL(invited.link).searchParams.get('token')!;

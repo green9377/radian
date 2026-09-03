@@ -35,6 +35,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const TAG = 'ZZMASTERTEST';
+/*  Well-formed but unreachable: 09 is not an assigned Bangladeshi mobile
+    prefix, so these pass the international rule and can never ring anybody. */
+const TEST_PHONE = '+8809900000001';
+const TEST_PHONE_2 = '+8809900000002';
 
 let pass = 0;
 let fail = 0;
@@ -72,7 +76,11 @@ async function main() {
 
   const cleanup = async () => {
     const custs = await prisma.customer.findMany({
-      where: { phone: { startsWith: TAG } }, select: { id: true },
+      /*  Was `startsWith: TAG`. The fixtures' phones are international now, so
+          the tag lives in the NAME and the numbers share a prefix of their own -
+          match on either, or the rows this file makes are never cleared again. */
+      where: { OR: [{ phone: { startsWith: '+88099' } }, { name: { startsWith: TAG } }] },
+      select: { id: true },
     });
     const custIds = custs.map((c) => c.id);
     const orders = await prisma.order.findMany({
@@ -125,12 +133,17 @@ async function main() {
     /* ---------------------------------------------------------------- 2 */
     console.log('\n=== 2. a deleted phone number is NOT free (CUS-REV-2) ===');
 
+    /*  CustomersService.validate() requires an international number, and both
+        doors agree on it - the storefront's findOrCreateCustomer refuses a
+        local format too. This fixture predated the rule and sent `TAG-01`, so
+        the file died at its first create. 09 is not an assigned Bangladeshi
+        mobile prefix, so this is well-formed and unreachable at the same time. */
     const one = await customers.create({
-      name: `${TAG} Rahim`, phone: `${TAG}-01`,
+      name: `${TAG} Rahim`, phone: TEST_PHONE,
     } as never);
     ok('a customer is created', !!one.id);
     await refuses('a live duplicate phone is refused',
-      () => customers.create({ name: `${TAG} Copy`, phone: `${TAG}-01` } as never),
+      () => customers.create({ name: `${TAG} Copy`, phone: TEST_PHONE } as never),
       'already registered');
 
     await customers.remove(one.id, 'selftest');
@@ -140,12 +153,12 @@ async function main() {
     /* Before the fix this passed the check and then died on the unique index with a
        bare 500 — for a number the system had just said was available. */
     await refuses('CUS-REV-2 a phone belonging to a TRASHED customer is refused, with a reason',
-      () => customers.create({ name: `${TAG} Reuse`, phone: `${TAG}-01` } as never),
+      () => customers.create({ name: `${TAG} Reuse`, phone: TEST_PHONE } as never),
       'in the trash');
 
     await customers.restore(one.id, 'selftest');
     ok('…and restoring gives the number back to its owner',
-      !!(await prisma.customer.findFirst({ where: { phone: `${TAG}-01`, deletedAt: null } })));
+      !!(await prisma.customer.findFirst({ where: { phone: TEST_PHONE, deletedAt: null } })));
 
     /* ---------------------------------------------------------------- 3 */
     console.log('\n=== 3. money owed cannot be hidden by deleting the customer (CUS-REV-3) ===');
@@ -154,11 +167,14 @@ async function main() {
     const channel = await prisma.channel.findFirst();
     if (category && channel) {
       const debtor = await customers.create({
-        name: `${TAG} Debtor`, phone: `${TAG}-02`,
+        name: `${TAG} Debtor`, phone: TEST_PHONE_2,
       } as never);
       await prisma.order.create({
         data: {
           orderNo: `${TAG}-ORD-1`,
+          /*  Same reason as sales.selftest: `zone` is a required column on
+              Order now, and this writes through the raw client. */
+          zone: 'DHAKA',
           channelId: channel.id,
           customerId: debtor.id,
           senderName: `${TAG} Debtor`,

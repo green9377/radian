@@ -109,8 +109,27 @@ if (!ALLOWED_TARGETS.includes(API)) {
 
 const FULL = process.argv.includes('--full');
 
-/*  Every test order lands on one known fake customer — easy to find in the admin  */
-const PHONE = '+8801700000001';
+/*  WHERE THE TEST ORDERS' MESSAGES ACTUALLY GO.
+
+    This line used to read '+8801700000001' - a made-up number, but a perfectly
+    valid Bangladeshi one, so in all likelihood somebody's. It did not matter
+    while the WhatsApp templates were unapproved and nothing left the building.
+    It matters now: they were approved on 3 Sep 2026 and order confirmations
+    are delivering, so a run of this suite would message whoever owns it.
+
+    So the number is not in the repository any more. It comes from the
+    environment, and the suite refuses to start without one - a test that can
+    text a real person should not have a default. Keep it in the environment,
+    never in a file: it is somebody's actual phone.  */
+const PHONE = (process.env.RADIAN_TEST_PHONE || '').trim();
+if (!/^\+8801\d{9}$/.test(PHONE)) {
+  console.error('\n  RADIAN_TEST_PHONE is not set, or is not +8801XXXXXXXXX.');
+  console.error('  This suite places orders, and each order sends a real WhatsApp.');
+  console.error('  Set it to a number YOU control, then run again:\n');
+  console.error('    set RADIAN_TEST_PHONE=+8801XXXXXXXXX      (Windows)');
+  console.error('    export RADIAN_TEST_PHONE=+8801XXXXXXXXX   (VPS / Linux)\n');
+  process.exit(1);
+}
 const ADDRESS = 'House 1, Road 1, Dhanmondi, Dhaka (REGRESSION TEST)';
 
 /*  Far-off date, so the tests never mix with a real booking for today  */
@@ -362,7 +381,7 @@ function sellableLineOf(p) {
     else if (r.status === 201 || r.status === 200) { ok('COD accepted on a made-to-order self order (DEC-SAL-015)'); if (r.json?.orderId) placedForCleanup.push(r.json); }
     else { bad(`crafted + COD got ${r.status}: ${msgOf(r)}`); if (r.json?.orderId) placedForCleanup.push(r.json); }
   } else skip('COD-on-crafted', 'no crafted product with stock in the catalogue');
-  const gift = await call('POST', '/shop/checkout', orderBody(fix, { paymentMethod: 'cod', isGift: true, recipientName: 'Test Receiver', recipientPhone: '+8801811111111' }));
+  const gift = await call('POST', '/shop/checkout', orderBody(fix, { paymentMethod: 'cod', isGift: true, recipientName: 'Test Receiver', recipientPhone: PHONE }));
   if (gift.status === 400 && /COD|gift/i.test(msgOf(gift))) ok('COD refused on a gift — gifts must be paid first');
   else { bad(`gift + COD got ${gift.status} — should be refused`); if (gift.json?.orderId) placedForCleanup.push(gift.json); }
 

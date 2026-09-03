@@ -91,6 +91,14 @@ async function main() {
       await prisma.orderLine.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.activityEvent.deleteMany({ where: { entityId: { in: orderIds } } });
       await prisma.auditLog.deleteMany({ where: { entityId: { in: orderIds } } });
+      /*  Delivery is what creates this one. The fixture never reached delivered
+          before - it called delivered() straight from placed, which the lifecycle
+          stopped allowing - so the attribution row is new here, and the second run
+          died on its foreign key before a single assertion. Marketing owns the
+          row; this only clears the ones this file made.  */
+      await prisma.orderAttribution.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.orderMessage.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.reviewInvite.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     }
     const prods = await prisma.product.findMany({ where: { slug: { startsWith: TAG.toLowerCase() } }, select: { id: true } });
@@ -132,6 +140,14 @@ async function main() {
         orderNo: `${TAG}-ORD-1`,
         channelId: channel.id,
         customerId: customer.id,
+        /*  `zone` became a required column on Order (DeliveryZone), and this
+            fixture writes through the RAW client, so nothing filled it in for
+            it - prisma refused every create with "Argument `zone` is missing"
+            and the file died before its first assertion. Every real door
+            already supplies one: the storefront sends DHAKA or BANGLADESH,
+            POS sends COUNTER (DEC-POS-001). These are delivery orders with an
+            address, so DHAKA is the honest value.  */
+        zone: 'DHAKA',
         senderName: customer.name,
         senderPhone: customer.phone,
         address: 'selftest',
@@ -232,6 +248,7 @@ async function main() {
         orderNo: `${TAG}-ORD-2`,
         channelId: channel.id,
         customerId: customer.id,
+        zone: 'DHAKA',
         senderName: customer.name,
         senderPhone: customer.phone,
         address: 'selftest',
@@ -247,6 +264,15 @@ async function main() {
 
     /* Before ORD-REV-3, delivered() wrote `o.paidPaisa + outstanding` from a row read
        before its transaction opened — so the advance above could be flattened. */
+    /*  The lifecycle grew steps under this fixture. `delivered()` has required
+        out-for-delivery since the delivery board landed, and out-for-delivery
+        requires preparing, which requires confirmed - so the order has to walk
+        the same road a real one walks. Nothing about ORD-REV-3 changes: the
+        point is still that delivering does not flatten a payment taken at the
+        same moment, and the walk is what makes that reachable.  */
+    await orders.confirm(order2.id, 'selftest');
+    await orders.startPreparing(order2.id, 'selftest');
+    await orders.outForDelivery(order2.id, 'selftest');
     await orders.delivered(order2.id, 'selftest');
     const delivered = await prisma.order.findUnique({ where: { id: order2.id } });
     const ledger2 = await prisma.paymentTransaction.aggregate({
@@ -296,6 +322,7 @@ async function main() {
       data: {
         orderNo: `${TAG}-ORD-3`,
         channelId: channel.id, customerId: customer.id,
+        zone: 'DHAKA',
         senderName: customer.name, senderPhone: customer.phone,
         address: 'selftest', totalPaisa: 1000, paidPaisa: 0, duePaisa: 1000,
         date: '2026-07-30', slotLabel: '10:00–13:00',

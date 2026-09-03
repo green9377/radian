@@ -32,6 +32,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PosService } from './pos.service';
 import { ItemsService } from '../items/items.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { PaymentMethodsService } from '../common/payment-methods.service';
 import { ItemType } from '@prisma/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -75,6 +76,13 @@ async function main() {
   const pos = app.get(PosService);
   const items = app.get(ItemsService);
   const inv = app.get(InventoryService);
+  const payMethods = app.get(PaymentMethodsService);
+
+  /* DEC-GBL-001 — this shop has TWO cash money accounts, so resolveAccount()
+     refuses to guess and every cash payment below has to name one. Looked up once
+     here; the fixture takes the first and leaves the shop's setup exactly as it is. */
+  const cashAccountId = (await payMethods.accountsFor('cash'))[0]?.id;
+  const bkashAccountId = (await payMethods.accountsFor('bkash'))[0]?.id;
 
   const cleanup = async () => {
     const regs = await prisma.posRegister.findMany({ where: { code: { startsWith: REG_CODE } }, select: { id: true } });
@@ -135,8 +143,15 @@ async function main() {
     console.log('=== 0. clearing anything a previous run left behind ===');
     console.log(JSON.stringify(await cleanup()));
 
-    const unit = await prisma.unit.findFirst({ where: { isActive: true } });
-    if (!unit) throw new Error('no active Unit exists — seed one unit before running this');
+    /*  `deletedAt: null` matters more than it looks. This is the RAW client, so
+        it sees soft-deleted rows too - and on 3 Sep 2026 the first active Unit
+        it returned was `1kg`, which had been deleted. The service then refused
+        it ("That unit does not exist") and four selftests died before their
+        first assertion. The service reads through `prisma.db`, which filters
+        deleted rows; a fixture that picks its material must filter the same
+        way or it hands the service something the service cannot see.  */
+    const unit = await prisma.unit.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!unit) throw new Error('no active, undeleted Unit exists — seed one unit before running this');
 
     const item = await items.create({
       name: `${TAG} Teddy`, sku: `${TAG}-TEDDY`,
@@ -164,7 +179,7 @@ async function main() {
     await refuses('a sale with no shift open is refused',
       () => pos.createSale({
         registerId: register.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: 50_000 }], payMode: 'full',
+        payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }], payMode: 'full',
       }), 'open a shift');
 
     const shift = await pos.openShift({
@@ -183,10 +198,16 @@ async function main() {
     /* ---------------------------------------------------------------- 2 */
     console.log('\n=== 2. a paid counter sale ===');
 
+    /*  The shop keeps more than one Cash account, on purpose - a counter float
+        and a vault are two different piles of money. resolveAccount() will not
+        guess between them ("three numbers on the wall is not an answer anybody
+        can reconcile"), so a sale has to say which one. A real cashier picks it
+        on the screen; this fixture picks the first and leaves the shop's setup
+        exactly as it is.  */
     const sale = await pos.createSale({
       shiftId: shift.id, registerId: register.id,
       lines: [{ productId: product.id, qty: 2 }],
-      payments: [{ method: 'cash', amountPaisa: 100_000 }], payMode: 'full',
+      payments: [{ method: 'cash', amountPaisa: 100_000, accountId: cashAccountId }], payMode: 'full',
     });
     ok('the sale is settled at the counter', sale!.salesStatus === 'completed');
     ok('…with a POS receipt number', sale!.orderNo.startsWith('POS-'), sale!.orderNo);
@@ -208,13 +229,13 @@ async function main() {
     await refuses('POS-REV-6 a NEGATIVE tender is refused, not silently dropped',
       () => pos.createSale({
         shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: -50_000 }], payMode: 'full',
+        payments: [{ method: 'cash', amountPaisa: -50_000, accountId: cashAccountId }], payMode: 'full',
       }), 'positive whole number');
 
     await refuses('POS-REV-6 a fractional tender is refused',
       () => pos.createSale({
         shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: 100.5 }], payMode: 'full',
+        payments: [{ method: 'cash', amountPaisa: 100.5, accountId: cashAccountId }], payMode: 'full',
       }), 'positive whole number');
 
     /* Overpayment used to be swallowed: paidPaisa 60000 against totalPaisa 50000,
@@ -223,19 +244,19 @@ async function main() {
     await refuses('POS-REV-6 an OVERPAYMENT is refused, with the change spelled out',
       () => pos.createSale({
         shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: 60_000 }], payMode: 'full',
+        payments: [{ method: 'cash', amountPaisa: 60_000, accountId: cashAccountId }], payMode: 'full',
       }), 'as change');
 
     await refuses('DEC-POS-017 "full payment" with money still owed is refused',
       () => pos.createSale({
         shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: 10_000 }], payMode: 'full',
+        payments: [{ method: 'cash', amountPaisa: 10_000, accountId: cashAccountId }], payMode: 'full',
       }), 'full payment');
 
     await refuses('DEC-POS-008 a credit sale needs a named customer',
       () => pos.createSale({
         shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
-        payments: [{ method: 'cash', amountPaisa: 10_000 }], payMode: 'partial',
+        payments: [{ method: 'cash', amountPaisa: 10_000, accountId: cashAccountId }], payMode: 'partial',
       }), 'identified customer');
 
     /* ---------------------------------------------------------------- 4 */
@@ -244,8 +265,8 @@ async function main() {
     const split = await pos.createSale({
       shiftId: shift.id, lines: [{ productId: product.id, qty: 1 }],
       payments: [
-        { method: 'cash', amountPaisa: 20_000 },
-        { method: 'bkash', amountPaisa: 30_000 },
+        { method: 'cash', amountPaisa: 20_000, accountId: cashAccountId },
+        { method: 'bkash', amountPaisa: 30_000, accountId: bkashAccountId },
       ],
       payMode: 'full',
     });
@@ -261,7 +282,7 @@ async function main() {
     const credit = await pos.createSale({
       shiftId: shift.id, customerName: `${TAG} Regular`, customerPhone: CUST_PHONE,
       lines: [{ productId: product.id, qty: 4 }], // ৳2000
-      payments: [{ method: 'cash', amountPaisa: 50_000 }], payMode: 'partial',
+      payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }], payMode: 'partial',
     });
     ok('a credit sale records what is owed', credit!.duePaisa === 150_000, taka(credit!.duePaisa));
     ok('…and reads as part-paid', credit!.paymentStatus === 'advance_paid');
@@ -272,15 +293,15 @@ async function main() {
       row ? taka(row.duePaisa) : 'missing');
 
     await refuses('collecting more than is owed is refused',
-      () => pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 999_999 }] }),
+      () => pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 999_999, accountId: cashAccountId }] }),
       'outstanding');
 
     /* THE ONE THIS FILE EXISTS FOR. Two cashiers, same customer, same instant.
        Before the fix both read paidPaisa = 50000 and both wrote 100000, so ৳500 of
        real money existed in the ledger and nowhere on the order. */
     const both = await Promise.all([
-      pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000 }] }),
-      pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000 }] }),
+      pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }] }),
+      pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }] }),
     ]);
     ok('POS-REV-3 two collections at the same moment both land', both.length === 2);
 
@@ -299,7 +320,7 @@ async function main() {
     console.log('\n=== 6. due cash goes into the drawer it entered (POS-REV-4) ===');
 
     const beforeCollect = (await pos.analyticsToday()).cashInDrawer;
-    await pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000 }] });
+    await pos.collectDue({ orderId: credit!.id, payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }] });
     const afterCollect = (await pos.analyticsToday()).cashInDrawer;
     ok('POS-REV-4 cash collected on an old bill reaches TODAY\'S drawer',
       afterCollect - beforeCollect === 50_000,
@@ -358,11 +379,16 @@ async function main() {
     /* ---------------------------------------------------------------- 9 */
     console.log('\n=== 9. two tills ringing up at the same second (POS-REV-2) ===');
 
-    const shift2 = await pos.openShift({ cashierName: `${TAG} Cashier2`, openingFloatPaisa: 0 });
+    /* On the test's OWN register. Without it this falls back to the shop's default
+       counter, where a real shift left open by staff blocks the whole run — and this
+       file promises to touch nothing it did not create. */
+    const shift2 = await pos.openShift({
+      registerId: register.id, cashierName: `${TAG} Cashier2`, openingFloatPaisa: 0,
+    });
     const races = await Promise.all([
-      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000 }], payMode: 'full' }),
-      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000 }], payMode: 'full' }),
-      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000 }], payMode: 'full' }),
+      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }], payMode: 'full' }),
+      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }], payMode: 'full' }),
+      pos.createSale({ shiftId: shift2.id, lines: [{ productId: product.id, qty: 1 }], payments: [{ method: 'cash', amountPaisa: 50_000, accountId: cashAccountId }], payMode: 'full' }),
     ]);
     const nos = new Set(races.map((r) => r!.orderNo));
     ok('POS-REV-2 three simultaneous sales all succeed', races.length === 3);

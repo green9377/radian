@@ -133,8 +133,15 @@ async function main() {
     console.log('=== 0. clearing anything a previous run left behind ===');
     console.log(JSON.stringify(await cleanup()));
 
-    const unit = await prisma.unit.findFirst({ where: { isActive: true } });
-    if (!unit) throw new Error('no active Unit exists — seed one unit before running this');
+    /*  `deletedAt: null` matters more than it looks. This is the RAW client, so
+        it sees soft-deleted rows too - and on 3 Sep 2026 the first active Unit
+        it returned was `1kg`, which had been deleted. The service then refused
+        it ("That unit does not exist") and four selftests died before their
+        first assertion. The service reads through `prisma.db`, which filters
+        deleted rows; a fixture that picks its material must filter the same
+        way or it hands the service something the service cannot see.  */
+    const unit = await prisma.unit.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!unit) throw new Error('no active, undeleted Unit exists — seed one unit before running this');
     const U = unit.id;
 
     const settings = await finance.settings();
@@ -190,7 +197,10 @@ async function main() {
         supplierName: 'Kamal Mama', notes: TAG, mode: 'ADVANCE',
         payment: { amountPaisa: -500_00, method: 'CASH' },
         lines: [{ itemId: rose.id, unitId: U, qtyMilli: 10_000, unitPricePaisa: 2000 }],
-      }), 'positive integer');
+      /*  Still refused - which is what PUR-REV-4 is for. Only the wording moved:
+          create() turns a negative advance away as "Advance mode needs an
+          advance payment amount", the same refusal said another way.  */
+      }), 'advance payment amount');
 
     /* ---------------------------------------------------------------- 2 */
     console.log('\n=== 2. a QUICK purchase — stock, average AND the books (PUR-REV-1) ===');
@@ -273,7 +283,13 @@ async function main() {
     ok('…and the screen calls it partially received', part.partiallyReceived === true);
     if (booksOn) {
       const n = await entriesFor(advance.id);
-      ok('PUR-REV-2 the books are NOT touched on a partial receive', n === 0, `${n} entries`);
+      /*  P8-3 changed this, deliberately and after PUR-REV-2 was written. Goods
+          that arrive before the bill is complete used to stand in the shop with
+          the ledger knowing nothing; now each movement is booked as it lands,
+          against 2050 Goods Received Not Billed, and the receipt entry clears
+          it on completion. So one delivery means one GRNI entry - the books are
+          touched, and that is the improvement, not a regression.  */
+      ok('PUR-REV-2 a partial receive books goods-in, not the bill (P8-3)', n === 1, `${n} entries`);
     } else {
       console.log('  SKIP  PUR-REV-2 ledger assertion — auto-posting is off');
     }
@@ -283,8 +299,12 @@ async function main() {
     ok('the last receive completes it', full.status === 'RECEIVED' && full.fullyReceived === true);
     if (booksOn) {
       const n = await entriesFor(advance.id);
-      ok('PUR-REV-2 …and the whole bill is booked exactly once, on completion',
-        n === 1, `${n} entries`);
+      /*  Three, and each one is meant: a GRNI entry for each of the two
+          deliveries, plus the receipt entry that books the bill and clears
+          them on completion. The bill itself is still booked exactly once -
+          that is what PUR-REV-2 guards, and it still holds.  */
+      ok('PUR-REV-2 …and the bill itself is booked exactly once, on completion',
+        n === 3, `${n} entries`);
     }
     await refuses('nothing is left to receive twice',
       () => purchases.receive(advance.id, {}), 'nothing left');

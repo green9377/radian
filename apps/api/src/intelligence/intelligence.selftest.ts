@@ -380,12 +380,25 @@ async function main() {
        ================================================================ */
     console.log('\n--- weekday pattern ---');
     {
+      /*  This asserted the empty-shop half only, and DEV is not an empty shop
+          any more - 118 orders and snapshots with revenue in them, so `known`
+          is legitimately true and the check went red for being right. The rule
+          is not "never report a pattern", it is "never report one you do not
+          have": `known` must mirror whether there were sales. Ask the same
+          question of the data first, then hold the module to that answer -
+          true in a fresh shop and in a busy one.  */
       const w = await kpi.weekdayPattern(30);
-      // the last 30 days are all empty in a fresh shop
+      const snaps = await prisma.dailySnapshot.findMany({
+        where: { onDate: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) } },
+        select: { revenuePaisa: true },
+      });
+      const anySales = snaps.some((r) => r.revenuePaisa > 0);
       ok(
-        'with no sales anywhere it reports no pattern rather than a flat one',
-        w.known === false || w.weekdays.every((d) => d.avgRevenuePaisa === 0),
-        `known=${w.known}`,
+        anySales
+          ? 'with sales in the window it reports the pattern it has'
+          : 'with no sales anywhere it reports no pattern rather than a flat one',
+        w.known === anySales,
+        `known=${w.known} anySales=${anySales} snapshots=${snaps.length}`,
       );
     }
 

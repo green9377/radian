@@ -93,8 +93,15 @@ async function main() {
     console.log('=== 0. clearing anything a previous run left behind ===');
     console.log(JSON.stringify(await cleanup()));
 
-    const unit = await prisma.unit.findFirst({ where: { isActive: true } });
-    if (!unit) throw new Error('no active Unit exists — seed one unit before running this');
+    /*  `deletedAt: null` matters more than it looks. This is the RAW client, so
+        it sees soft-deleted rows too - and on 3 Sep 2026 the first active Unit
+        it returned was `1kg`, which had been deleted. The service then refused
+        it ("That unit does not exist") and four selftests died before their
+        first assertion. The service reads through `prisma.db`, which filters
+        deleted rows; a fixture that picks its material must filter the same
+        way or it hands the service something the service cannot see.  */
+    const unit = await prisma.unit.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!unit) throw new Error('no active, undeleted Unit exists — seed one unit before running this');
     const U = unit.id;
 
     /* ---------------------------------------------------------------- 1 */
@@ -243,26 +250,97 @@ async function main() {
     /* ---------------------------------------------------------------- 5 */
     console.log('\n=== 5. nesting depth is measured across the WHOLE chain (ITM-REV-5) ===');
 
-    /* Build a chain 4 deep: L1 ⊂ L2 ⊂ L3 ⊂ L4. MAX_DEPTH is 5, so hanging the
-       existing 1-deep bouquet under L4 would make 6 and must be refused. The old
-       check only looked below the child and let this through one line at a time. */
+    /* MAX_DEPTH counts LINKS, not items, and the guard is
+       heightAbove(parent) + 1 + depthOf(child) — the longest path THROUGH the new
+       link. So the chain has to be extended at its BOTTOM end to grow: hanging
+       something under the TOP item adds a short branch and proves nothing. The
+       first version of this test hung the bouquet under the top and therefore
+       never reached the limit at all (found 3 Sep 2026).
+
+       Chain: L5 ⊃ L4 ⊃ L3 ⊃ L2 ⊃ L1  — four links, so heightAbove(L1) = 4. */
     const chain: { id: string; sku: string; name: string }[] = [];
-    for (let n = 1; n <= 4; n++) {
+    for (let n = 1; n <= 5; n++) {
       chain.push(await items.create({
         name: `${PREFIX} Level ${n}`, sku: `${PREFIX}-L${n}`,
         itemType: ItemType.FINISHED, unitId: U, standardCostPaisa: 100,
       }));
     }
-    for (let n = 1; n < 4; n++) {
+    for (let n = 1; n < 5; n++) {
       await items.addComponent(chain[n].id, { componentItemId: chain[n - 1].id, qtyMilli: 1000 });
     }
+
+    /* A leaf under L1: 4 + 1 + 0 = 5. That is the limit exactly, so it must pass —
+       without this the refusal below could be coming from an off-by-one. */
+    const leaf = await items.create({
+      name: `${PREFIX} Level leaf`, sku: `${PREFIX}-LLEAF`,
+      itemType: ItemType.RAW, unitId: U, standardCostPaisa: 100,
+    });
+    const atLimit = await items.addComponent(chain[0].id, {
+      componentItemId: leaf.id, qtyMilli: 1000,
+    });
+    ok('a chain of exactly MAX_DEPTH links is still allowed', !!atLimit.id);
+
+    /* The bouquet is 1 deep of its own (rose + filler + ribbon), so under L1 it is
+       4 + 1 + 1 = 6 — one past the limit, and refused. */
     await refuses('ITM-REV-5 a chain that is already deep cannot be extended past the limit',
-      () => items.addComponent(chain[3].id, { componentItemId: bouquet.id, qtyMilli: 1000 }),
+      () => items.addComponent(chain[0].id, { componentItemId: bouquet.id, qtyMilli: 1000 }),
       'may not nest deeper');
 
     await refuses('ITM-R03 a loop is refused however far apart the two ends are',
-      () => items.addComponent(chain[0].id, { componentItemId: chain[3].id, qtyMilli: 1000 }),
+      () => items.addComponent(chain[0].id, { componentItemId: chain[4].id, qtyMilli: 1000 }),
       'loop');
+
+    /* ---------------------------------------------------------------- 5b */
+    console.log('\n=== 5b. a Combo may be as WIDE as it likes (owner, 3 Sep 2026) ===');
+
+    /* MAX_DEPTH bounds nesting only. Component count has no limit anywhere —
+       schema, DTO, controller and service were all read on 3 Sep and none of them
+       counts lines. A real Radian combo can carry 50+ items, so prove it here
+       rather than trusting that nothing will ever add a cap.
+
+       Component n costs n × ৳1 and goes in at 2 units, so it contributes n × 200
+       paisa. Sum over 1..50 = 200 × 1275 = 255000 paisa (৳2,550). The literal is
+       written out so a wrong roll-up cannot agree with a wrong expectation. */
+    const WIDTH = 50;
+    const combo = await items.create({
+      name: `${PREFIX} Wide Combo`, sku: `${PREFIX}-COMBO`,
+      itemType: ItemType.FINISHED, unitId: U,
+    });
+    let expectedPaisa = 0;
+    for (let n = 1; n <= WIDTH; n++) {
+      const part = await items.create({
+        name: `${PREFIX} Part ${n}`, sku: `${PREFIX}-PART${n}`,
+        itemType: ItemType.RAW, unitId: U, standardCostPaisa: n * 100,
+      });
+      await items.addComponent(combo.id, { componentItemId: part.id, qtyMilli: 2000 });
+      expectedPaisa += n * 100 * 2; // qty 2 units, no wastage
+    }
+
+    const wide = await items.findOne(combo.id);
+    ok(`all ${WIDTH} components stay in the recipe — nothing is capped`,
+      wide.components.length === WIDTH, `${wide.components.length} lines`);
+    ok('…and every one of them is a distinct item',
+      new Set(wide.components.map((c: { componentItemId: string }) => c.componentItemId)).size === WIDTH);
+    ok('DEC-ITM-004 a wide recipe still makes it MAKE_TO_ORDER',
+      wide.assemblyMode === AssemblyMode.MAKE_TO_ORDER);
+
+    const wideAuto = await items.update(combo.id, { costMode: CostMode.AUTO });
+    ok(`the cost adds up across all ${WIDTH} lines`,
+      wideAuto.computedCostPaisa === 255_000 && wideAuto.computedCostPaisa === expectedPaisa,
+      `got ${wideAuto.computedCostPaisa}, expected 255000`);
+
+    /* The point of the section: width is not depth. The combo has 50 components but
+       is 1 level deep, so it still fits under a parent (0 + 1 + 1 = 2). If component
+       count ever leaked into the depth guard this would be refused as 51 levels. */
+    const holder = await items.create({
+      name: `${PREFIX} Combo Holder`, sku: `${PREFIX}-HOLDER`,
+      itemType: ItemType.FINISHED, unitId: U,
+    });
+    const nested = await items.addComponent(holder.id, {
+      componentItemId: combo.id, qtyMilli: 1000,
+    });
+    ok(`a ${WIDTH}-component combo is still only 1 level deep — width is not depth`,
+      !!nested.id);
 
     /* ---------------------------------------------------------------- 6 */
     console.log('\n=== 6. an empty recipe makes it a plain item again ===');
@@ -316,14 +394,18 @@ async function main() {
       itemType: ItemType.RAW, unitId: U,
     });
 
-    await refuses('fence 4 — the SKU must be typed back exactly',
-      () => items.purge(scrap.id, 'selftest', 'WRONG-CODE'), 'exactly to confirm');
-    await refuses('fence 1 — a live item cannot be destroyed in one click',
+    /* The old fence 4 ("type the SKU back exactly") was DROPPED on the owner's word,
+       22 Aug 2026 — the screen asks once and Yes means yes. `confirmSku` is still
+       accepted so an old tab does not break, but it no longer decides anything. What
+       is asserted now is that dropping it did not weaken the two fences that matter. */
+    await refuses('fence 1 — a live item cannot be destroyed, whatever code is typed',
+      () => items.purge(scrap.id, 'selftest', 'WRONG-CODE'), 'only possible from the trash');
+    await refuses('fence 1 — …and the right code does not open it either',
       () => items.purge(scrap.id, 'selftest', scrap.sku), 'only possible from the trash');
 
     await items.remove(scrap.id, 'selftest');
-    const purged = await items.purge(scrap.id, 'selftest', scrap.sku.toLowerCase());
-    ok('a trashed item with no history is destroyed, and the SKU check is case-blind',
+    const purged = await items.purge(scrap.id, 'selftest', '');
+    ok('a trashed item with no history is destroyed, and no code is required (owner, 22 Aug)',
       purged.purged === true);
     const back = await prisma.item.findUnique({ where: { id: scrap.id } });
     ok('…and it really is gone from the table', back === null);
@@ -333,21 +415,28 @@ async function main() {
     ok('…but the audit trace outlives it', trace > 0);
 
     console.log('\n--- fence 2: what is and is not a real dependency ---');
-    await refuses('an item somebody else\'s recipe depends on cannot be destroyed',
-      () => items.purge(chain[2].id, 'selftest', chain[2].sku), 'ingredient in');
 
-    /* ITM-REV-8 — the fix under test. chain[3] is the top of the chain: it HAS a recipe
+    /* The rose is the honest case for this fence, and the only reachable one: an item
+       held by a LIVE recipe cannot be trashed at all (ITM-R07 stops it), so `usedIn`
+       inside purge can only ever bite on a line that is itself soft-deleted. The
+       bouquet above is in the trash and its lines with it, which is exactly that
+       shape — and purge counts on the RAW client, so those lines still speak for it. */
+    await items.remove(rose.id, 'selftest');
+    await refuses('an item somebody else\'s recipe depends on cannot be destroyed',
+      () => items.purge(rose.id, 'selftest', rose.sku), 'ingredient in');
+
+    /* ITM-REV-8 — the fix under test. chain[4] is the top of the chain: it HAS a recipe
        but nothing depends on it. Its own lines are children, not dependencies, so it
        must be destroyable — and before the fix it was not, for ever, because the count
        is taken raw and ITM-REV-2 leaves those lines soft-deleted behind it. */
-    await items.remove(chain[3].id, 'selftest');
-    const topPurged = await items.purge(chain[3].id, 'selftest', chain[3].sku);
+    await items.remove(chain[4].id, 'selftest');
+    const topPurged = await items.purge(chain[4].id, 'selftest', chain[4].sku);
     ok('ITM-REV-8 an item that HAS a recipe can still be destroyed once nothing needs it',
       topPurged.purged === true);
     ok('ITM-REV-8 …and its own recipe lines are destroyed with it',
       topPurged.linesDestroyed === 1, `destroyed ${topPurged.linesDestroyed}`);
     const orphanLines = await prisma.itemComponent.count({
-      where: { parentItemId: chain[3].id },
+      where: { parentItemId: chain[4].id },
     });
     ok('…leaving no line pointing at an id that is gone', orphanLines === 0);
 
