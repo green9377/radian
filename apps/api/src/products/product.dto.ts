@@ -119,6 +119,13 @@ export interface CreateProductDto {
    */
   soldOutMode?: SoldOutMode;
   /**
+   * "Allow order when stock is 0" — the owner's switch (4 Sep 2026). One rule
+   * for MANUAL and Inventory-connected stock: on, a normal order is still
+   * taken at zero; off, the page says Out of stock (or Pre-order per
+   * `soldOutMode`). Not a recipe calculation; nothing to do with CRAFTED.
+   */
+  allowOrderAtZero?: boolean;
+  /**
    * On PRE_ORDER, the "Expected back on" the owner wrote. ISO date string in,
    * `null` clears it. Never worked out from lead time — he types it himself.
    */

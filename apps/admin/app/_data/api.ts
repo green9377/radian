@@ -135,6 +135,9 @@ export interface ApiProduct {
   customiseSub?: string | null;
   /** DEC-PDP-09 — what the page does the moment `stockQty` reaches 0 */
   soldOutMode?: "STOCK_OUT" | "PRE_ORDER";
+  /** the owner's switch (4 Sep 2026): at 0, still take a normal order. One
+   *  rule for MANUAL and Inventory-connected stock; nothing to do with CRAFTED */
+  allowOrderAtZero?: boolean;
   /** ISO datetime, PRE_ORDER only. null = the owner promised no date. */
   preorderDate?: string | null;
   salesCount: number;

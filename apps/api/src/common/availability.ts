@@ -10,8 +10,16 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────────────────────────────────
-   IS IT BUYABLE — DEC-PDP-09, owner's ruling 1 Aug 2026
-   "stock 0 হলে order দেওয়া যাবে না। হয় stock out আসবে, বা pre-order আসবে।"
+   IS IT BUYABLE — DEC-PDP-09, owner's ruling 1 Aug 2026, clarified 4 Sep 2026
+
+   The rule, in the owner's words (4 Sep 2026): stock is kept either by hand
+   (MANUAL) or through the Inventory connection (TRACKED); in BOTH cases, when
+   the sellable count reaches 0 the website says "Out of stock" and a normal
+   order is refused — unless the product carries the one switch
+   `allowOrderAtZero`, in which case a normal order is still accepted. No
+   recipe / component / buildable arithmetic, and CRAFTED is not a stock rule.
+   Pre-order (`soldOutMode`) is untouched: with the switch off and stock at 0 it
+   still decides between a closed door and a later date.
 
    ⚠️ ONE FUNCTION, ON PURPOSE. The website, the cart and the order endpoint
    must all answer this question the same way. A page that says "Out of stock"
@@ -26,12 +34,15 @@
    that leaves DEC-MOD-003 untouched but it is a Sales/Delivery change and is
    NOT approved yet. Flagged to the owner, unresolved. Do not paper over it here.
 
-   TRACKED products are deliberately not gated: their real count lives in the
-   Item/Inventory module, `Product.stockQty` is not the truth for them, and a
-   gate reading the wrong number would block sales for no reason.
+   TRACKED products: the count lives in Inventory, so the CALLER resolves it
+   and passes `inventoryQty`. Until 4 Sep they were never gated ("stockQty is
+   not the truth for them"), which was right about the number and wrong about
+   the outcome — a count of 0 in Inventory is still 0. A caller that cannot
+   resolve the number leaves `inventoryQty` undefined and gets the old answer
+   (IN_STOCK), so nothing is refused on a guess.
 
-   Vendor products (`supplierId` set) are not gated either — nothing of theirs
-   sits in our warehouse, so our count means nothing about what they can send.
+   Vendor products (`supplierId` set) are not gated — nothing of theirs sits in
+   our warehouse, so our count means nothing about what they can send. Unchanged.
 ─────────────────────────────────────────────────────────────────────────── */
 export type Availability =
   | { state: 'IN_STOCK' }
@@ -46,21 +57,30 @@ export function availabilityOf(p: {
   supplierId: string | null;
   soldOutMode: 'STOCK_OUT' | 'PRE_ORDER';
   preorderDate: Date | null;
+  /** "Allow order when stock is 0" — the owner's switch (4 Sep 2026). Absent = off. */
+  allowOrderAtZero?: boolean;
+  /**
+   * TRACKED only: the live Inventory count for the product's own Item, whole
+   * units, resolved by the caller. `undefined` = the caller could not look, and
+   * then the product is not gated (the pre-4 Sep behaviour); `null` = it looked
+   * and there is no stock row, which counts as 0.
+   */
+  inventoryQty?: number | null;
   /**
    * DEC-PRD-014 — the stock of this product's variants. Owner, 2 Aug 2026:
    * "with variants, the variants' stock rules; the product's own box then
    * only shows the sum."
    *
    * Leave it `undefined` (or empty) for a product without variants and the
-   * product's own box decides, as before.
+   * product's own count decides, as before.
    */
   variantStock?: number[];
-  /** DEC-PRD-032 — any variant linked to a stockroom Item (its true count
-   *  lives in Inventory, not in a hand-typed box) */
+  /** DEC-PRD-032 — any variant linked to a stockroom Item whose count the
+   *  caller could NOT resolve (its truth lives in Inventory). A caller that
+   *  did resolve it puts the number in `variantStock` and leaves this off. */
   hasTrackedVariant?: boolean;
 }): Availability {
-  const counted = p.stockMode === 'MANUAL' && p.supplierId === null;
-  if (!counted) return { state: 'IN_STOCK' };
+  if (p.supplierId !== null) return { state: 'IN_STOCK' };
 
   /*
     DEC-PRD-014 — with variants, the variants ARE the count (owner, 2 Aug 2026).
@@ -72,17 +92,27 @@ export function availabilityOf(p: {
     and a customer told "yes" and then "no". Preparing has always judged a
     variant line against ITS shelf (REV-M4); this gate now says the same thing
     at the door. The owner's ruling: if every variant is 0, nothing is sold.
-
-    A variant counted in Inventory (itemId set) is judged there, not here —
-    `hasTrackedVariant` is for callers that could not resolve that number.
   */
   const variantStock = p.variantStock ?? [];
+  let sellable: number | undefined;
   if (variantStock.length > 0) {
-    if (variantStock.reduce((n, q) => n + q, 0) > 0) return { state: 'IN_STOCK' };
-    if (p.hasTrackedVariant) return { state: 'IN_STOCK' };
-  } else if (p.hasTrackedVariant || p.stockQty > 0) {
+    if (p.hasTrackedVariant) return { state: 'IN_STOCK' }; // a shelf we could not read
+    sellable = variantStock.reduce((n, q) => n + q, 0);
+  } else if (p.hasTrackedVariant) {
     return { state: 'IN_STOCK' };
+  } else if (p.stockMode === 'MANUAL') {
+    sellable = p.stockQty;
+  } else {
+    // TRACKED — the caller's Inventory figure, or "could not look"
+    sellable = p.inventoryQty === undefined ? undefined : (p.inventoryQty ?? 0);
   }
+
+  if (sellable === undefined || sellable > 0) return { state: 'IN_STOCK' };
+
+  /*  The owner's switch (4 Sep 2026): at 0, a normal order is still taken.
+      Plain IN_STOCK — no pre-order wording, no special money rule; the
+      product's own `advanceRequired` applies as it always does.  */
+  if (p.allowOrderAtZero) return { state: 'IN_STOCK' };
 
   if (p.soldOutMode === 'PRE_ORDER') {
     /*  A date in the past is not a promise, it is an embarrassment — the page
@@ -98,4 +128,3 @@ export function availabilityOf(p: {
 
 /** the one place that decides whether an order line may be created at all */
 export const isBuyable = (a: Availability) => a.state !== 'OUT_OF_STOCK';
-

@@ -1384,6 +1384,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   const [soldOutMode, setSoldOutMode] = useState<"STOCK_OUT" | "PRE_ORDER">(
     "STOCK_OUT",
   );
+  /*  "Allow order when stock is 0" — the owner's business switch (4 Sep
+      2026). One rule for hand-counted and Inventory-connected stock: on, a
+      normal order is still taken at zero; off, the page shows Out of stock
+      (or Pre-order, per "When it runs out" — unchanged). Preparing still
+      refuses to take stock that is not there.  */
+  const [allowOrderAtZero, setAllowOrderAtZero] = useState(false);
   /** "Expected back on", yyyy-mm-dd. "" = the owner did not say. */
   const [preorderDate, setPreorderDate] = useState("");
 
@@ -2093,6 +2099,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           setStock(String(p.stockQty ?? 0));
           setShowStock(!!p.showStock);
           setSoldOutMode(p.soldOutMode ?? "STOCK_OUT");
+          setAllowOrderAtZero(!!p.allowOrderAtZero);
           /*  `datetime` → `yyyy-mm-dd` for <input type="date">. Sliced rather
               than passed through `Date`, which would drag the browser's
               timezone in and can move the date by a day. */
@@ -2463,6 +2470,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       stockQty: parseInt(stock || "0") || 0,
       showStock,
       soldOutMode,
+      allowOrderAtZero,
       /*  Only ever sent alongside PRE_ORDER. Keeping a stale date on a product
           switched back to STOCK_OUT would mean the page starts promising
           again the day somebody flips the choice back. */
@@ -4824,6 +4832,42 @@ No bundle products yet — add them on{" "}
                         unit="pcs"
                         placeholder="real"
                       />
+                    </Row>
+                  )}
+
+                  {/*
+                    Owner, 4 Sep 2026 — one switch, both stock modes. Shown for a
+                    hand-counted product and an Inventory-connected one alike;
+                    not for a vendor's (nothing of theirs sits in our warehouse,
+                    so there is no zero of ours to allow past).
+                  */}
+                  {!supplierId && (
+                    <Row
+                      label="Allow order when stock is 0"
+                      chip={
+                        <Where
+                          kind="live"
+                          why="Off: when the count (the box above, or Inventory's count for a connected item) reaches 0, the page shows Out of stock and a normal order is refused — or Pre-order, if that is what 'When it runs out' says. On: a normal order is still taken at 0, with no pre-order wording. It is a business decision, not a recipe or component calculation, and it has nothing to do with Crafted. Preparing still refuses to take stock that is not there."
+                        >
+                          Live
+                        </Where>
+                      }
+                      hint={
+                        allowOrderAtZero ? (
+                          <span className="text-[#8a5a00]">
+                            Orders keep coming at 0 — the page never says Out of stock
+                          </span>
+                        ) : (
+                          "At 0 the page closes the order (or offers Pre-order)"
+                        )
+                      }
+                    >
+                      <Sw
+                        on={allowOrderAtZero}
+                        onToggle={() => setAllowOrderAtZero(!allowOrderAtZero)}
+                      >
+                        {allowOrderAtZero ? "On" : "Off"}
+                      </Sw>
                     </Row>
                   )}
 

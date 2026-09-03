@@ -349,42 +349,71 @@ export class OrdersService {
       is the same broken promise as a web order for it. If the owner wants an
       override for the counter later, it belongs in POS as an explicit,
       audited act — not as a quiet hole in this check. */
-  private assertBuyable(
+  private async assertBuyable(
     products: {
       id: string;
       name: string;
       stockMode: StockMode;
       stockQty: number;
       supplierId: string | null;
+      itemId: string | null;
       soldOutMode: SoldOutMode;
       preorderDate: Date | null;
+      /** "Allow order when stock is 0" — the owner's switch (4 Sep 2026) */
+      allowOrderAtZero: boolean;
       /** DEC-PRD-014 — with variants, their shelves are the real stock */
       variants?: { id: string; stockQty: number; itemId: string | null }[];
     }[],
     want: Iterable<{ productId: string; variantId?: string | null }>,
   ) {
+    /*  Owner, 4 Sep 2026 — Inventory-connected stock is gated at zero exactly
+        like a hand box, so this door reads Inventory's live count for every
+        linked Item (the product's own, and any variant's) the same way the
+        product page does. One query for all of them; milli-units floor to
+        whole pieces. Nothing here writes stock.  */
+    const linked = [
+      ...new Set(
+        products.flatMap((p) => [
+          ...(p.stockMode === 'TRACKED' && p.itemId ? [p.itemId] : []),
+          ...(p.variants ?? []).flatMap((v) => (v.itemId ? [v.itemId] : [])),
+        ]),
+      ),
+    ];
+    const sums = linked.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linked } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const invQty = new Map(
+      sums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    const countOf = (v: { itemId: string | null; stockQty: number }) =>
+      v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty;
+
     const byId = new Map(products.map((p) => [p.id, p]));
     const blocked: string[] = [];
     for (const { productId, variantId } of want) {
       const p = byId.get(productId);
       if (!p) continue; // missing products are another check's problem
       const variants = p.variants ?? [];
-      /*  R1 (4 Sep 2026) — a variant counted in Inventory is not judged from
-          its hand-typed box; the rest are. Preparing judges a variant line
-          against ITS shelf (REV-M4), so this door must ask the same shelf, or
-          the shop says yes at checkout and no an hour later.  */
+      /*  R1 (4 Sep 2026) — Preparing judges a variant line against ITS shelf
+          (REV-M4), so this door must ask the same shelf, or the shop says yes
+          at checkout and no an hour later.  */
       const a = availabilityOf({
         ...p,
-        variantStock: variants.filter((v) => !v.itemId).map((v) => v.stockQty),
-        hasTrackedVariant: variants.some((v) => !!v.itemId),
+        variantStock: variants.length ? variants.map(countOf) : undefined,
+        inventoryQty:
+          p.stockMode === 'TRACKED' && p.itemId ? (invQty.get(p.itemId) ?? null) : undefined,
       });
       if (!isBuyable(a)) {
         blocked.push(p.name);
         continue;
       }
-      if (variantId && p.stockMode === 'MANUAL' && p.supplierId === null) {
+      if (variantId && p.supplierId === null && !p.allowOrderAtZero) {
         const v = variants.find((x) => x.id === variantId);
-        if (v && !v.itemId && v.stockQty <= 0) blocked.push(`${p.name} (that option is sold out)`);
+        if (v && countOf(v) <= 0) blocked.push(`${p.name} (that option is sold out)`);
       }
     }
     if (blocked.length)
@@ -419,7 +448,7 @@ export class OrdersService {
     /* DEC-PDP-09 — before a single paisa is worked out. Refusing after the
        totals are built would still be correct, but it wastes the offer engine
        and reads as an afterthought in the code. */
-    this.assertBuyable(products, dto.lines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
+    await this.assertBuyable(products, dto.lines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
     /*  মালিকের রায়, ৪ আগস্ট ২০২৬: add-on-ও বিক্রির জিনিস — inventory-তে না
         থাকলে বিক্রি হবে না। null stockQty = গোনা হয় না (সীমাহীন), সংখ্যা
         থাকলে সেটাই সীমা। product-এর DEC-PDP-09 gate-এর একই স্পিরিট, একই
@@ -1261,7 +1290,7 @@ export class OrdersService {
       /* DEC-PDP-09 — the second door into an order. Gating `create` alone
          would mean a sold-out item cannot start an order but can be added to
          one a minute later. */
-      this.assertBuyable(products, dto.addLines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
+      await this.assertBuyable(products, dto.addLines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
       for (const l of dto.addLines) {
         const data = this.buildLine(l, pMap);
         await this.prisma.db.orderLine.create({ data: { ...data, order: { connect: { id } } } });

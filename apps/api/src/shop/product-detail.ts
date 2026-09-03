@@ -653,9 +653,14 @@ export class ProductDetailService {
         stockMode: true,
         soldOutMode: true,
         preorderDate: true,
+        /*  the owner's "allow order when stock is 0" switch (4 Sep 2026) */
+        allowOrderAtZero: true,
         /*  ⚠️ ONLY for `availabilityOf` — a vendor's identity is not shoppers'
             business and is never put in the response body. */
         supplierId: true,
+        /*  ⚠️ ONLY to read Inventory's count for a TRACKED product — never
+            returned. Its variants' `itemId` come with them below. */
+        itemId: true,
         videoId: true,
         metaTitle: true,
         metaDescription: true,
@@ -944,7 +949,15 @@ export class ProductDetailService {
     /*  DEC-PRD-032 — a variant linked to a stockroom Item counts from
         Inventory LIVE, not from its hand-typed box. One query for all
         linked items; milli-units floor to whole pieces.  */
-    const linkedIds = [...new Set(p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])))];
+    const linkedIds = [
+      ...new Set([
+        ...p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
+        /*  4 Sep 2026 — a TRACKED product's own Item, so the gate below can
+            read the same live count Inventory keeps. Sold-out at 0 now applies
+            to Inventory-connected stock exactly as it does to a hand box.  */
+        ...(p.stockMode === 'TRACKED' && p.itemId ? [p.itemId] : []),
+      ]),
+    ];
     const invSums = linkedIds.length
       ? await this.prisma.db.inventoryStock.groupBy({
           by: ['itemId'],
@@ -965,16 +978,22 @@ export class ProductDetailService {
         not keep talking after the till has closed.  */
     const availability = availabilityOf({
       ...p,
-      /*  Manual only. A TRACKED product is outside this gate anyway
-          (DEC-PDP-09), because its real count lives in Inventory.  */
-      variantStock: p.stockMode === 'MANUAL' ? p.variants.map(variantCount) : undefined,
+      /*  Every variant's count is resolved above (`variantCount` reads
+          Inventory for a linked one), so the gate gets real numbers in both
+          stock modes. Owner, 4 Sep 2026: MANUAL and Inventory-connected stock
+          follow one rule at zero.  */
+      variantStock: p.variants.length ? p.variants.map(variantCount) : undefined,
+      /*  TRACKED without variants: Inventory's count for the product's own
+          Item. `null` = no stock row yet = 0.  */
+      inventoryQty:
+        p.stockMode === 'TRACKED' && p.itemId ? (invQty.get(p.itemId) ?? null) : undefined,
     });
     /*  R1 — one colour can be gone while the others sell on. The same test
-        as `availabilityOf` (hand-counted, our own stock), applied per shelf;
-        `variantCount` already reads Inventory for a linked variant.  */
-    const variantCounted = p.stockMode === 'MANUAL' && p.supplierId === null;
+        as `availabilityOf` (our own stock, not a vendor's), applied per shelf;
+        `variantCount` already reads Inventory for a linked variant. The
+        owner's switch keeps every option open at 0, as it does the product.  */
     const variantSoldOut = (v: { itemId: string | null; stockQty: number }) =>
-      variantCounted && variantCount(v) <= 0;
+      p.supplierId === null && !p.allowOrderAtZero && variantCount(v) <= 0;
 
     return {
       slug: p.slug,

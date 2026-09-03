@@ -1159,6 +1159,7 @@ export class ProductsService {
          life promising a delivery date nobody chose. */
       soldOutMode: dto.soldOutMode,
       preorderDate: dto.preorderDate ? new Date(dto.preorderDate) : null,
+      allowOrderAtZero: dto.allowOrderAtZero ?? false, // the owner's switch, 4 Sep 2026
       tags: dto.tagIds?.length ? { connect: dto.tagIds.map((id) => ({ id })) } : undefined,
       productType: dto.productType,
       zone: dto.zone,
@@ -1560,6 +1561,7 @@ export class ProductsService {
          `null` on the date = the owner cleared it. The two must stay
          distinguishable or clearing a date becomes impossible. */
       soldOutMode: dto.soldOutMode,
+      allowOrderAtZero: dto.allowOrderAtZero, // undefined = the form did not mention it
       preorderDate:
         dto.preorderDate === undefined
           ? undefined

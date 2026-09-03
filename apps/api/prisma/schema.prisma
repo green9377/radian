@@ -1192,6 +1192,15 @@ model Product {
   /// to the website - it then simply reads "Pre-order", with no date.
   preorderDate DateTime?
 
+  /// "Allow order when stock is 0" - the owner's business decision, 4 Sep 2026.
+  /// Applies the same way to MANUAL stock and to Inventory-connected stock:
+  ///   off -> at zero the website says Out of stock and a normal order is refused
+  ///          (or Pre-order, if `soldOutMode` says so - that behaviour is untouched)
+  ///   on  -> at zero a normal order is still accepted, no pre-order wording.
+  /// It is not a recipe/buildable calculation and it does not care about CRAFTED.
+  /// Preparing still refuses to take stock that is not there.
+  allowOrderAtZero Boolean @default(false)
+
   /// ── Who supplies it (owner's ruling, 1 Aug 2026) ───────────────────────
   /// A vendor product: nothing sits in our warehouse and no Item is needed.
   /// The vendor makes it when an order arrives, we pass the order on, and the

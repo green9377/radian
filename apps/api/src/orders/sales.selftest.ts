@@ -30,6 +30,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from './orders.service';
 import { DeliveryService } from '../delivery/delivery.service';
 import { availabilityOf } from '../common/availability';
+import { ProductDetailService } from '../shop/product-detail';
 import { resolvePromisedBy } from './promise';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -358,9 +359,14 @@ async function main() {
     ok('R1 with no variants the product box decides, as before',
       availabilityOf({ ...base, stockQty: 2 }).state === 'IN_STOCK' &&
       availabilityOf({ ...base, stockQty: 0 }).state === 'OUT_OF_STOCK');
-    ok('R1 a TRACKED product stays outside the gate (Inventory is its truth)',
-      availabilityOf({ ...base, stockMode: 'TRACKED', variantStock: [0, 0] }).state === 'IN_STOCK');
-    ok('R1 a variant counted in Inventory is not judged from its hand box',
+    /*  Owner, 4 Sep 2026 — Inventory-connected stock is gated at 0 like a
+        hand box. Resolved counts of 0 close the door whatever the mode; only
+        a count the caller could NOT resolve keeps the old open answer.  */
+    ok('R1 a TRACKED product whose resolved variant shelves are all 0 is OUT_OF_STOCK',
+      availabilityOf({ ...base, stockMode: 'TRACKED', variantStock: [0, 0] }).state === 'OUT_OF_STOCK');
+    ok('R1 a TRACKED count the caller could not resolve is not refused on a guess',
+      availabilityOf({ ...base, stockMode: 'TRACKED', stockQty: 0 }).state === 'IN_STOCK');
+    ok('R1 a variant shelf the caller could not read is not judged from its hand box',
       availabilityOf({ ...base, variantStock: [0], hasTrackedVariant: true }).state === 'IN_STOCK');
     ok('R1 PRE_ORDER still answers when every variant is 0',
       availabilityOf({ ...base, soldOutMode: 'PRE_ORDER', variantStock: [0] }).state === 'PRE_ORDER');
@@ -397,6 +403,117 @@ async function main() {
     await prisma.productVariant.update({ where: { id: stocked.id }, data: { stockQty: 0 } });
     await refuses('R1 with every shelf at 0 nothing is sold, though the product box still says 500',
       () => door(stocked.id), 'out of stock');
+
+    /* -------------------------------------------------------------- 7b */
+    console.log('\n=== 7b. "Allow order when stock is 0" — one switch, both stock modes (4 Sep 2026) ===');
+
+    /*  The owner's final stock rule, 4 Sep 2026. Stock is kept by hand
+        (MANUAL) or through the Inventory connection (TRACKED); in BOTH modes
+        a count of 0 closes the door, unless the product carries the one
+        switch `allowOrderAtZero`. No recipe or component arithmetic, no
+        CRAFTED distinction, Pre-order untouched. Six cases (A–F), each asked
+        three ways: the pure rule, the product page, the order door.  */
+    const detail = app.get(ProductDetailService);
+    const inv = { ...base, stockMode: 'TRACKED' as const, stockQty: 0 };
+
+    // A. Manual, 0, switch off
+    ok('A rule: MANUAL at 0, switch off -> OUT_OF_STOCK',
+      availabilityOf({ ...base, stockQty: 0, allowOrderAtZero: false }).state === 'OUT_OF_STOCK');
+    // B. Manual, 0, switch on
+    ok('B rule: MANUAL at 0, switch on -> IN_STOCK (a normal order, no pre-order wording)',
+      availabilityOf({ ...base, stockQty: 0, allowOrderAtZero: true }).state === 'IN_STOCK');
+    // C. Inventory-connected, 0, switch off  (null = no stock row yet, 0 = an empty row)
+    ok('C rule: TRACKED at 0, switch off -> OUT_OF_STOCK',
+      availabilityOf({ ...inv, inventoryQty: 0 }).state === 'OUT_OF_STOCK' &&
+      availabilityOf({ ...inv, inventoryQty: null }).state === 'OUT_OF_STOCK');
+    // D. Inventory-connected, 0, switch on
+    ok('D rule: TRACKED at 0, switch on -> IN_STOCK',
+      availabilityOf({ ...inv, inventoryQty: 0, allowOrderAtZero: true }).state === 'IN_STOCK');
+    // E. stock above 0 — unchanged in both modes, whatever the switch says
+    ok('E rule: stock above 0 is IN_STOCK in both modes, switch on or off',
+      availabilityOf({ ...base, stockQty: 3 }).state === 'IN_STOCK' &&
+      availabilityOf({ ...base, stockQty: 3, allowOrderAtZero: true }).state === 'IN_STOCK' &&
+      availabilityOf({ ...inv, inventoryQty: 3 }).state === 'IN_STOCK' &&
+      availabilityOf({ ...inv, inventoryQty: 3, allowOrderAtZero: true }).state === 'IN_STOCK');
+    // F. Pre-order — exactly as before when the switch is off; the switch wins when on
+    ok('F rule: PRE_ORDER at 0 with the switch off still answers PRE_ORDER, in both modes',
+      availabilityOf({ ...base, stockQty: 0, soldOutMode: 'PRE_ORDER' }).state === 'PRE_ORDER' &&
+      availabilityOf({ ...inv, inventoryQty: 0, soldOutMode: 'PRE_ORDER' }).state === 'PRE_ORDER');
+    ok('F rule: the switch on means a plain sale, not a pre-order',
+      availabilityOf({ ...base, stockQty: 0, soldOutMode: 'PRE_ORDER', allowOrderAtZero: true }).state === 'IN_STOCK');
+    ok('vendor products stay ungated, as before',
+      availabilityOf({ ...base, stockQty: 0, supplierId: 'x' }).state === 'IN_STOCK');
+
+    /*  Now the same six through the real doors. Two fixtures: a hand-counted
+        product and one connected to a stockroom Item whose count sits in
+        InventoryStock. Both published, so the product page can be asked.  */
+    const mk = (slug: string, data: Record<string, unknown>) =>
+      prisma.product.create({
+        data: {
+          name: `${TAG} ${slug}`, slug: `${TAG.toLowerCase()}-${slug}`, isPublished: true,
+          categoryId: category.id, productType: 'READYMADE', zone: 'NATIONWIDE', natureType: 'ARTIFICIAL',
+          costPaisa: 100, sellingPricePaisa: 1000, ...data,
+        } as never,
+      });
+    const doorOf = (productId: string) =>
+      orders.create({
+        customerId: customer.id, channelId: channel.id, zone: 'DHAKA', address: 'selftest',
+        paymentMethod: 'cod', deliveryPaisa: 0, applyOffers: false, actorName: 'selftest',
+        lines: [{ productId, qty: 1 }],
+      } as never);
+    const pageOf = async (slug: string) => (await detail.detail(`${TAG.toLowerCase()}-${slug}`)).availability.state;
+    const flip = (id: string, allowOrderAtZero: boolean) =>
+      prisma.product.update({ where: { id }, data: { allowOrderAtZero } });
+
+    const hand = await mk('hand', { stockMode: 'MANUAL', stockQty: 0 });
+    ok('A page: MANUAL at 0, switch off -> Out of stock', (await pageOf('hand')) === 'OUT_OF_STOCK');
+    await refuses('A door: MANUAL at 0, switch off -> the order is refused', () => doorOf(hand.id), 'out of stock');
+    await flip(hand.id, true);
+    ok('B page: MANUAL at 0, switch on -> In stock', (await pageOf('hand')) === 'IN_STOCK');
+    ok('B door: MANUAL at 0, switch on -> the order is taken', !!(await doorOf(hand.id))?.id);
+    await prisma.product.update({ where: { id: hand.id }, data: { stockQty: 3 } });
+    ok('E page: MANUAL above 0, switch on -> In stock', (await pageOf('hand')) === 'IN_STOCK');
+    await flip(hand.id, false);
+    ok('E page: MANUAL above 0, switch off -> In stock', (await pageOf('hand')) === 'IN_STOCK');
+    ok('E door: MANUAL above 0, switch off -> the order is taken', !!(await doorOf(hand.id))?.id);
+    await prisma.product.update({ where: { id: hand.id }, data: { stockQty: 0, soldOutMode: 'PRE_ORDER' } });
+    ok('F page: MANUAL at 0, PRE_ORDER, switch off -> Pre-order, as before', (await pageOf('hand')) === 'PRE_ORDER');
+    ok('F door: a pre-order is still taken, as before', !!(await doorOf(hand.id))?.id);
+
+    const unit = await prisma.unit.findFirst({ where: { isActive: true, deletedAt: null } });
+    const wh = await prisma.warehouse.findFirst({ where: { isActive: true, deletedAt: null } });
+    if (!unit || !wh) throw new Error('need one active Unit and one active Warehouse for the Inventory-connected fixture');
+    const item = await prisma.item.create({
+      data: { sku: `${TAG}-STOCK`, name: `${TAG} stockroom item`, itemType: 'RAW', unitId: unit.id } as never,
+    });
+    const linked = await mk('linked', { stockMode: 'TRACKED', itemId: item.id, stockQty: 999 });
+    ok('C page: TRACKED with no stock row yet, switch off -> Out of stock (the 999 in the box is ignored)',
+      (await pageOf('linked')) === 'OUT_OF_STOCK');
+    await refuses('C door: TRACKED at 0, switch off -> the order is refused', () => doorOf(linked.id), 'out of stock');
+    const stockRow = await prisma.inventoryStock.create({ data: { itemId: item.id, warehouseId: wh.id, qtyMilli: 0 } });
+    ok('C page: TRACKED with an empty stock row, switch off -> Out of stock', (await pageOf('linked')) === 'OUT_OF_STOCK');
+    await flip(linked.id, true);
+    ok('D page: TRACKED at 0, switch on -> In stock', (await pageOf('linked')) === 'IN_STOCK');
+    ok('D door: TRACKED at 0, switch on -> the order is taken', !!(await doorOf(linked.id))?.id);
+    await prisma.inventoryStock.update({ where: { id: stockRow.id }, data: { qtyMilli: 2000 } });
+    ok('E page: TRACKED above 0, switch on -> In stock', (await pageOf('linked')) === 'IN_STOCK');
+    await flip(linked.id, false);
+    ok('E page: TRACKED above 0, switch off -> In stock', (await pageOf('linked')) === 'IN_STOCK');
+    ok('E door: TRACKED above 0, switch off -> the order is taken', !!(await doorOf(linked.id))?.id);
+    await prisma.inventoryStock.update({ where: { id: stockRow.id }, data: { qtyMilli: 900 } });
+    ok('C page: TRACKED at 0.9 of a unit rounds down to 0 -> Out of stock', (await pageOf('linked')) === 'OUT_OF_STOCK');
+    await prisma.inventoryStock.update({ where: { id: stockRow.id }, data: { qtyMilli: 0 } });
+    await prisma.product.update({ where: { id: linked.id }, data: { soldOutMode: 'PRE_ORDER' } });
+    ok('F page: TRACKED at 0, PRE_ORDER, switch off -> Pre-order', (await pageOf('linked')) === 'PRE_ORDER');
+    ok('F door: a TRACKED pre-order is taken', !!(await doorOf(linked.id))?.id);
+
+    /*  The switch is one flag on the product and covers its options too: at
+        0 with it on, a colour whose shelf is empty is still sold.  */
+    await prisma.productVariant.update({ where: { id: empty.id }, data: { stockQty: 0 } });
+    await flip(shelf.id, true);
+    ok('B door: the switch also opens an option whose own shelf is 0', !!(await door(empty.id))?.id);
+    await flip(shelf.id, false);
+    await refuses('A door: ...and closes it again when off', () => door(empty.id), 'out of stock');
 
     /* --------------------------------------------------------------- 8 */
     console.log('\n=== 8. R4 — one click, one step, even when two arrive together (4 Sep 2026) ===');
