@@ -1793,13 +1793,40 @@ export class InventoryService {
        Adjustment that looks like a real discrepancy for ever).
        The file already knew this hazard: the `seen` set above guards the same clash
        WITHIN one submission. It just did not guard it across two. */
-    const rows = await this.prisma.db.$transaction(async (raw) => {
-      const tx = asTx(raw);
-      for (const d of drafts) {
-        await this.assertUntouched(tx, d.itemId, d.warehouseId);
+    /*  The two `assertUntouched` calls stay: they are what produces a sentence a
+        person can act on. But neither can hold the line on its own - a check
+        cannot lock a row that is not there yet, so two openings arriving in the
+        same moment both passed. The database now refuses the second one
+        (partial unique index, migration 20260903160000), and this catch turns
+        that refusal back into the rule's own words instead of the generic
+        "something with the same itemId already exists" the global Prisma filter
+        would otherwise send to the screen.  */
+    let rows;
+    try {
+      rows = await this.prisma.db.$transaction(async (raw) => {
+        const tx = asTx(raw);
+        for (const d of drafts) {
+          await this.assertUntouched(tx, d.itemId, d.warehouseId);
+        }
+        return this.postMovements(tx, drafts);
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002' &&
+        String(e.meta?.target ?? '').includes('one_opening_per_item_warehouse')
+      ) {
+        const names = await this.prisma.db.item.findMany({
+          where: { id: { in: drafts.map((d) => d.itemId) } },
+          select: { name: true },
+        });
+        const label = names.length === 1 ? `"${names[0].name}"` : 'This item';
+        throw new BadRequestException(
+          `${label} already has movements in this warehouse — use Adjustment instead (INV-RULE-012)`,
+        );
       }
-      return this.postMovements(tx, drafts);
-    });
+      throw e;
+    }
     await this.audit.event({
       entityType: ENTITY,
       entityId: 'opening',

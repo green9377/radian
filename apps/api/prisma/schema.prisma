@@ -4097,6 +4097,17 @@ model InventoryMovement {
   @@index([reason])
   @@index([createdAt])
   @@index([refType, refId])
+
+  /// ⚠️ ONE MORE INDEX LIVES IN SQL, NOT HERE — and it is the one that matters:
+  ///
+  ///     UNIQUE (itemId, warehouseId) WHERE reason = 'OPENING'
+  ///
+  /// INV-RULE-012 says an item×warehouse gets exactly one OPENING. The service
+  /// checks it twice, but a check cannot lock a row that does not exist yet, so
+  /// two openings arriving together both passed and the stock was counted twice.
+  /// Prisma cannot express a partial index, so it is written by hand in
+  /// migrations/20260903160000_one_opening_per_item_warehouse. Do not "tidy" it
+  /// away when a future `migrate dev` reports it as drift.
 }
 
 /// DEC-INV-004 — one-step: OUT+IN posted atomically, same groupId. No
