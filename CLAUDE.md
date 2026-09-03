@@ -105,6 +105,18 @@ assuming.
 - **Never handle his password or PIN, and never mint an `AppSession` row**
 - One page or feature at a time; ask before assuming a business rule
 
+**⚠️ ONE SESSION AT A TIME (owner's rule, 2 Sep 2026).** On 2 Sep two sessions
+worked this repo at once. Nothing was lost, but `main` was rebased under a
+running session, the same four commits ended up with two sets of hashes, and a
+commit appeared inside another session's branch that its author had never seen.
+Half of that day's confusion came from there, not from the code.
+
+So: **one session works this repo at a time.** If a second one has to start,
+give it its own branch and say so out loud. Before touching anything, a session
+runs `git fetch` and `git log -1 --oneline` in BOTH the laptop folder and the
+VPS - not because it is tidy, but because on 2 Sep both had moved since the
+last time anyone looked.
+
 ---
 
 ### 📍 READ `RADIAN_ENVIRONMENTS.md` FIRST (1 Sep 2026)
