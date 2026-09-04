@@ -201,7 +201,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
   return (
     <section
-      className="relative overflow-hidden py-8 lg:py-7 text-white"
+      className="relative overflow-hidden py-8 lg:py-6 text-white"
       id="delivery"
       style={{
         background:
@@ -216,7 +216,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
       <div className="relative z-[2] max-w-[1200px] mx-auto px-6">
         {/* Head */}
-        <div className="flex items-center justify-between gap-6 flex-wrap mb-4">
+        <div className="flex items-center justify-between gap-6 flex-wrap mb-3">
           {/* The two zone wordings become a zone override on `home.delivery`:
               set one for All Bangladesh in the admin and it replaces the
               default here, exactly as the ternary used to. */}
@@ -289,8 +289,14 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
           </div>
         )}
 
-        {/* Products — mobile: horizontal swipe · desktop: grid */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-4 lg:gap-[22px] lg:overflow-visible lg:pb-0">
+        {/* Products — mobile: horizontal swipe · desktop: ONE row, as many
+            columns as the admin's "cards per tab" (owner, 5 Sep 2026: the
+            whole band must fit one screen — five cards make a shorter row
+            than four) */}
+        <div
+          className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] lg:gap-[18px] lg:overflow-visible lg:pb-0"
+          style={{ ["--cols" as string]: String(Math.min(perTab, 6)) }}
+        >
           {items.map((p) => (
             <div key={p.slug} className="w-[195px] shrink-0 snap-start lg:w-auto lg:shrink">
               <ProductCard product={p} zone={zone} />
@@ -300,7 +306,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
         {/* View all — the owner's words and link, or no button at all */}
         {viewAll && (
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center mt-4">
             <Link
               href={viewAll.href}
               className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-white/85 rounded-full text-white font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-white hover:text-purple whitespace-nowrap"
