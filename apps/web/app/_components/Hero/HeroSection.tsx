@@ -43,7 +43,7 @@ interface Props {
     for a picture that fills the right half (50vw wide) — the strip must cover
     it — plus the margin under the strip. TrustStrip repeats this value; keep
     the two together.  */
-export const HERO_FOOT = "max(108px,calc(5.7vw+24px))";
+export const HERO_FOOT = "max(108px, calc(5.7vw + 24px))";
 
 function ArrowIcon() {
   return (
