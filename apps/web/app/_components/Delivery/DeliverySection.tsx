@@ -19,7 +19,8 @@ import { promisePhrase } from "../../_data/deliveryClaims";
   Countdown text is a placeholder — real cutoff logic comes with the backend.
 */
 
-type DeliveryMode = "2hr" | "sameday" | "midnight";
+/** which product flag a tab filters on; null = every product (a scheduled or courier method) */
+type Speed = "express" | "same_day" | "midnight" | null;
 
 function Ic({ name }: { name: string }) {
   const cls = "w-[17px] h-[17px] stroke-current fill-none stroke-[1.8]";
@@ -31,6 +32,8 @@ function Ic({ name }: { name: string }) {
     return <svg className={cls} viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" strokeLinecap="round" strokeLinejoin="round" /></svg>;
   if (name === "truck")
     return <svg className={cls} viewBox="0 0 24 24"><path d="M2 6h12v11H2zM14 10h4l3 3.4V17h-7" strokeLinecap="round" strokeLinejoin="round" /><circle cx="6.5" cy="17.7" r="1.8" /><circle cx="17.5" cy="17.7" r="1.8" /></svg>;
+  if (name === "calendar")
+    return <svg className={cls} viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2.2" /><path d="M4 10.5h16M8.5 4v4M15.5 4v4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
   // clock
   return <svg className={cls} viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
@@ -57,18 +60,30 @@ function ArrowIcon() {
   `etaLabel` is blank on every method — so the false cut-off was the permanent
   state, not the fallback one.
 */
-const MODES: { key: DeliveryMode; icon: string; title: string; sub: string }[] = [
-  { key: "2hr", icon: "bolt", title: "Express Delivery", sub: "Anywhere inside Dhaka city" },
-  { key: "sameday", icon: "sun", title: "Same Day", sub: "Ordered today, delivered today" },
-  { key: "midnight", icon: "moon", title: "Midnight Delivery", sub: "Surprises at the stroke of 12" },
+const MODES: { key: string; speed: Speed; icon: string; title: string; sub: string }[] = [
+  { key: "express", speed: "express", icon: "bolt", title: "Express Delivery", sub: "Anywhere inside Dhaka city" },
+  { key: "same_day", speed: "same_day", icon: "sun", title: "Same Day", sub: "Ordered today, delivered today" },
+  { key: "midnight", speed: "midnight", icon: "moon", title: "Midnight Delivery", sub: "Surprises at the stroke of 12" },
 ];
 
-/** which product flag a live method filters on, from its name */
-function modeKeyFor(label: string): DeliveryMode {
-  const l = label.toLowerCase();
-  if (l.includes("midnight")) return "midnight";
-  if (l.includes("2") || l.includes("two") || l.includes("express")) return "2hr";
-  return "sameday";
+/*  Which product flag a live method filters on, and which icon it wears —
+    from the method's TIMING first, its name second.
+
+    ⚠️ 5 Sep 2026: this used to key the tabs by a guess from the NAME, and
+    "3 Hours Delivery", "same day Delivery" and "Schedule it" all guessed
+    "sameday" — three tabs, one key, so clicking one lit all three and the
+    pill beside the heading never changed. Tabs are keyed by the method's own
+    id now; this only decides the filter and the icon.  */
+function speedFor(m: ApiMode): { speed: Speed; icon: string } {
+  const name = `${m.typeName} ${m.label}`.toLowerCase();
+  if (name.includes("midnight")) return { speed: "midnight", icon: "moon" };
+  if (m.timing === "FROM_CONFIRM") return { speed: "express", icon: "bolt" };
+  if (m.timing === "TODAY_SLOT") return { speed: "same_day", icon: "sun" };
+  if (m.timing === "LEAD_DAYS") return { speed: null, icon: "truck" };
+  if (m.timing === "PICK_DATE_SLOT" || m.timing === "PICK_DATE_FIXED") return { speed: null, icon: "calendar" };
+  if (name.includes("same day") || name.includes("sameday") || name.includes("today")) return { speed: "same_day", icon: "sun" };
+  if (name.includes("hour") || name.includes("express")) return { speed: "express", icon: "bolt" };
+  return { speed: null, icon: "clock" };
 }
 
 /** 204 → "3 hrs 24 min" · 45 → "45 min" */
@@ -85,7 +100,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
   const viewAll = config.showViewAll === false
     ? null
     : { text: String(config.viewAllText || "View All Products"), href: String(config.viewAllHref || "/products") };
-  const [mode, setMode] = useState<DeliveryMode>("2hr");
+  const [picked, setMode] = useState<string>("express");
   const [apiModes, setApiModes] = useState<ApiMode[] | null>(null);
   const isBd = zone === "bangladesh";
 
@@ -110,8 +125,8 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
   const tabs = useMemo(() => {
     if (!apiModes || apiModes.length === 0) return MODES.map((m) => ({ ...m, minutesLeft: null as number | null }));
     return apiModes.map((m) => {
-      const key = modeKeyFor(m.label);
-      const design = MODES.find((d) => d.key === key) ?? MODES[0];
+      const { speed, icon } = speedFor(m);
+      const design = MODES.find((d) => d.speed === speed) ?? MODES[0];
       /*  ⚠️ The owner's `etaLabel` first, then the type's own promise — "within
           3 hours", built from `promiseMinutes`. Only when neither exists does
           the design's wording show, and that wording no longer names a time.
@@ -119,14 +134,12 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
           blank on every method today, so every card silently showed the
           hard-coded sub-line.  */
       const sub = m.eta ?? promisePhrase(m.promiseMinutes) ?? design.sub;
-      return { key, icon: design.icon, title: m.typeName || m.label, sub, minutesLeft: m.minutesLeft };
+      return { key: m.id, speed, icon, title: m.typeName || m.label, sub, minutesLeft: m.minutesLeft };
     });
   }, [apiModes]);
 
-  useEffect(() => {
-    // the remembered tab may not exist any more once the live list arrives
-    if (tabs.length > 0 && !tabs.some((t) => t.key === mode)) setMode(tabs[0].key);
-  }, [tabs, mode]);
+  // the remembered tab may not exist once the live list arrives — fall back to the first
+  const mode = tabs.some((t) => t.key === picked) ? picked : (tabs[0]?.key ?? picked);
 
   /*
     ═══ THE FOUR CARDS UNDER THE TABS ARE REAL NOW — 4 Aug 2026 ═══
@@ -138,10 +151,10 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
     the same query the category pages' speed filter uses.
   */
   const [items, setItems] = useState<Product[]>([]);
+  const activeSpeed = tabs.find((t) => t.key === mode)?.speed ?? null;
   useEffect(() => {
     let stale = false;
-    const speed =
-      isBd ? undefined : mode === "2hr" ? "express" : mode === "sameday" ? "same_day" : "midnight";
+    const speed = isBd ? undefined : activeSpeed ?? undefined;
     getShopProducts({
       speed,
       zone: isBd ? "bangladesh" : "dhaka",
@@ -153,7 +166,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
     return () => {
       stale = true;
     };
-  }, [isBd, mode, perTab]);
+  }, [isBd, activeSpeed, perTab]);
 
   /*  The nationwide card says what the nationwide delivery method says — its
       own name and ETA from the Delivery module — the same way the Dhaka tabs
@@ -176,7 +189,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
   const left = active?.minutesLeft ?? null;
   const countdown =
     left === null ? (
-      active?.sub ? <>{active.sub}</> : null
+      active ? <><b className="text-orchid-mid font-semibold">{active.title}</b> · {active.sub}</> : null
     ) : left > 0 ? (
       <>Order within <b className="text-orchid-mid font-semibold">{humanMinutes(left)}</b> for delivery today</>
     ) : (
@@ -184,11 +197,11 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
     );
 
   const modeBase =
-    "flex items-center gap-3 text-left rounded-[18px] px-[17px] py-[13px] border backdrop-blur-[6px] transition-all duration-300 cursor-pointer hover:-translate-y-[3px]";
+    "flex items-center gap-3 text-left rounded-[18px] px-[15px] py-[11px] border backdrop-blur-[6px] transition-all duration-300 cursor-pointer hover:-translate-y-[3px] min-w-0";
 
   return (
     <section
-      className="relative overflow-hidden py-11 text-white"
+      className="relative overflow-hidden py-8 lg:py-7 text-white"
       id="delivery"
       style={{
         background:
@@ -203,7 +216,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
       <div className="relative z-[2] max-w-[1200px] mx-auto px-6">
         {/* Head */}
-        <div className="flex items-center justify-between gap-6 flex-wrap mb-6">
+        <div className="flex items-center justify-between gap-6 flex-wrap mb-4">
           {/* The two zone wordings become a zone override on `home.delivery`:
               set one for All Bangladesh in the admin and it replaces the
               default here, exactly as the ternary used to. */}
@@ -249,7 +262,10 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
             </div>
           </div>
         ) : (
-          <div className="flex overflow-x-auto gap-2 mb-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:gap-[14px] sm:mb-6 sm:overflow-visible sm:pb-0">
+          <div
+            className="flex overflow-x-auto gap-2 mb-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-[repeat(var(--tabs),minmax(0,1fr))] sm:gap-[12px] sm:overflow-visible sm:pb-0"
+            style={{ ["--tabs" as string]: String(Math.max(tabs.length, 1)) }}
+          >
             {tabs.map((m) => (
               <button
                 key={m.key}
@@ -264,9 +280,9 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
                 <div className="w-[38px] h-[38px] rounded-full grid place-items-center text-orchid-mid shrink-0" style={{ background: "rgba(207,67,234,.22)" }}>
                   <Ic name={m.icon} />
                 </div>
-                <div>
-                  <h3 className="font-display text-[15px] sm:text-[16px] font-medium whitespace-nowrap">{m.title}</h3>
-                  <p className="text-[11.5px] text-white/75 whitespace-nowrap hidden sm:block">{m.sub}</p>
+                <div className="min-w-0">
+                  <h3 className="font-display text-[15px] sm:text-[16px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">{m.title}</h3>
+                  <p className="text-[11.5px] text-white/75 whitespace-nowrap hidden sm:block overflow-hidden text-ellipsis">{m.sub}</p>
                 </div>
               </button>
             ))}
@@ -284,7 +300,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
         {/* View all — the owner's words and link, or no button at all */}
         {viewAll && (
-          <div className="flex justify-center mt-[26px]">
+          <div className="flex justify-center mt-5">
             <Link
               href={viewAll.href}
               className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-white/85 rounded-full text-white font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-white hover:text-purple whitespace-nowrap"
