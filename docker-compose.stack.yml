@@ -103,15 +103,16 @@ services:
   # Background removal for the hero picture (owner, 4 Sep 2026 - "auto bosle
   # valo"). rembg's own HTTP server; the API posts a photo, gets a transparent
   # PNG back. Internal network only - nothing outside the stack can reach it.
-  # The model (u2net, ~170MB) is fetched on the first request and kept in
-  # ./bgmodels so a rebuild does not fetch it again. CPU-only: 5-10 s a photo.
+  # The model (bria-rmbg, ~170MB) is fetched on the first request and kept in
+  # ./bgmodels so a rebuild does not fetch it again. CPU-only, measured on the
+  # dev stack's 2 cores: ~30 s a photo, and the API waits up to 90 s.
   bgremove:
     image: danielgatis/rembg:latest
     container_name: radian_bgremove_${STACK}
     restart: always
     command: ["s", "--host", "0.0.0.0", "--port", "7000"]
     volumes:
-      - ./bgmodels:/root/.u2net
+      - ./bgmodels:/root/.rembg
     deploy:
       resources:
         limits:
