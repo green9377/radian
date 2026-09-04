@@ -62,18 +62,6 @@ function ArrowIcon() {
 
 export default function BestSellers({ zone }: { zone: Zone | null }) {
   const [activeCat, setActiveCat] = useState<TabCat>("all");
-  const [stickyTop, setStickyTop] = useState(112);
-
-  // Tabs must stick right below the real (sticky) header, whatever its height
-  useEffect(() => {
-    const measure = () => {
-      const h = document.querySelector("header")?.getBoundingClientRect().height;
-      if (h) setStickyTop(Math.round(h) + 6);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
 
   /*  One fetch per zone, every tab already filled — switching tabs costs
       nothing, and the API has already left out any tab with nothing under it.  */
@@ -108,11 +96,9 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
           subtitle={"Our most-gifted arrangements, chosen again and again."}
         />
 
-        {/* Sticky tabs */}
-        <div
-          style={{ top: stickyTop }}
-          className="sticky z-40 bg-white/95 backdrop-blur-[10px] py-[10px] rounded-full flex gap-[10px] mb-6 flex-nowrap overflow-x-auto justify-start md:flex-wrap md:overflow-visible md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+        {/* The tabs scroll with the section — they used to stick under the
+            header and float over the cards (owner, 4 Sep 2026: not fixed). */}
+        <div className="py-[10px] flex gap-[10px] mb-6 flex-nowrap overflow-x-auto justify-start md:flex-wrap md:overflow-visible md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {visibleTabs.map((tab) => (
             <button
               key={tab.cat}
