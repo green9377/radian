@@ -242,10 +242,61 @@ export class ShopService {
 
     const settings = await this.prisma.db.storefrontSetting.findUnique({
       where: { id: 'singleton' },
-      select: { heroRotateSeconds: true },
+      select: { heroRotateSeconds: true, announcementAuto: true },
     });
 
-    return { banners: rows, heroRotateSeconds: settings?.heroRotateSeconds ?? 6 };
+    return {
+      banners: rows,
+      heroRotateSeconds: settings?.heroRotateSeconds ?? 6,
+      /** no announcement banner live: describe the service (true) or draw no bar */
+      announcementAuto: settings?.announcementAuto ?? true,
+    };
+  }
+
+  /**
+   * The words a product card prints for its delivery pill — from the delivery
+   * masters, never typed into the card.
+   *
+   * The card said "Today, 2 hrs" over every express product while the admin's
+   * fastest service was a 3-hour express, and "1–3 days" over every courier
+   * product whatever the courier method promised. Same fault, same fix as
+   * `deliveryModes()`: the type's own name and the method's own ETA are the
+   * only things allowed to make a speed claim. Null = the card says less.
+   */
+  async cardWording() {
+    const rows = await this.prisma.db.deliveryMethod.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: [{ sortOrder: 'asc' }],
+      select: {
+        zone: true,
+        label: true,
+        etaLabel: true,
+        type: { select: { name: true, timing: true, promiseMinutes: true } },
+      },
+    });
+    const dhaka = rows.filter((r) => !NATIONWIDE_ALIASES.has(String(r.zone).toUpperCase()));
+    const nationwide = rows.filter((r) => NATIONWIDE_ALIASES.has(String(r.zone).toUpperCase()));
+
+    // fastest = the shortest clock promise, the same reading the storefront's
+    // announcement bar uses; a same-day slot is not "faster" than a timed express
+    const timed = dhaka
+      .filter((r) => r.type?.timing === 'FROM_CONFIRM' && (r.type.promiseMinutes ?? 0) > 0)
+      .sort((a, b) => (a.type?.promiseMinutes ?? 0) - (b.type?.promiseMinutes ?? 0));
+    const express = timed[0] ?? null;
+    const sameDay = dhaka.find((r) => r.type?.timing === 'TODAY_SLOT') ?? null;
+    const midnight = dhaka.find((r) => r.type?.timing === 'PICK_DATE_FIXED') ?? null;
+    const courier = nationwide.find((r) => r.type?.timing === 'LEAD_DAYS') ?? nationwide[0] ?? null;
+
+    return {
+      /** "3-Hour Express" — the express pill; null when no timed service is advertised */
+      express: express ? express.type?.name || express.label : null,
+      /** "Same Day" — for a product that can leave today but not on the clock */
+      sameDay: sameDay ? sameDay.type?.name || sameDay.label : null,
+      /** "Midnight Surprise" — the midnight pill */
+      midnight: midnight ? midnight.type?.name || midnight.label : null,
+      /** "1–3 days" — the courier pill's promise, the method's own ETA */
+      courier: courier ? courier.etaLabel || courier.type?.name || courier.label : null,
+    };
   }
 
   /**
@@ -707,7 +758,7 @@ export class ShopService {
 
      ⚠️ Without `areaId`, the zone's general price. With it, "the more
      specific one wins"
-     (DEC-DLV-009) — Dhanmondi-র ৳৮০, পুরো ঢাকার ৳১০০ নয়।
+     (DEC-DLV-009) — Dhanmondi's ৳80, not all of Dhaka's ৳100.
      ═════════════════════════════════════════════════════════════════════════ */
   async deliveryOptions(zone?: string, areaId?: string | null, itemsCsv?: string) {
     const zoneCode = NATIONWIDE_ALIASES.has(String(zone ?? '').toUpperCase())
@@ -897,6 +948,13 @@ export class ShopController {
   @Get('categories')
   categories() {
     return this.svc.categories();
+  }
+
+  /** the delivery words on a product card, from the delivery masters */
+  @Public()
+  @Get('card-wording')
+  cardWording() {
+    return this.svc.cardWording();
   }
 
   @Public()

@@ -41,7 +41,7 @@ const FALLBACK_POSTS = [
   },
 ];
 
-export default function BlogSection() {
+export default function BlogSection({ config = {} }: { config?: Record<string, unknown> }) {
   const [posts, setPosts] = useState<JournalCard[] | null>(null);
 
   /*
@@ -67,8 +67,16 @@ export default function BlogSection() {
   if (!posts) return null;           // still loading
   if (posts.length === 0) return null; // nothing published yet
 
-  // the homepage shows the three newest; the rest live on /journal
-  const shown = posts.slice(0, 3);
+  /*  The owner's picks in his order, or the newest ones; how many is his too
+      (Storefront → Homepage → Layout → Latest Articles, 4 Sep 2026). A picked
+      post that is no longer published simply leaves the row — the list is
+      published posts only, so nothing draft can be pinned here.  */
+  const count = Math.min(Math.max(Number(config.count) || 3, 1), 6);
+  const picked = Array.isArray(config.slugs) ? (config.slugs as string[]) : [];
+  const chosen = picked
+    .map((s) => posts.find((p) => p.slug === s))
+    .filter((p): p is JournalCard => Boolean(p));
+  const shown = (chosen.length > 0 ? chosen : posts).slice(0, count);
 
   return (
     <section className="py-[46px]" id="blog">

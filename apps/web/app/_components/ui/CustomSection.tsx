@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProductCard from "../Product/ProductCard";
-import { PRODUCTS } from "../../_data/products";
-import { getShopCollections, getShopBanners, zoneCode, type ShopCollection } from "../../_data/shop";
+import type { Product } from "../../_data/products";
+import { toProduct } from "../../_data/categoryApi";
+import { getShopCollections, getShopBanners, getShopProducts, zoneCode, type ShopCollection } from "../../_data/shop";
 import type { Zone } from "../../_store/useZoneStore";
 import type { LayoutBlock } from "../../_data/shop";
 
@@ -47,25 +48,32 @@ function Head({ title, subtitle }: { title: string | null; subtitle: string | nu
 }
 
 /*
-  ⚠️ STILL DRAWN FROM THE MOCK PRODUCT LIST.
+  LIVE since 4 Sep 2026. Until then this row filtered the July mock array
+  (72 invented products) while the admin screen let the owner pick a rule and
+  a count — so an added "Best sellers" row showed bouquets the shop never had.
 
-  Products are the one thing on this page not yet coming from the admin — the
-  Best Sellers grid reads the same array. Wiring this to the live catalogue is
-  the same job as connecting that grid, and doing it in two places separately
-  would guarantee two different definitions of "best seller".
+  The rule is asked of the catalogue the same way the category pages ask it:
+  `bestseller` = the earned badge only (DEC-PRD-050), ranked by the window
+  sales behind it; `new` = newest first; `express` / `midnight` = the products
+  that can actually leave that fast, most popular first. One definition of
+  "best seller", shared with the Best Sellers grid.
 */
 function ProductRow({ block, zone }: { block: LayoutBlock; zone: Zone | null }) {
   const rule = String(block.config.rule ?? "bestseller");
-  const count = Number(block.config.count ?? 8);
+  const count = Math.min(Math.max(Number(block.config.count ?? 8) || 8, 2), 12);
+  const [items, setItems] = useState<Product[]>([]);
 
-  const items = PRODUCTS.filter((p) => {
-    if (zone === "bangladesh" && p.zone !== "both") return false;
-    if (rule === "bestseller") return p.best;
-    if (rule === "new") return p.neu;
-    if (rule === "express") return p.exp;
-    if (rule === "midnight") return p.mn;
-    return true;
-  }).slice(0, count);
+  useEffect(() => {
+    let alive = true;
+    getShopProducts({
+      zone: zoneCode(zone) ?? undefined,
+      best: rule === "bestseller" ? 1 : undefined,
+      speed: rule === "express" || rule === "midnight" ? rule : undefined,
+      sort: rule === "new" ? "new" : rule === "bestseller" ? "best" : "popular",
+      limit: count,
+    }).then((res) => { if (alive) setItems(res ? res.items.map(toProduct) : []); });
+    return () => { alive = false; };
+  }, [zone, rule, count]);
 
   if (items.length === 0) return null;
 

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Injectable, Module, Patch, Post } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /*  ── DEC-PRD-050 · Best seller and New arrival ──────────────────────────────
@@ -210,6 +211,7 @@ export class MerchService {
       select: {
         id: true,
         isBestSeller: true,
+        bestSellerSales: true,
         bestSellerMode: true,
         categoryId: true,
         category: { select: { parentId: true } },
@@ -272,6 +274,20 @@ export class MerchService {
         data: { isBestSeller: false },
       });
 
+    /*  The window figure itself is stored beside the badge, so the storefront
+        can ORDER a best-seller row by it in SQL — "best seller" says which
+        products, this says which comes first. Same moments, same rule, and
+        never `salesCount`. Written with raw SQL so `updatedAt` keeps meaning
+        "somebody edited this", exactly as the two writes above take care of.  */
+    const salesChanged = products
+      .map((p) => ({ id: p.id, qty: soldBy.get(p.id) ?? 0 }))
+      .filter((p, i) => p.qty !== products[i].bestSellerSales);
+    if (salesChanged.length > 0)
+      await this.prisma.$executeRaw`
+        UPDATE "Product" AS p SET "bestSellerSales" = v.qty
+        FROM (VALUES ${Prisma.join(salesChanged.map((c) => Prisma.sql`(${c.id}::text, ${c.qty}::int)`))}) AS v(id, qty)
+        WHERE p.id = v.id`;
+
     await this.prisma.db.merchSetting.update({
       where: { id: 'singleton' },
       data: { lastComputedAt: new Date() },
@@ -284,6 +300,7 @@ export class MerchService {
       products: products.length,
       bestSellers: [...winners].length,
       changed: wantOn.length + wantOff.length,
+      salesUpdated: salesChanged.length,
     };
   }
 

@@ -78,7 +78,13 @@ function humanMinutes(m: number): string {
   return rest === 0 ? `${h} hr${h > 1 ? "s" : ""}` : `${h} hr${h > 1 ? "s" : ""} ${rest} min`;
 }
 
-export default function DeliverySection({ zone }: { zone: Zone | null }) {
+export default function DeliverySection({ zone, config = {} }: { zone: Zone | null; config?: Record<string, unknown> }) {
+  /*  The section's own settings (Storefront → Homepage → Layout → Delivery
+      band, 4 Sep 2026): how many cards under the tabs, and the button.  */
+  const perTab = Math.min(Math.max(Number(config.perTab) || 4, 2), 8);
+  const viewAll = config.showViewAll === false
+    ? null
+    : { text: String(config.viewAllText || "View All Products"), href: String(config.viewAllHref || "/products") };
   const [mode, setMode] = useState<DeliveryMode>("2hr");
   const [apiModes, setApiModes] = useState<ApiMode[] | null>(null);
   const isBd = zone === "bangladesh";
@@ -140,14 +146,25 @@ export default function DeliverySection({ zone }: { zone: Zone | null }) {
       speed,
       zone: isBd ? "bangladesh" : "dhaka",
       sort: "popular",
-      limit: 4,
+      limit: perTab,
     }).then((res) => {
       if (!stale) setItems(res ? res.items.map(toProduct) : []);
     });
     return () => {
       stale = true;
     };
-  }, [isBd, mode]);
+  }, [isBd, mode, perTab]);
+
+  /*  The nationwide card says what the nationwide delivery method says — its
+      own name and ETA from the Delivery module — the same way the Dhaka tabs
+      do. "Nationwide, 1–3 Days / Courier-safe gifts to all 64 districts" was
+      typed here and never read the admin (4 Sep 2026). The typed words remain
+      only for the moment before the masters answer.  */
+  const bdMode = isBd ? apiModes?.[0] ?? null : null;
+  const bdTitle = bdMode ? bdMode.typeName || bdMode.label : "Nationwide, 1–3 Days";
+  const bdSub = bdMode
+    ? bdMode.eta ?? promisePhrase(bdMode.promiseMinutes) ?? "Courier-safe gifts across Bangladesh"
+    : "Courier-safe gifts to all 64 districts";
 
   /*
     Three honest states, where there used to be one invented one:
@@ -226,8 +243,8 @@ export default function DeliverySection({ zone }: { zone: Zone | null }) {
                 <Ic name="truck" />
               </div>
               <div>
-                <h3 className="font-display text-[16px] font-medium whitespace-nowrap">Nationwide, 1–3 Days</h3>
-                <p className="text-[11.5px] text-white/75 whitespace-nowrap">Courier-safe gifts to all 64 districts</p>
+                <h3 className="font-display text-[16px] font-medium whitespace-nowrap">{bdTitle}</h3>
+                <p className="text-[11.5px] text-white/75 whitespace-nowrap">{bdSub}</p>
               </div>
             </div>
           </div>
@@ -265,15 +282,17 @@ export default function DeliverySection({ zone }: { zone: Zone | null }) {
           ))}
         </div>
 
-        {/* View all */}
-        <div className="flex justify-center mt-[26px]">
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-white/85 rounded-full text-white font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-white hover:text-purple whitespace-nowrap"
-          >
-            View All Products <ArrowIcon />
-          </Link>
-        </div>
+        {/* View all — the owner's words and link, or no button at all */}
+        {viewAll && (
+          <div className="flex justify-center mt-[26px]">
+            <Link
+              href={viewAll.href}
+              className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-white/85 rounded-full text-white font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-white hover:text-purple whitespace-nowrap"
+            >
+              {viewAll.text} <ArrowIcon />
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

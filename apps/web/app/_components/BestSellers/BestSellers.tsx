@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../../_store/useZoneStore";
 import { type Product } from "../../_data/products";
-import { getShopProducts, zoneCode } from "../../_data/shop";
+import { getHomeBestSellers, zoneCode, type HomeBestSellers } from "../../_data/shop";
 import { toProduct } from "../../_data/categoryApi";
 import ProductCard from "../Product/ProductCard";
 
@@ -15,28 +15,39 @@ import ProductCard from "../Product/ProductCard";
   - All Bangladesh zone → only courier-safe (zone "both") products
   - Category tabs with NO eligible products for the zone are hidden entirely
   - If the active tab becomes hidden after a zone switch, fall back to "all"
-  - Max 8 products shown
   - Sticky tabs while scrolling the section
 
   ═══ THE MOCK LEFT, 4 Aug 2026 ═══
 
   "Best sellers" was the mock's `best: true` flag — eight invented bouquets,
   fixed for ever, on the most-read band of the homepage, while the REAL
-  best-seller count (`salesCount`, +1 on every delivered order) accumulated in
-  the admin unread. Now one popularity-sorted fetch per zone answers the band,
-  and the tabs keep their own rule: a tab with nothing eligible hides itself.
+  best-seller count accumulated in the admin unread.
+
+  ═══ THE TABS AND THE RULE LEFT TOO, 4 Sep 2026 ═══
+
+  What replaced the mock was one popularity-sorted fetch of 24 products, sliced
+  by five tab slugs that were still the mock's (`flowers`, `cakes`…) and
+  matched no live category — so only "All" ever showed, and "All" was a SORT,
+  not a filter: badge holders first, then whatever `salesCount` (a typed
+  field) and newest-first put next. A shelf called Best Sellers showing
+  products that had never sold.
+
+  Nothing is decided here now. `/shop/home-bestsellers` answers with the tabs
+  (the owner's categories, in his order), the cards under each (the earned
+  badge only, his own picks, or badge holders topped up — his choice), and the
+  words around them. All of it is set under Storefront → Homepage → Layout →
+  Best Sellers. This file only draws.
 */
 
 type TabCat = "all" | string;
 
-const TABS: { cat: TabCat; label: string }[] = [
-  { cat: "all", label: "All Products" },
-  { cat: "flowers", label: "Flowers" },
-  { cat: "cakes", label: "Cakes" },
-  { cat: "balloons", label: "Balloon Bouquets" },
-  { cat: "chocolates", label: "Chocolate Bouquets" },
-  { cat: "giftboxes", label: "Gift Boxes" },
-];
+/** what shows in the moment before the API answers, and if it cannot */
+const EMPTY: HomeBestSellers = {
+  mode: "AUTO",
+  tabs: [{ key: "all", label: "All Products", items: [] }],
+  viewAll: { text: "View All Products", href: "/products" },
+  empty: { title: "Nothing here yet", text: "More gifts for your area are coming soon." },
+};
 
 function ArrowIcon() {
   return (
@@ -64,39 +75,27 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  /*  One popularity-sorted fetch per zone (24 cards) — the tab filter then
-      slices it client-side, so switching tabs costs nothing.  */
-  const [pool, setPool] = useState<Product[]>([]);
+  /*  One fetch per zone, every tab already filled — switching tabs costs
+      nothing, and the API has already left out any tab with nothing under it.  */
+  const [grid, setGrid] = useState<HomeBestSellers>(EMPTY);
   useEffect(() => {
     let stale = false;
-    getShopProducts({ sort: "popular", limit: 24, zone: zoneCode(zone) ?? undefined }).then(
-      (res) => {
-        if (!stale) setPool(res ? res.items.map(toProduct) : []);
-      },
-    );
+    getHomeBestSellers(zoneCode(zone)).then((res) => {
+      if (!stale) setGrid(res ?? EMPTY);
+    });
     return () => {
       stale = true;
     };
   }, [zone]);
 
-  // Tabs that have at least one eligible product for this zone
-  const visibleTabs = useMemo(
-    () => TABS.filter((t) => t.cat === "all" || pool.some((p) => p.cat === t.cat)),
-    [pool],
-  );
+  const visibleTabs = grid.tabs.map((t) => ({ cat: t.key, label: t.label }));
 
   // If active tab was hidden by a zone switch, fall back to "all"
   const effectiveCat = visibleTabs.some((t) => t.cat === activeCat)
     ? activeCat
     : "all";
 
-  const items = useMemo(
-    () =>
-      pool
-        .filter((p) => effectiveCat === "all" || p.cat === effectiveCat)
-        .slice(0, 8),
-    [pool, effectiveCat],
-  );
+  const items: Product[] = (grid.tabs.find((t) => t.key === effectiveCat)?.items ?? []).map(toProduct);
 
   return (
     <section className="py-[46px]" id="bestsellers">
@@ -138,22 +137,26 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
           </div>
         ) : (
           <div className="text-center py-11 px-5 bg-lavender rounded-[28px] text-body-soft">
-            <b className="block font-display text-[20px] text-purple font-medium mb-[6px]">
-              Nothing here yet
-            </b>
-            More gifts for your area are coming soon.
+            {grid.empty.title && (
+              <b className="block font-display text-[20px] text-purple font-medium mb-[6px]">
+                {grid.empty.title}
+              </b>
+            )}
+            {grid.empty.text}
           </div>
         )}
 
-        {/* View all */}
-        <div className="flex justify-center mt-8">
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-purple rounded-full text-purple font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-purple hover:text-white hover:shadow-lift whitespace-nowrap"
-          >
-            View All Products <ArrowIcon />
-          </Link>
-        </div>
+        {/* View all — the owner's words and link, or no button at all */}
+        {grid.viewAll && (
+          <div className="flex justify-center mt-8">
+            <Link
+              href={grid.viewAll.href}
+              className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-purple rounded-full text-purple font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-purple hover:text-white hover:shadow-lift whitespace-nowrap"
+            >
+              {grid.viewAll.text} <ArrowIcon />
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

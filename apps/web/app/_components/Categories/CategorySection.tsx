@@ -118,7 +118,11 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-export default function CategorySection({ zone }: { zone?: Zone | null }) {
+export default function CategorySection({ zone, config = {} }: { zone?: Zone | null; config?: Record<string, unknown> }) {
+  /*  How many cards at most — the section's own setting (Storefront →
+      Homepage → Layout → Shop by Category, 4 Sep 2026). 0 = every featured
+      category, which is what the rail always did.  */
+  const limit = Math.max(Number(config.limit) || 0, 0);
   const trackRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
@@ -144,6 +148,7 @@ export default function CategorySection({ zone }: { zone?: Zone | null }) {
           // owner picks a zone. The header MENU stays unfiltered on purpose —
           // hiding a category from the menu would hide its page too.
           .filter((c) => !zc || !c.zone || c.zone === zc)
+          .slice(0, limit > 0 ? limit : undefined)
           .map((c, i) => ({
             name: c.name,
             sub: categoryCountLabel(c, "products"),
@@ -156,7 +161,7 @@ export default function CategorySection({ zone }: { zone?: Zone | null }) {
     return () => {
       alive = false;
     };
-  }, [zone]);
+  }, [zone, limit]);
 
   const updateButtons = useCallback(() => {
     const el = trackRef.current;

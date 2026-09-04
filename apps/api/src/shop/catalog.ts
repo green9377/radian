@@ -2,7 +2,7 @@ import { Controller, Get, Injectable, Module, NotFoundException, Param, Query } 
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/auth.guard';
-import { LayoutModule, LayoutService } from '../storefront/layout';
+import { LayoutModule, LayoutService, type BestSellerMode } from '../storefront/layout';
 import { paidPaisa } from '../common/discount-window';
 /*  DEC-PRD-050 — one rule for "is this new", shared with the admin.  */
 import { displayCut, loadDisplayOffers, type DisplayOffer } from './display-offers';
@@ -62,14 +62,34 @@ const gradientFor = (seed: string) => {
 export const slugifyLabel = (s: string) =>
   s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-/*
-  ⚠️ এখানে নিজের হাতে লেখা একটা অঙ্ক ছিল, আর তার পাশে লেখা ছিল "এটা
-  offers.service.ts-এর সাথে মিলিয়ে রাখতে হবে"। বাস্তবে মেলেনি: ৩ আগস্ট
-  ছাড়ের মেয়াদ যোগ করার পর product page-এ ছাড় বন্ধ হলো, অথচ এই grid-এ
-  চলতেই থাকল — একই পণ্যের দুই দাম, দুই পাতায়।
+/**
+ * What an added "row of products" block asks the catalogue for — the same
+ * question on the homepage and on a category page, so the two cannot drift.
+ *
+ * `bestseller` = the earned badge only (`best=1`), ranked by the window sales
+ * behind it. Until 4 Sep 2026 the homepage version of this block read a mock
+ * array and the category version a popularity sort padded with newest
+ * products — two rows called "best sellers" and neither of them was.
+ */
+export function productRowQuery(cfg: Record<string, unknown>): Pick<ProductQuery, 'best' | 'speed' | 'sort' | 'limit'> {
+  const rule = String(cfg.rule ?? 'bestseller');
+  const speed = rule === 'express' || rule === 'same_day' || rule === 'midnight' ? rule : undefined;
+  return {
+    best: rule === 'bestseller' ? '1' : undefined,
+    speed,
+    sort: rule === 'new' ? 'new' : rule === 'bestseller' ? 'best' : 'popular',
+    limit: String(Math.min(Math.max(Number(cfg.count) || 8, 2), 12)),
+  };
+}
 
-  এখন দুটোই `common/discount-window.ts` ডাকে। মন্তব্য দিয়ে দুটো কপি এক
-  রাখা যায় না; এক কপি রাখলেই যায়।
+/*
+  ⚠️ This used to be a hand-written sum, with a note beside it saying "keep
+  this in step with offers.service.ts". It was not kept in step: on 3 Aug,
+  after the discount window was added, the product page stopped discounting
+  while this grid carried on — one product, two prices, on two pages.
+
+  Both now call `common/discount-window.ts`. A comment cannot keep two copies
+  identical; one copy can.
 */
 const offerPaisa = (
   selling: number,
@@ -98,8 +118,9 @@ const CARD_SELECT = {
   sellingPricePaisa: true,
   discountType: true,
   discountValue: true,
-  /*  DEC-PRD-028 — grid আর PDP একই `paidPaisa()` ডাকে, তাই মেয়াদটাও
-      দুই জায়গাতেই লাগে; নাহলে card-এ ছাড় আর page-এ পুরো দাম দেখাত।  */
+  /*  DEC-PRD-028 — the grid and the PDP call the same `paidPaisa()`, so the
+      window is needed in both places; otherwise the card would show a discount
+      and the page the full price.  */
   discountStartsAt: true,
   discountEndsAt: true,
   zone: true,
@@ -130,8 +151,8 @@ const CARD_SELECT = {
   variantValue: { select: { label: true, swatch: true, imageUrl: true } },
   /*  DEC-PRD-035 — a card must not quote a price nothing is sold at. When
       every live variant carries its own price, the card shows the cheapest
-      of them, marked "from". Owner, 9 Aug 2026: *"২টা variant-এর দাম আলাদা
-      হলে main price ঘরের কাজ কী?"* — on the card, none, and it was showing
+      of them, marked "from". Owner, 9 Aug 2026: *"if two variants have
+      different prices, what is the main price box for?"* — on the card, none, and it was showing
       ৳4,400 for a product whose colours cost ৳450, ৳320 and ৳50.  */
   variants: {
     where: { deletedAt: null, isActive: true },
@@ -183,11 +204,13 @@ export interface ProductQuery {
   occasion?: string;
   colour?: string;
   /** in TAKA, not paisa — these come straight off the budget links in the page.
-   *  string | number: query-string দেয় string, ভেতরের caller (collectionPage)
-   *  দেয় number — দুটোই `Number()`-এ যায়, তাই দুটোই বৈধ। */
+   *  string | number: the query string gives a string, the internal caller
+   *  (collectionPage) gives a number — both go through `Number()`, so both are valid. */
   min?: string | number;
   max?: string | number;
   speed?: string;
+  /** '1' = badge holders only (DEC-PRD-050) — the one definition of "best seller" */
+  best?: string | number | boolean;
   sort?: string;
   zone?: string;
   page?: string | number;
@@ -265,6 +288,133 @@ export class ShopCatalogService {
     });
     const slice = inBand.slice((page - 1) * limit, page * limit);
     return { items: await this.toCards(slice), total: inBand.length, page, limit };
+  }
+
+  /* ═══════════════════ the homepage Best Sellers grid ═══════════════════ */
+
+  /**
+   * Everything the homepage grid draws, in one answer: the tabs, the cards
+   * under each tab, and the words around them — all from the section's own
+   * settings (Storefront → Homepage → Layout → Best Sellers).
+   *
+   * ⚠️ WHY THE TABS AND THE CARDS ARE DECIDED HERE, NOT IN THE BROWSER.
+   * Until 4 Sep 2026 the component carried five tab slugs from the July mock
+   * (`flowers`, `cakes`…) that matched no live category, so only "All" ever
+   * showed; and "All" was one popularity SORT of 24 products — not a filter —
+   * padded with whatever `salesCount` (a typed field) and newest-first put
+   * next. A shelf called Best Sellers was showing products that had never
+   * sold. Now:
+   *
+   *   · the tabs are the owner's chosen top-level categories, in his order —
+   *     or, until he chooses, the categories featured on the homepage
+   *   · each tab is its own query against THAT category, so a tab shows that
+   *     category's best sellers and not whatever reached a global pool
+   *   · "All" spans the tab categories (every category when there are none)
+   *   · AUTO shows the earned badge only (DEC-PRD-050), ranked by the window
+   *     sales the badge was decided on — never `salesCount`
+   *
+   * A tab with nothing under it is left out, as before; "All" with nothing
+   * under it is the section's own empty state, in the owner's words.
+   */
+  async homeBestSellers(zone?: string) {
+    const cfg = await this.layout.sectionConfig('home', 'bestsellers');
+    const mode = String(cfg.mode) as BestSellerMode;
+    const perTab = Math.min(Math.max(Number(cfg.perTab) || 8, 2), 12);
+    const zc = ['bangladesh', 'nationwide'].includes(String(zone ?? '').toLowerCase()) ? 'NATIONWIDE' : 'DHAKA';
+
+    const chosen = Array.isArray(cfg.categories) ? (cfg.categories as string[]) : null;
+    const found = await this.prisma.db.category.findMany({
+      where: {
+        parentId: null,
+        isActive: true,
+        ...(chosen ? { slug: { in: chosen } } : { isFeatured: true }),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true, slug: true, name: true, zone: true,
+        children: { where: { isActive: true }, select: { id: true } },
+      },
+    });
+    // the owner's order when he chose; a category shown to one zone only stays
+    // out of the other zone's tabs, the same rule the category rail follows
+    const tabCats = (chosen ? chosen.map((s) => found.find((c) => c.slug === s)) : found)
+      .filter((c): c is (typeof found)[number] => Boolean(c) && (!c!.zone || c!.zone === zc));
+    const idsOf = (c: (typeof found)[number]) => [c.id, ...c.children.map((k) => k.id)];
+
+    const picked = mode === 'MANUAL' ? (cfg.products as string[]) : [];
+    const pickedCards = picked.length
+      ? await this.pickedCards(picked, zone)
+      : [];
+
+    const shelf = async (catIds: string[] | null): Promise<ShopProduct[]> => {
+      // MANUAL with nothing picked yet falls back to AUTO — the state between
+      // switching the mode on and finishing the list, same as the category rails
+      if (mode === 'MANUAL' && pickedCards.length > 0) {
+        const allowed = catIds ? new Set(catIds) : null;
+        return pickedCards
+          .filter((c) => !allowed || allowed.has(c.categoryId))
+          .slice(0, perTab)
+          .map(({ categoryId: _own, ...card }) => card);
+      }
+      const scope: Prisma.ProductWhereInput = {
+        ...LIVE,
+        ...(zc === 'NATIONWIDE' ? { zone: 'NATIONWIDE' as const } : {}),
+        ...(catIds ? { categoryId: { in: catIds } } : {}),
+      };
+      const earned = await this.prisma.db.product.findMany({
+        where: { ...scope, isBestSeller: true },
+        orderBy: this.orderBy('best'),
+        take: perTab,
+        select: CARD_SELECT,
+      });
+      const rows = [...earned];
+      if (mode === 'AUTO_FILL' && rows.length < perTab) {
+        rows.push(
+          ...(await this.prisma.db.product.findMany({
+            where: { ...scope, isBestSeller: false },
+            orderBy: this.orderBy('best'),
+            take: perTab - rows.length,
+            select: CARD_SELECT,
+          })),
+        );
+      }
+      return this.toCards(rows);
+    };
+
+    const allIds = tabCats.length ? tabCats.flatMap(idsOf) : null;
+    const [all, ...perCat] = await Promise.all([shelf(allIds), ...tabCats.map((c) => shelf(idsOf(c)))]);
+
+    return {
+      mode,
+      tabs: [
+        { key: 'all', label: String(cfg.allLabel || 'All Products'), items: all },
+        ...tabCats
+          .map((c, i) => ({ key: c.slug, label: c.name, items: perCat[i] }))
+          .filter((t) => t.items.length > 0),
+      ],
+      viewAll: cfg.showViewAll ? { text: String(cfg.viewAllText), href: String(cfg.viewAllHref) } : null,
+      empty: { title: String(cfg.emptyTitle ?? ''), text: String(cfg.emptyText ?? '') },
+    };
+  }
+
+  /** the owner's hand-picked cards, in his order, still subject to the shop's
+   *  own rules — published, and inside the zone (a pick that fails them leaves) */
+  private async pickedCards(slugs: string[], zone?: string) {
+    const rows = await this.prisma.db.product.findMany({
+      where: {
+        ...LIVE,
+        slug: { in: slugs },
+        ...(['bangladesh', 'nationwide'].includes(String(zone ?? '').toLowerCase()) ? { zone: 'NATIONWIDE' as const } : {}),
+      },
+      select: CARD_SELECT,
+    });
+    const cards = await this.toCards(rows);
+    const byId = new Map(rows.map((r) => [r.slug, r.category.id]));
+    const bySlug = new Map(cards.map((c) => [c.slug, c]));
+    return slugs
+      .map((s) => bySlug.get(s))
+      .filter((c): c is ShopProduct => Boolean(c))
+      .map((c) => ({ ...c, categoryId: byId.get(c.slug) ?? '' }));
   }
 
   /* ═══════════════════ one category page ═══════════════════ */
@@ -534,14 +684,10 @@ export class ShopCatalogService {
         from this category. A row of chocolates on the flowers page is a row
         nobody asked for.
       */
-      const rule = String(cfg.rule ?? 'bestseller');
-      const speed = rule === 'express' || rule === 'same_day' || rule === 'midnight' ? rule : undefined;
       const list = await this.products({
         category: catSlug,
         zone,
-        speed,
-        sort: rule === 'new' ? 'new' : 'popular',
-        limit: String(Math.min(Math.max(Number(cfg.count) || 8, 2), 12)),
+        ...productRowQuery(cfg),
       });
       return { kind: 'PRODUCT_ROW' as const, products: list.items };
     }
@@ -830,11 +976,15 @@ export class ShopCatalogService {
       unlisted product loses a sale, a wrongly listed one sends a fresh cream
       cake on a two-day courier run.
     */
-    /*  ⚠️ তিন বানানের যে-কোনোটা — `shop.ts`-এর NATIONWIDE_ALIASES-এর একই
-        পাঠ। শুধু 'bangladesh' চেনায় zoneCode()-এর পাঠানো 'NATIONWIDE' চুপচাপ
-        পাস হয়ে যেত, আর nationwide গ্রাহক Dhaka-only cake দেখতেন।  */
+    /*  ⚠️ Any of the spellings — the same reading as NATIONWIDE_ALIASES in
+        `shop.ts`. Recognising only 'bangladesh' let the 'NATIONWIDE' that
+        zoneCode() sends slip through unfiltered, and a nationwide customer
+        saw Dhaka-only cake.  */
     if (['bangladesh', 'nationwide'].includes(String(q.zone ?? '').toLowerCase()))
       where.zone = 'NATIONWIDE';
+
+    // DEC-PRD-050 — "best seller" is the earned badge, nothing looser
+    if (q.best === true || q.best === 1 || q.best === '1' || q.best === 'true') where.isBestSeller = true;
 
     if (q.search?.trim()) {
       const s = q.search.trim();
@@ -880,11 +1030,17 @@ export class ShopCatalogService {
         return [{ sellingPricePaisa: 'desc' }, { name: 'asc' }];
       case 'new':
         return [{ createdAt: 'desc' }];
+      case 'best':
+        /*  Inside a best-seller row: the window sales the badge was decided on,
+            then newest. The badge says which products; this says which first.  */
+        return [{ bestSellerSales: 'desc' }, { createdAt: 'desc' }];
       case 'popular':
       default:
-        // best sellers first, then what actually sells — a flag somebody set
-        // months ago should not outrank this month's real orders forever
-        return [{ isBestSeller: 'desc' }, { salesCount: 'desc' }, { createdAt: 'desc' }];
+        /*  Badge holders first, then real delivered sales in the badge window,
+            then newest. ⚠️ Never `salesCount` — it carries the owner's typed
+            `salesSeed` figures (DEC-PRD-025), and a number typed to reassure a
+            shopper must not reorder the shelf (4 Sep 2026).  */
+        return [{ isBestSeller: 'desc' }, { bestSellerSales: 'desc' }, { createdAt: 'desc' }];
     }
   }
 
@@ -905,16 +1061,17 @@ export class ShopCatalogService {
    * the time it is used.
    */
   /**
-   * এক collection + তার সদস্য-card — মালিকের রায়: *"কোনো কিছুই static নয়।"*
+   * One collection plus its member cards — the owner's ruling: *"nothing is
+   * static."*
    *
-   * দুই ছাঁচ, admin-এর নিজের ভাগ অনুযায়ী (CollectionMode):
-   * · PRICE_RANGE — ব্যান্ডটা আজকের **ছাড়ের-পরের** দামে মেলে, `products()`-এর
-   *   একই যুক্তি দিয়ে: "Under ৳1,000"-এ ৳1,200→৳900-এর তোড়াটাই সবচেয়ে আগে
-   *   বিক্রি হয়, তাকে লুকানো চলে না।
-   * · MANUAL — মালিক যে ক্রমে সাজিয়েছেন, সেই ক্রমেই।
+   * Two shapes, by the admin's own split (CollectionMode):
+   * · PRICE_RANGE — the band matches today's **after-discount** price, with the
+   *   same logic as `products()`: in "Under ৳1,000" the ৳1,200→৳900 bouquet is
+   *   the one that sells first, and it cannot be hidden.
+   * · MANUAL — in the order the owner arranged, and no other.
    *
-   * 404, fallback নয় — mock-এর তালিকা দেখানোর দিন শেষ; না-থাকা collection-এর
-   * সৎ উত্তর "নেই"।
+   * 404, not a fallback — the days of showing the mock list are over; the
+   * honest answer for a collection that does not exist is "none".
    */
   async collectionPage(slug: string, zone?: string) {
     const col = await this.prisma.db.collection.findFirst({
@@ -1126,6 +1283,13 @@ export class ShopCatalogController {
   @Get('products')
   products(@Query() q: ProductQuery) {
     return this.svc.products(q);
+  }
+
+  /** the homepage Best Sellers grid — tabs, cards and wording in one answer */
+  @Public()
+  @Get('home-bestsellers')
+  homeBestSellers(@Query('zone') zone?: string) {
+    return this.svc.homeBestSellers(zone);
   }
 
   @Public()

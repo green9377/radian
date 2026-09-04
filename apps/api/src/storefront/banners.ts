@@ -189,6 +189,7 @@ export class StorefrontSettingsService {
    */
   update(dto: {
     heroRotateSeconds?: number;
+    announcementAuto?: boolean;
     shopChipTitle?: string | null;
     shopChipSub?: string | null;
     pdpUnderBuyText?: string | null;
@@ -196,12 +197,15 @@ export class StorefrontSettingsService {
   }) {
     const data: {
       heroRotateSeconds?: number;
+      announcementAuto?: boolean;
       shopChipTitle?: string | null;
       shopChipSub?: string | null;
       pdpUnderBuyText?: string | null;
       pdpUnderBuyPreorderText?: string | null;
     } = {};
     if (dto.heroRotateSeconds !== undefined) data.heroRotateSeconds = clampSeconds(dto.heroRotateSeconds);
+    // the announcement line with no banner live: describe the service, or draw nothing
+    if (dto.announcementAuto !== undefined) data.announcementAuto = Boolean(dto.announcementAuto);
     if (dto.shopChipTitle !== undefined) data.shopChipTitle = String(dto.shopChipTitle ?? '').trim() || null;
     if (dto.shopChipSub !== undefined) data.shopChipSub = String(dto.shopChipSub ?? '').trim() || null;
     // DEC-PRD-052 — the line under Buy Now; blank returns the built-in wording
@@ -241,7 +245,7 @@ export class BannersController {
   }
   @Patch('settings')
   patchSettings(
-    @Body() dto: { heroRotateSeconds?: number; shopChipTitle?: string | null; shopChipSub?: string | null },
+    @Body() dto: { heroRotateSeconds?: number; announcementAuto?: boolean; shopChipTitle?: string | null; shopChipSub?: string | null },
   ) {
     return this.settings.update(dto);
   }

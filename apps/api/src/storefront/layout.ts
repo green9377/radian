@@ -129,6 +129,138 @@ const DEFAULT_CONFIG: Record<BlockType, Record<string, unknown>> = {
 };
 
 /*
+  ── Settings of the BUILT-IN homepage sections (4 Sep 2026) ────────────────
+
+  Until now a built-in section had an on/off switch, a zone and a heading, and
+  everything else about it — which tabs the Best Sellers grid drew, how many
+  cards, what the button under it said — was typed into the component. The
+  homepage audit of 4 Sep listed every one of those; this is where they moved.
+
+  Stored on the section's own `config` column, the one the added blocks already
+  use, and never written raw: every key has a sanitiser below, so the storefront
+  can trust the shape it reads and a typo in the admin cannot take the page
+  down. `SECTION_DEFAULTS` is merged in on every read, which is what lets a
+  component drop its own hard-coded fallbacks.
+*/
+export type BestSellerMode = 'AUTO' | 'MANUAL' | 'AUTO_FILL';
+
+export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
+  bestsellers: {
+    /*  AUTO      — badge holders only (DEC-PRD-050), ranked by the window sales
+                    the badge was decided on. Fewer than `perTab` means fewer cards.
+        MANUAL    — the owner's own list, in his order; a tab shows the picks
+                    that belong to that category
+        AUTO_FILL — badge holders first, then the rest of the category by real
+                    window sales, then newest. The old behaviour, now a choice.  */
+    mode: 'AUTO' as BestSellerMode,
+    /** top-level category slugs, in tab order. null = the featured categories */
+    categories: null as string[] | null,
+    perTab: 8,
+    allLabel: 'All Products',
+    showViewAll: true,
+    viewAllText: 'View All Products',
+    viewAllHref: '/products',
+    emptyTitle: 'Nothing here yet',
+    emptyText: 'More gifts for your area are coming soon.',
+    /** MANUAL picks — product slugs in the owner's order */
+    products: [] as string[],
+  },
+  categories: {
+    /** how many category cards at most; 0 = every featured one */
+    limit: 0,
+  },
+  blog: {
+    count: 3,
+    /** hand-picked post slugs in order; empty = the newest ones */
+    slugs: [] as string[],
+  },
+  giftfinder: {
+    /** the question above each step, by the step's parameter */
+    questions: {
+      occasions: "What's the occasion?",
+      recipients: 'Who is the gift for?',
+      budget: "What's your budget?",
+    } as Record<string, string>,
+    nextLabel: 'Next →',
+    doneLabel: 'Show My Gift 🌸',
+    resultLabel: 'See the gifts →',
+  },
+  delivery: {
+    perTab: 4,
+    showViewAll: true,
+    viewAllText: 'View All Products',
+    viewAllHref: '/products',
+  },
+};
+
+const text = (v: unknown, fallback: string, max = 160): string =>
+  typeof v === 'string' ? v.trim().slice(0, max) : fallback;
+const int = (v: unknown, lo: number, hi: number, fallback: number): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : fallback;
+};
+const slugs = (v: unknown, max: number): string[] =>
+  Array.isArray(v)
+    ? Array.from(new Set(v.filter((s): s is string => typeof s === 'string' && /^[a-z0-9-]+$/.test(s)))).slice(0, max)
+    : [];
+/** a link the storefront may follow — its own paths only, never an outside site */
+const href = (v: unknown, fallback: string): string => {
+  const s = text(v, fallback, 200);
+  return s.startsWith('/') ? s : fallback;
+};
+
+const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Record<string, unknown>> = {
+  bestsellers: (c) => {
+    const d = SECTION_DEFAULTS.bestsellers;
+    const mode = ['AUTO', 'MANUAL', 'AUTO_FILL'].includes(String(c.mode)) ? String(c.mode) : d.mode;
+    return {
+      mode,
+      categories: c.categories === null || c.categories === undefined ? null : slugs(c.categories, 12),
+      perTab: int(c.perTab, 2, 12, d.perTab as number),
+      allLabel: text(c.allLabel, d.allLabel as string, 40) || (d.allLabel as string),
+      showViewAll: c.showViewAll === undefined ? d.showViewAll : Boolean(c.showViewAll),
+      viewAllText: text(c.viewAllText, d.viewAllText as string, 40) || (d.viewAllText as string),
+      viewAllHref: href(c.viewAllHref, d.viewAllHref as string),
+      emptyTitle: text(c.emptyTitle, d.emptyTitle as string, 60),
+      emptyText: text(c.emptyText, d.emptyText as string, 160),
+      products: slugs(c.products, 40),
+    };
+  },
+  categories: (c) => ({ limit: int(c.limit, 0, 24, 0) }),
+  blog: (c) => ({ count: int(c.count, 1, 6, 3), slugs: slugs(c.slugs, 6) }),
+  giftfinder: (c) => {
+    const d = SECTION_DEFAULTS.giftfinder;
+    const q = (c.questions && typeof c.questions === 'object' ? c.questions : {}) as Record<string, unknown>;
+    const questions: Record<string, string> = {};
+    for (const [k, v] of Object.entries(q).slice(0, 8)) {
+      if (/^[a-z0-9-]+$/.test(k) && typeof v === 'string' && v.trim()) questions[k] = v.trim().slice(0, 80);
+    }
+    return {
+      questions: { ...(d.questions as Record<string, string>), ...questions },
+      nextLabel: text(c.nextLabel, d.nextLabel as string, 30) || (d.nextLabel as string),
+      doneLabel: text(c.doneLabel, d.doneLabel as string, 30) || (d.doneLabel as string),
+      resultLabel: text(c.resultLabel, d.resultLabel as string, 30) || (d.resultLabel as string),
+    };
+  },
+  delivery: (c) => {
+    const d = SECTION_DEFAULTS.delivery;
+    return {
+      perTab: int(c.perTab, 2, 8, d.perTab as number),
+      showViewAll: c.showViewAll === undefined ? d.showViewAll : Boolean(c.showViewAll),
+      viewAllText: text(c.viewAllText, d.viewAllText as string, 40) || (d.viewAllText as string),
+      viewAllHref: href(c.viewAllHref, d.viewAllHref as string),
+    };
+  },
+};
+
+/** the settings in force for a built-in section: defaults, then what is stored */
+export const withSectionDefaults = (key: string, stored: unknown): Record<string, unknown> => {
+  const d = SECTION_DEFAULTS[key];
+  const s = (stored ?? {}) as Record<string, unknown>;
+  return d ? { ...d, ...s } : s;
+};
+
+/*
   ── Per-category pages ─────────────────────────────────────────────────────
   `page` is "home", "category", or "category:fresh-flowers".
 
@@ -192,12 +324,42 @@ export class LayoutService implements OnModuleInit {
           blockType: r.blockType,
           title: r.title,
           subtitle: r.subtitle,
-          config: (r.config ?? {}) as Record<string, unknown>,
+          config: r.blockType ? ((r.config ?? {}) as Record<string, unknown>) : withSectionDefaults(r.key, r.config),
+          /** true = this built-in section has settings of its own on this screen */
+          hasSettings: !r.blockType && Boolean(SECTION_SANITISERS[r.key]),
           sortOrder: r.sortOrder,
           isActive: r.isActive,
           zone: r.zone,
         };
       });
+  }
+
+  /** the settings in force for one built-in homepage section — what the
+   *  storefront's own endpoints (the Best Sellers grid) read */
+  async sectionConfig(page: string, key: string): Promise<Record<string, unknown>> {
+    const row = await this.prisma.db.pageSection.findUnique({
+      where: { page_key: { page, key } },
+      select: { config: true },
+    });
+    return withSectionDefaults(key, row?.config);
+  }
+
+  /**
+   * Write a built-in section's settings. Only keys with a sanitiser can be
+   * written, and only through it — the storefront trusts the stored shape.
+   */
+  async updateSettings(page: string, key: string, config: Record<string, unknown>) {
+    const clean = SECTION_SANITISERS[key];
+    if (!clean || !defsFor(page).some((d) => d.key === key))
+      throw new BadRequestException('This section has no settings of its own');
+    const row = await this.prisma.db.pageSection.findUnique({ where: { page_key: { page, key } } });
+    if (!row) throw new BadRequestException('No such section');
+    const merged = clean({ ...withSectionDefaults(key, row.config), ...(config ?? {}) });
+    await this.prisma.db.pageSection.update({
+      where: { page_key: { page, key } },
+      data: { config: merged as object },
+    });
+    return merged;
   }
 
   /**
@@ -219,7 +381,7 @@ export class LayoutService implements OnModuleInit {
       blockType: r.blockType,
       title: r.title,
       subtitle: r.subtitle,
-      config: (r.config ?? {}) as Record<string, unknown>,
+      config: r.blockType ? ((r.config ?? {}) as Record<string, unknown>) : withSectionDefaults(r.key, r.config),
     }));
   }
 
@@ -595,6 +757,11 @@ export class LayoutController {
   @Patch('order')
   reorder(@Body() dto: { keys: string[] }) {
     return this.svc.reorder('home', dto.keys);
+  }
+  /** a built-in section's own settings — Best Sellers tabs and mode, article count… */
+  @Patch('settings')
+  updateSettings(@Body() dto: { key: string; config: Record<string, unknown> }) {
+    return this.svc.updateSettings('home', dto.key, dto.config);
   }
 
   @Post('blocks')

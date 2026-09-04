@@ -911,6 +911,12 @@ model StorefrontSetting {
   /// read than an evergreen one.
   heroRotateSeconds Int @default(6)
 
+  /// The announcement line when NO announcement banner is live: true = the
+  /// bar describes the delivery service from the delivery masters (the
+  /// standing behaviour), false = the bar is not drawn at all. A live banner
+  /// always shows regardless.
+  announcementAuto Boolean @default(true)
+
   /// the small card floating over the shop photograph — two lines, like the
   /// hero's floating cards. Was typed into the component ("Dhanmondi, Dhaka /
   /// Watch your gift arranged by hand") and therefore wrong for any shop that
@@ -1451,6 +1457,13 @@ model Product {
   /// corporate-only listing that would win on volume and mean nothing).
   bestSellerMode BadgeMode @default(AUTO)
   newArrivalMode BadgeMode @default(AUTO)
+
+  /// Delivered WEBSITE quantity inside the badge window, as of the last
+  /// recompute — the figure the badge was decided on. Written by
+  /// `MerchService.recompute()` only. The storefront ranks its best-seller
+  /// rows by THIS and never by `salesCount`, which carries the owner's typed
+  /// `salesSeed` display figures (DEC-PRD-025) and must not order a shelf.
+  bestSellerSales Int @default(0)
 
   /// ⚠️ NOT a stored flag any more — "new" is a date question, and a stored
   /// answer to a date question is wrong from the day after it is written.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Zone } from "./Header";
 import { getShopBanners, zoneCode } from "../../_data/shop";
 import { fetchSpeedClaims } from "../../_data/deliveryClaims";
@@ -43,10 +44,15 @@ const FALLBACK: Record<"dhaka" | "bangladesh", { bold: string; rest: string }> =
 
 export default function AnnouncementBar({ zone }: { zone: Zone | null }) {
   const fallback = FALLBACK[zone === "bangladesh" ? "bangladesh" : "dhaka"];
-  const [line, setLine] = useState(fallback);
+  const [line, setLine] = useState<{ bold: string; rest: string; href?: string | null }>(fallback);
+  /*  The owner can switch the generated line off (Storefront → Homepage →
+      Banners → Announcement line). A live banner still shows; with none live
+      the bar is simply not drawn. Null until the API answers.  */
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     setLine(fallback);
+    setHidden(false);
     let alive = true;
 
     /*
@@ -61,7 +67,12 @@ export default function AnnouncementBar({ zone }: { zone: Zone | null }) {
       if (!alive) return;
       const a = res?.banners.find((b) => b.placement === "ANNOUNCEMENT");
       if (a) {
-        setLine({ bold: a.titleMain ?? "", rest: a.titleAccent ?? "" });
+        // the banner's own link, when it has one — the line becomes a link
+        setLine({ bold: a.titleMain ?? "", rest: a.titleAccent ?? "", href: a.cta1Href });
+        return;
+      }
+      if (res && res.announcementAuto === false) {
+        setHidden(true);
         return;
       }
       // No live announcement is a legitimate state — between seasons there may
@@ -82,10 +93,22 @@ export default function AnnouncementBar({ zone }: { zone: Zone | null }) {
     return () => { alive = false; };
   }, [zone]);
 
-  return (
-    <div className="text-center py-2.5 text-[13.5px] tracking-[0.06em] font-light text-white bg-gradient-to-r from-purple-deep via-purple to-[#5E1580] w-full px-4">
+  if (hidden) return null;
+
+  const body = (
+    <>
       <b className="font-semibold text-orchid-mid">{line.bold}</b>
       {line.rest ? ` ${line.rest}` : ""}
-    </div>
+    </>
+  );
+  const cls =
+    "block text-center py-2.5 text-[13.5px] tracking-[0.06em] font-light text-white bg-gradient-to-r from-purple-deep via-purple to-[#5E1580] w-full px-4";
+
+  return line.href ? (
+    <Link href={line.href} className={`${cls} hover:text-white`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }

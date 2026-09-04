@@ -71,6 +71,10 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 export default function BannersView({ embedded, only }: { embedded?: boolean; only?: BannerPlacement } = {}) {
   const [rows, setRows] = useState<ApiBanner[]>([]);
   const [rotate, setRotate] = useState(6);
+  /*  The announcement line when no announcement is live: describe the
+      delivery service from the masters (true), or draw no bar (false).
+      A live announcement always shows, whatever this says (4 Sep 2026).  */
+  const [annAuto, setAnnAuto] = useState(true);
   const [tab, setTab] = useState<BannerPlacement>(only ?? "HERO");
   const [editing, setEditing] = useState<ApiBanner | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,6 +89,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
       const [b, s] = await Promise.all([listBanners(), getStorefrontSettings()]);
       setRows(b);
       setRotate(s.heroRotateSeconds);
+      setAnnAuto(s.announcementAuto ?? true);
       setErr(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not load banners");
@@ -194,6 +199,36 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
             className="w-[58px] text-[13px] font-semibold text-purple text-center bg-white border border-lavender-deep rounded-[9px] py-[5px]"
           />
           <span>seconds</span>
+        </div>
+      )}
+
+      {tab === "ANNOUNCEMENT" && (
+        /* the same one-line shape as the slider's rotation: a setting that
+           belongs to the line, not to any one announcement */
+        <div className="flex items-center gap-2.5 mb-4 text-[12.5px] text-body-soft flex-wrap">
+          <Icon name="megaphone" size={14} />
+          <span>When no announcement is live</span>
+          <div className="inline-flex p-[3px] rounded-full bg-lavender/70">
+            {[
+              { on: true, label: "Describe the delivery service", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
+              { on: false, label: "Show nothing", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+            ].map((o) => (
+              <button
+                key={o.label}
+                onClick={async () => {
+                  if (annAuto === o.on) return;
+                  const s = await setStorefrontSettings({ announcementAuto: o.on });
+                  setAnnAuto(s.announcementAuto);
+                  flash("Saved");
+                }}
+                className={"text-[11.5px] font-semibold px-3.5 py-[6px] rounded-full transition-all " +
+                  (annAuto === o.on ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
+                style={annAuto === o.on ? { background: o.fill } : undefined}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -354,6 +389,9 @@ function Editor({
               </L>
               <L label="The rest of the line">
                 <input className="ipt" value={f.titleAccent ?? ""} onChange={(e) => set("titleAccent", e.target.value)} placeholder="inside Dhaka · Same Day before 6 PM" />
+              </L>
+              <L label="Goes to" hint="optional — the whole line becomes a link">
+                <input className="ipt" value={f.cta1Href ?? ""} onChange={(e) => set("cta1Href", e.target.value)} placeholder="/collections/eid" />
               </L>
             </>
           ) : (

@@ -56,13 +56,23 @@ const FALLBACK_STEPS: GiftFinderStep[] = [
   },
 ];
 
+/*
+  The question above each step and the three button labels come from the
+  section's settings (Storefront → Homepage → Layout → Gift Finder) since
+  4 Sep 2026; these are what shows until the layout answers.
+*/
 const QUESTIONS: Record<string, string> = {
   occasions: "What's the occasion?",
   recipients: "Who is the gift for?",
   budget: "What's your budget?",
 };
 
-export default function GiftFinder() {
+export default function GiftFinder({ config = {} }: { config?: Record<string, unknown> }) {
+  const questions = { ...QUESTIONS, ...((config.questions as Record<string, string> | undefined) ?? {}) };
+  const nextLabel = String(config.nextLabel || "Next →");
+  const doneLabel = String(config.doneLabel || "Show My Gift 🌸");
+  const resultLabel = String(config.resultLabel || "See the gifts →");
+
   const [steps, setSteps] = useState<GiftFinderStep[] | null>(null);
   const [step, setStep] = useState(1);
   const [choices, setChoices] = useState<Record<string, string>>({});
@@ -142,7 +152,7 @@ export default function GiftFinder() {
 
           {/* Question */}
           <h3 className="font-display text-[21px] font-medium text-purple mb-[18px]">
-            {QUESTIONS[current.param] ?? current.title}
+            {questions[current.param] ?? current.title}
           </h3>
 
           {/* Options */}
@@ -187,7 +197,7 @@ export default function GiftFinder() {
                 href={`/products?${new URLSearchParams(choices).toString()}`}
                 className="inline-flex items-center gap-2 px-6 py-2.5 bg-purple text-white rounded-full font-medium text-[14px] hover:bg-purple-deep transition-all whitespace-nowrap"
               >
-                See the gifts →
+                {resultLabel}
               </Link>
             </div>
           )}
@@ -207,7 +217,7 @@ export default function GiftFinder() {
               disabled={!picked}
               className="inline-flex items-center gap-2 px-[38px] py-[13px] bg-purple text-white rounded-full font-medium text-[15px] transition-all duration-300 hover:bg-purple-deep hover:-translate-y-[2px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer shadow-[0_12px_30px_rgba(71,0,102,0.25)]"
             >
-              {step === total ? "Show My Gift 🌸" : "Next →"}
+              {step === total ? doneLabel : nextLabel}
             </button>
           </div>
         </div>

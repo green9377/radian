@@ -7,7 +7,7 @@ import { SHOP_TAG } from "./cacheTags";
   hard-coded files beside this one. This is the seam those files were written
   for; `_data/search.ts` says so in its own comment:
 
-      `fetch('/api/search?q=')` হবে; component-এ একটা লাইনও বদলাবে না।
+      it will be `fetch('/api/search?q=')`; not a line in a component changes.
 
   So the rule for everything added here: **the shape a component receives does
   not change.** A component asks for the same thing it always asked for; only
@@ -73,15 +73,16 @@ export const baseFor = (): string =>
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    /*  ৫ আগস্ট — `no-store` ছিল, আর সেটাই দোকানকে ধীর করে রেখেছিল: প্রতিটা
-        পাতা-বদলে server আবার Render-এর ফ্রি API-কে ডাকত (প্রতি call শত-শত
-        ms)। Admin দ্রুত লাগার কারণও এটাই — সে SPA, পাতা বদলে fetch করে না।
+    /*  5 Aug — this was `no-store`, and that is what kept the shop slow: on
+        every page change the server called the free Render API again (hundreds
+        of ms per call). It is also why the admin felt fast — it is an SPA and
+        does not fetch on a page change.
 
-        এগুলো সবই প্রকাশ্য catalog/content পড়া — ৬০ সেকেন্ড বাসি হলে কারো
-        ক্ষতি নেই (দাম যাচাই এমনিতেই checkout-এ server-side হয়, DEC মেনে)।
-        content.ts আর seo.ts আগে থেকেই একই ৬০ সেকেন্ডের নিয়মে চলে।
-        Cart/checkout/track-এর fetch checkoutApi.ts-এ, সেগুলো যথারীতি
-        `no-store`-ই আছে。  */
+        All of these are public catalogue/content reads — nobody is harmed by
+        them being 60 seconds stale (prices are verified server-side at checkout
+        anyway, per the DEC). content.ts and seo.ts already ran on the same
+        60-second rule. Cart/checkout/track fetches live in checkoutApi.ts and
+        stay `no-store`, as they should.  */
     const res = await fetch(`${baseFor()}${path}`, {
       next: { revalidate: 60, tags: [SHOP_TAG] },
     });
@@ -130,9 +131,23 @@ export interface ShopBanner {
  * hero and the announcement line to disagree about which season it is.
  */
 export const getShopBanners = (zone: string | null) =>
-  get<{ banners: ShopBanner[]; heroRotateSeconds: number }>(
+  get<{ banners: ShopBanner[]; heroRotateSeconds: number; announcementAuto: boolean }>(
     `/shop/banners${zone ? `?zone=${zone}` : ""}`,
   );
+
+/**
+ * The delivery words a product card prints — from the delivery masters. Null
+ * means the shop advertises no such service, and the card says less rather
+ * than inventing a number (the "Today, 2 hrs" that sat on every card until
+ * 4 Sep 2026 while the admin's fastest service was three hours).
+ */
+export interface CardWording {
+  express: string | null;
+  sameDay: string | null;
+  midnight: string | null;
+  courier: string | null;
+}
+export const getCardWording = () => get<CardWording>("/shop/card-wording");
 
 export interface LayoutBlock {
   key: string;
@@ -146,6 +161,20 @@ export interface LayoutBlock {
 /** the sections to render, already ordered and filtered for this zone */
 export const getShopLayout = (zone: string | null) =>
   get<LayoutBlock[]>(`/shop/layout${zone ? `?zone=${zone}` : ""}`);
+
+/**
+ * The homepage Best Sellers grid, decided by the API from the section's own
+ * settings: which tabs (the owner's categories), what is under each (badge
+ * holders, his picks, or badge holders topped up), and the words around them.
+ */
+export interface HomeBestSellers {
+  mode: "AUTO" | "MANUAL" | "AUTO_FILL";
+  tabs: { key: string; label: string; items: ShopProduct[] }[];
+  viewAll: { text: string; href: string } | null;
+  empty: { title: string; text: string };
+}
+export const getHomeBestSellers = (zone: string | null) =>
+  get<HomeBestSellers>(`/shop/home-bestsellers${zone ? `?zone=${zone}` : ""}`);
 
 export interface ShopReview {
   id: string;
@@ -210,11 +239,11 @@ export interface DeliveryMode {
   feePaisa: number;
   /** minutes until today's cutoff · null = no cutoff · ≤0 = missed for today */
   minutesLeft: number | null;
-  /** DeliveryType-এর নিজের নাম — "3-Hour Express" */
+  /** the DeliveryType's own name — "3-Hour Express" */
   typeName: string;
   /** FROM_CONFIRM · TODAY_SLOT · PICK_DATE_SLOT · PICK_DATE_FIXED · LEAD_DAYS */
   timing: string | null;
-  /** FROM_CONFIRM হলে কত মিনিটের প্রতিশ্রুতি। ১৮০ = ৩ ঘণ্টা। */
+  /** for FROM_CONFIRM, the promise in minutes. 180 = 3 hours. */
   promiseMinutes: number | null;
 }
 
@@ -222,14 +251,15 @@ export const getDeliveryModes = (zone: string | null) =>
   get<DeliveryMode[]>(`/shop/delivery-modes${zone ? `?zone=${zone}` : ""}`);
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHECKOUT-এর পুরো মেনু — DEC-DLV-009 / DEC-DLV-010
+   CHECKOUT's whole delivery menu — DEC-DLV-009 / DEC-DLV-010
 
-   মালিক, ১ আগস্ট ২০২৬: *"delivery module-এ যা edit বা change করা হয়, তা যেন
-   auto পুরা system-এ কাজ করে।"*
+   Owner, 1 Aug 2026: *"whatever is edited or changed in the delivery module
+   must work automatically across the whole system."*
 
-   ⚠️ `DeliveryMode` (উপরে) এটার জায়গা নেয় না। ওটা homepage-এর বিজ্ঞাপন —
-   নাম আর কাউন্টডাউন। এটা checkout-এর মেনু: কী নেওয়া যাবে, কত টাকায়, কোন
-   slot-এ, আর কীভাবে সময় ঠিক হবে। একই টেবিল, দুই প্রশ্ন।
+   ⚠️ `DeliveryMode` (above) does not replace this. That one is the homepage's
+   advertisement — a name and a countdown. This is the checkout menu: what can
+   be chosen, at what price, in which slot, and how the time is fixed. One
+   table, two questions.
    ═══════════════════════════════════════════════════════════════════════════ */
 export type DeliveryTiming =
   | "FROM_CONFIRM"
@@ -241,16 +271,16 @@ export type DeliveryTiming =
 export interface DeliveryOptionSlot {
   id: string;
   label: string;
-  /** দিনের শুরু থেকে মিনিট। ⚠️ `endMin < startMin` মানে slot মধ্যরাত পেরোয়। */
+  /** minutes from the start of the day. ⚠️ `endMin < startMin` means the slot crosses midnight. */
   startMin: number | null;
   endMin: number | null;
   capacityPerDay: number | null;
-  /** আজকের জন্য আর কত মিনিট বাকি। ≤0 = আজ শেষ, কিন্তু কাল আবার খোলা। */
+  /** minutes left for today. ≤0 = over for today, but open again tomorrow. */
   minutesLeft: number | null;
 }
 
 export interface DeliveryOption {
-  /** product যার সাথে যুক্ত — মেলানো হয় এটা দিয়ে, নাম দিয়ে নয় */
+  /** what a product is linked to — matched by this, never by name */
   typeId: string | null;
   rateId: string;
   name: string;
@@ -258,11 +288,11 @@ export interface DeliveryOption {
   feePaisa: number;
   eta: string | null;
   timing: DeliveryTiming;
-  /** FROM_CONFIRM হলে কত মিনিটের প্রতিশ্রুতি */
+  /** for FROM_CONFIRM, the promise in minutes */
   promiseMinutes: number | null;
   openFromMin: number | null;
   openToMin: number | null;
-  /** আজ এই মুহূর্তে নেওয়া যাবে কি না (দিনের জানালার বাইরে) */
+  /** whether it can be taken right now (outside the day's window) */
   closedNow: boolean;
   closedReason: string | null;
   minutesLeft: number | null;
@@ -272,8 +302,8 @@ export interface DeliveryOption {
 export const getDeliveryOptions = (
   zone: string | null,
   areaId?: string | null,
-  /** DEC-DLV-011 — cart-এর slug দিলে menu-তে শুধু সেই delivery আসে যেটা
-      cart-এর *সব* product-এ চলে; order কখনো ভাগ হয় না */
+  /** DEC-DLV-011 — given the cart's slugs, the menu holds only the deliveries
+      that work for *every* product in the cart; an order is never split */
   itemSlugs?: string[],
 ) =>
   get<DeliveryOption[]>(
@@ -347,7 +377,7 @@ export interface ShopCollection {
   accent: boolean;
 }
 
-/** /collections/[slug] — admin-এর Collection সারি + সদস্য-card */
+/** /collections/[slug] — the admin's Collection row plus its member cards */
 export interface CollectionDetail {
   slug: string;
   name: string;
@@ -560,11 +590,13 @@ export interface ProductQuery {
   min?: string | number;
   max?: string | number;
   speed?: string;
+  /** 1 = the earned Best seller badge only (DEC-PRD-050) */
+  best?: 1;
   sort?: string;
   zone?: string | null;
   page?: number;
   limit?: number;
-  /** নাম বা slug-এ contains-match — search পাতা এটাই ব্যবহার করে */
+  /** contains-match on name or slug — the search page uses this */
   search?: string;
 }
 

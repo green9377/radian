@@ -416,6 +416,8 @@ export const recomputeBadges = () =>
 
 export interface ApiStorefrontSettings {
   heroRotateSeconds: number;
+  /** no announcement banner live: describe the delivery service (true) or show no bar */
+  announcementAuto: boolean;
   /** the small card floating over the shop photograph — both blank hides it */
   shopChipTitle: string | null;
   shopChipSub: string | null;
@@ -658,12 +660,18 @@ export interface ApiPageSection {
   title: string | null;
   subtitle: string | null;
   config: Record<string, unknown>;
+  /** true = a built-in section with settings of its own (Best Sellers, Latest Articles…) */
+  hasSettings?: boolean;
   sortOrder: number;
   isActive: boolean;
   zone: string | null;
 }
 
 export const listPageSections = () => j<ApiPageSection[]>("/page-sections");
+/** a built-in section's own settings — only the keys sent are changed; the
+ *  API sanitises and returns the full settings in force */
+export const updatePageSectionSettings = (key: string, config: Record<string, unknown>) =>
+  j<Record<string, unknown>>("/page-sections/settings", { method: "PATCH", body: JSON.stringify({ key, config }) });
 export const updatePageSection = (b: { key: string; isActive?: boolean; zone?: string | null }) =>
   j<unknown>("/page-sections", { method: "PATCH", body: JSON.stringify(b) });
 export const reorderPageSections = (keys: string[]) =>
@@ -776,8 +784,10 @@ export interface ApiShopCard {
   sd: boolean;
   mn: boolean;
 }
-export const listShopProducts = (p: { category: string; search?: string; limit?: number }) => {
-  const q = new URLSearchParams({ category: p.category, limit: String(p.limit ?? 40) });
+export const listShopProducts = (p: { category?: string; search?: string; limit?: number }) => {
+  const q = new URLSearchParams({ limit: String(p.limit ?? 40) });
+  // no category = the whole published catalogue (the homepage Best Sellers picker)
+  if (p.category) q.set("category", p.category);
   if (p.search?.trim()) q.set("search", p.search.trim());
   return j<{ items: ApiShopCard[]; total: number }>(`/shop/products?${q.toString()}`);
 };
@@ -852,6 +862,11 @@ export const updateCategoryFaq = (
 ) => j<ApiCategoryFaq>(`/categories/faqs/${faqId}`, { method: "PATCH", body: JSON.stringify(b) });
 export const removeCategoryFaq = (faqId: string) =>
   j<{ id: string; deleted: boolean }>(`/categories/faqs/${faqId}`, { method: "DELETE" });
+
+/** the Gift Finder's live steps — what the homepage asks, so the settings
+ *  screen can put a question beside each one */
+export const listGiftFinderSteps = () =>
+  j<{ param: string; title: string; options: { value: string; label: string }[] }[]>("/shop/gift-finder");
 
 /* ---- journal / content (31 Jul 2026) ----------------------------------------
    `ContentService` was finished long ago with no controller in front of it, so

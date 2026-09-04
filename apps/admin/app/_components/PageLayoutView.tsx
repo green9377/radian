@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import { type SaveState } from "./SaveBar";
+import SectionSettings from "./SectionSettings";
 import {
-  listPageSections, updatePageSection, reorderPageSections,
+  listPageSections, updatePageSection, reorderPageSections, updatePageSectionSettings,
   addPageBlock, editPageBlock, removePageBlock,
   listCollections, listBanners,
   type ApiPageSection, type BlockType, type ApiCollection, type ApiBanner,
@@ -40,9 +41,9 @@ const BLOCKS: { v: BlockType; label: string; hint: string }[] = [
 ];
 
 const PRODUCT_RULES = [
-  { v: "bestseller", label: "Best sellers" },
+  { v: "bestseller", label: "Best sellers (earned badge only)" },
   { v: "new", label: "New arrivals" },
-  { v: "express", label: "2-hour delivery" },
+  { v: "express", label: "Express delivery" },
   { v: "midnight", label: "Midnight delivery" },
 ];
 
@@ -156,6 +157,18 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
     } catch (e) { fail(e, "Could not save"); void reload(); }
   }
 
+  /*  A built-in section's own settings (4 Sep 2026) — the Best Sellers tabs
+      and rule, how many articles… The API sanitises the partial and answers
+      with the full settings in force, which is what the row then shows.  */
+  async function saveSettings(key: string, partial: Record<string, unknown>) {
+    setSaveState("saving"); setErr(null);
+    try {
+      const config = await updatePageSectionSettings(key, partial);
+      setRows((rs) => rs.map((r) => (r.key === key ? { ...r, config } : r)));
+      flash("Saved");
+    } catch (e) { fail(e, "Could not save"); void reload(); }
+  }
+
   async function removeBlock(key: string) {
     if (!confirm("Remove this section from the page?")) return;
     await removePageBlock(key);
@@ -261,7 +274,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
           <span className="flex-1 min-w-0">Section</span>
           <span className="w-[190px] shrink-0 hidden lg:block">Zone</span>
           <span className="w-[158px] shrink-0">Status</span>
-          <span className="w-[44px] shrink-0 text-right">Edit</span>
+          <span className="w-[86px] shrink-0 text-right">Edit</span>
         </div>
 
       {loading ? <p className="text-[13px] text-body-soft px-5 py-4">Loading…</p> : (
@@ -369,7 +382,23 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                     )}
                   </div>
 
-                  <div className="w-[44px] shrink-0 flex items-center justify-end gap-1.5">
+                  <div className="w-[86px] shrink-0 flex items-center justify-end gap-1.5">
+                    {/*
+                      The gear: what a built-in section decides for itself —
+                      the Best Sellers tabs and rule, how many articles, the
+                      gift finder's questions. Opens in the row, because there
+                      is no other screen these belong to (4 Sep 2026).
+                    */}
+                    {r.hasSettings && (
+                      <button
+                        onClick={() => setOpen(open === r.key ? null : r.key)}
+                        title="Settings of this section"
+                        className={"w-[36px] h-[36px] rounded-[11px] grid place-items-center transition-colors " +
+                          (open === r.key ? "bg-purple text-white" : "bg-lavender text-purple hover:bg-purple hover:text-white")}
+                      >
+                        <Icon name="gear" size={15} />
+                      </button>
+                    )}
                     {/*
                       The pencil goes where the work is: a banner section opens
                       the Banners tab, a trust strip the Trust tab. Before this
@@ -387,6 +416,12 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
 
                   </div>
                 </div>
+
+                {open === r.key && !r.blockType && r.hasSettings && (
+                  <div className="px-4 pb-4 pt-3 border-t border-lavender-deep">
+                    <SectionSettings row={r} onSave={(partial) => saveSettings(r.key, partial)} />
+                  </div>
+                )}
 
                 {open === r.key && r.blockType && (
                   <div className="px-4 pb-4 pt-1 border-t border-lavender-deep space-y-3">

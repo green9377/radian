@@ -4,17 +4,19 @@ import Link from "next/link";
 import type { Zone } from "../../_store/useZoneStore";
 import { formatTaka, type Product } from "../../_data/products";
 import { useInWishlist, useWishlistStore } from "../../_store/useWishlistStore";
+import { useCardWording } from "./useCardWording";
 
 /*
   Reusable product card — Best Sellers, Delivery section, Collection,
-  Search, Related rail — সব জায়গায় এই একটাই card।
+  Search, Related rail — the one card used everywhere.
 
-  Wishlist heart এই এক জায়গা থেকেই সব page-এ কাজ করে (এক template):
-  saved হলে ভরাট গোলাপি heart, click = toggle। hydration-safe (useInWishlist
-  hydrate না হওয়া পর্যন্ত false — server/client heart মেলে)।
+  The wishlist heart works on every page from this one place (one template):
+  a saved product shows a filled pink heart, click = toggle. Hydration-safe
+  (useInWishlist answers false until hydrated, so server and client hearts
+  match).
 
-  Badge rule (approved board): zone = All Bangladesh আর product courier-safe
-  হলে সবসময় courier badge। Image: gradient placeholder (Cloudinary later)।
+  Badge rule (approved board): zone = All Bangladesh and a courier-safe
+  product → always the courier badge. Image: gradient placeholder.
 */
 
 function HeartIcon({ filled }: { filled?: boolean }) {
@@ -104,7 +106,18 @@ function MerchBadge({ product }: { product: Product }) {
   return null;
 }
 
+/*  ── THE PILL SAYS WHAT THE DELIVERY MASTERS SAY — 4 Sep 2026 ─────────────
+
+    "Today, 2 hrs" was typed here and sat on every express card while the
+    admin's fastest service was a 3-hour express; "1–3 days" likewise, whatever
+    the courier method actually promised. The words now come from
+    `/shop/card-wording` (the type's own name, the method's own ETA), and until
+    they arrive — or when the shop advertises no such service — the pill says
+    LESS: "Nationwide" without a number, "Midnight ready" without a time, and
+    a product with no speed the shop can name gets no pill at all. A speed
+    claim is a promise; the card is not allowed to invent one.  */
 function Badge({ product, zone }: { product: Product; zone: Zone | null }) {
+  const words = useCardWording();
   const kind =
     zone === "bangladesh" && product.zone === "both"
       ? "courier"
@@ -116,21 +129,26 @@ function Badge({ product, zone }: { product: Product; zone: Zone | null }) {
   if (kind === "midnight") {
     return (
       <span className={`${base} bg-purple text-white`}>
-        <MoonIcon /> Midnight ready
+        <MoonIcon /> {words?.midnight ?? "Midnight ready"}
       </span>
     );
   }
   if (kind === "courier") {
     return (
       <span className={`${base} bg-[#FFF4E3] text-[#8A5A00]`}>
-        🚚 1–3 days, nationwide
+        🚚 {words?.courier ? `${words.courier}, nationwide` : "Nationwide"}
       </span>
     );
   }
+  // the fast pill: the timed service for an express product, the same-day
+  // service for one that can only leave today — and nothing for one that can do neither
+  if (!product.exp && !product.sd) return null;
+  const fast = product.exp ? words?.express : words?.sameDay;
+  if (words && !fast) return null;
   return (
     <span className={`${base} bg-white/95 text-purple`}>
       <span className="w-[7px] h-[7px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
-      Today, 2 hrs
+      {fast ?? "Today"}
     </span>
   );
 }

@@ -49,20 +49,25 @@ export default function Home() {
 
   /* Each section keeps its own props. A map rather than a switch so that adding
      one is a single line, and forgetting to add it here is a missing section
-     rather than a crash. */
-  const SECTIONS: Record<string, React.ReactNode> = {
-    hero: <HeroSection zone={zone} />,
-    trust: <TrustStrip zone={zone} />,
-    categories: <CategorySection zone={zone} />,
-    occasions: <OccasionSection />,
-    bestsellers: <BestSellers zone={zone} />,
-    promo: <PromoBanner zone={zone} />,
-    delivery: <DeliverySection zone={zone} />,
-    budget: <BudgetSection zone={zone} />,
-    giftfinder: <GiftFinder />,
-    reviews: <Reviews />,
-    blog: <BlogSection />,
-    store: <VisitStore />,
+     rather than a crash.
+
+     `config` is the section's own settings from the admin (Homepage → Layout),
+     already merged with the defaults by the API — the Best Sellers mode and
+     tabs, how many articles, the gift finder's questions… A section that has
+     none simply ignores it. */
+  const SECTIONS: Record<string, (config: Record<string, unknown>) => React.ReactNode> = {
+    hero: () => <HeroSection zone={zone} />,
+    trust: () => <TrustStrip zone={zone} />,
+    categories: (c) => <CategorySection zone={zone} config={c} />,
+    occasions: () => <OccasionSection />,
+    bestsellers: () => <BestSellers zone={zone} />,
+    promo: () => <PromoBanner zone={zone} />,
+    delivery: (c) => <DeliverySection zone={zone} config={c} />,
+    budget: () => <BudgetSection zone={zone} />,
+    giftfinder: (c) => <GiftFinder config={c} />,
+    reviews: () => <Reviews />,
+    blog: (c) => <BlogSection config={c} />,
+    store: () => <VisitStore />,
   };
 
   return (
@@ -71,7 +76,7 @@ export default function Home() {
     <main>
         {order.map((b) => (
           <div key={b.key}>
-            {b.blockType ? <CustomSection block={b} zone={zone} /> : (SECTIONS[b.key] ?? null)}
+            {b.blockType ? <CustomSection block={b} zone={zone} /> : (SECTIONS[b.key]?.(b.config) ?? null)}
           </div>
         ))}
     </main>
