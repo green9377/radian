@@ -145,6 +145,7 @@ export interface CardWording {
   express: string | null;
   sameDay: string | null;
   midnight: string | null;
+  /** the whole courier pill — "1–3 days, nationwide", or the method's name */
   courier: string | null;
 }
 export const getCardWording = () => get<CardWording>("/shop/card-wording");

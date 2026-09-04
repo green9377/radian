@@ -136,7 +136,7 @@ function Badge({ product, zone }: { product: Product; zone: Zone | null }) {
   if (kind === "courier") {
     return (
       <span className={`${base} bg-[#FFF4E3] text-[#8A5A00]`}>
-        🚚 {words?.courier ? `${words.courier}, nationwide` : "Nationwide"}
+        🚚 {words?.courier ?? "Nationwide"}
       </span>
     );
   }

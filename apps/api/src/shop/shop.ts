@@ -294,8 +294,13 @@ export class ShopService {
       sameDay: sameDay ? sameDay.type?.name || sameDay.label : null,
       /** "Midnight Surprise" — the midnight pill */
       midnight: midnight ? midnight.type?.name || midnight.label : null,
-      /** "1–3 days" — the courier pill's promise, the method's own ETA */
-      courier: courier ? courier.etaLabel || courier.type?.name || courier.label : null,
+      /** the whole courier pill: "1–3 days, nationwide" from the method's own
+       *  ETA, or just the type's name ("National delivery") when no ETA is set */
+      courier: courier
+        ? courier.etaLabel
+          ? `${courier.etaLabel}, nationwide`
+          : courier.type?.name || courier.label
+        : null,
     };
   }
 
