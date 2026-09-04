@@ -357,12 +357,12 @@ function Editor({
   const isAnn = f.placement === "ANNOUNCEMENT";
   const isHero = f.placement === "HERO";
 
-  async function pickImage(file: File | null, key: "imageUrl" | "mobileImageUrl" = "imageUrl") {
+  async function pickImage(file: File | null) {
     if (!file) return;
     setUploading(true);
     try {
       const { url } = await uploadImage(file, "banners");
-      set(key, url);
+      set("imageUrl", url);
     } catch (e) {
       onError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -438,33 +438,20 @@ function Editor({
                   whichever one applies — the hero's picture fills the right
                   half of the banner from the bottom, the promo's runs across
                   the strip. Same reasoning as the category screen. */}
-              <div className={isHero ? "grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4" : ""}>
-                <L
-                  label="Picture"
-                  hint={isHero
-                    ? "1000 × 1040 · fills the right half of the banner, bottom-anchored, nothing is cropped on desktop · bring its own background above the flowers"
-                    : "1600 × 600 · wide · fills the strip, fading out under the words"}
-                >
-                  <PictureDrop
-                    url={f.imageUrl}
-                    uploading={uploading}
-                    shape={isHero ? "aspect-[994/1040] max-w-[230px]" : "aspect-[8/3] max-w-[420px]"}
-                    onPick={(file) => pickImage(file, "imageUrl")}
-                    onClear={() => set("imageUrl", null)}
-                  />
-                </L>
-                {isHero && (
-                  <L label="Picture on phones" hint="800 × 600 · shown above the words · empty = the picture above is used">
-                    <PictureDrop
-                      url={f.mobileImageUrl}
-                      uploading={uploading}
-                      shape="aspect-[4/3] max-w-[200px]"
-                      onPick={(file) => pickImage(file, "mobileImageUrl")}
-                      onClear={() => set("mobileImageUrl", null)}
-                    />
-                  </L>
-                )}
-              </div>
+              <L
+                label="Picture"
+                hint={isHero
+                  ? "1000 × 1040 · one picture for desktop and phones · fills the right half of the banner from the bottom, nothing is cropped on desktop · bring its own background above the flowers"
+                  : "1600 × 600 · wide · fills the strip, fading out under the words"}
+              >
+                <PictureDrop
+                  url={f.imageUrl}
+                  uploading={uploading}
+                  shape={isHero ? "aspect-[994/1040] max-w-[230px]" : "aspect-[8/3] max-w-[420px]"}
+                  onPick={pickImage}
+                  onClear={() => set("imageUrl", null)}
+                />
+              </L>
             </>
           )}
 

@@ -421,9 +421,6 @@ model Banner {
   float2Sub   String?
 
   imageUrl String? @db.Text
-  /// the hero's picture for phones — upright, shown above the words. null =
-  /// the desktop picture is used there too
-  mobileImageUrl String? @db.Text
 
   /// the two floating cards can be switched off without emptying their words
   float1Show Boolean @default(true)

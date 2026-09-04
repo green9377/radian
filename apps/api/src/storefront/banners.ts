@@ -50,7 +50,6 @@ export interface BannerDto {
   float2Title?: string | null;
   float2Sub?: string | null;
   imageUrl?: string | null;
-  mobileImageUrl?: string | null;
   float1Show?: boolean;
   float2Show?: boolean;
   liveFrom?: string | null;
@@ -151,7 +150,6 @@ function toData(dto: Partial<BannerDto>): Prisma.BannerUncheckedCreateInput {
     float2Title: blankToNull(dto.float2Title),
     float2Sub: blankToNull(dto.float2Sub),
     imageUrl: blankToNull(dto.imageUrl),
-    mobileImageUrl: blankToNull(dto.mobileImageUrl),
     float1Show: dto.float1Show,
     float2Show: dto.float2Show,
     liveFrom: dto.liveFrom ? new Date(dto.liveFrom) : dto.liveFrom === null ? null : undefined,

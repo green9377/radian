@@ -9,7 +9,7 @@ import { getShopBanners, zoneCode, type ShopBanner } from "../../_data/shop";
   Hero — the banner slider at the top of the homepage.
 
   Everything on it is the admin's (Homepage → Banners, placement HERO): the
-  picture and the phone picture, the small line, the headline in two parts,
+  picture, the small line, the headline in two parts,
   the description, both buttons, the proof lines, the two floating cards and
   their on/off, the zone, the schedule, the order and the on/off of each slide.
   The API applies zone and schedule, so what arrives is what this visitor
@@ -23,8 +23,9 @@ import { getShopBanners, zoneCode, type ShopBanner } from "../../_data/shop";
   centres in the band, and the picture is a bottom-anchored <img> that fills
   the right half — no arch, no mask, no tint, no fade. It is sized by the
   width of that half, so nothing in it is cut on any desktop; the artwork is
-  expected to carry its own background above the flowers. On phones the
-  picture sits above the words, full width.
+  expected to carry its own background above the flowers. Phones use the SAME
+  picture (owner: one picture, no separate mobile artwork), full width above
+  the words, cropped to 4:3 by CSS and aimed a little above its bottom edge.
 
   The trust strip, when it is the next block, sits in the section's foot
   (`--hero-foot`) — see TrustStrip's `overlapsHero`. The picture runs under
@@ -194,11 +195,11 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
               : "opacity-0 translate-y-4 pointer-events-none"
           }`}
         >
-          {/* ---- Phone picture: above the words, full width. Desktop hides it. ---- */}
-          {(c.mobileImageUrl || c.imageUrl) && (
+          {/* ---- Phones: the same picture, above the words, full width. Desktop hides it. ---- */}
+          {c.imageUrl && (
             <div className="lg:hidden -mx-6 -mt-5 aspect-[4/3] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.mobileImageUrl ?? c.imageUrl ?? ""} alt="" className="w-full h-full object-cover object-bottom" />
+              <img src={c.imageUrl} alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 62%" }} />
             </div>
           )}
 
