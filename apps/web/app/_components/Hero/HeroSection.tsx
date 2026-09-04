@@ -7,15 +7,37 @@ import { getShopBanners, getGoogleRating, zoneCode, type ShopBanner } from "../.
 
 /*
   Hero — multi-banner slider.
-  - Each banner = text + CTA + right-side visual slot (photo via Cloudinary later)
-  - Banners are zone-aware; auto-rotate every 6s; dot navigation
-  - Banner data is hard-coded for now; the admin panel will manage
-    this list later (add/edit/reorder/schedule).
+  - Each banner = text + CTA + the banner picture on the right
+  - Banners are zone-aware; auto-rotate every `heroRotateSeconds`; dot navigation
+  - Slides come from the admin (Homepage → Banners); the seeded ones below only
+    show until they arrive, or on a shop with no hero banner at all
+
+  ── 4 Sep 2026 · one composition to the bottom of the trust strip ──────────
+  The owner's reference: header → hero → trust strip is ONE first screen, and
+  the picture is a plain image area. So on desktop the section is exactly one
+  viewport tall under the header (floored and capped), the copy centres in
+  the band, and the picture is a bottom-anchored <img> that fills the right
+  half — no arch, no mask, no tint, no fade. The picture is sized by the
+  width of that half, so nothing in it is cut on any desktop; the artwork is
+  expected to carry its own background above the flowers.
+
+  The trust strip, when it is the next block, sits in the section's foot
+  (`--hero-foot`) — see TrustStrip's `overlapsHero`. The picture runs under
+  it, so the strip is the picture's bottom edge and the bouquet never ends
+  in a hard line.
 */
 
 interface Props {
   zone: Zone | null;
+  /** the trust strip is the next block — leave it a foot to sit in */
+  stripFollows?: boolean;
 }
+
+/*  Foot = the strip's overlap. 5.7vw is where the artwork's bottom band lands
+    for a picture that fills the right half (50vw wide) — the strip must cover
+    it — plus the margin under the strip. TrustStrip repeats this value; keep
+    the two together.  */
+export const HERO_FOOT = "max(108px,calc(5.7vw+24px))";
 
 interface HeroBanner {
   id: string;
@@ -204,15 +226,15 @@ function FloatCard({
 }) {
   if (!card.title && !card.sub) return null;
   return (
-    <div className={`absolute z-10 flex items-center gap-3 bg-white/96 backdrop-blur-sm rounded-[18px] px-4 py-3 shadow-lift whitespace-nowrap ${className}`}>
+    <div className={`absolute z-10 hidden lg:flex items-center gap-3.5 bg-white/96 backdrop-blur-sm rounded-[20px] pl-3.5 pr-[18px] py-3.5 shadow-lift whitespace-nowrap ${className}`}>
       {card.icon && (
-        <div className="w-10 h-10 rounded-full bg-orchid-soft flex items-center justify-center text-orchid shrink-0">
+        <div className="w-[46px] h-[46px] rounded-[14px] bg-orchid-soft flex items-center justify-center text-purple shrink-0">
           <FloatIcon name={card.icon} />
         </div>
       )}
       <div>
-        {card.title && <b className="block text-[13.5px] text-purple font-semibold">{card.title}</b>}
-        {card.sub && <span className="text-[12px] text-body-soft">{card.sub}</span>}
+        {card.title && <b className="block text-[15px] text-ink font-semibold leading-tight">{card.title}</b>}
+        {card.sub && <span className="text-[12.5px] text-body-soft">{card.sub}</span>}
       </div>
     </div>
   );
@@ -275,8 +297,31 @@ function BannerArt({ art }: { art: HeroBanner["visual"]["art"] }) {
   );
 }
 
-export default function HeroSection({ zone }: Props) {
+/**
+ * A proof chip is one admin string. "3 Hours Delivery · Inside Dhaka" renders
+ * as a bold line with a small one under it; a string without " · " is one
+ * bold line. Display only — nothing reads the split back.
+ */
+function splitProof(item: string): { title: string; sub: string } {
+  const i = item.indexOf(" · ");
+  return i < 0 ? { title: item, sub: "" } : { title: item.slice(0, i), sub: item.slice(i + 3) };
+}
+
+export default function HeroSection({ zone, stripFollows = false }: Props) {
   const fallback = BANNERS[zone === "bangladesh" ? "bangladesh" : "dhaka"];
+  /*  The section is one viewport tall UNDER the sticky header, and the header
+      is not a fixed height (the announcement bar can be off). Measure it
+      rather than guess it.  */
+  const [headerH, setHeaderH] = useState(154);
+  useEffect(() => {
+    const el = document.querySelector("header");
+    if (!el) return;
+    const read = () => setHeaderH(Math.round(el.getBoundingClientRect().height));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [banners, setBanners] = useState<HeroBanner[]>(fallback);
   const [rotateMs, setRotateMs] = useState(6000);
   const [index, setIndex] = useState(0);
@@ -328,19 +373,39 @@ export default function HeroSection({ zone }: Props) {
     return () => clearInterval(t);
   }, [banners.length, rotateMs]);
 
+  const foot = stripFollows ? HERO_FOOT : "0px";
+
   return (
     <section
-      className="overflow-hidden relative"
-      style={{ background: "linear-gradient(135deg,#FDF9FF 0%,#F7F1FB 48%,#F9E9FD 100%)" }}
+      className="overflow-hidden relative lg:flex lg:flex-col lg:min-h-[clamp(560px,calc(100svh_-_var(--hero-header)),min(820px,52vw))] lg:pb-[var(--hero-foot)]"
+      style={{
+        background: "linear-gradient(90deg,#faf5fb 0%,#f8f2f9 30%,#f7f0f7 50%,#f3e9f2 100%)",
+        ["--hero-header" as string]: `${headerH}px`,
+        ["--hero-foot" as string]: foot,
+      }}
     >
-      <div className="max-w-[1200px] mx-auto px-6">
+      {/* ---- The picture: the right half of the section, bottom-anchored, one per slide (crossfade). Desktop only. ---- */}
+      {banners.map((c, slideIndex) =>
+        c.imageUrl ? (
+          <div
+            key={`pic-${c.id}`}
+            aria-hidden
+            className={`hidden lg:block absolute inset-y-0 left-1/2 right-0 transition-opacity duration-1000 ease-in-out ${slideIndex === index ? "opacity-100" : "opacity-0"}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={c.imageUrl} alt="" className="w-full h-full object-cover object-left-bottom" />
+          </div>
+        ) : null,
+      )}
+
+      <div className="max-w-[1200px] mx-auto px-6 w-full lg:flex-1 lg:flex lg:flex-col">
         {/* All slides stacked in one grid cell — smooth crossfade between them */}
-        <div className="grid">
+        <div className="grid lg:flex-1 lg:grid-rows-[1fr]">
           {banners.map((c, slideIndex) => (
         <div
           key={c.id}
           aria-hidden={slideIndex !== index}
-          className={`col-start-1 row-start-1 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 lg:gap-11 items-center pt-6 pb-4 lg:pt-14 lg:pb-10 relative transition-all duration-1000 ease-in-out ${
+          className={`col-start-1 row-start-1 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_1fr] gap-6 items-center pt-6 pb-4 lg:pt-6 lg:pb-5 transition-all duration-1000 ease-in-out ${
             slideIndex === index
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-4 pointer-events-none"
@@ -348,87 +413,78 @@ export default function HeroSection({ zone }: Props) {
         >
 
           {/* ---- Left: copy ---- */}
-          <div>
-            <div className="inline-flex items-center gap-2.5 bg-white rounded-full px-5 py-2.5 text-[12.5px] tracking-[0.14em] uppercase font-semibold text-purple shadow-soft mb-6 whitespace-nowrap">
-              <span className="w-2 h-2 bg-orchid rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0" />
-              {c.eyebrow}
-            </div>
+          <div className="relative z-[1]">
+            {c.eyebrow && (
+              <div className="flex items-center gap-3 text-[12px] tracking-[0.24em] uppercase font-semibold text-orchid mb-5 whitespace-nowrap">
+                <span>{c.eyebrow}</span>
+                <span className="w-9 h-px bg-orchid/70 shrink-0" />
+              </div>
+            )}
 
             <h1
-              className="font-display font-medium text-purple leading-[1.08] mb-5"
-              style={{ fontSize: "clamp(34px, 5vw, 60px)" }}
+              className="font-display font-medium text-purple leading-[1.06] tracking-[-0.02em] mb-[18px]"
+              style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}
             >
               {c.h1Line1}
               {c.h1Line2 && <><br />{c.h1Line2} </>}
-              <em className="not-italic text-orchid">{c.h1Accent}</em>
+              <em className="not-italic bg-gradient-to-r from-orchid to-[#9b2fc4] bg-clip-text text-transparent">{c.h1Accent}</em>
             </h1>
 
-            <p className="text-[16px] lg:text-[17.5px] font-light text-body-soft max-w-[46ch] mb-7 leading-relaxed">
+            <p className="text-[16px] lg:text-[18px] font-light text-body max-w-[46ch] mb-7 leading-[1.55]">
               {c.lead}
             </p>
 
-            <div className="flex gap-3.5 flex-wrap items-center">
+            <div className="flex gap-4 flex-wrap items-center">
               <Link
                 href={c.cta1.href}
-                className="inline-flex items-center gap-2.5 px-8 lg:px-10 py-4 bg-purple text-white rounded-full font-medium text-[15.5px] tracking-[0.03em] shadow-[0_12px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-3 h-[58px] px-[34px] bg-purple text-white rounded-full font-semibold text-[16px] tracking-[0.01em] shadow-[0_14px_30px_rgba(71,0,102,0.22)] hover:bg-purple-deep hover:-translate-y-0.5 transition-all whitespace-nowrap"
               >
                 {c.cta1.label} <ArrowIcon />
               </Link>
               <Link
                 href={c.cta2.href}
-                className="inline-flex items-center gap-2.5 px-7 lg:px-9 py-[15px] bg-white/92 text-purple rounded-full font-medium text-[15px] hover:bg-white transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-3 h-[58px] px-[34px] bg-white text-purple border-[1.5px] border-purple rounded-full font-semibold text-[16px] hover:bg-purple hover:text-white transition-all whitespace-nowrap"
               >
                 {c.cta2.label}
               </Link>
             </div>
 
-            <div className="flex gap-6 mt-8 flex-wrap">
+            <div className="flex mt-7 flex-wrap">
               {(c.fromAdmin ? c.proof : c.proof.map(withRealRating(rating)))
                 .filter(Boolean)
+                .map(splitProof)
                 .map((item, i) => (
-                <div key={item} className="flex items-center gap-2.5 text-sm font-medium text-purple whitespace-nowrap">
-                  <span className={`w-2 h-2 rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0 ${i === 2 ? "bg-rosegold" : "bg-orchid"}`} />
-                  {item}
+                <div key={item.title} className={`flex items-center gap-2.5 pr-[18px] whitespace-nowrap ${i > 0 ? "border-l border-[#dccde8] pl-[18px]" : ""}`}>
+                  <span className="w-2 h-2 rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0 bg-orchid" />
+                  <div>
+                    <b className="block text-[14px] font-semibold text-purple leading-tight">{item.title}</b>
+                    {item.sub && <span className="text-[12.5px] text-body-soft">{item.sub}</span>}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ---- Right: visual (photo slot — Cloudinary later) — desktop only ---- */}
-          <div className="hidden lg:block relative h-[470px] max-w-[500px] w-full mx-auto lg:mx-0">
-            {/* An uploaded photo replaces the drawn artwork; the arch shape and
-                the shadow stay either way, so the page keeps its silhouette
-                whether or not the photography has happened yet. */}
-            <div
-              className="absolute inset-0 overflow-hidden shadow-lift bg-cover bg-center"
-              style={{
-                borderRadius: "240px 240px 28px 28px",
-                ...(c.imageUrl
-                  ? { backgroundImage: `url(${c.imageUrl})` }
-                  : { background: c.visual.gradient }),
-              }}
-            >
-              {!c.imageUrl && (
-                <div className="w-full h-full flex items-end justify-center">
-                  <BannerArt art={c.visual.art} />
-                </div>
-              )}
-            </div>
-
-            {/* An empty card is not a smaller card — it is a white box floating
-                over the photograph for no reason. Both the card and its icon
-                disappear when there is nothing in them, so leaving these blank
-                is a legitimate way to have a plain hero. */}
-            <FloatCard card={c.float1} className="top-10 -left-2 lg:-left-7" />
-            <FloatCard card={c.float2} className="bottom-12 -right-1 lg:-right-5" />
+          {/* ---- Right: the drawn art while a slide has no picture yet — desktop only ---- */}
+          <div className="hidden lg:flex items-end justify-center h-full min-h-[420px]">
+            {!c.imageUrl && <BannerArt art={c.visual.art} />}
           </div>
+
+          {/* An empty card is not a smaller card — it is a white box floating
+              over the photograph for no reason. Both the card and its icon
+              disappear when there is nothing in them, so leaving these blank
+              is a legitimate way to have a plain hero. Positioned against the
+              SECTION, where the reference puts them: one at the top right of
+              the picture, one low on its left edge. */}
+          <FloatCard card={c.float1} className="top-6 right-[calc(3.6vw_+_14px)]" />
+          <FloatCard card={c.float2} className="left-[calc(50%_+_3.7vw)] bottom-[calc(var(--hero-foot)_+_3.6vw)] max-w-[300px]" />
         </div>
           ))}
         </div>
 
         {/* ---- Dots ---- */}
         {banners.length > 1 && (
-          <div className="flex justify-center gap-[9px] pb-6">
+          <div className="flex justify-center gap-[9px] pb-4">
             {banners.map((b, i) => (
               <button
                 key={b.id}

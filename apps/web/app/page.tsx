@@ -55,9 +55,13 @@ export default function Home() {
      already merged with the defaults by the API — the Best Sellers mode and
      tabs, how many articles, the gift finder's questions… A section that has
      none simply ignores it. */
-  const SECTIONS: Record<string, (config: Record<string, unknown>) => React.ReactNode> = {
-    hero: () => <HeroSection zone={zone} />,
-    trust: () => <TrustStrip zone={zone} />,
+  /* The hero and the trust strip are one composition when they are
+     neighbours (owner's reference, 4 Sep 2026): the hero leaves a foot and
+     the strip sits in it. Either block alone renders as itself. */
+  const keyAt = (i: number) => order[i]?.key;
+  const SECTIONS: Record<string, (config: Record<string, unknown>, i: number) => React.ReactNode> = {
+    hero: (_c, i) => <HeroSection zone={zone} stripFollows={keyAt(i + 1) === "trust" && !order[i + 1]?.blockType} />,
+    trust: (_c, i) => <TrustStrip zone={zone} overlapsHero={keyAt(i - 1) === "hero" && !order[i - 1]?.blockType} />,
     categories: (c) => <CategorySection zone={zone} config={c} />,
     occasions: () => <OccasionSection />,
     bestsellers: () => <BestSellers zone={zone} />,
@@ -74,9 +78,9 @@ export default function Home() {
     // headings come from the provider in the root layout — every page, not
     // just this one
     <main>
-        {order.map((b) => (
+        {order.map((b, i) => (
           <div key={b.key}>
-            {b.blockType ? <CustomSection block={b} zone={zone} /> : (SECTIONS[b.key]?.(b.config) ?? null)}
+            {b.blockType ? <CustomSection block={b} zone={zone} /> : (SECTIONS[b.key]?.(b.config, i) ?? null)}
           </div>
         ))}
     </main>
