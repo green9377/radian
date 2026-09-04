@@ -14,6 +14,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Public } from '../auth/auth.guard';
+import sharp from 'sharp';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -194,8 +195,13 @@ export class MediaService {
         signal: AbortSignal.timeout(90_000),
       });
       if (!r.ok) return null;
-      const png = Buffer.from(await r.arrayBuffer());
-      if (png.length < 100) return null;
+      const raw = Buffer.from(await r.arrayBuffer());
+      if (raw.length < 100) return null;
+      // The cut-out keeps the photo's full canvas, so a bouquet would float
+      // above the trust strip by however much empty air the photo had under
+      // it. Trim the transparent margins: the bottom of the file is then the
+      // bottom of the flowers, and the hero stands them on the strip.
+      const png = await sharp(raw).trim({ threshold: 8 }).png().toBuffer().catch(() => raw);
       return {
         ...file,
         buffer: png,

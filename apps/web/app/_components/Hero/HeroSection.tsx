@@ -21,9 +21,11 @@ import { getShopBanners, zoneCode, type ShopBanner } from "../../_data/shop";
   Header → hero → trust strip is ONE first screen. On desktop the section is
   exactly one viewport tall under the header (floored and capped), the copy
   centres in the band, and the picture is a bottom-anchored <img> that fills
-  the right half — no arch, no mask, no tint, no fade. It is sized by the
-  width of that half, so nothing in it is cut on any desktop; the artwork is
-  expected to carry its own background above the flowers. Phones use the SAME
+  the right half down to the top of the trust strip — no arch, no mask, no
+  tint, no fade. It is sized by the width of that half, so nothing in it is
+  cut on any desktop. The admin's upload has its background cut out and its
+  transparent margins trimmed (media.ts), so the flowers stand on the strip,
+  on the banner's own background, as the reference shows. Phones use the SAME
   picture (owner: one picture, no separate mobile artwork), full width above
   the words, cropped to 4:3 by CSS and aimed a little above its bottom edge.
 
@@ -171,7 +173,7 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
           <div
             key={`pic-${c.id}`}
             aria-hidden
-            className={`hidden lg:block absolute inset-y-0 left-1/2 right-0 transition-opacity duration-1000 ease-in-out ${slideIndex === index ? "opacity-100" : "opacity-0"}`}
+            className={`hidden lg:block absolute top-0 bottom-[var(--hero-foot)] left-1/2 right-0 transition-opacity duration-1000 ease-in-out ${slideIndex === index ? "opacity-100" : "opacity-0"}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={c.imageUrl} alt="" className="w-full h-full object-cover object-left-bottom" />
