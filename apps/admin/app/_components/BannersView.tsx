@@ -351,6 +351,11 @@ function Editor({
   const [f, setF] = useState<ApiBanner>(banner);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  /*  Hero pictures lose their background on the way in (owner, 4 Sep 2026):
+      the reference shows the flowers on the banner's own backdrop. A
+      transparent PNG passes through unchanged; a plain photo is cut by the
+      stack's bgremove service. Off = keep the photo as it is.  */
+  const [cutBg, setCutBg] = useState(true);
   useEffect(() => setF(banner), [banner.id]);
 
   const set = <K extends keyof ApiBanner>(k: K, v: ApiBanner[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -361,8 +366,10 @@ function Editor({
     if (!file) return;
     setUploading(true);
     try {
-      const { url } = await uploadImage(file, "banners");
+      const removeBg = isHero && cutBg;
+      const { url, bgRemoved } = await uploadImage(file, "banners", { removeBg });
       set("imageUrl", url);
+      if (removeBg && bgRemoved === false) onError("The background could not be removed right now — the picture was kept as it is. Try again in a minute.");
     } catch (e) {
       onError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -441,12 +448,32 @@ function Editor({
               <L
                 label="Picture"
                 hint={isHero
-                  ? "1000 × 1040 · one picture for desktop and phones · fills the right half of the banner from the bottom, nothing is cropped on desktop · bring its own background above the flowers"
+                  ? "One picture for desktop and phones · fills the right half of the banner from the bottom · with Auto the background is cut out so the flowers sit on the banner itself"
                   : "1600 × 600 · wide · fills the strip, fading out under the words"}
               >
+                {isHero && (
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[12.5px] font-medium text-body">Remove background</span>
+                    {/* bold, coloured switch — house rule 16 */}
+                    <span className="inline-flex rounded-full bg-lavender p-0.5">
+                      {([true, false] as const).map((v) => (
+                        <button
+                          key={String(v)}
+                          type="button"
+                          onClick={() => setCutBg(v)}
+                          className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (cutBg === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
+                          style={cutBg === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}
+                        >
+                          {v ? "Auto" : "Keep"}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                )}
                 <PictureDrop
                   url={f.imageUrl}
                   uploading={uploading}
+                  busyText={isHero && cutBg ? "Cutting the background… (up to a minute)" : "Uploading…"}
                   shape={isHero ? "aspect-[994/1040] max-w-[230px]" : "aspect-[8/3] max-w-[420px]"}
                   onPick={pickImage}
                   onClear={() => set("imageUrl", null)}
@@ -488,8 +515,8 @@ function Editor({
 /** <input type="date"> only accepts yyyy-mm-dd; the API returns full ISO. */
 const dateVal = (v: string | null) => (v ? v.slice(0, 10) : "");
 
-function PictureDrop({ url, uploading, shape, onPick, onClear }: {
-  url: string | null; uploading: boolean; shape: string; onPick: (f: File | null) => void; onClear: () => void;
+function PictureDrop({ url, uploading, shape, onPick, onClear, busyText = "Uploading…" }: {
+  url: string | null; uploading: boolean; shape: string; onPick: (f: File | null) => void; onClear: () => void; busyText?: string;
 }) {
   return (
     <>
@@ -498,7 +525,7 @@ function PictureDrop({ url, uploading, shape, onPick, onClear }: {
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={url} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
           : <span className="text-body-soft text-[11.5px] flex flex-col items-center gap-1"><Icon name="upload" size={20} /> Drag &amp; drop or click</span>}
-        {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
+        {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">{busyText}</span>}
         <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
       </label>
       {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}

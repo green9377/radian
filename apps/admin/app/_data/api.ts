@@ -308,11 +308,15 @@ export type UploadFolder =
 
 export interface UploadedImage { url: string; fileId: string; width: number; height: number }
 
-export async function uploadImage(file: File, folder: UploadFolder): Promise<UploadedImage> {
+export async function uploadImage(
+  file: File,
+  folder: UploadFolder,
+  opts: { removeBg?: boolean } = {},
+): Promise<UploadedImage & { bgRemoved?: boolean }> {
   const body = new FormData();
   body.append("file", file);
 
-  const r = await fetch(`${API_BASE}/media/upload?folder=${folder}`, {
+  const r = await fetch(`${API_BASE}/media/upload?folder=${folder}${opts.removeBg ? "&removeBg=1" : ""}`, {
     method: "POST",
     headers: { ...(AUTH_TOKEN ? { "x-radian-token": AUTH_TOKEN } : {}) },
     body,

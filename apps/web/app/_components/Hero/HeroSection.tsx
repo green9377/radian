@@ -39,11 +39,11 @@ interface Props {
   stripFollows?: boolean;
 }
 
-/*  Foot = the strip's overlap. 5.7vw is where the artwork's bottom band lands
-    for a picture that fills the right half (50vw wide) — the strip must cover
-    it — plus the margin under the strip. TrustStrip repeats this value; keep
-    the two together.  */
-export const HERO_FOOT = "max(108px, calc(5.7vw + 24px))";
+/*  Foot = the room the trust strip sits in: the strip card (90px) plus the
+    margin under it. Owner, 4 Sep 2026: nothing may show under the strip — the
+    first screen ends with the strip, not with a slice of picture. TrustStrip
+    reads the same constant.  */
+export const HERO_FOOT = "106px";
 
 function ArrowIcon() {
   return (
@@ -214,7 +214,7 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
 
             {(c.titleMain || c.titleAccent) && (
               <h1
-                className="font-display font-medium text-purple leading-[1.06] tracking-[-0.02em] mb-[18px]"
+                className="font-display font-medium text-purple leading-[1.06] tracking-[-0.02em] mb-[18px] [overflow-wrap:anywhere]"
                 style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}
               >
                 {c.titleMain}{c.titleMain && c.titleAccent ? " " : ""}
@@ -225,7 +225,7 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
             )}
 
             {c.lead && (
-              <p className="text-[16px] lg:text-[18px] font-light text-body max-w-[46ch] mb-7 leading-[1.55]">
+              <p className="text-[16px] lg:text-[18px] font-light text-body max-w-[46ch] mb-7 leading-[1.55] [overflow-wrap:anywhere]">
                 {c.lead}
               </p>
             )}

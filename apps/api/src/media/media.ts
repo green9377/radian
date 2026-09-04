@@ -116,6 +116,8 @@ const ALLOWED = RASTER;
 export interface UploadResult {
   url: string;
   fileId: string;
+  /** the background was cut out (hero pictures) — false when asked for but the cutter was unavailable */
+  bgRemoved?: boolean;
   width: number;
   height: number;
 }
@@ -142,7 +144,7 @@ export class MediaService {
     return { dir, base };
   }
 
-  async upload(file: UploadedImage | undefined, folder: string): Promise<UploadResult> {
+  async upload(file: UploadedImage | undefined, folder: string, removeBg = false): Promise<UploadResult> {
     if (!file) throw new BadRequestException('No file received');
 
     const vector = VECTOR_OK.has(folder);
@@ -163,7 +165,47 @@ export class MediaService {
       throw new BadRequestException(`Unknown folder "${folder}"`);
     }
 
+    if (removeBg && !vector) {
+      const cut = await this.cutBackground(file);
+      if (cut) return { ...(await this.putObject(cut, folder as Folder)), bgRemoved: true };
+      return { ...(await this.putObject(file, folder as Folder)), bgRemoved: false };
+    }
     return this.putObject(file, folder as Folder);
+  }
+
+  /**
+   * The hero picture with its background cut out — owner, 4 Sep 2026. The
+   * reference shows the flowers sitting on the banner's own background, so a
+   * plain product photo must lose its backdrop on the way in. The work is done
+   * by the `bgremove` service in the stack (rembg); this only carries the
+   * bytes there and back. Returns null when the service is not configured or
+   * does not answer, and the caller keeps the original — a photo with its
+   * background is better than no photo.
+   */
+  private async cutBackground(file: UploadedImage): Promise<UploadedImage | null> {
+    const base = (process.env.BG_REMOVE_URL ?? '').replace(/\/+$/, '');
+    if (!base) return null;
+    try {
+      const body = new FormData();
+      body.append('file', new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }), file.originalname);
+      const r = await fetch(`${base}/api/remove`, {
+        method: 'POST',
+        body,
+        signal: AbortSignal.timeout(90_000),
+      });
+      if (!r.ok) return null;
+      const png = Buffer.from(await r.arrayBuffer());
+      if (png.length < 100) return null;
+      return {
+        ...file,
+        buffer: png,
+        size: png.length,
+        mimetype: 'image/png',
+        originalname: file.originalname.replace(/\.[a-z0-9]+$/i, '') + '.png',
+      };
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -213,8 +255,12 @@ export class MediaController {
       limits: { fileSize: MAX_BYTES, files: 1 },
     }),
   )
-  upload(@UploadedFile() file: UploadedImage, @Query('folder') folder = 'products') {
-    return this.svc.upload(file, folder);
+  upload(
+    @UploadedFile() file: UploadedImage,
+    @Query('folder') folder = 'products',
+    @Query('removeBg') removeBg?: string,
+  ) {
+    return this.svc.upload(file, folder, removeBg === '1' || removeBg === 'true');
   }
 
   /**

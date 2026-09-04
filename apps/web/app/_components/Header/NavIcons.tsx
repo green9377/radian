@@ -18,18 +18,6 @@ export default function NavIcons({ cartCount, wishlistCount, onMoreClick }: Prop
   return (
     <div className="flex items-center gap-1 ml-auto">
 
-      {/* Account — logged-in হলে dashboard, নয়তো login */}
-      <Link
-        href={loggedIn ? "/account" : "/account/login"}
-        className="icon-btn group"
-      >
-        <svg className="icon-svg" viewBox="0 0 24 24">
-          <circle cx="12" cy="8" r="3.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5.5 20c.6-3.4 3.3-5.5 6.5-5.5s5.9 2.1 6.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <em>{loggedIn ? "Account" : "Log in"}</em>
-      </Link>
-
       {/* Track Order */}
       <Link href="/track" className="icon-btn group">
         <svg className="icon-svg" viewBox="0 0 24 24">
@@ -64,6 +52,18 @@ export default function NavIcons({ cartCount, wishlistCount, onMoreClick }: Prop
           </span>
         )}
         <em>Cart</em>
+      </Link>
+
+      {/* Account — the dashboard when logged in, otherwise login. Order of the row: Track · Wishlist · Cart · Log in · More (owner, 4 Sep 2026) */}
+      <Link
+        href={loggedIn ? "/account" : "/account/login"}
+        className="icon-btn group"
+      >
+        <svg className="icon-svg" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="3.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5.5 20c.6-3.4 3.3-5.5 6.5-5.5s5.9 2.1 6.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <em>{loggedIn ? "Account" : "Log in"}</em>
       </Link>
 
       {/* More */}
