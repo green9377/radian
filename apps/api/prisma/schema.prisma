@@ -421,6 +421,13 @@ model Banner {
   float2Sub   String?
 
   imageUrl String? @db.Text
+  /// the hero's picture for phones — upright, shown above the words. null =
+  /// the desktop picture is used there too
+  mobileImageUrl String? @db.Text
+
+  /// the two floating cards can be switched off without emptying their words
+  float1Show Boolean @default(true)
+  float2Show Boolean @default(true)
 
   /// ⚠️ Scheduling is stored, and the STOREFRONT is what enforces it — a banner
   /// outside its window is simply not returned by the public API. Nothing here

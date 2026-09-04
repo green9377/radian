@@ -357,12 +357,12 @@ function Editor({
   const isAnn = f.placement === "ANNOUNCEMENT";
   const isHero = f.placement === "HERO";
 
-  async function pickImage(file: File | null) {
+  async function pickImage(file: File | null, key: "imageUrl" | "mobileImageUrl" = "imageUrl") {
     if (!file) return;
     setUploading(true);
     try {
       const { url } = await uploadImage(file, "banners");
-      set("imageUrl", url);
+      set(key, url);
     } catch (e) {
       onError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -412,7 +412,7 @@ function Editor({
 
               {isHero && (
                 <>
-                  <L label="Three short trust lines" hint="Under the buttons — comma separated">
+                  <L label="Three short trust lines" hint="Under the buttons — comma separated. ' · ' inside one splits it into a bold line and a small line">
                     {/*  CommaListInput, not a raw input — the raw one re-parsed
                         and rewrote the box on every keystroke, so a comma or a
                         space could never survive being typed (owner, 9 Aug 2026).  */}
@@ -424,7 +424,7 @@ function Editor({
                       key={f.id}
                       value={f.proof}
                       onChange={(next) => set("proof", next)}
-                      placeholder="2-hour delivery, Freshness promise, ★ 4.9 on Google"
+                      placeholder="3 Hours Delivery · Inside Dhaka, Fresh & Premium · Hand-arranged today"
                     />
                   </L>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -434,31 +434,37 @@ function Editor({
                 </>
               )}
 
-              {/* The two placements want opposite shapes, and the box is drawn
-                  in whichever one applies — a wide photo in the hero's arch, or
-                  an upright one across the promo strip, loses its sides with no
-                  warning. Same reasoning as the category screen. */}
-              <L
-                label="Picture"
-                hint={isHero
-                  ? "900 × 1100 · upright · sits in the arch beside the text"
-                  : "1600 × 600 · wide · fills the strip, fading out under the words"}
-              >
-                <label
-                  className={
-                    "relative block w-full rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center " +
-                    (isHero ? "aspect-[4/5] max-w-[230px]" : "aspect-[8/3] max-w-[420px]")
-                  }
+              {/* The placements want different shapes, and the box is drawn in
+                  whichever one applies — the hero's picture fills the right
+                  half of the banner from the bottom, the promo's runs across
+                  the strip. Same reasoning as the category screen. */}
+              <div className={isHero ? "grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4" : ""}>
+                <L
+                  label="Picture"
+                  hint={isHero
+                    ? "1000 × 1040 · fills the right half of the banner, bottom-anchored, nothing is cropped on desktop · bring its own background above the flowers"
+                    : "1600 × 600 · wide · fills the strip, fading out under the words"}
                 >
-                  {f.imageUrl
-                    // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={f.imageUrl} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
-                    : <span className="text-body-soft text-[11.5px] flex flex-col items-center gap-1"><Icon name="upload" size={20} /> Drag &amp; drop or click</span>}
-                  {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
-                  <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
-                </label>
-                {f.imageUrl && !uploading && <button onClick={() => set("imageUrl", null)} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
-              </L>
+                  <PictureDrop
+                    url={f.imageUrl}
+                    uploading={uploading}
+                    shape={isHero ? "aspect-[994/1040] max-w-[230px]" : "aspect-[8/3] max-w-[420px]"}
+                    onPick={(file) => pickImage(file, "imageUrl")}
+                    onClear={() => set("imageUrl", null)}
+                  />
+                </L>
+                {isHero && (
+                  <L label="Picture on phones" hint="800 × 600 · shown above the words · empty = the picture above is used">
+                    <PictureDrop
+                      url={f.mobileImageUrl}
+                      uploading={uploading}
+                      shape="aspect-[4/3] max-w-[200px]"
+                      onPick={(file) => pickImage(file, "mobileImageUrl")}
+                      onClear={() => set("mobileImageUrl", null)}
+                    />
+                  </L>
+                )}
+              </div>
             </>
           )}
 
@@ -495,11 +501,46 @@ function Editor({
 /** <input type="date"> only accepts yyyy-mm-dd; the API returns full ISO. */
 const dateVal = (v: string | null) => (v ? v.slice(0, 10) : "");
 
+function PictureDrop({ url, uploading, shape, onPick, onClear }: {
+  url: string | null; uploading: boolean; shape: string; onPick: (f: File | null) => void; onClear: () => void;
+}) {
+  return (
+    <>
+      <label className={"relative block w-full rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center " + shape}>
+        {url
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={url} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
+          : <span className="text-body-soft text-[11.5px] flex flex-col items-center gap-1"><Icon name="upload" size={20} /> Drag &amp; drop or click</span>}
+        {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+      </label>
+      {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
+    </>
+  );
+}
+
 function FloatCard({ n, f, set }: { n: 1 | 2; f: ApiBanner; set: <K extends keyof ApiBanner>(k: K, v: ApiBanner[K]) => void }) {
-  const ik = `float${n}Icon` as const, tk = `float${n}Title` as const, sk = `float${n}Sub` as const;
+  const ik = `float${n}Icon` as const, tk = `float${n}Title` as const, sk = `float${n}Sub` as const, vk = `float${n}Show` as const;
+  const on = f[vk] !== false;
   return (
     <div className="border border-lavender-deep rounded-[12px] p-3 space-y-2">
-      <div className="text-[12.5px] font-medium text-body">Floating card {n}</div>
+      <div className="flex items-center justify-between">
+        <span className="text-[12.5px] font-medium text-body">Floating card {n} {n === 1 ? "· top right" : "· bottom left"}</span>
+        {/* bold, coloured switch — house rule 16 */}
+        <span className="inline-flex rounded-full bg-lavender p-0.5">
+          {([true, false] as const).map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => set(vk, v)}
+              className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (on === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
+              style={on === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}
+            >
+              {v ? "Shown" : "Hidden"}
+            </button>
+          ))}
+        </span>
+      </div>
       <select className="ipt" value={f[ik] ?? ""} onChange={(e) => set(ik, e.target.value || null)}>
         <option value="">No icon</option>
         {ICONS.map((i) => <option key={i} value={i}>{i}</option>)}

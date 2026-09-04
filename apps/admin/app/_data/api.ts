@@ -354,6 +354,9 @@ export interface ApiBanner {
   float2Title: string | null;
   float2Sub: string | null;
   imageUrl: string | null;
+  mobileImageUrl: string | null;
+  float1Show: boolean;
+  float2Show: boolean;
   liveFrom: string | null;
   liveTo: string | null;
   sortOrder: number;

@@ -3,28 +3,33 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Zone } from "../../_store/useZoneStore";
-import { getShopBanners, getGoogleRating, zoneCode, type ShopBanner } from "../../_data/shop";
+import { getShopBanners, zoneCode, type ShopBanner } from "../../_data/shop";
 
 /*
-  Hero — multi-banner slider.
-  - Each banner = text + CTA + the banner picture on the right
-  - Banners are zone-aware; auto-rotate every `heroRotateSeconds`; dot navigation
-  - Slides come from the admin (Homepage → Banners); the seeded ones below only
-    show until they arrive, or on a shop with no hero banner at all
+  Hero — the banner slider at the top of the homepage.
 
-  ── 4 Sep 2026 · one composition to the bottom of the trust strip ──────────
-  The owner's reference: header → hero → trust strip is ONE first screen, and
-  the picture is a plain image area. So on desktop the section is exactly one
-  viewport tall under the header (floored and capped), the copy centres in
-  the band, and the picture is a bottom-anchored <img> that fills the right
-  half — no arch, no mask, no tint, no fade. The picture is sized by the
+  Everything on it is the admin's (Homepage → Banners, placement HERO): the
+  picture and the phone picture, the small line, the headline in two parts,
+  the description, both buttons, the proof lines, the two floating cards and
+  their on/off, the zone, the schedule, the order and the on/off of each slide.
+  The API applies zone and schedule, so what arrives is what this visitor
+  should see. Nothing here is typed in: no seeded slide, no drawn stand-in
+  art. While the answer is on its way the section holds its height, empty;
+  when the answer is "no hero banner", the section is not drawn at all.
+
+  ── one composition to the bottom of the trust strip (owner, 4 Sep 2026) ───
+  Header → hero → trust strip is ONE first screen. On desktop the section is
+  exactly one viewport tall under the header (floored and capped), the copy
+  centres in the band, and the picture is a bottom-anchored <img> that fills
+  the right half — no arch, no mask, no tint, no fade. It is sized by the
   width of that half, so nothing in it is cut on any desktop; the artwork is
-  expected to carry its own background above the flowers.
+  expected to carry its own background above the flowers. On phones the
+  picture sits above the words, full width.
 
   The trust strip, when it is the next block, sits in the section's foot
   (`--hero-foot`) — see TrustStrip's `overlapsHero`. The picture runs under
-  it, so the strip is the picture's bottom edge and the bouquet never ends
-  in a hard line.
+  it, so the strip is the picture's bottom edge and the bouquet never ends in
+  a hard line.
 */
 
 interface Props {
@@ -38,106 +43,6 @@ interface Props {
     it — plus the margin under the strip. TrustStrip repeats this value; keep
     the two together.  */
 export const HERO_FOOT = "max(108px,calc(5.7vw+24px))";
-
-interface HeroBanner {
-  id: string;
-  eyebrow: string;
-  h1Line1: string;
-  h1Line2: string;
-  h1Accent: string;
-  lead: string;
-  cta1: { label: string; href: string };
-  cta2: { label: string; href: string };
-  proof: string[];
-  float1: { icon: string; title: string; sub: string };
-  float2: { icon: string; title: string; sub: string };
-  visual: { gradient: string; art: "bouquet" | "hearts" | "hamper" };
-  /** set once a real photo is uploaded; until then the drawn art shows */
-  imageUrl?: string | null;
-  /** DEC-PRD-034 — written in the admin, so its words are never rewritten */
-  fromAdmin?: boolean;
-}
-
-const BANNERS: Record<"dhaka" | "bangladesh", HeroBanner[]> = {
-  dhaka: [
-    {
-      id: "dhaka-2hr",
-      /*  ⚠️ NO DURATION IN THE FALLBACK HEADLINE — 3 Aug 2026. This read
-          "delivered in **2 hours**" as the largest words on the shop, and the
-          admin's fastest service is a three-hour express. The live hero comes
-          from the banner table, so this is what shows before it lands and on a
-          shop with no banner set up — which is no place for the one promise
-          the whole business is judged on.  */
-      eyebrow: "Dhaka's fastest flower delivery",
-      h1Line1: "Say it with flowers,",
-      h1Line2: "delivered while",
-      h1Accent: "it still matters",
-      lead: "Fresh blooms and thoughtful gifts, hand-arranged in our Dhaka studio and delivered while the moment still matters.",
-      cta1: { label: "Send a gift today", href: "/products" },
-      cta2: { label: "Shop by occasion", href: "/occasions" },
-      proof: ["Express delivery", "Freshness promise", "★ 4.9 on Google"],
-      float1: { icon: "bolt", title: "Order placed 2:14 PM", sub: "Delivered 3:58 PM · Gulshan" },
-      float2: { icon: "heart", title: '"She cried happy tears"', sub: "Anniversary delivery, Dhanmondi" },
-      visual: {
-        gradient: "linear-gradient(160deg,#F3E2FA 0%,#E3C4F3 55%,#D5A8EC 100%)",
-        art: "bouquet",
-      },
-    },
-    {
-      id: "dhaka-valentine",
-      eyebrow: "Limited season · Valentine's",
-      h1Line1: "Love deserves",
-      h1Line2: "more than",
-      h1Accent: "one day",
-      lead: "Reserve the season's most romantic arrangements early — free midnight delivery on all Valentine's pre-orders.",
-      cta1: { label: "Explore the collection", href: "/collections/valentines" },
-      cta2: { label: "Midnight delivery", href: "/products" },
-      proof: ["Free midnight delivery", "Limited stock", "★ 4.9 on Google"],
-      float1: { icon: "heart", title: "Valentine's pre-order", sub: "Free midnight delivery" },
-      float2: { icon: "bolt", title: "Delivered at 12:01 AM", sub: "Right at the stroke of midnight" },
-      visual: {
-        gradient: "linear-gradient(160deg,#FBEFF7 0%,#F3D9EE 50%,#E9C0E8 100%)",
-        art: "hearts",
-      },
-    },
-  ],
-  bangladesh: [
-    {
-      id: "bd-nationwide",
-      eyebrow: "Nationwide gift delivery",
-      h1Line1: "Send love to",
-      h1Line2: "",
-      h1Accent: "all 64 districts",
-      lead: "Courier-safe chocolates, hampers and gift boxes — packed with care in Dhaka, delivered anywhere in Bangladesh in 1–3 days.",
-      cta1: { label: "Shop nationwide gifts", href: "/products" },
-      cta2: { label: "See what ships nationwide", href: "/chocolates" },
-      proof: ["All 64 districts", "Courier-safe packing", "★ 4.9 on Google"],
-      float1: { icon: "truck", title: "Ordered from Dhaka", sub: "Delivered to Sylhet · 2 days" },
-      float2: { icon: "gift", title: '"Arrived perfectly packed"', sub: "Gift hamper, Chattogram" },
-      visual: {
-        gradient: "linear-gradient(160deg,#F3E2FA 0%,#E3C4F3 55%,#D5A8EC 100%)",
-        art: "hamper",
-      },
-    },
-    {
-      id: "bd-premium",
-      eyebrow: "Premium hampers",
-      h1Line1: "Gifts that travel",
-      h1Line2: "as beautifully as",
-      h1Accent: "your love",
-      lead: "Rose gold tier hampers and signature gift boxes, courier-safe to every district — luxury that arrives looking luxurious.",
-      cta1: { label: "Shop premium hampers", href: "/collections/premium" },
-      cta2: { label: "Corporate gifting", href: "/occasions/corporate" },
-      proof: ["Premium packaging", "Nationwide 1–3 days", "★ 4.9 on Google"],
-      float1: { icon: "gift", title: "Rose Gold Hamper", sub: "Bestselling premium pick" },
-      float2: { icon: "truck", title: "Courier-safe promise", sub: "Arrives beautiful, always" },
-      visual: {
-        gradient: "linear-gradient(160deg,#F6EBE4 0%,#EAD2C2 60%,#DDBBA6 100%)",
-        art: "hamper",
-      },
-    },
-  ],
-};
 
 function ArrowIcon() {
   return (
@@ -159,72 +64,19 @@ function FloatIcon({ name }: { name: string }) {
 }
 
 /**
- * Live row → the shape this component has always rendered.
- *
- * `keep` supplies ONLY what the database has no column for: the gradient and
- * the drawn artwork. Those are design, not content — a colour picker on the
- * hero backdrop is how a premium page becomes a ransom note.
- *
- * ⚠️ Every text field is taken as-is, with NO fallback to the seeded slide.
- * The first version did fall back, and it made the screen lie: the API stores
- * a cleared box as null, so "No icon" came back as the old icon and an emptied
- * headline reappeared. A setting the owner cannot turn off is worse than one
- * that does not exist — he changes it, sees no effect, and stops trusting the
- * panel. The seeded rows already hold real content, so there is nothing to
- * protect against here.
+ * A floating card. Hidden when switched off in the admin, and also when both
+ * lines are empty — an empty card is a white box over the photograph for no
+ * reason. Desktop only; on a phone the picture is the whole width and a card
+ * on it would cover the flowers.
  */
-function toHeroBanner(b: ShopBanner, keep: HeroBanner): HeroBanner {
-  return {
-    id: b.id,
-    eyebrow: b.eyebrow ?? "",
-    h1Line1: b.titleMain ?? "",
-    h1Line2: "",
-    h1Accent: b.titleAccent ?? "",
-    lead: b.lead ?? "",
-    cta1: { label: b.cta1Label ?? "", href: b.cta1Href ?? "/products" },
-    cta2: { label: b.cta2Label ?? "", href: b.cta2Href ?? "/products" },
-    /*  `fromAdmin` marks this slide as the owner's, so the Google rewrite
-        below leaves its words alone (DEC-PRD-034).  */
-    proof: b.proof ?? [],
-    fromAdmin: true,
-    float1: { icon: b.float1Icon ?? "", title: b.float1Title ?? "", sub: b.float1Sub ?? "" },
-    float2: { icon: b.float2Icon ?? "", title: b.float2Title ?? "", sub: b.float2Sub ?? "" },
-    visual: keep.visual,
-    imageUrl: b.imageUrl,
-  };
-}
-
-/**
- * Rewrites any proof chip that quotes Google with the real rating, and drops it
- * when there is none.
- *
- * Matched on the word rather than by position, because the chips are the
- * owner's to write — he may put the Google line first, or not at all, and a
- * hard-coded index would then rewrite the wrong one.
- */
-/*  ⚠️ ONLY THE BUILT-IN SLIDES GO THROUGH THIS — DEC-PRD-034, owner 9 Aug 2026.
-    He typed "google rating 9:8" into the hero's trust lines and it never
-    appeared. This function was the reason: any chip mentioning Google was
-    replaced by the real review average, or DELETED when there were no reviews
-    — which, on a freshly emptied shop, is always. It was written to stop the
-    seeded slides shipping a hard-coded "★ 4.9 on Google", and for those it is
-    still right. But the owner's own words are not ours to rewrite: if he types
-    it, the shop says it. Applied to the seeded slides, never to his.  */
-function withRealRating(rating: number | null) {
-  return (chip: string): string => {
-    if (!/google/i.test(chip)) return chip;
-    return rating ? `★ ${rating.toFixed(1)} on Google` : "";
-  };
-}
-
 function FloatCard({
   card,
   className,
 }: {
-  card: { icon: string; title: string; sub: string };
+  card: { show: boolean; icon: string; title: string; sub: string };
   className: string;
 }) {
-  if (!card.title && !card.sub) return null;
+  if (!card.show || (!card.title && !card.sub)) return null;
   return (
     <div className={`absolute z-10 hidden lg:flex items-center gap-3.5 bg-white/96 backdrop-blur-sm rounded-[20px] pl-3.5 pr-[18px] py-3.5 shadow-lift whitespace-nowrap ${className}`}>
       {card.icon && (
@@ -240,65 +92,8 @@ function FloatCard({
   );
 }
 
-function BannerArt({ art }: { art: HeroBanner["visual"]["art"] }) {
-  if (art === "hearts") {
-    return (
-      <svg viewBox="0 0 200 220" className="w-full max-w-[300px]">
-        <path d="M100 190C60 160 30 130 30 95a30 30 0 0 1 55-17 30 30 0 0 1 55 0 30 30 0 0 1 30 17c0 35-30 65-70 95z" fill="#E86FA8" />
-        <path d="M100 178C66 152 42 127 42 98a24 24 0 0 1 44-13 24 24 0 0 1 44 0 24 24 0 0 1 28 13c0 29-24 54-58 80z" fill="#F6C4DD" />
-        <path d="M100 165C74 145 56 125 56 103a18 18 0 0 1 33-10 18 18 0 0 1 33 0 18 18 0 0 1-4 10c0 22-18 42-18 62z" fill="#CF43EA" opacity=".85" />
-        <circle cx="152" cy="60" r="10" fill="#CF43EA" opacity=".5" />
-        <circle cx="42" cy="52" r="7" fill="#B76E79" opacity=".5" />
-        <circle cx="164" cy="120" r="5" fill="#B76E79" opacity=".6" />
-      </svg>
-    );
-  }
-  if (art === "hamper") {
-    return (
-      <svg viewBox="0 0 200 220" className="w-full max-w-[300px]">
-        <path d="M45 100h110l-10 95H55z" fill="#B76E79" />
-        <path d="M45 100h110l-3 26H48z" fill="#9A5560" />
-        <path d="M70 100c0-40 60-40 60 0" fill="none" stroke="#9A5560" strokeWidth="7" strokeLinecap="round" />
-        <circle cx="78" cy="82" r="16" fill="#CF43EA" />
-        <circle cx="78" cy="82" r="10" fill="#E9A8F5" />
-        <circle cx="104" cy="70" r="18" fill="#E86FA8" />
-        <circle cx="104" cy="70" r="11" fill="#F6C4DD" />
-        <circle cx="128" cy="84" r="14" fill="#9D2FB5" />
-        <circle cx="128" cy="84" r="8" fill="#CF43EA" />
-        <rect x="88" y="128" width="24" height="40" rx="4" fill="#E8C9CE" />
-        <path d="M100 128v40M88 148h24" stroke="#B76E79" strokeWidth="3" />
-      </svg>
-    );
-  }
-  // bouquet (default)
-  return (
-    <svg viewBox="0 0 200 220" className="w-full max-w-[340px]">
-      <path d="M100 130 L64 205 L136 205 Z" fill="#EFD9F0" />
-      <path d="M100 130 L74 205 L126 205 Z" fill="#F9EFFA" />
-      <ellipse cx="74" cy="110" rx="13" ry="30" fill="#7FA96B" transform="rotate(-32 74 110)" />
-      <ellipse cx="126" cy="110" rx="13" ry="30" fill="#7FA96B" transform="rotate(32 126 110)" />
-      <ellipse cx="100" cy="98" rx="11" ry="32" fill="#8FB97B" />
-      <circle cx="66" cy="96" r="20" fill="#CF43EA" />
-      <circle cx="66" cy="96" r="14" fill="#E9A8F5" />
-      <circle cx="66" cy="96" r="9" fill="#CF43EA" />
-      <circle cx="66" cy="96" r="4" fill="#E9A8F5" />
-      <circle cx="134" cy="96" r="20" fill="#B76E79" />
-      <circle cx="134" cy="96" r="14" fill="#E8C9CE" />
-      <circle cx="134" cy="96" r="9" fill="#B76E79" />
-      <circle cx="100" cy="66" r="24" fill="#9D2FB5" />
-      <circle cx="100" cy="66" r="17" fill="#CF43EA" />
-      <circle cx="100" cy="66" r="10" fill="#9D2FB5" />
-      <circle cx="100" cy="66" r="4.5" fill="#CF43EA" />
-      <circle cx="84" cy="120" r="16" fill="#E86FA8" />
-      <circle cx="84" cy="120" r="11" fill="#F6C4DD" />
-      <circle cx="116" cy="120" r="16" fill="#CF43EA" />
-      <circle cx="116" cy="120" r="11" fill="#E9A8F5" />
-    </svg>
-  );
-}
-
 /**
- * A proof chip is one admin string. "3 Hours Delivery · Inside Dhaka" renders
+ * A proof line is one admin string. "3 Hours Delivery · Inside Dhaka" renders
  * as a bold line with a small one under it; a string without " · " is one
  * bold line. Display only — nothing reads the split back.
  */
@@ -307,8 +102,19 @@ function splitProof(item: string): { title: string; sub: string } {
   return i < 0 ? { title: item, sub: "" } : { title: item.slice(0, i), sub: item.slice(i + 3) };
 }
 
+const card = (b: ShopBanner, n: 1 | 2) => ({
+  show: n === 1 ? b.float1Show : b.float2Show,
+  icon: (n === 1 ? b.float1Icon : b.float2Icon) ?? "",
+  title: (n === 1 ? b.float1Title : b.float2Title) ?? "",
+  sub: (n === 1 ? b.float1Sub : b.float2Sub) ?? "",
+});
+
 export default function HeroSection({ zone, stripFollows = false }: Props) {
-  const fallback = BANNERS[zone === "bangladesh" ? "bangladesh" : "dhaka"];
+  /** null = not answered yet; [] = the shop has no hero banner for this zone */
+  const [banners, setBanners] = useState<ShopBanner[] | null>(null);
+  const [rotateMs, setRotateMs] = useState(6000);
+  const [index, setIndex] = useState(0);
+
   /*  The section is one viewport tall UNDER the sticky header, and the header
       is not a fixed height (the announcement bar can be off). Measure it
       rather than guess it.  */
@@ -322,58 +128,32 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const [banners, setBanners] = useState<HeroBanner[]>(fallback);
-  const [rotateMs, setRotateMs] = useState(6000);
-  const [index, setIndex] = useState(0);
-  /*
-    The proof chips carried "★ 4.9 on Google" as typed text, in every slide, in
-    two components. The owner can set the real figure on the Reviews screen —
-    these did not follow it, so correcting 4.9 to 4.7 left the site claiming 4.9
-    in three places. Any chip mentioning Google is now rewritten from the real
-    number, or dropped when there is none.
-  */
-  const [rating, setRating] = useState<number | null>(null);
-  useEffect(() => {
-    let alive = true;
-    getGoogleRating().then((r) => { if (alive && r) setRating(r.rating); });
-    return () => { alive = false; };
-  }, []);
 
-  /*
-    LIVE since 30 Jul 2026 — slides come from the admin panel.
-
-    The API already applies the zone and the live-from/live-to dates, so
-    whatever arrives is what this visitor should see; nothing here does date
-    arithmetic. `visual` has no column: real photography is still a launch
-    dependency, so the gradient and drawn art stay as the backdrop until an
-    `imageUrl` exists, and are indexed so each slide keeps its own look.
-  */
   useEffect(() => {
     let alive = true;
     getShopBanners(zoneCode(zone)).then((res) => {
-      if (!alive || res === null) return;
-      const live = res.banners.filter((b) => b.placement === "HERO");
-      // An empty result is a real answer — the owner switched every slide off —
-      // but a homepage with no hero at all is not something to ship silently.
-      // Keep the last known-good set and let the section stay populated.
-      if (live.length === 0) return;
-      setBanners(live.map((b, i) => toHeroBanner(b, fallback[i % fallback.length])));
+      if (!alive) return;
+      // a failed call keeps whatever was on screen; a blank hero on a network
+      // blip is worse than a stale one
+      if (res === null) { setBanners((b) => b ?? []); return; }
+      setBanners(res.banners.filter((b) => b.placement === "HERO"));
       setRotateMs(res.heroRotateSeconds * 1000);
       setIndex(0);
     });
     return () => { alive = false; };
   }, [zone]);
 
-  // Reset to first banner when zone changes
-  useEffect(() => setIndex(0), [zone]);
-
+  const count = banners?.length ?? 0;
   useEffect(() => {
-    if (banners.length < 2) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % banners.length), rotateMs);
+    if (count < 2) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % count), rotateMs);
     return () => clearInterval(t);
-  }, [banners.length, rotateMs]);
+  }, [count, rotateMs]);
+
+  if (banners !== null && banners.length === 0) return null;
 
   const foot = stripFollows ? HERO_FOOT : "0px";
+  const slides = banners ?? [];
 
   return (
     <section
@@ -384,8 +164,8 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
         ["--hero-foot" as string]: foot,
       }}
     >
-      {/* ---- The picture: the right half of the section, bottom-anchored, one per slide (crossfade). Desktop only. ---- */}
-      {banners.map((c, slideIndex) =>
+      {/* ---- Desktop picture: the right half of the section, bottom-anchored, one per slide (crossfade) ---- */}
+      {slides.map((c, slideIndex) =>
         c.imageUrl ? (
           <div
             key={`pic-${c.id}`}
@@ -399,18 +179,28 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
       )}
 
       <div className="max-w-[1200px] mx-auto px-6 w-full lg:flex-1 lg:flex lg:flex-col">
+        {/* While the answer is on its way: the band, empty, at its full height */}
+        {banners === null && <div className="min-h-[420px] lg:flex-1" aria-hidden />}
+
         {/* All slides stacked in one grid cell — smooth crossfade between them */}
         <div className="grid lg:flex-1 lg:grid-rows-[1fr]">
-          {banners.map((c, slideIndex) => (
+          {slides.map((c, slideIndex) => (
         <div
           key={c.id}
           aria-hidden={slideIndex !== index}
-          className={`col-start-1 row-start-1 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_1fr] gap-6 items-center pt-6 pb-4 lg:pt-6 lg:pb-5 transition-all duration-1000 ease-in-out ${
+          className={`col-start-1 row-start-1 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_1fr] gap-6 items-center pt-5 pb-6 lg:pt-6 lg:pb-5 transition-all duration-1000 ease-in-out ${
             slideIndex === index
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-4 pointer-events-none"
           }`}
         >
+          {/* ---- Phone picture: above the words, full width. Desktop hides it. ---- */}
+          {(c.mobileImageUrl || c.imageUrl) && (
+            <div className="lg:hidden -mx-6 -mt-5 aspect-[4/3] overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.mobileImageUrl ?? c.imageUrl ?? ""} alt="" className="w-full h-full object-cover object-bottom" />
+            </div>
+          )}
 
           {/* ---- Left: copy ---- */}
           <div className="relative z-[1]">
@@ -421,71 +211,75 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
               </div>
             )}
 
-            <h1
-              className="font-display font-medium text-purple leading-[1.06] tracking-[-0.02em] mb-[18px]"
-              style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}
-            >
-              {c.h1Line1}
-              {c.h1Line2 && <><br />{c.h1Line2} </>}
-              <em className="not-italic bg-gradient-to-r from-orchid to-[#9b2fc4] bg-clip-text text-transparent">{c.h1Accent}</em>
-            </h1>
-
-            <p className="text-[16px] lg:text-[18px] font-light text-body max-w-[46ch] mb-7 leading-[1.55]">
-              {c.lead}
-            </p>
-
-            <div className="flex gap-4 flex-wrap items-center">
-              <Link
-                href={c.cta1.href}
-                className="inline-flex items-center gap-3 h-[58px] px-[34px] bg-purple text-white rounded-full font-semibold text-[16px] tracking-[0.01em] shadow-[0_14px_30px_rgba(71,0,102,0.22)] hover:bg-purple-deep hover:-translate-y-0.5 transition-all whitespace-nowrap"
+            {(c.titleMain || c.titleAccent) && (
+              <h1
+                className="font-display font-medium text-purple leading-[1.06] tracking-[-0.02em] mb-[18px]"
+                style={{ fontSize: "clamp(34px, 4.4vw, 56px)" }}
               >
-                {c.cta1.label} <ArrowIcon />
-              </Link>
-              <Link
-                href={c.cta2.href}
-                className="inline-flex items-center gap-3 h-[58px] px-[34px] bg-white text-purple border-[1.5px] border-purple rounded-full font-semibold text-[16px] hover:bg-purple hover:text-white transition-all whitespace-nowrap"
-              >
-                {c.cta2.label}
-              </Link>
-            </div>
+                {c.titleMain}{c.titleMain && c.titleAccent ? " " : ""}
+                {c.titleAccent && (
+                  <em className="not-italic bg-gradient-to-r from-orchid to-[#9b2fc4] bg-clip-text text-transparent">{c.titleAccent}</em>
+                )}
+              </h1>
+            )}
 
-            <div className="flex mt-7 flex-wrap">
-              {(c.fromAdmin ? c.proof : c.proof.map(withRealRating(rating)))
-                .filter(Boolean)
-                .map(splitProof)
-                .map((item, i) => (
-                <div key={item.title} className={`flex items-center gap-2.5 pr-[18px] whitespace-nowrap ${i > 0 ? "border-l border-[#dccde8] pl-[18px]" : ""}`}>
-                  <span className="w-2 h-2 rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0 bg-orchid" />
-                  <div>
-                    <b className="block text-[14px] font-semibold text-purple leading-tight">{item.title}</b>
-                    {item.sub && <span className="text-[12.5px] text-body-soft">{item.sub}</span>}
+            {c.lead && (
+              <p className="text-[16px] lg:text-[18px] font-light text-body max-w-[46ch] mb-7 leading-[1.55]">
+                {c.lead}
+              </p>
+            )}
+
+            {(c.cta1Label || c.cta2Label) && (
+              <div className="flex gap-4 flex-wrap items-center">
+                {c.cta1Label && (
+                  <Link
+                    href={c.cta1Href ?? "/products"}
+                    className="inline-flex items-center gap-3 h-[54px] lg:h-[58px] px-7 lg:px-[34px] bg-purple text-white rounded-full font-semibold text-[15px] lg:text-[16px] tracking-[0.01em] shadow-[0_14px_30px_rgba(71,0,102,0.22)] hover:bg-purple-deep hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                  >
+                    {c.cta1Label} <ArrowIcon />
+                  </Link>
+                )}
+                {c.cta2Label && (
+                  <Link
+                    href={c.cta2Href ?? "/products"}
+                    className="inline-flex items-center gap-3 h-[54px] lg:h-[58px] px-7 lg:px-[34px] bg-white text-purple border-[1.5px] border-purple rounded-full font-semibold text-[15px] lg:text-[16px] hover:bg-purple hover:text-white transition-all whitespace-nowrap"
+                  >
+                    {c.cta2Label}
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {c.proof.length > 0 && (
+              <div className="flex mt-7 flex-wrap gap-y-3">
+                {c.proof.filter(Boolean).map(splitProof).map((item, i) => (
+                  <div key={item.title} className={`flex items-center gap-2.5 pr-[18px] whitespace-nowrap ${i > 0 ? "border-l border-[#dccde8] pl-[18px]" : ""}`}>
+                    <span className="w-2 h-2 rounded-[50%_50%_50%_0] rotate-[-45deg] block shrink-0 bg-orchid" />
+                    <div>
+                      <b className="block text-[14px] font-semibold text-purple leading-tight">{item.title}</b>
+                      {item.sub && <span className="text-[12.5px] text-body-soft">{item.sub}</span>}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* ---- Right: the drawn art while a slide has no picture yet — desktop only ---- */}
-          <div className="hidden lg:flex items-end justify-center h-full min-h-[420px]">
-            {!c.imageUrl && <BannerArt art={c.visual.art} />}
-          </div>
+          {/* ---- Right column: the picture's room on desktop (the picture itself is the section's) ---- */}
+          <div className="hidden lg:block h-full min-h-[420px]" />
 
-          {/* An empty card is not a smaller card — it is a white box floating
-              over the photograph for no reason. Both the card and its icon
-              disappear when there is nothing in them, so leaving these blank
-              is a legitimate way to have a plain hero. Positioned against the
-              SECTION, where the reference puts them: one at the top right of
-              the picture, one low on its left edge. */}
-          <FloatCard card={c.float1} className="top-6 right-[calc(3.6vw_+_14px)]" />
-          <FloatCard card={c.float2} className="left-[calc(50%_+_3.7vw)] bottom-[calc(var(--hero-foot)_+_3.6vw)] max-w-[300px]" />
+          {/* Positioned against the SECTION, where the reference puts them:
+              one at the top right of the picture, one low on its left edge. */}
+          <FloatCard card={card(c, 1)} className="top-6 right-[calc(3.6vw_+_14px)]" />
+          <FloatCard card={card(c, 2)} className="left-[calc(50%_+_3.7vw)] bottom-[calc(var(--hero-foot)_+_3.6vw)] max-w-[300px]" />
         </div>
           ))}
         </div>
 
         {/* ---- Dots ---- */}
-        {banners.length > 1 && (
+        {slides.length > 1 && (
           <div className="flex justify-center gap-[9px] pb-4">
-            {banners.map((b, i) => (
+            {slides.map((b, i) => (
               <button
                 key={b.id}
                 aria-label={`Banner ${i + 1}`}

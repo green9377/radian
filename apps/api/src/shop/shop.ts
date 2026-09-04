@@ -237,6 +237,9 @@ export class ShopService {
         float2Title: true,
         float2Sub: true,
         imageUrl: true,
+        mobileImageUrl: true,
+        float1Show: true,
+        float2Show: true,
       },
     });
 
