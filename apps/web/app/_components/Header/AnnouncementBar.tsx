@@ -119,7 +119,7 @@ export default function AnnouncementBar({ zone }: { zone: Zone | null }) {
       {phone && (
         <a
           href={`tel:${phone.replace(/[^+\d]/g, "")}`}
-          className="hidden lg:inline-flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2 text-[13.5px] text-white whitespace-nowrap"
+          className="hidden lg:inline-flex items-center gap-2 absolute right-[max(24px,3.6vw)] top-1/2 -translate-y-1/2 text-[13.5px] text-white whitespace-nowrap"
         >
           <svg className="w-[15px] h-[15px] stroke-current fill-none stroke-[1.8]" viewBox="0 0 24 24"><path d="M6.8 3.5h2.9l1.4 3.9-2 1.5a12.5 12.5 0 0 0 5.9 5.9l1.5-2 3.9 1.4v2.9a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.8 5.7a2 2 0 0 1 2-2.2z" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span className="font-light">Need help?</span> <b className="font-semibold">{phone}</b>

@@ -162,7 +162,8 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
     <section
       className="overflow-hidden relative lg:flex lg:flex-col lg:min-h-[clamp(560px,calc(100svh_-_var(--hero-header)),min(820px,52vw))] lg:pb-[var(--hero-foot)]"
       style={{
-        background: "linear-gradient(90deg,#faf5fb 0%,#f8f2f9 30%,#f7f0f7 50%,#f3e9f2 100%)",
+        background:
+          "radial-gradient(55% 75% at 78% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%), linear-gradient(90deg,#faf5fb 0%,#f8f1f8 38%,#f5e8ee 58%,#eedce4 80%,#e2ccd7 100%)",
         ["--hero-header" as string]: `${headerH}px`,
         ["--hero-foot" as string]: foot,
       }}
@@ -175,13 +176,28 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
             aria-hidden
             className={`hidden lg:block absolute top-0 bottom-[var(--hero-foot)] left-1/2 right-0 transition-opacity duration-1000 ease-in-out ${slideIndex === index ? "opacity-100" : "opacity-0"}`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             {/* contain, not cover: the cut-out must never lose its top or sides;
                 it stands on the strip, centred in the right half */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={c.imageUrl} alt="" className="w-full h-full object-contain object-bottom" />
           </div>
         ) : null,
       )}
+
+      {/* ---- The floating cards, per slide, against the SECTION (a slide's own
+          translate would make it their containing block and pin card 1 to the
+          copy column): one at the top-right corner, one low on the picture's
+          left edge, where the reference puts them. ---- */}
+      {slides.map((c, slideIndex) => (
+        <div
+          key={`cards-${c.id}`}
+          aria-hidden={slideIndex !== index}
+          className={`contents transition-opacity duration-1000 ${slideIndex === index ? "" : "[&>*]:opacity-0 [&>*]:pointer-events-none"}`}
+        >
+          <FloatCard card={card(c, 1)} className="top-6 right-[calc(3.6vw_+_14px)] transition-opacity duration-1000" />
+          <FloatCard card={card(c, 2)} className="left-[calc(50%_+_3.7vw)] bottom-[calc(var(--hero-foot)_+_3.6vw)] max-w-[300px] transition-opacity duration-1000" />
+        </div>
+      ))}
 
       <div className="max-w-[1200px] mx-auto px-6 w-full lg:flex-1 lg:flex lg:flex-col">
         {/* While the answer is on its way: the band, empty, at its full height */}
@@ -273,10 +289,6 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
           {/* ---- Right column: the picture's room on desktop (the picture itself is the section's) ---- */}
           <div className="hidden lg:block h-full min-h-[420px]" />
 
-          {/* Positioned against the SECTION, where the reference puts them:
-              one at the top right of the picture, one low on its left edge. */}
-          <FloatCard card={card(c, 1)} className="top-6 right-[calc(3.6vw_+_14px)]" />
-          <FloatCard card={card(c, 2)} className="left-[calc(50%_+_3.7vw)] bottom-[calc(var(--hero-foot)_+_3.6vw)] max-w-[300px]" />
         </div>
           ))}
         </div>
