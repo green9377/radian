@@ -164,7 +164,7 @@ export default function ProductCard({
   const toggle = useWishlistStore((s) => s.toggle);
 
   return (
-    <div className="bg-white rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift relative">
+    <div className="bg-white rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift relative h-full flex flex-col">
       {/* Image */}
       <Link
         href={`/p/${product.slug}`}
@@ -197,17 +197,18 @@ export default function ProductCard({
             {product.name}
           </h3>
         </Link>
-        {(product.stars || product.meta) && (
-          <div className="flex items-center gap-[6px] text-[12px] text-rosegold mt-[5px] mb-[10px] whitespace-nowrap">
-            {product.stars}
-            {product.meta && (
-              <span className="text-body-soft">
-                {product.stars ? "· " : ""}
-                {product.meta}
-              </span>
-            )}
-          </div>
-        )}
+        {/* The line under the name is always there, even empty — otherwise a
+            card with "3 sold" is taller than its neighbour and the price row
+            jumps up on the cards that have nothing to say (owner, 5 Sep 2026). */}
+        <div className="flex items-center gap-[6px] text-[12px] text-rosegold mt-[5px] mb-[10px] min-h-[18px] whitespace-nowrap overflow-hidden text-ellipsis">
+          {product.stars}
+          {product.meta && (
+            <span className="text-body-soft overflow-hidden text-ellipsis">
+              {product.stars ? "· " : ""}
+              {product.meta}
+            </span>
+          )}
+        </div>
         <div className="flex items-center justify-between gap-[6px] sm:gap-[10px]">
           {/*  DEC-PRD-035 — "from" when every colour prices itself, because
               this number is then the cheapest one, not the price of whatever
