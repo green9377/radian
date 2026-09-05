@@ -181,9 +181,22 @@ export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
       recipients: 'Who is the gift for?',
       budget: "What's your budget?",
     } as Record<string, string>,
-    nextLabel: 'Next →',
-    doneLabel: 'Show My Gift 🌸',
-    resultLabel: 'See the gifts →',
+    /** the small line under each question, by the step's parameter */
+    hints: {
+      occasions: 'Pick the moment you are celebrating.',
+      recipients: 'Let us know the special person.',
+      budget: 'Every budget has something beautiful.',
+    } as Record<string, string>,
+    nextLabel: 'Next Step →',
+    doneLabel: 'Show My Gifts →',
+    skipLabel: 'Skip for now',
+    /** the purple panel on the left — owner's reference, 5 Sep 2026 */
+    panelTitle: "It's better when it's personal",
+    panelText: 'Tell us a bit about your gifting moment and we will take care of the rest.',
+    panelScript: 'Thoughtful Gifts, Happier People',
+    panelImageUrl: '',
+    /** the slim caption column on the right */
+    sideCaption: 'Small gestures, big happiness',
   },
   delivery: {
     perTab: 4,
@@ -235,11 +248,23 @@ const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Recor
     for (const [k, v] of Object.entries(q).slice(0, 8)) {
       if (/^[a-z0-9-]+$/.test(k) && typeof v === 'string' && v.trim()) questions[k] = v.trim().slice(0, 80);
     }
+    const h = (c.hints && typeof c.hints === 'object' ? c.hints : {}) as Record<string, unknown>;
+    const hints: Record<string, string> = {};
+    for (const [k, v] of Object.entries(h).slice(0, 8)) {
+      if (/^[a-z0-9-]+$/.test(k) && typeof v === 'string') hints[k] = v.trim().slice(0, 120);
+    }
+    const img = text(c.panelImageUrl, '', 400);
     return {
       questions: { ...(d.questions as Record<string, string>), ...questions },
+      hints: { ...(d.hints as Record<string, string>), ...hints },
       nextLabel: text(c.nextLabel, d.nextLabel as string, 30) || (d.nextLabel as string),
       doneLabel: text(c.doneLabel, d.doneLabel as string, 30) || (d.doneLabel as string),
-      resultLabel: text(c.resultLabel, d.resultLabel as string, 30) || (d.resultLabel as string),
+      skipLabel: text(c.skipLabel, d.skipLabel as string, 30),
+      panelTitle: text(c.panelTitle, d.panelTitle as string, 80),
+      panelText: text(c.panelText, d.panelText as string, 200),
+      panelScript: text(c.panelScript, d.panelScript as string, 60),
+      panelImageUrl: /^https?:\/\//.test(img) ? img : '',
+      sideCaption: text(c.sideCaption, d.sideCaption as string, 60),
     };
   },
   delivery: (c) => {

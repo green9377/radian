@@ -6,82 +6,65 @@ import { getGiftFinder, type GiftFinderStep } from "../../_data/shop";
 import SectionHead from "../ui/SectionHead";
 
 /*
-  Gift Finder — 3-step wizard (Who → Occasion → Budget).
-  Static section (same for both zones, per approved board).
-  On finish it currently shows the chosen combination; in the real site
-  this will link to a filtered product listing (wired when the
-  /products listing page exists).
+  Gift Finder — the three-step wizard, in the owner's reference composition
+  (5 Sep 2026): a purple panel on the left with the invitation, the steps in
+  the middle (numbered rail · question · choice cards · Skip / Next), and a
+  slim caption column on the right.
+
+  The steps and their choices are the admin's already: the two SYSTEM tag
+  groups (who / occasion) and the featured collections (budget) — rename a tag
+  and the choice changes here. Every word around them is the section's own
+  settings (Storefront → Homepage → Layout → Gift Finder): the panel's title,
+  text, handwritten line and picture, each step's question and small line,
+  the three buttons and the side caption. Nothing is typed in here, and the
+  section is not drawn until the steps arrive.
 */
 
-/*
-  The three questions come from the admin (31 Jul 2026):
+const asMap = (v: unknown): Record<string, string> =>
+  v && typeof v === "object" ? (v as Record<string, string>) : {};
 
-    who / occasion — the two SYSTEM tag groups, which are seeded and
-      undeletable, and are already the answer to "who is it for" and "what for".
-    budget         — the collections, in their own order. The wizard's third
-      question used to be the budget rail typed out a second time.
+function Check() {
+  return (
+    <svg className="w-[13px] h-[13px] stroke-white fill-none stroke-[2.6]" viewBox="0 0 24 24">
+      <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-  Nothing is written twice: rename a tag and the question changes here too.
+function Sprig({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 200" className={className} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <path d="M60 195c0-60 6-110 30-150" />
+      <path d="M62 150c-18-4-32-18-36-38 18 2 32 16 36 38zM70 118c14-10 20-26 18-44-14 8-22 24-18 44zM66 90c-14-6-24-18-26-34 14 4 24 16 26 34zM76 62c8-12 10-26 6-40-10 8-14 22-6 40z" />
+      <circle cx="94" cy="26" r="8" /><path d="M94 12v4M94 36v4M80 26h4M104 26h4" />
+    </svg>
+  );
+}
 
-  ⚠️ The old list is kept as the fallback for the moment before the answer
-  arrives, and it is also the record of the questions the design intended.
-*/
-
-const FALLBACK_STEPS: GiftFinderStep[] = [
-  {
-    param: "recipients", title: "Recipients",
-    options: [
-      { value: "her", label: "Her", imageUrl: null },
-      { value: "him", label: "Him", imageUrl: null },
-      { value: "parents", label: "Parents", imageUrl: null },
-      { value: "friend", label: "Friend", imageUrl: null },
-    ],
-  },
-  {
-    param: "occasions", title: "Occasions",
-    options: [
-      { value: "birthday", label: "Birthday", imageUrl: null },
-      { value: "anniversary", label: "Anniversary", imageUrl: null },
-      { value: "love-romance", label: "Love & Romance", imageUrl: null },
-      { value: "just-because", label: "Just Because", imageUrl: null },
-    ],
-  },
-  {
-    param: "budget", title: "Budget",
-    options: [
-      { value: "under-1000", label: "Under ৳1,000", imageUrl: null },
-      { value: "1000-2000", label: "৳1,000 – ৳2,000", imageUrl: null },
-      { value: "premium", label: "Premium", imageUrl: null },
-    ],
-  },
-];
-
-/*
-  The question above each step and the three button labels come from the
-  section's settings (Storefront → Homepage → Layout → Gift Finder) since
-  4 Sep 2026; these are what shows until the layout answers.
-*/
-const QUESTIONS: Record<string, string> = {
-  occasions: "What's the occasion?",
-  recipients: "Who is the gift for?",
-  budget: "What's your budget?",
-};
+/* soft pastel tiles behind the choice icons, in turn — the reference gives
+   every choice its own tint */
+const TINTS = ["#f7e4fb", "#e3eefb", "#fde5ee", "#ece4fb", "#e3f5ea", "#fdefdd"];
 
 export default function GiftFinder({ config = {} }: { config?: Record<string, unknown> }) {
-  const questions = { ...QUESTIONS, ...((config.questions as Record<string, string> | undefined) ?? {}) };
-  const nextLabel = String(config.nextLabel || "Next →");
-  const doneLabel = String(config.doneLabel || "Show My Gift 🌸");
-  const resultLabel = String(config.resultLabel || "See the gifts →");
+  const questions = asMap(config.questions);
+  const hints = asMap(config.hints);
+  const nextLabel = String(config.nextLabel || "Next Step →");
+  const doneLabel = String(config.doneLabel || "Show My Gifts →");
+  const skipLabel = String(config.skipLabel ?? "");
+  const panelTitle = String(config.panelTitle ?? "");
+  const panelText = String(config.panelText ?? "");
+  const panelScript = String(config.panelScript ?? "");
+  const panelImageUrl = String(config.panelImageUrl ?? "");
+  const sideCaption = String(config.sideCaption ?? "");
 
   const [steps, setSteps] = useState<GiftFinderStep[] | null>(null);
   const [step, setStep] = useState(1);
   const [choices, setChoices] = useState<Record<string, string>>({});
-  const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
     let alive = true;
     getGiftFinder().then((s) => {
-      if (!alive || !s || s.length === 0) return;
+      if (!alive || !s) return;
       setSteps(s);
       setStep(1);
       setChoices({});
@@ -89,137 +72,179 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
     return () => { alive = false; };
   }, []);
 
-  const live = steps ?? FALLBACK_STEPS;
-  const total = live.length;
-  const current = live[step - 1];
-  const picked = current ? choices[current.param] : undefined;
+  if (!steps || steps.length === 0) return null;
 
-  function pick(value: string) {
-    setChoices((c) => ({ ...c, [current.param]: value }));
-    setShowResult(false);
-  }
+  const total = steps.length;
+  const current = steps[step - 1];
+  const picked = choices[current.param];
+  const last = step === total;
+  const resultHref = `/products?${new URLSearchParams(
+    Object.fromEntries(Object.entries(choices).filter(([, v]) => v)),
+  ).toString()}`;
 
-  function goNext() {
-    if (!picked) return;
-    if (step < total) {
-      setStep(step + 1);
-      setShowResult(false);
-    } else {
-      setShowResult(true);
-    }
-  }
+  const pick = (value: string) =>
+    setChoices((c) => ({ ...c, [current.param]: c[current.param] === value ? "" : value }));
+  const goNext = () => { if (!last) setStep(step + 1); };
+  const skip = () => {
+    setChoices((c) => ({ ...c, [current.param]: "" }));
+    if (!last) setStep(step + 1);
+  };
+  const goTo = (n: number) => { if (n <= step) setStep(n); };
 
-  function goBack() {
-    if (step > 1) {
-      setStep(step - 1);
-      setShowResult(false);
-    }
-  }
+  const hasPanel = Boolean(panelTitle || panelText || panelScript || panelImageUrl);
 
   return (
     <section className="py-[46px]" id="giftfinder">
-      <div className="max-w-[1200px] mx-auto px-6">
-        {/* Section head */}
+      <div className="max-w-[1400px] mx-auto px-6">
         <SectionHead
           sectionKey="home.giftfinder"
-          eyebrow="Still not sure what to send?"
-          title="Find the Perfect Gift in 3 Easy Steps"
-          subtitle={"Answer one simple question at a time — we'll match the perfect gift for you."}
+          eyebrow="Let us guide you"
+          title="Find the Perfect Gift in 3 Simple Steps"
+          subtitle={"A few quick details, and we'll handpick the best gifts for your special moment."}
         />
 
-        {/* Wizard card */}
         <div
-          className="border border-lavender-deep rounded-[28px] shadow-soft px-6 py-8 md:px-10 md:py-8 max-w-[700px] mx-auto text-center"
-          style={{
-            background: "linear-gradient(140deg,#f7f1fb 0%,#f9e9fd 100%)",
-          }}
+          className="rounded-[28px] shadow-soft overflow-hidden grid grid-cols-1 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,7.6fr)_minmax(0,1.1fr)]"
+          style={{ background: "linear-gradient(140deg,#fbf8fd 0%,#f7f1fb 100%)" }}
         >
-          {/* Progress */}
-          <div className="flex items-center gap-4 mb-[22px]">
-            <span className="text-[12.5px] font-semibold tracking-[0.08em] uppercase text-purple whitespace-nowrap">
-              Step {step} of {total}
-            </span>
-            <div className="flex-1 h-[6px] rounded-full bg-white overflow-hidden">
-              <span
-                className="block h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${(step / total) * 100}%`,
-                  background: "linear-gradient(90deg,#cf43ea,#470066)",
-                }}
-              />
-            </div>
-          </div>
+          {/* ---- The purple panel ---- */}
+          {hasPanel && (
+            <div
+              className="relative overflow-hidden text-white px-9 py-10 lg:px-10 lg:py-12 min-h-[300px] lg:min-h-[520px] flex flex-col"
+              style={{ background: "radial-gradient(90% 70% at 100% 100%, rgba(207,67,234,.35), rgba(207,67,234,0) 70%), linear-gradient(160deg,#2b0040 0%,#470066 55%,#5b1084 100%)" }}
+            >
+              {/* two soft discs, like the reference's petals */}
+              <span className="absolute -left-24 -top-24 w-72 h-72 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,.06)" }} />
+              <span className="absolute -left-16 top-1/2 w-56 h-56 rounded-full pointer-events-none" style={{ background: "rgba(207,67,234,.16)" }} />
 
-          {/* Question */}
-          <h3 className="font-display text-[21px] font-medium text-purple mb-[18px]">
-            {questions[current.param] ?? current.title}
-          </h3>
-
-          {/* Options */}
-          <div className="flex gap-[11px] flex-wrap justify-center">
-            {current.options.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => pick(opt.value)}
-                className={`flex flex-col items-center gap-[7px] rounded-[18px] px-5 py-4 min-w-[106px] shadow-soft transition-all duration-200 cursor-pointer border-2 hover:-translate-y-[3px] hover:shadow-lift ${
-                  picked === opt.value
-                    ? "border-orchid bg-orchid-soft"
-                    : "border-transparent bg-white"
-                }`}
-              >
-                {/* the tag's own picture when it has one — better than an emoji,
-                    and it is a picture the owner already uploads. A soft circle
-                    otherwise, so a set with no images still looks arranged. */}
-                <span
-                  className="w-[34px] h-[34px] rounded-full bg-cover bg-center shrink-0"
-                  style={opt.imageUrl
-                    ? { backgroundImage: `url(${opt.imageUrl})` }
-                    : { background: "linear-gradient(150deg,#F3E2FA,#D5A8EC)" }}
-                />
-                <b className="text-[13px] font-semibold text-purple whitespace-nowrap">
-                  {opt.label}
-                </b>
-              </button>
-            ))}
-          </div>
-
-          {/* Result */}
-          {showResult && (
-            <div className="mt-[22px] px-5 py-4 bg-white rounded-[18px] flex items-center justify-between gap-4 flex-wrap">
-              <span className="text-[14px] text-purple">
-                🌸 <b>{live.map((st) => st.options.find((o) => o.value === choices[st.param])?.label).filter(Boolean).join(" · ")}</b>
-              </span>
-              {/* A real link, not a message. The answers travel as query
-                  parameters; the product listing reads them once the catalogue
-                  is connected, and until then this still lands on the products
-                  page rather than nowhere. */}
-              <Link
-                href={`/products?${new URLSearchParams(choices).toString()}`}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-purple text-white rounded-full font-medium text-[14px] hover:bg-purple-deep transition-all whitespace-nowrap"
-              >
-                {resultLabel}
-              </Link>
+              <div className="relative z-[1] flex items-center gap-3 text-[11.5px] tracking-[0.24em] uppercase font-semibold text-orchid-mid">
+                <span className="w-8 h-px bg-orchid-mid/80" />
+                Step {step} of {total}
+              </div>
+              {panelTitle && (
+                <h3 className="relative z-[1] font-display text-[30px] lg:text-[36px] font-medium leading-[1.12] mt-7 max-w-[11ch]">{panelTitle}</h3>
+              )}
+              {panelText && (
+                <p className="relative z-[1] text-[15px] text-white/80 leading-[1.6] mt-5 max-w-[26ch]">{panelText}</p>
+              )}
+              <div className="relative z-[1] mt-auto pt-10 flex items-end justify-between gap-4">
+                {panelScript && (
+                  <span className="font-display italic text-[24px] leading-[1.15] text-orchid-mid max-w-[12ch]">{panelScript} <span className="not-italic">♡</span></span>
+                )}
+              </div>
+              {panelImageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={panelImageUrl} alt="" className="absolute right-0 bottom-0 w-[62%] max-h-[70%] object-contain object-right-bottom pointer-events-none" />
+              )}
             </div>
           )}
 
-          {/* Nav */}
-          <div className="flex items-center justify-between gap-4 mt-6">
-            <button
-              onClick={goBack}
-              className={`text-[14px] font-semibold text-body-soft hover:text-orchid transition-colors px-[6px] py-[10px] cursor-pointer ${
-                step === 1 ? "invisible" : ""
-              }`}
-            >
-              ← Back
-            </button>
-            <button
-              onClick={goNext}
-              disabled={!picked}
-              className="inline-flex items-center gap-2 px-[38px] py-[13px] bg-purple text-white rounded-full font-medium text-[15px] transition-all duration-300 hover:bg-purple-deep hover:-translate-y-[2px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer shadow-[0_12px_30px_rgba(71,0,102,0.25)]"
-            >
-              {step === total ? doneLabel : nextLabel}
-            </button>
+          {/* ---- The steps ---- */}
+          <div className={`px-7 py-8 lg:px-12 lg:py-10 flex flex-col ${hasPanel ? "" : "lg:col-span-2"}`}>
+            {/* the rail */}
+            <div className="flex items-center max-w-[640px] w-full mx-auto">
+              {steps.map((s, i) => {
+                const n = i + 1;
+                const done = n < step, on = n === step;
+                return (
+                  <div key={s.param} className={`flex items-center ${i < total - 1 ? "flex-1" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => goTo(n)}
+                      className="relative flex flex-col items-center cursor-pointer"
+                      aria-current={on ? "step" : undefined}
+                    >
+                      <span
+                        className={`w-9 h-9 rounded-full grid place-items-center text-[14px] font-bold transition-all ${
+                          on ? "bg-purple text-white shadow-[0_8px_20px_rgba(71,0,102,.3)]" : done ? "bg-orchid text-white" : "bg-lavender-deep text-body-soft"
+                        }`}
+                      >
+                        {done ? <Check /> : n}
+                      </span>
+                      <span className={`absolute top-11 text-[14px] whitespace-nowrap ${on ? "font-semibold text-purple" : "text-body-soft"}`}>{s.title}</span>
+                    </button>
+                    {i < total - 1 && <span className={`flex-1 h-[3px] mx-3 rounded-full ${done ? "bg-orchid" : "bg-lavender-deep"}`} />}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* the question */}
+            <h3 className="font-display text-[28px] lg:text-[32px] font-medium text-purple mt-16">
+              {questions[current.param] ?? current.title}
+            </h3>
+            {hints[current.param] && (
+              <p className="text-[16px] text-body-soft mt-1.5">{hints[current.param]}</p>
+            )}
+
+            {/* the choices */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3.5 mt-7">
+              {current.options.map((opt, i) => {
+                const on = picked === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => pick(opt.value)}
+                    className={`relative flex flex-col items-center gap-3 rounded-[18px] px-3 pt-6 pb-5 bg-white border-2 transition-all duration-200 cursor-pointer hover:-translate-y-[3px] hover:shadow-lift ${
+                      on ? "border-orchid shadow-lift" : "border-lavender-deep shadow-soft"
+                    }`}
+                  >
+                    {on && (
+                      <span className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-purple grid place-items-center"><Check /></span>
+                    )}
+                    <span
+                      className="w-14 h-14 rounded-full grid place-items-center bg-cover bg-center font-display text-[22px] text-purple"
+                      style={opt.imageUrl ? { backgroundImage: `url(${opt.imageUrl})` } : { background: TINTS[i % TINTS.length] }}
+                    >
+                      {!opt.imageUrl && opt.label.slice(0, 1).toUpperCase()}
+                    </span>
+                    <b className="text-[15px] font-semibold text-purple whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{opt.label}</b>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* the buttons */}
+            <div className="mt-auto pt-8">
+              <div className="border-t border-lavender-deep pt-6 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  {step > 1 && (
+                    <button type="button" onClick={() => setStep(step - 1)} className="text-[15px] font-semibold text-body-soft hover:text-purple px-2 py-3 cursor-pointer">← Back</button>
+                  )}
+                  {skipLabel && !last && (
+                    <button type="button" onClick={skip} className="h-[52px] px-7 rounded-full bg-lavender text-purple font-semibold text-[15px] hover:bg-lavender-deep transition-colors cursor-pointer">{skipLabel}</button>
+                  )}
+                </div>
+                {last ? (
+                  <Link
+                    href={resultHref}
+                    className="inline-flex items-center h-[58px] px-10 bg-purple text-white rounded-full font-semibold text-[16px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap"
+                  >
+                    {doneLabel}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={!picked}
+                    className="inline-flex items-center h-[58px] px-10 bg-purple text-white rounded-full font-semibold text-[16px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer"
+                  >
+                    {nextLabel}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* ---- The caption column ---- */}
+          {sideCaption && (
+            <div className="hidden lg:flex flex-col items-center justify-between border-l border-lavender-deep/70 py-10 text-purple">
+              <Sprig className="w-[110px] h-[180px] text-orchid-mid/70" />
+              <div className="text-[12px] tracking-[0.28em] uppercase text-body-soft leading-[2] max-w-[8ch] text-center">{sideCaption}</div>
+              <span className="text-[22px] text-orchid-mid">♡</span>
+            </div>
+          )}
         </div>
       </div>
     </section>

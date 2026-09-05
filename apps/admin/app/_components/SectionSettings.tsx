@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  listCategoryTree, listJournalPosts, listGiftFinderSteps, listShopProducts,
+  listCategoryTree, listJournalPosts, listGiftFinderSteps, listShopProducts, uploadImage,
   type ApiPageSection, type ApiCategoryNode, type ApiJournalPost, type ApiShopCard,
 } from "../_data/api";
 
@@ -275,28 +275,77 @@ function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
   const [steps, setSteps] = useState<{ param: string; title: string }[]>([]);
   useEffect(() => { listGiftFinderSteps().then(setSteps).catch(() => setSteps([])); }, []);
   const questions = (c.questions as Record<string, string> | undefined) ?? {};
+  const hints = (c.hints as Record<string, string> | undefined) ?? {};
+  const [uploading, setUploading] = useState(false);
+  const panelImage = String(c.panelImageUrl ?? "");
+
+  async function pickImage(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadImage(file, "banners");
+      await save({ panelImageUrl: url });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <F label="The question above each step" hint="the choices under it are the tags and budget cards themselves">
+      <F label="The purple panel on the left" hint="the words beside the steps — the reference's 'It's better when it's personal'">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <div>
+            <span className="text-[11px] text-body-soft block mb-1">Title</span>
+            <TextBox value={String(c.panelTitle ?? "")} placeholder="It's better when it's personal" onCommit={(v) => save({ panelTitle: v })} />
+          </div>
+          <div>
+            <span className="text-[11px] text-body-soft block mb-1">Handwritten line at the bottom</span>
+            <TextBox value={String(c.panelScript ?? "")} placeholder="Thoughtful Gifts, Happier People" onCommit={(v) => save({ panelScript: v })} />
+          </div>
+          <div className="md:col-span-2">
+            <span className="text-[11px] text-body-soft block mb-1">Text</span>
+            <TextBox value={String(c.panelText ?? "")} placeholder="Tell us a bit about your gifting moment…" onCommit={(v) => save({ panelText: v })} />
+          </div>
+          <div className="md:col-span-2">
+            <span className="text-[11px] text-body-soft block mb-1">Picture in the panel · a cut-out (transparent PNG) sits best on the purple · empty = no picture</span>
+            <div className="flex items-center gap-3">
+              <label className="relative block w-[120px] aspect-square rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
+                {panelImage
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={panelImage} alt="" className={"absolute inset-0 w-full h-full object-contain " + (uploading ? "opacity-40" : "")} />
+                  : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
+              </label>
+              {panelImage && !uploading && <button onClick={() => save({ panelImageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+            </div>
+          </div>
+        </div>
+      </F>
+      <F label="The question above each step, and the small line under it" hint="the choices themselves are the tags and budget cards">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           {steps.map((s) => (
-            <div key={s.param}>
-              <span className="text-[11px] text-body-soft block mb-1">{s.title}</span>
+            <div key={s.param} className="space-y-1.5">
+              <span className="text-[11px] text-body-soft block">{s.title}</span>
               <TextBox
                 value={questions[s.param] ?? ""}
                 placeholder={s.title}
                 onCommit={(v) => save({ questions: { ...questions, [s.param]: v } })}
               />
+              <TextBox
+                value={hints[s.param] ?? ""}
+                placeholder="Small line under the question"
+                onCommit={(v) => save({ hints: { ...hints, [s.param]: v } })}
+              />
             </div>
           ))}
         </div>
       </F>
-      <F label="Buttons">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-[720px]">
-          <TextBox value={String(c.nextLabel ?? "")} placeholder="Next →" onCommit={(v) => save({ nextLabel: v })} />
-          <TextBox value={String(c.doneLabel ?? "")} placeholder="Show My Gift 🌸" onCommit={(v) => save({ doneLabel: v })} />
-          <TextBox value={String(c.resultLabel ?? "")} placeholder="See the gifts →" onCommit={(v) => save({ resultLabel: v })} />
+      <F label="Buttons and the side caption">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <div><span className="text-[11px] text-body-soft block mb-1">Next</span><TextBox value={String(c.nextLabel ?? "")} placeholder="Next Step →" onCommit={(v) => save({ nextLabel: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Last step</span><TextBox value={String(c.doneLabel ?? "")} placeholder="Show My Gifts →" onCommit={(v) => save({ doneLabel: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Skip · empty = no skip</span><TextBox value={String(c.skipLabel ?? "")} placeholder="Skip for now" onCommit={(v) => save({ skipLabel: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Side caption (right column) · empty = no column</span><TextBox value={String(c.sideCaption ?? "")} placeholder="Small gestures, big happiness" onCommit={(v) => save({ sideCaption: v })} /></div>
         </div>
       </F>
     </div>
