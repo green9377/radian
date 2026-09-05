@@ -484,11 +484,29 @@ export class LayoutService implements OnModuleInit {
     }));
   }
 
-  /** a section the owner adds. Born switched off, like a new banner. */
+  /**
+   * A section the owner adds. Born switched off, like a new banner.
+   *
+   * ⚠️ It is born ABOVE the fixed tail (Reviews · … · Visit the shop), not at
+   * the very end (5 Sep 2026). Appended after "Visit the shop" it could never
+   * be dragged up: the reorder guard keeps every fixed section at its index,
+   * and moving anything past them changes that index. So the newcomer takes
+   * the slot just before the first fixed section that is not the top one,
+   * and the rows from there slide down.
+   */
   async addBlock(page: string, blockType: BlockType) {
-    const last = await this.prisma.db.pageSection.findFirst({
-      where: { page }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true },
+    const rows = await this.prisma.db.pageSection.findMany({
+      where: { page }, orderBy: { sortOrder: 'asc' }, select: { key: true, sortOrder: true },
     });
+    const defs = defsFor(page);
+    const fixedTail = rows.find((r, i) => i > 0 && defs.some((d) => d.key === r.key && !d.movable));
+    const sortOrder = fixedTail ? fixedTail.sortOrder : (rows[rows.length - 1]?.sortOrder ?? 0) + 1;
+    if (fixedTail) {
+      await this.prisma.db.pageSection.updateMany({
+        where: { page, sortOrder: { gte: sortOrder } },
+        data: { sortOrder: { increment: 1 } },
+      });
+    }
     return this.prisma.db.pageSection.create({
       data: {
         page,
@@ -496,7 +514,7 @@ export class LayoutService implements OnModuleInit {
         blockType,
         title: BLOCK_LABEL[blockType],
         config: DEFAULT_CONFIG[blockType],
-        sortOrder: (last?.sortOrder ?? 0) + 1,
+        sortOrder,
         isActive: false,
       },
     });
