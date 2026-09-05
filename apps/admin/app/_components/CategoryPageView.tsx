@@ -747,7 +747,7 @@ export default function CategoryPageView() {
                             This is the default story for every category — pick a category above to write its own.
                           </p>
                         )}
-                        <AboutSettings c={r.config} save={async (partial) => patch(r.key, { config: { ...r.config, ...partial } })} />
+                        <AboutSettings variant="article" c={r.config} save={async (partial) => patch(r.key, { config: { ...r.config, ...partial } })} />
                       </div>
                     ) : r.key === "faq" ? (
                       !chosen ? (

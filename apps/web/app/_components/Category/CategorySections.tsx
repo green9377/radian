@@ -199,7 +199,7 @@ export default function CategorySections({
               Radian card, with this category's own words — SEO text a
               shopper reads last and Google reads whole.  */
           case "story":
-            return <AboutSection key={key} config={section.config ?? {}} id="story" />;
+            return <AboutSection key={key} config={section.config ?? {}} id="story" variant="article" />;
 
             default:
               return null;

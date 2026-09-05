@@ -397,7 +397,7 @@ function IconRows({ rows, max, onChange, placeholderTitle, placeholderSub }: {
   );
 }
 
-export function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
+export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Save; variant?: "card" | "article" }) {
   const [uploading, setUploading] = useState(false);
   const image = String(c.imageUrl ?? "");
   const features = (c.features as IconRow[] | undefined) ?? [];
@@ -412,6 +412,23 @@ export function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
     } finally {
       setUploading(false);
     }
+  }
+
+  if (variant === "article") {
+    return (
+      <div className="space-y-4">
+        <F label="The words" hint="centred under the page, the first paragraph open and the rest behind Read more — paragraphs separated by a blank line">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+            <div><span className="text-[11px] text-body-soft block mb-1">Small line above</span><TextBox value={String(c.eyebrow ?? "")} placeholder="Fresh flowers in Dhaka" onCommit={(v) => save({ eyebrow: v })} /></div>
+            <div><span className="text-[11px] text-body-soft block mb-1">Heading</span><TextBox value={String(c.title ?? "")} placeholder="Fresh Flower Delivery in Dhaka" onCommit={(v) => save({ title: v })} /></div>
+            <div className="md:col-span-2">
+              <span className="text-[11px] text-body-soft block mb-1">Text</span>
+              <TextArea value={String(c.body ?? "")} placeholder="Looking for fresh flowers in Dhaka? …" onCommit={(v) => save({ body: v })} />
+            </div>
+          </div>
+        </F>
+      </div>
+    );
   }
 
   return (

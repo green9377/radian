@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import ShopIcon from "../ui/ShopIcon";
 
@@ -26,7 +27,55 @@ function Tile({ icon, tone = "lavender" }: { icon: string; tone?: "lavender" | "
   );
 }
 
-export default function AboutSection({ config = {}, id = "about" }: { config?: Record<string, unknown>; id?: string }) {
+/*
+  The ARTICLE variant (category pages, owner 5 Sep 2026): the same words,
+  centred in a narrow column, smaller, nothing beside them — no picture, no
+  cards, no caption. The first paragraph shows; the rest sits behind "Read
+  more". The whole text is always in the page (Google reads all of it); only
+  the eye is spared.
+*/
+function Article({ eyebrow, title, paragraphs }: { eyebrow: string; title: string; paragraphs: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [first, ...rest] = paragraphs;
+  return (
+    <section className="py-[var(--section-y)]" id="story">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
+        <div className="max-w-[820px] mx-auto text-center">
+          {eyebrow && (
+            <div className="inline-flex items-center gap-3 text-[12px] tracking-[0.22em] uppercase font-semibold text-orchid">
+              <span className="w-8 h-px bg-orchid/60" />
+              {eyebrow}
+              <span className="w-8 h-px bg-orchid/60" />
+            </div>
+          )}
+          {title && (
+            <h2 className="font-display text-[clamp(24px,2.6vw,32px)] font-medium leading-[1.2] text-purple mt-3 [overflow-wrap:anywhere]">{title}</h2>
+          )}
+          <div className="mt-4 text-[15px] leading-[1.75] text-body space-y-3">
+            {first && <p>{first}</p>}
+            {rest.length > 0 && (
+              <div className={`space-y-3 ${open ? "" : "hidden"}`} aria-hidden={!open}>
+                {rest.map((p, i) => <p key={i}>{p}</p>)}
+              </div>
+            )}
+          </div>
+          {rest.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              className="mt-4 inline-flex items-center gap-2 text-[14px] font-semibold text-purple hover:text-orchid transition-colors cursor-pointer"
+            >
+              {open ? "Show less" : "Read more"} <span aria-hidden className={`transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function AboutSection({ config = {}, id = "about", variant = "card" }: { config?: Record<string, unknown>; id?: string; variant?: "card" | "article" }) {
   const eyebrow = String(config.eyebrow ?? "");
   const title = String(config.title ?? "");
   const body = String(config.body ?? "");
@@ -43,6 +92,7 @@ export default function AboutSection({ config = {}, id = "about" }: { config?: R
 
   const paragraphs = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   if (!title && paragraphs.length === 0) return null;
+  if (variant === "article") return <Article eyebrow={eyebrow} title={title} paragraphs={paragraphs} />;
 
   const hasSide = Boolean(imageUrl || scriptLine || stats.length || sideCaption);
 
