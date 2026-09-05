@@ -111,7 +111,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8 lg:gap-10 pt-[52px] pb-[38px]">
           {/* Brand */}
           <div>
-            <ShopLogo tone="light" size={25} />
+            <ShopLogo tone="light" size={32} />
             <p className="text-[13.5px] font-light text-white/60 mt-[14px] mb-5 max-w-[34ch]">
               {data?.tagline ??
                 "Dhaka's premium flower and gift studio. Hand-arranged, honestly priced, delivered while the moment still matters."}

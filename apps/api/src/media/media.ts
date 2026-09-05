@@ -169,6 +169,14 @@ export class MediaService {
       throw new BadRequestException(`Unknown folder "${folder}"`);
     }
 
+    /*  A logo arrives on whatever canvas the designer exported — 4167 × 2609
+        for a mark 619px tall (5 Sep 2026), so at header height it was a
+        smudge. Brand files lose their empty margins on the way in; the mark
+        itself is untouched.  */
+    if (folder === 'brand' && /^image\/(png|webp)$/.test(file.mimetype)) {
+      file = await this.trimMargins(file);
+    }
+
     if (removeBg && !vector) {
       const cut = await this.cutBackground(file);
       if (cut) return { ...(await this.putObject(cut, folder as Folder)), bgRemoved: true };
@@ -186,6 +194,15 @@ export class MediaService {
    * does not answer, and the caller keeps the original — a photo with its
    * background is better than no photo.
    */
+  private async trimMargins(file: UploadedImage): Promise<UploadedImage> {
+    try {
+      const buffer = await sharp(file.buffer).trim({ threshold: 8 }).toBuffer();
+      return { ...file, buffer, size: buffer.length };
+    } catch {
+      return file;
+    }
+  }
+
   private async cutBackground(file: UploadedImage): Promise<UploadedImage | null> {
     const base = (process.env.BG_REMOVE_URL ?? '').replace(/\/+$/, '');
     if (!base) return null;
