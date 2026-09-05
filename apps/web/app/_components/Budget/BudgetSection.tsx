@@ -7,44 +7,21 @@ import type { Zone } from "../../_store/useZoneStore";
 import { getShopCollections, zoneCode } from "../../_data/shop";
 
 /*
-  Gifts for Every Budget — 4 collection cards on lavender band.
-  Static section (same for both zones, per approved board).
-  Card backgrounds: gradient placeholders until real photo shoot.
-*/
+  Gifts for Every Budget — the featured collections (Storefront → Collections),
+  one card each. A PRICE_RANGE collection's page filters by today's price, a
+  MANUAL one lists its hand-picked products; the card only links there.
 
-const BUDGETS = [
-  {
-    kicker: "Sweet & simple",
-    title: "Under ৳1,000",
-    sub: "Little gestures, big smiles",
-    href: "/collections/under-1000",
-    bg: "linear-gradient(160deg,#F2DFF5,#D9B5E8)",
-    premium: false,
-  },
-  {
-    kicker: "The favourites",
-    title: "৳1,000 – ৳2,000",
-    sub: "Our most-loved range",
-    href: "/collections/1000-2000",
-    bg: "linear-gradient(160deg,#EFD9EE,#D3A8DC)",
-    premium: false,
-  },
-  {
-    kicker: "Go grand",
-    title: "৳2,000 – ৳5,000",
-    sub: "For moments that matter",
-    href: "/collections/2000-5000",
-    bg: "linear-gradient(160deg,#E8D4F0,#C49BDD)",
-    premium: false,
-  },
-  {
-    kicker: "Rose gold tier",
-    title: "Premium Collection",
-    sub: "Luxury, hand-finished",
-    href: "/collections/premium",
-    bg: "linear-gradient(160deg,#EFD8D3,#C99A92)",
-    premium: true,
-  },
+  ⚠️ 5 Sep 2026 — there is no typed-in fallback any more. Four made-up cards
+  ("Under ৳1,000" → /collections/under-1000) used to show whenever the shop had
+  no featured collection, and every one of them was a dead link: a budget rail
+  that does not filter by budget. No featured collection now means no rail.
+  The gradient below is only the backdrop for a card without a photo.
+*/
+const TONES = [
+  "linear-gradient(160deg,#F2DFF5,#D9B5E8)",
+  "linear-gradient(160deg,#EFD9EE,#D3A8DC)",
+  "linear-gradient(160deg,#E8D4F0,#C49BDD)",
+  "linear-gradient(160deg,#EFD8D3,#C99A92)",
 ];
 
 interface Card {
@@ -59,9 +36,7 @@ interface Card {
 }
 
 export default function BudgetSection({ zone }: { zone?: Zone | null }) {
-  const [cards, setCards] = useState<Card[]>(
-    BUDGETS.map((b) => ({ ...b, key: b.title, imageUrl: null })),
-  );
+  const [cards, setCards] = useState<Card[]>([]);
 
   /*
     LIVE since 31 Jul 2026. The gradient stays as the fallback art, indexed so
@@ -76,7 +51,7 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
   useEffect(() => {
     let alive = true;
     getShopCollections(zoneCode(zone ?? null)).then((rows) => {
-      if (!alive || rows === null || rows.length === 0) return;
+      if (!alive || rows === null) return;
       setCards(
         rows.map((c, i) => ({
           key: c.slug,
@@ -84,7 +59,7 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
           title: c.name,
           sub: c.subtitle ?? "",
           href: `/collections/${c.slug}`,
-          bg: BUDGETS[i % BUDGETS.length].bg,
+          bg: TONES[i % TONES.length],
           premium: c.accent,
           imageUrl: c.imageUrl,
         })),
