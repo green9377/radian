@@ -111,7 +111,7 @@ export const PAGE_SECTION_MANIFEST: Record<string, SectionDef[]> = {
     { key: 'comboRail', label: 'Better together', hint: 'Combo cards', movable: false },
     { key: 'deliveryBand', label: 'Delivery band', hint: 'The dark purple delivery promise', movable: false },
     { key: 'crossSellRail', label: 'Keep exploring', hint: 'Cards to other categories', movable: false },
-    { key: 'giftFinder', label: 'Gift Finder', hint: 'The still-deciding block', movable: false },
+    { key: 'giftFinder', label: 'Gift Finder', hint: 'The three-step wizard, searching this category only', movable: false },
     { key: 'faq', label: 'Questions', hint: "This category's own FAQ", movable: false },
     { key: 'story', label: 'The story at the bottom', hint: 'SEO text with a picture — like About Radian on the homepage; written per category', movable: false },
   ],
@@ -381,6 +381,11 @@ const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Recor
 };
 
 /** the settings in force for a built-in section: defaults, then what is stored */
+/*  The category page's Gift Finder is the homepage's, so it keeps the same
+    settings shape under the category manifest's own key (owner, 5 Sep 2026).  */
+SECTION_DEFAULTS.giftFinder = SECTION_DEFAULTS.giftfinder;
+SECTION_SANITISERS.giftFinder = SECTION_SANITISERS.giftfinder;
+
 export const withSectionDefaults = (key: string, stored: unknown): Record<string, unknown> => {
   const d = SECTION_DEFAULTS[key];
   const s = (stored ?? {}) as Record<string, unknown>;

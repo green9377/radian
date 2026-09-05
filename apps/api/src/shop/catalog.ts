@@ -202,6 +202,8 @@ export interface ProductQuery {
   search?: string;
   tag?: string;
   occasion?: string;
+  /** a tag from the `recipients` group — the Gift Finder's "who is it for" */
+  recipient?: string;
   colour?: string;
   /** in TAKA, not paisa — these come straight off the budget links in the page.
    *  string | number: the query string gives a string, the internal caller
@@ -1015,7 +1017,7 @@ export class ShopCatalogService {
       ];
     }
 
-    const tagSlugs = [q.tag, q.occasion].filter(Boolean) as string[];
+    const tagSlugs = [q.tag, q.occasion, q.recipient].filter(Boolean) as string[];
     if (tagSlugs.length) {
       where.AND = tagSlugs.map((s) => ({ tags: { some: { slug: s, isActive: true, deletedAt: null } } }));
     }

@@ -46,7 +46,20 @@ function Sprig({ className }: { className?: string }) {
    every choice its own tint */
 const TINTS = ["#f7e4fb", "#e3eefb", "#fde5ee", "#ece4fb", "#e3f5ea", "#fdefdd"];
 
-export default function GiftFinder({ config = {} }: { config?: Record<string, unknown> }) {
+export default function GiftFinder({
+  config = {},
+  basePath = "/products",
+  head,
+  id = "giftfinder",
+}: {
+  config?: Record<string, unknown>;
+  /** where the answers go — /products on the homepage, the category's own
+      address on a category page, so the search stays inside that category */
+  basePath?: string;
+  /** the heading above it — a category page passes its own three lines */
+  head?: { eyebrow?: string | null; title?: string | null; subtitle?: string | null };
+  id?: string;
+}) {
   const questions = asMap(config.questions);
   const hints = asMap(config.hints);
   const nextLabel = String(config.nextLabel || "Next Step →");
@@ -79,7 +92,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
   const current = steps[step - 1];
   const picked = choices[current.param];
   const last = step === total;
-  const resultHref = `/products?${new URLSearchParams(
+  const resultHref = `${basePath}?${new URLSearchParams(
     Object.fromEntries(Object.entries(choices).filter(([, v]) => v)),
   ).toString()}`;
 
@@ -95,13 +108,13 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
   const hasPanel = Boolean(panelTitle || panelText || panelScript || panelImageUrl);
 
   return (
-    <section className="py-[var(--section-y)]" id="giftfinder">
+    <section className="py-[var(--section-y)]" id={id}>
       <div className="max-w-[var(--page-w)] mx-auto px-6">
         <SectionHead
-          sectionKey="home.giftfinder"
-          eyebrow="Let us guide you"
-          title="Find the Perfect Gift in 3 Simple Steps"
-          subtitle={"A few quick details, and we'll handpick the best gifts for your special moment."}
+          sectionKey={head ? null : "home.giftfinder"}
+          eyebrow={head ? head.eyebrow ?? "" : "Let us guide you"}
+          title={head ? head.title ?? "" : "Find the Perfect Gift in 3 Simple Steps"}
+          subtitle={head ? head.subtitle ?? "" : "A few quick details, and we'll handpick the best gifts for your special moment."}
         />
 
         <div

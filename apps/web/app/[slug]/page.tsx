@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getCategoryConfig } from "../_data/categories";
 import { toCategoryConfig, toProduct } from "../_data/categoryApi";
-import { getCategoryPage, getShopProducts } from "../_data/shop";
+import { getCategoryPage, getCollectionDetail, getShopProducts } from "../_data/shop";
 import CategorySections from "../_components/Category/CategorySections";
 import Reviews from "../_components/GBE/Reviews";
 import VisitStore from "../_components/GBE/VisitStore";
@@ -75,6 +75,9 @@ export async function generateMetadata({
   return fallback ? { title: fallback.seo.title, description: fallback.seo.description } : {};
 }
 
+const withoutBudget = (f: Record<string, string | undefined>) =>
+  Object.fromEntries(Object.entries(f).filter(([k]) => k !== "budget"));
+
 export default async function CategoryPage({
   params,
   searchParams,
@@ -108,12 +111,24 @@ export default async function CategoryPage({
     a bookmark, an ad or a shared message carrying the old spelling must keep
     working, so both spellings are accepted and only one is sent on.
   */
+  /*
+    The Gift Finder on this page (5 Sep 2026) ends here with `?recipients=`,
+    `?occasions=` and `?budget=<price-range collection>` — the same address
+    shape the homepage's finder sends to /products, but kept on this category
+    so the answer is "roses for mom under ৳2,000", never every gift in the
+    shop. A budget slug becomes its collection's price window before the API
+    is asked, so the grid is right on the first render.
+  */
+  const budgetSlug = one("budget");
+  const budget = budgetSlug ? await getCollectionDetail(budgetSlug, zone) : null;
   const filters = {
     colour: one("colour"),
     occasion: one("occasions") ?? one("occasion"),
     tag: one("tag") ?? one("style"),
-    min: one("min"),
-    max: one("max"),
+    recipient: one("recipients"),
+    budget: budgetSlug,
+    min: one("min") ?? (budget?.minPaisa != null ? String(Math.round(budget.minPaisa / 100)) : undefined),
+    max: one("max") ?? (budget?.maxPaisa != null ? String(Math.round(budget.maxPaisa / 100)) : undefined),
     speed: one("speed") ?? one("delivery"),
     sort: one("sort") ?? "popular",
   };
@@ -139,7 +154,8 @@ export default async function CategoryPage({
     shopper presses Load More, rather than the server writing the entire
     catalogue into the HTML of every category page.
   */
-  const list = await getShopProducts({ category: slug, zone, limit: 24, ...filters });
+  // `budget` is already the window above — the API never sees the slug
+  const list = await getShopProducts({ category: slug, zone, limit: 24, ...withoutBudget(filters) });
 
   const config = toCategoryConfig(page);
   // with a filter on, the count under the grid must be the filtered count —

@@ -101,6 +101,9 @@ export default function CategoryFilterBar({
         titleCase(filters.occasion),
     });
   }
+  if (filters.recipient) {
+    chips.push({ key: "recipient", label: `For ${titleCase(filters.recipient)}` });
+  }
   if (filters.speed) {
     chips.push({ key: "speed", label: SPEED_LABEL[filters.speed] ?? titleCase(filters.speed) });
   }
@@ -132,6 +135,7 @@ export default function CategoryFilterBar({
     // written back under the name the page has always published for occasions,
     // so a shared link keeps the spelling the shop's own tiles use
     put("occasions", next.occasion);
+    put("recipients", next.recipient);
     put("speed", next.speed);
     put("min", next.min);
     put("max", next.max);
@@ -149,7 +153,11 @@ export default function CategoryFilterBar({
   };
 
   const drop = (key: string) =>
-    go(key === "price" ? { ...filters, min: undefined, max: undefined } : { ...filters, [key]: undefined });
+    go(
+      key === "price"
+        ? { ...filters, min: undefined, max: undefined, budget: undefined }
+        : { ...filters, [key]: undefined },
+    );
 
   const sort = filters.sort ?? "popular";
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
 import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
-import { AboutSettings } from "./SectionSettings";
+import { AboutSettings, GiftFinderSettings } from "./SectionSettings";
 import {
   listCategorySections, updateCategorySection, resetCategorySection,
   addCategoryBlock, editCategoryBlock, removeCategoryBlock,
@@ -52,7 +52,7 @@ const SOURCE: Record<string, { where: string; note: string }> = {
   comboRail:       { where: "Other categories", note: "Or pick them yourself below" },
   deliveryBand:    { where: "Delivery → Methods", note: "Cut-off times and fees" },
   crossSellRail:   { where: "Other categories", note: "Or pick them yourself below" },
-  giftFinder:      { where: "Tags + Collections", note: "Searches this category only" },
+  giftFinder:      { where: "Tags + Collections", note: "The homepage wizard, searching this category only" },
   faq:             { where: "Categories → Questions", note: "Each category writes its own" },
 };
 
@@ -740,6 +740,15 @@ export default function CategoryPageView() {
                           </div>
                         </div>
                       )
+                    ) : r.key === "giftFinder" ? (
+                      <div className="space-y-2">
+                        {!chosen && (
+                          <p className="text-[12.5px] text-body-soft m-0 mb-2">
+                            The same wizard as the homepage, searching this category only — these words are the default for every category; pick one above to give it its own.
+                          </p>
+                        )}
+                        <GiftFinderSettings c={r.config} save={async (partial) => patch(r.key, { config: { ...r.config, ...partial } })} />
+                      </div>
                     ) : r.key === "story" ? (
                       <div className="space-y-2">
                         {!chosen && (

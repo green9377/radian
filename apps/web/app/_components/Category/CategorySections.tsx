@@ -19,10 +19,9 @@ import BudgetRail from "./BudgetRail";
 import CategoryProductGrid from "./CategoryProductGrid";
 import TileRail from "./TileRail";
 import CategoryDelivery from "./CategoryDelivery";
-import CategoryGiftFinder from "./CategoryGiftFinder";
+import GiftFinder from "../GiftFinder/GiftFinder";
 import CategoryFaq from "./CategoryFaq";
 import AboutSection from "../About/AboutSection";
-import GiftFinderModal from "./GiftFinderModal";
 
 /*
   ══════════════════════════════════════════════════════════════
@@ -71,10 +70,6 @@ export default function CategorySections({
 
   return (
     <>
-      {/* Gift Finder modal — page-এ একবার। CTA থেকে খোলে, উত্তর দিলে
-          নিচের All Products grid filter হয়ে যায়। */}
-      <GiftFinderModal />
-
       {config.sections.map((section, i) => {
         if (!section.enabled) return null;
 
@@ -189,8 +184,23 @@ export default function CategorySections({
           case "crossSellRail":
             return <TileRail key={key} section={section} tiles={config.crossSell} gold />;
 
+          /*  The homepage's three-step wizard, searching this category only
+              (owner, 5 Sep 2026): its answers land on this page's own
+              address, and the grid below filters on the first render.  */
           case "giftFinder":
-            return <CategoryGiftFinder key={key} section={section} />;
+            return (
+              <GiftFinder
+                key={key}
+                id="gift-finder"
+                config={section.config ?? {}}
+                basePath={apiSlug ? `/${apiSlug}` : "/products"}
+                head={{
+                  eyebrow: section.eyebrow,
+                  title: section.heading,
+                  subtitle: section.subheading,
+                }}
+              />
+            );
 
           case "faq":
             return <CategoryFaq key={key} section={section} faqs={config.faqs} />;

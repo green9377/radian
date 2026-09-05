@@ -273,7 +273,7 @@ function BlogSettings({ c, save }: { c: Cfg; save: Save }) {
 
 /* ═══════════════════ Gift Finder ═══════════════════ */
 
-function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
+export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
   const [steps, setSteps] = useState<{ param: string; title: string }[]>([]);
   useEffect(() => { listGiftFinderSteps().then(setSteps).catch(() => setSteps([])); }, []);
   const questions = (c.questions as Record<string, string> | undefined) ?? {};

@@ -588,6 +588,8 @@ export interface ProductQuery {
   sub?: string;
   tag?: string;
   occasion?: string;
+  /** a `recipients` tag — the Gift Finder's "who is it for" */
+  recipient?: string;
   colour?: string;
   /** taka, not paisa — these are the numbers already in the budget links */
   min?: string | number;

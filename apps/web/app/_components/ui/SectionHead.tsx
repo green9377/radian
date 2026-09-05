@@ -59,7 +59,9 @@ export default function SectionHead({
   align = "center",
   className = "",
 }: {
-  sectionKey: string;
+  /** a key in the API's SECTION_MANIFEST — or null when the words arrive
+      already resolved (a category page picks its own wording on the server) */
+  sectionKey: string | null;
   eyebrow?: string;
   title?: string;
   subtitle?: string;
@@ -70,7 +72,7 @@ export default function SectionHead({
   className?: string;
 }) {
   const map = useContext(SectionTextContext);
-  const copy = map?.[sectionKey];
+  const copy = sectionKey ? map?.[sectionKey] : undefined;
 
   const e = copy ? copy.eyebrow : eyebrow;
   const t = copy ? copy.title : title;
