@@ -14,6 +14,7 @@ import DeliverySection from "./_components/Delivery/DeliverySection";
 import BudgetSection from "./_components/Budget/BudgetSection";
 import GiftFinder from "./_components/GiftFinder/GiftFinder";
 import AboutSection from "./_components/About/AboutSection";
+import FaqHomeSection from "./_components/FaqHome/FaqHomeSection";
 import Reviews from "./_components/GBE/Reviews";
 import BlogSection from "./_components/Blog/BlogSection";
 import VisitStore from "./_components/GBE/VisitStore";
@@ -29,7 +30,7 @@ import VisitStore from "./_components/GBE/VisitStore";
 */
 const DEFAULT_ORDER: LayoutBlock[] = [
   "hero", "trust", "categories", "occasions", "bestsellers", "promo",
-  "delivery", "budget", "giftfinder", "about", "reviews", "blog", "store",
+  "delivery", "budget", "giftfinder", "about", "faq", "reviews", "blog", "store",
 ].map((key) => ({ key, blockType: null, title: null, subtitle: null, config: {} }));
 
 export default function Home() {
@@ -71,6 +72,7 @@ export default function Home() {
     budget: () => <BudgetSection zone={zone} />,
     giftfinder: (c) => <GiftFinder config={c} />,
     about: (c) => <AboutSection config={c} />,
+    faq: (c) => <FaqHomeSection config={c} />,
     reviews: () => <Reviews />,
     blog: (c) => <BlogSection config={c} />,
     store: () => <VisitStore />,

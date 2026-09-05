@@ -78,6 +78,11 @@ export const SECTION_MANIFEST: SectionDefault[] = [
     subtitle: "Answer one simple question at a time — we'll match the perfect gift for you.",
   },
   {
+    key: 'home.faq', page: 'Homepage', label: 'Questions people ask',
+    eyebrow: 'FAQs for Radian Flower & Gift Shop', title: 'Questions people ask before they order',
+    subtitle: 'Find quick answers to common questions about ordering, delivery, customization, and more.',
+  },
+  {
     key: 'home.reviews', page: 'Every page', label: 'Customer reviews',
     eyebrow: 'Trusted by thousands', title: 'Why Dhaka Loves Radian',
   },

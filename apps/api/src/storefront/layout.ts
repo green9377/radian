@@ -75,6 +75,7 @@ export const PAGE_SECTION_MANIFEST: Record<string, SectionDef[]> = {
     { key: 'budget', label: 'Gifts for Every Budget', hint: 'The four price cards', movable: true },
     { key: 'giftfinder', label: 'Gift Finder', hint: 'The three-step wizard', movable: true },
     { key: 'about', label: 'About Radian', hint: 'The story card with the picture', movable: true },
+    { key: 'faq', label: 'Questions people ask', hint: 'The FAQ accordion from Pages & FAQs', movable: true },
     { key: 'reviews', label: 'Reviews', hint: 'Google card and customer stories', movable: false, lockedReason: 'Fixed with the shop card and footer at the bottom of every page' },
     { key: 'blog', label: 'Latest Articles', hint: 'Journal cards', movable: true },
     { key: 'store', label: 'Visit the shop', hint: 'Address, hours, map', movable: false, lockedReason: 'Fixed with the reviews and footer at the bottom of every page' },
@@ -223,6 +224,17 @@ export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
     stats: [] as { icon: string; title: string; sub: string }[],
     sideCaption: '',
   },
+  /** the FAQ accordion — the questions themselves live under Pages & FAQs */
+  faq: {
+    /** a group name from Pages & FAQs, '' = every group */
+    group: '',
+    count: 7,
+    scriptLine: 'Here to Help',
+    sideText: "Still have a question? We're always here to make your gifting experience smooth and joyful.",
+    footerLine: 'Thoughtful gifts. Happier people.',
+    linkText: 'See every question',
+    linkHref: '/faq',
+  },
   delivery: {
     perTab: 4,
     showViewAll: true,
@@ -262,6 +274,18 @@ const iconRows = (v: unknown, max: number): { icon: string; title: string; sub: 
     : [];
 
 const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Record<string, unknown>> = {
+  faq: (c) => {
+    const d = SECTION_DEFAULTS.faq;
+    return {
+      group: text(c.group, '', 60),
+      count: int(c.count, 2, 12, d.count as number),
+      scriptLine: text(c.scriptLine, d.scriptLine as string, 40),
+      sideText: text(c.sideText, d.sideText as string, 240),
+      footerLine: text(c.footerLine, d.footerLine as string, 80),
+      linkText: text(c.linkText, d.linkText as string, 40),
+      linkHref: href(c.linkHref, d.linkHref as string),
+    };
+  },
   about: (c) => {
     const d = SECTION_DEFAULTS.about;
     const img = text(c.imageUrl, '', 400);

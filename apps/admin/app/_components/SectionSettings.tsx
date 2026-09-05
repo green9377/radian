@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  listCategoryTree, listJournalPosts, listGiftFinderSteps, listShopProducts, uploadImage,
+  listCategoryTree, listJournalPosts, listGiftFinderSteps, listShopProducts, uploadImage, listFaqs,
   type ApiPageSection, type ApiCategoryNode, type ApiJournalPost, type ApiShopCard,
 } from "../_data/api";
 
@@ -39,6 +39,7 @@ export default function SectionSettings({ row, onSave }: { row: ApiPageSection; 
   if (row.key === "giftfinder") return <GiftFinderSettings c={c} save={onSave} />;
   if (row.key === "delivery") return <DeliverySettings c={c} save={onSave} />;
   if (row.key === "about") return <AboutSettings c={c} save={onSave} />;
+  if (row.key === "faq") return <FaqSettings c={c} save={onSave} />;
   return null;
 }
 
@@ -463,6 +464,41 @@ function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
             <div><span className="text-[11px] text-body-soft block mb-1">Caption at the bottom</span><TextBox value={String(c.sideCaption ?? "")} placeholder="A small gift, a brighter tomorrow" onCommit={(v) => save({ sideCaption: v })} /></div>
           </div>
           <IconRows rows={stats} max={4} onChange={(next) => save({ stats: next })} placeholderTitle="10K+" placeholderSub="Happy Customers" />
+        </div>
+      </F>
+    </div>
+  );
+}
+
+/* ═══════════════════ Questions people ask ═══════════════════ */
+
+function FaqSettings({ c, save }: { c: Cfg; save: Save }) {
+  const [groups, setGroups] = useState<string[]>([]);
+  useEffect(() => {
+    listFaqs().then((rows) => setGroups(Array.from(new Set(rows.map((r) => r.groupName))))).catch(() => setGroups([]));
+  }, []);
+  return (
+    <div className="space-y-4">
+      <F label="Which questions" hint="the questions themselves are written under Pages & FAQs — published ones, in their order">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-3 max-w-[720px]">
+          <select className="ipt" value={String(c.group ?? "")} onChange={(e) => save({ group: e.target.value })}>
+            <option value="">Every group</option>
+            {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <NumberBox value={Number(c.count ?? 7)} min={2} max={12} onCommit={(n) => save({ count: n })} />
+        </div>
+      </F>
+      <F label="The words beside the list">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <div><span className="text-[11px] text-body-soft block mb-1">Handwritten line</span><TextBox value={String(c.scriptLine ?? "")} placeholder="Here to Help" onCommit={(v) => save({ scriptLine: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Line at the very bottom</span><TextBox value={String(c.footerLine ?? "")} placeholder="Thoughtful gifts. Happier people." onCommit={(v) => save({ footerLine: v })} /></div>
+          <div className="md:col-span-2"><span className="text-[11px] text-body-soft block mb-1">Text under the handwritten line</span><TextBox value={String(c.sideText ?? "")} placeholder="Still have a question? …" onCommit={(v) => save({ sideText: v })} /></div>
+        </div>
+      </F>
+      <F label="The link under the list" hint="empty text = no link">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <TextBox value={String(c.linkText ?? "")} placeholder="See every question" onCommit={(v) => save({ linkText: v })} />
+          <TextBox value={String(c.linkHref ?? "")} placeholder="/faq" onCommit={(v) => save({ linkHref: v })} />
         </div>
       </F>
     </div>
