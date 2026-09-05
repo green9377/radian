@@ -364,7 +364,17 @@ const defsFor = (page: string): SectionDef[] =>
 export class LayoutService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** create any manifest section that has no row yet — never touch existing ones */
+  /**
+   * Create any manifest section that has no row yet — never touch existing
+   * ones' settings or on/off.
+   *
+   * ⚠️ A new built-in lands WHERE THE MANIFEST PUTS IT, not on top of an old
+   * row (5 Sep 2026). A row created with `sortOrder: i` tied with the row that
+   * already held i, and behind the fixed Reviews block a new section could
+   * then never be dragged above it — the reorder guard rightly refuses to
+   * move Reviews. So the rows at or after that position slide down by one:
+   * the owner's own order is kept, the newcomer takes the manifest's slot.
+   */
   async onModuleInit() {
     for (const [page, defs] of Object.entries(PAGE_SECTION_MANIFEST)) {
       const existing = await this.prisma.db.pageSection.findMany({ where: { page }, select: { key: true } });
@@ -373,10 +383,16 @@ export class LayoutService implements OnModuleInit {
         .map((d, i) => ({ d, i }))
         .filter(({ d }) => !have.has(d.key));
       if (missing.length === 0) continue;
-      await this.prisma.db.pageSection.createMany({
-        data: missing.map(({ d, i }) => ({ page, key: d.key, sortOrder: i })),
-        skipDuplicates: true,
-      });
+      for (const { d, i } of missing) {
+        await this.prisma.db.pageSection.updateMany({
+          where: { page, sortOrder: { gte: i } },
+          data: { sortOrder: { increment: 1 } },
+        });
+        await this.prisma.db.pageSection.createMany({
+          data: [{ page, key: d.key, sortOrder: i }],
+          skipDuplicates: true,
+        });
+      }
     }
   }
 
