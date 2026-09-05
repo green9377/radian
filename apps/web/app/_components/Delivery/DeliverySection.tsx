@@ -197,11 +197,11 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
     );
 
   const modeBase =
-    "flex items-center gap-3 text-left rounded-[18px] px-[15px] py-[11px] border backdrop-blur-[6px] transition-all duration-300 cursor-pointer hover:-translate-y-[3px] min-w-0";
+    "flex items-center gap-3 text-left rounded-[18px] px-[15px] py-[9px] border backdrop-blur-[6px] transition-all duration-300 cursor-pointer hover:-translate-y-[3px] min-w-0";
 
   return (
     <section
-      className="relative overflow-hidden py-8 lg:py-6 text-white"
+      className="relative overflow-hidden py-8 lg:py-5 text-white"
       id="delivery"
       style={{
         background:
@@ -214,9 +214,9 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
         style={{ background: "rgba(207,67,234,.14)", top: -220, right: -160 }}
       />
 
-      <div className="relative z-[2] max-w-[1200px] mx-auto px-6">
+      <div className="relative z-[2] max-w-[1400px] mx-auto px-6">
         {/* Head */}
-        <div className="flex items-center justify-between gap-6 flex-wrap mb-3">
+        <div className="flex items-center justify-between gap-6 flex-wrap mb-2.5">
           {/* The two zone wordings become a zone override on `home.delivery`:
               set one for All Bangladesh in the admin and it replaces the
               default here, exactly as the ternary used to. */}
@@ -294,7 +294,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
             whole band must fit one screen — five cards make a shorter row
             than four) */}
         <div
-          className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] lg:gap-[18px] lg:overflow-visible lg:pb-0"
+          className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] lg:gap-[24px] lg:overflow-visible lg:pb-0"
           style={{ ["--cols" as string]: String(Math.min(perTab, 6)) }}
         >
           {items.map((p) => (
@@ -306,7 +306,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
 
         {/* View all — the owner's words and link, or no button at all */}
         {viewAll && (
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-3.5">
             <Link
               href={viewAll.href}
               className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-white/85 rounded-full text-white font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-white hover:text-purple whitespace-nowrap"

@@ -87,7 +87,9 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
 
   return (
     <section className="py-[46px]" id="bestsellers">
-      <div className="max-w-[1200px] mx-auto px-6">
+      {/* 1400 wide, not 1200: the product cards are the point of this section,
+          and on a wide screen the narrower stage left them small (owner, 5 Sep 2026) */}
+      <div className="max-w-[1400px] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.bestsellers"
@@ -116,7 +118,7 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
 
         {/* Product grid */}
         {items.length > 0 ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-[26px]">
             {items.map((p) => (
               <ProductCard key={p.slug} product={p} zone={zone} />
             ))}
