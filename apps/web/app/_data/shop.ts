@@ -155,7 +155,7 @@ export const getCardWording = () => get<CardWording>("/shop/card-wording");
 export interface LayoutBlock {
   key: string;
   /** null = one of the built-in sections, rendered by its own component */
-  blockType: "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP" | null;
+  blockType: "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP" | "IMAGE_BANNER" | null;
   title: string | null;
   subtitle: string | null;
   config: Record<string, unknown>;
@@ -533,7 +533,7 @@ export interface ShopCategoryPage {
     key: string;
     enabled: boolean;
     /** null = one of the fourteen built-in blocks; set = one the owner added */
-    blockType?: "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP" | null;
+    blockType?: "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP" | "IMAGE_BANNER" | null;
     title?: string | null;
     subtitle?: string | null;
     /** icon name / uploaded icon / background image live here for built-ins */

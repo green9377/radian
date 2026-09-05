@@ -653,7 +653,7 @@ export const saveGoogleSummary = (b: { googleRating?: number | null; googleRevie
    hero carries the page's only <h1>, and the bottom three sit in a fixed order
    with the footer. The server refuses a move regardless of what the screen
    allows, because a rule that only exists in the browser is not a rule. */
-export type BlockType = "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP";
+export type BlockType = "PRODUCT_ROW" | "COLLECTION_ROW" | "BANNER_STRIP" | "IMAGE_BANNER";
 
 export interface ApiPageSection {
   key: string;

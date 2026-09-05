@@ -7,7 +7,7 @@ import SectionSettings from "./SectionSettings";
 import {
   listPageSections, updatePageSection, reorderPageSections, updatePageSectionSettings,
   addPageBlock, editPageBlock, removePageBlock,
-  listCollections, listBanners,
+  listCollections, listBanners, uploadImage,
   type ApiPageSection, type BlockType, type ApiCollection, type ApiBanner,
 } from "../_data/api";
 
@@ -38,6 +38,7 @@ const BLOCKS: { v: BlockType; label: string; hint: string }[] = [
   { v: "PRODUCT_ROW", label: "A row of products", hint: "Best sellers, new arrivals, 2-hour…" },
   { v: "COLLECTION_ROW", label: "Collection cards", hint: "Like the budget cards — pick which" },
   { v: "BANNER_STRIP", label: "A banner strip", hint: "One of your banners, full width" },
+  { v: "IMAGE_BANNER", label: "A picture banner", hint: "Your own designed creative, as it is, with a link — offers, campaigns, referrals" },
 ];
 
 const PRODUCT_RULES = [
@@ -475,6 +476,10 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                       </button>
                     )}
 
+                    {r.blockType === "IMAGE_BANNER" && (
+                      <ImageBannerFields config={r.config} onChange={(patch) => patchBlock(r.key, { config: { ...r.config, ...patch } })} />
+                    )}
+
                     {r.blockType === "BANNER_STRIP" && (
                       <F label="Which banner" hint="only banners that are switched on and in season will show">
                         <select className="ipt" value={String(r.config.bannerId ?? "")}
@@ -569,6 +574,56 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
       <p className="text-[12px] text-body-soft mt-4 max-w-[64ch]">
         Sections come in ready-made shapes rather than a blank canvas, so an added section always matches the rest of the site. Need a shape that is not here — say what it should look like and it gets built.
       </p>
+    </div>
+  );
+}
+
+/*  The picture banner's own fields — the creative is the design, so this only
+    asks for the file, the link, the alt text and the width. Wide creatives
+    (about 1400 × 300, JPG/PNG/WebP) sit best; the page never crops them.  */
+function ImageBannerFields({ config, onChange }: { config: Record<string, unknown>; onChange: (patch: Record<string, unknown>) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const image = String(config.imageUrl ?? "");
+  async function pick(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadImage(file, "banners");
+      onChange({ imageUrl: url });
+    } finally {
+      setUploading(false);
+    }
+  }
+  return (
+    <div className="space-y-3">
+      <F label="The picture" hint="wide, about 1400 × 300 · shown exactly as uploaded, never cropped or written over">
+        <div className="flex items-center gap-3">
+          <label className="relative block w-full max-w-[520px] aspect-[14/3] rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
+            {image
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={image} alt="" className={"absolute inset-0 w-full h-full object-contain " + (uploading ? "opacity-40" : "")} />
+              : <span className="text-body-soft text-[11.5px]">{uploading ? "Uploading…" : "Drag & drop or click"}</span>}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+          </label>
+          {image && !uploading && <button onClick={() => onChange({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+        </div>
+      </F>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_160px] gap-3">
+        <F label="Goes to" hint="a page on the shop, e.g. /collections/eid · empty = not clickable">
+          <input className="ipt" defaultValue={String(config.href ?? "")} placeholder="/collections/eid"
+            onBlur={(e) => e.target.value !== String(config.href ?? "") && onChange({ href: e.target.value })} />
+        </F>
+        <F label="What it says" hint="for screen readers and Google">
+          <input className="ipt" defaultValue={String(config.alt ?? "")} placeholder="Refer & earn 20% off"
+            onBlur={(e) => e.target.value !== String(config.alt ?? "") && onChange({ alt: e.target.value })} />
+        </F>
+        <F label="Width">
+          <select className="ipt" value={String(config.width ?? "contained")} onChange={(e) => onChange({ width: e.target.value })}>
+            <option value="contained">Inside the page</option>
+            <option value="full">Edge to edge</option>
+          </select>
+        </F>
+      </div>
     </div>
   );
 }

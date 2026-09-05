@@ -32,6 +32,7 @@ export default function CustomSection({ block, zone }: { block: LayoutBlock; zon
   if (block.blockType === "PRODUCT_ROW") return <ProductRow block={block} zone={zone} />;
   if (block.blockType === "COLLECTION_ROW") return <CollectionRow block={block} zone={zone} />;
   if (block.blockType === "BANNER_STRIP") return <BannerStrip block={block} zone={zone} />;
+  if (block.blockType === "IMAGE_BANNER") return <ImageBanner block={block} />;
   return null;
 }
 
@@ -127,6 +128,35 @@ function CollectionRow({ block, zone }: { block: LayoutBlock; zone: Zone | null 
             </Link>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/*
+  A picture banner — the owner's own creative, as it is (5 Sep 2026). The
+  design lives in the file, so the page adds nothing: no overlay, no words,
+  no crop. Only the rounded corners of the site and, when there is a link,
+  the whole picture is the link. Its height follows the picture's own
+  proportions at the page's width.
+*/
+function ImageBanner({ block }: { block: LayoutBlock }) {
+  const imageUrl = String(block.config.imageUrl ?? "");
+  const href = String(block.config.href ?? "");
+  const alt = String(block.config.alt ?? "");
+  const full = block.config.width === "full";
+  if (!imageUrl) return null;
+
+  const picture = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={imageUrl} alt={alt} className={`block w-full h-auto ${full ? "" : "rounded-[22px] shadow-soft"}`} />
+  );
+  return (
+    <section className={full ? "py-[10px]" : "py-[18px]"}>
+      <div className={full ? "" : "max-w-[1400px] mx-auto px-6"}>
+        {href ? (
+          <Link href={href} className="block transition-transform duration-300 hover:-translate-y-[2px]">{picture}</Link>
+        ) : picture}
       </div>
     </section>
   );

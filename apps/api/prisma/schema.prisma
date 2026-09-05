@@ -501,6 +501,7 @@ enum BlockType {
   PRODUCT_ROW // a row of products chosen by a rule
   COLLECTION_ROW // cards linking to chosen collections
   BANNER_STRIP // one banner, full width
+  IMAGE_BANNER // one designed picture, as it is, linking somewhere — a promotion strip (owner, 5 Sep 2026)
 }
 
 /// What customers say. Owner's decision, 30 Jul 2026: three sources, kept

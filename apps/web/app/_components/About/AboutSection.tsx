@@ -20,7 +20,7 @@ const rows = (v: unknown): IconRow[] => (Array.isArray(v) ? (v as IconRow[]) : [
 
 function Tile({ icon, tone = "lavender" }: { icon: string; tone?: "lavender" | "white" }) {
   return (
-    <span className={`w-12 h-12 rounded-full grid place-items-center shrink-0 text-purple ${tone === "white" ? "bg-white shadow-soft" : "bg-lavender"}`}>
+    <span className={`w-11 h-11 rounded-full grid place-items-center shrink-0 text-purple ${tone === "white" ? "bg-white shadow-soft" : "bg-lavender"}`}>
       <ShopIcon name={icon} className="w-[22px] h-[22px]" />
     </span>
   );
@@ -50,7 +50,7 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
     <section className="py-[46px]" id="about">
       <div className="max-w-[1400px] mx-auto px-6">
         <div
-          className={`rounded-[28px] shadow-soft p-7 lg:p-12 grid grid-cols-1 gap-10 items-center ${hasSide ? "lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]" : ""}`}
+          className={`rounded-[28px] shadow-soft p-6 lg:p-9 grid grid-cols-1 gap-8 items-center ${hasSide ? "lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]" : ""}`}
           style={{ background: "linear-gradient(140deg,#fbf8fd 0%,#f5eef9 100%)" }}
         >
           {/* ---- the words ---- */}
@@ -62,19 +62,19 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
               </div>
             )}
             {title && (
-              <h2 className="font-display text-[30px] lg:text-[40px] font-medium leading-[1.15] text-purple mt-4 [overflow-wrap:anywhere]">
+              <h2 className="font-display text-[28px] lg:text-[34px] font-medium leading-[1.15] text-purple mt-3 [overflow-wrap:anywhere]">
                 {title}
               </h2>
             )}
             {paragraphs.length > 0 && (
-              <div className="mt-5 space-y-4 text-[16px] leading-[1.7] text-body max-w-[62ch]">
+              <div className="mt-4 space-y-3 text-[15px] leading-[1.65] text-body max-w-[66ch]">
                 {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
               </div>
             )}
             {(highlightBold || highlightText) && (
-              <div className="mt-6 flex items-center gap-4 rounded-[18px] bg-lavender px-5 py-4 max-w-[760px]">
+              <div className="mt-5 flex items-center gap-4 rounded-[18px] bg-lavender px-5 py-3.5 max-w-[760px]">
                 {highlightIcon && <Tile icon={highlightIcon} tone="white" />}
-                <p className="text-[15.5px] leading-[1.6] text-body">
+                <p className="text-[15px] leading-[1.55] text-body">
                   {highlightBold && <b className="font-semibold text-purple">{highlightBold}</b>}
                   {highlightBold && highlightText ? " " : ""}
                   {highlightText}
@@ -82,11 +82,11 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
               </div>
             )}
             {features.length > 0 && (
-              <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 max-w-[900px]">
+              <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-3 max-w-[900px]">
                 {features.map((f, i) => (
                   <div key={i} className="flex items-center gap-3 min-w-0">
                     {f.icon && <Tile icon={f.icon} />}
-                    <div className="min-w-0 text-[14px] leading-[1.35]">
+                    <div className="min-w-0 text-[13.5px] leading-[1.3]">
                       {f.title && <b className="block font-semibold text-purple">{f.title}</b>}
                       {f.sub && <span className="block text-body">{f.sub}</span>}
                     </div>
@@ -97,7 +97,7 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
             {ctaText && (
               <Link
                 href={ctaHref}
-                className="inline-flex items-center gap-3 h-[54px] px-8 mt-8 bg-purple text-white rounded-full font-semibold text-[15.5px] shadow-[0_14px_30px_rgba(71,0,102,0.22)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-3 h-[50px] px-7 mt-6 bg-purple text-white rounded-full font-semibold text-[15.5px] shadow-[0_14px_30px_rgba(71,0,102,0.22)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap"
               >
                 {ctaText} <span aria-hidden>→</span>
               </Link>
@@ -108,7 +108,7 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
           {hasSide && (
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-5 items-stretch">
               {imageUrl ? (
-                <div className="relative overflow-hidden min-h-[380px] lg:min-h-[520px]" style={{ borderRadius: "140px 28px 140px 28px" }}>
+                <div className="relative overflow-hidden min-h-[340px] lg:min-h-[440px]" style={{ borderRadius: "120px 24px 120px 24px" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 </div>

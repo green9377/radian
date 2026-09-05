@@ -119,6 +119,7 @@ export const BLOCK_LABEL: Record<BlockType, string> = {
   PRODUCT_ROW: 'A row of products',
   COLLECTION_ROW: 'Cards linking to collections',
   BANNER_STRIP: 'A banner strip',
+  IMAGE_BANNER: 'A picture banner',
 };
 
 /** what a freshly added block starts as — never empty, so it renders something
@@ -127,6 +128,10 @@ const DEFAULT_CONFIG: Record<BlockType, Record<string, unknown>> = {
   PRODUCT_ROW: { rule: 'bestseller', count: 8 },
   COLLECTION_ROW: { slugs: [] },
   BANNER_STRIP: { bannerId: null },
+  /*  the owner's own creative, shown exactly as uploaded: the picture, where a
+      click goes, the words a screen reader says, and whether it sits inside
+      the page width or runs edge to edge. Nothing is drawn over it.  */
+  IMAGE_BANNER: { imageUrl: '', href: '', alt: '', width: 'contained' },
 };
 
 /*
