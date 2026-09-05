@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import ProductsView from "../_components/Products/ProductsView";
 import Reviews from "../_components/GBE/Reviews";
 import VisitStore from "../_components/GBE/VisitStore";
 
 /*
-  /products — shop-all listing (server shell, ভেতরে ProductsView client)。
-  Collection/journal page-এর মতোই: tinted bg, breadcrumb, GBE locked
-  (Reviews → Visit Store → Footer)। BestSellers/Delivery "View all" এখন live।
+  /products — the shop-all listing (server shell, ProductsView client inside).
+  Like the collection / journal pages: tinted background, breadcrumb, GBE
+  locked (Reviews → Visit Store → Footer). The Suspense boundary is what
+  Next asks for around `useSearchParams` — the address carries the filters.
 */
 
 export const metadata: Metadata = {
@@ -34,7 +36,9 @@ export default function ProductsPage() {
       </div>
 
       <div className="max-w-[1200px] mx-auto pt-2 pb-16">
-        <ProductsView />
+        <Suspense fallback={null}>
+          <ProductsView />
+        </Suspense>
       </div>
 
       {/* GBE — locked order */}

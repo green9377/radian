@@ -257,8 +257,14 @@ export class ShopCatalogService {
       maintained by the Product module — not a wrong filter that nobody notices.
     */
     const hasPriceFilter = q.min !== undefined || q.max !== undefined;
+    /*  5 Sep 2026 — the price SORT takes the slow path too. `sellingPricePaisa`
+        is the price before the discount, before the cheapest variant and
+        before an automatic offer; sorting on it put a ৳2,000 bouquet marked
+        down to ৳900 after a ৳1,200 one. Low-to-high must be the numbers the
+        shopper sees, in order — the same number the card prints.  */
+    const priceSort = q.sort === 'price_asc' || q.sort === 'price_desc';
 
-    if (!hasPriceFilter) {
+    if (!hasPriceFilter && !priceSort) {
       const [rows, total] = await Promise.all([
         this.prisma.db.product.findMany({
           where,
@@ -275,18 +281,30 @@ export class ShopCatalogService {
     const minPaisa = q.min === undefined ? null : Math.round(Number(q.min) * 100);
     const maxPaisa = q.max === undefined ? null : Math.round(Number(q.max) * 100);
 
-    const all = await this.prisma.db.product.findMany({
-      where,
-      orderBy: this.orderBy(q.sort),
-      select: CARD_SELECT,
-    });
-    const inBand = all.filter((r) => {
-      const p = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
+    const [all, displayOffers] = await Promise.all([
+      this.prisma.db.product.findMany({
+        where,
+        orderBy: this.orderBy(priceSort ? 'popular' : q.sort),
+        select: CARD_SELECT,
+      }),
+      loadDisplayOffers(this.prisma),
+    ]);
+    /*  ⚠️ THE PRICE THE CARD PRINTS, NOT `sellingPricePaisa` — 5 Sep 2026.
+        The band used to test the product's own discounted price only, while
+        the card showed the cheapest variant minus the automatic offer. So
+        "৳2,000 – ৳5,000" held a ৳1,800 bouquet (a ৳2,000 one with 10 % off
+        applied on the card but not here) and a "from ৳1,080" one. One
+        function now, the card's own: what is filtered is what is shown.  */
+    const priced = all.map((r) => ({ r, p: this.cardPrice(r, displayOffers) }));
+    const inBand = priced.filter(({ p }) => {
       if (minPaisa !== null && p < minPaisa) return false;
       if (maxPaisa !== null && p > maxPaisa) return false;
       return true;
     });
-    const slice = inBand.slice((page - 1) * limit, page * limit);
+    if (priceSort) {
+      inBand.sort((a, b) => (q.sort === 'price_asc' ? a.p - b.p : b.p - a.p) || a.r.name.localeCompare(b.r.name));
+    }
+    const slice = inBand.slice((page - 1) * limit, page * limit).map(({ r }) => r);
     return { items: await this.toCards(slice), total: inBand.length, page, limit };
   }
 
@@ -1157,21 +1175,25 @@ export class ShopCatalogService {
     return this.newDays;
   }
 
-  private toCard(
-    r: CardRow,
-    review?: { _avg: { rating: number | null }; _count: { _all: number } },
-    newDays: number = MERCH_DEFAULTS.newArrivalDays,
-    displayOffers: DisplayOffer[] = [],
-  ): ShopProduct {
-    const neu = isNewNow(r, newDays); // DEC-PRD-050
-    const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
+  /**
+   * The one price a card prints — and, since 5 Sep 2026, the one the price
+   * band filters on and the price sort orders by. Three things in it:
+   *
+   *   DEC-PRD-035 — every live variant priced → the cheapest of them ("from").
+   *     If even one is blank it falls back to the product's own price.
+   *     ⚠️ Each variant's own discount is taken off too, as the product page
+   *     does it — a card promising ৳500 next to a page charging ৳450 is the
+   *     one-page-two-answers bug in a different place.
+   *   DEC-PRD-028 — the product's own discount, inside its window.
+   *   DEC-PRD-059 — an unconditional automatic offer shows up IN the price,
+   *     on the same base and formula the checkout engine uses for a solo line.
+   */
+  private cardPrice(r: CardRow, displayOffers: DisplayOffer[]): number {
+    return this.cardPricing(r, displayOffers).price;
+  }
 
-    /*  DEC-PRD-035 — every live variant priced → the card quotes the cheapest
-        of them, "from". If even one is blank it falls back to the product's
-        price, so that number is still the honest answer for that variant.
-        ⚠️ Each variant's own discount is taken off here too, exactly as the
-        product page does it — a card promising ৳500 next to a page charging
-        ৳450 is the same one-page-two-answers bug in a different place.  */
+  private cardPricing(r: CardRow, displayOffers: DisplayOffer[]): { price: number; allPriced: boolean; basePrice: number; offerCut: number } {
+    const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
     const variantPrices = r.variants
       .filter((v) => v.pricePaisa !== null)
       .map((v) =>
@@ -1179,15 +1201,22 @@ export class ShopCatalogService {
       );
     const allPriced = r.variants.length > 0 && variantPrices.length === r.variants.length;
     const basePrice = allPriced ? Math.min(...variantPrices) : ownPrice;
-    /*  DEC-PRD-059 — an unconditional automatic offer shows up IN the price.
-        The cut runs on the same base and formula the checkout engine uses for
-        a solo line, so the card's promise is exactly what checkout charges.  */
     const offerCut = displayCut(
       displayOffers,
       { id: r.id, categoryId: r.category.id, parentCategoryId: r.category.parent?.id ?? null },
       basePrice,
     );
-    const price = basePrice - offerCut;
+    return { price: basePrice - offerCut, allPriced, basePrice, offerCut };
+  }
+
+  private toCard(
+    r: CardRow,
+    review?: { _avg: { rating: number | null }; _count: { _all: number } },
+    newDays: number = MERCH_DEFAULTS.newArrivalDays,
+    displayOffers: DisplayOffer[] = [],
+  ): ShopProduct {
+    const neu = isNewNow(r, newDays); // DEC-PRD-050
+    const { price, allPriced, basePrice, offerCut } = this.cardPricing(r, displayOffers);
 
     const rating = review?._avg.rating ?? null;
     const reviewCount = review?._count._all ?? 0;
