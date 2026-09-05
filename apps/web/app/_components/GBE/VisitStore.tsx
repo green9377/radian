@@ -200,13 +200,14 @@ export default function VisitStore() {
             {/* Both buttons pointed at "#" — they looked live and did nothing.
                 A button is now only rendered once there is somewhere for it to
                 go, because a dead button costs more trust than a missing one. */}
-            <div className="flex gap-3 mt-6 flex-wrap">
+            {/* one row, always (owner, 5 Sep 2026) — three buttons sized to share the column */}
+            <div className="flex gap-2.5 mt-6 flex-nowrap">
               {card?.mapUrl && (
                 <a
                   href={card.mapUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-[10px] px-10 py-4 bg-purple text-white rounded-full font-medium text-[15.5px] tracking-[0.03em] transition-all duration-300 hover:bg-purple-deep hover:-translate-y-[2px] whitespace-nowrap shadow-[0_12px_30px_rgba(71,0,102,0.25)]"
+                  className="inline-flex items-center gap-2 px-6 py-[13px] bg-purple text-white rounded-full font-semibold text-[14.5px] transition-all duration-300 hover:bg-purple-deep hover:-translate-y-[2px] whitespace-nowrap shadow-[0_12px_30px_rgba(71,0,102,0.25)]"
                 >
                   Get directions <ArrowIcon />
                 </a>
@@ -219,7 +220,7 @@ export default function VisitStore() {
                   href={`https://wa.me/${card.whatsapp.replace(/[^\d]/g, "").replace(/^0/, "880")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-[10px] px-9 py-[14px] rounded-full bg-[#25D366] text-white font-semibold text-[15px] tracking-[0.03em] transition-all duration-300 hover:bg-[#1ebe5b] hover:-translate-y-[2px] whitespace-nowrap shadow-[0_12px_30px_rgba(37,211,102,0.3)]"
+                  className="inline-flex items-center gap-2 px-5 py-[13px] rounded-full bg-[#25D366] text-white font-semibold text-[14.5px] transition-all duration-300 hover:bg-[#1ebe5b] hover:-translate-y-[2px] whitespace-nowrap shadow-[0_12px_30px_rgba(37,211,102,0.3)]"
                 >
                   <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-current" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7c.1.2 1.9 2.9 4.6 4 1.7.7 2.3.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
                   WhatsApp us
@@ -228,7 +229,7 @@ export default function VisitStore() {
               {card?.phone && (
                 <a
                   href={`tel:${card.phone.replace(/\s/g, "")}`}
-                  className="inline-flex items-center gap-[10px] px-10 py-[14px] border-[1.5px] border-purple rounded-full text-purple font-medium text-[15px] tracking-[0.04em] transition-all duration-300 hover:bg-purple hover:text-white hover:shadow-lift whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-6 py-[12px] border-[1.5px] border-purple rounded-full text-purple font-semibold text-[14.5px] transition-all duration-300 hover:bg-purple hover:text-white hover:shadow-lift whitespace-nowrap"
                 >
                   Call the studio
                 </a>

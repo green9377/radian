@@ -43,7 +43,7 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
   const linkHref = String(config.linkHref || "/faq");
 
   const [groups, setGroups] = useState<FaqGroupLive[] | null>(null);
-  const [open, setOpen] = useState<number | null>(0);
+  const [open, setOpen] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -60,7 +60,7 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
   const hasSide = Boolean(scriptLine || sideText);
 
   return (
-    <section className="relative py-[46px] overflow-hidden" id="faq">
+    <section className="relative py-9 overflow-hidden" id="faq">
       {/* two faint sprigs at the edges, like the reference */}
       <Sprig className="hidden xl:block absolute -left-4 top-24 w-[120px] h-[200px] text-orchid-mid/40 pointer-events-none" />
       <Sprig className="hidden xl:block absolute -right-4 top-24 w-[120px] h-[200px] text-orchid-mid/40 pointer-events-none -scale-x-100" />
@@ -73,20 +73,20 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
           subtitle={"Find quick answers to common questions about ordering, delivery, customization, and more."}
         />
 
-        <div className={`grid grid-cols-1 gap-10 ${hasSide ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)]" : ""}`}>
+        <div className={`grid grid-cols-1 gap-8 ${hasSide ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)]" : ""}`}>
           {hasSide && (
             <div className="lg:pt-4 lg:pl-8">
               {scriptLine && (
-                <div className="font-display italic text-[38px] leading-[1.05] text-purple">
+                <div className="font-display italic text-[34px] leading-[1.05] text-purple">
                   {scriptLine} <span className="not-italic text-orchid">♡</span>
                 </div>
               )}
-              {sideText && <p className="text-[16px] leading-[1.7] text-body mt-6 max-w-[26ch]">{sideText}</p>}
+              {sideText && <p className="text-[15px] leading-[1.65] text-body mt-4 max-w-[26ch]">{sideText}</p>}
             </div>
           )}
 
           <div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {items.map((f, i) => {
                 const on = open === i;
                 return (
@@ -95,20 +95,20 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
                       type="button"
                       onClick={() => setOpen(on ? null : i)}
                       aria-expanded={on}
-                      className="w-full flex items-center gap-5 text-left px-3 py-3 cursor-pointer"
+                      className="w-full flex items-center gap-4 text-left px-2.5 py-2 cursor-pointer"
                     >
-                      <span className={`w-12 h-12 rounded-full grid place-items-center shrink-0 font-display text-[16px] font-medium transition-colors ${on ? "bg-purple text-white" : "bg-lavender text-purple"}`}>
+                      <span className={`w-10 h-10 rounded-full grid place-items-center shrink-0 font-display text-[14.5px] font-medium transition-colors ${on ? "bg-purple text-white" : "bg-lavender text-purple"}`}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <span className="flex-1 font-display text-[18px] lg:text-[20px] font-medium text-purple leading-snug">{f.q}</span>
-                      <span className={`w-8 h-8 rounded-full border-[1.5px] border-purple grid place-items-center shrink-0 mr-2 transition-transform duration-300 ${on ? "rotate-45 bg-purple text-white" : "text-purple"}`}>
+                      <span className="flex-1 font-display text-[17px] lg:text-[18px] font-medium text-purple leading-snug">{f.q}</span>
+                      <span className={`w-7 h-7 rounded-full border-[1.5px] border-purple grid place-items-center shrink-0 mr-2 transition-transform duration-300 ${on ? "rotate-45 bg-purple text-white" : "text-purple"}`}>
                         <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none stroke-[2]"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
                       </span>
                     </button>
                     <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${on ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                       <div className="overflow-hidden">
                         <div
-                          className="pl-[84px] pr-14 pb-5 text-[15px] leading-[1.7] text-body [&_a]:text-orchid [&_a]:underline [&_p+p]:mt-2"
+                          className="pl-[66px] pr-12 pb-4 text-[14.5px] leading-[1.65] text-body [&_a]:text-orchid [&_a]:underline [&_p+p]:mt-2"
                           dangerouslySetInnerHTML={{ __html: f.aHtml }}
                         />
                       </div>
@@ -118,7 +118,7 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
               })}
             </div>
             {linkText && (
-              <div className="mt-5">
+              <div className="mt-3">
                 <Link href={linkHref} className="inline-flex items-center gap-2 text-[14.5px] font-semibold text-purple hover:text-orchid transition-colors">
                   {linkText} <span aria-hidden>→</span>
                 </Link>
@@ -128,14 +128,14 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
         </div>
 
         {footerLine && (
-          <div className="flex items-center justify-center gap-5 mt-12">
+          <div className="flex items-center justify-center gap-5 mt-7">
             <span className="w-[110px] h-px bg-purple/40" />
             <Leaf />
             <span className="w-[110px] h-px bg-purple/40" />
           </div>
         )}
         {footerLine && (
-          <p className="text-center text-[12.5px] tracking-[0.26em] uppercase text-body-soft mt-4">{footerLine}</p>
+          <p className="text-center text-[12px] tracking-[0.26em] uppercase text-body-soft mt-3">{footerLine}</p>
         )}
       </div>
     </section>
