@@ -74,6 +74,7 @@ export const PAGE_SECTION_MANIFEST: Record<string, SectionDef[]> = {
     { key: 'delivery', label: 'Delivery band', hint: 'The dark purple 2-hour / same-day section', movable: true },
     { key: 'budget', label: 'Gifts for Every Budget', hint: 'The four price cards', movable: true },
     { key: 'giftfinder', label: 'Gift Finder', hint: 'The three-step wizard', movable: true },
+    { key: 'about', label: 'About Radian', hint: 'The story card with the picture', movable: true },
     { key: 'reviews', label: 'Reviews', hint: 'Google card and customer stories', movable: false, lockedReason: 'Fixed with the shop card and footer at the bottom of every page' },
     { key: 'blog', label: 'Latest Articles', hint: 'Journal cards', movable: true },
     { key: 'store', label: 'Visit the shop', hint: 'Address, hours, map', movable: false, lockedReason: 'Fixed with the reviews and footer at the bottom of every page' },
@@ -198,6 +199,25 @@ export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
     /** the slim caption column on the right */
     sideCaption: 'Small gestures, big happiness',
   },
+  /** the story card — owner's reference, 5 Sep 2026. Every word and the picture are his. */
+  about: {
+    eyebrow: 'About Radian',
+    title: 'Radian Flower & Gift Shop — Bringing Smiles Across Bangladesh',
+    /** paragraphs, separated by a blank line */
+    body: '',
+    highlightBold: '',
+    highlightText: '',
+    highlightIcon: 'truck',
+    /** the small icon + two-line chips under the text */
+    features: [] as { icon: string; title: string; sub: string }[],
+    ctaText: 'Read more about Radian',
+    ctaHref: '/about',
+    imageUrl: '',
+    scriptLine: '',
+    /** the three little cards beside the picture */
+    stats: [] as { icon: string; title: string; sub: string }[],
+    sideCaption: '',
+  },
   delivery: {
     perTab: 4,
     showViewAll: true,
@@ -222,7 +242,40 @@ const href = (v: unknown, fallback: string): string => {
   return s.startsWith('/') ? s : fallback;
 };
 
+/** icon + two lines, a list of them — the about card's chips and stat cards */
+const iconRows = (v: unknown, max: number): { icon: string; title: string; sub: string }[] =>
+  Array.isArray(v)
+    ? v
+        .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === 'object')
+        .map((r) => ({
+          icon: text(r.icon, '', 24).replace(/[^a-z0-9-]/g, ''),
+          title: text(r.title, '', 60),
+          sub: text(r.sub, '', 80),
+        }))
+        .filter((r) => r.title || r.sub)
+        .slice(0, max)
+    : [];
+
 const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Record<string, unknown>> = {
+  about: (c) => {
+    const d = SECTION_DEFAULTS.about;
+    const img = text(c.imageUrl, '', 400);
+    return {
+      eyebrow: text(c.eyebrow, d.eyebrow as string, 60),
+      title: text(c.title, d.title as string, 120),
+      body: text(c.body, '', 3000),
+      highlightBold: text(c.highlightBold, '', 80),
+      highlightText: text(c.highlightText, '', 300),
+      highlightIcon: text(c.highlightIcon, d.highlightIcon as string, 24).replace(/[^a-z0-9-]/g, ''),
+      features: iconRows(c.features, 6),
+      ctaText: text(c.ctaText, d.ctaText as string, 40),
+      ctaHref: href(c.ctaHref, d.ctaHref as string),
+      imageUrl: /^https?:\/\//.test(img) ? img : '',
+      scriptLine: text(c.scriptLine, '', 60),
+      stats: iconRows(c.stats, 4),
+      sideCaption: text(c.sideCaption, '', 80),
+    };
+  },
   bestsellers: (c) => {
     const d = SECTION_DEFAULTS.bestsellers;
     const mode = ['AUTO', 'MANUAL', 'AUTO_FILL'].includes(String(c.mode)) ? String(c.mode) : d.mode;

@@ -38,6 +38,7 @@ export default function SectionSettings({ row, onSave }: { row: ApiPageSection; 
   if (row.key === "blog") return <BlogSettings c={c} save={onSave} />;
   if (row.key === "giftfinder") return <GiftFinderSettings c={c} save={onSave} />;
   if (row.key === "delivery") return <DeliverySettings c={c} save={onSave} />;
+  if (row.key === "about") return <AboutSettings c={c} save={onSave} />;
   return null;
 }
 
@@ -365,7 +366,124 @@ function DeliverySettings({ c, save }: { c: Cfg; save: Save }) {
   );
 }
 
+/* ═══════════════════ About Radian ═══════════════════ */
+
+type IconRow = { icon: string; title: string; sub: string };
+const ABOUT_ICONS = ["flower", "gift", "truck", "pin", "heart", "star", "shield", "leaf", "cake", "clock", "medal", "box", "globe", "check", "phone", "chat"];
+
+/** a list of icon + two-line rows — the chips under the story and the cards beside the picture */
+function IconRows({ rows, max, onChange, placeholderTitle, placeholderSub }: {
+  rows: IconRow[]; max: number; onChange: (next: IconRow[]) => void; placeholderTitle: string; placeholderSub: string;
+}) {
+  const set = (i: number, patch: Partial<IconRow>) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  return (
+    <div className="space-y-2 max-w-[720px]">
+      {rows.map((r, i) => (
+        <div key={i} className="grid grid-cols-[120px_1fr_1fr_auto] gap-2 items-center">
+          <select className="ipt" value={r.icon} onChange={(e) => set(i, { icon: e.target.value })}>
+            <option value="">No icon</option>
+            {ABOUT_ICONS.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <TextBox value={r.title} placeholder={placeholderTitle} onCommit={(v) => set(i, { title: v })} />
+          <TextBox value={r.sub} placeholder={placeholderSub} onCommit={(v) => set(i, { sub: v })} />
+          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="text-[13px] text-body-soft hover:text-[#c0392b] px-1" title="Remove">✕</button>
+        </div>
+      ))}
+      {rows.length < max && (
+        <button type="button" onClick={() => onChange([...rows, { icon: "", title: "", sub: "" }])} className="text-[13px] font-semibold text-purple hover:text-orchid">+ Add one</button>
+      )}
+    </div>
+  );
+}
+
+function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
+  const [uploading, setUploading] = useState(false);
+  const image = String(c.imageUrl ?? "");
+  const features = (c.features as IconRow[] | undefined) ?? [];
+  const stats = (c.stats as IconRow[] | undefined) ?? [];
+
+  async function pickImage(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadImage(file, "banners");
+      await save({ imageUrl: url });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <F label="The words" hint="paragraphs separated by a blank line">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <div><span className="text-[11px] text-body-soft block mb-1">Small line above</span><TextBox value={String(c.eyebrow ?? "")} placeholder="About Radian" onCommit={(v) => save({ eyebrow: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Heading</span><TextBox value={String(c.title ?? "")} placeholder="Radian Flower & Gift Shop — Bringing Smiles Across Bangladesh" onCommit={(v) => save({ title: v })} /></div>
+          <div className="md:col-span-2">
+            <span className="text-[11px] text-body-soft block mb-1">Story</span>
+            <TextArea value={String(c.body ?? "")} placeholder="Looking for the best flower shop in Bangladesh? …" onCommit={(v) => save({ body: v })} />
+          </div>
+        </div>
+      </F>
+      <F label="The highlighted line" hint="the tinted box — a bold part and the rest">
+        <div className="grid grid-cols-[120px_1fr_2fr] gap-2 max-w-[720px]">
+          <select className="ipt" value={String(c.highlightIcon ?? "truck")} onChange={(e) => save({ highlightIcon: e.target.value })}>
+            <option value="">No icon</option>
+            {ABOUT_ICONS.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <TextBox value={String(c.highlightBold ?? "")} placeholder="same-day online flower delivery" onCommit={(v) => save({ highlightBold: v })} />
+          <TextBox value={String(c.highlightText ?? "")} placeholder="in Dhaka and reliable nationwide shipping…" onCommit={(v) => save({ highlightText: v })} />
+        </div>
+      </F>
+      <F label="The four points under the story" hint="icon · bold line · small line">
+        <IconRows rows={features} max={6} onChange={(next) => save({ features: next })} placeholderTitle="Fresh &" placeholderSub="Premium Flowers" />
+      </F>
+      <F label="The button">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
+          <TextBox value={String(c.ctaText ?? "")} placeholder="Read more about Radian" onCommit={(v) => save({ ctaText: v })} />
+          <TextBox value={String(c.ctaHref ?? "")} placeholder="/about" onCommit={(v) => save({ ctaHref: v })} />
+        </div>
+      </F>
+      <F label="The picture" hint="upright, 4:5 · empty = the card has no picture column">
+        <div className="flex items-center gap-3">
+          <label className="relative block w-[120px] aspect-[4/5] rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
+            {image
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={image} alt="" className={"absolute inset-0 w-full h-full object-cover " + (uploading ? "opacity-40" : "")} />
+              : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
+          </label>
+          {image && !uploading && <button onClick={() => save({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+        </div>
+      </F>
+      <F label="Beside the picture" hint="the handwritten line on top, the three little cards, the caption at the bottom">
+        <div className="space-y-3 max-w-[720px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><span className="text-[11px] text-body-soft block mb-1">Handwritten line</span><TextBox value={String(c.scriptLine ?? "")} placeholder="Flowers Make Better Days" onCommit={(v) => save({ scriptLine: v })} /></div>
+            <div><span className="text-[11px] text-body-soft block mb-1">Caption at the bottom</span><TextBox value={String(c.sideCaption ?? "")} placeholder="A small gift, a brighter tomorrow" onCommit={(v) => save({ sideCaption: v })} /></div>
+          </div>
+          <IconRows rows={stats} max={4} onChange={(next) => save({ stats: next })} placeholderTitle="10K+" placeholderSub="Happy Customers" />
+        </div>
+      </F>
+    </div>
+  );
+}
+
 /* ═══════════════════ shared pieces ═══════════════════ */
+
+function TextArea({ value, placeholder, onCommit }: { value: string; placeholder?: string; onCommit: (v: string) => void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  return (
+    <textarea
+      className="ipt min-h-[140px]"
+      value={v}
+      placeholder={placeholder}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => { if (v !== value) onCommit(v); }}
+    />
+  );
+}
 
 function ViewAllFields({ c, save }: { c: Cfg; save: Save }) {
   const show = c.showViewAll !== false;
