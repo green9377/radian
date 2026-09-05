@@ -110,7 +110,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
           {/* ---- The purple panel ---- */}
           {hasPanel && (
             <div
-              className="relative overflow-hidden text-white px-9 py-10 lg:px-10 lg:py-12 min-h-[300px] lg:min-h-[520px] flex flex-col"
+              className="relative overflow-hidden text-white px-8 py-8 lg:px-9 lg:py-9 min-h-[260px] flex flex-col"
               style={{ background: "radial-gradient(90% 70% at 100% 100%, rgba(207,67,234,.35), rgba(207,67,234,0) 70%), linear-gradient(160deg,#2b0040 0%,#470066 55%,#5b1084 100%)" }}
             >
               {/* two soft discs, like the reference's petals */}
@@ -122,14 +122,14 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
                 Step {step} of {total}
               </div>
               {panelTitle && (
-                <h3 className="relative z-[1] font-display text-[30px] lg:text-[36px] font-medium leading-[1.12] mt-7 max-w-[11ch]">{panelTitle}</h3>
+                <h3 className="relative z-[1] font-display text-[28px] lg:text-[32px] font-medium leading-[1.12] mt-5 max-w-[13ch]">{panelTitle}</h3>
               )}
               {panelText && (
-                <p className="relative z-[1] text-[15px] text-white/80 leading-[1.6] mt-5 max-w-[26ch]">{panelText}</p>
+                <p className="relative z-[1] text-[14.5px] text-white/80 leading-[1.6] mt-4 max-w-[28ch]">{panelText}</p>
               )}
-              <div className="relative z-[1] mt-auto pt-10 flex items-end justify-between gap-4">
+              <div className="relative z-[1] mt-auto pt-8 flex items-end justify-between gap-4">
                 {panelScript && (
-                  <span className="font-display italic text-[24px] leading-[1.15] text-orchid-mid max-w-[12ch]">{panelScript} <span className="not-italic">♡</span></span>
+                  <span className="font-display italic text-[22px] leading-[1.15] text-orchid-mid max-w-[14ch]">{panelScript} <span className="not-italic">♡</span></span>
                 )}
               </div>
               {panelImageUrl && (
@@ -140,7 +140,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
           )}
 
           {/* ---- The steps ---- */}
-          <div className={`px-7 py-8 lg:px-12 lg:py-10 flex flex-col ${hasPanel ? "" : "lg:col-span-2"}`}>
+          <div className={`px-7 py-7 lg:px-11 lg:py-8 flex flex-col ${hasPanel ? "" : "lg:col-span-2"}`}>
             {/* the rail */}
             <div className="flex items-center max-w-[640px] w-full mx-auto">
               {steps.map((s, i) => {
@@ -170,7 +170,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
             </div>
 
             {/* the question */}
-            <h3 className="font-display text-[28px] lg:text-[32px] font-medium text-purple mt-16">
+            <h3 className="font-display text-[26px] lg:text-[30px] font-medium text-purple mt-14">
               {questions[current.param] ?? current.title}
             </h3>
             {hints[current.param] && (
@@ -178,7 +178,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
             )}
 
             {/* the choices */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3.5 mt-7">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-3 mt-6">
               {current.options.map((opt, i) => {
                 const on = picked === opt.value;
                 return (
@@ -186,7 +186,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
                     key={opt.value}
                     type="button"
                     onClick={() => pick(opt.value)}
-                    className={`relative flex flex-col items-center gap-3 rounded-[18px] px-3 pt-6 pb-5 bg-white border-2 transition-all duration-200 cursor-pointer hover:-translate-y-[3px] hover:shadow-lift ${
+                    className={`relative flex flex-col items-center gap-2.5 rounded-[18px] px-3 pt-5 pb-4 bg-white border-2 transition-all duration-200 cursor-pointer hover:-translate-y-[3px] hover:shadow-lift ${
                       on ? "border-orchid shadow-lift" : "border-lavender-deep shadow-soft"
                     }`}
                   >
@@ -194,7 +194,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
                       <span className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-purple grid place-items-center"><Check /></span>
                     )}
                     <span
-                      className="w-14 h-14 rounded-full grid place-items-center bg-cover bg-center font-display text-[22px] text-purple"
+                      className="w-[52px] h-[52px] rounded-full grid place-items-center bg-cover bg-center font-display text-[20px] text-purple ring-4 ring-white shadow-soft"
                       style={opt.imageUrl ? { backgroundImage: `url(${opt.imageUrl})` } : { background: TINTS[i % TINTS.length] }}
                     >
                       {!opt.imageUrl && opt.label.slice(0, 1).toUpperCase()}
@@ -206,20 +206,20 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
             </div>
 
             {/* the buttons */}
-            <div className="mt-auto pt-8">
-              <div className="border-t border-lavender-deep pt-6 flex items-center justify-between gap-4 flex-wrap">
+            <div className="mt-auto pt-6">
+              <div className="border-t border-lavender-deep pt-5 flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
                   {step > 1 && (
                     <button type="button" onClick={() => setStep(step - 1)} className="text-[15px] font-semibold text-body-soft hover:text-purple px-2 py-3 cursor-pointer">← Back</button>
                   )}
                   {skipLabel && !last && (
-                    <button type="button" onClick={skip} className="h-[52px] px-7 rounded-full bg-lavender text-purple font-semibold text-[15px] hover:bg-lavender-deep transition-colors cursor-pointer">{skipLabel}</button>
+                    <button type="button" onClick={skip} className="h-[48px] px-6 rounded-full bg-lavender text-purple font-semibold text-[14.5px] hover:bg-lavender-deep transition-colors cursor-pointer">{skipLabel}</button>
                   )}
                 </div>
                 {last ? (
                   <Link
                     href={resultHref}
-                    className="inline-flex items-center h-[58px] px-10 bg-purple text-white rounded-full font-semibold text-[16px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap"
+                    className="inline-flex items-center h-[52px] px-9 bg-purple text-white rounded-full font-semibold text-[15.5px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap"
                   >
                     {doneLabel}
                   </Link>
@@ -228,7 +228,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
                     type="button"
                     onClick={goNext}
                     disabled={!picked}
-                    className="inline-flex items-center h-[58px] px-10 bg-purple text-white rounded-full font-semibold text-[16px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer"
+                    className="inline-flex items-center h-[52px] px-9 bg-purple text-white rounded-full font-semibold text-[15.5px] shadow-[0_14px_30px_rgba(71,0,102,0.25)] hover:bg-purple-deep hover:-translate-y-[2px] transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer"
                   >
                     {nextLabel}
                   </button>
@@ -239,8 +239,8 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
 
           {/* ---- The caption column ---- */}
           {sideCaption && (
-            <div className="hidden lg:flex flex-col items-center justify-between border-l border-lavender-deep/70 py-10 text-purple">
-              <Sprig className="w-[110px] h-[180px] text-orchid-mid/70" />
+            <div className="hidden lg:flex flex-col items-center justify-between border-l border-lavender-deep/70 py-8 text-purple">
+              <Sprig className="w-[90px] h-[150px] text-orchid-mid/60" />
               <div className="text-[12px] tracking-[0.28em] uppercase text-body-soft leading-[2] max-w-[8ch] text-center">{sideCaption}</div>
               <span className="text-[22px] text-orchid-mid">♡</span>
             </div>
