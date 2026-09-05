@@ -59,6 +59,7 @@ export default function CompanySettings() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [logoLightBusy, setLogoLightBusy] = useState(false);
 
   const load = () =>
     Promise.all([getCompany(), getCompanyReadiness()])
@@ -188,6 +189,43 @@ export default function CompanySettings() {
               )}
             </div>
             <p className="text-[10.5px] text-body-soft mt-1.5">Transparent PNG / WebP / SVG · about 400 × 120</p>
+          </div>
+
+          {/* The footer is deep purple; the purple logo vanished on it (owner,
+              5 Sep 2026). A white version of the mark goes here. Left empty,
+              the storefront paints the normal logo white — fine for a flat
+              mark, wrong for a coloured one. */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[11.5px] font-semibold text-body-soft">Logo for dark backgrounds (footer)</span>
+              <Tag kind="web" />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="relative w-[190px] h-[64px] rounded-[12px] border-2 border-dashed border-purple/40 bg-purple hover:border-orchid cursor-pointer overflow-hidden grid place-items-center shrink-0">
+                {form.logoLightUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={form.logoLightUrl} alt="" className={"max-h-[52px] max-w-[170px] object-contain " + (logoLightBusy ? "opacity-40" : "")} />
+                  : <span className="text-white/70 text-[11.5px]">{logoLightBusy ? "Uploading…" : "Drag & drop or click"}</span>}
+                <input
+                  type="file" accept="image/png,image/webp,image/svg+xml" className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setLogoLightBusy(true);
+                    try {
+                      const { url } = await uploadImage(file, "brand");
+                      set("logoLightUrl")(url);
+                    } catch (er) {
+                      setErr(er instanceof Error ? er.message : "Could not upload that file.");
+                    } finally { setLogoLightBusy(false); }
+                  }}
+                />
+              </label>
+              {form.logoLightUrl && !logoLightBusy && (
+                <button onClick={() => set("logoLightUrl")("")} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>
+              )}
+            </div>
+            <p className="text-[10.5px] text-body-soft mt-1.5">White or light mark on a transparent background · same size as the logo</p>
           </div>
         </Section>
 

@@ -589,9 +589,9 @@ export class ShopService {
   async brand() {
     const c = await this.prisma.db.companySetting.findUnique({
       where: { id: 'singleton' },
-      select: { tradeName: true, logoUrl: true },
+      select: { tradeName: true, logoUrl: true, logoLightUrl: true },
     });
-    return { name: c?.tradeName || 'RADIAN', logoUrl: c?.logoUrl ?? null };
+    return { name: c?.tradeName || 'RADIAN', logoUrl: c?.logoUrl ?? null, logoLightUrl: c?.logoLightUrl ?? null };
   }
 
   /**

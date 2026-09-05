@@ -20,6 +20,7 @@ export interface CompanyWriteDto {
   publicEmail?: string | null;
   website?: string | null;
   logoUrl?: string | null;
+  logoLightUrl?: string | null;
   signatoryName?: string | null;
   signatoryDesignation?: string | null;
   /* the storefront's "Visit the shop" card (31 Jul 2026). Administration still
@@ -141,6 +142,7 @@ export class CompanyService {
         publicEmail: text(dto.publicEmail),
         website: text(dto.website),
         logoUrl: text(dto.logoUrl),
+        logoLightUrl: text(dto.logoLightUrl),
         signatoryName: text(dto.signatoryName),
         signatoryDesignation: text(dto.signatoryDesignation),
         mapUrl: text(dto.mapUrl),

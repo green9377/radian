@@ -7208,6 +7208,8 @@ export interface ApiCompany {
   city: string | null; postcode: string | null; country: string;
   publicPhone: string | null; publicEmail: string | null;
   website: string | null; logoUrl: string | null;
+  /** the light version for dark grounds (the footer) — 5 Sep 2026 */
+  logoLightUrl: string | null;
   signatoryName: string | null; signatoryDesignation: string | null;
   /* the storefront's "Visit the shop" card (31 Jul 2026). Stored on the same
      row as the address and phone above, because they are the same kind of fact

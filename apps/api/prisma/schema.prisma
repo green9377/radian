@@ -6081,6 +6081,9 @@ model CompanySetting {
   publicEmail String?
   website     String?
   logoUrl     String?
+  /// the same mark for dark grounds (the footer) — a white/light version. null =
+  /// the storefront turns logoUrl white itself, which only suits a flat mark
+  logoLightUrl String? @db.Text
 
   /* ---- Who signs ---- */
   signatoryName        String?

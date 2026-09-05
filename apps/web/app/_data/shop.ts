@@ -368,7 +368,7 @@ export interface ShopTagGroup {
 export const getShopTagGroups = () => get<ShopTagGroup[]>("/shop/tag-groups");
 
 /** the shop's logo and name, for the header and the footer */
-export const getShopBrand = () => get<{ name: string; logoUrl: string | null }>("/shop/brand");
+export const getShopBrand = () => get<{ name: string; logoUrl: string | null; logoLightUrl: string | null }>("/shop/brand");
 
 export interface ShopCollection {
   slug: string;

@@ -23,9 +23,10 @@ export default function ShopLogo({
   tone?: "dark" | "light";
   size?: number;
 }) {
-  const [brand, setBrand] = useState<{ name: string; logoUrl: string | null }>({
+  const [brand, setBrand] = useState<{ name: string; logoUrl: string | null; logoLightUrl: string | null }>({
     name: "RADIAN",
     logoUrl: null,
+    logoLightUrl: null,
   });
 
   useEffect(() => {
@@ -34,13 +35,19 @@ export default function ShopLogo({
     return () => { alive = false; };
   }, []);
 
-  if (brand.logoUrl) {
+  /*  On a dark ground (the footer) the admin's light version of the mark is
+      used; without one the normal logo is painted white (a flat mark survives
+      that, a coloured one loses its colour) — better than a purple logo on
+      purple, which is what the footer showed until 5 Sep 2026.  */
+  const src = tone === "light" ? brand.logoLightUrl || brand.logoUrl : brand.logoUrl;
+  if (src) {
+    const whitened = tone === "light" && !brand.logoLightUrl;
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={brand.logoUrl}
+        src={src}
         alt={brand.name}
-        style={{ height: size * 1.4 }}
+        style={{ height: size * 1.4, filter: whitened ? "brightness(0) invert(1)" : undefined }}
         className="w-auto object-contain"
       />
     );
