@@ -1,3 +1,4 @@
+import { mediaVariant } from "./media";
 import type { CategoryConfig, CategorySection, SlotKey } from "./categories";
 import { SLOTS } from "./categories";
 import type { Product, ProductCategory, Occasion, Recipient } from "./products";
@@ -80,7 +81,7 @@ export const toProduct = (p: ShopProduct): Product => ({
   stars: p.stars,
   meta: p.meta,
   // a real photograph if there is one; the API's gradient if there is not
-  bg: p.imageUrl ? `url(${p.imageUrl}) center/cover` : p.bg,
+  bg: p.imageUrl ? `url(${mediaVariant(p.imageUrl, "card")}) center/cover` : p.bg,
   best: p.best,
   exp: p.exp,
   sd: p.sd,
@@ -122,19 +123,19 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${t.imageUrl}) center/cover` : t.bg,
+      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
     })),
     attributes: page.attributes.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${t.imageUrl}) center/cover` : t.bg,
+      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
     })),
     occasions: page.occasions.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${t.imageUrl}) center/cover` : t.bg,
+      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
     })),
 
     /*
@@ -155,7 +156,7 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
       label: c.label,
       sub: c.sub,
       swatch: c.imageUrl
-        ? `url(${c.imageUrl}) center/cover`
+        ? `url(${mediaVariant(c.imageUrl, "thumb")}) center/cover`
         : c.swatch || "#EDE4F5",
       href: c.href,
     })),
@@ -170,13 +171,13 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${t.imageUrl}) center/cover` : t.bg,
+      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
     })),
     crossSell: page.crossSell.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${t.imageUrl}) center/cover` : t.bg,
+      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
     })),
 
     faqs: page.faqs.map((f) => ({ q: f.question, a: f.answer })),

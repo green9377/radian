@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaVariant } from "../../_data/media";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
@@ -98,7 +99,7 @@ export default function BlogSection({ config = {} }: { config?: Record<string, u
             >
               <div
                 className="h-[170px] bg-cover bg-center"
-                style={post.coverUrl ? { backgroundImage: `url(${post.coverUrl})` } : { background: TINTS[i % TINTS.length] }}
+                style={post.coverUrl ? { backgroundImage: `url(${mediaVariant(post.coverUrl, "card")})` } : { background: TINTS[i % TINTS.length] }}
               />
               <div className="px-6 pt-5 pb-6">
                 {/* the reading time takes the place of the old hand-typed

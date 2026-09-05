@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { mediaVariant } from "../../_data/media";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../Header/Header";
 import { getShopCategories, categoryCountLabel, zoneCode } from "../../_data/shop";
@@ -154,7 +155,7 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
             sub: categoryCountLabel(c, "products"),
             href: `/${c.slug}`,
             bg: TINTS[i % TINTS.length],
-            imageUrl: c.imageUrl,
+            imageUrl: mediaVariant(c.imageUrl, "card"),
           })),
       );
     });

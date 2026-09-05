@@ -116,6 +116,9 @@ const ALLOWED = RASTER;
 
 export interface UploadResult {
   url: string;
+  /** the same picture at card size (≤600px, WebP) and thumbnail size (≤160px) — see `variantPaths` */
+  cardUrl?: string;
+  thumbUrl?: string;
   fileId: string;
   /** the background was cut out (hero pictures) — false when asked for but the cutter was unavailable */
   bgRemoved?: boolean;
@@ -236,8 +239,63 @@ export class MediaService {
       );
     }
 
+    const variants = await makeVariants(dir, rel, file.buffer, file.mimetype);
+
     // width/height were ImageKit metadata; nothing in the admin reads them.
-    return { url: `${base}/${rel}`, fileId: rel, width: 0, height: 0 };
+    return {
+      url: `${base}/${rel}`,
+      cardUrl: variants ? `${base}/${variants.card}` : undefined,
+      thumbUrl: variants ? `${base}/${variants.thumb}` : undefined,
+      fileId: rel,
+      width: 0,
+      height: 0,
+    };
+  }
+}
+
+/*
+  ═══ ONE UPLOAD, THREE FILES — owner, 5 Sep 2026 ═══════════════════════════
+
+  A 2,000-pixel product photo was being sent to a 24-pixel chip; twenty-eight
+  such files on the homepage. The original is kept exactly as uploaded (the
+  product page, the future), and next to it two WebP versions are written:
+
+      <name>.card.webp   ≤ 600px wide  — product cards, category cards
+      <name>.thumb.webp  ≤ 160px wide  — chips, nav icons, tag circles
+
+  The names are DERIVED from the original's, so nothing is stored: the
+  storefront turns `…/x.jpg` into `…/x.card.webp` itself (`_data/media.ts`).
+  A picture uploaded before this existed gets its versions from
+  `scripts/media-variants.mjs`, run once. SVGs are vectors and get none.
+*/
+export const VARIANTS = {
+  card: { width: 600, quality: 80 },
+  thumb: { width: 160, quality: 78 },
+} as const;
+
+export function variantPaths(rel: string): { card: string; thumb: string } {
+  const base = rel.replace(/\.[a-z0-9]+$/i, '');
+  return { card: `${base}.card.webp`, thumb: `${base}.thumb.webp` };
+}
+
+async function makeVariants(
+  dir: string,
+  rel: string,
+  buffer: Buffer,
+  mimetype: string,
+): Promise<{ card: string; thumb: string } | null> {
+  if (!/^image\/(jpeg|png|webp|avif)$/.test(mimetype)) return null;
+  const paths = variantPaths(rel);
+  try {
+    const img = sharp(buffer, { animated: false }).rotate();
+    await Promise.all([
+      img.clone().resize({ width: VARIANTS.card.width, withoutEnlargement: true }).webp({ quality: VARIANTS.card.quality }).toFile(join(dir, paths.card)),
+      img.clone().resize({ width: VARIANTS.thumb.width, withoutEnlargement: true }).webp({ quality: VARIANTS.thumb.quality }).toFile(join(dir, paths.thumb)),
+    ]);
+    return paths;
+  } catch {
+    // a picture sharp cannot read still uploads — the original is served everywhere, as before
+    return null;
   }
 }
 

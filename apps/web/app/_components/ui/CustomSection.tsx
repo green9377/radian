@@ -8,6 +8,7 @@ import { toProduct } from "../../_data/categoryApi";
 import { getShopCollections, getShopBanners, getShopProducts, zoneCode, type ShopCollection } from "../../_data/shop";
 import type { Zone } from "../../_store/useZoneStore";
 import type { LayoutBlock } from "../../_data/shop";
+import { mediaVariant } from "../../_data/media";
 
 /*
   Sections the owner added himself, rendered from ready-made shapes.
@@ -117,7 +118,7 @@ function CollectionRow({ block, zone }: { block: LayoutBlock; zone: Zone | null 
               key={c.slug}
               href={`/collections/${c.slug}`}
               className="relative rounded-[28px] overflow-hidden aspect-[1/1.14] shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift block bg-cover bg-center"
-              style={c.imageUrl ? { backgroundImage: `url(${c.imageUrl})` } : { background: TINTS[i % TINTS.length] }}
+              style={c.imageUrl ? { backgroundImage: `url(${mediaVariant(c.imageUrl, "card")})` } : { background: TINTS[i % TINTS.length] }}
             >
               <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(180deg,transparent 38%,rgba(50,0,73,.85) 100%)" }} />
               <div className="absolute left-0 right-0 bottom-0 z-[3] p-[22px] text-white">

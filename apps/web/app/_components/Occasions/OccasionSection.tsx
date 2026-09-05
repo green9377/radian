@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaVariant } from "../../_data/media";
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
@@ -153,7 +154,7 @@ export default function OccasionSection() {
             // /occasions exists, its twin never did. See `tagHref`.
             href: tagHref(g.slug, t.slug),
             bg: TINTS[i % TINTS.length],
-            imageUrl: t.imageUrl,
+            imageUrl: mediaVariant(t.imageUrl, "card"),
           })),
         })),
       );

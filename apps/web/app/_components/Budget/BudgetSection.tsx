@@ -5,6 +5,7 @@ import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../../_store/useZoneStore";
 import { getShopCollections, zoneCode } from "../../_data/shop";
+import { mediaVariant } from "../../_data/media";
 
 /*
   Gifts for Every Budget — the featured collections (Storefront → Collections),
@@ -61,7 +62,7 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
           href: `/collections/${c.slug}`,
           bg: TONES[i % TONES.length],
           premium: c.accent,
-          imageUrl: c.imageUrl,
+          imageUrl: mediaVariant(c.imageUrl, "card"),
         })),
       );
     });

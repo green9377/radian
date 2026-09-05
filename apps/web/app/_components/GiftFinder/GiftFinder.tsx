@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getGiftFinder, type GiftFinderStep } from "../../_data/shop";
 import SectionHead from "../ui/SectionHead";
+import { mediaVariant } from "../../_data/media";
 
 /*
   Gift Finder — the three-step wizard, in the owner's reference composition
@@ -195,7 +196,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
                     )}
                     <span
                       className="w-[52px] h-[52px] rounded-full grid place-items-center bg-cover bg-center font-display text-[20px] text-purple ring-4 ring-white shadow-soft"
-                      style={opt.imageUrl ? { backgroundImage: `url(${opt.imageUrl})` } : { background: TINTS[i % TINTS.length] }}
+                      style={opt.imageUrl ? { backgroundImage: `url(${mediaVariant(opt.imageUrl, "thumb")})` } : { background: TINTS[i % TINTS.length] }}
                     >
                       {!opt.imageUrl && opt.label.slice(0, 1).toUpperCase()}
                     </span>

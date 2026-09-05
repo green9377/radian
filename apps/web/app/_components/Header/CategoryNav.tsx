@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaVariant } from "../../_data/media";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -67,7 +68,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
           .map((c) => ({
             label: c.name,
             href: `/${c.slug}`,
-            iconUrl: c.iconUrl,
+            iconUrl: mediaVariant(c.iconUrl, "thumb"),
             dhakaOnly: c.nationwideCount === 0,
             empty: c.productCount === 0,
           })),

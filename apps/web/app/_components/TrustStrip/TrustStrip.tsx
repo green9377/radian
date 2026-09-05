@@ -5,6 +5,7 @@ import type { Zone } from "../Header/Header";
 import ShopIcon from "../ui/ShopIcon";
 import { getTrustBadges, zoneCode } from "../../_data/shop";
 import { HERO_FOOT } from "../Hero/HeroSection";
+import { mediaVariant } from "../../_data/media";
 
 /*
   The trust strip — the admin's trust badges (Homepage → Trust strip): icon or
@@ -28,7 +29,7 @@ export default function TrustStrip({ zone, overlapsHero = false }: { zone: Zone 
     getTrustBadges(zoneCode(zone)).then((rows) => {
       if (!alive || rows === null) return;
       setItems(rows.map((r) => ({
-        key: r.id, icon: r.icon, iconUrl: r.iconUrl, title: r.title, sub: r.subtitle ?? "",
+        key: r.id, icon: r.icon, iconUrl: mediaVariant(r.iconUrl, "thumb"), title: r.title, sub: r.subtitle ?? "",
       })));
     });
     return () => { alive = false; };
