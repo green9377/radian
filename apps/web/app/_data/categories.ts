@@ -33,7 +33,8 @@ export type SectionKey =
   | "deliveryBand"
   | "crossSellRail"
   | "giftFinder"
-  | "faq";
+  | "faq"
+  | "story";
 
 /** Product rail rule — mapped onto the flags in products.ts */
 export type ProductRule =
@@ -60,6 +61,8 @@ export interface CategorySection {
   iconUrl?: string | null;
   /** an image behind this section, if the shop wants one there */
   bgImageUrl?: string | null;
+  /** the section's own settings from the admin (the story card reads its words from here) */
+  config?: Record<string, unknown>;
   enabled: boolean;
   eyebrow?: string;
   heading?: string;
@@ -88,6 +91,9 @@ export interface ColourTile {
 export interface BudgetTile {
   kicker: string;
   label: string;
+  sub?: string;
+  imageUrl?: string | null;
+  accent?: boolean;
   href: string;
   bg: string;
 }
@@ -154,7 +160,8 @@ export type SlotKey =
   | "deliveryBand"
   | "crossSellRail"
   | "giftFinder"
-  | "faq";
+  | "faq"
+  | "story";
 
 export const SLOTS: { slot: SlotKey; base: CategorySection }[] = [
   { slot: "banner", base: { key: "banner", enabled: true } },
@@ -211,6 +218,7 @@ export const SLOTS: { slot: SlotKey; base: CategorySection }[] = [
   },
   { slot: "giftFinder", base: { key: "giftFinder", enabled: true, eyebrow: "Still deciding?" } },
   { slot: "faq", base: { key: "faq", enabled: true, eyebrow: "Good to know" } },
+  { slot: "story", base: { key: "story", enabled: true } },
 ];
 
 type SlotOverrides = Partial<Record<SlotKey, Partial<CategorySection> | false>>;

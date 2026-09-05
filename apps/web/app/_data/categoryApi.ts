@@ -57,6 +57,7 @@ function sections(page: ShopCategoryPage, lean = false): CategorySection[] {
       icon: (s.config.icon as string) ?? null,
       iconUrl: (s.config.iconUrl as string) ?? null,
       bgImageUrl: (s.config.bgImageUrl as string) ?? null,
+      config: s.config,
     };
   });
 }
@@ -164,6 +165,9 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
     budgets: page.budgets.map((b) => ({
       kicker: b.kicker ?? "",
       label: b.label,
+      sub: b.sub ?? undefined,
+      imageUrl: mediaVariant(b.imageUrl, "card"),
+      accent: b.accent,
       href: b.href,
       bg: b.bg,
     })),

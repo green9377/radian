@@ -26,7 +26,7 @@ function Tile({ icon, tone = "lavender" }: { icon: string; tone?: "lavender" | "
   );
 }
 
-export default function AboutSection({ config = {} }: { config?: Record<string, unknown> }) {
+export default function AboutSection({ config = {}, id = "about" }: { config?: Record<string, unknown>; id?: string }) {
   const eyebrow = String(config.eyebrow ?? "");
   const title = String(config.title ?? "");
   const body = String(config.body ?? "");
@@ -47,7 +47,7 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
   const hasSide = Boolean(imageUrl || scriptLine || stats.length || sideCaption);
 
   return (
-    <section className="py-[var(--section-y)]" id="about">
+    <section className="py-[var(--section-y)]" id={id}>
       <div className="max-w-[var(--page-w)] mx-auto px-6">
         <div
           className={`rounded-[28px] shadow-soft p-6 lg:p-9 grid grid-cols-1 gap-8 items-center ${hasSide ? "lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]" : ""}`}

@@ -21,6 +21,7 @@ import TileRail from "./TileRail";
 import CategoryDelivery from "./CategoryDelivery";
 import CategoryGiftFinder from "./CategoryGiftFinder";
 import CategoryFaq from "./CategoryFaq";
+import AboutSection from "../About/AboutSection";
 import GiftFinderModal from "./GiftFinderModal";
 
 /*
@@ -193,6 +194,12 @@ export default function CategorySections({
 
           case "faq":
             return <CategoryFaq key={key} section={section} faqs={config.faqs} />;
+
+          /*  The story at the bottom (owner, 5 Sep 2026): the homepage's About
+              Radian card, with this category's own words — SEO text a
+              shopper reads last and Google reads whole.  */
+          case "story":
+            return <AboutSection key={key} config={section.config ?? {}} id="story" />;
 
             default:
               return null;

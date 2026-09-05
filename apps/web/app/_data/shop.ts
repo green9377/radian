@@ -573,7 +573,7 @@ export interface ShopCategoryPage {
   attributes: ShopTile[];
   occasions: ShopTile[];
   colours: ShopColourTile[];
-  budgets: { kicker: string | null; label: string; href: string; bg: string }[];
+  budgets: { kicker: string | null; label: string; sub: string | null; imageUrl: string | null; accent: boolean; href: string; bg: string }[];
   combos: ShopTile[];
   crossSell: ShopTile[];
   faqs: { question: string; answer: string }[];

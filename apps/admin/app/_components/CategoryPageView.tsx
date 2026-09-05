@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
 import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
+import { AboutSettings } from "./SectionSettings";
 import {
   listCategorySections, updateCategorySection, resetCategorySection,
   addCategoryBlock, editCategoryBlock, removeCategoryBlock,
@@ -350,11 +351,16 @@ export default function CategoryPageView() {
     } catch (e) { fail(e, "Could not save"); }
   }
 
+  /*  The banner is the homepage hero's shape now (5 Sep 2026): the picture
+      sits on the band's own ground, so a plain photo loses its backdrop on
+      the way in — the same bgremove service the hero uses. `Keep` skips it. */
+  const [cutBg, setCutBg] = useState(true);
   async function pickBanner(file: File | null) {
     if (!file) return;
     setUploading("banner");
     try {
-      const { url } = await uploadImage(file, "categories");
+      const { url, bgRemoved } = await uploadImage(file, "categories", { removeBg: cutBg });
+      if (cutBg && bgRemoved === false) fail(new Error("The background could not be removed right now — the picture was kept as it is."), "Upload");
       await saveCategory({ bannerUrl: url });
     } catch (e) { fail(e, "Upload failed"); }
     finally { setUploading(null); }
@@ -690,7 +696,19 @@ export default function CategoryPageView() {
                               onBlur={(e) => e.target.value !== (chosen.description ?? "") && saveCategory({ description: e.target.value })} />
                           </F>
 
-                          <F label="Banner picture" hint="1200 × 800 · sits beside the words, not behind them · keep the subject centred">
+                          <F label="Banner picture" hint="the right half of the banner, like the homepage hero · with Auto the background is cut out so the subject sits on the banner itself">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-[12px] text-body">Remove background</span>
+                              <span className="inline-flex rounded-full bg-lavender p-0.5">
+                                {([true, false] as const).map((v) => (
+                                  <button key={String(v)} type="button" onClick={() => setCutBg(v)}
+                                    className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (cutBg === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
+                                    style={cutBg === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}>
+                                    {v ? "Auto" : "Keep"}
+                                  </button>
+                                ))}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-3">
                               {chosen.bannerUrl ? (
                                 <>
@@ -722,6 +740,15 @@ export default function CategoryPageView() {
                           </div>
                         </div>
                       )
+                    ) : r.key === "story" ? (
+                      <div className="space-y-2">
+                        {!chosen && (
+                          <p className="text-[12.5px] text-body-soft m-0 mb-2">
+                            This is the default story for every category — pick a category above to write its own.
+                          </p>
+                        )}
+                        <AboutSettings c={r.config} save={async (partial) => patch(r.key, { config: { ...r.config, ...partial } })} />
+                      </div>
                     ) : r.key === "faq" ? (
                       !chosen ? (
                         <p className="text-[12.5px] text-body-soft m-0">

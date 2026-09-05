@@ -514,7 +514,7 @@ export class ShopCatalogService {
         this.prisma.db.collection.findMany({
           where: { isActive: true, mode: 'PRICE_RANGE' },
           orderBy: [{ sortOrder: 'asc' }],
-          select: { slug: true, name: true, kicker: true, minPaisa: true, maxPaisa: true },
+          select: { slug: true, name: true, kicker: true, subtitle: true, imageUrl: true, accent: true, minPaisa: true, maxPaisa: true },
         }),
         this.prisma.db.category.findMany({
           where: { isActive: true, parentId: null, slug: { not: slug }, deletedAt: null },
@@ -620,6 +620,9 @@ export class ShopCatalogService {
       budgets: budgets.map((b) => ({
         kicker: b.kicker,
         label: b.name,
+        sub: b.subtitle,
+        imageUrl: b.imageUrl,
+        accent: b.accent,
         href: `/categories/${cat.slug}?${[
           b.minPaisa != null ? `min=${Math.round(b.minPaisa / 100)}` : '',
           b.maxPaisa != null ? `max=${Math.round(b.maxPaisa / 100)}` : '',

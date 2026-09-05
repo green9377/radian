@@ -397,7 +397,7 @@ function IconRows({ rows, max, onChange, placeholderTitle, placeholderSub }: {
   );
 }
 
-function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
+export function AboutSettings({ c, save }: { c: Cfg; save: Save }) {
   const [uploading, setUploading] = useState(false);
   const image = String(c.imageUrl ?? "");
   const features = (c.features as IconRow[] | undefined) ?? [];

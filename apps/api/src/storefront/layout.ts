@@ -113,6 +113,7 @@ export const PAGE_SECTION_MANIFEST: Record<string, SectionDef[]> = {
     { key: 'crossSellRail', label: 'Keep exploring', hint: 'Cards to other categories', movable: false },
     { key: 'giftFinder', label: 'Gift Finder', hint: 'The still-deciding block', movable: false },
     { key: 'faq', label: 'Questions', hint: "This category's own FAQ", movable: false },
+    { key: 'story', label: 'The story at the bottom', hint: 'SEO text with a picture — like About Radian on the homepage; written per category', movable: false },
   ],
 };
 
@@ -224,6 +225,22 @@ export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
     stats: [] as { icon: string; title: string; sub: string }[],
     sideCaption: '',
   },
+  /** the category page's own story card (5 Sep 2026) — the About Radian shape, empty until written */
+  story: {
+    eyebrow: '',
+    title: '',
+    body: '',
+    highlightBold: '',
+    highlightText: '',
+    highlightIcon: 'truck',
+    features: [] as { icon: string; title: string; sub: string }[],
+    ctaText: '',
+    ctaHref: '/products',
+    imageUrl: '',
+    scriptLine: '',
+    stats: [] as { icon: string; title: string; sub: string }[],
+    sideCaption: '',
+  },
   /** the FAQ accordion — the questions themselves live under Pages & FAQs */
   faq: {
     /** a group name from Pages & FAQs, '' = every group */
@@ -273,7 +290,28 @@ const iconRows = (v: unknown, max: number): { icon: string; title: string; sub: 
         .slice(0, max)
     : [];
 
+/** the About-Radian shape, shared by the homepage card and every category's story */
+const storyShape = (c: Record<string, unknown>, d: Record<string, unknown>) => {
+  const img = text(c.imageUrl, '', 400);
+  return {
+    eyebrow: text(c.eyebrow, d.eyebrow as string, 60),
+    title: text(c.title, d.title as string, 120),
+    body: text(c.body, '', 4000),
+    highlightBold: text(c.highlightBold, '', 80),
+    highlightText: text(c.highlightText, '', 300),
+    highlightIcon: text(c.highlightIcon, d.highlightIcon as string, 24).replace(/[^a-z0-9-]/g, ''),
+    features: iconRows(c.features, 6),
+    ctaText: text(c.ctaText, d.ctaText as string, 40),
+    ctaHref: href(c.ctaHref, d.ctaHref as string),
+    imageUrl: /^https?:\/\//.test(img) ? img : '',
+    scriptLine: text(c.scriptLine, '', 60),
+    stats: iconRows(c.stats, 4),
+    sideCaption: text(c.sideCaption, '', 80),
+  };
+};
+
 const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Record<string, unknown>> = {
+  story: (c) => storyShape(c, SECTION_DEFAULTS.story),
   faq: (c) => {
     const d = SECTION_DEFAULTS.faq;
     return {
@@ -286,25 +324,7 @@ const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Recor
       linkHref: href(c.linkHref, d.linkHref as string),
     };
   },
-  about: (c) => {
-    const d = SECTION_DEFAULTS.about;
-    const img = text(c.imageUrl, '', 400);
-    return {
-      eyebrow: text(c.eyebrow, d.eyebrow as string, 60),
-      title: text(c.title, d.title as string, 120),
-      body: text(c.body, '', 3000),
-      highlightBold: text(c.highlightBold, '', 80),
-      highlightText: text(c.highlightText, '', 300),
-      highlightIcon: text(c.highlightIcon, d.highlightIcon as string, 24).replace(/[^a-z0-9-]/g, ''),
-      features: iconRows(c.features, 6),
-      ctaText: text(c.ctaText, d.ctaText as string, 40),
-      ctaHref: href(c.ctaHref, d.ctaHref as string),
-      imageUrl: /^https?:\/\//.test(img) ? img : '',
-      scriptLine: text(c.scriptLine, '', 60),
-      stats: iconRows(c.stats, 4),
-      sideCaption: text(c.sideCaption, '', 80),
-    };
-  },
+  about: (c) => storyShape(c, SECTION_DEFAULTS.about),
   bestsellers: (c) => {
     const d = SECTION_DEFAULTS.bestsellers;
     const mode = ['AUTO', 'MANUAL', 'AUTO_FILL'].includes(String(c.mode)) ? String(c.mode) : d.mode;
@@ -779,6 +799,8 @@ export class LayoutService implements OnModuleInit {
     const page = categoryPageKey(slug);
     const order = defsFor(CATEGORY_PAGE).findIndex((d) => d.key === key);
     const existing = await this.prisma.db.pageSection.findUnique({ where: { page_key: { page, key } } });
+    // a section with its own settings shape keeps them in that shape
+    if (dto.config && SECTION_SANITISERS[key]) dto = { ...dto, config: SECTION_SANITISERS[key](dto.config) };
 
     // what the override starts from — the default in force, not the manifest,
     // so switching one thing off does not silently reset the rest of the row
