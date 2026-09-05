@@ -97,11 +97,14 @@ export default function Reviews() {
     rating alone is worth showing.
   */
   if (!reviews) return null; // still loading
-  if (!google && reviews.length === 0) return null;
+  /*  5 Sep 2026 (owner): published reviews = 0 → the whole section stays
+      hidden, Google rating or not; it returns by itself with the first
+      published review. The Google figure still shows on the shop card.  */
+  if (reviews.length === 0) return null;
 
   return (
-    <section className="bg-lavender py-[46px]" id="reviews">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="bg-lavender py-[var(--section-y)]" id="reviews">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.reviews"

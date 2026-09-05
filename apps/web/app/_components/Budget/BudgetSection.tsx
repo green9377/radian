@@ -72,8 +72,8 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
   if (cards.length === 0) return null;
 
   return (
-    <section className="bg-lavender py-[46px]" id="budget">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="bg-lavender py-[var(--section-y)]" id="budget">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.budget"

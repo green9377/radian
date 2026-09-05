@@ -69,7 +69,7 @@ export default function PromoBanner({ zone }: { zone?: Zone | null }) {
 
   return (
     <section className="pb-[46px]" id="promo">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/*
           Owner's choice, 30 Jul 2026, from three mocked layouts: the picture
           fills the whole strip and fades out under the words.

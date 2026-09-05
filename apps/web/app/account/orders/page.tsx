@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function OrdersPage() {
   return (
     <main className="bg-[#F6F4FA]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-16">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 pb-16">
         <AccountGuard>
           <AccountShell>
             <OrdersView />

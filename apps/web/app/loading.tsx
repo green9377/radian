@@ -6,7 +6,7 @@
 export default function Loading() {
   return (
     <main className="bg-[#F6F4FA]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 py-10">
         <div className="animate-pulse space-y-5">
           {/* title */}
           <div className="h-8 w-2/3 sm:w-1/3 rounded-full bg-lavender-deep" />

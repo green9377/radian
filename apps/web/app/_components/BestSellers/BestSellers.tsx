@@ -86,10 +86,10 @@ export default function BestSellers({ zone }: { zone: Zone | null }) {
   const items: Product[] = (grid.tabs.find((t) => t.key === effectiveCat)?.items ?? []).map(toProduct);
 
   return (
-    <section className="py-[46px]" id="bestsellers">
+    <section className="py-[var(--section-y)]" id="bestsellers">
       {/* 1400 wide, not 1200: the product cards are the point of this section,
           and on a wide screen the narrower stage left them small (owner, 5 Sep 2026) */}
-      <div className="max-w-[1400px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.bestsellers"

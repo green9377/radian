@@ -108,7 +108,7 @@ export default function Header() {
         {/* Announcement bar — always full browser width */}
         <AnnouncementBar zone={zone} />
 
-        <div className="px-4 sm:px-6 lg:px-10">
+        <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
 
           {/* ---- Mobile: row 1 — logo + icons at the corners ---- */}
           <div className="flex items-center justify-between py-2 lg:hidden">

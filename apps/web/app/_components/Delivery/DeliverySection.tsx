@@ -214,7 +214,7 @@ export default function DeliverySection({ zone, config = {} }: { zone: Zone | nu
         style={{ background: "rgba(207,67,234,.14)", top: -220, right: -160 }}
       />
 
-      <div className="relative z-[2] max-w-[1400px] mx-auto px-6">
+      <div className="relative z-[2] max-w-[var(--page-w)] mx-auto px-6">
         {/* Head */}
         <div className="flex items-center justify-between gap-6 flex-wrap mb-2.5">
           {/* The two zone wordings become a zone override on `home.delivery`:

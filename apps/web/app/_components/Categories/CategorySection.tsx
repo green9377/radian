@@ -149,6 +149,10 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
           // owner picks a zone. The header MENU stays unfiltered on purpose —
           // hiding a category from the menu would hide its page too.
           .filter((c) => !zc || !c.zone || c.zone === zc)
+          /*  5 Sep 2026 (owner) — a category with nothing to sell in this zone
+              is not a card: it stays in the admin untouched and reappears the
+              moment its first product is published. Same rule as the menu.  */
+          .filter((c) => (zc === "NATIONWIDE" ? c.nationwideCount : c.productCount) > 0)
           .slice(0, limit > 0 ? limit : undefined)
           .map((c, i) => ({
             name: c.name,
@@ -195,8 +199,8 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
   if (items.length === 0) return null;
 
   return (
-    <section className="py-[46px]" id="categories">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="py-[var(--section-y)]" id="categories">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.categories"

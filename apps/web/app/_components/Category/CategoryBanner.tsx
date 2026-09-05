@@ -36,7 +36,7 @@ export default function CategoryBanner({
       : PROMISES[zone === "bangladesh" ? "bangladesh" : "dhaka"];
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6">
+    <div className="max-w-[var(--page-w)] mx-auto px-6">
       <nav
         aria-label="Breadcrumb"
         className="flex items-center gap-[10px] pt-[18px] text-[13px] text-body-soft whitespace-nowrap"

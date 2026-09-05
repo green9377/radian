@@ -42,7 +42,7 @@ export default function TrustStrip({ zone, overlapsHero = false }: { zone: Zone 
     >
       {items.length > 0 && (
         <div className="bg-white border-b border-lavender-deep lg:bg-transparent lg:border-0">
-          <div className="max-w-[1200px] mx-auto px-6 lg:max-w-none lg:mx-[3.6vw] lg:px-[18px] lg:py-[22px] lg:bg-white lg:rounded-[24px] lg:shadow-lift">
+          <div className="max-w-[var(--page-w)] mx-auto px-6 lg:max-w-none lg:mx-[3.6vw] lg:px-[18px] lg:py-[22px] lg:bg-white lg:rounded-[24px] lg:shadow-lift">
             <div
               className="grid grid-cols-2 gap-x-3 gap-y-3 py-3 md:flex md:justify-between md:gap-5 md:py-[18px] lg:grid lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] lg:gap-0 lg:py-0"
               style={{ ["--cols" as string]: String(items.length) }}

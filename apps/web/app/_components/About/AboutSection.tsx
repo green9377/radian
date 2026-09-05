@@ -47,8 +47,8 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
   const hasSide = Boolean(imageUrl || scriptLine || stats.length || sideCaption);
 
   return (
-    <section className="py-[46px]" id="about">
-      <div className="max-w-[1400px] mx-auto px-6">
+    <section className="py-[var(--section-y)]" id="about">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <div
           className={`rounded-[28px] shadow-soft p-6 lg:p-9 grid grid-cols-1 gap-8 items-center ${hasSide ? "lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]" : ""}`}
           style={{ background: "linear-gradient(140deg,#fbf8fd 0%,#f5eef9 100%)" }}
@@ -56,13 +56,13 @@ export default function AboutSection({ config = {} }: { config?: Record<string, 
           {/* ---- the words ---- */}
           <div>
             {eyebrow && (
-              <div className="flex items-center gap-3 text-[11.5px] tracking-[0.24em] uppercase font-semibold text-purple/80">
+              <div className="flex items-center gap-3 text-[12px] tracking-[0.22em] uppercase font-semibold text-purple/80">
                 <span className="w-9 h-px bg-purple/60" />
                 {eyebrow}
               </div>
             )}
             {title && (
-              <h2 className="font-display text-[28px] lg:text-[34px] font-medium leading-[1.15] text-purple mt-3 [overflow-wrap:anywhere]">
+              <h2 className="font-display text-[clamp(26px,3vw,36px)] font-medium leading-[1.15] text-purple mt-3 [overflow-wrap:anywhere]">
                 {title}
               </h2>
             )}

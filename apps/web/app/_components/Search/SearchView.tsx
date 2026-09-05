@@ -131,7 +131,7 @@ export default function SearchView() {
     <section className="pt-4 pb-4">
       {/* ---- Result heading ---- */}
       {hasQuery && (
-        <div className="max-w-[1200px] mx-auto text-center mt-6 mb-7 px-2">
+        <div className="max-w-[var(--page-w)] mx-auto text-center mt-6 mb-7 px-2">
           <h1 className="font-display text-[clamp(22px,3vw,32px)] font-medium text-purple leading-[1.2]">
             {searching ? (
               <>Searching&hellip;</>
@@ -157,7 +157,7 @@ export default function SearchView() {
 
       {/* ---- Idle (কোনো query নেই) ---- */}
       {!hasQuery && (
-        <div className="max-w-[1200px] mx-auto text-center mt-8 mb-8 px-2">
+        <div className="max-w-[var(--page-w)] mx-auto text-center mt-8 mb-8 px-2">
           <h1 className="font-display text-[clamp(22px,3vw,32px)] font-medium text-purple leading-[1.2]">
             What are you looking for?
           </h1>
@@ -171,7 +171,7 @@ export default function SearchView() {
 
       {/* ---- Results grid ---- */}
       {visible.length > 0 && (
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+        <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-[14px] lg:gap-[26px]">
             {visible.map((p) => (
               <ProductCard key={p.slug} product={p} zone={effZone} />
@@ -196,7 +196,7 @@ export default function SearchView() {
 
       {/* ---- খালি ফলাফল / Idle → জনপ্রিয় fallback + Gift Finder CTA ---- */}
       {(empty || !hasQuery) && (
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 mt-4">
+        <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mt-4">
           {empty && (
             <div className="max-w-[620px] mx-auto text-center mb-11">
               <p className="text-[15px] text-body-soft font-light">

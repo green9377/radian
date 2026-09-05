@@ -225,7 +225,7 @@ export default function ProductsView() {
       </div>
 
       {/* ── Category chips ── */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 mb-7">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mb-7">
         <div className="flex gap-2.5 flex-wrap justify-center">
           <button
             onClick={() => setCat("all")}
@@ -257,7 +257,7 @@ export default function ProductsView() {
 
       {/* ── The filters that came with the address ── */}
       {applied.length > 0 && (
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 mb-5">
+        <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mb-5">
           <div className="flex items-center gap-2 flex-wrap justify-center">
             <span className="text-[13px] text-body-soft">Showing gifts</span>
             {applied.map((f) => (
@@ -283,7 +283,7 @@ export default function ProductsView() {
       )}
 
       {/* ── Result bar: count + sort ── */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 mb-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mb-6">
         <div className="flex items-center justify-between gap-4 flex-wrap border-b border-lavender-deep pb-4">
           <p className="text-[14px] text-body-soft font-light">
             {results.length} {results.length === 1 ? "gift" : "gifts"} · delivering
@@ -310,7 +310,7 @@ export default function ProductsView() {
       </div>
 
       {/* ── Grid / empty ── */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
         {visible.length > 0 ? (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-[14px] lg:gap-[26px]">

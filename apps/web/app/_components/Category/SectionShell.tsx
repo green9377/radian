@@ -85,12 +85,12 @@ export function Section({
   if (tone === "alt") {
     return (
       <section id={id} className="mt-[72px] py-[72px] bg-lavender">
-        <div className="max-w-[1200px] mx-auto px-6">{children}</div>
+        <div className="max-w-[var(--page-w)] mx-auto px-6">{children}</div>
       </section>
     );
   }
   return (
-    <section id={id} className="max-w-[1200px] mx-auto px-6 pt-[72px]">
+    <section id={id} className="max-w-[var(--page-w)] mx-auto px-6 pt-[72px]">
       {children}
     </section>
   );

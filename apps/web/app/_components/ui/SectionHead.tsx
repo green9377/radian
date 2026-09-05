@@ -79,7 +79,7 @@ export default function SectionHead({
   const dark = tone === "dark";
 
   return (
-    <div className={`${align === "center" ? "text-center" : "text-left"} mb-[30px] ${className}`}>
+    <div className={`${align === "center" ? "text-center" : "text-left"} mb-[var(--section-gap)] ${className}`}>
       {e && (
         <div className={`inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase font-semibold mb-3 whitespace-nowrap ${dark ? "text-orchid-mid" : "text-orchid"}`}>
           <span className="w-[9px] h-[9px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />

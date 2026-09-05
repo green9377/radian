@@ -60,12 +60,12 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
   const hasSide = Boolean(scriptLine || sideText);
 
   return (
-    <section className="relative py-9 overflow-hidden" id="faq">
+    <section className="relative py-[var(--section-y)] overflow-hidden" id="faq">
       {/* two faint sprigs at the edges, like the reference */}
       <Sprig className="hidden xl:block absolute -left-4 top-24 w-[120px] h-[200px] text-orchid-mid/40 pointer-events-none" />
       <Sprig className="hidden xl:block absolute -right-4 top-24 w-[120px] h-[200px] text-orchid-mid/40 pointer-events-none -scale-x-100" />
 
-      <div className="max-w-[1400px] mx-auto px-6 relative">
+      <div className="max-w-[var(--page-w)] mx-auto px-6 relative">
         <SectionHead
           sectionKey="home.faq"
           eyebrow="FAQs for Radian Flower & Gift Shop"

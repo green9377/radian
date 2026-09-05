@@ -119,7 +119,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
           leaving too much dead margin on a desktop. The card inside keeps its
           own padding, so the extra width all goes to the photo and the buy
           panel.  */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
         {/* breadcrumb */}
         <nav
           aria-label="Breadcrumb"

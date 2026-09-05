@@ -81,7 +81,7 @@ function ProductRow({ block, zone }: { block: LayoutBlock; zone: Zone | null }) 
 
   return (
     <section className="py-[46px]">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <Head title={block.title} subtitle={block.subtitle} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
           {items.map((p) => <ProductCard key={p.slug} product={p} zone={zone} />)}
@@ -110,7 +110,7 @@ function CollectionRow({ block, zone }: { block: LayoutBlock; zone: Zone | null 
 
   return (
     <section className="bg-lavender py-[46px]">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <Head title={block.title} subtitle={block.subtitle} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
           {items.map((c, i) => (
@@ -154,7 +154,7 @@ function ImageBanner({ block }: { block: LayoutBlock }) {
   );
   return (
     <section className={full ? "py-[10px]" : "py-[18px]"}>
-      <div className={full ? "" : "max-w-[1400px] mx-auto px-6"}>
+      <div className={full ? "" : "max-w-[var(--page-w)] mx-auto px-6"}>
         {href ? (
           <Link href={href} className="block transition-transform duration-300 hover:-translate-y-[2px]">{picture}</Link>
         ) : picture}
@@ -182,7 +182,7 @@ function BannerStrip({ block, zone }: { block: LayoutBlock; zone: Zone | null })
 
   return (
     <section className="pb-[46px] pt-[10px]">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <div
           className="rounded-[28px] overflow-hidden relative min-h-[250px] flex items-center shadow-lift bg-cover bg-center"
           style={b.imageUrl ? { backgroundImage: `url(${b.imageUrl})` } : { background: "linear-gradient(120deg,#FBEFF7 0%,#F3D9EE 50%,#E9C0E8 100%)" }}

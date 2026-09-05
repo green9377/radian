@@ -195,8 +195,8 @@ export default function OccasionSection() {
     "absolute top-1/2 -translate-y-[60%] z-[5] w-11 h-11 rounded-full bg-white text-purple grid place-items-center shadow-lift border border-lavender-deep transition-opacity duration-200 hover:bg-purple hover:text-white cursor-pointer";
 
   return (
-    <section className="bg-lavender py-[42px]" id="occasions">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="bg-lavender py-[var(--section-y)]" id="occasions">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.occasions"

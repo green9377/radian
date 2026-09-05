@@ -106,7 +106,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-purple-deep text-white/80">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Main columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8 lg:gap-10 pt-[52px] pb-[38px]">
           {/* Brand */}

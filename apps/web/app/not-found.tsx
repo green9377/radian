@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function NotFound() {
   return (
     <main className="bg-[#F6F4FA]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-16">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 pb-16">
         <div className="py-16 sm:py-24 grid place-items-center text-center">
           {/* petal motif */}
           <span className="w-16 h-16 rounded-[50%_50%_50%_0] -rotate-45 bg-orchid-soft grid place-items-center">

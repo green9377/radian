@@ -80,8 +80,8 @@ export default function BlogSection({ config = {} }: { config?: Record<string, u
   const shown = (chosen.length > 0 ? chosen : posts).slice(0, count);
 
   return (
-    <section className="py-[46px]" id="blog">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="py-[var(--section-y)]" id="blog">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         {/* Section head */}
         <SectionHead
           sectionKey="home.blog"

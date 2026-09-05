@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function WishlistPage() {
   return (
     <main className="bg-[#F6F4FA]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
         <nav
           aria-label="Breadcrumb"
           className="flex items-center gap-2 flex-wrap py-4 text-[13.5px] text-body-soft"

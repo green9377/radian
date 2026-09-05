@@ -157,7 +157,7 @@ export default function CategoryDelivery({
     <section className="relative mt-[72px] py-[52px] overflow-hidden text-white bg-[linear-gradient(150deg,#320049_0%,#470066_55%,#5B1279_100%)]">
       <span className="pointer-events-none absolute -top-56 -right-40 w-[560px] h-[560px] rounded-[50%_50%_50%_0] -rotate-45 bg-orchid/15" />
 
-      <div className="relative max-w-[1200px] mx-auto px-6">
+      <div className="relative max-w-[var(--page-w)] mx-auto px-6">
         <div className="mb-[26px]">
           {/* the wording is the shop's, like every other section — it was
               hard-coded here, so the three boxes the admin offers for this

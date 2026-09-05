@@ -95,8 +95,8 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
   const hasPanel = Boolean(panelTitle || panelText || panelScript || panelImageUrl);
 
   return (
-    <section className="py-[46px]" id="giftfinder">
-      <div className="max-w-[1400px] mx-auto px-6">
+    <section className="py-[var(--section-y)]" id="giftfinder">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <SectionHead
           sectionKey="home.giftfinder"
           eyebrow="Let us guide you"
@@ -118,7 +118,7 @@ export default function GiftFinder({ config = {} }: { config?: Record<string, un
               <span className="absolute -left-24 -top-24 w-72 h-72 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,.06)" }} />
               <span className="absolute -left-16 top-1/2 w-56 h-56 rounded-full pointer-events-none" style={{ background: "rgba(207,67,234,.16)" }} />
 
-              <div className="relative z-[1] flex items-center gap-3 text-[11.5px] tracking-[0.24em] uppercase font-semibold text-orchid-mid">
+              <div className="relative z-[1] flex items-center gap-3 text-[12px] tracking-[0.22em] uppercase font-semibold text-orchid-mid">
                 <span className="w-8 h-px bg-orchid-mid/80" />
                 Step {step} of {total}
               </div>

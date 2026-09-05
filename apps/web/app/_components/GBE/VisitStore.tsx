@@ -96,8 +96,8 @@ export default function VisitStore() {
     : LINES;
 
   return (
-    <section className="bg-lavender py-[46px]" id="store">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section className="bg-lavender py-[var(--section-y)]" id="store">
+      <div className="max-w-[var(--page-w)] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-8 lg:gap-12 items-center">
           {/* Store visual — layered composition (photo drops in after the shoot) */}
           <div className="relative h-[340px] lg:h-[420px]">

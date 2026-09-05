@@ -199,7 +199,7 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
         </div>
       ))}
 
-      <div className="max-w-[1200px] mx-auto px-6 w-full lg:flex-1 lg:flex lg:flex-col">
+      <div className="max-w-[var(--page-w)] mx-auto px-6 w-full lg:flex-1 lg:flex lg:flex-col">
         {/* While the answer is on its way: the band, empty, at its full height */}
         {banners === null && <div className="min-h-[420px] lg:flex-1" aria-hidden />}
 
@@ -226,7 +226,7 @@ export default function HeroSection({ zone, stripFollows = false }: Props) {
           {/* ---- Left: copy ---- */}
           <div className="relative z-[1]">
             {c.eyebrow && (
-              <div className="flex items-center gap-3 text-[12px] tracking-[0.24em] uppercase font-semibold text-orchid mb-5 whitespace-nowrap">
+              <div className="flex items-center gap-3 text-[12px] tracking-[0.22em] uppercase font-semibold text-orchid mb-5 whitespace-nowrap">
                 <span>{c.eyebrow}</span>
                 <span className="w-9 h-px bg-orchid/70 shrink-0" />
               </div>

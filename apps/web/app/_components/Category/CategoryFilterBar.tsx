@@ -154,7 +154,7 @@ export default function CategoryFilterBar({
   const sort = filters.sort ?? "popular";
 
   return (
-    <div className="max-w-[1200px] mx-auto -mt-4 mb-9 flex flex-wrap items-center justify-between gap-3">
+    <div className="max-w-[var(--page-w)] mx-auto -mt-4 mb-9 flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2 min-h-[36px]">
         {chips.length > 0 && (
           <span className="text-[12.5px] text-body-soft mr-1">Showing</span>

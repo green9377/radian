@@ -69,7 +69,7 @@ export default async function OccasionsIndexPage() {
 
   return (
     <main className="bg-[#F6F4FA]">
-      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-10 sm:pt-12 pb-14">
+      <section className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 pt-10 sm:pt-12 pb-14">
         {/* ─── header ─── */}
         <div className="text-center max-w-[640px] mx-auto">
           <div className="inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase text-orchid font-semibold mb-3">

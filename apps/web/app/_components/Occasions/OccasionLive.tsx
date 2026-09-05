@@ -93,7 +93,7 @@ export default function OccasionLive({
         </p>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 mb-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mb-6">
         <div className="flex items-center justify-between gap-4 flex-wrap border-b border-lavender-deep pb-4">
           <p className="text-[14px] text-body-soft font-light">
             {loading ? "Loading…" : `${results.length} ${results.length === 1 ? "gift" : "gifts"}`} · delivering to {zoneLabel}
@@ -111,7 +111,7 @@ export default function OccasionLive({
         </div>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
         {visible.length > 0 ? (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-[14px] lg:gap-[26px]">

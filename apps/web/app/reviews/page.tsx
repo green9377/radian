@@ -71,7 +71,7 @@ export default async function ReviewsPage() {
 
   return (
     <main className="bg-[#F6F4FA] min-h-[60vh]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 py-10">
         {/* head */}
         <div className="text-center mb-9">
           <div className="inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase text-orchid font-semibold mb-3.5">

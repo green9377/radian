@@ -28,6 +28,16 @@
   --shadow-lift: 0 18px 50px rgba(71, 0, 102, 0.14);
 }
 
+/* ---- Page rhythm (owner, 5 Sep 2026): ONE width, ONE vertical beat ----
+   Every section, the header and the footer sit inside `--page-w`, so the
+   left edges line up down the whole page; every section keeps `--section-y`
+   above and below. Change them here, never in a section. */
+:root {
+  --page-w: 1400px;
+  --section-y: 44px;
+  --section-gap: 30px;
+}
+
 /* In-page jumps (#related on a sold-out product) glide instead of snapping.
    CSS, not JavaScript — a browser that ignores it still jumps, which is the
    behaviour we actually need. Anyone who has asked for less motion gets none. */

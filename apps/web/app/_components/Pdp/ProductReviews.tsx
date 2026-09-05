@@ -40,7 +40,7 @@ export default function ProductReviews({ detail }: { detail: ProductDetail }) {
   const max = Math.max(...byStar, 1);
 
   return (
-    <section id="reviews" className="max-w-[1200px] mx-auto px-4 sm:px-6 mt-10">
+    <section id="reviews" className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 mt-10">
       <div className="bg-white rounded-[28px] shadow-soft p-6 sm:p-8">
         <h2 className="font-display text-[clamp(20px,2.6vw,28px)] font-medium text-purple leading-tight mb-6">
           Customer Reviews
