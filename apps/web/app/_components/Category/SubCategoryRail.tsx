@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { CategorySection, Tile as TileType } from "../../_data/categories";
-import { Section, SectionHead, Tile } from "./SectionShell";
+import TileImage from "../ui/TileImage";
+import { Section, SectionHead } from "./SectionShell";
 
 /* Shop by flower / flavour — এটাই Roses page-এর উপরের লেভেল */
 export default function SubCategoryRail({
@@ -28,8 +29,9 @@ export default function SubCategoryRail({
             href={t.href}
             className="group shrink-0 snap-start w-[150px] text-center"
           >
-            <Tile
-              bg={t.bg}
+            <TileImage
+              src={t.imageUrl}
+              alt={t.label}
               className="h-[150px] rounded-t-[100px] rounded-b-[12px] shadow-soft transition-all duration-300 group-hover:-translate-y-[5px] group-hover:shadow-lift"
             />
             <h3 className="mt-3 text-[14.5px] font-medium text-purple whitespace-nowrap">

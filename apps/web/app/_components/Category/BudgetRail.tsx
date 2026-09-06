@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { BudgetTile, CategorySection } from "../../_data/categories";
+import TileImage from "../ui/TileImage";
 import { Section, SectionHead } from "./SectionShell";
 
 /*
@@ -10,13 +11,6 @@ import { Section, SectionHead } from "./SectionShell";
   the range, the small line, and the rose-gold treatment for the top tier.
   Each card filters THIS category by that price window.
 */
-const TONES = [
-  "linear-gradient(160deg,#F2DFF5,#D9B5E8)",
-  "linear-gradient(160deg,#EFD9EE,#D3A8DC)",
-  "linear-gradient(160deg,#E8D4F0,#C49BDD)",
-  "linear-gradient(160deg,#EFD8D3,#C99A92)",
-];
-
 export default function BudgetRail({
   section,
   tiles,
@@ -35,13 +29,13 @@ export default function BudgetRail({
         gold
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
-        {tiles.map((b, i) => (
-          <Link
-            key={b.label}
-            href={b.href}
-            className="relative rounded-[28px] overflow-hidden aspect-[1/1.14] shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift block bg-cover bg-center"
-            style={b.imageUrl ? { backgroundImage: `url(${b.imageUrl})` } : { background: TONES[i % TONES.length] }}
-          >
+        {tiles.map((b) => (
+          <Link key={b.label} href={b.href} className="group block">
+            <TileImage
+              src={b.imageUrl}
+              alt={b.label}
+              className="rounded-[28px] aspect-[1/1.14] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
+            >
             <div
               className="absolute inset-0 z-[2]"
               style={{
@@ -59,6 +53,7 @@ export default function BudgetRail({
               <h3 className="font-display text-[22px] font-medium whitespace-nowrap mt-[3px] mb-[1px]">{b.label}</h3>
               {b.sub && <span className="text-[12.5px] text-white/80 whitespace-nowrap">{b.sub}</span>}
             </div>
+            </TileImage>
           </Link>
         ))}
       </div>

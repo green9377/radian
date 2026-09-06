@@ -76,7 +76,7 @@ export default function CategoryFilterBar({
     value: string,
   ) =>
     tiles.find((t) => {
-      const q = t.href.split("?")[1];
+      const q = t.href.split("?")[1]?.split("#")[0];
       return q ? new URLSearchParams(q).get(param) === value : false;
     })?.label;
 

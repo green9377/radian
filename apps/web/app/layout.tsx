@@ -38,6 +38,9 @@ const jost = Jost({
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await getSiteSeo();
   return {
+    // absolute addresses for canonical links and share images — the same
+    // base the sitemap uses
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://radianbd.com"),
     title: seo.siteName
       ? `${seo.siteName} — Flowers & Gifts, Delivered with Love`
       : "Radian — Flowers & Gifts, Delivered with Love",

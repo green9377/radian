@@ -5,6 +5,7 @@ import type { Zone } from "../../_store/useZoneStore";
 import { formatTaka, type Product } from "../../_data/products";
 import { useInWishlist, useWishlistStore } from "../../_store/useWishlistStore";
 import { useCardWording } from "./useCardWording";
+import TileImage from "../ui/TileImage";
 
 /*
   Reusable product card — Best Sellers, Delivery section, Collection,
@@ -165,14 +166,12 @@ export default function ProductCard({
 
   return (
     <div className="bg-white rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift relative h-full flex flex-col">
-      {/* Image */}
-      <Link
-        href={`/p/${product.slug}`}
-        className="block aspect-square relative overflow-hidden"
-        style={{ background: product.bg }}
-      >
-        <Badge product={product} zone={zone} />
-        <MerchBadge product={product} />
+      {/* the picture — a real <img> with the product's name as its alt */}
+      <Link href={`/p/${product.slug}`} className="block">
+        <TileImage src={product.imageUrl} alt={product.name} variant="card" className="aspect-square">
+          <Badge product={product} zone={zone} />
+          <MerchBadge product={product} />
+        </TileImage>
       </Link>
 
       {/* Wishlist */}

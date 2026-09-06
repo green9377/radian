@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import SiteSectionHead from "../ui/SectionHead";
 
 /*
-  Category page-এর shared shell — সব section এগুলো ব্যবহার করে।
-  এক জায়গায় spacing rhythm: প্রতি section 72px, heading-এর নিচে 38px.
+  The category page's shared shell. One rhythm for the whole site: every
+  section is `--section-y` tall at top and bottom and its heading sits
+  `--section-gap` above its content — the same tokens the homepage uses
+  (globals.css). The page used to run on its own 72px; it no longer does.
 */
 
 export function Petal({ gold = false }: { gold?: boolean }) {
@@ -23,6 +26,12 @@ export function ArrowIcon() {
   );
 }
 
+/**
+ * The category page's heading is the site's one heading (`ui/SectionHead`)
+ * with the words already resolved by the server — one shape on every page
+ * (owner, 6 Sep 2026). `sectionKey` is null on purpose: the per-category
+ * override was applied before the words got here.
+ */
 export function SectionHead({
   eyebrow,
   heading,
@@ -37,38 +46,15 @@ export function SectionHead({
   onDark?: boolean;
 }) {
   if (!eyebrow && !heading) return null;
-
   return (
-    <div className="text-center mb-[38px]">
-      {eyebrow && (
-        <div
-          className={`inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.22em] mb-[14px] ${
-            onDark ? "text-orchid-mid" : "text-orchid"
-          }`}
-        >
-          <Petal gold={gold} />
-          {eyebrow}
-        </div>
-      )}
-      {heading && (
-        <h2
-          className={`font-display text-[clamp(26px,3.4vw,40px)] font-medium leading-[1.15] ${
-            onDark ? "text-white" : "text-purple"
-          }`}
-        >
-          {heading}
-        </h2>
-      )}
-      {subheading && (
-        <p
-          className={`mt-[10px] text-[16px] font-light ${
-            onDark ? "text-white/70" : "text-body-soft"
-          }`}
-        >
-          {subheading}
-        </p>
-      )}
-    </div>
+    <SiteSectionHead
+      sectionKey={null}
+      eyebrow={eyebrow ?? ""}
+      title={heading ?? ""}
+      subtitle={subheading ?? ""}
+      tone={onDark ? "dark" : "light"}
+      petal={gold ? "gold" : "orchid"}
+    />
   );
 }
 
@@ -82,23 +68,11 @@ export function Section({
   tone?: "plain" | "alt";
   id?: string;
 }) {
-  if (tone === "alt") {
-    return (
-      <section id={id} className="mt-[72px] py-[72px] bg-lavender">
-        <div className="max-w-[var(--page-w)] mx-auto px-6">{children}</div>
-      </section>
-    );
-  }
   return (
-    <section id={id} className="max-w-[var(--page-w)] mx-auto px-6 pt-[72px]">
-      {children}
+    <section id={id} className={`py-[var(--section-y)] ${tone === "alt" ? "bg-lavender" : ""}`}>
+      <div className="max-w-[var(--page-w)] mx-auto px-6">{children}</div>
     </section>
   );
-}
-
-/** Photo না আসা পর্যন্ত gradient placeholder (Constitution: real photo = launch dependency) */
-export function Tile({ bg, className = "" }: { bg: string; className?: string }) {
-  return <div className={`relative overflow-hidden ${className}`} style={{ background: bg }} />;
 }
 
 export function ViewAll({ href, children }: { href: string; children: ReactNode }) {

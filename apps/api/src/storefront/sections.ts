@@ -150,7 +150,8 @@ export const SECTION_MANIFEST: SectionDefault[] = [
   },
   {
     key: 'category.comboRail', page: 'Category page', label: 'Better together',
-    eyebrow: 'Better together',
+    eyebrow: 'Better together', title: 'Pairs Well With These',
+    subtitle: 'Hand-picked to go with this collection — one gift, one delivery.',
   },
   /*  The delivery band had no key here at all, so its three boxes in the admin
       opened empty and the storefront kept an eyebrow typed into the component.
@@ -165,11 +166,12 @@ export const SECTION_MANIFEST: SectionDefault[] = [
   },
   {
     key: 'category.giftFinder', page: 'Category page', label: 'Gift Finder',
-    eyebrow: 'Still deciding?',
+    eyebrow: 'Still deciding?', title: 'Find the Perfect Gift in 3 Simple Steps',
+    subtitle: "A few quick details, and we'll handpick the best gifts from this collection.",
   },
   {
     key: 'category.faq', page: 'Category page', label: 'Questions',
-    eyebrow: 'Good to know',
+    eyebrow: 'Good to know', title: 'Questions People Ask Before They Order',
   },
 ];
 

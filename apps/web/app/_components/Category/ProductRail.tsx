@@ -3,47 +3,25 @@
 import type { Zone } from "../../_store/useZoneStore";
 import type { Product } from "../../_data/products";
 import type { CategorySection } from "../../_data/categories";
-import { selectProducts } from "../../_data/categories";
 import ProductCard from "../Product/ProductCard";
 import { Section, SectionHead, ViewAll } from "./SectionShell";
 
 /*
-  একটাই component — Flowers page-এ দুবার ব্যবহার হচ্ছে:
-   1) "Dhaka's Favourite Flowers" — rule: bestseller, count: 8  (2 লাইন × 4)
-   2) "Ready To Send Right Now"   — rule: express,    count: 4  (1 লাইন)
-  নতুন rail লাগলে নতুন code লাগে না — শুধু config-এ একটা entry।
+  One component, three rows on a category page: Most ordered, Ready to send
+  right now, Better together. The list arrives already chosen by the server —
+  by its rule or by the owner's own hand-picked list — and is never filtered
+  again here (2 Aug 2026: a second filter by the `best` flag silently dropped
+  everything the shop sells a lot of but never ticked as a best seller).
 */
 export default function ProductRail({
   section,
-  products,
+  products: list,
   zone,
-  preselected = false,
 }: {
   section: CategorySection;
   products: Product[];
   zone: Zone | null;
-  /**
-   * The list arrived already chosen — do not choose again.
-   *
-   * ⚠️ THIS FIXES A REAL BUG, NOT JUST THE NEW FEATURE (2 Aug 2026). The server
-   * picks these two rails against the WHOLE catalogue and then this component
-   * filtered them a second time by the `best` / `exp` flag. So "Most ordered"
-   * silently dropped every product the shop sells a lot of but has never
-   * ticked as a best seller — and with hand-picking, it would have dropped the
-   * owner's own choices without a word.
-   *
-   * One decision, made in one place: the server's.
-   */
-  preselected?: boolean;
 }) {
-  const list = preselected
-    ? products
-    : selectProducts(products, {
-        rule: section.rule,
-        productSlugs: section.productSlugs,
-        count: section.count,
-      });
-
   if (!list.length) return null;
 
   return (

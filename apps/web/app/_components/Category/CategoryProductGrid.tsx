@@ -50,10 +50,9 @@ export default function CategoryProductGrid({
   failed?: boolean;
 }) {
   /*
-    31 Jul 2026 — the server sends the first two dozen, not the whole
-    catalogue. Load More asks for the next page instead of slicing an array
-    that already holds everything, so a category with four hundred products
-    does not put four hundred cards into the HTML of the page.
+    The server sends exactly the first batch (the section's count, eight by
+    default); Load More asks for the next batch of the same size. Nothing is
+    fetched that is not shown (owner, 6 Sep 2026).
   */
   const [extra, setExtra] = useState<Product[]>([]);
   const [nextPage, setNextPage] = useState(2);
@@ -100,7 +99,7 @@ export default function CategoryProductGrid({
 
   async function loadMore() {
     if (shown < list.length) {
-      setShown((n) => n + PAGE_SIZE);
+      setShown((n) => n + initial);
       return;
     }
     if (!apiSlug || loading) return;
@@ -111,24 +110,28 @@ export default function CategoryProductGrid({
       category: apiSlug,
       sub: apiSub,
       zone: apiZone,
+      // the same batch size as the first fetch, so page 2 starts where page 1 ended
       page: nextPage,
-      limit: 24,
+      limit: initial,
     });
     setLoading(false);
     if (!res || res.items.length === 0) return;
     setExtra((cur) => [...cur, ...res.items.map(toProduct)]);
     setNextPage((n) => n + 1);
-    setShown((n) => n + PAGE_SIZE);
+    setShown((n) => n + initial);
   }
 
   const zoneLabel = zone === "bangladesh" ? "All Bangladesh" : "Inside Dhaka";
+  const noun = totalProducts === 1 ? "product" : "products";
 
   return (
     <Section tone={section.tone} id="all-products">
+      {/* the admin's line under the heading if he wrote one; otherwise the
+          count and the zone — a fact, not a delivery promise */}
       <SectionHead
         eyebrow={section.eyebrow}
         heading={section.heading}
-        subheading={`${totalProducts} arrangements, all delivering to ${zoneLabel} today.`}
+        subheading={section.subheading ?? `${totalProducts} ${noun} · ${zoneLabel}`}
       />
 
       {/*
@@ -184,7 +187,7 @@ export default function CategoryProductGrid({
             />
           </div>
           <div className="text-[13px] text-body-soft">
-            {visible.length} of {totalProducts} {totalProducts === 1 ? "arrangement" : "arrangements"}
+            {visible.length} of {totalProducts} {noun}
           </div>
           {hasMore && (
             <button

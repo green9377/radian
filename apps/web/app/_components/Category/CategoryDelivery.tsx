@@ -8,63 +8,40 @@ import { getDeliveryModes, zoneCode, type DeliveryMode as ApiMode } from "../../
 import { SectionHead } from "./SectionShell";
 
 /*
-  এখানে কোনো product দেখানো হয় না — শুধু delivery mode.
-  Card-এ click করলে filtered product page-এ যাবে (approved board decision).
-  Compact band — clean look, বেশি জায়গা নেয় না।
+  The delivery band — no products, just the ways a gift can travel. A card
+  filters this page by that speed (`?speed=`).
 
-  ══════════════════════════════════════════════════════════════════════════
-  LIVE SINCE 2 AUG 2026 — the names, the lines and the countdown now come from
-  the Delivery module, exactly as the homepage band has since 31 Jul.
+  Everything a customer reads here is the Delivery module's: the method's
+  name, its line (the ETA), the countdown to today's cutoff — the same
+  `getDeliveryModes` the homepage band reads, so switching a method off in
+  the admin removes it from both places in one edit. Nothing is typed here
+  any more (owner, 6 Sep 2026): until the methods arrive the band is not
+  drawn, and a shop with no methods has no band.
 
-  ⚠️ WHAT WAS WRONG. Every word in this band was typed here: "before 8 PM",
-  "Order before 6 PM", and a countdown that read "3h 42m" at every hour of
-  every day. The owner's own instruction on the Delivery module was that a
-  change there must reach the whole system — and this was the one page still
-  making its own delivery promises, from a file only a developer can edit.
-
-  It is the SAME `getDeliveryModes` the homepage reads. Two bands, one set of
-  claims: switch midnight delivery off in the admin and it stops being offered
-  in both places, in one edit.
-
-  The list below stays as the FALLBACK and as the map from a method to the
-  product flag its link filters on — matched by keyword, because the owner may
-  rename "Same Day" to "Today" and the products it should show do not change.
-  ══════════════════════════════════════════════════════════════════════════
+  The table below only maps a live method onto a card DESIGN (icon + which
+  product flag its link filters on), matched by keyword, because the owner
+  may rename "Same Day" to "Today" and the products it should show do not
+  change. The nationwide designs are not delivery SPEEDS — a courier product
+  is not a two-hour product — so they point at the grid rather than at a
+  filter the API does not have.
 */
 
-type Mode = { id: string; title: string; note: string; cta: string; href: string; icon: "bolt" | "sun" | "moon" | "truck" | "clock" | "box" };
+type Design = { id: string; href: string; icon: "bolt" | "sun" | "moon" | "truck" | "clock" | "box" };
 
-/*
-  ⚠️ `?speed=`, NOT `?delivery=` — 2 Aug 2026.
-
-  These cards linked to `?delivery=express`, and the category page has never
-  read a parameter by that name. Every one of them reloaded the same page with
-  the same products: a button that looks like it filters and does not. The page
-  still accepts the old spelling so links already sent out keep working.
-
-  The three nationwide cards are not delivery SPEEDS — a courier product is not
-  a two-hour product — so they point at the grid rather than at a filter the
-  API does not have.
-*/
-const MODES: Record<"dhaka" | "bangladesh", Mode[]> = {
+const DESIGNS: Record<"dhaka" | "bangladesh", Design[]> = {
   dhaka: [
-    /*  ⚠️ Three invented clocks lived on this line — "2-Hour", "before 8 PM",
-        "before 6 PM". None was the shop's: the express is three hours and both
-        cut-offs are slot settings the owner edits himself. The live cards use
-        the admin's own names (see the merge below); this is the fallback, and
-        a fallback may describe the service without timing it.  */
-    { id: "express", title: "Express Delivery", note: "Inside Dhaka · fastest option", cta: "See Express Products", href: "?speed=express", icon: "bolt" },
-    { id: "same_day", title: "Same Day", note: "Ordered today · any area", cta: "See Same Day Products", href: "?speed=same_day", icon: "sun" },
-    { id: "midnight", title: "Midnight Surprise", note: "12:00–12:30 AM · pre-book", cta: "See Midnight Products", href: "?speed=midnight", icon: "moon" },
+    { id: "express", href: "?speed=express#all-products", icon: "bolt" },
+    { id: "same_day", href: "?speed=same_day#all-products", icon: "sun" },
+    { id: "midnight", href: "?speed=midnight#all-products", icon: "moon" },
   ],
   bangladesh: [
-    { id: "courier", title: "Nationwide Courier", note: "64 districts · 1–3 days", cta: "See Courier-Safe Products", href: "#all-products", icon: "truck" },
-    { id: "scheduled", title: "Scheduled Date", note: "Pick the exact delivery day", cta: "See Scheduled Products", href: "#all-products", icon: "clock" },
-    { id: "packing", title: "Courier-Safe Packing", note: "Hard-packed, travel-tested", cta: "How We Pack", href: "/delivery-info", icon: "box" },
+    { id: "courier", href: "#all-products", icon: "truck" },
+    { id: "scheduled", href: "#all-products", icon: "clock" },
+    { id: "packing", href: "/delivery-info", icon: "box" },
   ],
 };
 
-const PATHS: Record<Mode["icon"], string> = {
+const PATHS: Record<Design["icon"], string> = {
   bolt: "M13 2 4.5 13.5H11L10 22l8.5-11.5H13z",
   sun: "M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19",
   moon: "M20 13.5A8.3 8.3 0 0 1 10.5 4 8.3 8.3 0 1 0 20 13.5z",
@@ -73,7 +50,7 @@ const PATHS: Record<Mode["icon"], string> = {
   box: "M4 8h16v12H4zM4 8l2-4h12l2 4M12 4v16",
 };
 
-function ModeIcon({ icon }: { icon: Mode["icon"] }) {
+function ModeIcon({ icon }: { icon: Design["icon"] }) {
   return (
     <svg className="w-5 h-5 stroke-current fill-none stroke-[1.8]" viewBox="0 0 24 24">
       {icon === "sun" && <circle cx="12" cy="12" r="4.2" />}
@@ -84,9 +61,9 @@ function ModeIcon({ icon }: { icon: Mode["icon"] }) {
 }
 
 /** which of the design's cards a live method wears, from its name */
-function designFor(label: string, isDhaka: boolean): Mode {
+function designFor(label: string, isDhaka: boolean): Design {
   const l = label.toLowerCase();
-  const pool = MODES[isDhaka ? "dhaka" : "bangladesh"];
+  const pool = DESIGNS[isDhaka ? "dhaka" : "bangladesh"];
   const hit = l.includes("midnight")
     ? pool.find((m) => m.id === "midnight")
     : l.includes("2") || l.includes("two") || l.includes("express")
@@ -129,15 +106,17 @@ export default function CategoryDelivery({
 
   /* the admin's words on the design's card. A method switched off in the admin
      simply stops appearing; nothing here decides what the shop offers. */
-  const modes: (Mode & { minutesLeft: number | null })[] = useMemo(() => {
-    if (!live || live.length === 0) {
-      return MODES[isDhaka ? "dhaka" : "bangladesh"].map((m) => ({ ...m, minutesLeft: null }));
-    }
-    return live.slice(0, 3).map((m) => {
-      const d = designFor(m.label, isDhaka);
-      return { ...d, title: m.label, note: m.eta ?? d.note, minutesLeft: m.minutesLeft };
-    });
-  }, [live, isDhaka]);
+  const modes = useMemo(
+    () =>
+      (live ?? []).slice(0, 3).map((m) => {
+        const d = designFor(m.label, isDhaka);
+        return { ...d, title: m.label, note: m.eta, minutesLeft: m.minutesLeft };
+      }),
+    [live, isDhaka],
+  );
+
+  // not drawn until the Delivery module has answered; absent when it has nothing
+  if (modes.length === 0) return null;
 
   /*
     Three honest states where a typed string used to be:
@@ -154,21 +133,12 @@ export default function CategoryDelivery({
     modes.length > 0 && modes.every((m) => m.minutesLeft !== null && m.minutesLeft <= 0);
 
   return (
-    <section className="relative mt-[72px] py-[52px] overflow-hidden text-white bg-[linear-gradient(150deg,#320049_0%,#470066_55%,#5B1279_100%)]">
+    <section className="relative py-[var(--section-y)] overflow-hidden text-white bg-[linear-gradient(150deg,#320049_0%,#470066_55%,#5B1279_100%)]">
       <span className="pointer-events-none absolute -top-56 -right-40 w-[560px] h-[560px] rounded-[50%_50%_50%_0] -rotate-45 bg-orchid/15" />
 
       <div className="relative max-w-[var(--page-w)] mx-auto px-6">
-        <div className="mb-[26px]">
-          {/* the wording is the shop's, like every other section — it was
-              hard-coded here, so the three boxes the admin offers for this
-              band changed nothing on the page */}
-          <SectionHead
-            eyebrow={section.eyebrow ?? "Delivery, done right"}
-            heading={section.heading}
-            subheading={section.subheading}
-            onDark
-          />
-        </div>
+        {/* the wording is the shop's (Section text → Category page → Delivery band) */}
+        <SectionHead eyebrow={section.eyebrow} heading={section.heading} subheading={section.subheading} onDark />
 
         {(soonest !== undefined || allPassed) && (
           <div className="w-fit mx-auto mb-[26px] flex items-center gap-3 px-6 py-[10px] rounded-full border border-orchid/35 bg-orchid/15 text-[13.5px] whitespace-nowrap">
@@ -202,9 +172,9 @@ export default function CategoryDelivery({
               </span>
               <span className="min-w-0">
                 <h3 className="font-display text-[17px] font-medium">{m.title}</h3>
-                <p className="text-[12.5px] text-white/75 truncate">{m.note}</p>
+                {m.note && <p className="text-[12.5px] text-white/75 truncate">{m.note}</p>}
                 <span className="inline-flex items-center gap-[6px] mt-[6px] text-[12px] font-semibold text-orchid-mid whitespace-nowrap transition-all duration-300 group-hover:gap-3 group-hover:text-white">
-                  {m.cta} →
+                  See {m.title} products →
                 </span>
               </span>
             </Link>

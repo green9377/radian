@@ -1,6 +1,6 @@
 "use client";
 
-import { mediaVariant } from "../../_data/media";
+import TileImage from "../ui/TileImage";
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
@@ -9,92 +9,12 @@ import { getShopTagGroups, tagHref } from "../../_data/shop";
 /*
   Every Occasion, Every Person — two tabs (By Occasion / By Relation),
   each a horizontal snap carousel of arch-shaped cards.
-  Static section (same for both zones, per approved design board).
-  Images: gradient placeholders until real photo shoot (Cloudinary later).
+  The tabs are the admin's tag groups, the cards their tags; no hand-written
+  fallback (owner, 6 Sep 2026) — until the groups arrive there is nothing.
 */
 
-type Card = { title: string; sub: string; href: string; bg: string; imageUrl?: string | null };
+type Card = { title: string; sub: string; href: string; imageUrl?: string | null };
 type Tab = { key: string; label: string; cards: Card[] };
-
-const OCCASIONS: Card[] = [
-  {
-    title: "Birthday Gifts",
-    sub: "Make their day unforgettable",
-    href: "/occasions/birthday",
-    bg: "linear-gradient(170deg,#F7E5F4,#E9C0E2)",
-  },
-  {
-    title: "Anniversary Gifts",
-    sub: "Celebrate your story",
-    href: "/occasions/anniversary",
-    bg: "linear-gradient(170deg,#F6E1E6,#EBC0CB)",
-  },
-  {
-    title: "Love & Romance",
-    sub: "When words aren't enough",
-    href: "/occasions/love-romance",
-    bg: "linear-gradient(170deg,#F8E3EE,#EFC2DC)",
-  },
-  {
-    title: "Just Because",
-    sub: "No reason needed",
-    href: "/occasions/just-because",
-    bg: "linear-gradient(170deg,#EFE4F8,#DBC2F0)",
-  },
-  {
-    title: "Mother's Day",
-    sub: "For the first love of your life",
-    // ⚠️ mothers-day-এর নিজস্ব occasion def/product tag এখনো নেই — 404 এড়াতে
-    // occasions index-এ পাঠাই। Marketing occasion+tag দিলে /occasions/mothers-day-এ ফেরাও।
-    href: "/occasions",
-    bg: "linear-gradient(170deg,#F5E9E0,#E9D2BE)",
-  },
-  {
-    title: "Corporate Gifts",
-    sub: "Impress every client",
-    href: "/occasions/corporate",
-    bg: "linear-gradient(170deg,#E7E9F5,#C9CFEB)",
-  },
-];
-
-const RELATIONS: Card[] = [
-  {
-    title: "Gifts for Her",
-    sub: "She deserves the world",
-    href: "/recipients/her",
-    bg: "linear-gradient(170deg,#F8E4F1,#EDC2DE)",
-  },
-  {
-    title: "Gifts for Him",
-    sub: "Thoughtful, not typical",
-    href: "/recipients/him",
-    bg: "linear-gradient(170deg,#E6EAF4,#C6D0E8)",
-  },
-  {
-    title: "For Parents",
-    sub: "Say thank you beautifully",
-    href: "/recipients/parents",
-    bg: "linear-gradient(170deg,#F4EADF,#E7D1B8)",
-  },
-  {
-    title: "For Friends",
-    sub: "Friendship day, every day",
-    href: "/recipients/friends",
-    bg: "linear-gradient(170deg,#E9F2E9,#CDE3D1)",
-  },
-  {
-    title: "For Colleagues",
-    sub: "Professional, personal",
-    href: "/recipients/colleagues",
-    bg: "linear-gradient(170deg,#F0E7F7,#DCC7EF)",
-  },
-  {
-    title: "For Grandparents",
-    sub: "Warmth across generations",
-    href: "/recipients/grandparents",
-    bg: "linear-gradient(170deg,#F6E9E2,#EAD3C2)",
-  },
-];
 
 function Chevron({ dir }: { dir: "left" | "right" }) {
   return (
@@ -111,16 +31,6 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-/** the soft card tints, indexed so each position keeps its own look */
-const TINTS = [
-  "linear-gradient(170deg,#F7E5F4,#E9C0E2)",
-  "linear-gradient(170deg,#F6E1E6,#EBC0CB)",
-  "linear-gradient(170deg,#F8E3EE,#EFC2DC)",
-  "linear-gradient(170deg,#EFE4F8,#DBC2F0)",
-  "linear-gradient(170deg,#F5E9E0,#E9D2BE)",
-  "linear-gradient(170deg,#E7E9F5,#C9CFEB)",
-];
-
 export default function OccasionSection() {
   /*
     LIVE since 31 Jul 2026 — the tabs are the tag GROUPS, the cards are the
@@ -128,16 +38,9 @@ export default function OccasionSection() {
 
     Only groups set to show as cards are returned (`displayStyle`), because a
     group meant to be filter chips would look wrong as a big arch card.
-
-    The old hard-coded arrays stay as the fallback, and carry the note that
-    Mother's Day had no tag of its own — the reason its link pointed at the
-    index page instead of a real one.
   */
-  const [tabs, setTabs] = useState<Tab[]>([
-    { key: "occ", label: "By Occasion", cards: OCCASIONS },
-    { key: "rel", label: "By Relation", cards: RELATIONS },
-  ]);
-  const [activeTab, setActiveTab] = useState<string>("occ");
+  const [tabs, setTabs] = useState<Tab[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("");
 
   useEffect(() => {
     let alive = true;
@@ -147,14 +50,13 @@ export default function OccasionSection() {
         groups.map((g) => ({
           key: g.slug,
           label: g.name,
-          cards: g.tags.map((t, i) => ({
+          cards: g.tags.map((t) => ({
             title: t.name,
             sub: t.summary ?? "",
             // `/recipients/her` was a 404 from the day the section was built —
             // /occasions exists, its twin never did. See `tagHref`.
             href: tagHref(g.slug, t.slug),
-            bg: TINTS[i % TINTS.length],
-            imageUrl: mediaVariant(t.imageUrl, "card"),
+            imageUrl: t.imageUrl,
           })),
         })),
       );
@@ -194,6 +96,9 @@ export default function OccasionSection() {
   const btnBase =
     "absolute top-1/2 -translate-y-[60%] z-[5] w-11 h-11 rounded-full bg-white text-purple grid place-items-center shadow-lift border border-lavender-deep transition-opacity duration-200 hover:bg-purple hover:text-white cursor-pointer";
 
+  // no groups (or the API away) → the section is absent, not a row of nothing
+  if (tabs.length === 0) return null;
+
   return (
     <section className="bg-lavender py-[var(--section-y)]" id="occasions">
       <div className="max-w-[var(--page-w)] mx-auto px-6">
@@ -232,9 +137,10 @@ export default function OccasionSection() {
               href={card.href}
               className="group w-[calc(50%-6px)] shrink-0 snap-start"
             >
-              <div
-                className="aspect-[4/3.6] rounded-t-[90px] rounded-b-[14px] overflow-hidden shadow-soft transition-transform duration-200 group-active:scale-95"
-                style={card.imageUrl ? { backgroundImage: `url(${card.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: card.bg }}
+              <TileImage
+                src={card.imageUrl}
+                alt={card.title}
+                className="aspect-[4/3.6] rounded-t-[90px] rounded-b-[14px] shadow-soft transition-transform duration-200 group-active:scale-95"
               />
               <div className="mt-2 text-center">
                 <h3 className="font-display text-[15px] font-medium text-purple leading-tight">
@@ -266,9 +172,10 @@ export default function OccasionSection() {
                 href={card.href}
                 className="w-[268px] shrink-0 snap-start group"
               >
-                <div
-                  className="aspect-[4/4.1] rounded-t-[140px] rounded-b-[18px] overflow-hidden shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
-                  style={card.imageUrl ? { backgroundImage: `url(${card.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: card.bg }}
+                <TileImage
+                  src={card.imageUrl}
+                  alt={card.title}
+                  className="aspect-[4/4.1] rounded-t-[140px] rounded-b-[18px] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
                 />
                 <div className="mt-[11px] text-center">
                   <h3 className="font-display text-[20px] font-medium text-purple whitespace-nowrap">

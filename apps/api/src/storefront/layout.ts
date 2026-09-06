@@ -108,7 +108,7 @@ export const PAGE_SECTION_MANIFEST: Record<string, SectionDef[]> = {
     { key: 'colourGrid', label: 'Shop by colour', hint: 'Red, pink, white…', movable: false },
     { key: 'budgetRail', label: 'Shop by budget', hint: 'The price cards', movable: false },
     { key: 'productGrid', label: 'All products', hint: 'The full grid with filters', movable: false, lockedReason: 'It is what the page is for' },
-    { key: 'comboRail', label: 'Better together', hint: 'Combo cards', movable: false },
+    { key: 'comboRail', label: 'Better together', hint: 'Related products you pair with this category — hidden until you pick some', movable: false },
     { key: 'deliveryBand', label: 'Delivery band', hint: 'The dark purple delivery promise', movable: false },
     { key: 'crossSellRail', label: 'Keep exploring', hint: 'Cards to other categories', movable: false },
     { key: 'giftFinder', label: 'Gift Finder', hint: 'The three-step wizard, searching this category only', movable: false },

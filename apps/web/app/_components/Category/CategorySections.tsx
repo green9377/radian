@@ -3,7 +3,6 @@
 import { Fragment, type ReactNode } from "react";
 import { useZoneStore } from "../../_store/useZoneStore";
 import type { CategoryConfig } from "../../_data/categories";
-import { categoryProducts } from "../../_data/categories";
 import type { Product } from "../../_data/products";
 import type { ShopCategoryPage } from "../../_data/shop";
 import ShopIcon from "../ui/ShopIcon";
@@ -25,19 +24,17 @@ import AboutSection from "../About/AboutSection";
 
 /*
   ══════════════════════════════════════════════════════════════
-  এটাই পুরো template-এর হৃদয়।
+  The heart of the template: walk `config.sections` and render each block.
+  A new category is a new config from the API — this file is not touched.
 
-  config.sections array ঘুরে ঘুরে block render করে।
-  নতুন category = নতুন config (app/_data/categories.ts)।
-  এই file-এ হাত পড়বে না।
-
-  Section-এর ORDER code-এ fixed — admin শুধু enabled + content বদলায়।
-  কারণ: 13টা section যেকোনো order-এ = অগণিত combination, QA অসম্ভব।
+  The ORDER of sections is fixed in code — the admin only switches sections
+  on/off and changes content. Fourteen sections in any order = countless
+  combinations, impossible to QA.
   ══════════════════════════════════════════════════════════════
 */
 export default function CategorySections({
   config,
-  products: fromApi,
+  products,
   rails,
   apiSlug,
   apiSub,
@@ -45,10 +42,11 @@ export default function CategorySections({
   filters,
   productsFailed,
   blocks,
+  shopName,
 }: {
   config: CategoryConfig;
-  /** the API's products. Absent = this is the offline fallback, use the mock. */
-  products?: Product[];
+  /** the first page of the grid, from the API */
+  products: Product[];
   /** the two rails come pre-picked by the server — see below */
   rails?: { bestsellers: Product[]; readyToday: Product[] };
   apiSlug?: string;
@@ -60,16 +58,10 @@ export default function CategorySections({
   productsFailed?: boolean;
   /** every row the API returned, including sections the owner added */
   blocks?: ShopCategoryPage["sections"];
+  /** Company settings → the shop's name; the banner's eyebrow on a root page */
+  shopName: string;
 }) {
   const { zone } = useZoneStore();
-
-  /*
-    31 Jul 2026 — products now arrive from the server, already filtered for the
-    zone the cookie named. The mock array stays as the path for the offline
-    fallback ONLY, which is why this is a fallback and not a default: a page
-    rendered from the API must never quietly fill itself from the mock.
-  */
-  const products = fromApi ?? categoryProducts(config, zone);
 
   return (
     <>
@@ -100,7 +92,7 @@ export default function CategorySections({
                 }
               >
                 {(section.icon || section.iconUrl) && (
-                  <div className="flex justify-center pt-[52px] -mb-[38px] text-orchid">
+                  <div className="flex justify-center pt-[var(--section-y)] -mb-[calc(var(--section-y)-14px)] text-orchid">
                     <ShopIcon name={section.icon ?? undefined} url={section.iconUrl ?? undefined} className="w-8 h-8" />
                   </div>
                 )}
@@ -118,7 +110,7 @@ export default function CategorySections({
         const node = (() => {
           switch (section.key) {
           case "banner":
-            return <CategoryBanner key={key} config={config} zone={zone} />;
+            return <CategoryBanner key={key} config={config} zone={zone} shopName={shopName} />;
 
           case "subCategoryRail":
             return <SubCategoryRail key={key} section={section} tiles={config.subCategories} />;
@@ -131,23 +123,9 @@ export default function CategorySections({
             page of this category", which is not the same claim.
           */
           case "productRail": {
-            const fromServer =
-              rails && section.rule === "bestseller"
-                ? rails.bestsellers
-                : rails && section.rule === "express"
-                  ? rails.readyToday
-                  : null;
-            return (
-              <ProductRail
-                key={key}
-                section={section}
-                products={fromServer ?? products}
-                zone={zone}
-                /* the server already applied the rule — or the owner's own
-                   list, which no rule describes. See ProductRail. */
-                preselected={fromServer !== null}
-              />
-            );
+            const list =
+              section.rule === "express" ? (rails?.readyToday ?? []) : (rails?.bestsellers ?? []);
+            return <ProductRail key={key} section={section} products={list} zone={zone} />;
           }
 
           case "attributeGrid":
@@ -179,8 +157,11 @@ export default function CategorySections({
               />
             );
 
+          /*  Better together = related PRODUCTS the owner paired with this
+              category; Keep exploring (below) = other categories. Two rows,
+              two purposes (owner, 6 Sep 2026).  */
           case "comboRail":
-            return <TileRail key={key} section={section} tiles={config.combos} />;
+            return <ProductRail key={key} section={section} products={config.combos} zone={zone} />;
 
           case "deliveryBand":
             return <CategoryDelivery key={key} section={section} zone={zone} />;

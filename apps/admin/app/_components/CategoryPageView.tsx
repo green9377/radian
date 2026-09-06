@@ -49,7 +49,7 @@ const SOURCE: Record<string, { where: string; note: string }> = {
   colourGrid:      { where: "Products → Variant & Option", note: "Only colours this category actually has" },
   budgetRail:      { where: "Storefront → Collections", note: "The price bands, in their order" },
   productGrid:     { where: "Products", note: "Published products in this category" },
-  comboRail:       { where: "Other categories", note: "Or pick them yourself below" },
+  comboRail:       { where: "Your own picks", note: "Related products from anywhere in the shop — hidden until you pick" },
   deliveryBand:    { where: "Delivery → Methods", note: "Cut-off times and fees" },
   crossSellRail:   { where: "Other categories", note: "Or pick them yourself below" },
   giftFinder:      { where: "Tags + Collections", note: "The homepage wizard, searching this category only" },
@@ -79,7 +79,15 @@ const TILE_BLOCKS = new Set(["attributeGrid", "occasionGrid"]);
 */
 const PICKABLE: Record<
   string,
-  { field: "slugs" | "products" | "tags"; kind: "sub" | "product" | "tag"; cap: number; readyOnly?: boolean; noun: string }
+  {
+    field: "slugs" | "products" | "tags";
+    kind: "sub" | "product" | "tag";
+    cap: number;
+    readyOnly?: boolean;
+    /** products from the WHOLE shop, and only ever hand-picked: nothing picked = the row is hidden */
+    anyCategory?: boolean;
+    noun: string;
+  }
 > = {
   subCategoryRail: { field: "slugs", kind: "sub", cap: 12, noun: "sub-categories" },
   bestsellers: { field: "products", kind: "product", cap: 8, noun: "products" },
@@ -93,6 +101,11 @@ const PICKABLE: Record<
     A tag is not owned by a category, so unlike the three above, these can be
     picked for every category at once.
   */
+  /*  Better together = related products the owner pairs with this category —
+      a cake beside the flowers, chocolate beside the plant — from anywhere in
+      the shop. There is no automatic version: a pairing is a decision, and
+      until one is made the row does not exist (owner, 6 Sep 2026).  */
+  comboRail: { field: "products", kind: "product", cap: 4, anyCategory: true, noun: "products" },
   attributeGrid: { field: "tags", kind: "tag", cap: 8, noun: "tiles" },
   occasionGrid: { field: "tags", kind: "tag", cap: 8, noun: "tiles" },
 };
@@ -235,12 +248,13 @@ export default function CategoryPageView() {
 
   /* one search per keystroke would be one request per keystroke — the pause is
      short enough to feel immediate and long enough to send one */
+  const shopWide = Boolean(open && PICKABLE[open]?.anyCategory);
   useEffect(() => {
-    if (!slug) { setPool([]); return; }
+    if (!slug && !shopWide) { setPool([]); return; }
     let dead = false;
     setPoolBusy(true);
     const t = setTimeout(() => {
-      listShopProducts({ category: slug, search: poolQ, limit: 60 })
+      listShopProducts({ category: shopWide ? undefined : slug, search: poolQ, limit: 60 })
         .then((r) => {
           if (dead) return;
           setPool(r.items);
@@ -250,7 +264,7 @@ export default function CategoryPageView() {
         .finally(() => { if (!dead) setPoolBusy(false); });
     }, 250);
     return () => { dead = true; clearTimeout(t); };
-  }, [slug, poolQ]);
+  }, [slug, poolQ, shopWide]);
 
   useEffect(() => { void reload(); }, [slug]);
   async function reload() {
@@ -419,6 +433,13 @@ export default function CategoryPageView() {
       return allTags
         .filter((t) => t.groupId === g.id && t.isActive)
         .map((t) => ({ slug: t.slug, name: t.name }));
+    }
+    if (spec.anyCategory) {
+      return pool.map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        note: `৳${Math.round(p.pricePaisa / 100).toLocaleString("en-BD")}`,
+      }));
     }
     if (!chosen) return [];
     if (spec.kind === "sub") {
@@ -900,7 +921,7 @@ export default function CategoryPageView() {
                     {PICKABLE[r.key] && !r.blockType && (() => {
                       const spec = PICKABLE[r.key];
                       const picked = pickedOf(r);
-                      const manual = String(r.config.mode ?? "AUTO") === "MANUAL";
+                      const manual = spec.anyCategory || String(r.config.mode ?? "AUTO") === "MANUAL";
                       const nameFor = (s: string) =>
                         spec.kind === "sub"
                           ? (allCats.find((c) => c.slug === s)?.name ?? s)
@@ -922,7 +943,7 @@ export default function CategoryPageView() {
                               </select>
                             </F>
                           )}
-                          {slug === "" && spec.kind !== "tag" ? (
+                          {slug === "" && spec.kind !== "tag" && !spec.anyCategory ? (
                             <div className="rounded-[12px] bg-[#fdf7ea] border border-[#eddfbc] px-4 py-3 text-[12.5px] text-[#8a6414]">
                               <b className="block mb-0.5">Pick a category above to choose these by hand.</b>
                               A {spec.kind === "sub" ? "sub-category" : "product"} belongs to one
@@ -931,6 +952,7 @@ export default function CategoryPageView() {
                             </div>
                           ) : (
                             <>
+                              {!spec.anyCategory && (
                               <F
                                 label="What goes in this row"
                                 hint={spec.kind === "tag"
@@ -956,14 +978,15 @@ export default function CategoryPageView() {
                                   )}
                                 </div>
                               </F>
+                              )}
 
                               {manual && (
                                 <div className="mt-3 space-y-3">
                                   {picked.length === 0 ? (
                                     <p className="text-[11.5px] text-[#8a6414] m-0">
-                                      Nothing picked yet, so the row is still filling itself
-                                      automatically — a heading with no cards under it is not
-                                      what half-finished should look like.
+                                      {spec.anyCategory
+                                        ? `Nothing picked yet — this row stays off the page until you pick up to ${spec.cap} products.`
+                                        : "Nothing picked yet, so the row is still filling itself automatically — a heading with no cards under it is not what half-finished should look like."}
                                     </p>
                                   ) : (
                                     <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden">
@@ -986,7 +1009,7 @@ export default function CategoryPageView() {
                                   )}
 
                                   {spec.kind === "product" && (
-                                    <input className="ipt" placeholder="Search this category…"
+                                    <input className="ipt" placeholder={spec.anyCategory ? "Search the whole shop…" : "Search this category…"}
                                       value={poolQ} onChange={(e) => setPoolQ(e.target.value)} />
                                   )}
 

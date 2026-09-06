@@ -1,53 +1,43 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
 
-import { getSubCategoryConfig } from "../../_data/categories";
 import { toCategoryConfig, toProduct } from "../../_data/categoryApi";
-import { getCategoryPage, getCollectionDetail, getShopProducts } from "../../_data/shop";
+import { getShopBrand } from "../../_data/shop";
 import CategorySections from "../../_components/Category/CategorySections";
+import CategoryJsonLd from "../../_components/Category/CategoryJsonLd";
 import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
+import {
+  categoryMetadata,
+  isFiltered,
+  loadCategoryPage,
+  loadFirstGrid,
+  readFilters,
+  zoneFromCookie,
+  type SearchParams,
+} from "../categoryPage";
 
 /*
-  Sub-category route — the category page's younger brother, connected 31 Jul.
+  Sub-category route — the category page's younger brother.
 
   A sub-category IS a category in the database (`Category.parentId`), so it
-  reads the same endpoint. Two differences, both deliberate:
-
+  reads the same endpoint, as parent + sub (a slug is unique per parent,
+  DEC-PRD-043). Two differences, both deliberate:
    · LEAN. Banner and grid only — D42/D43. Somebody who pressed Roses wants
      roses, not a fresh set of rails offering lilies.
-   · The parent in the URL must be the real parent. `/cakes/roses`
-     is checked and 404s instead of quietly rendering roses under Cakes, which
-     would give the same products two addresses and split them in Google.
+   · The parent in the URL must be the real parent: `/cake/rose` is a 404,
+     not roses quietly rendered under Cakes with a second address for Google
+     to split them across. The API enforces it — the child is looked up
+     under that root only.
+  Its own title, description, meta and picture are the sub-category's own
+  fields in the admin, like any category's.
 */
 
 type Params = { slug: string; sub: string };
 
-async function zoneFromCookie(): Promise<"dhaka" | "bangladesh" | null> {
-  const c = await cookies();
-  const v = c.get("radian-zone")?.value;
-  return v === "bangladesh" || v === "dhaka" ? v : null;
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<Params>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug, sub } = await params;
-  const page = await getCategoryPage(slug, null, sub);
-
-  if (page && page.parent?.slug === slug) {
-    return {
-      title: page.seo.title,
-      description: page.seo.description,
-      robots: page.seo.noIndex ? { index: false, follow: false } : undefined,
-    };
-  }
-
-  const fallback = getSubCategoryConfig(slug, sub);
-  return fallback ? { title: fallback.seo.title, description: fallback.seo.description } : {};
+  const page = await loadCategoryPage(slug, null, sub);
+  return categoryMetadata(page, `/${slug}/${sub}`);
 }
 
 export default async function SubCategoryPage({
@@ -55,69 +45,23 @@ export default async function SubCategoryPage({
   searchParams,
 }: {
   params: Promise<Params>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { slug, sub } = await params;
   const zone = await zoneFromCookie();
-  const sp = await searchParams;
+  const filters = await readFilters(await searchParams, zone);
 
-  /*
-    The same filters the parent page reads — 2 Aug 2026.
+  const page = await loadCategoryPage(slug, zone, sub);
 
-    They were not read here at all, so `/fresh-flowers/roses?colour=red`
-    quietly showed every rose. Nobody links there from the shop, but people
-    share addresses, and an address that ignores half of itself is a link that
-    lies about what it will show. Lean means fewer SECTIONS (D42/D43), not a
-    grid that disagrees with its own URL.
-  */
-  const one = (k: string) => {
-    const v = sp[k];
-    return typeof v === "string" && v ? v : undefined;
-  };
-  const budgetSlug = one("budget");
-  const budget = budgetSlug ? await getCollectionDetail(budgetSlug, zone) : null;
-  const filters = {
-    colour: one("colour"),
-    occasion: one("occasions") ?? one("occasion"),
-    tag: one("tag") ?? one("style"),
-    recipient: one("recipients"),
-    budget: budgetSlug,
-    min: one("min") ?? (budget?.minPaisa != null ? String(Math.round(budget.minPaisa / 100)) : undefined),
-    max: one("max") ?? (budget?.maxPaisa != null ? String(Math.round(budget.maxPaisa / 100)) : undefined),
-    speed: one("speed") ?? one("delivery"),
-    sort: one("sort") ?? "popular",
-  };
-
-  const page = await getCategoryPage(slug, zone, sub);
-
-  if (!page || page.parent?.slug !== slug) {
-    const fallback = getSubCategoryConfig(slug, sub);
-    if (!fallback) return notFound();
-    return (
-      <main>
-        <CategorySections config={fallback} />
-        <Reviews />
-        <VisitStore />
-      </main>
-    );
-  }
-
-  // parent + sub, the way the API scopes a sub-category; `budget` is already min/max
-  const list = await getShopProducts({
-    category: slug,
-    sub,
-    zone,
-    limit: 24,
-    ...Object.fromEntries(Object.entries(filters).filter(([k]) => k !== "budget")),
-  });
+  const gridCount = Number(page.sections.find((s) => s.key === "productGrid")?.config.count ?? 8);
+  const [list, brand] = await Promise.all([loadFirstGrid(slug, zone, filters, sub, gridCount), getShopBrand()]);
 
   const config = toCategoryConfig(page, { lean: true });
-  // filtered = the count under the grid is the filtered count, as on the
-  // parent page: "24 of 312" beside twelve red roses is a lie about the search
-  const filtered = Object.entries(filters).some(([k, v]) => k !== "sort" && v);
+  const filtered = isFiltered(filters);
 
   return (
     <main>
+      <CategoryJsonLd page={page} path={`/${slug}/${sub}`} products={list?.items ?? []} siteName={brand?.name ?? "Radian"} />
       <CategorySections
         config={filtered && list ? { ...config, totalProducts: list.total } : config}
         filters={filters}
@@ -125,6 +69,7 @@ export default async function SubCategoryPage({
         apiSlug={slug}
         apiSub={sub}
         apiZone={zone}
+        shopName={brand?.name ?? "Radian"}
         productsFailed={list === null}
       />
       <Reviews />

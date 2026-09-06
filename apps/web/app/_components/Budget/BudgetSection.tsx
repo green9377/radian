@@ -5,7 +5,7 @@ import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../../_store/useZoneStore";
 import { getShopCollections, zoneCode } from "../../_data/shop";
-import { mediaVariant } from "../../_data/media";
+import TileImage from "../ui/TileImage";
 
 /*
   Gifts for Every Budget — the featured collections (Storefront → Collections),
@@ -16,14 +16,8 @@ import { mediaVariant } from "../../_data/media";
   ("Under ৳1,000" → /collections/under-1000) used to show whenever the shop had
   no featured collection, and every one of them was a dead link: a budget rail
   that does not filter by budget. No featured collection now means no rail.
-  The gradient below is only the backdrop for a card without a photo.
+  A card without a picture shows the site's one placeholder (TileImage).
 */
-const TONES = [
-  "linear-gradient(160deg,#F2DFF5,#D9B5E8)",
-  "linear-gradient(160deg,#EFD9EE,#D3A8DC)",
-  "linear-gradient(160deg,#E8D4F0,#C49BDD)",
-  "linear-gradient(160deg,#EFD8D3,#C99A92)",
-];
 
 interface Card {
   key: string;
@@ -31,7 +25,6 @@ interface Card {
   title: string;
   sub: string;
   href: string;
-  bg: string;
   premium: boolean;
   imageUrl: string | null;
 }
@@ -54,15 +47,14 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
     getShopCollections(zoneCode(zone ?? null)).then((rows) => {
       if (!alive || rows === null) return;
       setCards(
-        rows.map((c, i) => ({
+        rows.map((c) => ({
           key: c.slug,
           kicker: c.kicker ?? "",
           title: c.name,
           sub: c.subtitle ?? "",
           href: `/collections/${c.slug}`,
-          bg: TONES[i % TONES.length],
           premium: c.accent,
-          imageUrl: mediaVariant(c.imageUrl, "card"),
+          imageUrl: c.imageUrl,
         })),
       );
     });
@@ -85,12 +77,12 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
         {/* Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
           {cards.map((b) => (
-            <Link
-              key={b.key}
-              href={b.href}
-              className="relative rounded-[28px] overflow-hidden aspect-[1/1.14] shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift block bg-cover bg-center"
-              style={b.imageUrl ? { backgroundImage: `url(${b.imageUrl})` } : { background: b.bg }}
-            >
+            <Link key={b.key} href={b.href} className="group block">
+              <TileImage
+                src={b.imageUrl}
+                alt={b.title}
+                className="rounded-[28px] aspect-[1/1.14] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
+              >
               {/* Dark gradient overlay for text legibility */}
               <div
                 className="absolute inset-0 z-[2]"
@@ -116,6 +108,7 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
                   {b.sub}
                 </span>
               </div>
+              </TileImage>
             </Link>
           ))}
         </div>

@@ -97,6 +97,30 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
+/**
+ * The same read, but telling "no such thing" apart from "could not ask".
+ *
+ * A page that only gets `null` back cannot choose between a 404 and an error
+ * state — and the category page must: a slug nobody made is a real 404, an API
+ * that is down is not, and showing invented content for either is out (owner,
+ * 6 Sep 2026).
+ */
+export type Fetched<T> = { ok: true; data: T } | { ok: false; status: number | null };
+
+async function getResult<T>(path: string): Promise<Fetched<T>> {
+  try {
+    const res = await fetch(`${baseFor()}${path}`, { next: { revalidate: 60, tags: [SHOP_TAG] } });
+    if (!res.ok) {
+      console.warn(`[shop] ${path} → ${res.status}`);
+      return { ok: false, status: res.status };
+    }
+    return { ok: true, data: (await res.json()) as T };
+  } catch (e) {
+    console.warn(`[shop] ${path} failed`, e);
+    return { ok: false, status: null };
+  }
+}
+
 export const getShopCategories = () => get<ShopCategory[]>("/shop/categories");
 
 export type BannerPlacement = "HERO" | "PROMO" | "ANNOUNCEMENT";
@@ -574,7 +598,9 @@ export interface ShopCategoryPage {
   occasions: ShopTile[];
   colours: ShopColourTile[];
   budgets: { kicker: string | null; label: string; sub: string | null; imageUrl: string | null; accent: boolean; href: string; bg: string }[];
-  combos: ShopTile[];
+  /** Better together — hand-picked related products, from the whole shop */
+  combos: ShopProduct[];
+  /** Keep exploring — other categories */
   crossSell: ShopTile[];
   faqs: { question: string; answer: string }[];
   rails: { bestsellers: ShopProduct[]; readyToday: ShopProduct[] };
@@ -586,7 +612,7 @@ export const getCategoryPage = (slug: string, zone: string | null, sub?: string)
   if (zone) q.set("zone", zone);
   if (sub) q.set("sub", sub);
   const qs = q.toString();
-  return get<ShopCategoryPage>(`/shop/category/${encodeURIComponent(slug)}${qs ? `?${qs}` : ""}`);
+  return getResult<ShopCategoryPage>(`/shop/category/${encodeURIComponent(slug)}${qs ? `?${qs}` : ""}`);
 };
 
 export interface ProductQuery {

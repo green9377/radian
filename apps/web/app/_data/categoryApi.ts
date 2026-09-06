@@ -9,15 +9,10 @@ import type { ShopCategoryPage, ShopProduct } from "./shop";
   API → the shape the category page has always been given.
 
   Fourteen components read `CategoryConfig`. This file turns the API's answer
-  into exactly that object, so not one of them changes, and the mock configs in
-  `categories.ts` stay usable side by side as the fallback.
+  into exactly that object. It is the only source now — the hand-written
+  configs that used to sit beside it as a fallback were removed on 6 Sep 2026.
 
-  It is the seam `categories.ts` was written for. Its own comment said so:
-
-      ⇄ SWAP HERE — Ecommerce module lock হলে শুধু এই function বদলাবে
-      Component গুলো জানবেই না যে কিছু বদলেছে।
-
-  WHAT COMES FROM WHERE, now that both exist:
+  WHAT COMES FROM WHERE:
 
     the admin  — name, description, banner, SEO, which sections are on, the
                  wording above each one, every tile, the FAQ, the products
@@ -81,8 +76,8 @@ export const toProduct = (p: ShopProduct): Product => ({
   badge: p.badge,
   stars: p.stars,
   meta: p.meta,
-  // a real photograph if there is one; the API's gradient if there is not
-  bg: p.imageUrl ? `url(${mediaVariant(p.imageUrl, "card")}) center/cover` : p.bg,
+  imageUrl: p.imageUrl,
+  bg: p.bg,
   best: p.best,
   exp: p.exp,
   sd: p.sd,
@@ -106,7 +101,6 @@ export const toProduct = (p: ShopProduct): Product => ({
 export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean }): CategoryConfig {
   return {
     slug: page.slug,
-    cat: page.slug as ProductCategory,
     parent: page.parent ?? undefined,
     label: page.label,
     h1: page.h1,
@@ -124,19 +118,19 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
+      imageUrl: t.imageUrl,
     })),
     attributes: page.attributes.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
+      imageUrl: t.imageUrl,
     })),
     occasions: page.occasions.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
+      imageUrl: t.imageUrl,
     })),
 
     /*
@@ -166,22 +160,16 @@ export function toCategoryConfig(page: ShopCategoryPage, opts?: { lean?: boolean
       kicker: b.kicker ?? "",
       label: b.label,
       sub: b.sub ?? undefined,
-      imageUrl: mediaVariant(b.imageUrl, "card"),
+      imageUrl: b.imageUrl,
       accent: b.accent,
       href: b.href,
-      bg: b.bg,
     })),
-    combos: page.combos.map((t) => ({
-      label: t.label,
-      sub: t.sub ?? undefined,
-      href: t.href,
-      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
-    })),
+    combos: page.combos.map(toProduct),
     crossSell: page.crossSell.map((t) => ({
       label: t.label,
       sub: t.sub ?? undefined,
       href: t.href,
-      bg: t.imageUrl ? `url(${mediaVariant(t.imageUrl, "card")}) center/cover` : t.bg,
+      imageUrl: t.imageUrl,
     })),
 
     faqs: page.faqs.map((f) => ({ q: f.question, a: f.answer })),

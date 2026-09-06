@@ -35,6 +35,9 @@ export interface Product {
   badge: ProductBadge;
   stars: string;
   meta: string;
+  /** the uploaded photograph; null = the shared placeholder */
+  imageUrl?: string | null;
+  /** legacy gradient — the mock rows still carry one; cards no longer paint it */
   bg: string;
   best?: boolean;
   exp?: boolean;

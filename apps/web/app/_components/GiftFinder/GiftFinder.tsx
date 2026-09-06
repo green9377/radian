@@ -94,7 +94,7 @@ export default function GiftFinder({
   const last = step === total;
   const resultHref = `${basePath}?${new URLSearchParams(
     Object.fromEntries(Object.entries(choices).filter(([, v]) => v)),
-  ).toString()}`;
+  ).toString()}${basePath === "/products" ? "" : "#all-products"}`;
 
   const pick = (value: string) =>
     setChoices((c) => ({ ...c, [current.param]: c[current.param] === value ? "" : value }));

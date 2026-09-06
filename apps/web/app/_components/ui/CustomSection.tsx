@@ -8,7 +8,7 @@ import { toProduct } from "../../_data/categoryApi";
 import { getShopCollections, getShopBanners, getShopProducts, zoneCode, type ShopCollection } from "../../_data/shop";
 import type { Zone } from "../../_store/useZoneStore";
 import type { LayoutBlock } from "../../_data/shop";
-import { mediaVariant } from "../../_data/media";
+import TileImage from "./TileImage";
 
 /*
   Sections the owner added himself, rendered from ready-made shapes.
@@ -21,13 +21,6 @@ import { mediaVariant } from "../../_data/media";
   added product row is indistinguishable from the Best Sellers row. That is the
   point: a page assembled from these should not look assembled.
 */
-
-const TINTS = [
-  "linear-gradient(160deg,#F6E3F3,#EAC3E6)",
-  "linear-gradient(160deg,#FBEDE4,#F2D3C0)",
-  "linear-gradient(160deg,#F1E4F8,#DFC5F0)",
-  "linear-gradient(160deg,#F4E6DE,#E5CBBB)",
-];
 
 export default function CustomSection({ block, zone }: { block: LayoutBlock; zone: Zone | null }) {
   if (block.blockType === "PRODUCT_ROW") return <ProductRow block={block} zone={zone} />;
@@ -113,19 +106,20 @@ function CollectionRow({ block, zone }: { block: LayoutBlock; zone: Zone | null 
       <div className="max-w-[var(--page-w)] mx-auto px-6">
         <Head title={block.title} subtitle={block.subtitle} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
-          {items.map((c, i) => (
-            <Link
-              key={c.slug}
-              href={`/collections/${c.slug}`}
-              className="relative rounded-[28px] overflow-hidden aspect-[1/1.14] shadow-soft transition-all duration-300 hover:-translate-y-[7px] hover:shadow-lift block bg-cover bg-center"
-              style={c.imageUrl ? { backgroundImage: `url(${mediaVariant(c.imageUrl, "card")})` } : { background: TINTS[i % TINTS.length] }}
-            >
-              <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(180deg,transparent 38%,rgba(50,0,73,.85) 100%)" }} />
-              <div className="absolute left-0 right-0 bottom-0 z-[3] p-[22px] text-white">
-                {c.kicker && <div className="text-[11px] tracking-[0.2em] uppercase font-semibold text-orchid-mid whitespace-nowrap">{c.kicker}</div>}
-                <h3 className="font-display text-[22px] font-medium whitespace-nowrap mt-[3px]">{c.name}</h3>
-                {c.subtitle && <span className="text-[12.5px] text-white/80 whitespace-nowrap">{c.subtitle}</span>}
-              </div>
+          {items.map((c) => (
+            <Link key={c.slug} href={`/collections/${c.slug}`} className="group block">
+              <TileImage
+                src={c.imageUrl}
+                alt={c.name}
+                className="rounded-[28px] aspect-[1/1.14] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
+              >
+                <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(180deg,transparent 38%,rgba(50,0,73,.85) 100%)" }} />
+                <div className="absolute left-0 right-0 bottom-0 z-[3] p-[22px] text-white">
+                  {c.kicker && <div className="text-[11px] tracking-[0.2em] uppercase font-semibold text-orchid-mid whitespace-nowrap">{c.kicker}</div>}
+                  <h3 className="font-display text-[22px] font-medium whitespace-nowrap mt-[3px]">{c.name}</h3>
+                  {c.subtitle && <span className="text-[12.5px] text-white/80 whitespace-nowrap">{c.subtitle}</span>}
+                </div>
+              </TileImage>
             </Link>
           ))}
         </div>

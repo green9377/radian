@@ -57,6 +57,7 @@ export default function SectionHead({
   subtitle,
   tone = "light",
   align = "center",
+  petal = "orchid",
   className = "",
 }: {
   /** a key in the API's SECTION_MANIFEST — or null when the words arrive
@@ -69,6 +70,8 @@ export default function SectionHead({
   tone?: "light" | "dark";
   /** most sections centre their head; the delivery band and the shop card do not */
   align?: "center" | "left";
+  /** the small petal before the eyebrow — rose gold marks the premium rows */
+  petal?: "orchid" | "gold";
   className?: string;
 }) {
   const map = useContext(SectionTextContext);
@@ -84,7 +87,7 @@ export default function SectionHead({
     <div className={`${align === "center" ? "text-center" : "text-left"} mb-[var(--section-gap)] ${className}`}>
       {e && (
         <div className={`inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase font-semibold mb-3 whitespace-nowrap ${dark ? "text-orchid-mid" : "text-orchid"}`}>
-          <span className="w-[9px] h-[9px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
+          <span className={`w-[9px] h-[9px] rounded-[50%_50%_50%_0] -rotate-45 inline-block ${petal === "gold" ? "bg-rosegold" : "bg-orchid"}`} />
           {e}
         </div>
       )}

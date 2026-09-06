@@ -17,27 +17,19 @@ import type { CategoryConfig } from "../../_data/categories";
   so the banner is a band of about 420px and the grid follows.
 */
 
-/*  ⚠️ No duration in the fallback — the live list is the admin's trust badges,
-    and this is only what shows before they arrive. "2-Hour Delivery" here
-    meant a shop with no badges configured advertised a service it does not
-    run, on every category page.  */
-const PROMISES: Record<"dhaka" | "bangladesh", string[]> = {
-  dhaka: ["Express Delivery", "Same Day", "Midnight", "Freshness Guarantee"],
-  bangladesh: ["Nationwide Delivery", "Courier-Safe Packing", "1–3 Days", "Freshness Guarantee"],
-};
-
 export default function CategoryBanner({
   config,
   zone,
+  shopName,
 }: {
   config: CategoryConfig;
   zone: Zone | null;
+  /** the shop's own name (Company settings) — the eyebrow on a root category */
+  shopName: string;
 }) {
   const zoneLabel = zone === "bangladesh" ? "All Bangladesh" : "Inside Dhaka";
-  const promises =
-    config.promises && config.promises.length > 0
-      ? config.promises
-      : PROMISES[zone === "bangladesh" ? "bangladesh" : "dhaka"];
+  // the admin's trust badges, or nothing — a promise is never invented here
+  const promises = config.promises;
 
   return (
     <section
@@ -78,7 +70,7 @@ export default function CategoryBanner({
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_1fr] gap-6 items-center min-h-[300px] lg:min-h-[400px] py-8 lg:py-10">
           <div className="relative z-[1]">
             <div className="flex items-center gap-3 text-[12px] tracking-[0.22em] uppercase font-semibold text-orchid mb-4 whitespace-nowrap">
-              <span>{config.parent ? config.parent.label : "Radian Flower & Gift Shop"}</span>
+              <span>{config.parent ? config.parent.label : shopName}</span>
               <span className="w-9 h-px bg-orchid/70 shrink-0" />
             </div>
             <h1
@@ -93,10 +85,13 @@ export default function CategoryBanner({
               </p>
             )}
             <div className="mt-4 text-[13.5px] text-body-soft">
-              <b className="text-purple font-semibold">{config.totalProducts} arrangements</b>
+              <b className="text-purple font-semibold">
+                {config.totalProducts} {config.totalProducts === 1 ? "product" : "products"}
+              </b>
               {" · Delivering to "}
               <b className="text-purple font-semibold">{zoneLabel}</b>
             </div>
+            {promises.length > 0 && (
             <div className="flex mt-5 flex-wrap gap-y-2">
               {promises.map((p, i) => (
                 <div key={p} className={`flex items-center gap-2.5 pr-[18px] whitespace-nowrap ${i > 0 ? "border-l border-[#dccde8] pl-[18px]" : ""}`}>
@@ -105,6 +100,7 @@ export default function CategoryBanner({
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* phones: the same picture above the words is too tall for a

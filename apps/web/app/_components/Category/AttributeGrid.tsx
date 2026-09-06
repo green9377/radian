@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { CategorySection, Tile as TileType } from "../../_data/categories";
-import { Section, SectionHead, Tile } from "./SectionShell";
+import TileImage from "../ui/TileImage";
+import { Section, SectionHead } from "./SectionShell";
 
 /* Shop by style / size — arrangement বা cake size */
 export default function AttributeGrid({
@@ -25,8 +26,10 @@ export default function AttributeGrid({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-[18px]">
         {tiles.map((t) => (
           <Link key={t.label} href={t.href} className="group text-center">
-            <Tile
-              bg={t.bg}
+            <TileImage
+              src={t.imageUrl}
+              alt={t.label}
+              variant="thumb"
               className="aspect-square rounded-[18px] shadow-soft transition-all duration-300 group-hover:-translate-y-[5px] group-hover:shadow-lift"
             />
             <h3 className="mt-3 text-[14px] font-medium text-purple whitespace-nowrap">

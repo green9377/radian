@@ -648,19 +648,27 @@ export class ShopCatalogService {
         sub: b.subtitle,
         imageUrl: b.imageUrl,
         accent: b.accent,
+        // …#all-products: a filter lands on the grid, not back at the banner
         href: `/categories/${base}?${[
           b.minPaisa != null ? `min=${Math.round(b.minPaisa / 100)}` : '',
           b.maxPaisa != null ? `max=${Math.round(b.maxPaisa / 100)}` : '',
         ]
           .filter(Boolean)
-          .join('&')}`,
+          .join('&')}#all-products`,
         bg: gradientFor(b.slug),
       })),
 
       // Combos and cross-sell are the same idea twice: cards to somewhere else
       // on the site. Both read the sibling categories; MANUAL narrows to the
       // owner's picks, in his order.
-      combos: this.categoryTiles(siblings, configOf('comboRail'), 4),
+      /*
+        Better together = related PRODUCTS, the owner's own pairing for this
+        category (flowers + a cake, a plant + chocolate), from anywhere in the
+        shop; nothing picked, nothing shown. Keep exploring = other
+        CATEGORIES. Two rows, two purposes — they used to be the same four
+        sibling cards twice (owner, 6 Sep 2026).
+      */
+      combos: await this.pickedProducts(configOf('comboRail'), zone, 4),
       crossSell: this.categoryTiles(siblings, configOf('crossSellRail'), 4),
 
       faqs: cat.faqs,
@@ -837,6 +845,22 @@ export class ShopCatalogService {
       .filter((c): c is ShopProduct => Boolean(c));
   }
 
+  /** the owner's hand-picked products, in his order, from the whole shop */
+  private async pickedProducts(config: Record<string, unknown>, zone: string | undefined, cap: number): Promise<ShopProduct[]> {
+    const picked = Array.isArray(config.products) ? (config.products as string[]).slice(0, cap) : [];
+    if (picked.length === 0) return [];
+    const rows = await this.prisma.db.product.findMany({
+      where: {
+        ...LIVE,
+        slug: { in: picked },
+        ...(['bangladesh', 'nationwide'].includes(String(zone ?? '').toLowerCase()) ? { zone: 'NATIONWIDE' as const } : {}),
+      },
+      select: CARD_SELECT,
+    });
+    const bySlug = new Map((await this.toCards(rows)).map((c) => [c.slug, c]));
+    return picked.map((s) => bySlug.get(s)).filter((c): c is ShopProduct => Boolean(c));
+  }
+
   /* ═══════════════════ tiles ═══════════════════ */
 
   /**
@@ -921,7 +945,7 @@ export class ShopCatalogService {
       sub: t.summary,
       // the tag stays inside the category — Fresh Flowers + birthday, never
       // every birthday product in the shop
-      href: `/categories/${catSlug}?${param}=${t.slug}`,
+      href: `/categories/${catSlug}?${param}=${t.slug}#all-products`,
       bg: gradientFor(t.slug),
       imageUrl: t.imageUrl,
       count: t.count,
@@ -964,7 +988,7 @@ export class ShopCatalogService {
       sub: `${countBy.get(v.id) ?? 0} available`,
       swatch: v.swatch,
       imageUrl: v.imageUrl,
-      href: `/categories/${catSlug}?colour=${slugifyLabel(v.label)}`,
+      href: `/categories/${catSlug}?colour=${slugifyLabel(v.label)}#all-products`,
       count: countBy.get(v.id) ?? 0,
     }));
   }

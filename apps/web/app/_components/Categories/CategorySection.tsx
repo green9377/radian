@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { mediaVariant } from "../../_data/media";
+import TileImage from "../ui/TileImage";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../Header/Header";
 import { getShopCategories, categoryCountLabel, zoneCode } from "../../_data/shop";
@@ -16,93 +16,19 @@ import { getShopCategories, categoryCountLabel, zoneCode } from "../../_data/sho
 
   Two things are deliberate:
 
-  1. `FALLBACK` below is not dead code. If the API is unreachable the rail
-     renders these instead of collapsing. A shop with a stale rail still sells;
-     a shop with an empty homepage does not. (See `_data/shop.ts`.)
+  1. No hand-written fallback (owner, 6 Sep 2026). If the API is unreachable
+     the section is absent — it never shows categories the shop does not have.
 
-  2. Card art falls back to a gradient, never to grey or an empty box. Real
-     photography is still a launch dependency, so most categories will have no
-     `imageUrl` for a while and must look deliberate meanwhile.
+  2. Card art is a real <img> (TileImage); a category without a picture shows
+     the site's one quiet placeholder, never a random tint.
 */
-
-/** Soft palette for cards with no photo yet — indexed, so it is stable per position. */
-const TINTS = [
-  "linear-gradient(160deg,#F6E3F3,#EAC3E6)",
-  "linear-gradient(160deg,#FBEDE4,#F2D3C0)",
-  "linear-gradient(160deg,#F1E4F8,#DFC5F0)",
-  "linear-gradient(160deg,#F4E6DE,#E5CBBB)",
-  "linear-gradient(160deg,#E7F2E7,#CBE3CE)",
-  "linear-gradient(160deg,#F3E7F8,#E1C9F1)",
-  "linear-gradient(160deg,#FBEAF0,#F2CBDD)",
-  "linear-gradient(160deg,#F1E6F6,#DFC8ED)",
-];
 
 interface Card {
   name: string;
   sub: string;
   href: string;
-  bg: string;
   imageUrl: string | null;
 }
-
-const FALLBACK: Card[] = [
-  {
-    name: "Fresh Flowers",
-    sub: "120+ arrangements",
-    href: "/fresh-flowers",
-    bg: "linear-gradient(160deg,#F6E3F3,#EAC3E6)",
-    imageUrl: null,
-  },
-  {
-    name: "Cakes",
-    sub: "Baked fresh daily",
-    href: "/cakes",
-    bg: "linear-gradient(160deg,#FBEDE4,#F2D3C0)",
-    imageUrl: null,
-  },
-  {
-    name: "Flower Combos",
-    sub: "Flowers + cake + card",
-    href: "/flower-combos",
-    bg: "linear-gradient(160deg,#F1E4F8,#DFC5F0)",
-    imageUrl: null,
-  },
-  {
-    name: "Chocolates",
-    sub: "Premium boxes",
-    href: "/chocolates",
-    bg: "linear-gradient(160deg,#F4E6DE,#E5CBBB)",
-    imageUrl: null,
-  },
-  {
-    name: "Plants",
-    sub: "Gifts that grow",
-    href: "/plants",
-    bg: "linear-gradient(160deg,#E7F2E7,#CBE3CE)",
-    imageUrl: null,
-  },
-  {
-    name: "Personalised",
-    sub: "Made only for them",
-    href: "/personalised",
-    bg: "linear-gradient(160deg,#F3E7F8,#E1C9F1)",
-    imageUrl: null,
-  },
-  {
-    name: "Balloon Bouquets",
-    sub: "Float their heart",
-    href: "/balloon-bouquets",
-    bg: "linear-gradient(160deg,#FBEAF0,#F2CBDD)",
-    imageUrl: null,
-  },
-  {
-    name: "Gift Boxes",
-    sub: "Curated with love",
-    href: "/gift-boxes",
-    bg: "linear-gradient(160deg,#F1E6F6,#DFC8ED)",
-    imageUrl: null,
-  },
-];
 
 function Chevron({ dir }: { dir: "left" | "right" }) {
   return (
@@ -127,15 +53,15 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
   const trackRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
-  const [items, setItems] = useState<Card[]>(FALLBACK);
+  // nothing until the live list arrives — no invented categories (owner, 6 Sep 2026)
+  const [items, setItems] = useState<Card[]>([]);
 
   useEffect(() => {
     let alive = true;
     const zc = zoneCode(zone ?? null);
     getShopCategories().then((rows) => {
-      // null = API unreachable → keep FALLBACK. An empty array is a real answer
-      // (every category switched off) and must NOT be overridden, or the owner
-      // turns them all off in the admin and nothing appears to happen.
+      // null = API unreachable → the section stays absent. An empty array is
+      // a real answer (every category switched off) and renders as absent too.
       if (!alive || rows === null) return;
       setItems(
         rows
@@ -154,12 +80,11 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
               moment its first product is published. Same rule as the menu.  */
           .filter((c) => (zc === "NATIONWIDE" ? c.nationwideCount : c.productCount) > 0)
           .slice(0, limit > 0 ? limit : undefined)
-          .map((c, i) => ({
+          .map((c) => ({
             name: c.name,
             sub: categoryCountLabel(c, "products"),
             href: `/${c.slug}`,
-            bg: TINTS[i % TINTS.length],
-            imageUrl: mediaVariant(c.imageUrl, "card"),
+            imageUrl: c.imageUrl,
           })),
       );
     });
@@ -212,13 +137,11 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
         <div className="grid grid-cols-4 gap-x-3 gap-y-4 md:hidden">
           {items.map((cat) => (
             <Link key={cat.href} href={cat.href} className="text-center group">
-              <div
-                className="aspect-square rounded-2xl shadow-soft transition-transform duration-200 group-active:scale-95 bg-cover bg-center"
-                style={
-                  cat.imageUrl
-                    ? { backgroundImage: `url(${cat.imageUrl})` }
-                    : { background: cat.bg }
-                }
+              <TileImage
+                src={cat.imageUrl}
+                alt={cat.name}
+                variant="thumb"
+                className="aspect-square rounded-2xl shadow-soft transition-transform duration-200 group-active:scale-95"
               />
               <span className="block mt-1.5 text-[11.5px] font-medium text-purple leading-tight">
                 {cat.name}
@@ -248,13 +171,10 @@ export default function CategorySection({ zone, config = {} }: { zone?: Zone | n
                 href={cat.href}
                 className="w-[178px] shrink-0 snap-start text-center group"
               >
-                <div
-                  className="h-[178px] rounded-[28px] overflow-hidden shadow-soft transition-all duration-300 group-hover:-translate-y-[6px] group-hover:shadow-lift bg-cover bg-center"
-                  style={
-                    cat.imageUrl
-                      ? { backgroundImage: `url(${cat.imageUrl})` }
-                      : { background: cat.bg }
-                  }
+                <TileImage
+                  src={cat.imageUrl}
+                  alt={cat.name}
+                  className="h-[178px] rounded-[28px] shadow-soft transition-all duration-300 group-hover:-translate-y-[6px] group-hover:shadow-lift"
                 />
                 <h3 className="mt-[13px] text-[16px] font-medium text-purple whitespace-nowrap">
                   {cat.name}
