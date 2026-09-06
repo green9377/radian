@@ -63,13 +63,15 @@ export function Section({
   children,
   tone = "plain",
   id,
+  ref,
 }: {
   children: ReactNode;
   tone?: "plain" | "alt";
   id?: string;
+  ref?: React.Ref<HTMLElement>;
 }) {
   return (
-    <section id={id} className={`py-[var(--section-y)] ${tone === "alt" ? "bg-lavender" : ""}`}>
+    <section id={id} ref={ref} className={`py-[var(--section-y)] ${tone === "alt" ? "bg-lavender" : ""}`}>
       <div className="max-w-[var(--page-w)] mx-auto px-6">{children}</div>
     </section>
   );

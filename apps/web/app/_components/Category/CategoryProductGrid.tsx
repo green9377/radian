@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Zone } from "../../_store/useZoneStore";
 import type { Product } from "../../_data/products";
 import type { CategoryConfig, CategorySection } from "../../_data/categories";
@@ -78,6 +78,19 @@ export default function CategoryProductGrid({
   const [shown, setShown] = useState(initial);
   const [prevUrlKey, setPrevUrlKey] = useState(urlKey);
 
+  /*
+    A filter lands on the grid (owner, 6 Sep 2026). Every filter link ends in
+    #all-products, but the router does not always honour a hash on a
+    same-page navigation — the section is re-rendered by the server after the
+    URL changes — so when the filter changes and the hash says so, the grid
+    brings itself into view.
+  */
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (window.location.hash !== "#all-products") return;
+    sectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [urlKey]);
+
   // React's "adjust state during render" pattern — no setState in an effect
   if (urlKey !== prevUrlKey) {
     setPrevUrlKey(urlKey);
@@ -125,7 +138,7 @@ export default function CategoryProductGrid({
   const noun = totalProducts === 1 ? "product" : "products";
 
   return (
-    <Section tone={section.tone} id="all-products">
+    <Section tone={section.tone} id="all-products" ref={sectionRef}>
       {/* the admin's line under the heading if he wrote one; otherwise the
           count and the zone — a fact, not a delivery promise */}
       <SectionHead

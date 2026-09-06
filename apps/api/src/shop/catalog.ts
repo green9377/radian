@@ -632,7 +632,7 @@ export class ShopCatalogService {
       subCategories: orderedChildren.map((c) => ({
         label: c.name,
         sub: c.summary,
-        href: `/categories/${base}/${c.slug}`,
+        href: `/${base}/${c.slug}`,
         bg: gradientFor(c.slug),
         imageUrl: c.imageUrl,
         count: countBy.get(c.id) ?? 0,
@@ -649,7 +649,7 @@ export class ShopCatalogService {
         imageUrl: b.imageUrl,
         accent: b.accent,
         // …#all-products: a filter lands on the grid, not back at the banner
-        href: `/categories/${base}?${[
+        href: `/${base}?${[
           b.minPaisa != null ? `min=${Math.round(b.minPaisa / 100)}` : '',
           b.maxPaisa != null ? `max=${Math.round(b.maxPaisa / 100)}` : '',
         ]
@@ -945,7 +945,7 @@ export class ShopCatalogService {
       sub: t.summary,
       // the tag stays inside the category — Fresh Flowers + birthday, never
       // every birthday product in the shop
-      href: `/categories/${catSlug}?${param}=${t.slug}#all-products`,
+      href: `/${catSlug}?${param}=${t.slug}#all-products`,
       bg: gradientFor(t.slug),
       imageUrl: t.imageUrl,
       count: t.count,
@@ -988,7 +988,7 @@ export class ShopCatalogService {
       sub: `${countBy.get(v.id) ?? 0} available`,
       swatch: v.swatch,
       imageUrl: v.imageUrl,
-      href: `/categories/${catSlug}?colour=${slugifyLabel(v.label)}#all-products`,
+      href: `/${catSlug}?colour=${slugifyLabel(v.label)}#all-products`,
       count: countBy.get(v.id) ?? 0,
     }));
   }
@@ -1009,7 +1009,7 @@ export class ShopCatalogService {
     return list.slice(0, take).map((c) => ({
       label: c.name,
       sub: c.summary,
-      href: `/categories/${c.slug}`,
+      href: `/${c.slug}`,
       bg: gradientFor(c.slug),
       imageUrl: c.imageUrl,
     }));
