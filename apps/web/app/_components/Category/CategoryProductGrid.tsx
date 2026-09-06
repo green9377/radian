@@ -80,15 +80,27 @@ export default function CategoryProductGrid({
 
   /*
     A filter lands on the grid (owner, 6 Sep 2026). Every filter link ends in
-    #all-products, but the router does not always honour a hash on a
-    same-page navigation — the section is re-rendered by the server after the
-    URL changes — so when the filter changes and the hash says so, the grid
-    brings itself into view.
+    #all-products, but the router does not honour a hash on a same-page
+    navigation: the URL is pushed after the new tree commits, so the hash is
+    not even there yet when this runs. Instead: on first load, the hash
+    decides; afterwards any change of filter brings the grid into view, a
+    beat after the router's own scroll-to-top.
   */
   const sectionRef = useRef<HTMLElement>(null);
+  const firstRun = useRef(true);
   useEffect(() => {
-    if (window.location.hash !== "#all-products") return;
-    sectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    const filtered = urlKey.split("|").slice(0, -1).some(Boolean); // sort excluded
+    if (firstRun.current) {
+      firstRun.current = false;
+      if (window.location.hash !== "#all-products") return;
+    } else if (!filtered) {
+      return;
+    }
+    const t = setTimeout(
+      () => sectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }),
+      80,
+    );
+    return () => clearTimeout(t);
   }, [urlKey]);
 
   // React's "adjust state during render" pattern — no setState in an effect
