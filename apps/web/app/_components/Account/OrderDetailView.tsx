@@ -16,6 +16,7 @@ import DeliveryTimeline from "../Checkout/DeliveryTimeline";
 import Icon from "../Pdp/PdpIcons";
 import OrderStatusChip from "./OrderStatusChip";
 import ReorderButton from "./ReorderButton";
+import TileImage from "../ui/TileImage";
 
 /*
   /account/orders/[id] — এক order-এর পুরো ছবি: progress + history +
@@ -185,10 +186,7 @@ export default function OrderDetailView({ id }: { id: string }) {
           <div className="space-y-3 pb-3 border-b border-lavender">
             {order.lines.map((l) => (
               <div key={l.slug + l.sizeLabel} className="flex items-center gap-3">
-                <span
-                  className="w-11 h-11 rounded-[12px] shrink-0"
-                  style={{ background: l.bg }}
-                />
+                <TileImage src={l.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold text-purple truncate">
                     {l.name}

@@ -19,6 +19,7 @@ import {
   type ProductDetail,
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
+import TileImage, { imageSrc } from "../ui/TileImage";
 import QtyStepper from "../Common/QtyStepper";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
 import OfferWindow from "./OfferWindow";
@@ -36,7 +37,6 @@ import { bundleTotals } from "../../_data/bundlePricing";
      on the PDP.
 */
 
-const FALLBACK_BG = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
 
 /**
  * At or below this number, stock is shown as "only a few left".
@@ -215,9 +215,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       NOT being bought, sitting in the gallery, read as the page not having
       changed at all. The upgrade card carries one photo, so the rail shows
       that one until the customer comes back.  */
-  const gallery = upgrade
-    ? [upgrade.bg]
-    : [...detail.gallery, ...variantSlots.map((v) => `url(${v.imageUrl}) center/cover`)];
+  /*  Addresses, not CSS. No photographs at all = one empty slot, drawn as the
+      site's placeholder — never a coloured panel (owner, 6 Sep 2026).  */
+  const photos = upgrade
+    ? [imageSrc(upgrade.bg)]
+    : [...detail.gallery, ...variantSlots.map((v) => v.imageUrl as string)];
+  const gallery: (string | null)[] = photos.length > 0 ? photos : [null];
 
   const openMedia = (i: number) => {
     setMedia(i);
@@ -534,7 +537,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
 
   /*  Real photographs, or the tinted panel the page falls back to. The
       fallback is a gradient; an uploaded picture arrives as `url(…)`.  */
-  const hasPhotos = gallery.some((g) => g.startsWith("url("));
+  const hasPhotos = gallery.some(Boolean);
 
   const tabs = groups;
   const activeTab = tabs[tabIdx] ?? tabs[0];
@@ -564,16 +567,17 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           <div className="grid grid-cols-[68px_1fr] sm:grid-cols-[76px_1fr] gap-3">
             <div className="relative">
             <div className="absolute inset-0 flex flex-col gap-2.5 overflow-y-auto scrollbar-none">
-              {gallery.map((bg, i) => (
+              {gallery.map((src, i) => (
                 <button
                   key={i}
                   onClick={() => openMedia(i)}
                   aria-label={`Photo ${i + 1}`}
-                  className={`aspect-square shrink-0 rounded-[12px] border-2 transition-colors ${
+                  className={`aspect-square shrink-0 rounded-[12px] border-2 overflow-hidden transition-colors ${
                     media === i ? "border-orchid" : "border-transparent"
                   }`}
-                  style={{ background: bg }}
-                />
+                >
+                  <TileImage src={src} alt="" variant="thumb" className="w-full h-full" />
+                </button>
               ))}
               {/*  DEC-PRD-036 — the video's OWN thumbnail, not a purple box
                   saying "Watch" (owner, 9 Aug 2026). YouTube serves a still
@@ -609,12 +613,12 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 />
               ) : (
                 <>
-                  <div
+                  <TileImage
+                    src={gallery[typeof media === "number" ? media : 0]}
+                    alt={product.name}
+                    variant="original"
+                    eager
                     className="absolute inset-0"
-                    style={{
-                      background:
-                        gallery[typeof media === "number" ? media : 0] ?? FALLBACK_BG,
-                    }}
                   />
                   {/* zoom - clicking the image opens it larger */}
                   <button
@@ -742,7 +746,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
         </div>
 
         {/* ════════ BUY PANEL ════════ */}
-        <div>
+        {/*  min-w-0: a grid column grows to fit an unbroken word otherwise, and
+            one long description without spaces pushed this column to 7,000px
+            and crushed the gallery (owner's screenshot, 6 Sep 2026)  */}
+        <div className="min-w-0">
           <div className="flex gap-2 flex-wrap mb-3">
             {/*
               ⚠️ THE CHIP CAN NOW BE ABSENT — 1 Aug 2026. It used to be printed
@@ -799,14 +806,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             </span>
           </div>
 
-          <h1 className="font-display text-[clamp(25px,2.8vw,33px)] font-medium text-ink leading-[1.2]">
+          <h1 className="font-display text-[clamp(25px,2.8vw,33px)] font-medium text-ink leading-[1.2] [overflow-wrap:anywhere]">
             {product.name}
           </h1>
 
           {/*  DEC-PRD-031, 6 August - one line written by the owner, between
               the title and the reviews. Leave it blank and the line is gone.  */}
           {detail.shortDesc && (
-            <p className="mt-1.5 text-[14.5px] text-body-soft leading-[1.5]">
+            <p className="mt-1.5 text-[14.5px] text-body-soft leading-[1.5] [overflow-wrap:anywhere]">
               {detail.shortDesc}
             </p>
           )}
@@ -1175,7 +1182,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                             : "border-lavender-deep hover:border-orchid-mid hover:-translate-y-[3px] cursor-pointer active:scale-[0.97]"
                         }`}
                       >
-                        <span className="block aspect-square" style={{ background: a.bg }} />
+                        <TileImage src={a.bg} alt={a.name} variant="thumb" className="aspect-square" />
                         <span className="block px-2.5 pt-2">
                           <b className="block text-[11.5px] text-ink font-semibold truncate">
                             {a.name}
@@ -1443,9 +1450,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               {!soldOut &&
                 (upgrade || variant || bundleIds.length > 0 || Object.keys(picked).length > 0 || detail.sizes.length > 1) && (
                 <div className="hidden lg:flex items-center gap-3 bg-lavender border-[1.5px] border-lavender-deep rounded-[14px] px-3 py-2 mb-2.5">
-                  <span
+                  <TileImage
+                    src={gallery[typeof media === "number" ? media : 0]}
+                    alt=""
+                    variant="thumb"
                     className="w-[38px] h-[38px] rounded-[10px] shrink-0 border border-lavender-deep"
-                    style={{ background: gallery[typeof media === "number" ? media : 0] ?? FALLBACK_BG }}
                   />
                   <span className="min-w-0 flex-1">
                     <b className="block text-[12.5px] text-ink truncate">
@@ -1572,35 +1581,35 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
             ×
           </button>
 
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-[min(88vw,88vh)] aspect-square rounded-[28px] overflow-hidden shadow-lift cursor-default"
-            style={{
-              background:
-                gallery[typeof media === "number" ? media : 0] ?? FALLBACK_BG,
-            }}
+          <TileImage
+            src={gallery[typeof media === "number" ? media : 0]}
+            alt={product.name}
+            variant="original"
+            eager
+            className="w-[min(88vw,88vh)] aspect-square rounded-[28px] shadow-lift cursor-default"
           >
             {!hasPhotos && (
               <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[12px] tracking-[0.18em] uppercase text-purple/40 font-semibold">
                 Product photo — zoomed
               </span>
             )}
-          </div>
+          </TileImage>
 
           <div
             onClick={(e) => e.stopPropagation()}
             className="absolute bottom-6 flex gap-2.5 max-w-[90vw] overflow-x-auto scrollbar-none"
           >
-            {gallery.map((bg, i) => (
+            {gallery.map((src, i) => (
               <button
                 key={i}
                 onClick={() => openMedia(i)}
                 aria-label={`Photo ${i + 1}`}
-                className={`w-14 h-14 rounded-[12px] border-2 transition-colors ${
+                className={`w-14 h-14 rounded-[12px] border-2 overflow-hidden transition-colors ${
                   media === i ? "border-orchid" : "border-white/40"
                 }`}
-                style={{ background: bg }}
-              />
+              >
+                <TileImage src={src} alt="" variant="thumb" className="w-full h-full" />
+              </button>
             ))}
           </div>
         </div>

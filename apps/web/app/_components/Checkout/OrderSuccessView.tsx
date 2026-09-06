@@ -11,6 +11,7 @@ import { track } from "../../_data/tracking";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import Icon from "../Pdp/PdpIcons";
 import DeliveryTimeline from "./DeliveryTimeline";
+import TileImage from "../ui/TileImage";
 
 /*
   /order-success — shows what checkout just built.
@@ -456,10 +457,7 @@ export default function OrderSuccessView() {
           <div className="space-y-3 pb-3 border-b border-lavender">
             {order.lines.map((l) => (
               <div key={l.slug + l.sizeLabel} className="flex items-center gap-3">
-                <span
-                  className="w-11 h-11 rounded-[12px] shrink-0"
-                  style={{ background: l.bg }}
-                />
+                <TileImage src={l.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold text-purple truncate">
                     {l.name}

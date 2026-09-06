@@ -12,6 +12,7 @@ import type {
   VariantPart,
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
+import TileImage from "../ui/TileImage";
 import { BlkTitle } from "./PdpBuyBar";
 
 /*
@@ -269,7 +270,7 @@ export function VariantPicker({
                       on ? "border-orchid bg-orchid-soft" : "border-lavender-deep hover:border-orchid-mid"
                     } ${out ? "opacity-45 cursor-not-allowed" : "active:scale-[0.97]"}`}
                   >
-                    {withPhoto && <span className="block aspect-square" style={{ background: fill }} />}
+                    {withPhoto && <TileImage src={val.imageUrl} alt={val.label} variant="thumb" className="aspect-square" />}
                     <span className={withPhoto ? "block px-1.5 pt-1.5 pb-2" : "block"}>
                       <span
                         className={`block text-[13px] font-semibold truncate ${
@@ -510,10 +511,7 @@ export function PickCard({
         </span>
       )}
       <CornerMark on={on} round={round} />
-      <span
-        className="block aspect-square"
-        style={{ background: bg || "linear-gradient(150deg,#EFE4F7,#DDC9EC)" }}
-      />
+      <TileImage src={bg} alt={name} variant="thumb" className="aspect-square" />
       <span className="block px-3 pt-2.5 pb-3">
         <span className={`block text-[12.5px] font-semibold truncate ${on ? "text-purple" : "text-ink"}`}>
           {name}

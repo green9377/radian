@@ -13,6 +13,19 @@ import { mediaVariant } from "../../_data/media";
   missing pictures still looks like one page. The fix for a placeholder is a
   picture in the admin, not a prettier placeholder.
 */
+/**
+ * A picture address from either shape the codebase still carries: a plain
+ * URL, or the legacy CSS value `url(...) center/cover`. A gradient — the old
+ * "no photo yet" tint — is NOT a picture and comes back null, so it draws the
+ * placeholder like every other missing photo.
+ */
+export function imageSrc(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const m = /^url\((['"]?)(.+?)\1\)/.exec(v.trim());
+  if (m) return m[2];
+  return /^(https?:)?\//.test(v) || v.startsWith("data:") ? v : null;
+}
+
 export default function TileImage({
   src,
   alt,
@@ -22,6 +35,7 @@ export default function TileImage({
   eager = false,
   children,
 }: {
+  /** a URL, or the legacy `url(...)` CSS value; a gradient counts as no picture */
   src?: string | null;
   alt: string;
   variant?: "card" | "thumb" | "original";
@@ -33,7 +47,8 @@ export default function TileImage({
   /** overlays — badges, gradients — drawn on top of the picture */
   children?: React.ReactNode;
 }) {
-  const url = src ? (variant === "original" ? src : mediaVariant(src, variant)) : null;
+  const real = imageSrc(src);
+  const url = real ? (variant === "original" ? real : mediaVariant(real, variant)) : null;
   return (
     <div className={`relative overflow-hidden bg-[#F3EDF8] ${className}`}>
       {url ? (

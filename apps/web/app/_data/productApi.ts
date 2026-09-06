@@ -239,17 +239,14 @@ async function getJson<T>(path: string): Promise<T | null> {
   }
 }
 
-/** Photography is still a launch dependency. Until then, the tinted panel the
- *  page has always drawn — never a grey box, which reads as a broken image. */
-/** the small tile behind an add-on with no picture yet */
-const GREY_TILE = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
-
-const PLACEHOLDER = [
-  "linear-gradient(150deg,#F7E4F1,#EBC7E4)",
-  "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
-  "linear-gradient(150deg,#FBEAF0,#F4C0D1)",
-  "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
-];
+/**
+ * A picture for the page, or nothing. NO TINTS (owner, 6 Sep 2026): a product,
+ * bundle item, upgrade or add-on without a photo shows the site's one
+ * placeholder (TileImage), never a coloured panel that pretends to be one.
+ * `bg` keeps the legacy `url(...)` shape the cart and account screens still
+ * read; empty means no picture.
+ */
+const asBg = (url: string | null | undefined) => (url ? `url(${url}) center/cover` : "");
 
 /**
  * The admin's category slug, mapped onto the eight the mock knew.
@@ -302,7 +299,8 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     /*  5 Aug — the real photo. This was stuck on the placeholder, which is why
         cart and checkout never showed a product's photo even when one had been
         uploaded.  */
-    bg: a.images[0] ? `url(${a.images[0]}) center/cover` : PLACEHOLDER[0],
+    imageUrl: a.images[0] ?? null,
+    bg: asBg(a.images[0]),
     /*  DEC-PRD-050 — the API answers this now; it was hardcoded false, so a
         best seller in the cart or the wishlist lost its badge on the way.  */
     best: a.bestSeller ?? false,
@@ -369,16 +367,9 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       sameDay: a.supportsSameDay,
       midnight: a.supportsMidnight,
     },
-    /*  ⚠️ `gallery` entries are CSS BACKGROUND values, not image addresses —
-        the page draws every tile with `style={{ background: … }}`. The mock's
-        gradients worked because a gradient IS a background; a bare URL is not,
-        so the first real photographs uploaded saved correctly, reached this
-        line, and rendered as nothing at all. Wrapped in `url()` here, at the
-        seam, rather than teaching six components a second shape.  */
-    gallery:
-      a.images.length > 0
-        ? a.images.map((u) => `url(${u}) center/cover no-repeat`)
-        : PLACEHOLDER,
+    /*  plain addresses; every tile on the page is a real <img> (TileImage).
+        Empty = no photographs, and the page shows one placeholder.  */
+    gallery: a.images,
     videoId: a.videoId ?? undefined,
     /*
       ⚠️ THE FALLBACK BADGES CLAIMED A SPEED TOO, AND IT WAS THE SAME LIE.
@@ -455,11 +446,11 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       `bg` is the tinted panel behind the card until the added product has a
       photo. The image itself, when there is one, comes through `imageUrl`.
     */
-    bundles: (a.bundle?.items ?? []).map((i, n) => ({
+    bundles: (a.bundle?.items ?? []).map((i) => ({
       id: i.id,
       label: i.name,
       pricePaisa: i.pricePaisa,
-      bg: i.imageUrl ? `url(${i.imageUrl}) center/cover` : PLACEHOLDER[n % PLACEHOLDER.length],
+      bg: asBg(i.imageUrl),
     })),
     /*  ⚠️ `?? null` — on an older API the field does not arrive, and trying to
         apply the discount broke the page.  */
@@ -474,7 +465,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       slug: u.slug,
       name: u.name,
       pricePaisa: u.pricePaisa,
-      bg: u.imageUrl ? `url(${u.imageUrl}) center/cover` : PLACEHOLDER[0],
+      bg: asBg(u.imageUrl),
     })),
     bundleHint: t.bundleHint,
     /*
@@ -492,7 +483,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         name: i.name,
         pricePaisa: i.pricePaisa,
         isFree: i.isFree === true,
-        bg: i.imageUrl ? `url(${i.imageUrl}) center/cover` : GREY_TILE,
+        bg: asBg(i.imageUrl),
         /*  Every database add-on is a catalog row the owner maintains. The
             flag existed to separate those from the mock's inline services
             (a card, a wrap) that were never rows anywhere.  */
@@ -645,7 +636,7 @@ export async function fetchAddons(ids: string[]): Promise<AddonItem[]> {
     key: a.id,
     name: a.name,
     pricePaisa: a.pricePaisa,
-    bg: a.imageUrl ? `url(${a.imageUrl}) center/cover` : GREY_TILE,
+    bg: asBg(a.imageUrl),
     fromCatalog: true,
   }));
 }
@@ -672,9 +663,8 @@ function toMockProduct(c: ShopProduct): Product {
     badge: c.badge as ProductBadge,
     stars: c.stars,
     meta: c.meta,
-    /*  A real photo wins; the API's gradient is the fallback it already
-        chose for a product without one.  */
-    bg: c.imageUrl ? `url(${c.imageUrl}) center/cover` : c.bg,
+    imageUrl: c.imageUrl,
+    bg: asBg(c.imageUrl),
     best: c.best,
     exp: c.exp,
     sd: c.sd,

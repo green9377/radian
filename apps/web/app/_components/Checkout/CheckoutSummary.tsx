@@ -9,6 +9,7 @@ import type { Quote } from "../../_data/checkoutApi";
 import { getGoogleRating } from "../../_data/shop";
 import { useCartStore } from "../../_store/useCartStore";
 import Icon from "../Pdp/PdpIcons";
+import TileImage from "../ui/TileImage";
 
 /*
   Order Summary — every number in checkout comes from one place
@@ -86,10 +87,7 @@ export function CheckoutSummary({
       <div className="space-y-3 pb-3 border-b border-lavender">
         {lines.map((l) => (
           <div key={l.item.lineId} className="flex items-center gap-3">
-            <span
-              className="w-11 h-11 rounded-[12px] shrink-0"
-              style={{ background: l.product.bg }}
-            />
+            <TileImage src={l.product.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
             <span className="min-w-0 flex-1">
               <span className="block text-[12.5px] font-semibold text-purple truncate">
                 {l.product.name}

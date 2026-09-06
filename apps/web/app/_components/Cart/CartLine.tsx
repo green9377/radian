@@ -6,6 +6,7 @@ import { formatTaka } from "../../_data/products";
 import type { ResolvedLine } from "../../_data/cart";
 import Icon from "../Pdp/PdpIcons";
 import QtyStepper from "../Common/QtyStepper";
+import TileImage from "../ui/TileImage";
 
 /*
   Cart line — the line card on the cart board.
@@ -51,16 +52,14 @@ export default function CartLine({
         {/*  DEC-PRD-012 — the photo of the colour that was actually bought.
              Otherwise a red line and a pink line sit in the cart under the
              same picture and nobody can tell them apart.  */}
-        <Link
-          href={href}
-          className="block aspect-square rounded-[16px] overflow-hidden"
-          style={{
-            background: variant?.imageUrl
-              ? `url(${variant.imageUrl}) center/cover`
-              : product.bg,
-          }}
-          aria-label={product.name}
-        />
+        <Link href={href} className="block" aria-label={product.name}>
+          <TileImage
+            src={variant?.imageUrl ?? product.imageUrl ?? product.bg}
+            alt={product.name}
+            variant="thumb"
+            className="aspect-square rounded-[16px]"
+          />
+        </Link>
 
         {/* body */}
         <div className="min-w-0">

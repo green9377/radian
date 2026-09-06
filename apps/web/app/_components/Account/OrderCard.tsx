@@ -5,6 +5,7 @@ import { isTerminal, type Order } from "../../_data/order";
 import Icon from "../Pdp/PdpIcons";
 import OrderStatusChip from "./OrderStatusChip";
 import ReorderButton from "./ReorderButton";
+import TileImage from "../ui/TileImage";
 
 /* Order history + dashboard-এ শেয়ার্ড order card। */
 
@@ -29,11 +30,9 @@ export default function OrderCard({ order }: { order: Order }) {
         {/* thumbnails */}
         <div className="flex -space-x-3 shrink-0">
           {order.lines.slice(0, 3).map((l, i) => (
-            <span
-              key={l.slug + i}
-              className="w-12 h-12 rounded-[14px] border-2 border-white shadow-soft"
-              style={{ background: l.bg, zIndex: 3 - i }}
-            />
+            <span key={l.slug + i} className="relative" style={{ zIndex: 3 - i }}>
+              <TileImage src={l.bg} alt="" variant="thumb" className="w-12 h-12 rounded-[14px] border-2 border-white shadow-soft" />
+            </span>
           ))}
         </div>
 

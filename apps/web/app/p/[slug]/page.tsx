@@ -75,13 +75,9 @@ export async function generateMetadata({
     seo?.description?.trim() ||
     `${detail.nature.label}. ${detail.crumb.catLabel} delivered fast inside Dhaka, nationwide in 1–3 days.`;
 
-  /*  The picture that travels to WhatsApp/Facebook. The owner's chosen image
-      → else the product's first photo. ⚠️ A gallery entry can be CSS
-      (`linear-gradient(...)`), so the address is only pulled from a real
-      `url(...)` — otherwise the share card carried a broken-image mark.  */
-  const firstPhoto = detail.gallery.find((g) => g.startsWith("url("));
-  const shareImage =
-    seo?.ogImageUrl?.trim() || firstPhoto?.slice(4, firstPhoto.indexOf(")")) || undefined;
+  /*  The picture that travels to WhatsApp/Facebook: the owner's chosen image,
+      else the product's first photo (gallery entries are plain addresses).  */
+  const shareImage = seo?.ogImageUrl?.trim() || detail.gallery[0] || undefined;
 
   return {
     title,

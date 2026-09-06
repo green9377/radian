@@ -7,6 +7,7 @@ import type { CrossSellItem, ResolvedCart } from "../../_data/cart";
 import type { Quote } from "../../_data/checkoutApi";
 import type { CartItem } from "../../_store/useCartStore";
 import Icon from "../Pdp/PdpIcons";
+import TileImage from "../ui/TileImage";
 
 /* ═══════════ CONFLICT BAR — zone বদলে গেছে, কিছু item আটকে গেছে ═══════════ */
 
@@ -128,12 +129,9 @@ export function CrossSell({
             key={x.slug}
             className="rounded-[16px] border border-lavender-deep overflow-hidden text-center"
           >
-            <Link
-              href={`/p/${x.slug}`}
-              className="block aspect-[1/0.8]"
-              style={{ background: x.bg }}
-              aria-label={x.name}
-            />
+            <Link href={`/p/${x.slug}`} className="block" aria-label={x.name}>
+              <TileImage src={x.bg} alt={x.name} variant="thumb" className="aspect-[1/0.8]" />
+            </Link>
             <div className="px-2.5 pt-2 pb-3">
               <b className="block text-[11.5px] text-purple font-semibold truncate">
                 {x.name}

@@ -15,6 +15,7 @@ import {
 } from "../../_store/useWishlistGroupStore";
 import { useZoneStore } from "../../_store/useZoneStore";
 import Icon from "../Pdp/PdpIcons";
+import TileImage from "../ui/TileImage";
 
 /*
   /account/wishlist — saved item + user-created folder (grouping)।
@@ -256,11 +257,9 @@ function ItemGrid({
           className="bg-white border-[1.5px] border-lavender-deep rounded-[20px] p-4"
         >
           <div className="flex items-start gap-3">
-            <Link
-              href={`/p/${e.product.slug}`}
-              className="w-16 h-16 rounded-[14px] shrink-0"
-              style={{ background: e.product.bg }}
-            />
+            <Link href={`/p/${e.product.slug}`} className="shrink-0">
+              <TileImage src={e.product.imageUrl ?? e.product.bg} alt={e.product.name} variant="thumb" className="w-16 h-16 rounded-[14px]" />
+            </Link>
             <div className="min-w-0 flex-1">
               <Link
                 href={`/p/${e.product.slug}`}
