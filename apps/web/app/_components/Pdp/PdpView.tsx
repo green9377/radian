@@ -613,13 +613,18 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 />
               ) : (
                 <>
-                  <TileImage
-                    src={gallery[typeof media === "number" ? media : 0]}
-                    alt={product.name}
-                    variant="original"
-                    eager
-                    className="absolute inset-0"
-                  />
+                  {/*  the frame fills the square; TileImage is `relative` itself,
+                      so it cannot be the absolute layer (an `absolute` class on
+                      it lost to `relative` and the photo had no height)  */}
+                  <div className="absolute inset-0">
+                    <TileImage
+                      src={gallery[typeof media === "number" ? media : 0]}
+                      alt={product.name}
+                      variant="original"
+                      eager
+                      className="w-full h-full"
+                    />
+                  </div>
                   {/* zoom - clicking the image opens it larger */}
                   <button
                     onClick={() => setZoom(true)}
