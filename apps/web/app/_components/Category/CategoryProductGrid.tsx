@@ -29,6 +29,7 @@ export default function CategoryProductGrid({
   totalProducts,
   zone,
   apiSlug,
+  apiSub,
   apiZone,
   apiFilters,
   failed,
@@ -40,6 +41,8 @@ export default function CategoryProductGrid({
   zone: Zone | null;
   /** set = products came from the API and Load More may ask it for more */
   apiSlug?: string;
+  /** a sub-category page — parent + sub is how the API scopes it */
+  apiSub?: string;
   apiZone?: "dhaka" | "bangladesh" | null;
   /** the filter this page was rendered with — carried into every Load More */
   apiFilters?: Record<string, string | undefined>;
@@ -106,6 +109,7 @@ export default function CategoryProductGrid({
       // the budget slug was already turned into min/max by the page
       ...Object.fromEntries(Object.entries(apiFilters ?? {}).filter(([k]) => k !== "budget")),
       category: apiSlug,
+      sub: apiSub,
       zone: apiZone,
       page: nextPage,
       limit: 24,

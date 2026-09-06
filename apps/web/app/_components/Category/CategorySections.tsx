@@ -40,6 +40,7 @@ export default function CategorySections({
   products: fromApi,
   rails,
   apiSlug,
+  apiSub,
   apiZone,
   filters,
   productsFailed,
@@ -51,6 +52,8 @@ export default function CategorySections({
   /** the two rails come pre-picked by the server — see below */
   rails?: { bestsellers: Product[]; readyToday: Product[] };
   apiSlug?: string;
+  /** set on a sub-category page — the API scopes by parent + sub */
+  apiSub?: string;
   apiZone?: "dhaka" | "bangladesh" | null;
   /** the filter this page is already showing — Load More must keep it */
   filters?: Record<string, string | undefined>;
@@ -169,6 +172,7 @@ export default function CategorySections({
                 totalProducts={config.totalProducts}
                 zone={zone}
                 apiSlug={apiSlug}
+                apiSub={apiSub}
                 apiZone={apiZone}
                 apiFilters={filters}
                 failed={productsFailed}
@@ -193,7 +197,7 @@ export default function CategorySections({
                 key={key}
                 id="gift-finder"
                 config={section.config ?? {}}
-                basePath={apiSlug ? `/${apiSlug}` : "/products"}
+                basePath={apiSlug ? `/${apiSlug}${apiSub ? `/${apiSub}` : ""}` : "/products"}
                 head={{
                   eyebrow: section.eyebrow,
                   title: section.heading,

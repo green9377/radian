@@ -580,8 +580,14 @@ export interface ShopCategoryPage {
   rails: { bestsellers: ShopProduct[]; readyToday: ShopProduct[] };
 }
 
-export const getCategoryPage = (slug: string, zone: string | null) =>
-  get<ShopCategoryPage>(`/shop/category/${encodeURIComponent(slug)}${zone ? `?zone=${zone}` : ""}`);
+/** `sub` — a sub-category is parent + sub (a slug is unique per parent, DEC-PRD-043) */
+export const getCategoryPage = (slug: string, zone: string | null, sub?: string) => {
+  const q = new URLSearchParams();
+  if (zone) q.set("zone", zone);
+  if (sub) q.set("sub", sub);
+  const qs = q.toString();
+  return get<ShopCategoryPage>(`/shop/category/${encodeURIComponent(slug)}${qs ? `?${qs}` : ""}`);
+};
 
 export interface ProductQuery {
   category?: string;

@@ -446,49 +446,72 @@ export class ShopCatalogService {
    * extra round trip is added latency before anything reaches the browser —
    * and the sections are all reading the same set of products anyway.
    */
-  async categoryPage(slug: string, zone?: string) {
+  async categoryPage(slug: string, zone?: string, sub?: string) {
     /*
       The category and its section settings are read together, because the
       settings decide WHAT the queries below ask for: a hand-picked rail is a
       different query from an automatic one. Fetching the settings inside the
       big Promise.all would mean choosing the rails before knowing the mode,
       and then throwing one of the two answers away.
+
+      `sub` — DEC-PRD-043 (fixed 6 Sep 2026). A slug is unique per PARENT, so a
+      sub-category is only reachable as parent + sub: the root is looked up by
+      `slug`, then the child by `sub` under that root. Before this the
+      sub-category page asked for the child by its slug alone, the root-only
+      lookup answered 404, and every "Shop by type" tile led to a dead page.
+      The sub page reads the parent's layout — it is the parent's page,
+      narrowed — and the sub's own words, picture, SEO and questions.
     */
-    const [cat, sections] = await Promise.all([
+    const CATEGORY_SELECT = {
+      id: true,
+      slug: true,
+      name: true,
+      summary: true,
+      description: true,
+      bannerHeading: true,
+      bannerUrl: true,
+      imageUrl: true,
+      metaTitle: true,
+      metaDescription: true,
+      ogTitle: true,
+      ogDescription: true,
+      ogImageUrl: true,
+      noIndex: true,
+      parent: { select: { slug: true, name: true } },
+      children: {
+        where: { isActive: true, deletedAt: null },
+        orderBy: [{ sortOrder: 'asc' as const }, { name: 'asc' as const }],
+        select: { id: true, slug: true, name: true, summary: true, imageUrl: true },
+      },
+      faqs: {
+        where: { isActive: true, deletedAt: null },
+        orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+        select: { question: true, answer: true },
+      },
+    };
+    const [root, sections] = await Promise.all([
       this.prisma.db.category.findFirst({
         // DEC-PRD-043 — the root page; a sub is reached through its parent
         where: { slug, parentId: null, isActive: true },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          summary: true,
-          description: true,
-          bannerHeading: true,
-          bannerUrl: true,
-          imageUrl: true,
-          metaTitle: true,
-          metaDescription: true,
-          ogTitle: true,
-          ogDescription: true,
-          ogImageUrl: true,
-          noIndex: true,
-          parent: { select: { slug: true, name: true } },
-          children: {
-            where: { isActive: true, deletedAt: null },
-            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-            select: { id: true, slug: true, name: true, summary: true, imageUrl: true },
-          },
-          faqs: {
-            where: { isActive: true, deletedAt: null },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: { question: true, answer: true },
-          },
-        },
+        select: CATEGORY_SELECT,
       }),
       this.layout.forCategory(slug, zone),
     ]);
+    if (!root) throw new NotFoundException('No such category');
+
+    const cat = sub
+      ? await this.prisma.db.category.findFirst({
+          where: { slug: sub, parentId: root.id, isActive: true, deletedAt: null },
+          select: CATEGORY_SELECT,
+        })
+      : root;
     if (!cat) throw new NotFoundException('No such category');
+
+    /** the address this page lives at, for every link that stays on it */
+    const base = sub ? `${root.slug}/${cat.slug}` : root.slug;
+    /** how the product query names this page */
+    const scopeQuery = sub ? { category: root.slug, sub: cat.slug } : { category: root.slug };
+
 
     const ids = [cat.id, ...cat.children.map((c) => c.id)];
     const zoneWhere = zone === 'bangladesh' ? { zone: 'NATIONWIDE' as const } : {};
@@ -499,7 +522,7 @@ export class ShopCatalogService {
       await Promise.all([
         this.prisma.db.product.count({ where: scope }),
         this.prisma.db.product.groupBy({ by: ['categoryId'], where: scope, _count: { _all: true } }),
-        this.railProducts(configOf('bestsellers'), { category: slug, zone, sort: 'popular', limit: '8' }),
+        this.railProducts(configOf('bestsellers'), { ...scopeQuery, zone, sort: 'popular', limit: '8' }),
         /*
           Hand-picked items on this row must still be able to leave today —
           owner, 2 Aug. The admin only offers 2-hour / same-day products, and
@@ -509,17 +532,17 @@ export class ShopCatalogService {
         */
         this.railProducts(
           configOf('readyToday'),
-          { category: slug, zone, speed: 'express', limit: '4' },
+          { ...scopeQuery, zone, speed: 'express', limit: '4' },
           { OR: [{ supportsExpress: true }, { supportsSameDay: true }] },
         ),
-        this.colourTiles(scope, slug),
+        this.colourTiles(scope, base),
         this.prisma.db.collection.findMany({
           where: { isActive: true, mode: 'PRICE_RANGE' },
           orderBy: [{ sortOrder: 'asc' }],
           select: { slug: true, name: true, kicker: true, subtitle: true, imageUrl: true, accent: true, minPaisa: true, maxPaisa: true },
         }),
         this.prisma.db.category.findMany({
-          where: { isActive: true, parentId: null, slug: { not: slug }, deletedAt: null },
+          where: { isActive: true, parentId: null, slug: { not: root.slug }, deletedAt: null },
           orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
           select: { slug: true, name: true, summary: true, imageUrl: true },
         }),
@@ -568,8 +591,8 @@ export class ShopCatalogService {
     // one pass over this category's products, shared by both tile blocks
     const tagTally = await this.tagTally(scope);
     const [attributes, occasions] = await Promise.all([
-      this.tagTiles(tagTally, slug, configOf('attributeGrid'), 'style'),
-      this.tagTiles(tagTally, slug, configOf('occasionGrid'), 'occasions'),
+      this.tagTiles(tagTally, base, configOf('attributeGrid'), 'style'),
+      this.tagTiles(tagTally, base, configOf('occasionGrid'), 'occasions'),
     ]);
 
     return {
@@ -609,7 +632,7 @@ export class ShopCatalogService {
       subCategories: orderedChildren.map((c) => ({
         label: c.name,
         sub: c.summary,
-        href: `/categories/${cat.slug}/${c.slug}`,
+        href: `/categories/${base}/${c.slug}`,
         bg: gradientFor(c.slug),
         imageUrl: c.imageUrl,
         count: countBy.get(c.id) ?? 0,
@@ -625,7 +648,7 @@ export class ShopCatalogService {
         sub: b.subtitle,
         imageUrl: b.imageUrl,
         accent: b.accent,
-        href: `/categories/${cat.slug}?${[
+        href: `/categories/${base}?${[
           b.minPaisa != null ? `min=${Math.round(b.minPaisa / 100)}` : '',
           b.maxPaisa != null ? `max=${Math.round(b.maxPaisa / 100)}` : '',
         ]
@@ -792,7 +815,7 @@ export class ShopCatalogService {
     // the same cap the automatic row uses — a hand-picked list of thirty would
     // otherwise redraw the page it was designed for
     const cap = Math.max(Number(auto.limit) || 8, 1);
-    const catIds = (await this.categoryIds(auto.category)) ?? [];
+    const catIds = (await this.categoryIds(auto.category, auto.sub)) ?? [];
 
     const rows = await this.prisma.db.product.findMany({
       where: {
@@ -1328,8 +1351,8 @@ export class ShopCatalogController {
 
   @Public()
   @Get('category/:slug')
-  category(@Param('slug') slug: string, @Query('zone') zone?: string) {
-    return this.svc.categoryPage(slug, zone);
+  category(@Param('slug') slug: string, @Query('zone') zone?: string, @Query('sub') sub?: string) {
+    return this.svc.categoryPage(slug, zone, sub || undefined);
   }
 
   /**

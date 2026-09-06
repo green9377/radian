@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getSubCategoryConfig } from "../../_data/categories";
 import { toCategoryConfig, toProduct } from "../../_data/categoryApi";
-import { getCategoryPage, getShopProducts } from "../../_data/shop";
+import { getCategoryPage, getCollectionDetail, getShopProducts } from "../../_data/shop";
 import CategorySections from "../../_components/Category/CategorySections";
 import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
@@ -36,7 +36,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug, sub } = await params;
-  const page = await getCategoryPage(sub, null);
+  const page = await getCategoryPage(slug, null, sub);
 
   if (page && page.parent?.slug === slug) {
     return {
@@ -74,17 +74,21 @@ export default async function SubCategoryPage({
     const v = sp[k];
     return typeof v === "string" && v ? v : undefined;
   };
+  const budgetSlug = one("budget");
+  const budget = budgetSlug ? await getCollectionDetail(budgetSlug, zone) : null;
   const filters = {
     colour: one("colour"),
     occasion: one("occasions") ?? one("occasion"),
     tag: one("tag") ?? one("style"),
-    min: one("min"),
-    max: one("max"),
+    recipient: one("recipients"),
+    budget: budgetSlug,
+    min: one("min") ?? (budget?.minPaisa != null ? String(Math.round(budget.minPaisa / 100)) : undefined),
+    max: one("max") ?? (budget?.maxPaisa != null ? String(Math.round(budget.maxPaisa / 100)) : undefined),
     speed: one("speed") ?? one("delivery"),
     sort: one("sort") ?? "popular",
   };
 
-  const page = await getCategoryPage(sub, zone);
+  const page = await getCategoryPage(slug, zone, sub);
 
   if (!page || page.parent?.slug !== slug) {
     const fallback = getSubCategoryConfig(slug, sub);
@@ -98,7 +102,14 @@ export default async function SubCategoryPage({
     );
   }
 
-  const list = await getShopProducts({ category: sub, zone, limit: 24, ...filters });
+  // parent + sub, the way the API scopes a sub-category; `budget` is already min/max
+  const list = await getShopProducts({
+    category: slug,
+    sub,
+    zone,
+    limit: 24,
+    ...Object.fromEntries(Object.entries(filters).filter(([k]) => k !== "budget")),
+  });
 
   const config = toCategoryConfig(page, { lean: true });
   // filtered = the count under the grid is the filtered count, as on the
@@ -111,7 +122,8 @@ export default async function SubCategoryPage({
         config={filtered && list ? { ...config, totalProducts: list.total } : config}
         filters={filters}
         products={(list?.items ?? []).map(toProduct)}
-        apiSlug={sub}
+        apiSlug={slug}
+        apiSub={sub}
         apiZone={zone}
         productsFailed={list === null}
       />
