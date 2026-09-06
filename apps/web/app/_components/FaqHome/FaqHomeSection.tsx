@@ -36,8 +36,6 @@ function Leaf() {
 export default function FaqHomeSection({ config = {} }: { config?: Record<string, unknown> }) {
   const group = String(config.group ?? "");
   const count = Math.min(Math.max(Number(config.count) || 7, 2), 12);
-  const scriptLine = String(config.scriptLine ?? "");
-  const sideText = String(config.sideText ?? "");
   const footerLine = String(config.footerLine ?? "");
   const linkText = String(config.linkText ?? "");
   const linkHref = String(config.linkHref || "/faq");
@@ -57,8 +55,6 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
     .slice(0, count);
   if (items.length === 0) return null;
 
-  const hasSide = Boolean(scriptLine || sideText);
-
   return (
     <section className="relative py-[var(--section-y)] overflow-hidden" id="faq">
       {/* two faint sprigs at the edges, like the reference */}
@@ -73,18 +69,10 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
           subtitle={"Find quick answers to common questions about ordering, delivery, customization, and more."}
         />
 
-        <div className={`grid grid-cols-1 gap-8 ${hasSide ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)]" : ""}`}>
-          {hasSide && (
-            <div className="lg:pt-4 lg:pl-8">
-              {scriptLine && (
-                <div className="font-display italic text-[34px] leading-[1.05] text-purple">
-                  {scriptLine} <span className="not-italic text-orchid">♡</span>
-                </div>
-              )}
-              {sideText && <p className="text-[15px] leading-[1.65] text-body mt-4 max-w-[26ch]">{sideText}</p>}
-            </div>
-          )}
-
+        {/*  One centred column, like every other section on the page. The
+             side column ("Here to Help") is gone - it pulled the section off
+             the page's axis (owner, 6 Sep 2026).  */}
+        <div className="max-w-[920px] mx-auto">
           <div>
             <div className="space-y-2">
               {items.map((f, i) => {
@@ -118,7 +106,7 @@ export default function FaqHomeSection({ config = {} }: { config?: Record<string
               })}
             </div>
             {linkText && (
-              <div className="mt-3">
+              <div className="mt-4 text-center">
                 <Link href={linkHref} className="inline-flex items-center gap-2 text-[14.5px] font-semibold text-purple hover:text-orchid transition-colors">
                   {linkText} <span aria-hidden>→</span>
                 </Link>

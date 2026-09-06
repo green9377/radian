@@ -505,11 +505,9 @@ function FaqSettings({ c, save }: { c: Cfg; save: Save }) {
           <NumberBox value={Number(c.count ?? 7)} min={2} max={12} onCommit={(n) => save({ count: n })} />
         </div>
       </F>
-      <F label="The words beside the list">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
-          <div><span className="text-[11px] text-body-soft block mb-1">Handwritten line</span><TextBox value={String(c.scriptLine ?? "")} placeholder="Here to Help" onCommit={(v) => save({ scriptLine: v })} /></div>
-          <div><span className="text-[11px] text-body-soft block mb-1">Line at the very bottom</span><TextBox value={String(c.footerLine ?? "")} placeholder="Thoughtful gifts. Happier people." onCommit={(v) => save({ footerLine: v })} /></div>
-          <div className="md:col-span-2"><span className="text-[11px] text-body-soft block mb-1">Text under the handwritten line</span><TextBox value={String(c.sideText ?? "")} placeholder="Still have a question? …" onCommit={(v) => save({ sideText: v })} /></div>
+      <F label="Line at the very bottom" hint="empty = no line">
+        <div className="max-w-[720px]">
+          <TextBox value={String(c.footerLine ?? "")} placeholder="Thoughtful gifts. Happier people." onCommit={(v) => save({ footerLine: v })} />
         </div>
       </F>
       <F label="The link under the list" hint="empty text = no link">

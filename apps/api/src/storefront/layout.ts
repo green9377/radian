@@ -246,8 +246,6 @@ export const SECTION_DEFAULTS: Record<string, Record<string, unknown>> = {
     /** a group name from Pages & FAQs, '' = every group */
     group: '',
     count: 7,
-    scriptLine: 'Here to Help',
-    sideText: "Still have a question? We're always here to make your gifting experience smooth and joyful.",
     footerLine: 'Thoughtful gifts. Happier people.',
     linkText: 'See every question',
     linkHref: '/faq',
@@ -317,8 +315,6 @@ const SECTION_SANITISERS: Record<string, (cfg: Record<string, unknown>) => Recor
     return {
       group: text(c.group, '', 60),
       count: int(c.count, 2, 12, d.count as number),
-      scriptLine: text(c.scriptLine, d.scriptLine as string, 40),
-      sideText: text(c.sideText, d.sideText as string, 240),
       footerLine: text(c.footerLine, d.footerLine as string, 80),
       linkText: text(c.linkText, d.linkText as string, 40),
       linkHref: href(c.linkHref, d.linkHref as string),
