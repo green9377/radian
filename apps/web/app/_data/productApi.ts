@@ -2,8 +2,6 @@ import { baseFor, type ShopProduct } from "./shop";
 import { SHOP_TAG } from "./cacheTags";
 import type { Occasion, Product, ProductBadge, ProductCategory, Recipient } from "./products";
 import {
-  CAT_META,
-  TEMPLATES,
   asIconName,
   guard,
   type AddonItem,
@@ -33,15 +31,9 @@ import {
   invisible lie. That is the rule `_data/shop.ts` states above `ShopProduct`,
   and the reason the category page was left 404ing on 30 Jul.
 
-  WHAT STILL COMES FROM THE CATEGORY TEMPLATE, AND WHY IT IS ALLOWED.
-
-  Four things below are read from `TEMPLATES` rather than the API: the size
-  heading, the "why us" cards, the customisation invitation, and the
-  out-of-zone sentence. All four are SHOP COPY — sentences about how Radian
-  works, true of every bouquet, and each has an audit row of its own
-  (`RADIAN_PRODUCT_PAGE_AUDIT.md` §3). None of them is a claim about stock or
-  price, which is the line that matters. They move to the admin as those rows
-  are closed.
+  NOTHING COMES FROM A CATEGORY TEMPLATE ANY MORE (owner, 6 Sep 2026). Every
+  sentence a customer reads on the page is the shop's own, from the admin, or
+  is not shown.
   ═══════════════════════════════════════════════════════════════════════════
 */
 
@@ -201,7 +193,6 @@ export interface ApiProductDetail {
       verifiedPurchase: boolean; createdAt: string;
     }[];
   };
-  crossSlugs: string[];
   seo: {
     title: string | null;
     description: string | null;
@@ -248,20 +239,6 @@ async function getJson<T>(path: string): Promise<T | null> {
  */
 const asBg = (url: string | null | undefined) => (url ? `url(${url}) center/cover` : "");
 
-/**
- * The admin's category slug, mapped onto the eight the mock knew.
- *
- * ⚠️ ONLY USED TO PICK THE COPY TEMPLATE, never to price or place anything. A
- * category the owner invents ("corporate-hampers") has no template of its own,
- * so it borrows the flower one and gets a size heading that reads "Bouquet
- * Size". That is the visible edge of audit §3c — the templates belong in the
- * admin, on the category, and this line disappears when they get there.
- */
-function templateKey(catSlug: string): ProductCategory {
-  const known = Object.keys(TEMPLATES) as ProductCategory[];
-  const hit = known.find((k) => k === catSlug || CAT_META[k]?.slug === catSlug);
-  return hit ?? "flowers";
-}
 
 /**
  * ⇄ THE SWAP. `getProductDetail(slug)` reads the mock; this reads the shop.
@@ -273,7 +250,6 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
   const a = await getJson<ApiProductDetail>(`/shop/products/${encodeURIComponent(slug)}`);
   if (!a) return null;
 
-  const t = TEMPLATES[templateKey(a.crumb.catSlug)];
 
   /*  `guard()` wraps the returned object below — see the end of this
       function. A product saved with no sizes is normal in the admin and used
@@ -290,7 +266,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     slug: a.slug,
     name: a.name,
     pricePaisa: a.pricePaisa,
-    cat: templateKey(a.crumb.catSlug),
+    cat: a.crumb.catSlug as ProductCategory,
     sub: a.crumb.subSlug ?? undefined,
     zone: a.zone,
     badge: a.supportsMidnight ? "midnight" : a.zone === "dhaka" ? "express" : "courier",
@@ -466,13 +442,6 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       pricePaisa: u.pricePaisa,
       bg: asBg(u.imageUrl),
     })),
-    /*
-      `addonTabs` stays empty: it is a list of tab IDs that only mean something
-      in `productDetails.ts`. The real tabs go in `addonGroups`, which carries
-      the add-ons themselves — and which the cart can now price, because
-      `resolveCart` reads them from the API too.
-    */
-    addonTabs: [],
     addonGroups: a.addonTabs.map((g) => ({
       id: g.id,
       label: g.label,
@@ -555,10 +524,6 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       note: o.note ?? undefined,
     })),
     faqs: a.faqs.map((f) => ({ q: f.question, a: f.answer })),
-    /*  Kept for the type, and empty. The rail is fed by `crossProducts` below
-        now — a slug would send `RelatedRail` looking through the mock
-        catalogue, which is the one place it must not look.  */
-    crossSlugs: [],
     // the shop's own sentence, or none — never a template's guess about why
     ozReason: a.nationwideMsg?.trim() || null,
     reviews: {

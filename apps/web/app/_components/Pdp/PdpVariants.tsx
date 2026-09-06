@@ -543,6 +543,7 @@ export function PickCard({
   ═══════════════════════════════════════════════════════════════════════════
 */
 export function UpgradeRow({
+  label,
   upgrades,
   thisName,
   thisPaisa,
@@ -550,6 +551,8 @@ export function UpgradeRow({
   activeSlug,
   onPick,
 }: {
+  /** the same heading the size row uses — the admin's `sizeLabel` (owner, 6 Sep 2026) */
+  label: string;
   upgrades: { slug: string; name: string; pricePaisa: number; bg: string }[];
   /** the name of this page's own product — the first card */
   thisName: string;
@@ -571,7 +574,7 @@ export function UpgradeRow({
 
   return (
     <section className="mb-7">
-      <BlkTitle title="Choose the size you want to send" hint="one of these" />
+      <BlkTitle title={label} />
       <CardRail>
         {options.map((o) => (
           <PickCard

@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { buildReorderItems, canReorder } from "../../_data/reorder";
+import { buildReorderItems } from "../../_data/reorder";
 import type { Order } from "../../_data/order";
 import { useCartStore } from "../../_store/useCartStore";
 import Icon from "../Pdp/PdpIcons";
 
 /*
-  Reorder — order-এর item cart-এ ফিরিয়ে /cart-এ নিয়ে যায়।
-  size/bundle map হয়; add-on বাদ (reorder.ts §)।
+  Reorder — puts the order's items back in the cart and goes to /cart.
+  Sizes and bundles are matched by name; add-ons are left out (reorder.ts).
+  Products the shop no longer sells are skipped; if none are left, the
+  button says so instead of opening an empty cart.
 */
 export default function ReorderButton({
   order,
@@ -22,13 +24,25 @@ export default function ReorderButton({
   const add = useCartStore((s) => s.add);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState(false);
 
-  if (!canReorder(order)) return null;
-
-  function reorder() {
+  async function reorder() {
     setBusy(true);
-    for (const item of buildReorderItems(order)) add(item);
-    router.push("/cart");
+    try {
+      const items = await buildReorderItems(order);
+      if (items.length === 0) {
+        setGone(true);
+        return;
+      }
+      for (const item of items) add(item);
+      router.push("/cart");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (gone) {
+    return <span className="text-[12.5px] text-body-soft">These items are no longer available</span>;
   }
 
   if (variant === "solid") {

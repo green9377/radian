@@ -1,41 +1,38 @@
-import { getProductDetail } from "./productDetails";
+import { fetchProductDetail } from "./productApi";
 import type { Order } from "./order";
 import type { NewCartItem } from "../_store/useCartStore";
 
 /*
-  Reorder — পুরনো order snapshot → cart item।
+  Reorder — an old order's snapshot → cart items.
 
-  ⚠️ snapshot-এ label রাখা হয় (id নয়), তাই getProductDetail() দিয়ে
-  size/bundle label → id map করি। না মিললে default (প্রথম size / base
-  bundle)। add-on বাদ — snapshot-এ name আছে কিন্তু key নেই, তাই ভুল
-  key বসিয়ে দাম গোলমাল করার চেয়ে বাদ দেওয়াই নিরাপদ; customer cart-এ
-  আবার যোগ করতে পারবে।
+  The snapshot keeps LABELS (not ids), so each line's product is read from the
+  shop and the size / bundle / colour are matched by name. A product the shop
+  no longer publishes is skipped; add-ons are skipped too (the snapshot has
+  their names but not their keys, and a wrong key would put a wrong price in
+  the cart — the customer can add them again).
 
-  catalog-এ আর নেই এমন product চুপচাপ বাদ।
-
-  ⇄ SWAP HERE — Ecommerce lock হলে reorder হবে POST /cart/reorder/:orderId,
-  server-side variant resolve করবে।
+  ⚠️ Until 6 Sep 2026 this looked the products up in the hand-written mock
+  catalogue, so Reorder silently did nothing for every real product.
 */
-export function buildReorderItems(order: Order): NewCartItem[] {
+export async function buildReorderItems(order: Order): Promise<NewCartItem[]> {
+  const details = await Promise.all(order.lines.map((l) => fetchProductDetail(l.slug)));
   const items: NewCartItem[] = [];
 
-  for (const line of order.lines) {
-    const detail = getProductDetail(line.slug);
-    if (!detail) continue; // আর নেই — বাদ
+  order.lines.forEach((line, i) => {
+    const detail = details[i];
+    if (!detail) return; // no longer sold — skipped
 
-    const size =
-      detail.sizes.find((s) => s.label === line.sizeLabel) ?? detail.sizes[0];
+    const size = detail.sizes.find((s) => s.label === line.sizeLabel) ?? detail.sizes[0];
 
-    /*  DEC-PRD-013 — আগের সব bundle ফিরিয়ে আনা হয়, নাম দিয়ে খুঁজে।
-        মালিক যেটা তুলে দিয়েছেন সেটা পাওয়া যায় না আর বাদ পড়ে — দাম নড়ে,
-        কিন্তু cart-এ অস্তিত্বহীন কিছু বসে না।  */
+    /*  DEC-PRD-013 — every bundle item bought before comes back, found by
+        name. One the owner has since removed is not found and is left out —
+        the price moves, but nothing that does not exist sits in the cart.  */
     const bundleIds = line.bundleLabels
       .map((label) => detail.bundles.find((b) => b.label === label)?.id)
       .filter((id): id is string => id !== undefined);
 
-    /*  DEC-PRD-012 — যে রঙটা আগে কেনা হয়েছিল সেটাই আবার। নাম দিয়ে খোঁজা
-        হয়, কারণ order-এ snapshot হিসেবে নামটাই রাখা আছে; মালিক সেই রঙটা
-        তুলে দিলে `undefined`, আর তখন product-এর নিজের দামেই যায়।  */
+    /*  DEC-PRD-012 — the colour bought before, by name (the order stores the
+        name as a snapshot). Removed since → undefined → the product's own price.  */
     const variant = (detail.variants ?? []).find((v) => v.label === line.variantLabel);
 
     items.push({
@@ -47,12 +44,7 @@ export function buildReorderItems(order: Order): NewCartItem[] {
       persoText: line.persoText,
       qty: line.qty,
     });
-  }
+  });
 
   return items;
-}
-
-/** কোনো line reorder-যোগ্য (এখনো catalog-এ আছে) কি না */
-export function canReorder(order: Order): boolean {
-  return order.lines.some((l) => getProductDetail(l.slug) !== null);
 }

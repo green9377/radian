@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useZoneStore } from "../../_store/useZoneStore";
@@ -11,9 +11,6 @@ import { formatTaka } from "../../_data/products";
 import { track } from "../../_data/tracking";
 import { uploadPersoPhoto } from "../../_data/checkoutApi";
 import {
-  ADDON_TABS,
-  OFFERS,
-  getAddon,
   type AddonGroup,
   type AddonItem,
   type ProductDetail,
@@ -264,27 +261,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     });
   }, [product.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /*
-    Normalise the add-on tabs into one shape.
-
-    `detail.addonTabs` used to be only tab IDs, and each add-on was looked up
-    with `getAddon(key)` against a list inside this very file. An add-on from
-    the database is not in that list - so it rendered with no price and then
-    vanished silently on the way to the cart. The API now sends whole tabs
-    (`addonGroups`); the mock path survives only for the cart's old hard-coded
-    catalog.
-  */
-  const groups: AddonGroup[] = useMemo(() => {
-    if (detail.addonGroups) return detail.addonGroups;
-    return detail.addonTabs
-      .map((id) => ADDON_TABS.find((t) => t.id === id))
-      .filter((t): t is (typeof ADDON_TABS)[number] => Boolean(t))
-      .map((t) => ({
-        id: t.id,
-        label: t.label,
-        items: t.items.map((k) => getAddon(k)).filter((a): a is AddonItem => a !== null),
-      }));
-  }, [detail.addonGroups, detail.addonTabs]);
+  // the tabs, with their add-ons already in them — the shop's own grouping
+  const groups: AddonGroup[] = detail.addonGroups;
 
   /*  One map to look prices up in - the same add-on in two tabs is counted
       once.  */
@@ -529,15 +507,43 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
     router.push("/checkout");
   }
 
-  /*  Live offers when the page came from the API; the hard-coded four only
-      while the mock still feeds this component (cart's `resolveCart` does).
-      `?? OFFERS` and not `.length ? … : OFFERS` — an API that answers with an
-      empty list is saying "nothing is running", and that answer must win. */
-  const offers = detail.offers ?? OFFERS;
+  // the Marketing module's live offers; an empty list = nothing running, no strip
+  const offers = detail.offers;
 
   /*  Real photographs, or the tinted panel the page falls back to. The
       fallback is a gradient; an uploaded picture arrives as `url(…)`.  */
   const hasPhotos = gallery.some(Boolean);
+
+  /*  The thumbnail rail scrolls inside a fixed height. It says so: an arrow
+      at the end that has more, measured on scroll and on resize, and the
+      selected photo is brought into view when the colour picker moves it.  */
+  const railRef = useRef<HTMLDivElement>(null);
+  const [railMore, setRailMore] = useState({ up: false, down: false });
+  const measureRail = () => {
+    const el = railRef.current;
+    if (!el) return;
+    const up = el.scrollTop > 4;
+    const down = el.scrollTop + el.clientHeight < el.scrollHeight - 4;
+    setRailMore((cur) => (cur.up === up && cur.down === down ? cur : { up, down }));
+  };
+  const railBy = (dir: -1 | 1) => {
+    const el = railRef.current;
+    if (el) el.scrollBy({ top: dir * el.clientHeight * 0.6, behavior: "smooth" });
+  };
+  useEffect(() => {
+    measureRail();
+    const el = railRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measureRail);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [gallery.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (typeof media !== "number") return;
+    railRef.current
+      ?.querySelector<HTMLElement>(`[data-thumb="${media}"]`)
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [media]);
 
   const tabs = groups;
   const activeTab = tabs[tabIdx] ?? tabs[0];
@@ -566,10 +572,34 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               that scrolls quietly inside.  */}
           <div className="grid grid-cols-[68px_1fr] sm:grid-cols-[76px_1fr] gap-3">
             <div className="relative">
-            <div className="absolute inset-0 flex flex-col gap-2.5 overflow-y-auto scrollbar-none">
+            {/*  more photos than fit: a small arrow at whichever end has more
+                (owner, 6 Sep 2026) — a rail that scrolls silently hides its
+                own photos  */}
+            {railMore.up && (
+              <button
+                type="button"
+                onClick={() => railBy(-1)}
+                aria-label="Earlier photos"
+                className="absolute left-1/2 -translate-x-1/2 top-1 z-[3] w-7 h-7 rounded-full bg-white/95 text-purple shadow-soft grid place-items-center hover:bg-purple hover:text-white transition-colors"
+              >
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-current fill-none stroke-[2.2]"><path d="m6 15 6-6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            )}
+            {railMore.down && (
+              <button
+                type="button"
+                onClick={() => railBy(1)}
+                aria-label="More photos"
+                className="absolute left-1/2 -translate-x-1/2 bottom-1 z-[3] w-7 h-7 rounded-full bg-white/95 text-purple shadow-soft grid place-items-center hover:bg-purple hover:text-white transition-colors"
+              >
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-current fill-none stroke-[2.2]"><path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            )}
+            <div ref={railRef} onScroll={measureRail} className="absolute inset-0 flex flex-col gap-2.5 overflow-y-auto scrollbar-none scroll-smooth">
               {gallery.map((src, i) => (
                 <button
                   key={i}
+                  data-thumb={i}
                   onClick={() => openMedia(i)}
                   aria-label={`Photo ${i + 1}`}
                   className={`aspect-square shrink-0 rounded-[12px] border-2 overflow-hidden transition-colors ${
@@ -987,6 +1017,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               */}
               {upList.length > 0 && (
                 <UpgradeRow
+                  label={detail.sizeLabel}
                   upgrades={upList}
                   thisName={product.name}
                   thisPaisa={variantPaisa ?? size.pricePaisa}

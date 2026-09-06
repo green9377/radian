@@ -3,8 +3,9 @@
 import { useEffect, useRef } from "react";
 
 import { useZoneStore } from "../../_store/useZoneStore";
-import { PRODUCTS, zoneFilter, type Product } from "../../_data/products";
+import { zoneFilter, type Product } from "../../_data/products";
 import ProductCard from "../Product/ProductCard";
+import SectionHead from "../ui/SectionHead";
 
 /*
   "You may also like" — the rail under the product page. Cards reveal one
@@ -19,38 +20,19 @@ import ProductCard from "../Product/ProductCard";
 */
 
 export default function RelatedRail({
-  slugs,
   dhakaOnly,
   items,
 }: {
-  slugs: string[];
   /** product.zone === "dhaka" — this cannot be delivered in the All Bangladesh zone */
   dhakaOnly: boolean;
-  /**
-   * ⚠️ WHEN GIVEN, THIS IS THE ONLY SOURCE — the mock `PRODUCTS` is not
-   * touched at all, not even when this arrives empty.
-   *
-   * The prop exists because the page reads from the API now (31 Jul 2026).
-   * Both branches below look slugs up in the mock catalogue, which on a live
-   * page means showing four bouquets, with prices, that the shop does not
-   * stock. `items={[]}` is the honest answer: draw no rail.
-   */
-  items?: Product[];
+  /** the server's picks — an empty list is the honest answer: draw no rail */
+  items: Product[];
 }) {
   const { zone } = useZoneStore();
   const ref = useRef<HTMLDivElement>(null);
 
   const blocked = zone === "bangladesh" && dhakaOnly;
-
-  const list: Product[] = items
-    ? items.filter((p) => zoneFilter(p, zone)).slice(0, 4)
-    : blocked
-      ? PRODUCTS.filter((p) => p.zone === "both" && p.best).slice(0, 4)
-      : slugs
-          .map((s) => PRODUCTS.find((p) => p.slug === s))
-          .filter((p): p is Product => Boolean(p))
-          .filter((p) => zoneFilter(p, zone))
-          .slice(0, 4);
+  const list = items.filter((p) => zoneFilter(p, zone)).slice(0, 4);
 
   useEffect(() => {
     const root = ref.current;
@@ -79,25 +61,16 @@ export default function RelatedRail({
   if (list.length === 0) return null;
 
   return (
-    <section id="related" className="pt-16">
-      <div className="text-center mb-9">
-        <div className="inline-flex items-center gap-2 text-[12px] tracking-[0.22em] uppercase text-orchid font-semibold mb-3.5">
-          <span className="w-[9px] h-[9px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
-          {blocked ? "We can still make their day" : "In the same spirit"}
-        </div>
-        {/*  DEC-PRD-051 — "Pairs Beautifully With" was the old different-
-            category rule speaking: it promised a cake under a bouquet. The
-            rail now shows bouquets near the same price, and the heading has
-            to say what the row actually holds.  */}
-        <h2 className="font-display text-[clamp(26px,3.4vw,40px)] font-medium text-purple leading-tight">
-          {blocked ? "Gifts We Deliver Nationwide" : "You May Also Like"}
-        </h2>
-        {blocked && (
-          <p className="text-body-soft mt-2.5 font-light">
-            Courier-safe, packed to survive the journey — same occasion, same care.
-          </p>
-        )}
-      </div>
+    <section id="related" className="py-[var(--section-y)]">
+      {/*  the site's one heading, on the site's rhythm (owner, 6 Sep 2026).
+          DEC-PRD-051 — the row holds gifts near the same price in the same
+          category, and the heading says so.  */}
+      <SectionHead
+        sectionKey={null}
+        eyebrow={blocked ? "We can still make their day" : "In the same spirit"}
+        title={blocked ? "Gifts We Deliver Nationwide" : "You May Also Like"}
+        subtitle={blocked ? "Courier-safe, packed to survive the journey — same occasion, same care." : ""}
+      />
 
       <div ref={ref} className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {list.map((p, i) => (

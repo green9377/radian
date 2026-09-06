@@ -155,16 +155,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
             not about the shop in general.  */}
         <ProductReviews detail={detail} />
 
-        <RelatedRail
-          slugs={detail.crossSlugs}
-          dhakaOnly={detail.product.zone === "dhaka"}
-          /*  Real cards from the API. `?? []` and not `|| []` — an API that
-              returns an empty list is saying the shop has nothing to suggest,
-              and that answer must win over the mock catalogue. */
-          items={detail.crossProducts ?? []}
-        />
-
-        <div className="pb-16" />
+        <RelatedRail dhakaOnly={detail.product.zone === "dhaka"} items={detail.crossProducts ?? []} />
       </div>
 
       {/* GBE — locked order */}
