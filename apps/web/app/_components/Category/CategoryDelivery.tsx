@@ -19,14 +19,13 @@ import { SectionHead } from "./SectionShell";
   drawn, and a shop with no methods has no band.
 
   The table below only maps a live method onto a card DESIGN (icon + which
-  product flag its link filters on), matched by keyword, because the owner
-  may rename "Same Day" to "Today" and the products it should show do not
-  change. The nationwide designs are not delivery SPEEDS — a courier product
-  is not a two-hour product — so they point at the grid rather than at a
-  filter the API does not have.
+  product flag its link filters on), by the method's own timing — see
+  `designFor`. A scheduled or courier method is not a delivery SPEED — a
+  courier product is not a two-hour product — so those point at the grid
+  rather than at a filter the API does not have.
 */
 
-type Design = { id: string; href: string; icon: "bolt" | "sun" | "moon" | "truck" | "clock" | "box" };
+type Design = { id: string; href: string; icon: "bolt" | "sun" | "moon" | "truck" | "clock" };
 
 const DESIGNS: Record<"dhaka" | "bangladesh", Design[]> = {
   dhaka: [
@@ -37,7 +36,6 @@ const DESIGNS: Record<"dhaka" | "bangladesh", Design[]> = {
   bangladesh: [
     { id: "courier", href: "#all-products", icon: "truck" },
     { id: "scheduled", href: "#all-products", icon: "clock" },
-    { id: "packing", href: "/delivery-info", icon: "box" },
   ],
 };
 
@@ -47,7 +45,6 @@ const PATHS: Record<Design["icon"], string> = {
   moon: "M20 13.5A8.3 8.3 0 0 1 10.5 4 8.3 8.3 0 1 0 20 13.5z",
   truck: "M2 6h12v11H2zM14 10h4l3 3.4V17h-7",
   clock: "M12 7.5V12l3 2",
-  box: "M4 8h16v12H4zM4 8l2-4h12l2 4M12 4v16",
 };
 
 function ModeIcon({ icon }: { icon: Design["icon"] }) {
@@ -60,20 +57,34 @@ function ModeIcon({ icon }: { icon: Design["icon"] }) {
   );
 }
 
-/** which of the design's cards a live method wears, from its name */
-function designFor(label: string, isDhaka: boolean): Design {
-  const l = label.toLowerCase();
-  const pool = DESIGNS[isDhaka ? "dhaka" : "bangladesh"];
-  const hit = l.includes("midnight")
-    ? pool.find((m) => m.id === "midnight")
-    : l.includes("2") || l.includes("two") || l.includes("express")
-      ? pool.find((m) => m.id === "express")
-      : l.includes("courier") || l.includes("nationwide")
-        ? pool.find((m) => m.id === "courier")
-        : l.includes("schedul")
-          ? pool.find((m) => m.id === "scheduled")
-          : undefined;
-  return hit ?? pool[0];
+/**
+ * Which card a live method wears. The Delivery module's own `timing` decides
+ * first — it is a fact about the method, not a word in its name:
+ *   FROM_CONFIRM → express (a promise in minutes)   TODAY_SLOT → same day
+ *   PICK_DATE_*  → scheduled (no speed filter exists for it: it lands on the
+ *   grid)         LEAD_DAYS → courier
+ * The name only settles "midnight", which is a TODAY_SLOT with its own card.
+ * Nothing falls back to the express card any more — a "Schedule it" method
+ * used to link to `?speed=express` and show the wrong products.
+ */
+function designFor(m: ApiMode, isDhaka: boolean): Design {
+  const pool = [...DESIGNS.dhaka, ...DESIGNS.bangladesh];
+  const by = (id: string) => pool.find((d) => d.id === id)!;
+  const l = m.label.toLowerCase();
+  if (l.includes("midnight")) return by("midnight");
+  switch (m.timing) {
+    case "FROM_CONFIRM":
+      return by("express");
+    case "TODAY_SLOT":
+      return by("same_day");
+    case "PICK_DATE_SLOT":
+    case "PICK_DATE_FIXED":
+      return by("scheduled");
+    case "LEAD_DAYS":
+      return by("courier");
+    default:
+      return isDhaka ? by("same_day") : by("courier");
+  }
 }
 
 /** 204 → "3 hrs 24 min" · 45 → "45 min" — the homepage band's wording, unchanged */
@@ -109,7 +120,7 @@ export default function CategoryDelivery({
   const modes = useMemo(
     () =>
       (live ?? []).slice(0, 3).map((m) => {
-        const d = designFor(m.label, isDhaka);
+        const d = designFor(m, isDhaka);
         return { ...d, title: m.label, note: m.eta, minutesLeft: m.minutesLeft };
       }),
     [live, isDhaka],
@@ -174,7 +185,7 @@ export default function CategoryDelivery({
                 <h3 className="font-display text-[17px] font-medium">{m.title}</h3>
                 {m.note && <p className="text-[12.5px] text-white/75 truncate">{m.note}</p>}
                 <span className="inline-flex items-center gap-[6px] mt-[6px] text-[12px] font-semibold text-orchid-mid whitespace-nowrap transition-all duration-300 group-hover:gap-3 group-hover:text-white">
-                  See {m.title} products →
+                  {m.href.includes("?speed=") ? `See ${m.title} products` : "Browse the collection"} →
                 </span>
               </span>
             </Link>
