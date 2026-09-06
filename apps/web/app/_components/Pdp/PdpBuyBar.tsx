@@ -366,7 +366,7 @@ export function SoldOut({
 }
 
 /** Zone mismatch — a search result or a shared link WILL land someone here */
-export function OutOfZone({ reason }: { reason: string }) {
+export function OutOfZone({ reason }: { reason: string | null }) {
   const { setZone } = useZoneStore();
   return (
     <div className="border-[1.5px] border-[#F2D9A8] bg-[#FFF7E8] rounded-[18px] p-6">
@@ -378,7 +378,7 @@ export function OutOfZone({ reason }: { reason: string }) {
           <b className="block text-[15px] text-[#8A5A00] font-bold">
             This gift can&apos;t travel outside Dhaka
           </b>
-          <span className="text-[13.5px] text-[#9A7434]">{reason}</span>
+          {reason && <span className="text-[13.5px] text-[#9A7434]">{reason}</span>}
         </div>
       </div>
       <div className="flex gap-2.5 mt-4 flex-wrap">

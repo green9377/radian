@@ -324,11 +324,10 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     },
     nature: {
       type: a.nature.type,
-      /*  The nature line is the customer's first question — fresh or
-          artificial. If the owner left the sentence blank, the template's
-          wording stands in; the TYPE is still his, so the answer is never
-          wrong, only less specific.  */
-      label: a.nature.label ?? t.nature(product).label,
+      /*  The nature line is the shop's own words or nothing (owner, 6 Sep
+          2026) — the template's "100% Fresh Flowers" used to stand in and
+          could land under a cake. The TYPE is still his.  */
+      label: a.nature.label?.trim() || null,
     },
     /*  DEC-PRD-031 — the one line under the title. It said "On cards only"
         because this field reached nowhere on the PDP, even though the API
@@ -467,7 +466,6 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       pricePaisa: u.pricePaisa,
       bg: asBg(u.imageUrl),
     })),
-    bundleHint: t.bundleHint,
     /*
       `addonTabs` stays empty: it is a list of tab IDs that only mean something
       in `productDetails.ts`. The real tabs go in `addonGroups`, which carries
@@ -557,12 +555,12 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
       note: o.note ?? undefined,
     })),
     faqs: a.faqs.map((f) => ({ q: f.question, a: f.answer })),
-    custom: t.custom,
     /*  Kept for the type, and empty. The rail is fed by `crossProducts` below
         now — a slug would send `RelatedRail` looking through the mock
         catalogue, which is the one place it must not look.  */
     crossSlugs: [],
-    ozReason: a.nationwideMsg ?? t.ozReason,
+    // the shop's own sentence, or none — never a template's guess about why
+    ozReason: a.nationwideMsg?.trim() || null,
     reviews: {
       rating: a.reviews.rating === null ? null : a.reviews.rating.toFixed(1),
       count: a.reviews.count,

@@ -218,7 +218,8 @@ export interface Faq {
 export interface ProductDetail {
   product: Product;
   crumb: { catLabel: string; catSlug: string; subLabel: string; short: string };
-  nature: { type: "fresh" | "artificial"; label: string };
+  /** `label` null = the shop wrote no nature line; the chip is not drawn */
+  nature: { type: "fresh" | "artificial"; label: string | null };
   /** DEC-PRD-031 — the one line under the title. Write nothing and no line appears. */
   shortDesc: string | null;
   /**
@@ -286,7 +287,6 @@ export interface ProductDetail {
     ogImageUrl: string | null;
     noIndex: boolean;
   };
-  bundleHint: string;
   addonTabs: string[];
   perso: Perso | null;
   /**
@@ -306,9 +306,9 @@ export interface ProductDetail {
   /** DEC-WEB-011 — the small line above it. Blank = none drawn. */
   craftKicker?: string | null;
   faqs: Faq[];
-  custom: { title: string; sub: string };
   crossSlugs: string[];
-  ozReason: string;
+  /** the shop's own sentence for a Dhaka-only gift seen from outside Dhaka; null = none */
+  ozReason: string | null;
   /**
    * ⚠️ THREE FIELDS TURNED NULLABLE, 31 Jul 2026 — they were never optional in
    * the mock because the mock always had an answer. The database does not.
@@ -691,13 +691,11 @@ interface DetailTemplate {
   sizeLabel: string;
   sizes: (p: Product) => SizeOption[];
   bundles: (p: Product) => BundleOption[];
-  bundleHint: string;
   addonTabs: string[];
   perso: (p: Product) => Perso | null;
   spec: (p: Product) => SpecRow[];
   craft: CraftPoint[];
   faqs: (p: Product) => Faq[];
-  custom: { title: string; sub: string };
   ozReason: string;
 }
 
@@ -755,7 +753,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "cake", label: "+ Cake", add: CAKE, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
         { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
       ]),
-    bundleHint: "most people add chocolates",
     addonTabs: ["popular", "chocolates", "anniversary", "keepsakes"],
     perso: () => null,
     spec: (p) => [
@@ -787,10 +784,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Trim the stems at an angle, use the flower food we include, change the water daily and keep it out of direct sun. Expect 5–8 beautiful days.",
       },
     ],
-    custom: {
-      title: "Want this bouquet customized?",
-      sub: "Different colours, sizes or a theme — chat with our floral experts.",
-    },
     ozReason: "Cut flowers don't survive a 1–3 day courier journey — so we don't ship what we can't deliver perfectly.",
   },
 
@@ -814,7 +807,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "balloons", label: "+ Balloons", add: BALLOONS, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
         { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
       ]),
-    bundleHint: "cake + roses is the classic combo",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
     perso: (p) =>
       p.sub === "photo"
@@ -855,7 +847,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Yes — leave a note at checkout or message us on WhatsApp and our bakers will make it eggless at no extra cost.",
       },
     ],
-    custom: { title: "Need a custom cake design?", sub: "Photo cakes, themes and tiers — chat with our bakers." },
     ozReason: "Fresh frosting doesn't survive a 1–3 day courier journey — so we don't ship what we can't deliver perfectly.",
   },
 
@@ -879,7 +870,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
         { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
       ]),
-    bundleHint: "balloons + cake = the whole birthday",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
     perso: () => ({
       title: "Colours & Message Balloon",
@@ -907,7 +897,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Yes — fully inflated with premium helium and hand-delivered by our own rider. You do nothing. They stay floating 2–3 days indoors at room temperature.",
       },
     ],
-    custom: { title: "Planning a bigger surprise?", sub: "Room décor, arches and themes — chat with our team." },
     ozReason: "Helium doesn't survive a courier van — inflated balloons only work when we hand-deliver them ourselves.",
   },
 
@@ -930,7 +919,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
         { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
       ]),
-    bundleHint: "chocolates + roses is the classic pairing",
     addonTabs: ["popular", "chocolates", "anniversary", "keepsakes"],
     perso: () => null,
     spec: () => [
@@ -951,7 +939,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Yes — sealed, original stock bought through authorised channels, with a clear expiry date on every box. If anything arrives damaged or out of date, one photo gets it replaced.",
       },
     ],
-    custom: { title: "Want a bigger chocolate hamper?", sub: "Corporate boxes and custom hampers — chat with our team." },
     ozReason: "This item is currently Dhaka-only.",
   },
 
@@ -974,7 +961,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
         { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
       ]),
-    bundleHint: "adding flowers doubles the reaction",
     addonTabs: ["popular", "chocolates", "keepsakes", "anniversary"],
     perso: () => null,
     spec: () => [
@@ -995,7 +981,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Yes — message us on WhatsApp before you order and we'll swap items or build a custom box for you.",
       },
     ],
-    custom: { title: "Want a custom gift box?", sub: "Corporate and bulk boxes too — chat with our team." },
     ozReason: "This item is currently Dhaka-only.",
   },
 
@@ -1015,7 +1000,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
         { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
       ]),
-    bundleHint: "balloons turn it into a full surprise",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
     perso: () => ({
       title: "Message On The Cake",
@@ -1042,7 +1026,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "Yes — one rider, one delivery, one moment. The cake is boxed separately so nothing gets crushed.",
       },
     ],
-    custom: { title: "Want a custom combo?", sub: "Mix any flower, cake and add-on — chat with our team." },
     ozReason: "Fresh cake and cut flowers don't survive a courier journey — this combo is Dhaka-only.",
   },
 
@@ -1066,7 +1049,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
         { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
       ]),
-    bundleHint: "the ceramic pot is what makes it a gift",
     addonTabs: ["popular", "keepsakes", "chocolates", "anniversary"],
     perso: () => null,
     spec: () => [
@@ -1088,7 +1070,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         a: "A real, live plant — grown, potted and hardened off before it ships. It arrives healthy or we replace it free.",
       },
     ],
-    custom: { title: "Want a bigger plant or a custom pot?", sub: "Office greening and bulk orders too — chat with our team." },
     ozReason: "This plant is too large to courier safely — Dhaka-only for now.",
   },
 
@@ -1111,7 +1092,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
         { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
         { id: "wrap", label: "+ Luxury Wrap", add: 10000, bg: "linear-gradient(150deg,#EBDDF4,#D6BEEB)" },
       ]),
-    bundleHint: "chocolates make it feel complete",
     addonTabs: ["popular", "keepsakes", "chocolates", "birthday"],
     perso: () => ({
       title: "Your Photo & Your Words",
@@ -1140,7 +1120,6 @@ export const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
       },
       { q: "Is the print durable?", a: "Yes — heat-set and fade-resistant. Dishwasher-safe on mugs, wipe-clean on frames and lamps." },
     ],
-    custom: { title: "Want a fully custom design?", sub: "Collages, quotes, anything — send us the idea." },
     ozReason: "This item is currently Dhaka-only.",
   },
 };
@@ -1206,13 +1185,11 @@ export function getProductDetail(slug: string): ProductDetail | null {
     sizes: t.sizes(product),
     sizeLabel: t.sizeLabel,
     bundles: t.bundles(product),
-    bundleHint: t.bundleHint,
     addonTabs: t.addonTabs,
     perso: t.perso(product),
     spec: t.spec(product),
     craft: t.craft,
     faqs: t.faqs(product),
-    custom: t.custom,
     crossSlugs: crossSellFor(product),
     ozReason: t.ozReason,
     reviews: { rating: "4.9", count: 412, live: product.meta },

@@ -605,14 +605,12 @@ export function UpgradeRow({
 export function BundleCards({
   bundles,
   activeIds,
-  hint,
   basePaisa,
   list,
   onToggle,
 }: {
   bundles: BundleOption[];
   activeIds: string[];
-  hint: string;
   /** the main product's price — the discount applies on top of this (DEC-PRD-018) */
   basePaisa: number;
   /** a single discount for the whole list. `null` = no discount. */
@@ -624,7 +622,7 @@ export function BundleCards({
 
   return (
     <section>
-      <BlkTitle title="Make It a Bundle" hint={hint} />
+      <BlkTitle title="Make It a Bundle" />
       {/*  The card shows the item's **own** price — no discount. The discount
           is written once under the list, because it applies to the total
           including the main product. Square marks: several can be taken.  */}

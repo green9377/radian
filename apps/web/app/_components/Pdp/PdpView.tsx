@@ -796,6 +796,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 </span>
               ) : null;
             })()}
+            {detail.nature.label && (
             <span
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11.5px] font-bold ${
                 detail.nature.type === "fresh"
@@ -809,6 +810,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               />
               {detail.nature.label}
             </span>
+            )}
           </div>
 
           <h1 className="font-display text-[clamp(25px,2.8vw,33px)] font-medium text-ink leading-[1.2] [overflow-wrap:anywhere]">
@@ -1043,7 +1045,6 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 <BundleCards
                   bundles={detail.bundles}
                   activeIds={bundleIds}
-                  hint={detail.bundleHint}
                   basePaisa={chosenPaisa}
                   list={detail.bundle}
                   onToggle={(id) =>

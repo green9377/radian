@@ -83,7 +83,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
                     fresh ? "text-[#0E7A3D]" : "text-[#3A4B8A]"
                   }`}
                 >
-                  {detail.nature.label}
+                  {detail.nature.label ?? (fresh ? "Fresh" : "Artificial")}
                 </td>
               </tr>
 
