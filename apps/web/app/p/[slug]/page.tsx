@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { fetchProductDetail } from "../../_data/productApi";
+import { getShopBrand } from "../../_data/shop";
 import { formatTaka } from "../../_data/products";
 import PdpView from "../../_components/Pdp/PdpView";
 import SpecFaq from "../../_components/Pdp/SpecFaq";
 import WhyBuy from "../../_components/Pdp/WhyBuy";
 import RelatedRail from "../../_components/Pdp/RelatedRail";
 import ProductReviews from "../../_components/Pdp/ProductReviews";
+import ProductJsonLd from "../../_components/Pdp/ProductJsonLd";
 import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
 
@@ -82,6 +84,8 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // one address per product — the canonical for Google
+    alternates: { canonical: `/p/${slug}` },
     /*  ⚠️ "Keep this page out of Google" — `follow: true` stays, because the
         owner wants the PAGE hidden, not the links inside it.  */
     ...(seo?.noIndex ? { robots: { index: false, follow: true } } : {}),
@@ -102,7 +106,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const detail = await fetchProductDetail(slug);
+  const [detail, brand] = await Promise.all([fetchProductDetail(slug), getShopBrand()]);
 
   /*  No such published product — or the catalogue could not be read at all.
       Both are a 404 on purpose: the one thing that must never happen here is
@@ -111,6 +115,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
 
   return (
     <main className="bg-[#F6F4FA]">
+      <ProductJsonLd detail={detail} siteName={brand?.name ?? "Radian"} />
       {/*  1400px, was 1200 — the owner, 26 Aug 2026: the selling page was
           leaving too much dead margin on a desktop. The card inside keeps its
           own padding, so the extra width all goes to the photo and the buy
