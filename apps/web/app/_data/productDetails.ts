@@ -131,6 +131,8 @@ export interface PickedVariant {
   pricePaisa: number;
   /** DEC-PRD-032 — the struck-through price while an offer runs, else null */
   wasPaisa?: number | null;
+  /** how that discount was set — the badge reads FLAT as taka, PERCENT as % */
+  discountKind?: "FLAT" | "PERCENT" | null;
   /** 0 = this colour is out; the others carry on */
   stockQty: number;
   /** R1 — the shop's own verdict on this option, made beside `availability`.
@@ -327,6 +329,8 @@ export interface ProductDetail {
    * products whether or not anything had ever been discounted.
    */
   mrpPaisa?: number | null;
+  /** how the product's discount was set; the page shows it that one way */
+  discountKind?: "FLAT" | "PERCENT" | null;
   /** DEC-PRD-042 — the offer's own window, so the page can say when it ends */
   offer?: {
     endsAtMs: number | null;

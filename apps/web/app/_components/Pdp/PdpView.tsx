@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useZoneStore } from "../../_store/useZoneStore";
-import { useCheckoutStore } from "../../_store/useCheckoutStore";
-import { toISODate } from "../../_data/delivery";
 import { useCartStore } from "../../_store/useCartStore";
 import { formatTaka } from "../../_data/products";
 import { track } from "../../_data/tracking";
@@ -116,7 +114,6 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const [added, setAdded] = useState(false);
   const [wished, setWished] = useState(false);
   const [zoom, setZoom] = useState(false);
-  const [clock, setClock] = useState<string | null>(null);
 
   /* Personalisation - it has to be held in state to reach the cart (it used
      to be uncontrolled) */
@@ -146,26 +143,6 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       setPersoUploading(false);
     }
   }
-
-  /*  DEC-PRD-055 — "when should it arrive?", answered ON the page. The pick
-      writes straight into the checkout store's own `date`, so checkout opens
-      with the answer already given. Nothing is preselected: choosing a day
-      for the customer is how a wrong date gets ordered.  */
-  const [deliveryDay, setDeliveryDay] = useState<"today" | "tomorrow" | "pick" | null>(null);
-  const patchCheckout = useCheckoutStore((st) => st.patch);
-  const pickDay = (d: "today" | "tomorrow" | "pick") => {
-    setDeliveryDay(d);
-    const now = new Date();
-    patchCheckout({
-      date:
-        d === "today"
-          ? toISODate(now)
-          : d === "tomorrow"
-            ? toISODate(new Date(now.getTime() + 864e5))
-            : null,
-      slotId: null,
-    });
-  };
 
   const addLine = useCartStore((s) => s.add);
 
@@ -353,47 +330,17 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
       ? Math.round(((wasPaisa - unitPaisa) / wasPaisa) * 100)
       : Math.round(offRatio * 100)
     : 0;
-
-  /*
-    Order cut-off countdown.
-
-    This used to be `cut.setHours(18, 0, 0, 0)` - the component assuming 6pm by
-    itself. Two faults at once: (1) if a delivery mode's real cut-off was not
-    6pm the clock lied, and (2) the arithmetic ran ON THE VIEWER'S CLOCK, so
-    somebody watching from Toronto saw Dhaka's cut-off nine hours away.
-
-    The server now sends how many minutes remain in Bangladesh time and the
-    browser only counts down. Once every cut-off for the day has passed it is
-    `null` - no clock is shown, and it does not quietly restart counting for
-    tomorrow morning. Withdrawing a promise that has expired is honest;
-    issuing a fresh one is not.
-  */
-  const minutesLeft =
-    zone === "bangladesh"
-      ? (detail.cutoffMinutesLeft?.nationwide ?? null)
-      : (detail.cutoffMinutesLeft?.dhaka ?? null);
-
-  useEffect(() => {
-    if (minutesLeft === null) {
-      setClock(null);
-      return;
-    }
-    /*  The server's minutes plus however long the page has been open. No
-        request every second, and the clock never freezes either.  */
-    const endsAt = Date.now() + minutesLeft * 60_000;
-    const tick = () => {
-      const s = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
-      const p = (n: number) => String(n).padStart(2, "0");
-      setClock(
-        s === 0
-          ? null
-          : `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`,
-      );
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [minutesLeft]);
+  /*  ONE badge, in the shape the owner set it (6 Sep 2026): a flat ৳150 reads
+      "৳150 OFF", a 2% reads "2% OFF" — never both. The variant's own kind
+      when a variant is picked, else the product's; an offer-module cut with
+      no product discount behind it reads as the amount.  */
+  const discountKind = variant ? (variant.discountKind ?? null) : (detail.discountKind ?? null);
+  const offLabel =
+    wasPaisa !== null
+      ? discountKind === "PERCENT"
+        ? `${off}% OFF`
+        : `${formatTaka(wasPaisa - unitPaisa)} OFF`
+      : "";
 
   /*
     Only the CONFIG goes to the cart, never the price. The cart page recomputes
@@ -672,7 +619,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       badge reading "0% OFF" over the photo.  */}
                   {wasPaisa !== null && (
                     <span className="absolute top-4 left-4 z-[4] bg-orchid text-white text-[12.5px] font-bold rounded-full px-4 py-2 shadow-[0_8px_22px_rgba(207,67,234,0.4)]">
-                      {off}% OFF
+                      {offLabel}
                     </span>
                   )}
                   {/*  Only when there are no photos. This labels the tinted
@@ -714,47 +661,9 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               PROMISE is the coloured band under the buy box (`WhyBuy.tsx`),
               and it is the loud one. Making both loud is what made the page
               repeat itself.  */}
-          {/*  ── DEC-PRD-056 — the luxury anatomy. The spec table has always
-              carried the composition, 1,400px down inside an accordion. Here
-              it fills the once-dead space under the photo and turns the price
-              into a recipe: one photo becomes twelve roses and satin ribbon.  */}
-          {/*  Capped at SIX — the owner's question (26 Aug): "iteam 12 ta hole
-              ki hobe?" A wall of rows under the photo stops being luxury and
-              starts being an inventory list. Six fit; anything past six
-              becomes the door to the full table below ("Before You Order"),
-              which reads the SAME admin rows — What's inside is written once
-              on the product and shown in both faces.  */}
-          {detail.spec.length > 0 && (
-            <div className="mt-5 rounded-[20px] border-[1.5px] border-lavender-deep bg-gradient-to-br from-[#faf6fd] to-[#fdf6f3] px-5 py-4">
-              <div className="flex items-baseline justify-between gap-3 mb-2.5">
-                <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#B76E79]">
-                  Inside this {detail.nature.type === "fresh" ? "bouquet" : "gift"}
-                </span>
-                <a href="#specs" className="text-[11.5px] font-bold text-purple hover:text-orchid whitespace-nowrap">
-                  Full details ↓
-                </a>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-                {detail.spec.slice(0, 6).map((r) => (
-                  <div key={r.item} className="flex items-center gap-2.5 text-[13.5px] text-body min-w-0">
-                    <i className="not-italic w-[24px] h-[24px] rounded-[8px] bg-white border border-lavender-deep grid place-items-center shrink-0">
-                      <Icon name="check" className="w-3 h-3 text-[#B76E79]" />
-                    </i>
-                    <span className="min-w-0 truncate">
-                      {r.qty && r.qty !== "—" ? <b className="font-semibold">{r.qty} </b> : null}
-                      {r.item}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {detail.spec.length > 6 && (
-                <a href="#specs" className="inline-flex items-center gap-1.5 mt-3 text-[12.5px] font-bold text-purple hover:text-orchid">
-                  + {detail.spec.length - 6} more — see the full list
-                </a>
-              )}
-            </div>
-          )}
-
+          {/*  "What's inside" lives in the spec table under the buy box
+              (Before You Order) and nowhere else — the copy that sat here
+              under the photo went on 6 Sep 2026 (owner: it did not look right)  */}
           <div className="flex flex-wrap gap-x-5 gap-y-2.5 mt-5 pt-4 border-t border-lavender-deep">
             {detail.trust.map((t) => (
               <div key={t.label} className="flex items-center gap-2 min-w-0">
@@ -976,18 +885,14 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 </span>
               )}
             </div>
-            {/* All three appear together or none does - with no discount, the
-                strike-through, the percentage and "You save" are all
-                meaningless */}
+            {/* the struck price and ONE badge, or neither */}
             {wasPaisa !== null && (
               <>
                 <span className="text-[17px] text-body-soft line-through">
                   {formatTaka(wasPaisa)}
                 </span>
-                <span className="text-[16px] font-bold text-[#E39400]">{off}% OFF</span>
-                {/* How much money is saved - people read this far better than a % */}
                 <span className="text-[12.5px] font-bold text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-full px-2.5 py-1">
-                  You save {formatTaka(wasPaisa - unitPaisa)}
+                  {offLabel}
                 </span>
               </>
             )}
@@ -1367,91 +1272,9 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 needs to come from the Delivery module's label - a separate
                 job, written down here so it is not forgotten.
               */}
-              {/*  ── DEC-PRD-055 — "when should it arrive?" on the page ────
-                  Gifts are bought for a DATE. The old countdown box counted
-                  down without saying what making it BUYS you; it is now the
-                  promise line under three date pills, and the pick rides into
-                  checkout pre-answered. "Today" is only offered while today's
-                  cut-off is still alive — a dead pill would be a lie with a
-                  clock on it.  */}
-              <section className="mt-7">
-                <div className="flex items-baseline gap-2 mb-3">
-                  <b className="text-[14px] font-bold text-ink">When should it arrive?</b>
-                  <span className="text-[13px] text-body-soft">— picked here, kept at checkout</span>
-                </div>
-                <div className="flex gap-2.5 flex-wrap">
-                  {/*  ⚠️ Today = an ARRIVAL promise, offered only when it can
-                      be kept: Dhaka zone (nationwide runs 1-3 days), a product
-                      with express or same-day switched ON (`speeds`, not the
-                      chip — a 'both'-zone product wears the nationwide chip
-                      and still qualifies), and a LIVING cut-off. The clock is
-                      null whenever Delivery -> Zones & Availability has no
-                      cut-off time typed for the zone — that, not code, is why
-                      Today is absent on a fresh shop (found 26 Aug: every
-                      method's cut-off box was empty).  */}
-                  {zone === "dhaka" && (detail.speeds?.express || detail.speeds?.sameDay) && clock && (
-                    <button
-                      type="button"
-                      onClick={() => pickDay("today")}
-                      className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
-                        deliveryDay === "today"
-                          ? "border-[#0E7A3D] bg-[#E8F9EE] shadow-[0_6px_18px_rgba(14,122,61,0.12)]"
-                          : "border-lavender-deep bg-white hover:border-orchid-mid"
-                      }`}
-                    >
-                      <b className={`block text-[14px] ${deliveryDay === "today" ? "text-[#0E7A3D]" : "text-ink"}`}>
-                        ⚡ Today
-                      </b>
-                      <span className={`text-[11.5px] ${deliveryDay === "today" ? "text-[#3d7a55]" : "text-body-soft"}`}>
-                        express inside Dhaka
-                      </span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => pickDay("tomorrow")}
-                    className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
-                      deliveryDay === "tomorrow"
-                        ? "border-[#0E7A3D] bg-[#E8F9EE] shadow-[0_6px_18px_rgba(14,122,61,0.12)]"
-                        : "border-lavender-deep bg-white hover:border-orchid-mid"
-                    }`}
-                  >
-                    <b className={`block text-[14px] ${deliveryDay === "tomorrow" ? "text-[#0E7A3D]" : "text-ink"}`}>
-                      Tomorrow
-                    </b>
-                    <span className={`text-[11.5px] ${deliveryDay === "tomorrow" ? "text-[#3d7a55]" : "text-body-soft"}`}>
-                      any time slot
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => pickDay("pick")}
-                    className={`flex-1 min-w-[140px] text-left rounded-[16px] border-[1.5px] px-4 py-3 transition-all active:scale-[0.98] ${
-                      deliveryDay === "pick"
-                        ? "border-orchid bg-orchid-soft shadow-[0_6px_18px_rgba(207,67,234,0.12)]"
-                        : "border-lavender-deep bg-white hover:border-orchid-mid"
-                    }`}
-                  >
-                    <b className={`block text-[14px] ${deliveryDay === "pick" ? "text-purple" : "text-ink"}`}>
-                      Pick a date
-                    </b>
-                    <span className="text-[11.5px] text-body-soft">birthdays &amp; anniversaries</span>
-                  </button>
-                </div>
-                {clock && (
-                  <div className="flex items-center gap-3 bg-[#FFF7E8] border-[1.5px] border-[#F2D9A8] rounded-[14px] px-4 py-2.5 mt-2.5">
-                    <Icon name="bolt" className="w-4 h-4 text-[#8A5A00] shrink-0" />
-                    <span className="text-[13px] font-semibold text-[#8A5A00] min-w-0">
-                      {zone === "bangladesh"
-                        ? "Order within the time — dispatched today, at their door in 1–3 days"
-                        : "Order within the time — it reaches them today"}
-                    </span>
-                    <span className="ml-auto font-display text-[17px] font-semibold text-[#8A5A00] tabular-nums shrink-0">
-                      {clock}
-                    </span>
-                  </div>
-                )}
-              </section>
+              {/*  The delivery date is asked at checkout, not here (owner,
+                  6 Sep 2026) — the "When should it arrive?" pills that sat
+                  here went; the checkout page keeps its own.  */}
 
               {/*
                 DEC-PDP-09 - the owner, 1 August 2026: "at stock 0 no order may

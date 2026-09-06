@@ -318,6 +318,9 @@ export interface ShopProductDetail {
   unitSuffix: string | null;
   /** struck-through price, or null when nothing is actually off */
   mrpPaisa: number | null;
+  /** how the product's own discount was set — the badge says it that way and
+   *  no other (owner, 6 Sep 2026: a flat ৳150 must not also read "2% OFF") */
+  discountKind: 'FLAT' | 'PERCENT' | null;
   zone: 'dhaka' | 'both';
   productType: 'READYMADE' | 'CRAFTED';
   /** DEC-PRD-035 — `pricePaisa` is the cheapest variant, not a fixed price */
@@ -385,6 +388,9 @@ export interface ShopProductDetail {
     /** DEC-PRD-032 - the struck-through price while an offer runs (the
      *  variant's regular price), else null */
     wasPaisa: number | null;
+    /** the shape of the discount that made `wasPaisa` — shown as the owner
+     *  set it: FLAT = "৳150 OFF", PERCENT = "2% OFF" (owner, 6 Sep 2026) */
+    discountKind: 'FLAT' | 'PERCENT' | null;
     /** Its own stock. 0 means this colour is gone while the others sell on.
      *  On a variant tied to an Item this is Inventory's live count. */
     stockQty: number;
@@ -1020,6 +1026,7 @@ export class ProductDetailService {
       priceFrom:
         p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null),
       unitSuffix: p.unit?.shortCode ?? null,
+      discountKind: mrpOrNull(money) !== null && p.discountType !== 'NONE' ? (p.discountType as 'FLAT' | 'PERCENT') : null,
       /*  ⚠️ No struck price beside a "from" — see the card (DEC-PRD-035).  */
       mrpPaisa:
         offerCutOf(cardPricePaisa(p)) > 0
@@ -1213,6 +1220,12 @@ export class ProductDetailService {
               : paidPaisa(p);
           const ownStruck = v.pricePaisa !== null && paid < v.pricePaisa ? v.pricePaisa : null;
           return offerCutOf(paid) > 0 ? Math.max(paid, ownStruck ?? 0) : ownStruck;
+        })(),
+        /*  the discount that is actually cutting THIS variant's price: its
+            own when it states a price, else the product's  */
+        discountKind: (() => {
+          const kind = (v.pricePaisa !== null ? v.discountType : p.discountType) as 'NONE' | 'FLAT' | 'PERCENT';
+          return kind === 'NONE' ? null : kind;
         })(),
         stockQty: variantCount(v),
         soldOut: variantSoldOut(v),

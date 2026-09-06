@@ -79,6 +79,8 @@ export interface ApiProductDetail {
   pricePaisa: number;
   unitSuffix: string | null;
   mrpPaisa: number | null;
+  /** how the product's discount was set — FLAT reads as taka, PERCENT as % */
+  discountKind?: "FLAT" | "PERCENT" | null;
   /** DEC-PRD-042 — when the offer ends, so the page can say so */
   offer?: { endsAtMs: number | null; startsAtMs: number | null; percentOff: number } | null;
   /** DEC-PRD-035 — headline is the cheapest variant, page says "from" */
@@ -132,6 +134,8 @@ export interface ApiProductDetail {
     pricePaisa: number;
     /** DEC-PRD-032 — the struck-through price while an offer runs */
     wasPaisa?: number | null;
+    /** FLAT = "৳150 OFF", PERCENT = "2% OFF" — shown as the owner set it */
+    discountKind?: "FLAT" | "PERCENT" | null;
     stockQty: number;
     /** R1 — may this option be sold right now (server-decided) */
     soldOut?: boolean;
@@ -556,6 +560,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
             }`,
     },
     mrpPaisa: a.mrpPaisa,
+    discountKind: a.discountKind ?? null,
     /*  ⚠️ Forgetting this one line is exactly how the dates stayed invisible
         for a week: the API sent them, nothing carried them across.  */
     offer: a.offer ?? null,
