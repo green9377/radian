@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { formatTaka } from "../../_data/products";
@@ -450,15 +451,65 @@ export function SizeRow({
   The row shows a sliver of the next card so the scroll explains itself.
   ═══════════════════════════════════════════════════════════════════════════
 */
+/*
+  A horizontal rail of cards. The scrollbar is hidden for the look, so on a
+  desktop with a mouse there was no way to move it at all (owner, 7 Sep
+  2026): two arrows now sit at the ends, each shown only while there is more
+  that way, and a wheel over the rail scrolls it sideways.
+*/
 export function CardRail({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  const measure = () => {
+    const el = ref.current;
+    if (!el) return;
+    const left = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setMore((cur) => (cur.left === left && cur.right === right ? cur : { left, right }));
+  };
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const by = (dir: -1 | 1) => {
+    const el = ref.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: "smooth" });
+  };
+  const arrow =
+    "absolute top-1/2 -translate-y-1/2 z-[4] w-9 h-9 rounded-full bg-white text-purple grid place-items-center shadow-lift border border-lavender-deep hover:bg-purple hover:text-white transition-colors";
   return (
     <div className="relative">
-      <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x pb-1 -mx-1 px-1">
+      {more.left && (
+        <button type="button" aria-label="Scroll left" onClick={() => by(-1)} className={`${arrow} -left-3`}>
+          <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none stroke-[2]"><path d="M15 5 8 12l7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      )}
+      <div
+        ref={ref}
+        onScroll={measure}
+        onWheel={(e) => {
+          const el = ref.current;
+          if (!el || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+          if (!more.left && !more.right) return;
+          el.scrollBy({ left: e.deltaY });
+        }}
+        className="flex gap-3 overflow-x-auto scrollbar-none snap-x pb-1 -mx-1 px-1"
+      >
         {children}
       </div>
-      {/*  the fade is the rail saying "there is more this way" — without it a
-          row that happens to end at the edge looks finished when it is not  */}
-      <span className="pointer-events-none absolute right-[-4px] top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
+      {more.right && (
+        <>
+          {/*  the fade is the rail saying "there is more this way"  */}
+          <span className="pointer-events-none absolute right-[-4px] top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
+          <button type="button" aria-label="Scroll right" onClick={() => by(1)} className={`${arrow} -right-3`}>
+            <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current fill-none stroke-[2]"><path d="m9 5 7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -1141,8 +1141,13 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                             </span>
                           )}
                         </span>
-                        <span className="block px-2.5 pt-1.5 pb-2.5" onClick={(e) => e.stopPropagation()}>
+                        {/*  the stopPropagation used to sit on this whole footer,
+                            so "+ Add" swallowed its own click (owner, 7 Sep
+                            2026); it belongs on the stepper only, where a
+                            typed quantity must not re-add the card  */}
+                        <span className="block px-2.5 pt-1.5 pb-2.5">
                           {on ? (
+                            <span onClick={(e) => e.stopPropagation()}>
                             <QtyStepper
                               grow
                               size="sm"
@@ -1158,6 +1163,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                               }
                               label={`${a.name} quantity`}
                             />
+                            </span>
                           ) : (
                             <span className="h-[32px] inline-flex w-full items-center justify-center gap-1 rounded-full text-[12px] font-bold border-[1.5px] border-orchid text-orchid bg-white">
                               + Add
