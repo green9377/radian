@@ -43,7 +43,8 @@ export default function ArchCard({
       ) : (
         <div className={`relative ${aspect}`}>{panel}</div>
       )}
-      <div className="px-3 py-3 text-center">
+      {/* the band keeps one height with or without a second line, so tiles in different sections line up */}
+      <div className="px-3 py-3 text-center min-h-[68px] flex flex-col justify-center">
         <h3 className="font-display text-[16px] lg:text-[17px] font-medium text-purple leading-tight truncate">{title}</h3>
         {sub && <span className="block text-[12px] text-body-soft truncate mt-0.5">{sub}</span>}
       </div>
