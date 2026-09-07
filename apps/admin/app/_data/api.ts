@@ -110,6 +110,10 @@ export interface ApiProduct {
   /** DEC-PRD-028 — discount start and end (ISO datetime, null = no bound) */
   discountStartsAt?: string | null;
   discountEndsAt?: string | null;
+  /** DEC-PRD-062 — the product's discount and window run on every variant */
+  discountOnVariants?: boolean;
+  /** DEC-PRD-063 — attribute ids in the order the lists appear on the page */
+  variantAxisOrder?: string[];
   /** DEC-PRD-025 — each window's own starting number, and which one runs now */
   salesSeedToday?: number;
   salesSeedWeek?: number;

@@ -1323,6 +1323,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
    */
   const [discStart, setDiscStart] = useState("");
   const [discEnd, setDiscEnd] = useState("");
+  /*  DEC-PRD-062 — ON: the product's discount and window run on every
+      variant and the rows carry no discount box of their own. OFF: each
+      priced variant sets its own (the old rule).  */
+  const [discOnVariants, setDiscOnVariants] = useState(true);
   const [discVal, setDiscVal] = useState("");
   const [advReq, setAdvReq] = useState(!!src?.prepaidOnly);
   const [advType, setAdvType] = useState<"FULL" | "PARTIAL">("FULL");
@@ -1612,6 +1616,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       know whether the product had finished loading, and getting that wrong
       empties a saved product on open.  */
   const [axisPicks, setAxisPicks] = useState<Record<string, string[]>>({});
+  /*  DEC-PRD-063 — the order the lists show on the page, for THIS product.
+      A list joins the end when it gets its first tick; ↑ ↓ on the chip move
+      it. Nothing is fixed in advance (owner, 6 Sep 2026).  */
+  const [axisOrder, setAxisOrder] = useState<string[]>([]);
   /** which list's values are showing. `null` = the first one that has picks */
   const [vAttrOpen, setVAttrOpen] = useState<string | null>(null);
 
@@ -1877,8 +1885,20 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       A row that already exists keeps everything typed into it — its price,
       its photo, its item — because it is found again by its key. So
       un-ticking a colour by mistake and ticking it back costs nothing.  */
-  function rebuildPairs(picks: Record<string, string[]>, cur: VariantRow[]): VariantRow[] {
-    const axes = liveAttrs.filter((a) => (picks[a.id] ?? []).length > 0);
+  /** the lists with ticks, in the product's own order (then the global one) */
+  function orderedAxes(picks: Record<string, string[]>, order: string[] = axisOrder) {
+    const rank = (id: string) => {
+      const i = order.indexOf(id);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return liveAttrs
+      .filter((a) => (picks[a.id] ?? []).length > 0)
+      .slice()
+      .sort((x, y) => rank(x.id) - rank(y.id));
+  }
+
+  function rebuildPairs(picks: Record<string, string[]>, cur: VariantRow[], order: string[] = axisOrder): VariantRow[] {
+    const axes = orderedAxes(picks, order);
     if (axes.length === 0) return [];
 
     let combos: VariantPart[][] = [[]];
@@ -1940,7 +1960,20 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /** tick or untick one value, and rebuild what is on sale in the same breath */
   function applyPicks(next: Record<string, string[]>) {
     setAxisPicks(next);
-    setVariants((cur) => rebuildPairs(next, cur));
+    // a list joins the order on its first tick and leaves it on its last
+    const live = Object.keys(next).filter((id) => (next[id] ?? []).length > 0);
+    const order = [...axisOrder.filter((id) => live.includes(id)), ...live.filter((id) => !axisOrder.includes(id))];
+    setAxisOrder(order);
+    setVariants((cur) => rebuildPairs(next, cur, order));
+  }
+  function moveAxis(id: string, dir: -1 | 1) {
+    const cur = orderedAxes(axisPicks).map((a) => a.id);
+    const i = cur.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= cur.length) return;
+    [cur[i], cur[j]] = [cur[j], cur[i]];
+    setAxisOrder(cur);
+    setVariants((v) => rebuildPairs(axisPicks, v, cur));
   }
   const [addonBundle, setAddonBundle] = useState<AddOnBundle | null>(null);
   const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
@@ -2111,6 +2144,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               own clock would show a Dubai laptop the wrong hour.  */
           setDiscStart(toDhakaLocal(p.discountStartsAt));
           setDiscEnd(toDhakaLocal(p.discountEndsAt));
+          setDiscOnVariants(p.discountOnVariants !== false);
           setLead(String(p.leadTimeDays ?? 0));
 
           // delivery
@@ -2185,6 +2219,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             }
           }
           setAxisPicks(picks);
+          /*  DEC-PRD-063 — the saved order, else the order the rows carry  */
+          setAxisOrder(
+            (p.variantAxisOrder ?? []).length
+              ? (p.variantAxisOrder as string[])
+              : Object.keys(picks),
+          );
           //  an existing product answers the Basics question by what it has
           setHasVariants((p.variants ?? []).length > 0);
 
@@ -2441,6 +2481,8 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           who saved it (DEC-PRD-042).  */
       discountStartsAt: fromDhakaLocal(discStart, "00:00"),
       discountEndsAt: fromDhakaLocal(discEnd, "23:59"),
+      discountOnVariants: discOnVariants,
+      variantAxisOrder: orderedAxes(axisPicks).map((a) => a.id),
       discountValue:
         discType === "FLAT"
           ? toPaisa(discVal)
@@ -2824,12 +2866,24 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         ? Math.max(0, sellN - dv)
         : Math.max(0, Math.round(sellN * (1 - dv / 100)));
 
+  /** DEC-PRD-062 — the product's discount applied to some other base (a variant's price), in paisa */
+  const productDiscountOn = (basePaisa: number) =>
+    discType === "NONE" || !discLive.on
+      ? basePaisa
+      : discType === "FLAT"
+        ? Math.max(0, basePaisa - Math.round(dv * 100))
+        : Math.max(0, Math.round(basePaisa * (1 - dv / 100)));
+
   /*  DEC-PRD-035 — "does the product price still do anything?" It does not,
       once every variant carries its own. Both facts are needed in two places
       (the Pricing note and the live preview), so they are worked out once.  */
   const allVariantsPriced = variants.length > 0 && variants.every((v) => v.price.trim() !== "");
   const cheapestVariantPaisa = allVariantsPriced
-    ? Math.min(...variants.map(variantPays))
+    ? Math.min(
+        ...variants.map((v) =>
+          discOnVariants ? productDiscountOn(Math.round((parseFloat(v.price) || 0) * 100)) : variantPays(v),
+        ),
+      )
     : 0;
 
   const showDisc = offer < sellN && sellN > 0;
@@ -3600,6 +3654,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     }
                     setVariants([]);
                     setAxisPicks({});
+                    setAxisOrder([]);
                     setHasVariants(false);
                   }}
                   options={[
@@ -3817,6 +3872,22 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     )}
                   </Field>
                 </div>
+
+                {/*  DEC-PRD-062 — owner, 6 Sep 2026: "if the same discount
+                    applies to all variants, switch it on; if I want it
+                    customised, switch it off and set them one by one."  */}
+                {variants.length > 0 && (
+                  <div className="mt-4 rounded-[14px] border border-lavender-deep bg-white px-4 py-3">
+                    <Sw on={discOnVariants} onToggle={() => setDiscOnVariants((v) => !v)}>
+                      This discount applies to every variant
+                    </Sw>
+                    <span className="block mt-1.5 pl-[56px] text-[12px] text-body-soft">
+                      {discOnVariants
+                        ? "The % / flat amount and its dates run on each variant's price; the variant rows carry no discount of their own."
+                        : "Each variant with its own price sets its own discount below; the product's does not stack on top."}
+                    </span>
+                  </div>
+                )}
 
                 {/*
                   ONE answer, not three panels. The customer's price is the
@@ -4231,7 +4302,16 @@ No bundle products yet — add them on{" "}
                               above: % or Flat, not a "final price" box (owner,
                               9 Aug 2026). A discount needs a price of its own to
                               come off, so it only appears once there is one.  */}
-                          {v.price.trim() ? (
+                          {v.price.trim() && discOnVariants ? (
+                            /*  DEC-PRD-062 — the product's discount runs here  */
+                            <span className="text-[12.5px] text-body-soft">
+                              product discount applies{discLive.on ? "" : " (not running now)"} ·
+                              customer pays{" "}
+                              <b className="font-medium text-purple">
+                                {taka(productDiscountOn(Math.round((parseFloat(v.price) || 0) * 100)) / 100)}
+                              </b>
+                            </span>
+                          ) : v.price.trim() ? (
                             <>
                               <select
                                 className="ipt text-[13px]"
@@ -5838,14 +5918,27 @@ No bundle products yet — add them on{" "}
                     <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-2">
                       Which lists
                     </div>
+                    {/*  DEC-PRD-063 — the ticked lists first, in the order the
+                        page will show them (↑ ↓ to change it), then the rest  */}
                     <div className="flex flex-wrap gap-2">
-                      {liveAttrs.map((a) => {
+                      {[...orderedAxes(axisPicks), ...liveAttrs.filter((a) => (axisPicks[a.id] ?? []).length === 0)].map((a, idx, arr) => {
                         const picked = (axisPicks[a.id] ?? []).length;
                         const on = picked > 0;
+                        const onCount = arr.filter((x) => (axisPicks[x.id] ?? []).length > 0).length;
                         const open = (vAttrOpen ?? liveAttrs.find((x) => (axisPicks[x.id] ?? []).length > 0)?.id ?? null) === a.id;
                         return (
+                          <span key={a.id} className="inline-flex items-stretch gap-1">
+                          {on && onCount > 1 && (
+                            <span className="inline-flex flex-col justify-center gap-0.5">
+                              <button type="button" title="Show this list earlier" disabled={idx === 0}
+                                onClick={() => moveAxis(a.id, -1)}
+                                className="w-6 h-[18px] rounded-[6px] grid place-items-center bg-lavender text-purple text-[10px] font-bold hover:bg-purple hover:text-white disabled:opacity-30 disabled:hover:bg-lavender disabled:hover:text-purple">↑</button>
+                              <button type="button" title="Show this list later" disabled={idx === onCount - 1}
+                                onClick={() => moveAxis(a.id, 1)}
+                                className="w-6 h-[18px] rounded-[6px] grid place-items-center bg-lavender text-purple text-[10px] font-bold hover:bg-purple hover:text-white disabled:opacity-30 disabled:hover:bg-lavender disabled:hover:text-purple">↓</button>
+                            </span>
+                          )}
                           <button
-                            key={a.id}
                             type="button"
                             onClick={() => setVAttrOpen(a.id)}
                             className={`inline-flex items-center gap-2 text-[13.5px] font-bold px-4 py-2.5 rounded-[12px] border-2 transition-all ${
@@ -5867,6 +5960,7 @@ No bundle products yet — add them on{" "}
                               </span>
                             )}
                           </button>
+                          </span>
                         );
                       })}
                     </div>

@@ -1193,6 +1193,8 @@ export class ProductsService {
           breaks.  */
       discountStartsAt: dto.discountStartsAt ? new Date(dto.discountStartsAt) : dto.discountStartsAt === null ? null : undefined,
       discountEndsAt: dto.discountEndsAt ? new Date(dto.discountEndsAt) : dto.discountEndsAt === null ? null : undefined,
+      discountOnVariants: dto.discountOnVariants,
+      variantAxisOrder: dto.variantAxisOrder,
       /*  DEC-PRD-025/026/027 — the new fields. Prisma leaves `undefined`
           alone, so a save coming from an older screen erases nothing.  */
       salesSeedToday: dto.salesSeedToday,
@@ -1601,6 +1603,8 @@ export class ProductsService {
           breaks.  */
       discountStartsAt: dto.discountStartsAt ? new Date(dto.discountStartsAt) : dto.discountStartsAt === null ? null : undefined,
       discountEndsAt: dto.discountEndsAt ? new Date(dto.discountEndsAt) : dto.discountEndsAt === null ? null : undefined,
+      discountOnVariants: dto.discountOnVariants,
+      variantAxisOrder: dto.variantAxisOrder,
       /*  DEC-PRD-025/026/027 — the new fields. Prisma leaves `undefined`
           alone, so a save coming from an older screen erases nothing.  */
       salesSeedToday: dto.salesSeedToday,

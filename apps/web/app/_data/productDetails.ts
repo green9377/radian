@@ -133,6 +133,8 @@ export interface PickedVariant {
   wasPaisa?: number | null;
   /** how that discount was set — the badge reads FLAT as taka, PERCENT as % */
   discountKind?: "FLAT" | "PERCENT" | null;
+  /** the product's discount/window is what cut this price (DEC-PRD-062) */
+  offerFromProduct?: boolean;
   /** 0 = this colour is out; the others carry on */
   stockQty: number;
   /** R1 — the shop's own verdict on this option, made beside `availability`.

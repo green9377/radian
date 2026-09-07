@@ -136,6 +136,8 @@ export interface ApiProductDetail {
     wasPaisa?: number | null;
     /** FLAT = "৳150 OFF", PERCENT = "2% OFF" — shown as the owner set it */
     discountKind?: "FLAT" | "PERCENT" | null;
+    /** the product's discount/window is what cut this price (DEC-PRD-062) */
+    offerFromProduct?: boolean;
     stockQty: number;
     /** R1 — may this option be sold right now (server-decided) */
     soldOut?: boolean;

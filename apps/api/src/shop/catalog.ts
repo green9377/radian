@@ -123,6 +123,7 @@ const CARD_SELECT = {
       and the page the full price.  */
   discountStartsAt: true,
   discountEndsAt: true,
+  discountOnVariants: true,
   zone: true,
   supportsExpress: true,
   supportsSameDay: true,
@@ -1246,10 +1247,14 @@ export class ShopCatalogService {
 
   private cardPricing(r: CardRow, displayOffers: DisplayOffer[]): { price: number; allPriced: boolean; basePrice: number; offerCut: number } {
     const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
+    /*  DEC-PRD-062 — with the product's switch on, its discount and window
+        run on every variant's price; off, each variant's own discount.  */
     const variantPrices = r.variants
       .filter((v) => v.pricePaisa !== null)
       .map((v) =>
-        offerPaisa(v.pricePaisa!, v.discountType, v.discountValue, null, null),
+        r.discountOnVariants
+          ? offerPaisa(v.pricePaisa!, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt)
+          : offerPaisa(v.pricePaisa!, v.discountType, v.discountValue, null, null),
       );
     const allPriced = r.variants.length > 0 && variantPrices.length === r.variants.length;
     const basePrice = allPriced ? Math.min(...variantPrices) : ownPrice;

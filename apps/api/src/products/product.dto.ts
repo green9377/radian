@@ -163,6 +163,10 @@ export interface CreateProductDto {
    */
   discountStartsAt?: string | null;
   discountEndsAt?: string | null;
+  /** DEC-PRD-062 — one discount (and window) for every variant */
+  discountOnVariants?: boolean;
+  /** DEC-PRD-063 — attribute ids, the order the variant lists show on the page */
+  variantAxisOrder?: string[];
 
   // payment override
   advanceRequired?: boolean;

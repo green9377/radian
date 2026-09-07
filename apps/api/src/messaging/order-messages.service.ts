@@ -109,27 +109,32 @@ export class OrderMessagesService {
    * circuits, and the OrderMessage unique index refuses a second queue row.
    */
   async queueReviewRequest(orderId: string) {
-    const existing = await this.prisma.db.reviewInvite.findFirst({
-      where: { orderId }, select: { id: true },
+    /*  DEC-WEB-012 (owner, 6 Sep 2026) — one invite per PRODUCT on the
+        delivered order, not one per order: a customer may review only what
+        they bought, each thing on its own. The WhatsApp message carries the
+        centrepiece's link; the account's order page offers every line's.
+        Idempotent: a product that already has an invite on this order is
+        left alone.  */
+    const o = await this.prisma.db.order.findFirst({
+      where: { id: orderId },
+      select: {
+        customerId: true,
+        lines: { select: { productId: true, unitPaisa: true, qty: true } },
+        reviewInvites: { select: { productId: true } },
+      },
     });
-    if (!existing) {
-      const o = await this.prisma.db.order.findFirst({
-        where: { id: orderId },
-        select: {
-          customerId: true,
-          lines: { select: { productId: true, unitPaisa: true, qty: true } },
-        },
-      });
-      if (!o) return null;
-      const centrepiece = [...o.lines].sort(
-        (a, b) => b.unitPaisa * b.qty - a.unitPaisa * a.qty,
-      )[0];
+    if (!o) return null;
+    const have = new Set(o.reviewInvites.map((i) => i.productId));
+    const byValue = [...o.lines].sort((a, b) => b.unitPaisa * b.qty - a.unitPaisa * a.qty);
+    const products = [...new Set(byValue.map((l) => l.productId).filter((id): id is string => Boolean(id)))];
+    for (const productId of products) {
+      if (have.has(productId)) continue;
       await this.prisma.db.reviewInvite.create({
         data: {
           token: randomBytes(16).toString('hex'),
           orderId,
           customerId: o.customerId,
-          productId: centrepiece?.productId ?? null,
+          productId,
           dueAt: new Date(Date.now() + REVIEW_REQUEST_DELAY_MS),
         },
       });
@@ -188,6 +193,7 @@ export class OrderMessagesService {
     if (m.kind === OrderMessageKind.REVIEW_REQUEST) {
       const inv = await this.prisma.db.reviewInvite.findFirst({
         where: { orderId: o.id, usedAt: null },
+        orderBy: { createdAt: 'asc' }, // the centrepiece was created first
         include: { product: { select: { name: true } } },
       });
       if (!inv) {

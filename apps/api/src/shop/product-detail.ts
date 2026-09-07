@@ -176,6 +176,8 @@ function cardPricePaisa(p: {
   discountValue: number;
   discountStartsAt?: Date | null;
   discountEndsAt?: Date | null;
+  /** DEC-PRD-062 — the product's discount runs on every variant's price */
+  discountOnVariants?: boolean;
   variants: { pricePaisa: number | null; discountType: string; discountValue: number }[];
 }): number {
   const own = paidPaisa({
@@ -189,11 +191,19 @@ function cardPricePaisa(p: {
   if (p.variants.length === 0 || priced.length !== p.variants.length) return own;
   return Math.min(
     ...priced.map((v) =>
-      paidPaisa({
-        sellingPricePaisa: v.pricePaisa!,
-        discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-        discountValue: v.discountValue,
-      }),
+      p.discountOnVariants
+        ? paidPaisa({
+            sellingPricePaisa: v.pricePaisa!,
+            discountType: p.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+            discountValue: p.discountValue,
+            discountStartsAt: p.discountStartsAt,
+            discountEndsAt: p.discountEndsAt,
+          })
+        : paidPaisa({
+            sellingPricePaisa: v.pricePaisa!,
+            discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+            discountValue: v.discountValue,
+          }),
     ),
   );
 }
@@ -391,6 +401,8 @@ export interface ShopProductDetail {
     /** the shape of the discount that made `wasPaisa` — shown as the owner
      *  set it: FLAT = "৳150 OFF", PERCENT = "2% OFF" (owner, 6 Sep 2026) */
     discountKind: 'FLAT' | 'PERCENT' | null;
+    /** DEC-PRD-062 — the product's discount/window is what cut this price */
+    offerFromProduct: boolean;
     /** Its own stock. 0 means this colour is gone while the others sell on.
      *  On a variant tied to an Item this is Inventory's live count. */
     stockQty: number;
@@ -614,6 +626,8 @@ export class ProductDetailService {
         discountValue: true,
         discountStartsAt: true,
         discountEndsAt: true,
+        discountOnVariants: true,
+        variantAxisOrder: true,
         zone: true,
         productType: true,
         natureType: true,
@@ -944,6 +958,25 @@ export class ProductDetailService {
       discountEndsAt: p.discountEndsAt,
     };
 
+    /*  DEC-PRD-062 — what one variant costs, and why. `base` is what it is
+        cut from (its own price, else the product's), `paid` what is charged,
+        `kind` which discount shape did the cutting (for the badge).  */
+    const variantMoney = (v: { pricePaisa: number | null; discountType: string; discountValue: number }) => {
+      const base = v.pricePaisa ?? p.sellingPricePaisa;
+      if (p.discountOnVariants || v.pricePaisa === null) {
+        const paid = paidPaisa({ ...money, sellingPricePaisa: base });
+        const kind = paid < base ? (p.discountType as 'FLAT' | 'PERCENT') : null;
+        return { base, paid, kind, fromProduct: true };
+      }
+      const paid = paidPaisa({
+        sellingPricePaisa: base,
+        discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
+        discountValue: v.discountValue,
+      });
+      const kind = paid < base ? (v.discountType as 'FLAT' | 'PERCENT') : null;
+      return { base, paid, kind, fromProduct: false };
+    };
+
     /*
       A sub-category is a category with a parent. The breadcrumb wants the top
       of the tree first, so when this product sits under "Roses" the crumb reads
@@ -1018,8 +1051,10 @@ export class ProductDetailService {
       /*  DEC-PRD-042 — the window itself, so the page can say when it ends.
           Suppressed on a "from ৳X" product: that headline is a variant's
           price, and the product's own window says nothing true about it.  */
+      /*  DEC-PRD-062 — with the switch ON the product's window covers every
+          variant, so it is sent even on a "from ৳X" product.  */
       offer:
-        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null)
+        p.variants.length > 0 && p.variants.every((v) => v.pricePaisa !== null) && !p.discountOnVariants
           ? null
           : offerOrNull(money),
       /*  true → the page writes "from ৳450" and draws no struck price  */
@@ -1161,12 +1196,21 @@ export class ProductDetailService {
           : []
         )
           .slice()
-          .sort(
-            (a, b) =>
+          /*  DEC-PRD-063 — the product's own order of its lists first
+              (Colour then Size, or the other way round, per product); the
+              attributes' global order only for anything not named there.  */
+          .sort((a, b) => {
+            const ia = p.variantAxisOrder.indexOf(a.attribute.id);
+            const ib = p.variantAxisOrder.indexOf(b.attribute.id);
+            const ra = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
+            const rb = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
+            return (
+              ra - rb ||
               a.attribute.sortOrder - b.attribute.sortOrder ||
               a.attribute.name.localeCompare(b.attribute.name) ||
-              a.sortOrder - b.sortOrder,
-          )
+              a.sortOrder - b.sortOrder
+            );
+          })
           .map((val) => ({
             valueId: val.id,
             label: val.label,
@@ -1198,35 +1242,26 @@ export class ProductDetailService {
             struck figure stays "what they would have paid": the variant's own
             full price when its own discount was already showing, otherwise
             the pre-cut paid price.  */
+        /*  DEC-PRD-062 — one arithmetic for a variant's price, decided by the
+            product's switch (`variantMoney` below): the product's discount and
+            window on the variant's base when ON; the variant's own when OFF
+            and it states a price. The struck figure is the base it was cut
+            from — a variant with no own price used to lose its strike-through
+            and its window the moment it was picked, which is what the owner
+            saw on 6 Sep.  */
         pricePaisa: (() => {
-          const paid =
-            v.pricePaisa !== null
-              ? paidPaisa({
-                  sellingPricePaisa: v.pricePaisa,
-                  discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-                  discountValue: v.discountValue,
-                })
-              : paidPaisa(p);
+          const { paid } = variantMoney(v);
           return paid - offerCutOf(paid);
         })(),
         wasPaisa: (() => {
-          const paid =
-            v.pricePaisa !== null
-              ? paidPaisa({
-                  sellingPricePaisa: v.pricePaisa,
-                  discountType: v.discountType as 'NONE' | 'FLAT' | 'PERCENT',
-                  discountValue: v.discountValue,
-                })
-              : paidPaisa(p);
-          const ownStruck = v.pricePaisa !== null && paid < v.pricePaisa ? v.pricePaisa : null;
+          const { paid, base } = variantMoney(v);
+          const ownStruck = paid < base ? base : null;
           return offerCutOf(paid) > 0 ? Math.max(paid, ownStruck ?? 0) : ownStruck;
         })(),
-        /*  the discount that is actually cutting THIS variant's price: its
-            own when it states a price, else the product's  */
-        discountKind: (() => {
-          const kind = (v.pricePaisa !== null ? v.discountType : p.discountType) as 'NONE' | 'FLAT' | 'PERCENT';
-          return kind === 'NONE' ? null : kind;
-        })(),
+        discountKind: variantMoney(v).kind,
+        /*  true = the product's discount (and so its window) is what cut
+            this price; the page keeps the countdown on this variant  */
+        offerFromProduct: variantMoney(v).fromProduct,
         stockQty: variantCount(v),
         soldOut: variantSoldOut(v),
         };

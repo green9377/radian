@@ -17,6 +17,7 @@ import Icon from "../Pdp/PdpIcons";
 import OrderStatusChip from "./OrderStatusChip";
 import ReorderButton from "./ReorderButton";
 import TileImage from "../ui/TileImage";
+import OrderReviewLinks from "./OrderReviewLinks";
 
 /*
   /account/orders/[id] — এক order-এর পুরো ছবি: progress + history +
@@ -258,6 +259,11 @@ export default function OrderDetailView({ id }: { id: string }) {
                 : `Paid with ${order.paymentLabel}.`}
           </p>
         </aside>
+
+        {/* DEC-WEB-012 — review links, only once delivered, only for what was bought */}
+        <div className="lg:col-span-2">
+          <OrderReviewLinks order={order} />
+        </div>
       </div>
     </div>
   );

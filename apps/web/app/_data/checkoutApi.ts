@@ -221,20 +221,17 @@ export async function sendCheckoutLead(input: CheckoutLeadIn): Promise<void> {
 /* ─────────────────── review submission ─────────────────── */
 
 /**
- * গ্রাহকের review — সবসময় PENDING হয়ে ঢোকে, মালিকের moderation-এর পরে পর্দায়
- * (Admin → Storefront → Reviews)। উত্তরে কিছু ফেরত আসে না, ইচ্ছা করেই।
+ * DEC-WEB-012 — the review links of a DELIVERED order, one per product:
+ * proved the same way /track is (order number + a phone on the order).
+ * `token` null = already reviewed.
  */
-export const submitReview = (input: {
-  authorName: string;
-  rating: number;
-  body: string;
-  productSlug?: string;
-  context?: string;
-  /** DEC-WEB-006 — the photo they attached (already uploaded) */
-  imageUrl?: string;
-  /** the logged-in session's phone; the server matches it to the customer book */
-  customerPhone?: string;
-}) => post<{ received: true }>("/shop/reviews", input);
+export const reviewLinks = (orderNo: string, phone: string) =>
+  fetch(
+    `${baseFor()}/shop/review-links?orderNo=${encodeURIComponent(orderNo.trim())}&phone=${encodeURIComponent(phone.trim())}`,
+    { cache: "no-store" },
+  )
+    .then((r) => (r.ok ? (r.json() as Promise<{ productSlug: string; productName: string; token: string | null; reviewed: boolean }[]>) : []))
+    .catch(() => [] as { productSlug: string; productName: string; token: string | null; reviewed: boolean }[]);
 
 export interface PlacedOrder {
   orderId: string;

@@ -5,9 +5,6 @@ import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import Carousel from "../ui/Carousel";
 import { getShopReviews, type ShopReview } from "../../_data/shop";
-import { submitReview } from "../../_data/checkoutApi";
-import { baseFor } from "../../_data/shop";
-import { useAuthStore } from "../../_store/useAuthStore";
 
 /*
   GBE part 1 of 3 — Reviews ("Why Dhaka Loves Radian").
@@ -25,40 +22,6 @@ const TINTS = [
   "linear-gradient(150deg,#E5DCF3,#CDBBE9)",
 ];
 
-const STORIES = [
-  {
-    quote:
-      '"Ordered at 9 PM for a midnight surprise. At 12:01 my wife opened the door to roses. She cried."',
-    initials: "TA",
-    name: "Tanvir A.",
-    meta: "Anniversary · Midnight delivery",
-    bg: "linear-gradient(150deg,#F4E0EE,#E5BCDB)",
-  },
-  {
-    quote:
-      '"I live in Canada, my mother lives in Uttara. Radian delivered flowers to her in two hours. Thank you."',
-    initials: "NS",
-    name: "Nusrat S.",
-    meta: "Mother's Day · From abroad",
-    bg: "linear-gradient(150deg,#F2DEEA,#E5C2D8)",
-  },
-  {
-    quote:
-      '"The flowers looked better than the photos. Fresh, elegant, on time. My go-to gift shop now."',
-    initials: "RK",
-    name: "Rafid K.",
-    meta: "Birthday · express delivery",
-    bg: "linear-gradient(150deg,#EBDEF5,#D6C0EC)",
-  },
-  {
-    quote:
-      '"Our office orders every month for client gifts. Never once late, never once disappointing."',
-    initials: "SF",
-    name: "Sadia F.",
-    meta: "Corporate · Monthly client",
-    bg: "linear-gradient(150deg,#E5DCF3,#CDBBE9)",
-  },
-];
 
 export default function Reviews() {
   const [reviews, setReviews] = useState<ShopReview[] | null>(null);
@@ -74,7 +37,7 @@ export default function Reviews() {
     because the database is empty is exactly the thing the owner was warned
     about — it is not a rendering fallback, it is a fabricated claim.
 
-    So: no reviews, no section. `STORIES` is kept only as a record of what the
+    So: no reviews, no section. the invented testimonials that used to sit here as a record are gone (owner, 6 Sep 2026); what
     design intends a review to look like.
   */
   useEffect(() => {
@@ -234,153 +197,3 @@ function initials(name: string): string {
    কোনো লেখা পর্দায় ওঠে না (Storefront → Reviews), তাই প্রশংসা-নিন্দা
    দুটোই নির্ভয়ে নেওয়া যায়। জমার পরে শুধু ধন্যবাদ — PENDING লেখাটা
    কোথায় আছে তা দেখানো হয় না, দেখানোর কথাও না।  */
-export function WriteReview({ productSlug }: { productSlug?: string }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [rating, setRating] = useState(5);
-  const [body, setBody] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
-  const [errMsg, setErrMsg] = useState<string | null>(null);
-  /*  DEC-WEB-006 — a photo with the words. Uploaded when picked (so Send is
-      instant), shown as a preview, removable. The upload door is public but
-      narrow — 3 MB, images only — and nothing shows anywhere until the owner
-      approves the review it belongs to.  */
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const customer = useAuthStore((st) => st.customer);
-
-  async function pickPhoto(file: File | null) {
-    if (!file) return;
-    setPhotoBusy(true); setErrMsg(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(`${baseFor()}/media/upload/review-photo`, { method: "POST", body: fd });
-      if (!res.ok) {
-        const b = await res.json().catch(() => null);
-        throw new Error(b?.message ?? "Could not upload the photo");
-      }
-      setPhoto((await res.json()).url as string);
-    } catch (err) {
-      setErrMsg(err instanceof Error ? err.message : "Could not upload the photo");
-      setState("error");
-    } finally { setPhotoBusy(false); }
-  }
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setState("sending");
-    const r = await submitReview({
-      authorName: name, rating, body, productSlug,
-      imageUrl: photo ?? undefined,
-      /*  which account — the logged-in session's phone. A guest simply sends
-          nothing; the server matches the phone to the customer book itself.  */
-      customerPhone: customer?.phone,
-    });
-    if (r.ok) setState("done");
-    else {
-      setErrMsg(r.message);
-      setState("error");
-    }
-  }
-
-  if (state === "done") {
-    return (
-      <div className="max-w-[560px] mx-auto mt-8 rounded-[20px] bg-[#E8F9EE] border border-[#C4EED4] px-6 py-5 text-center">
-        <p className="text-[14px] text-[#0E7A3D] font-semibold">Thank you! 💐</p>
-        <p className="text-[13px] text-[#25674A] mt-1">
-          We read every review before it goes up — yours is on its way to us.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-[560px] mx-auto mt-8 text-center">
-      {!open ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-purple px-6 py-3 text-[14px] font-semibold text-purple transition-all duration-300 hover:bg-purple hover:text-white"
-        >
-          Write a review
-        </button>
-      ) : (
-        <form onSubmit={onSubmit} className="rounded-[20px] bg-white border-[1.5px] border-lavender-deep p-5 text-left space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              required
-              className="flex-1 min-w-0 rounded-[12px] border-[1.5px] border-lavender-deep px-3.5 py-2.5 text-[13.5px] outline-none focus:border-orchid"
-            />
-            {/* তারা — click করলেই মান, ৫ থেকে নামে */}
-            <div className="flex gap-0.5 shrink-0" role="radiogroup" aria-label="Rating">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-label={`${n} star${n > 1 ? "s" : ""}`}
-                  onClick={() => setRating(n)}
-                  className={`text-[20px] leading-none ${n <= rating ? "text-[#F5A623]" : "text-lavender-deep"}`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-          </div>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="How was your Radian moment?"
-            required
-            minLength={5}
-            maxLength={1200}
-            className="w-full min-h-[90px] resize-none rounded-[12px] border-[1.5px] border-lavender-deep px-3.5 py-2.5 text-[13.5px] outline-none focus:border-orchid"
-          />
-          {/* photo — optional, one, previewed */}
-          <div className="flex items-center gap-3">
-            {photo ? (
-              <span className="relative inline-block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo} alt="" className="w-[72px] h-[72px] rounded-[12px] object-cover border border-lavender-deep" />
-                <button type="button" onClick={() => setPhoto(null)}
-                  aria-label="Remove photo"
-                  className="absolute -top-2 -right-2 w-[22px] h-[22px] rounded-full bg-white border border-lavender-deep text-body-soft text-[12px] leading-none grid place-items-center hover:text-[#C4172B]">
-                  ×
-                </button>
-              </span>
-            ) : (
-              <label className="inline-flex items-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-lavender-deep px-4 py-2.5 text-[12.5px] text-body-soft cursor-pointer hover:border-orchid hover:text-purple transition-colors">
-                📷 {photoBusy ? "Uploading…" : "Add a photo (optional)"}
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={photoBusy}
-                  onChange={(e) => { void pickPhoto(e.target.files?.[0] ?? null); e.target.value = ""; }} />
-              </label>
-            )}
-            {customer && (
-              <span className="text-[11.5px] text-body-soft">
-                Posting as <b className="text-purple">{customer.name ?? customer.phone}</b>
-              </span>
-            )}
-          </div>
-          {state === "error" && errMsg && (
-            <p className="text-[12px] text-[#C4172B]">{errMsg}</p>
-          )}
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11.5px] text-body-soft">
-              Reviews are read by our team before publishing.
-            </p>
-            <button
-              type="submit"
-              disabled={state === "sending"}
-              className="rounded-full bg-purple px-6 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-purple-deep disabled:opacity-70"
-            >
-              {state === "sending" ? "Sending…" : "Send review"}
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}

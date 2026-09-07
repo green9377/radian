@@ -311,6 +311,45 @@ export class ReviewsService {
     use is a page saying "already used", not a second review.
   */
 
+  /**
+   * DEC-WEB-012 (owner, 6 Sep 2026) — a customer reviews ONLY what they
+   * bought, and only after it was delivered. This is the account page's
+   * door: the order number and a phone on the order (the same proof `/track`
+   * accepts) return one link per product of a DELIVERED order. Anything else
+   * — not delivered, wrong phone, no such order — is an empty list, worded
+   * the same way so nothing leaks about which numbers exist.
+   */
+  async reviewLinks(orderNoIn: string, phoneIn: string) {
+    const orderNo = orderNoIn.trim().toUpperCase();
+    const tail = (v: string | null | undefined) => (v ?? '').replace(/\D/g, '').slice(-10);
+    if (!orderNo || tail(phoneIn).length < 10) return [];
+    const order = await this.prisma.db.order.findFirst({
+      where: { orderNo, deliveryStatus: 'delivered' },
+      select: {
+        id: true,
+        senderPhone: true,
+        recipientPhone: true,
+        customer: { select: { phone: true } },
+      },
+    });
+    if (!order) return [];
+    const ok = [order.senderPhone, order.customer?.phone, order.recipientPhone].some((p) => tail(p) === tail(phoneIn));
+    if (!ok) return [];
+    const invites = await this.prisma.db.reviewInvite.findMany({
+      where: { orderId: order.id, productId: { not: null } },
+      orderBy: { createdAt: 'asc' },
+      include: { product: { select: { slug: true, name: true } } },
+    });
+    return invites
+      .filter((i) => i.product)
+      .map((i) => ({
+        productSlug: i.product!.slug,
+        productName: i.product!.name,
+        token: i.usedAt ? null : i.token,
+        reviewed: !!i.usedAt,
+      }));
+  }
+
   /** what the /review/[token] page needs to draw itself */
   async inviteInfo(token: string) {
     const inv = await this.prisma.db.reviewInvite.findFirst({
@@ -359,13 +398,14 @@ export class ReviewsService {
     if (body.length < 5) throw new BadRequestException('please write a few words');
     if (body.length > 1200) throw new BadRequestException('reviews are limited to 1200 characters');
 
+    // a picture from our own media host only (the old ImageKit check let nothing through)
     const imageUrl =
-      dto.imageUrl && /^https:\/\/ik\.imagekit\.io\//.test(dto.imageUrl) ? dto.imageUrl : null;
+      dto.imageUrl && /^https:\/\/[^/]+\/radian\//.test(dto.imageUrl) ? dto.imageUrl : null;
 
     const review = await this.prisma.db.review.create({
       data: {
         source: 'CUSTOMER',
-        status: 'PENDING', // মালিকের moderation-এর আগে পর্দায় নয় — token-ও ব্যতিক্রম নয়
+        status: 'PENDING', // never on screen before the owner's moderation - the token is no exception
         authorName: inv.customer?.name || 'A customer',
         rating: clampRating(dto.rating),
         body,
@@ -490,21 +530,20 @@ export class ReviewsController {
 export class PublicReviewsController {
   constructor(private readonly svc: ReviewsService) {}
 
+  /*  DEC-WEB-012 — the open "write a review" door is CLOSED (owner, 6 Sep
+      2026): a review may only come through a delivery invite, for the product
+      that was delivered. The service method stays for the admin's own use.  */
   @Public()
   @Post('reviews')
-  async submit(
-    @Body()
-    dto: {
-      authorName?: string;
-      rating?: number;
-      body?: string;
-      productSlug?: string;
-      context?: string;
-      imageUrl?: string;
-      customerPhone?: string;
-    },
-  ) {
-    return this.svc.submitFromCustomer(dto);
+  submitClosed() {
+    throw new BadRequestException('Reviews can be written from your order once it has been delivered');
+  }
+
+  /** the account's order page: one review link per delivered product */
+  @Public()
+  @Get('review-links')
+  reviewLinks(@Query('orderNo') orderNo?: string, @Query('phone') phone?: string) {
+    return this.svc.reviewLinks(orderNo ?? '', phone ?? '');
   }
 
   /*  DEC-WEB-008 — the invite's two doors. GET draws the pre-filled page,

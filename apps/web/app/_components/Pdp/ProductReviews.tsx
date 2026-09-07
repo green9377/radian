@@ -1,6 +1,5 @@
 "use client";
 
-import { WriteReview } from "../GBE/Reviews";
 import type { ProductDetail } from "../../_data/productDetails";
 
 /*
@@ -137,12 +136,15 @@ export default function ProductReviews({ detail }: { detail: ProductDetail }) {
           </>
         ) : (
           <p className="text-[14px] text-body-soft mb-2">
-            No reviews for this one yet — be the first.
+            No reviews for this one yet.
           </p>
         )}
 
-        {/* the pen — PENDING until the owner approves, same door as everywhere */}
-        <WriteReview productSlug={detail.product.slug} />
+        {/*  DEC-WEB-012 — no pen here. A review is written from the account's
+            order page once the gift is delivered, for that product only.  */}
+        <p className="text-[12.5px] text-body-soft mt-2">
+          Bought this? Once it is delivered, you can review it from your order.
+        </p>
       </div>
     </section>
   );

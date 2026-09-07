@@ -1171,6 +1171,24 @@ model Product {
   discountStartsAt DateTime?
   discountEndsAt   DateTime?
 
+  /// ── DEC-PRD-062 · one discount for every variant (owner, 6 Sep 2026) ────
+  /// > *"if the same discount applies to all variants, switch it on; if I
+  /// >  want it customised, switch it off and set them one by one"*
+  ///
+  /// ON (the default): the product's own discount and its start/end window
+  /// apply to every variant's price, the variants' own discount boxes are
+  /// ignored and hidden, and the offer countdown stays on the page whichever
+  /// variant is picked. OFF: the old rule (DEC-PRD-031) — a variant that
+  /// states its price carries its own discount, and the product's does not
+  /// stack on top.
+  discountOnVariants Boolean @default(true)
+
+  /// ── DEC-PRD-063 · the order of the variant lists on the page ────────────
+  /// Attribute ids, in the order the owner wants them shown for THIS product
+  /// (Colour then Size, or Size then Colour). Empty = the attributes' own
+  /// global order. Nothing is fixed in advance (owner, 6 Sep 2026).
+  variantAxisOrder String[] @default([])
+
   // payment override (Product-level) — locked §2 (DEC-PRD-005)
   advanceRequired    Boolean      @default(false)
   advanceType        AdvanceType? // FULL | PARTIAL

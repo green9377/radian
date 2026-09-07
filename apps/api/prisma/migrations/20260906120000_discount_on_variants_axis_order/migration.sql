@@ -1,0 +1,3 @@
+-- DEC-PRD-062 / DEC-PRD-063 (owner, 6 Sep 2026)
+ALTER TABLE "Product" ADD COLUMN "discountOnVariants" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Product" ADD COLUMN "variantAxisOrder" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

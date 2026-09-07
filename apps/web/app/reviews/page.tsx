@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { WriteReview } from "../_components/GBE/Reviews";
 
 /*
   ─── /reviews — DEC-WEB-005 (10 Aug 2026) ──────────────────────────────────
@@ -195,8 +194,6 @@ export default async function ReviewsPage() {
           </p>
         )}
 
-        {/* the pen — moderated, same as everywhere */}
-        <WriteReview />
       </div>
     </main>
   );

@@ -899,10 +899,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           </div>
 
           {/*  DEC-PRD-042 — when the offer ends, right under the price where the
-              eye already is. Only alongside a real struck price: a window with
-              nothing struck through is not an offer, and a variant's own price
-              is not covered by the product's window.  */}
-          {wasPaisa !== null && !variant && !bundled && detail.offer?.endsAtMs != null && (
+              eye already is. Only alongside a real struck price. DEC-PRD-062:
+              the server sends the window whenever the product's discount is
+              the one cutting the price — with the "every variant" switch on,
+              that includes a picked variant, so the countdown stays.  */}
+          {wasPaisa !== null && !bundled && detail.offer?.endsAtMs != null && (!variant || variant.offerFromProduct) && (
             <OfferWindow endsAtMs={detail.offer.endsAtMs} />
           )}
 
