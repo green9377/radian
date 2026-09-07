@@ -85,23 +85,15 @@ function MoonIcon() {
 
     FlowerAura, checked 24 Aug 2026, runs the same shape: a delivery pill and
     at most one merchandising pill per card, never both merchandising ones. */
-/*  The discount sticker, the same one the product page wears, in the shape
-    the owner set it: a flat amount as taka, a percent as % — never both. A
-    product with an offer shows it on the card, not only after the click
-    (owner, 7 Sep 2026).  */
-function OffBadge({ product }: { product: Product }) {
+/*  The saving, beside the price and off the photograph (owner, 7 Sep 2026: a
+    sticker on the picture spoiled it). The shape is the one the owner set: a
+    flat amount as taka, a percent as % — never both.  */
+function offLabel(product: Product): string | null {
   const was = product.mrpPaisa;
   if (was == null || was <= product.pricePaisa) return null;
-  const label =
-    product.discountKind === "PERCENT"
-      ? `${Math.round(((was - product.pricePaisa) / was) * 100)}% OFF`
-      : `${formatTaka(was - product.pricePaisa)} OFF`;
-  return (
-    /*  under the delivery pill (top-left), so the two claims stack instead of overlapping  */
-    <span className="absolute top-[48px] left-[13px] z-[4] bg-orchid text-white text-[11px] font-bold rounded-full px-3 py-[6px] shadow-[0_6px_18px_rgba(207,67,234,0.35)] whitespace-nowrap">
-      {label}
-    </span>
-  );
+  return product.discountKind === "PERCENT"
+    ? `${Math.round(((was - product.pricePaisa) / was) * 100)}% OFF`
+    : `${formatTaka(was - product.pricePaisa)} OFF`;
 }
 
 function MerchBadge({ product }: { product: Product }) {
@@ -190,7 +182,6 @@ export default function ProductCard({
         <TileImage src={product.imageUrl} alt={product.name} variant="card" className="aspect-square">
           <Badge product={product} zone={zone} />
           <MerchBadge product={product} />
-          <OffBadge product={product} />
         </TileImage>
       </Link>
 
@@ -233,14 +224,22 @@ export default function ProductCard({
               this number is then the cheapest one, not the price of whatever
               they end up choosing. A card that says ৳4,400 over a page that
               charges ৳450 is the shop contradicting itself in public.  */}
-          <div className="font-display text-[17px] sm:text-[20px] font-semibold text-purple whitespace-nowrap">
-            {product.priceFrom && (
-              <span className="text-[12px] font-medium text-body-soft mr-1">from</span>
-            )}
-            {formatTaka(product.pricePaisa)}
-            {/* the struck price, when a discount is really cutting it (owner, 7 Sep 2026) */}
-            {product.mrpPaisa != null && product.mrpPaisa > product.pricePaisa && (
-              <span className="ml-1.5 text-[12.5px] font-medium text-body-soft line-through">{formatTaka(product.mrpPaisa)}</span>
+          <div className="min-w-0">
+            <div className="font-display text-[17px] sm:text-[20px] font-semibold text-purple whitespace-nowrap">
+              {product.priceFrom && (
+                <span className="text-[12px] font-medium text-body-soft mr-1">from</span>
+              )}
+              {formatTaka(product.pricePaisa)}
+              {/* the struck price, when a discount is really cutting it */}
+              {product.mrpPaisa != null && product.mrpPaisa > product.pricePaisa && (
+                <span className="ml-1.5 text-[12.5px] font-medium text-body-soft line-through">{formatTaka(product.mrpPaisa)}</span>
+              )}
+            </div>
+            {/* the saving, under the price — off the photograph (owner, 7 Sep 2026) */}
+            {offLabel(product) && (
+              <span className="inline-block mt-1 text-[11px] font-bold text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-full px-2 py-[2px] whitespace-nowrap">
+                {offLabel(product)}
+              </span>
             )}
           </div>
           <button className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0">
