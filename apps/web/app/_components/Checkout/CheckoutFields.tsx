@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { IconName } from "../../_data/productDetails";
 
 import { COUNTRIES } from "../../_data/countries";
+import { useCheckoutStore } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
 
 /*
@@ -17,25 +18,24 @@ import Icon from "../Pdp/PdpIcons";
 /* ─────────────────── THE STEPPER SHELL ───────────────────
    Owner, 7 Sep 2026, after FlowerAura's checkout: a rail of steps down the
    left, ONE step open on the right, and a finished step collapsing into a
-   full-width row — its facts in columns and a pencil to reopen it. The whole
-   shell is one CSS grid (`CheckoutGrid`); every step is one `QCard`, which
-   draws itself in one of three shapes:
+   full-width row — its facts in columns and a pencil to reopen it.
 
-     done     → a full-width row      (grid-column 1 / -1)
-     open     → a rail tile + a panel (the panel spans the rows of the
-                pending tiles under it, so it stands beside them)
-     pending  → a quiet rail tile
+   The shell is one CSS grid (`CheckoutGrid`). The rail — the open step's tile
+   and the tiles of the steps not reached yet — is drawn by the grid itself
+   from the store, so it can stand as one column beside the panel. A `QCard`
+   draws only what belongs to its step: the full-width row when it is done,
+   the panel when it is open, nothing while it waits.
 
    Only the shell changed; every field, rule and store call inside the steps
    is the one that was there before.
 */
 
-export const STEP_LABELS = [
-  "Your details",
-  "Receiver",
-  "Where",
-  "When",
-  "Payment",
+export const STEP_TITLES = [
+  "Your Details",
+  "Who's Receiving?",
+  "Where?",
+  "When?",
+  "Payment & Summary",
 ] as const;
 
 const STEP_ICONS: IconName[] = ["user", "gift", "pin", "clock", "lock"];
@@ -44,9 +44,37 @@ const STEP_ICONS: IconName[] = ["user", "gift", "pin", "clock", "lock"];
 const ShellContext = createContext<{ shown: number[] }>({ shown: [1, 2, 3, 4, 5] });
 
 export function CheckoutGrid({ shown, children }: { shown: number[]; children: ReactNode }) {
+  const step = useCheckoutStore((s) => s.step);
+  const done = useCheckoutStore((s) => s.done);
+  const openStep = useCheckoutStore((s) => s.openStep);
+  const rail = shown.filter((n) => n === step || !done.includes(n));
+
   return (
     <ShellContext.Provider value={{ shown }}>
-      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[250px_1fr] mt-4">{children}</div>
+      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[250px_1fr] mt-4">
+        {children}
+        {/* the rail — hidden on a phone, where the panel names its own step */}
+        <div className="hidden lg:flex flex-col gap-3 checkout-rail self-start">
+          {rail.map((n) => {
+            const open = n === step;
+            return (
+              <button
+                key={n}
+                type="button"
+                disabled={open}
+                onClick={() => openStep(n)}
+                className={`text-left rounded-[20px] border-[1.5px] px-4 py-4 transition-colors ${
+                  open
+                    ? "bg-white border-purple border-l-[5px] shadow-soft"
+                    : "bg-white/60 border-lavender-deep hover:bg-white"
+                }`}
+              >
+                <RailHead n={n} shown={shown} state={open ? "open" : "pending"} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </ShellContext.Provider>
   );
 }
@@ -65,12 +93,12 @@ export function QCard({
   children,
 }: {
   n: number;
-  title: string;
+  title?: string;
   /** the panel's heading — "Let us know where to deliver" */
   lead?: string;
   open: boolean;
   done: boolean;
-  /** one line for the rail tile of a finished step; the row prefers `facts` */
+  /** one line for a finished step; the row prefers `facts` */
   summary?: string;
   /** the finished step's facts, in columns */
   facts?: StepFact[];
@@ -78,19 +106,17 @@ export function QCard({
   children: ReactNode;
 }) {
   const { shown } = useContext(ShellContext);
-  const total = shown.length;
-  const stepNo = shown.indexOf(n) + 1;
-  const icon = STEP_ICONS[n - 1] ?? "check";
+  const name = title ?? STEP_TITLES[n - 1];
 
   /* ── a finished step: one row across the shell ── */
   if (done && !open) {
-    const cols: StepFact[] = facts?.length ? facts : summary ? [{ label: title, value: summary }] : [];
+    const cols: StepFact[] = facts?.length ? facts : summary ? [{ label: name, value: summary }] : [];
     return (
       <section
         id={`step-${n}`}
         className="scroll-mt-[120px] lg:col-span-2 bg-white rounded-[20px] border-[1.5px] border-lavender-deep shadow-soft px-4 sm:px-5 py-4 grid gap-4 lg:grid-cols-[230px_1fr_auto] items-start"
       >
-        <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="done" />
+        <RailHead n={n} shown={shown} state="done" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-lavender-deep">
           {cols.map((f, i) => (
             <div key={i} className={`min-w-0 ${i > 0 ? "lg:pl-5" : ""}`}>
@@ -102,7 +128,7 @@ export function QCard({
         <button
           type="button"
           onClick={onOpen}
-          aria-label={`Edit ${title}`}
+          aria-label={`Edit ${name}`}
           className="justify-self-end inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-lavender-deep px-3.5 py-1.5 text-[12.5px] font-bold text-purple hover:border-orchid hover:text-orchid transition-colors"
         >
           <Icon name="pen" className="w-3.5 h-3.5" /> Edit
@@ -111,56 +137,31 @@ export function QCard({
     );
   }
 
-  /* ── the open step: its tile on the rail, the panel beside it ── */
+  /* ── the open step: the panel; its tile is on the rail ── */
   if (open) {
-    const pendingBelow = shown.filter((k) => k > n).length;
     return (
-      <>
-        <div
-          id={`step-${n}`}
-          className="scroll-mt-[120px] bg-white rounded-[20px] border-[1.5px] border-purple shadow-soft px-4 sm:px-5 py-4 lg:border-l-[5px]"
-        >
-          <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="open" />
+      <div
+        id={`step-${n}`}
+        className="checkout-panel scroll-mt-[120px] bg-white rounded-[24px] border-[1.5px] border-lavender-deep shadow-soft px-5 sm:px-7 py-6"
+      >
+        <div className="lg:hidden mb-4">
+          <RailHead n={n} shown={shown} state="open" />
         </div>
-        <div
-          className="checkout-panel bg-white rounded-[24px] border-[1.5px] border-lavender-deep shadow-soft px-5 sm:px-7 py-6"
-          style={{ "--span": pendingBelow + 1 } as React.CSSProperties}
-        >
-          {lead && (
-            <h2 className="font-display text-[20px] sm:text-[22px] text-purple font-semibold mb-5">{lead}</h2>
-          )}
-          {children}
-        </div>
-      </>
+        {lead && (
+          <h2 className="font-display text-[20px] sm:text-[22px] text-purple font-semibold mb-5">{lead}</h2>
+        )}
+        {children}
+      </div>
     );
   }
 
-  /* ── a step not reached yet ── */
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      id={`step-${n}`}
-      className="text-left bg-white/60 rounded-[20px] border-[1.5px] border-lavender-deep px-4 sm:px-5 py-4 lg:self-start hover:bg-white transition-colors"
-    >
-      <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="pending" />
-    </button>
-  );
+  /* ── not reached yet: the rail carries its tile ── */
+  return null;
 }
 
-function RailHead({
-  icon,
-  title,
-  stepNo,
-  total,
-  state,
-}: {
-  icon: IconName;
-  title: string;
-  stepNo: number;
-  total: number;
-  state: "done" | "open" | "pending";
-}) {
+function RailHead({ n, shown, state }: { n: number; shown: number[]; state: "done" | "open" | "pending" }) {
+  const title = STEP_TITLES[n - 1];
+  const icon = STEP_ICONS[n - 1] ?? "check";
   const tone =
     state === "done"
       ? "bg-[#E8F9EE] text-[#0E7A3D]"
@@ -179,14 +180,14 @@ function RailHead({
       </span>
       <span className="min-w-0">
         <span
-          className={`block font-display text-[16.5px] leading-tight truncate ${
+          className={`block font-display text-[16px] leading-tight ${
             state === "pending" ? "text-body-soft font-medium" : "text-purple font-semibold"
           }`}
         >
           {title}
         </span>
         <span className="block text-[12px] text-body-soft mt-0.5">
-          Step {stepNo}/{total}
+          Step {shown.indexOf(n) + 1}/{shown.length}
         </span>
       </span>
     </div>

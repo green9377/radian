@@ -182,14 +182,18 @@ body {
   opacity: 0.6;
 }
 
-/* Checkout shell (7 Sep 2026): on a wide screen the open step's panel stands
-   beside the pending tiles under its own tile — it spans their rows. */
+/* Checkout shell (7 Sep 2026): on a wide screen the rail stands in the first
+   column and the open panel in the second, on one row; finished steps are
+   full-width rows above them (dense flow lets the rail, drawn last, take the
+   hole beside the panel). */
 @media (min-width: 1024px) {
   .checkout-grid {
     grid-auto-flow: row dense;
   }
+  .checkout-rail {
+    grid-column: 1;
+  }
   .checkout-panel {
     grid-column: 2;
-    grid-row: span var(--span, 1);
   }
 }
