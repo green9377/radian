@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import AnnouncementBar from "./AnnouncementBar";
 import LocationGate from "./LocationGate";
 import SearchBar from "./SearchBar";
 import NavIcons from "./NavIcons";
 import CategoryNav from "./CategoryNav";
 import MorePanel from "./MorePanel";
+import CheckoutHeader from "./CheckoutHeader";
 import { useZoneStore, type Zone } from "../../_store/useZoneStore";
 import { useCartCount } from "../../_store/useCartStore";
 import { useWishlistCount } from "../../_store/useWishlistStore";
@@ -73,8 +75,8 @@ export default function Header() {
   const [hydrated, setHydrated] = useState(false);
   const [showMore, setShowMore] = useState(false);
 
-  /* Cart badge — hydrate না হওয়া পর্যন্ত 0 ফেরত দেয়, তাই badge লুকানো
-     থাকে আর server/client render মিলে যায় (zone-এর মতোই সমস্যা)। */
+  /* Cart badge — reads 0 until hydration, so the badge stays hidden and the
+     server and client renders agree (the same problem the zone has). */
   const cartCount = useCartCount();
   const wishlistCount = useWishlistCount();
 
@@ -93,6 +95,11 @@ export default function Header() {
 
   // Hard block for new visitors (no saved zone), or manually opened
   const showGate = gateOpen || (hydrated && !zone);
+
+  /* /checkout wears its own slim header (7 Sep 2026) — after every hook above,
+     so the hook order never changes between pages */
+  const pathname = usePathname();
+  if (pathname === "/checkout" || pathname?.startsWith("/checkout/")) return <CheckoutHeader />;
 
   function handleZonePick(z: Zone) {
     setZone(z);

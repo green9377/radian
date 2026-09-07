@@ -4,8 +4,8 @@ import { defaultPayment, paymentOptions, type PaymentId } from "../../_data/paym
 import type { ResolvedLine } from "../../_data/cart";
 import { normalizePhone, useCheckoutStore } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
-import { Continue, QCard } from "./CheckoutFields";
-import { useState } from "react";
+import { QCard } from "./CheckoutFields";
+import { useState, type ReactNode } from "react";
 import { sendCreditCode } from "../../_data/checkoutApi";
 
 /*
@@ -23,7 +23,14 @@ import { sendCreditCode } from "../../_data/checkoutApi";
   total (locked). The code belongs where the discount can be seen as a number.
 */
 
-export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) {
+export function Q5Payment({
+  lines,
+  summary,
+}: {
+  lines: Pick<ResolvedLine, "detail">[];
+  /** the order lines, the bill and the Place Order button — drawn under the payment choice (7 Sep 2026) */
+  summary: ReactNode;
+}) {
   const s = useCheckoutStore();
 
   const options = paymentOptions({ isGift: s.isGift, lines });
@@ -31,23 +38,13 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
     options.find((o) => o.method.id === s.payment && o.available)?.method.id ??
     defaultPayment(options);
 
-  function onContinue() {
-    s.patch({ payment: active });
-    s.completeStep(5);
-    /* The "One Last Look" card is mounting right now — scroll after the
-       render, or the element is not in the DOM yet and nothing happens. */
-    setTimeout(
-      () => document.getElementById("review")?.scrollIntoView({ behavior: "smooth" }),
-      80,
-    );
-  }
-
   const note = options.find((o) => o.method.id === active)?.method.note;
 
   return (
     <QCard
       n={5}
-      title="Payment"
+      title="Payment & Summary"
+      lead="Payment & order summary"
       open={s.step === 5}
       done={s.done.includes(5)}
       summary={
@@ -125,7 +122,11 @@ export function Q5Payment({ lines }: { lines: Pick<ResolvedLine, "detail">[] }) 
 
       <StoreCredit />
 
-      <Continue label="Review order" onClick={onContinue} />
+      {/*  7 Sep 2026 — the bill and the button live in this step, the way
+          FlowerAura closes: what is going, what it costs, one Place Order.
+          The finished steps above are the review; the separate "One Last
+          Look" card went with them.  */}
+      <div className="mt-6 pt-6 border-t border-lavender-deep">{summary}</div>
     </QCard>
   );
 }

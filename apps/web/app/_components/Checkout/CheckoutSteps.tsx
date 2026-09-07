@@ -51,11 +51,14 @@ export function Q1Details() {
     <QCard
       n={1}
       title="Your Details"
+      lead="Let us know you better"
       open={s.step === 1}
       done={s.done.includes(1)}
-      summary={
-        s.senderName ? `${s.senderName} · ${s.senderDial} ${s.senderPhone}` : undefined
-      }
+      facts={[
+        { label: "Full name", value: s.senderName },
+        { label: "WhatsApp number", value: `${s.senderDial} ${s.senderPhone}` },
+        ...(s.senderEmail ? [{ label: "Email", value: s.senderEmail }] : []),
+      ]}
       onOpen={() => s.openStep(1)}
     >
       <div className="grid sm:grid-cols-2 gap-4">
@@ -120,19 +123,22 @@ export function Q2Receiving() {
     if (Object.keys(e).length === 0) s.completeStep(2);
   }
 
-  const summary = s.isGift
-    ? s.recipientName
-      ? `Gift for ${s.recipientName}${s.anonymousGift ? " · anonymous" : ""}`
-      : undefined
-    : "For me";
+  const facts = s.isGift
+    ? [
+        { label: "Receiver", value: `${s.recipientName}${s.anonymousGift ? " · sent anonymously" : ""}` },
+        { label: "Receiver's phone", value: s.recipientPhone },
+        { label: "Card message", value: s.giftMessage.trim() || "No message" },
+      ]
+    : [{ label: "Receiver", value: "For me" }];
 
   return (
     <QCard
       n={2}
       title="Who's Receiving?"
+      lead="Who is this for?"
       open={s.step === 2}
       done={s.done.includes(2)}
-      summary={summary}
+      facts={facts}
       onOpen={() => s.openStep(2)}
     >
       <Seg

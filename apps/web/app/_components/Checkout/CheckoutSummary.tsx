@@ -77,23 +77,18 @@ export function CheckoutSummary({
   const couponRejected = useCartStore((s) => s.couponRejected);
 
   return (
-    /* top = header + sticky StepBar, or the summary slides under the bar */
-    <aside className="lg:sticky lg:top-[200px] bg-white border-[1.5px] border-lavender-deep rounded-[24px] p-5 sm:p-6 shadow-soft">
-      <h2 className="font-display text-[20px] text-purple font-semibold mb-4">
-        Order Summary
-      </h2>
-
-      {/* mini lines — editing means going back to the cart (D22) */}
-      <div className="space-y-3 pb-3 border-b border-lavender">
+    <div className="grid gap-6 lg:grid-cols-[1fr_340px] items-start">
+      {/* what is going — editing a line means going back to the cart (D22) */}
+      <div className="space-y-3">
         {lines.map((l) => (
-          <div key={l.item.lineId} className="flex items-center gap-3">
+          <div key={l.item.lineId} className="flex items-center gap-3.5 rounded-[16px] border border-lavender-deep bg-white p-3">
             {/* the colour that was picked — its photo and its name (DEC-PRD-012) */}
-            <TileImage src={l.variant?.imageUrl ?? l.product.imageUrl ?? l.product.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
+            <TileImage src={l.variant?.imageUrl ?? l.product.imageUrl ?? l.product.bg} alt="" variant="thumb" className="w-[64px] h-[64px] rounded-[12px] shrink-0" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[12.5px] font-semibold text-purple truncate">
+              <span className="block text-[13.5px] font-semibold text-purple truncate">
                 {l.product.name}
               </span>
-              <span className="block text-[11.5px] text-body-soft truncate">
+              <span className="block text-[12px] text-body-soft truncate mt-0.5">
                 {[
                   l.variant?.label,
                   l.size.label,
@@ -105,12 +100,15 @@ export function CheckoutSummary({
                   .join(" · ")}
               </span>
             </span>
-            <span className="text-[12.5px] font-semibold text-purple shrink-0">
+            <span className="text-[14px] font-semibold text-purple shrink-0">
               {formatTaka(l.linePaisa)}
             </span>
           </div>
         ))}
       </div>
+
+      <aside className="bg-lavender/40 border-[1.5px] border-lavender-deep rounded-[20px] p-5">
+      <h3 className="font-display text-[19px] text-purple font-semibold mb-2">Bill Summary</h3>
 
       <div className="divide-y divide-lavender">
         <Row
@@ -175,7 +173,8 @@ export function CheckoutSummary({
       </button>
 
       <TrustBand />
-    </aside>
+      </aside>
+    </div>
   );
 }
 

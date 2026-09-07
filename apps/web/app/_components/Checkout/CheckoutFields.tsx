@@ -1,6 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
+
+import type { IconName } from "../../_data/productDetails";
 
 import { COUNTRIES } from "../../_data/countries";
 import Icon from "../Pdp/PdpIcons";
@@ -12,7 +14,21 @@ import Icon from "../Pdp/PdpIcons";
   catches it.
 */
 
-/* ─────────────────── STEP BAR ─────────────────── */
+/* ─────────────────── THE STEPPER SHELL ───────────────────
+   Owner, 7 Sep 2026, after FlowerAura's checkout: a rail of steps down the
+   left, ONE step open on the right, and a finished step collapsing into a
+   full-width row — its facts in columns and a pencil to reopen it. The whole
+   shell is one CSS grid (`CheckoutGrid`); every step is one `QCard`, which
+   draws itself in one of three shapes:
+
+     done     → a full-width row      (grid-column 1 / -1)
+     open     → a rail tile + a panel (the panel spans the rows of the
+                pending tiles under it, so it stands beside them)
+     pending  → a quiet rail tile
+
+   Only the shell changed; every field, rule and store call inside the steps
+   is the one that was there before.
+*/
 
 export const STEP_LABELS = [
   "Your details",
@@ -22,116 +38,158 @@ export const STEP_LABELS = [
   "Payment",
 ] as const;
 
-/*
-  ★ Stays pinned at the top while scrolling (locked, 14 July).
-  Checkout is long, and losing track of "which step am I on, how many are
-  left" partway down is the single biggest cause of drop-off. So the bar is
-  always in sight.
+const STEP_ICONS: IconName[] = ["user", "gift", "pin", "clock", "lock"];
 
-  ⚠️ `top` = the header's height. The header is sticky at top-0, so this has to
-  sit directly under it. If the header's height changes, change BOTH this and
-  CheckoutSummary's `top`.
-*/
-export function StepBar({ step, done }: { step: number; done: number[] }) {
+/** which steps the shell is drawing right now — Q4/Q5 leave when every item is held */
+const ShellContext = createContext<{ shown: number[] }>({ shown: [1, 2, 3, 4, 5] });
+
+export function CheckoutGrid({ shown, children }: { shown: number[]; children: ReactNode }) {
   return (
-    <div className="sticky top-[112px] lg:top-[124px] z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 pb-3 bg-[#F6F4FA]/95 backdrop-blur-[10px] border-b border-lavender-deep">
-      <div className="flex gap-1.5 sm:gap-2.5">
-        {STEP_LABELS.map((label, i) => {
-          const n = i + 1;
-          const isDone = done.includes(n);
-          const isNow = step === n;
-
-          return (
-            <div key={label} className="flex-1 min-w-0">
-              <div
-                className={`h-[4px] rounded-full transition-colors ${
-                  isDone ? "bg-[#0E7A3D]" : isNow ? "bg-orchid" : "bg-lavender-deep"
-                }`}
-              />
-              <div
-                className={`mt-2 text-[10.5px] sm:text-[12.5px] truncate ${
-                  isNow ? "text-purple font-semibold" : "text-body-soft"
-                }`}
-              >
-                <span className="hidden sm:inline">{n} · </span>
-                {label}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <ShellContext.Provider value={{ shown }}>
+      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[250px_1fr] mt-4">{children}</div>
+    </ShellContext.Provider>
   );
 }
 
-/* ─────────────────── ACCORDION CARD ───────────────────
-   Closed: a one-line summary and an Edit. Open: the whole form.
-   Only one open at a time — the less there is to look at in checkout, the
-   better.
-*/
+export type StepFact = { label: string; value: ReactNode };
 
 export function QCard({
   n,
   title,
+  lead,
   open,
   done,
   summary,
+  facts,
   onOpen,
   children,
 }: {
   n: number;
   title: string;
+  /** the panel's heading — "Let us know where to deliver" */
+  lead?: string;
   open: boolean;
   done: boolean;
+  /** one line for the rail tile of a finished step; the row prefers `facts` */
   summary?: string;
+  /** the finished step's facts, in columns */
+  facts?: StepFact[];
   onOpen: () => void;
   children: ReactNode;
 }) {
-  return (
-    <section
-      id={`step-${n}`}
-      /* scroll-mt = the sticky StepBar's height, so a card reached by Edit
-         does not hide underneath the bar */
-      className={`scroll-mt-[190px] lg:scroll-mt-[200px] bg-white rounded-[24px] border-[1.5px] transition-colors ${
-        open ? "border-orchid-mid shadow-soft" : "border-lavender-deep"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={onOpen}
-        className="w-full flex items-center gap-3 px-5 sm:px-6 py-4 text-left"
+  const { shown } = useContext(ShellContext);
+  const total = shown.length;
+  const stepNo = shown.indexOf(n) + 1;
+  const icon = STEP_ICONS[n - 1] ?? "check";
+
+  /* ── a finished step: one row across the shell ── */
+  if (done && !open) {
+    const cols: StepFact[] = facts?.length ? facts : summary ? [{ label: title, value: summary }] : [];
+    return (
+      <section
+        id={`step-${n}`}
+        className="scroll-mt-[120px] lg:col-span-2 bg-white rounded-[20px] border-[1.5px] border-lavender-deep shadow-soft px-4 sm:px-5 py-4 grid gap-4 lg:grid-cols-[230px_1fr_auto] items-start"
       >
+        <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="done" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-lavender-deep">
+          {cols.map((f, i) => (
+            <div key={i} className={`min-w-0 ${i > 0 ? "lg:pl-5" : ""}`}>
+              <span className="block text-[12.5px] text-body-soft">{f.label}</span>
+              <span className="block text-[13.5px] text-ink font-medium mt-0.5 break-words">{f.value}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Edit ${title}`}
+          className="justify-self-end inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-lavender-deep px-3.5 py-1.5 text-[12.5px] font-bold text-purple hover:border-orchid hover:text-orchid transition-colors"
+        >
+          <Icon name="pen" className="w-3.5 h-3.5" /> Edit
+        </button>
+      </section>
+    );
+  }
+
+  /* ── the open step: its tile on the rail, the panel beside it ── */
+  if (open) {
+    const pendingBelow = shown.filter((k) => k > n).length;
+    return (
+      <>
+        <div
+          id={`step-${n}`}
+          className="scroll-mt-[120px] bg-white rounded-[20px] border-[1.5px] border-purple shadow-soft px-4 sm:px-5 py-4 lg:border-l-[5px]"
+        >
+          <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="open" />
+        </div>
+        <div
+          className="checkout-panel bg-white rounded-[24px] border-[1.5px] border-lavender-deep shadow-soft px-5 sm:px-7 py-6"
+          style={{ "--span": pendingBelow + 1 } as React.CSSProperties}
+        >
+          {lead && (
+            <h2 className="font-display text-[20px] sm:text-[22px] text-purple font-semibold mb-5">{lead}</h2>
+          )}
+          {children}
+        </div>
+      </>
+    );
+  }
+
+  /* ── a step not reached yet ── */
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      id={`step-${n}`}
+      className="text-left bg-white/60 rounded-[20px] border-[1.5px] border-lavender-deep px-4 sm:px-5 py-4 lg:self-start hover:bg-white transition-colors"
+    >
+      <RailHead icon={icon} title={title} stepNo={stepNo} total={total} state="pending" />
+    </button>
+  );
+}
+
+function RailHead({
+  icon,
+  title,
+  stepNo,
+  total,
+  state,
+}: {
+  icon: IconName;
+  title: string;
+  stepNo: number;
+  total: number;
+  state: "done" | "open" | "pending";
+}) {
+  const tone =
+    state === "done"
+      ? "bg-[#E8F9EE] text-[#0E7A3D]"
+      : state === "open"
+        ? "bg-purple text-white shadow-soft"
+        : "bg-lavender text-body-soft";
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <span className={`relative w-11 h-11 rounded-[13px] grid place-items-center shrink-0 ${tone}`}>
+        <Icon name={icon} className="w-5 h-5" />
+        {state === "done" && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0E7A3D] text-white grid place-items-center">
+            <Icon name="check" className="w-2.5 h-2.5" />
+          </span>
+        )}
+      </span>
+      <span className="min-w-0">
         <span
-          className={`w-7 h-7 rounded-full grid place-items-center text-[12.5px] font-semibold shrink-0 ${
-            done
-              ? "bg-[#E8F9EE] text-[#0E7A3D]"
-              : open
-                ? "bg-purple text-white"
-                : "bg-lavender text-body-soft"
+          className={`block font-display text-[16.5px] leading-tight truncate ${
+            state === "pending" ? "text-body-soft font-medium" : "text-purple font-semibold"
           }`}
         >
-          {done ? <Icon name="check" className="w-3.5 h-3.5" /> : n}
-        </span>
-
-        <h2 className="font-display text-[17px] sm:text-[19px] text-purple font-semibold shrink-0">
           {title}
-        </h2>
-
-        {!open && summary && (
-          <span className="text-[12.5px] text-body-soft truncate ml-1 flex-1 min-w-0">
-            {summary}
-          </span>
-        )}
-
-        {!open && done && (
-          <span className="ml-auto text-[12.5px] font-semibold text-orchid shrink-0">
-            Edit
-          </span>
-        )}
-      </button>
-
-      {open && <div className="px-5 sm:px-6 pb-6 pt-1">{children}</div>}
-    </section>
+        </span>
+        <span className="block text-[12px] text-body-soft mt-0.5">
+          Step {stepNo}/{total}
+        </span>
+      </span>
+    </div>
   );
 }
 

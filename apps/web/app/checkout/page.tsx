@@ -6,13 +6,15 @@ import Reviews from "../_components/GBE/Reviews";
 import VisitStore from "../_components/GBE/VisitStore";
 
 /*
-  /checkout — server shell, ভেতরের সবটা CheckoutView (client: cart +
-  checkout store, দুটোই localStorage)।
+  /checkout — the server shell; everything inside is CheckoutView (client:
+  the cart and the checkout store both live in localStorage).
 
-  GBE order (locked): Reviews → Visit Store → Footer (layout.tsx-এ)।
+  The shell is FlowerAura's shape (owner, 7 Sep 2026): its own slim header
+  (Header.tsx swaps it in on this path), no breadcrumb, one way back — to the
+  cart. GBE order (locked): Reviews → Visit Store → Footer (layout.tsx).
 
-  ⚠️ Board-এর "Need Help Choosing" section এখানে **নেই** — D19:
-  SupportPanel-ই একমাত্র support channel। WhatsApp-order button-ও নেই।
+  No "Need Help Choosing" section here — D19: SupportPanel is the one support
+  channel. No WhatsApp-order button either.
 */
 
 export const metadata: Metadata = {
@@ -25,20 +27,12 @@ export default function CheckoutPage() {
   return (
     <main className="bg-[#F6F4FA]">
       <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 flex-wrap pt-4 text-[13.5px] text-body-soft"
+        <Link
+          href="/cart"
+          className="inline-flex items-center gap-1.5 pt-5 text-[13.5px] font-semibold text-purple hover:text-orchid"
         >
-          <Link href="/" className="hover:text-orchid">
-            Home
-          </Link>
-          <span className="text-lavender-deep">›</span>
-          <Link href="/cart" className="hover:text-orchid">
-            Cart
-          </Link>
-          <span className="text-lavender-deep">›</span>
-          <span className="text-purple font-semibold">Checkout</span>
-        </nav>
+          <span aria-hidden>‹</span> Back to cart
+        </Link>
 
         <div className="pb-24 lg:pb-16">
           <CheckoutView />

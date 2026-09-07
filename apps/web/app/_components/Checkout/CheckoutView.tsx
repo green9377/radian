@@ -39,12 +39,11 @@ import { useAttribution } from "../../_store/useAttribution";
 import { clientKey, useCheckoutLead } from "../../_store/useCheckoutLead";
 import { useZoneStore } from "../../_store/useZoneStore";
 import Icon from "../Pdp/PdpIcons";
-import CheckoutReview from "./CheckoutReview";
 import { CheckoutSticky, CheckoutSummary } from "./CheckoutSummary";
 import { Q3Where, Q4When } from "./CheckoutDelivery";
 import { Q5Payment } from "./CheckoutPayment";
 import { Q1Details, Q2Receiving } from "./CheckoutSteps";
-import { StepBar } from "./CheckoutFields";
+import { CheckoutGrid } from "./CheckoutFields";
 
 /*
   ═══════════════════════════════════════════════════════════════════
@@ -609,8 +608,6 @@ export default function CheckoutView() {
 
   return (
     <>
-      <StepBar step={c.step} done={c.done} />
-
       {/*
         ⚠️ Above everything, not tucked beside the button. This is the shop
         saying no — to a shopper who has filled in five steps and is expecting
@@ -628,57 +625,46 @@ export default function CheckoutView() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start mt-4">
-        <div className="space-y-4">
-          <Q1Details />
-          <Q2Receiving />
-          <Q3Where
-            heldCount={cart.totals.heldQty}
-            deliverableCount={cart.totals.activeQty}
-            allHeld={allHeld}
-          />
+      <CheckoutGrid shown={allHeld ? [1, 2, 3] : [1, 2, 3, 4, 5]}>
+        <Q1Details />
+        <Q2Receiving />
+        <Q3Where
+          heldCount={cart.totals.heldQty}
+          deliverableCount={cart.totals.activeQty}
+          allHeld={allHeld}
+        />
 
-          {/*
-            When every item is held in this zone (0 deliverable), showing
-            When/Payment/Review is meaningless. The message inside Q3 is
-            enough. Switch the zone to Dhaka and allHeld goes false, bringing
-            the remaining steps back.
-          */}
-          {!allHeld && (
-            <>
-              <Q4When
-                subtotalPaisa={totals.subtotalPaisa}
-                leadDays={leadDays}
-                preorder={preorder}
-                speeds={speeds}
-                liveMethods={liveMethods}
-              />
-              <Q5Payment lines={cart.lines} />
-
-              {/* after "Review order" is pressed — everything on one page, each with Edit */}
-              {c.done.includes(5) && (
-                <CheckoutReview
+        {/*
+          When every item is held in this zone (0 deliverable), showing
+          When/Payment is meaningless. The message inside Q3 is enough.
+          Switch the zone to Dhaka and allHeld goes false, bringing the
+          remaining steps back.
+        */}
+        {!allHeld && (
+          <>
+            <Q4When
+              subtotalPaisa={totals.subtotalPaisa}
+              leadDays={leadDays}
+              preorder={preorder}
+              speeds={speeds}
+              liveMethods={liveMethods}
+            />
+            <Q5Payment
+              lines={cart.lines}
+              summary={
+                <CheckoutSummary
                   cart={cart}
                   totals={totals}
-                  eta={eta}
-                  method={method}
+                  deliveryLabel={deliveryLabel}
                   placing={placing}
                   onPlace={onPlaceOrder}
+                  quote={quote}
                 />
-              )}
-            </>
-          )}
-        </div>
-
-        <CheckoutSummary
-          cart={cart}
-          totals={totals}
-          deliveryLabel={deliveryLabel}
-          placing={placing}
-          onPlace={onPlaceOrder}
-          quote={quote}
-        />
-      </div>
+              }
+            />
+          </>
+        )}
+      </CheckoutGrid>
 
       {!allHeld && (
         <CheckoutSticky

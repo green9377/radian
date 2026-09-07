@@ -76,9 +76,13 @@ export function Q3Where({
     <QCard
       n={3}
       title="Where?"
+      lead="Where should it go?"
       open={s.step === 3}
       done={s.done.includes(3)}
-      summary={s.address || undefined}
+      facts={[
+        { label: "Delivering to", value: zone === "bangladesh" ? "All Bangladesh" : "Inside Dhaka" },
+        { label: "Address", value: s.address },
+      ]}
       onOpen={() => s.openStep(3)}
     >
       <div className="mb-5">
@@ -376,17 +380,22 @@ export function Q4When({
   const slotLabel = slotsForMethod.find((x) => x.id === s.slotId)?.label;
   const dateLabel = dates.find((d) => d.id === s.date)?.label;
 
-  const summary = s.done.includes(4)
-    ? [method.label, dateLabel, slotLabel].filter(Boolean).join(" · ")
+  const facts = s.done.includes(4)
+    ? [
+        { label: "Delivery", value: method.label },
+        ...(dateLabel ? [{ label: "Date", value: dateLabel }] : []),
+        ...(slotLabel ? [{ label: "Time", value: slotLabel }] : []),
+      ]
     : undefined;
 
   return (
     <QCard
       n={4}
       title="When?"
+      lead="Choose the delivery date & time"
       open={s.step === 4}
       done={s.done.includes(4)}
-      summary={summary}
+      facts={facts}
       onOpen={() => s.openStep(4)}
     >
       {/* ─── method ─── */}
