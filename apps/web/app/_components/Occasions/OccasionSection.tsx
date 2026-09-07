@@ -129,16 +129,14 @@ export default function OccasionSection() {
         )}
 
         {/* Mobile: 2 visible, rest swipe from the right */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-[22px] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
           {cards.map((card) => (
             <ArchCard
               key={card.title}
               href={card.href}
               title={card.title}
               imageUrl={card.imageUrl}
-              variant="thumb"
-              aspect="aspect-[4/3.9]"
-              className="w-[calc(50%-6px)] shrink-0 snap-start"
+              className="w-[calc(50%-11px)] shrink-0 snap-start"
             />
           ))}
         </div>
@@ -156,7 +154,7 @@ export default function OccasionSection() {
           <div
             ref={trackRef}
             onScroll={updateButtons}
-            className="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth px-1 pt-[6px] pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-[22px] overflow-x-auto snap-x snap-mandatory scroll-smooth pt-[6px] pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {cards.map((card) => (
               <ArchCard
@@ -165,7 +163,8 @@ export default function OccasionSection() {
                 title={card.title}
                 sub={card.sub}
                 imageUrl={card.imageUrl}
-                className="w-[268px] shrink-0 snap-start"
+                // same width as a budget card: four across the page, 22px apart
+                className="w-[calc((100%-66px)/4)] shrink-0 snap-start"
               />
             ))}
           </div>
