@@ -794,7 +794,7 @@ export class ProductDetailService {
             discountValue: true,
             itemId: true,
             /*  the stockroom code of a linked Item — the variant's identifier
-                for Google (owner, 7 Sep 2026: option ক)  */
+                for Google (owner, 7 Sep 2026)  */
             item: { select: { sku: true } },
             variantValue: {
               select: {
@@ -1275,7 +1275,7 @@ export class ProductDetailService {
         offerFromProduct: variantMoney(v).fromProduct,
         stockQty: variantCount(v),
         soldOut: variantSoldOut(v),
-        /*  owner, 7 Sep 2026 (ক): the linked Item's stockroom code, else the
+        /*  owner, 7 Sep 2026: the linked Item's stockroom code, else the
             product's code with the option names — one code per combination
             for Google, no new admin field  */
         sku:
