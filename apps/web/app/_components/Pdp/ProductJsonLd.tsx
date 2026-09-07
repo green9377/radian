@@ -9,7 +9,7 @@ import type { ProductDetail } from "../../_data/productDetails";
   price, stock and SKU (Google's own shape for this). A product without
   variants is one Product with one Offer. The SKU is the ecommerce code from
   the admin's Basics tab; a variant's is its linked stockroom Item's code, else
-  the product code with the option names (option ক). The SKU appears here as
+  the product code with the option names. The SKU appears here as
   DATA only — it is never rendered as text on the page.
 
   Everything in it is the page's own data; nothing is written here.
