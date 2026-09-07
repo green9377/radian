@@ -99,6 +99,8 @@ export interface ApiProductDetail {
   supportsSameDay: boolean;
   supportsMidnight: boolean;
   nationwideMsg: string | null;
+  /** the ecommerce code — JSON-LD and feeds only, never rendered as text */
+  sku: string | null;
   stockQty: number | null;
   /** DEC-PDP-09 — the server's answer to "may they buy it" */
   availability:
@@ -295,6 +297,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
 
   return guard({
     product,
+    sku: a.sku,
     crumb: {
       catLabel: a.crumb.catLabel,
       catSlug: a.crumb.catSlug,

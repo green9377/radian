@@ -114,6 +114,8 @@ export interface VariantPart {
 export interface PickedVariant {
   /** the ProductVariant row's id — this is what goes into the cart */
   id: string;
+  /** the combination's code for JSON-LD — never rendered */
+  sku?: string;
   /**
    * DEC-PRD-045 — the values this one is made of. One part for a plain colour
    * product; two for "Medium × Red", and then the page draws one row of
@@ -211,6 +213,8 @@ export interface Faq {
 
 export interface ProductDetail {
   product: Product;
+  /** the ecommerce code (Basics tab) — machine-readable data only, never drawn */
+  sku: string | null;
   crumb: { catLabel: string; catSlug: string; subLabel: string | null; subSlug: string | null; short: string };
   /** `label` null = the shop wrote no nature line; the chip is not drawn */
   nature: { type: "fresh" | "artificial"; label: string | null };

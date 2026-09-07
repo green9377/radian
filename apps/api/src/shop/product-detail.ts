@@ -308,6 +308,8 @@ export interface ShopOfferWindow {
 export interface ShopProductDetail {
   slug: string;
   name: string;
+  /** the ecommerce code — machine-readable data (JSON-LD, feeds) only, never rendered */
+  sku: string | null;
   shortDesc: string | null;
   typeText: string | null;
   /** what they pay today — integer paisa */
@@ -410,6 +412,8 @@ export interface ShopProductDetail {
      *  beside `availability`, with the same `counted` test, so the page and
      *  the order door never disagree about one colour. */
     soldOut: boolean;
+    /** the combination's code for JSON-LD — linked Item's sku, else product code + option names */
+    sku: string;
   }[];
   sizes: { id: string; label: string; sub: string | null; pricePaisa: number }[];
   /** the heading above the size chooser — "Bouquet Size", "Cake Weight" */
@@ -619,6 +623,9 @@ export class ProductDetailService {
         id: true, // internal only — never returned
         slug: true,
         name: true,
+        /*  the ecommerce code — MACHINE-READABLE data only (JSON-LD, feeds,
+            analytics), never rendered as text; see the SKU note at the top  */
+        sku: true,
         shortDesc: true,
         typeText: true,
         sellingPricePaisa: true,
@@ -786,6 +793,9 @@ export class ProductDetailService {
             discountType: true,
             discountValue: true,
             itemId: true,
+            /*  the stockroom code of a linked Item — the variant's identifier
+                for Google (owner, 7 Sep 2026: option ক)  */
+            item: { select: { sku: true } },
             variantValue: {
               select: {
                 label: true,
@@ -1037,6 +1047,7 @@ export class ProductDetailService {
     return {
       slug: p.slug,
       name: p.name,
+      sku: p.sku,
       shortDesc: p.shortDesc,
       typeText: p.typeText,
       /*  DEC-PRD-035 — the page opens with nothing picked (8 Aug), so the
@@ -1264,6 +1275,14 @@ export class ProductDetailService {
         offerFromProduct: variantMoney(v).fromProduct,
         stockQty: variantCount(v),
         soldOut: variantSoldOut(v),
+        /*  owner, 7 Sep 2026 (ক): the linked Item's stockroom code, else the
+            product's code with the option names — one code per combination
+            for Google, no new admin field  */
+        sku:
+          v.item?.sku ??
+          `${p.sku ?? p.slug}-${(parts.length ? parts.map((x) => x.label) : [v.variantValue.label])
+            .join('-')
+            .replace(/\s+/g, '')}`,
         };
       }),
       /*  DEC-PRD-059 — the size row prints prices too; the cut follows them  */
