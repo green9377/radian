@@ -627,6 +627,8 @@ function toMockProduct(c: ShopProduct): Product {
     name: c.name,
     pricePaisa: c.pricePaisa,
     priceFrom: c.priceFrom,
+    mrpPaisa: c.mrpPaisa,
+    discountKind: c.discountKind ?? null,
     cat: c.cat as ProductCategory,
     sub: c.sub ?? undefined,
     zone: c.zone,

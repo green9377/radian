@@ -491,6 +491,8 @@ export interface ShopProduct {
   pricePaisa: number;
   /** struck-through price, or null when nothing is off */
   mrpPaisa: number | null;
+  /** FLAT = "৳150 OFF", PERCENT = "20% OFF" — the card badge, as the owner set it */
+  discountKind?: "FLAT" | "PERCENT" | null;
   /** DEC-PRD-035 — `pricePaisa` is the cheapest of several variant prices,
    *  so the card reads "from ৳450" instead of promising that exact number */
   priceFrom?: boolean;

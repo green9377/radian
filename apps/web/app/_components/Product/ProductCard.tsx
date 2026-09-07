@@ -85,6 +85,25 @@ function MoonIcon() {
 
     FlowerAura, checked 24 Aug 2026, runs the same shape: a delivery pill and
     at most one merchandising pill per card, never both merchandising ones. */
+/*  The discount sticker, the same one the product page wears, in the shape
+    the owner set it: a flat amount as taka, a percent as % — never both. A
+    product with an offer shows it on the card, not only after the click
+    (owner, 7 Sep 2026).  */
+function OffBadge({ product }: { product: Product }) {
+  const was = product.mrpPaisa;
+  if (was == null || was <= product.pricePaisa) return null;
+  const label =
+    product.discountKind === "PERCENT"
+      ? `${Math.round(((was - product.pricePaisa) / was) * 100)}% OFF`
+      : `${formatTaka(was - product.pricePaisa)} OFF`;
+  return (
+    /*  under the delivery pill (top-left), so the two claims stack instead of overlapping  */
+    <span className="absolute top-[48px] left-[13px] z-[4] bg-orchid text-white text-[11px] font-bold rounded-full px-3 py-[6px] shadow-[0_6px_18px_rgba(207,67,234,0.35)] whitespace-nowrap">
+      {label}
+    </span>
+  );
+}
+
 function MerchBadge({ product }: { product: Product }) {
   const base =
     "absolute bottom-[12px] left-[13px] z-[4] inline-flex items-center gap-[5px] text-[10.5px] font-semibold tracking-[0.04em] rounded-full px-[10px] py-[5px] whitespace-nowrap shadow-[0_4px_14px_rgba(71,0,102,0.14)]";
@@ -171,6 +190,7 @@ export default function ProductCard({
         <TileImage src={product.imageUrl} alt={product.name} variant="card" className="aspect-square">
           <Badge product={product} zone={zone} />
           <MerchBadge product={product} />
+          <OffBadge product={product} />
         </TileImage>
       </Link>
 
@@ -218,6 +238,10 @@ export default function ProductCard({
               <span className="text-[12px] font-medium text-body-soft mr-1">from</span>
             )}
             {formatTaka(product.pricePaisa)}
+            {/* the struck price, when a discount is really cutting it (owner, 7 Sep 2026) */}
+            {product.mrpPaisa != null && product.mrpPaisa > product.pricePaisa && (
+              <span className="ml-1.5 text-[12.5px] font-medium text-body-soft line-through">{formatTaka(product.mrpPaisa)}</span>
+            )}
           </div>
           <button className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0">
             Add <CartIcon />

@@ -171,6 +171,8 @@ export interface ShopProduct {
   pricePaisa: number;
   /** the struck-through price, or null when nothing is off */
   mrpPaisa: number | null;
+  /** how the product's own discount was set — the card badge reads it that way */
+  discountKind: 'FLAT' | 'PERCENT' | null;
   /** DEC-PRD-035 — true when `pricePaisa` is the cheapest of several variant
    *  prices, so the card reads "from ৳450" rather than promising that exact
    *  number for whatever the shopper ends up choosing. */
@@ -1245,7 +1247,7 @@ export class ShopCatalogService {
     return this.cardPricing(r, displayOffers).price;
   }
 
-  private cardPricing(r: CardRow, displayOffers: DisplayOffer[]): { price: number; allPriced: boolean; basePrice: number; offerCut: number } {
+  private cardPricing(r: CardRow, displayOffers: DisplayOffer[]): { price: number; allPriced: boolean; basePrice: number; offerCut: number; ownPrice: number } {
     const ownPrice = offerPaisa(r.sellingPricePaisa, r.discountType, r.discountValue, r.discountStartsAt, r.discountEndsAt);
     /*  DEC-PRD-062 — with the product's switch on, its discount and window
         run on every variant's price; off, each variant's own discount.  */
@@ -1263,7 +1265,7 @@ export class ShopCatalogService {
       { id: r.id, categoryId: r.category.id, parentCategoryId: r.category.parent?.id ?? null },
       basePrice,
     );
-    return { price: basePrice - offerCut, allPriced, basePrice, offerCut };
+    return { price: basePrice - offerCut, allPriced, basePrice, offerCut, ownPrice };
   }
 
   private toCard(
@@ -1273,7 +1275,7 @@ export class ShopCatalogService {
     displayOffers: DisplayOffer[] = [],
   ): ShopProduct {
     const neu = isNewNow(r, newDays); // DEC-PRD-050
-    const { price, allPriced, basePrice, offerCut } = this.cardPricing(r, displayOffers);
+    const { price, allPriced, basePrice, offerCut, ownPrice } = this.cardPricing(r, displayOffers);
 
     const rating = review?._avg.rating ?? null;
     const reviewCount = review?._count._all ?? 0;
@@ -1330,6 +1332,12 @@ export class ShopCatalogService {
               ? r.sellingPricePaisa
               : null,
       priceFrom: allPriced || undefined,
+      /*  the shape of the product's own discount, for the card's badge — a
+          flat ৳150 reads "৳150 OFF", a 20% reads "20% OFF" (the same rule the
+          product page follows). An offer-module cut with no product discount
+          behind it reads as the amount.  */
+      discountKind:
+        r.discountType !== 'NONE' && ownPrice < r.sellingPricePaisa ? (r.discountType as 'FLAT' | 'PERCENT') : null,
       cat: r.category.parent?.slug ?? r.category.slug,
       sub: r.category.parent ? r.category.slug : null,
       zone: r.zone === 'NATIONWIDE' ? 'both' : 'dhaka',

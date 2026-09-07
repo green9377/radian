@@ -28,6 +28,10 @@ export interface Product {
   /** DEC-PRD-035 — the number above is the cheapest variant, so the card
    *  writes "from ৳450" rather than promising it for every colour. */
   priceFrom?: boolean;
+  /** the struck-through price while a discount runs, else null */
+  mrpPaisa?: number | null;
+  /** how that discount was set — the badge reads FLAT as taka, PERCENT as % */
+  discountKind?: "FLAT" | "PERCENT" | null;
   cat: ProductCategory;
   /** Sub-category slug (e.g. "roses"). API-তে এটা Category FK হবে. */
   sub?: string;
