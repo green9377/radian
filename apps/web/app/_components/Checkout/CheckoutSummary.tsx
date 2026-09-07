@@ -87,13 +87,15 @@ export function CheckoutSummary({
       <div className="space-y-3 pb-3 border-b border-lavender">
         {lines.map((l) => (
           <div key={l.item.lineId} className="flex items-center gap-3">
-            <TileImage src={l.product.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
+            {/* the colour that was picked — its photo and its name (DEC-PRD-012) */}
+            <TileImage src={l.variant?.imageUrl ?? l.product.imageUrl ?? l.product.bg} alt="" variant="thumb" className="w-11 h-11 rounded-[12px] shrink-0" />
             <span className="min-w-0 flex-1">
               <span className="block text-[12.5px] font-semibold text-purple truncate">
                 {l.product.name}
               </span>
               <span className="block text-[11.5px] text-body-soft truncate">
                 {[
+                  l.variant?.label,
                   l.size.label,
                   l.item.qty > 1 ? `× ${l.item.qty}` : null,
                   ...l.bundles.map((b) => b.label),

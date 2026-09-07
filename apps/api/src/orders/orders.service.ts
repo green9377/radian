@@ -436,7 +436,10 @@ export class OrdersService {
           ঘরে নয়। এটা না আনলে রঙে-রঙে stock রাখা product-এর প্রতিটা order
           "out of stock" বলে ফিরিয়ে দেওয়া হতো।  */
       include: {
-        variants: { where: { deletedAt: null, isActive: true }, select: { id: true, stockQty: true, itemId: true } },
+        /*  `imageUrl` — the colour's own photo, so a line for the RED one
+            carries the red one's picture (owner, 7 Sep 2026: three colours of
+            one product all showed the product's first photo).  */
+        variants: { where: { deletedAt: null, isActive: true }, select: { id: true, stockQty: true, itemId: true, imageUrl: true } },
         /*  5 Aug — the line's picture snapshot. The `bg` column existed from
             day one but nothing ever wrote it, so the admin and the receipt
             showed a purple placeholder for every order, even with photos
@@ -1565,8 +1568,10 @@ export class OrdersService {
         discountValue: number;
         discountStartsAt?: Date | null;
         discountEndsAt?: Date | null;
-        /** প্রথম ছবিটা — line-এর `bg` snapshot-এর জন্য (৫ আগস্ট) */
+        /** the first photo, for the line's `bg` snapshot (5 Aug) */
         images?: { url: string }[];
+        /** the colours, with their own photos — the sold one's wins */
+        variants?: { id: string; imageUrl?: string | null }[];
       }
     >,
   ): Prisma.OrderLineCreateWithoutOrderInput {
@@ -1584,7 +1589,11 @@ export class OrdersService {
           product's photo later must not change an old order's (the spirit of
           DEC-DLV-002). The admin drops it straight into `background:`, so it
           is kept in CSS form.  */
-      bg: p.images?.[0]?.url ? `url(${p.images[0].url}) center/cover` : undefined,
+      bg: (() => {
+        const v = l.variantId ? p.variants?.find((x) => x.id === l.variantId) : undefined;
+        const url = v?.imageUrl || p.images?.[0]?.url;
+        return url ? `url(${url}) center/cover` : undefined;
+      })(),
       sizeLabel: l.sizeLabel,
       bundleLabel: l.bundleLabel,
       addonLabels: l.addonLabels ?? [],
