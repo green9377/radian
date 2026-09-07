@@ -5,7 +5,7 @@ import { mediaVariant } from "../../_data/media";
 
   A real <img>, never a CSS background: it carries an alt for Google and
   screen readers, loads lazily below the fold, and asks for the right size
-  (`card` ≤600px WebP, `thumb` ≤160px) from the media host. Nothing that
+  (`large` ≤1200px, `card` ≤600px, `thumb` ≤160px — all WebP) from the media host. Nothing that
   used to be painted with `background: url(...)` on a card should be again.
 
   NO PICTURE = ONE QUIET PLACEHOLDER. Not a random gradient per tile — the
@@ -38,7 +38,7 @@ export default function TileImage({
   /** a URL, or the legacy `url(...)` CSS value; a gradient counts as no picture */
   src?: string | null;
   alt: string;
-  variant?: "card" | "thumb" | "original";
+  variant?: "large" | "card" | "thumb" | "original";
   /** the frame: size, radius, shadow — the caller's */
   className?: string;
   imgClassName?: string;

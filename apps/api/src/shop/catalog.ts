@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/auth.guard';
 import { LayoutModule, LayoutService, type BestSellerMode } from '../storefront/layout';
 import { paidPaisa } from '../common/discount-window';
+import { availabilityOf } from '../common/availability';
 /*  DEC-PRD-050 — one rule for "is this new", shared with the admin.  */
 import { displayCut, loadDisplayOffers, type DisplayOffer } from './display-offers';
 import { isNewNow, MERCH_DEFAULTS } from '../products/merch';
@@ -138,6 +139,16 @@ const CARD_SELECT = {
   advanceRequired: true,
   salesCount: true,
   leadTimeDays: true,
+  /*  7 Sep 2026 — the card answers "may this be sold?" with the SAME rule the
+      page and the order door use (`availabilityOf`), so a sold-out product
+      never carries an "Add" button in a grid or a rail.  */
+  stockMode: true,
+  stockQty: true,
+  supplierId: true,
+  soldOutMode: true,
+  preorderDate: true,
+  allowOrderAtZero: true,
+  itemId: true,
   category: { select: { id: true, slug: true, name: true, parent: { select: { id: true, slug: true } } } },
   images: {
     where: { deletedAt: null },
@@ -157,7 +168,7 @@ const CARD_SELECT = {
       ৳4,400 for a product whose colours cost ৳450, ৳320 and ৳50.  */
   variants: {
     where: { deletedAt: null, isActive: true },
-    select: { pricePaisa: true, discountType: true, discountValue: true },
+    select: { pricePaisa: true, discountType: true, discountValue: true, stockQty: true, itemId: true },
   },
 } satisfies Prisma.ProductSelect;
 
@@ -196,6 +207,8 @@ export interface ShopProduct {
   rec: string[];
   prepaidOnly: boolean;
   colour: { label: string; swatch: string | null; imageUrl: string | null } | null;
+  /** the one availability rule, at card size: a closed door shows "Sold out" and no Add */
+  availability: 'IN_STOCK' | 'OUT_OF_STOCK' | 'PRE_ORDER';
 }
 
 export interface ProductQuery {
@@ -238,6 +251,23 @@ export class ShopCatalogService {
    * Flowers expects the roses to be there. The owner said it plainly: same
    * category, filter by colour, show those products.
    */
+  /**
+   * Cards for a list of slugs the shopper's own browser kept — the wishlist.
+   * No zone filter on purpose: a saved product outside the viewer's zone is
+   * still theirs to see; the page marks it undeliverable instead of hiding
+   * it. Unknown or unpublished slugs simply do not come back.
+   */
+  async cardsBySlugs(slugs: string[]): Promise<ShopProduct[]> {
+    const wanted = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))].slice(0, 100);
+    if (wanted.length === 0) return [];
+    const rows = await this.prisma.db.product.findMany({
+      where: { ...LIVE, slug: { in: wanted } },
+      select: CARD_SELECT,
+    });
+    const bySlug = new Map((await this.toCards(rows)).map((c) => [c.slug, c]));
+    return wanted.map((s) => bySlug.get(s)).filter((c): c is ShopProduct => Boolean(c));
+  }
+
   async products(q: ProductQuery) {
     const limit = Math.min(Math.max(Number(q.limit) || 24, 1), 60);
     const page = Math.max(Number(q.page) || 1, 1);
@@ -1208,7 +1238,40 @@ export class ShopCatalogService {
       loadDisplayOffers(this.prisma),
     ]);
     const byProduct = new Map(grouped.map((g) => [g.productId, g]));
-    return rows.map((r) => this.toCard(r, byProduct.get(r.id), newDays, displayOffers));
+
+    /*  Inventory-connected shelves, one query for the whole grid — the same
+        resolution `product-detail.ts` does for one product.  */
+    const linkedIds = [
+      ...new Set(
+        rows.flatMap((r) => [
+          ...r.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
+          ...(r.stockMode === 'TRACKED' && r.itemId ? [r.itemId] : []),
+        ]),
+      ),
+    ];
+    const invSums = linkedIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linkedIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    const invQty = new Map(
+      invSums.map((x) => [x.itemId, Math.max(0, Math.floor((x._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    const availabilityFor = (r: CardRow) =>
+      availabilityOf({
+        ...r,
+        variantStock: r.variants.length
+          ? r.variants.map((v) => (v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty))
+          : undefined,
+        inventoryQty:
+          r.stockMode === 'TRACKED' && r.itemId ? (invQty.get(r.itemId) ?? null) : undefined,
+      }).state;
+
+    return rows.map((r) =>
+      this.toCard(r, byProduct.get(r.id), newDays, displayOffers, availabilityFor(r)),
+    );
   }
 
   /*  DEC-PRD-050 — one row, read at most once a minute. A page of sixty cards
@@ -1273,6 +1336,7 @@ export class ShopCatalogService {
     review?: { _avg: { rating: number | null }; _count: { _all: number } },
     newDays: number = MERCH_DEFAULTS.newArrivalDays,
     displayOffers: DisplayOffer[] = [],
+    availability: ShopProduct['availability'] = 'IN_STOCK',
   ): ShopProduct {
     const neu = isNewNow(r, newDays); // DEC-PRD-050
     const { price, allPriced, basePrice, offerCut, ownPrice } = this.cardPricing(r, displayOffers);
@@ -1358,6 +1422,7 @@ export class ShopCatalogService {
       occ: r.tags.filter((t) => t.group?.slug === 'occasions').map((t) => t.slug),
       rec: r.tags.filter((t) => t.group?.slug === 'recipients').map((t) => t.slug),
       prepaidOnly: r.advanceRequired,
+      availability,
       colour: r.variantValue
         ? {
             label: r.variantValue.label,
@@ -1377,6 +1442,13 @@ export class ShopCatalogController {
   @Get('products')
   products(@Query() q: ProductQuery) {
     return this.svc.products(q);
+  }
+
+  /** the shopper's saved products, by slug — `?slugs=a,b,c` */
+  @Public()
+  @Get('products-by-slugs')
+  productsBySlugs(@Query('slugs') slugs?: string) {
+    return this.svc.cardsBySlugs(String(slugs ?? '').split(','));
   }
 
   /** the homepage Best Sellers grid — tabs, cards and wording in one answer */

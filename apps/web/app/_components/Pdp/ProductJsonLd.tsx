@@ -51,10 +51,13 @@ export default function ProductJsonLd({ detail, siteName }: { detail: ProductDet
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
-        { "@type": "ListItem", position: 2, name: crumb.catLabel, item: `${SITE}/${crumb.catSlug}` },
-        { "@type": "ListItem", position: 3, name: product.name, item: url },
-      ],
+        { name: "Home", item: `${SITE}/` },
+        { name: crumb.catLabel, item: `${SITE}/${crumb.catSlug}` },
+        ...(crumb.subSlug && crumb.subLabel
+          ? [{ name: crumb.subLabel, item: `${SITE}/${crumb.catSlug}/${crumb.subSlug}` }]
+          : []),
+        { name: product.name, item: url },
+      ].map((r, i) => ({ "@type": "ListItem", position: i + 1, ...r })),
     },
   ];
 

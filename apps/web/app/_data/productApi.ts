@@ -298,10 +298,11 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
     crumb: {
       catLabel: a.crumb.catLabel,
       catSlug: a.crumb.catSlug,
-      /*  The crumb has a fixed number of rungs. A product filed straight under
-          "Fresh Flowers" has no middle one, so the top name is repeated rather
-          than leaving a bare "›" hanging in the trail.  */
-      subLabel: a.crumb.subLabel ?? a.crumb.catLabel,
+      /*  A product filed under a sub-category gets the middle rung —
+          Home › Fresh Flowers › Roses › product — on the page and in the
+          structured data. One filed straight under the category has none.  */
+      subLabel: a.crumb.subLabel,
+      subSlug: a.crumb.subSlug,
       short: a.name.split("—")[0].trim(),
     },
     nature: {
@@ -582,7 +583,7 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetail | 
         server owns "may they buy it"; the browser is the last place that
         should be allowed a second opinion about it.  */
     availability: a.availability,
-    crossProducts: a.crossSell.map(toMockProduct),
+    crossProducts: a.crossSell.map(toCardProduct),
   });
 }
 
@@ -621,7 +622,7 @@ export async function fetchAddons(ids: string[]): Promise<AddonItem[]> {
  * catalogue. They are used for filtering and links, never for prices, so the
  * cast is safe; the unions go when the mock does.
  */
-function toMockProduct(c: ShopProduct): Product {
+export function toCardProduct(c: ShopProduct): Product {
   return {
     slug: c.slug,
     name: c.name,
@@ -629,6 +630,7 @@ function toMockProduct(c: ShopProduct): Product {
     priceFrom: c.priceFrom,
     mrpPaisa: c.mrpPaisa,
     discountKind: c.discountKind ?? null,
+    availability: c.availability,
     cat: c.cat as ProductCategory,
     sub: c.sub ?? undefined,
     zone: c.zone,

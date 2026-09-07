@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-import { resolveWishlist, type WishlistEntry } from "../../_data/wishlist";
+import { useResolvedWishlist, type WishlistEntry } from "../../_data/wishlist";
 import { formatTaka } from "../../_data/products";
 import {
   useWishlistHydrated,
@@ -18,9 +18,9 @@ import Icon from "../Pdp/PdpIcons";
 import TileImage from "../ui/TileImage";
 
 /*
-  /account/wishlist — saved item + user-created folder (grouping)।
-  slug useWishlistStore-এ, folder assign useWishlistGroupStore-এ,
-  product resolveWishlist()-এ (দাম fresh)।
+  /account/wishlist — saved items plus the folders the customer makes.
+  Slugs live in useWishlistStore, folder membership in useWishlistGroupStore,
+  and the products come from the shop (`useResolvedWishlist`) so prices are today's.
 */
 
 export default function WishlistPanel() {
@@ -43,7 +43,7 @@ export default function WishlistPanel() {
   const [editName, setEditName] = useState("");
 
   const hydrated = wlHydrated && grpHydrated;
-  const { entries } = resolveWishlist(slugs, zone);
+  const { entries, loading } = useResolvedWishlist(wlHydrated ? slugs : [], zone);
   const groupIds = new Set(groups.map((g) => g.id));
 
   const inGroup = (id: string) =>
@@ -64,7 +64,7 @@ export default function WishlistPanel() {
     assignItem(slug, null);
   }
 
-  if (!hydrated) {
+  if (!hydrated || loading) {
     return <p className="text-[13px] text-body-soft py-4">Loading…</p>;
   }
 

@@ -32,8 +32,10 @@ export interface Product {
   mrpPaisa?: number | null;
   /** how that discount was set — the badge reads FLAT as taka, PERCENT as % */
   discountKind?: "FLAT" | "PERCENT" | null;
+  /** may it be sold — the same rule the page and the order door use */
+  availability?: "IN_STOCK" | "OUT_OF_STOCK" | "PRE_ORDER";
   cat: ProductCategory;
-  /** Sub-category slug (e.g. "roses"). API-তে এটা Category FK হবে. */
+  /** Sub-category slug (e.g. "roses") — the Category FK on the API side */
   sub?: string;
   zone: "dhaka" | "both";
   badge: ProductBadge;
@@ -47,16 +49,16 @@ export interface Product {
   exp?: boolean;
   sd?: boolean;
   mn?: boolean;
-  /** New arrival — category page-এর rail rule-এ ব্যবহৃত */
+  /** New arrival — read by the category page rail rule */
   neu?: boolean;
-  /** Gift Finder tag — occasion. API-তে এটা Product↔Occasion relation হবে. */
+  /** Gift Finder tag — occasion (a Product↔Occasion relation on the API side) */
   occ?: Occasion[];
-  /** Gift Finder tag — recipient. API-তে এটা Product↔Recipient relation হবে. */
+  /** Gift Finder tag — recipient (a Product↔Recipient relation on the API side) */
   rec?: Recipient[];
   /**
-   * ★ Advance payment required — COD বন্ধ (checkout, `_data/payment.ts`)।
-   * Made-to-order জিনিস: engrave/print হয়ে গেলে বাতিল হলে ক্ষতি পুরোটা দোকানের।
-   * Admin panel থেকে product-এ on/off হবে — Ecommerce schema-তে `prepaidOnly`।
+   * Advance payment required — COD is off (checkout, `_data/payment.ts`).
+   * Made-to-order items: once engraved or printed, a cancellation is the
+   * shop's whole loss. Switched per product in the admin (`prepaidOnly`).
    */
   prepaidOnly?: boolean;
 }
@@ -305,7 +307,7 @@ export const PRODUCTS: Product[] = [
     rec: ["her", "him"],
   },
 
-  /* ---- Category page-এর জন্য বাড়ানো flowers (API এলে সব DB থেকে আসবে) ---- */
+  /* ---- extra flowers for the category page (mock — the API now serves the real ones) ---- */
   {
     slug: "rajanigandha-serenity-vase",
     name: "Rajanigandha Serenity Vase",

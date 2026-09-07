@@ -1,5 +1,5 @@
 /*
-  One-time: write the card/thumb WebP versions for every picture already in
+  Write the large/card/thumb WebP versions for every picture already in
   media storage (see media.ts, "one upload, three files"). Safe to run again —
   a file whose versions exist is skipped.
 
@@ -14,7 +14,7 @@ import sharp from 'sharp';
 const dir = process.env.MEDIA_DIR;
 if (!dir) { console.error('MEDIA_DIR is not set'); process.exit(1); }
 
-const SIZES = { card: [600, 80], thumb: [160, 78] };
+const SIZES = { large: [1200, 82], card: [600, 80], thumb: [160, 78] };
 let made = 0, skipped = 0, failed = 0;
 
 async function walk(d) {
@@ -22,7 +22,7 @@ async function walk(d) {
     const p = join(d, name);
     const st = await stat(p);
     if (st.isDirectory()) { await walk(p); continue; }
-    if (/\.(card|thumb)\.webp$/.test(name)) continue;
+    if (/\.(large|card|thumb)\.webp$/.test(name)) continue;
     if (!/\.(jpe?g|png|webp|avif)$/i.test(name)) continue;
     const base = p.slice(0, p.length - extname(p).length);
     const targets = Object.entries(SIZES).map(([k, [w, q]]) => ({ out: `${base}.${k}.webp`, w, q }));

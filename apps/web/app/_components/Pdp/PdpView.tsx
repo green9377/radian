@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { useZoneStore } from "../../_store/useZoneStore";
 import { useCartStore } from "../../_store/useCartStore";
+import { useInWishlist, useWishlistStore } from "../../_store/useWishlistStore";
 import { formatTaka } from "../../_data/products";
+import { getDeliveryModes, zoneCode, type DeliveryMode } from "../../_data/shop";
 import { track } from "../../_data/tracking";
 import { uploadPersoPhoto } from "../../_data/checkoutApi";
 import {
@@ -112,7 +114,10 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const [qty, setQty] = useState(1);
   const [media, setMedia] = useState<number | "video">(0);
   const [added, setAdded] = useState(false);
-  const [wished, setWished] = useState(false);
+  /*  The same wishlist the cards and the header read — until 7 Sep 2026 this
+      heart was a local flag that forgot itself on refresh.  */
+  const wished = useInWishlist(product.slug);
+  const toggleWish = useWishlistStore((s) => s.toggle);
   const [zoom, setZoom] = useState(false);
 
   /* Personalisation - it has to be held in state to reach the cart (it used
@@ -495,6 +500,37 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
   const tabs = groups;
   const activeTab = tabs[tabIdx] ?? tabs[0];
 
+  /*  The delivery chip beside the title — the live method that matches the
+      product's own switches, in the admin's words. Dhaka: express (a promise
+      in minutes) → same-day → midnight, whichever the product carries first;
+      All Bangladesh: the courier method and its ETA.  */
+  const [modes, setModes] = useState<DeliveryMode[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getDeliveryModes(zoneCode(zone)).then((m) => {
+      if (alive) setModes(m ?? []);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [zone]);
+  const deliveryChip = (() => {
+    if (!modes) return null;
+    const pick = (m: DeliveryMode) => (m.eta ? `${m.label} · ${m.eta}` : m.label);
+    if (zone === "bangladesh") {
+      const courier = modes.find((m) => m.timing === "LEAD_DAYS") ?? modes[0];
+      return courier ? pick(courier) : null;
+    }
+    const midnight = (m: DeliveryMode) => m.label.toLowerCase().includes("midnight");
+    const express = modes.find((m) => m.timing === "FROM_CONFIRM");
+    const sameDay = modes.find((m) => m.timing === "TODAY_SLOT" && !midnight(m));
+    const mid = modes.find(midnight);
+    if (detail.speeds?.express && express) return express.label;
+    if (detail.speeds?.sameDay && sameDay) return sameDay.label;
+    if (detail.speeds?.midnight && mid) return mid.label;
+    return null;
+  })();
+
   return (
     <>
       <div className="grid lg:grid-cols-[1.14fr_1fr] gap-8 lg:gap-12">
@@ -597,7 +633,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                     <TileImage
                       src={gallery[typeof media === "number" ? media : 0]}
                       alt={product.name}
-                      variant="original"
+                      variant="large"
                       eager
                       className="w-full h-full"
                     />
@@ -613,15 +649,8 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                       Tap to zoom
                     </span>
                   </button>
-                  {/*  No discount, no sticker. This should have been gated
-                      along with the struck-through price on day one - because
-                      it was not, products with no discount carried a pink
-                      badge reading "0% OFF" over the photo.  */}
-                  {wasPaisa !== null && (
-                    <span className="absolute top-4 left-4 z-[4] bg-orchid text-white text-[12.5px] font-bold rounded-full px-4 py-2 shadow-[0_8px_22px_rgba(207,67,234,0.4)]">
-                      {offLabel}
-                    </span>
-                  )}
+                  {/*  The saving is said once, beside the price — never on the
+                      photograph (owner, 7 Sep 2026, same rule as the cards).  */}
                   {/*  Only when there are no photos. This labels the tinted
                       panel; it is not a watermark. "Product photo" written
                       over a real photograph makes the page look unfinished.  */}
@@ -634,7 +663,7 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
               )}
 
               <button
-                onClick={() => setWished((w) => !w)}
+                onClick={() => toggleWish(product.slug)}
                 aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
                 aria-pressed={wished}
                 className="absolute top-4 right-4 z-[5] w-11 h-11 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow-[0_6px_18px_rgba(71,0,102,0.14)] transition-all duration-200 hover:scale-110 active:scale-95"
@@ -714,17 +743,11 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
                 Dhaka the chip speaks Dhaka (express / same-day / midnight,
                 from the product's own switches — or stays silent); courier
                 wording exists only for the All-Bangladesh viewer.  */}
+            {/*  7 Sep 2026 — the words are the Delivery module's own (the method's
+                label and ETA, as the admin wrote them), not a sentence kept in
+                code. No live method matches the product's switches → no chip.  */}
             {(() => {
-              const chip =
-                zone === "bangladesh"
-                  ? "Nationwide · 1–3 Days"
-                  : detail.speeds?.express
-                    ? "Express Delivery"
-                    : detail.speeds?.sameDay
-                      ? "Same-day in Dhaka"
-                      : detail.speeds?.midnight
-                        ? "Midnight delivery"
-                        : null;
+              const chip = deliveryChip;
               return chip ? (
                 <span className="inline-flex items-center gap-1.5 bg-orchid-soft text-purple rounded-lg px-2.5 py-1 text-[11.5px] font-bold">
                   <Icon

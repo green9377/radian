@@ -211,7 +211,7 @@ export interface Faq {
 
 export interface ProductDetail {
   product: Product;
-  crumb: { catLabel: string; catSlug: string; subLabel: string; short: string };
+  crumb: { catLabel: string; catSlug: string; subLabel: string | null; subSlug: string | null; short: string };
   /** `label` null = the shop wrote no nature line; the chip is not drawn */
   nature: { type: "fresh" | "artificial"; label: string | null };
   /** DEC-PRD-031 — the one line under the title. Write nothing and no line appears. */

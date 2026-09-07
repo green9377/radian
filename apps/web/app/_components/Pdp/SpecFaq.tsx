@@ -2,10 +2,11 @@ import type { ProductDetail } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
 
 /*
-  "Before You Order" — একটাই dropdown stack।
-  প্রথম item = Specification table (Item | Quantity)। আলাদা section নয় —
-  যে জানতে চায় সে খুলবে, page ভারী হবে না।
-  প্রথম row = Product Type (Fresh / Artificial) — customer-এর ১ নম্বর প্রশ্ন।
+  "Before You Order" — one dropdown stack.
+  The first item is the specification table (Item | Quantity), not a section
+  of its own: whoever wants it opens it, and the page stays light.
+  Its first row is Product Type (Fresh / Artificial) — the customer's
+  first question.
 */
 
 const CHEV =
@@ -15,18 +16,18 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
   const fresh = detail.nature.type === "fresh";
 
   /*
-    DEC-PRD-034 — মালিক, ৯ আগস্ট ২০২৬: *"trust badge, faq আর inside না
-    থাকলে নিজের মতো করে অটো কিছু দিয়ে দেয় — এটা কেন করছে?"*
+    DEC-PRD-034 — the owner, 9 Aug 2026: "when trust badges, the FAQ and
+    what's-inside are missing it makes something up on its own — why?"
 
-    ⚠️ এখানে চারটে প্রশ্ন **হাতে লেখা ছিল, আর সবসময় জুড়ে যেত** — fallback
-    হিসেবেও নয়, মালিক নিজে লিখলেও তার পরে বসত। ফলে দোকান এমন প্রতিশ্রুতি
-    দিত যা মালিক কোনোদিন দেননি: "২৪ ঘণ্টায় ছবি পাঠালে একই দিনে বদলে দেব",
-    "rider কখনো দরজায় উপহার রেখে যাবে না"। এগুলো ব্যবসার নীতি — কোডের
-    সিদ্ধান্ত নয়।
+    Four questions used to be hand-written here and ALWAYS appended — not
+    even as a fallback; they sat under whatever the owner wrote. So the shop
+    made promises the owner never gave ("send a photo within 24 hours and we
+    replace it the same day", "the rider never leaves a gift at the door").
+    Those are business policy, not a code decision.
 
-    এখন যা দেখানো হয় সবটাই দোকানের লেখা: product-এর নিজের FAQ, নাহলে
-    category-র (Occasions & Tags-এর পাশে Category → FAQ)। কিছু না থাকলে
-    একটাও accordion আঁকা হয় না।
+    Everything shown now is the shop's own writing: the product's FAQ, else
+    the category's (Category → FAQ, beside Occasions & Tags). With neither,
+    not one accordion is drawn.
   */
 
   return (
@@ -41,7 +42,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
         </h2>
       </div>
 
-      {/* ── Specification (dropdown-এর ভেতরে) ── */}
+      {/* ── Specification (inside the dropdown) ── */}
       <details open className="group bg-white border border-lavender-deep rounded-[18px] mb-2.5 overflow-hidden open:shadow-soft">
         <summary className="flex justify-between items-center gap-4 px-5 py-4 text-[15px] font-medium text-purple cursor-pointer list-none">
           What&apos;s inside? — Full specification
@@ -61,7 +62,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
               </tr>
             </thead>
             <tbody>
-              {/* Fresh vs Artificial — সবার আগে, হাইলাইট করা */}
+              {/* Fresh vs Artificial — first, highlighted */}
               <tr className={fresh ? "bg-[#E8F9EE]" : "bg-[#EEF1FB]"}>
                 <td
                   className={`px-5 py-4 border-b border-lavender-deep font-semibold ${
@@ -118,7 +119,7 @@ export default function SpecFaq({ detail }: { detail: ProductDetail }) {
         </div>
       </details>
 
-      {/* ── product-নির্দিষ্ট FAQ (fresh/artificial প্রশ্ন এখানেই) ── */}
+      {/* ── the product's own FAQ (the fresh/artificial questions live here) ── */}
       {detail.faqs.map((f) => (
         <details
           key={f.q}

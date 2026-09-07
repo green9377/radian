@@ -493,6 +493,8 @@ export interface ShopProduct {
   mrpPaisa: number | null;
   /** FLAT = "৳150 OFF", PERCENT = "20% OFF" — the card badge, as the owner set it */
   discountKind?: "FLAT" | "PERCENT" | null;
+  /** the one availability rule at card size — OUT_OF_STOCK draws "Sold out", no Add */
+  availability?: "IN_STOCK" | "OUT_OF_STOCK" | "PRE_ORDER";
   /** DEC-PRD-035 — `pricePaisa` is the cheapest of several variant prices,
    *  so the card reads "from ৳450" instead of promising that exact number */
   priceFrom?: boolean;
@@ -638,6 +640,12 @@ export interface ProductQuery {
   /** contains-match on name or slug — the search page uses this */
   search?: string;
 }
+
+/** cards for the slugs the browser saved (wishlist) — unknown slugs are left out */
+export const getShopProductsBySlugs = (slugs: string[]) =>
+  slugs.length === 0
+    ? Promise.resolve<ShopProduct[] | null>([])
+    : get<ShopProduct[]>(`/shop/products-by-slugs?slugs=${encodeURIComponent(slugs.join(","))}`);
 
 export const getShopProducts = (q: ProductQuery) => {
   const params = new URLSearchParams();

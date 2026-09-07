@@ -277,6 +277,7 @@ export class MediaService {
   such files on the homepage. The original is kept exactly as uploaded (the
   product page, the future), and next to it two WebP versions are written:
 
+      <name>.large.webp  ≤ 1200px wide — the product page's main photo (7 Sep 2026)
       <name>.card.webp   ≤ 600px wide  — product cards, category cards
       <name>.thumb.webp  ≤ 160px wide  — chips, nav icons, tag circles
 
@@ -286,13 +287,14 @@ export class MediaService {
   `scripts/media-variants.mjs`, run once. SVGs are vectors and get none.
 */
 export const VARIANTS = {
+  large: { width: 1200, quality: 82 },
   card: { width: 600, quality: 80 },
   thumb: { width: 160, quality: 78 },
 } as const;
 
-export function variantPaths(rel: string): { card: string; thumb: string } {
+export function variantPaths(rel: string): { large: string; card: string; thumb: string } {
   const base = rel.replace(/\.[a-z0-9]+$/i, '');
-  return { card: `${base}.card.webp`, thumb: `${base}.thumb.webp` };
+  return { large: `${base}.large.webp`, card: `${base}.card.webp`, thumb: `${base}.thumb.webp` };
 }
 
 async function makeVariants(
@@ -300,15 +302,20 @@ async function makeVariants(
   rel: string,
   buffer: Buffer,
   mimetype: string,
-): Promise<{ card: string; thumb: string } | null> {
+): Promise<{ large: string; card: string; thumb: string } | null> {
   if (!/^image\/(jpeg|png|webp|avif)$/.test(mimetype)) return null;
   const paths = variantPaths(rel);
   try {
     const img = sharp(buffer, { animated: false }).rotate();
-    await Promise.all([
-      img.clone().resize({ width: VARIANTS.card.width, withoutEnlargement: true }).webp({ quality: VARIANTS.card.quality }).toFile(join(dir, paths.card)),
-      img.clone().resize({ width: VARIANTS.thumb.width, withoutEnlargement: true }).webp({ quality: VARIANTS.thumb.quality }).toFile(join(dir, paths.thumb)),
-    ]);
+    await Promise.all(
+      (Object.keys(VARIANTS) as (keyof typeof VARIANTS)[]).map((k) =>
+        img
+          .clone()
+          .resize({ width: VARIANTS[k].width, withoutEnlargement: true })
+          .webp({ quality: VARIANTS[k].quality })
+          .toFile(join(dir, paths[k])),
+      ),
+    );
     return paths;
   } catch {
     // a picture sharp cannot read still uploads — the original is served everywhere, as before

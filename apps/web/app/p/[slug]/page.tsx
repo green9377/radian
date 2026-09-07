@@ -46,8 +46,9 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const detail = await fetchProductDetail(slug);
+  const [detail, brand] = await Promise.all([fetchProductDetail(slug), getShopBrand()]);
   if (!detail) return {};
+  const shopName = brand?.name?.trim() || "Radian";
 
   /*
     ═══════════════════════════════════════════════════════════════════════════
@@ -70,12 +71,16 @@ export async function generateMetadata({
   const seo = detail.seo;
   const price = formatTaka(detail.product.pricePaisa);
 
-  const title = seo?.title?.trim() || `${detail.product.name} — ${price} | Radian`;
-  /*  ⚠️ The fallback used to say "2 hours" — the last hidden copy of a
-      retired promise, straight into Google's snippet. Fallbacks name no speed.  */
+  const title = seo?.title?.trim() || `${detail.product.name} — ${price} | ${shopName}`;
+  /*  Fallbacks make no promise (7 Sep 2026). The old one said "delivered
+      fast inside Dhaka, nationwide in 1–3 days" — a sentence kept in code,
+      straight into Google's snippet. Now: the owner's short description if
+      he wrote one; else only what the product is, where it is filed and
+      whose shop it is.  */
   const description =
     seo?.description?.trim() ||
-    `${detail.nature.label}. ${detail.crumb.catLabel} delivered fast inside Dhaka, nationwide in 1–3 days.`;
+    detail.shortDesc?.trim() ||
+    [detail.product.name, detail.nature.label, detail.crumb.catLabel, shopName].filter(Boolean).join(" · ");
 
   /*  The picture that travels to WhatsApp/Facebook: the owner's chosen image,
       else the product's first photo (gallery entries are plain addresses).  */
@@ -134,6 +139,14 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
             {detail.crumb.catLabel}
           </Link>
           <span className="text-lavender-deep">›</span>
+          {detail.crumb.subSlug && detail.crumb.subLabel && (
+            <>
+              <Link href={`/${detail.crumb.catSlug}/${detail.crumb.subSlug}`} className="hover:text-orchid">
+                {detail.crumb.subLabel}
+              </Link>
+              <span className="text-lavender-deep">›</span>
+            </>
+          )}
           <span className="text-purple font-semibold">{detail.crumb.short}</span>
         </nav>
 

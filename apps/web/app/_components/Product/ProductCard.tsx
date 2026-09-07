@@ -242,9 +242,23 @@ export default function ProductCard({
               </span>
             )}
           </div>
-          <button className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0">
-            Add <CartIcon />
-          </button>
+          {/*  A closed door reads as one (7 Sep 2026): the same availability
+              rule the page and the order door use. "Add" opens the product
+              page — colour, size and message are chosen there, so a card
+              never puts a guessed variant in the cart.  */}
+          {product.availability === "OUT_OF_STOCK" ? (
+            <span className="inline-flex items-center rounded-full bg-[#F3F0F6] text-body-soft px-3 sm:px-[16px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold shrink-0">
+              Sold out
+            </span>
+          ) : (
+            <Link
+              href={`/p/${product.slug}`}
+              aria-label={`Add ${product.name}`}
+              className="inline-flex items-center gap-[5px] sm:gap-[7px] bg-lavender text-purple rounded-full px-3 sm:px-[18px] py-2 sm:py-[10px] text-[12.5px] sm:text-[13px] font-semibold transition-all duration-200 hover:bg-purple hover:text-white cursor-pointer shrink-0"
+            >
+              {product.availability === "PRE_ORDER" ? "Pre-order" : "Add"} <CartIcon />
+            </Link>
+          )}
         </div>
       </div>
     </div>

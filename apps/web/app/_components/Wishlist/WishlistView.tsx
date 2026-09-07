@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 
 import { useZoneStore } from "../../_store/useZoneStore";
@@ -8,20 +8,21 @@ import {
   useWishlistStore,
   useWishlistHydrated,
 } from "../../_store/useWishlistStore";
-import { resolveWishlist } from "../../_data/wishlist";
+import { useResolvedWishlist } from "../../_data/wishlist";
 import ProductCard from "../Product/ProductCard";
 
 /*
-  ═══════════════════════════════════════════════════════════════════
-  WISHLIST VIEW — /wishlist এর client অংশ।
+  WISHLIST VIEW — the client half of /wishlist.
 
-  - slug store থেকে, product resolveWishlist() থেকে (দাম fresh)।
-  - সব save দেখায়; zone-এ যাবে না এমন item লুকায় না — dim + "Inside Dhaka
-    only" ribbon (সোবুজ approved, cart D21-এর 'saved for later' যুক্তি)।
-    উপরে summary notice + এক ক্লিকে "Switch to Inside Dhaka"।
-  - hydrate না হওয়া পর্যন্ত skeleton — খালি-state flash এড়াতে।
-  - খালি হলে EmptyCart-এর মতো friendly state।
-  ═══════════════════════════════════════════════════════════════════
+  - slugs from the store, products from the shop (`useResolvedWishlist`), so
+    the prices are today's
+  - every saved item is shown; one the current zone cannot receive is not
+    hidden but dimmed with an "Inside Dhaka only" ribbon (owner approved, the
+    cart's 'saved for later' reasoning), with a summary notice on top and a
+    one-click "Switch to Inside Dhaka"
+  - a placeholder until the store has hydrated and the shop has answered, so
+    the empty state never flashes
+  - empty: a friendly state, like the empty cart
 */
 
 function useZoneHydrated(): boolean {
@@ -54,13 +55,10 @@ export default function WishlistView() {
   const zoneHydrated = useZoneHydrated();
   const effZone = zoneHydrated ? zone : null;
 
-  const resolved = useMemo(
-    () => resolveWishlist(slugs, effZone),
-    [slugs, effZone],
-  );
+  const resolved = useResolvedWishlist(wlHydrated ? slugs : [], effZone);
 
-  // Hydrate না হওয়া পর্যন্ত skeleton — নইলে খালি-state এক পলকের জন্য দেখা যায়
-  if (!wlHydrated) {
+  // nothing is drawn before the store has hydrated and the shop has answered
+  if (!wlHydrated || resolved.loading) {
     return (
       <div className="min-h-[40vh] grid place-items-center">
         <span className="text-[13.5px] text-body-soft">Loading…</span>
@@ -120,7 +118,7 @@ export default function WishlistView() {
         </button>
       </div>
 
-      {/* Zone notice — কিছু save current zone-এ যাবে না */}
+      {/* zone notice — some saved items cannot go to the current zone */}
       {undeliverableCount > 0 && (
         <div className="flex items-center gap-3 flex-wrap bg-[#FFF7E8] border border-[#F2D9A8] text-[#8A5A00] rounded-[16px] px-4 py-3 mb-6 text-[13.5px]">
           <span>
