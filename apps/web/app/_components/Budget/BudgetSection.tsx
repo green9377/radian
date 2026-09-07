@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import type { Zone } from "../../_store/useZoneStore";
 import { getShopCollections, zoneCode } from "../../_data/shop";
-import TileImage from "../ui/TileImage";
+import ArchCard, { RangePanel } from "../ui/ArchCard";
 
 /*
   Gifts for Every Budget — the featured collections (Storefront → Collections),
@@ -77,39 +76,14 @@ export default function BudgetSection({ zone }: { zone?: Zone | null }) {
         {/* Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
           {cards.map((b) => (
-            <Link key={b.key} href={b.href} className="group block">
-              <TileImage
-                src={b.imageUrl}
-                alt={b.title}
-                className="rounded-[28px] aspect-[1/1.14] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
-              >
-              {/* Dark gradient overlay for text legibility */}
-              <div
-                className="absolute inset-0 z-[2]"
-                style={{
-                  background: b.premium
-                    ? "linear-gradient(180deg,transparent 30%,rgba(64,26,32,.9) 100%)"
-                    : "linear-gradient(180deg,transparent 38%,rgba(50,0,73,.85) 100%)",
-                }}
-              />
-              {/* Text */}
-              <div className="absolute left-0 right-0 bottom-0 z-[3] p-[22px] text-white">
-                <div
-                  className={`text-[11px] tracking-[0.2em] uppercase font-semibold whitespace-nowrap ${
-                    b.premium ? "text-rosegold-light" : "text-orchid-mid"
-                  }`}
-                >
-                  {b.kicker}
-                </div>
-                <h3 className="font-display text-[22px] font-medium whitespace-nowrap mt-[3px] mb-[1px]">
-                  {b.title}
-                </h3>
-                <span className="text-[12.5px] text-white/80 whitespace-nowrap">
-                  {b.sub}
-                </span>
-              </div>
-              </TileImage>
-            </Link>
+            <ArchCard
+              key={b.key}
+              href={b.href}
+              title={b.title}
+              sub={b.sub}
+              imageUrl={b.imageUrl}
+              panel={<RangePanel kicker={b.kicker} label={b.title} accent={b.premium} />}
+            />
           ))}
         </div>
       </div>

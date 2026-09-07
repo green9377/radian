@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import type { CategorySection, Tile as TileType } from "../../_data/categories";
-import TileImage from "../ui/TileImage";
+import ArchCard from "../ui/ArchCard";
 import { Section, SectionHead, ViewAll } from "./SectionShell";
 
 export default function OccasionGrid({
@@ -23,17 +22,7 @@ export default function OccasionGrid({
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-[14px] lg:gap-[26px]">
         {tiles.map((t) => (
-          <Link key={t.label} href={t.href} className="group">
-            <TileImage
-              src={t.imageUrl}
-              alt={t.label}
-              className="aspect-[4/4.7] rounded-t-[170px] rounded-b-[18px] shadow-soft transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-lift"
-            />
-            <div className="mt-[18px] text-center">
-              <h3 className="font-display text-[20px] font-medium text-purple">{t.label}</h3>
-              {t.sub && <span className="text-[13px] text-body-soft">{t.sub}</span>}
-            </div>
-          </Link>
+          <ArchCard key={t.label} href={t.href} title={t.label} sub={t.sub} imageUrl={t.imageUrl} />
         ))}
       </div>
       {section.viewAllHref && <ViewAll href={section.viewAllHref}>All Occasions</ViewAll>}

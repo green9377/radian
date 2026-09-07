@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { getShopTagGroups } from "../_data/shop";
-import TileImage from "../_components/ui/TileImage";
+import ArchCard from "../_components/ui/ArchCard";
 import Reviews from "../_components/GBE/Reviews";
 import VisitStore from "../_components/GBE/VisitStore";
 
@@ -58,20 +57,7 @@ export default async function OccasionsIndexPage() {
         {/* ─── occasion grid ─── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 mt-9 sm:mt-11">
           {cards.map((o) => (
-            <Link key={o.slug} href={`/occasions/${o.slug}`} className="group">
-              <TileImage
-                src={o.imageUrl}
-                alt={o.label}
-                variant="card"
-                className="aspect-[4/4.1] rounded-t-[110px] rounded-b-[18px] shadow-soft transition-all duration-300 group-hover:-translate-y-[6px] group-hover:shadow-lift"
-              />
-              <div className="mt-3 text-center">
-                <h2 className="font-display text-[16px] sm:text-[18px] font-medium text-purple leading-tight">
-                  {o.label}
-                </h2>
-                {o.sub && <span className="text-[12.5px] text-body-soft">{o.sub}</span>}
-              </div>
-            </Link>
+            <ArchCard key={o.slug} href={`/occasions/${o.slug}`} title={o.label} sub={o.sub} imageUrl={o.imageUrl} />
           ))}
         </div>
       </section>

@@ -1,8 +1,7 @@
 "use client";
 
-import TileImage from "../ui/TileImage";
+import ArchCard from "../ui/ArchCard";
 import { useRef, useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import SectionHead from "../ui/SectionHead";
 import { getShopTagGroups, tagHref } from "../../_data/shop";
 
@@ -132,22 +131,15 @@ export default function OccasionSection() {
         {/* Mobile: 2 visible, rest swipe from the right */}
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
           {cards.map((card) => (
-            <Link
+            <ArchCard
               key={card.title}
               href={card.href}
-              className="group w-[calc(50%-6px)] shrink-0 snap-start"
-            >
-              <TileImage
-                src={card.imageUrl}
-                alt={card.title}
-                className="aspect-[4/3.6] rounded-t-[90px] rounded-b-[14px] shadow-soft transition-transform duration-200 group-active:scale-95"
-              />
-              <div className="mt-2 text-center">
-                <h3 className="font-display text-[15px] font-medium text-purple leading-tight">
-                  {card.title}
-                </h3>
-              </div>
-            </Link>
+              title={card.title}
+              imageUrl={card.imageUrl}
+              variant="thumb"
+              aspect="aspect-[4/3.9]"
+              className="w-[calc(50%-6px)] shrink-0 snap-start"
+            />
           ))}
         </div>
 
@@ -167,25 +159,14 @@ export default function OccasionSection() {
             className="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth px-1 pt-[6px] pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {cards.map((card) => (
-              <Link
+              <ArchCard
                 key={card.title}
                 href={card.href}
-                className="w-[268px] shrink-0 snap-start group"
-              >
-                <TileImage
-                  src={card.imageUrl}
-                  alt={card.title}
-                  className="aspect-[4/4.1] rounded-t-[140px] rounded-b-[18px] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
-                />
-                <div className="mt-[11px] text-center">
-                  <h3 className="font-display text-[20px] font-medium text-purple whitespace-nowrap">
-                    {card.title}
-                  </h3>
-                  <span className="text-[12.5px] text-body-soft whitespace-nowrap">
-                    {card.sub}
-                  </span>
-                </div>
-              </Link>
+                title={card.title}
+                sub={card.sub}
+                imageUrl={card.imageUrl}
+                className="w-[268px] shrink-0 snap-start"
+              />
             ))}
           </div>
 

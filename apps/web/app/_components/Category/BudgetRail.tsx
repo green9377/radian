@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import type { BudgetTile, CategorySection } from "../../_data/categories";
-import TileImage from "../ui/TileImage";
+import ArchCard, { RangePanel } from "../ui/ArchCard";
 import { Section, SectionHead } from "./SectionShell";
 
 /*
@@ -30,31 +29,14 @@ export default function BudgetRail({
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-[22px]">
         {tiles.map((b) => (
-          <Link key={b.label} href={b.href} className="group block">
-            <TileImage
-              src={b.imageUrl}
-              alt={b.label}
-              className="rounded-[28px] aspect-[1/1.14] shadow-soft transition-all duration-300 group-hover:-translate-y-[7px] group-hover:shadow-lift"
-            >
-            <div
-              className="absolute inset-0 z-[2]"
-              style={{
-                background: b.accent
-                  ? "linear-gradient(180deg,transparent 30%,rgba(64,26,32,.9) 100%)"
-                  : "linear-gradient(180deg,transparent 38%,rgba(50,0,73,.85) 100%)",
-              }}
-            />
-            <div className="absolute left-0 right-0 bottom-0 z-[3] p-[22px] text-white">
-              {b.kicker && (
-                <div className={`text-[11px] tracking-[0.2em] uppercase font-semibold whitespace-nowrap ${b.accent ? "text-rosegold-light" : "text-orchid-mid"}`}>
-                  {b.kicker}
-                </div>
-              )}
-              <h3 className="font-display text-[22px] font-medium whitespace-nowrap mt-[3px] mb-[1px]">{b.label}</h3>
-              {b.sub && <span className="text-[12.5px] text-white/80 whitespace-nowrap">{b.sub}</span>}
-            </div>
-            </TileImage>
-          </Link>
+          <ArchCard
+            key={b.label}
+            href={b.href}
+            title={b.label}
+            sub={b.sub}
+            imageUrl={b.imageUrl}
+            panel={<RangePanel kicker={b.kicker} label={b.label} accent={b.accent} />}
+          />
         ))}
       </div>
     </Section>
