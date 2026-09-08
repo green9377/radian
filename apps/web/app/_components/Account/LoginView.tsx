@@ -8,7 +8,6 @@ import {
   OTP_LENGTH,
   googleClientId,
   googleSignIn,
-  googleSignInComplete,
   lastOtpChannel,
   normalizeLoginPhone,
   requestLoginOtp,
@@ -33,7 +32,8 @@ import Icon from "../Pdp/PdpIcons";
   8 Sep 2026: the route is the owner's — a Bangladeshi number gets the code by
   SMS, a foreign one by email, WhatsApp last — so the screen promises "a
   code", not an app. And "Continue with Google": Google's own button, the
-  server checks the token, a new account is asked for its phone number once.
+  server checks the token, and that is the sign-in — no phone is asked for
+  (owner's ruling); checkout takes it the first time they order.
 */
 
 declare global {
@@ -58,10 +58,9 @@ export default function LoginView() {
   const customer = useAuthStore((s) => s.customer);
   const login = useAuthStore((s) => s.login);
 
-  const [step, setStep] = useState<"phone" | "otp" | "google-phone">("phone");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
   /* Google: the button is drawn only when the server has a Client ID */
   const [gClientId, setGClientId] = useState<string | null>(null);
-  const [gTicket, setGTicket] = useState<{ ticket: string; name: string } | null>(null);
   const gButtonRef = useRef<HTMLDivElement | null>(null);
   const [phoneRaw, setPhoneRaw] = useState("");
   const [normalized, setNormalized] = useState<string | null>(null);
@@ -131,37 +130,10 @@ export default function LoginView() {
     setError(null);
     try {
       const r = await googleSignIn(credential);
-      if (r.ok) {
-        login(r.customer.phone, { name: r.customer.name, email: r.customer.email });
-        router.replace(redirect);
-        return;
-      }
-      setGTicket({ ticket: r.ticket, name: r.name });
-      setPhoneRaw("");
-      setStep("google-phone");
+      login(r.customer.phone ?? "", { name: r.customer.name, email: r.customer.email });
+      router.replace(redirect);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Google sign-in did not work. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finishGoogle(e: React.FormEvent) {
-    e.preventDefault();
-    if (busy || !gTicket) return;
-    const norm = normalizeLoginPhone(phoneRaw) ?? (phoneRaw.trim().startsWith("+") ? phoneRaw.trim() : null);
-    if (!norm) {
-      setError("Enter a valid mobile number.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await googleSignInComplete(gTicket.ticket, norm);
-      login(r.customer.phone, { name: r.customer.name, email: r.customer.email });
-      router.replace(redirect);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "That did not work. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -269,50 +241,7 @@ export default function LoginView() {
           <Icon name="lock" className="w-7 h-7 rotate-45" />
         </span>
 
-        {step === "google-phone" ? (
-          <>
-            <h1 className="text-center font-display text-[24px] text-purple font-semibold mt-5">
-              {gTicket?.name ? `Welcome, ${gTicket.name.split(" ")[0]}` : "One more thing"}
-            </h1>
-            <p className="text-center text-[13.5px] text-body-soft mt-2">
-              Your mobile number — it is where every order update goes.
-            </p>
-            <form onSubmit={finishGoogle} className="mt-7">
-              <label className="block text-[12px] font-semibold text-body-soft mb-1.5">Mobile number</label>
-              <input
-                type="tel"
-                inputMode="tel"
-                autoFocus
-                value={phoneRaw}
-                onChange={(e) => {
-                  setPhoneRaw(e.target.value);
-                  setError(null);
-                }}
-                placeholder="01XXXXXXXXX, or +44… from abroad"
-                className="w-full rounded-[14px] border-[1.5px] border-lavender-deep bg-lavender focus:border-orchid transition-colors px-4 py-3 text-[14.5px] text-purple outline-none placeholder:text-body-soft/60"
-              />
-              {error && <p className="text-[12.5px] text-[#B42318] mt-2">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full mt-5 h-[52px] inline-flex items-center justify-center gap-2 bg-purple text-white rounded-[16px] font-bold text-[14.5px] hover:bg-purple-deep transition disabled:opacity-70"
-              >
-                {busy ? "Saving…" : "Finish signing in"}
-              </button>
-            </form>
-            <button
-              type="button"
-              onClick={() => {
-                setStep("phone");
-                setGTicket(null);
-                setError(null);
-              }}
-              className="block mx-auto mt-4 text-[12.5px] text-body-soft hover:text-purple"
-            >
-              Use a code instead
-            </button>
-          </>
-        ) : step === "phone" ? (
+        {step === "phone" ? (
           <>
             <h1 className="text-center font-display text-[26px] text-purple font-semibold mt-5">
               Log in to Radian

@@ -199,13 +199,15 @@ export function customerFromPhone(phone: string, extra?: { name?: string; email?
 /* ─────────────────── GOOGLE ───────────────────
    "Continue with Google" (owner, 8 Sep 2026). Google's own button hands the
    browser an ID token; the server checks it with Google and answers with the
-   customer, or asks for a phone number once (a new account needs the number
-   every order runs on). The button is drawn only when the server has a
+   customer — the record with that email, or just the name and email Google
+   vouched for (phone null) for someone new; checkout takes the phone the
+   first time they order. The button is drawn only when the server has a
    Client ID (Setup → Integrations → Google Sign-In). */
 
-export type GoogleSignInAnswer =
-  | { ok: true; customer: { name: string; phone: string; email: string } }
-  | { ok: false; needPhone: true; name: string; ticket: string };
+export type GoogleSignInAnswer = {
+  ok: true;
+  customer: { name: string; phone: string | null; email: string };
+};
 
 export async function googleClientId(): Promise<string | null> {
   try {
@@ -234,8 +236,3 @@ async function postAuth<T>(path: string, body: unknown): Promise<T> {
 export const googleSignIn = (credential: string) =>
   postAuth<GoogleSignInAnswer>("/shop/auth/google", { credential });
 
-export const googleSignInComplete = (ticket: string, phone: string) =>
-  postAuth<{ ok: true; customer: { name: string; phone: string; email: string } }>(
-    "/shop/auth/google/complete",
-    { ticket, phone },
-  );
