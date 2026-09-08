@@ -76,12 +76,19 @@ export interface CheckoutState {
   /**
    * The name hand-written under the message — the card's "From".
    *
-   * ⚠️ EMPTY MEANS UNSIGNED, and that is the only way to send anonymously now
-   * (the separate switch went when the step was rebuilt to FlowerAura's
-   * shape). It is prefilled with the sender's own name, so a blank one is a
-   * deliberate act.
+   * It is prefilled with the sender's own name, so an empty one is a
+   * deliberate act and the card goes unsigned.
    */
   signedName: string;
+  /**
+   * Send it without the sender's name.
+   *
+   * ⚠️ ONE FLAG, TWO PLACES: "Send anonymously" beside the photo switch in
+   * step 2, and "Don't show my name on the card" under From in step 4. The
+   * owner asked for both (8 Sep 2026) — they read and write this same field,
+   * so the two can never say different things. It also wins over From: the
+   * typed name is kept, but nothing signed is sent while this is on.
+   */
   anonymousGift: boolean;
 
   /* Q3 — Where */

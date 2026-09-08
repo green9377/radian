@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { useCheckoutStore } from "../../_store/useCheckoutStore";
+import Icon from "../Pdp/PdpIcons";
 import { Continue, QCard, inputClass } from "./CheckoutFields";
 
 /*
@@ -98,7 +99,10 @@ export function Q4Message() {
       done={s.done.includes(4)}
       facts={[
         { label: "Message", value: s.giftMessage.trim() || "No message" },
-        { label: "From", value: s.signedName.trim() || s.senderName || "—" },
+        {
+          label: "From",
+          value: s.anonymousGift ? "Not shown" : s.signedName.trim() || s.senderName || "—",
+        },
       ]}
       onOpen={() => s.openStep(4)}
     >
@@ -171,12 +175,35 @@ export function Q4Message() {
 
         <span className="block text-[13px] font-semibold text-purple mt-5 mb-2">From</span>
         <input
-          className={inputClass}
-          value={s.signedName}
+          className={`${inputClass} ${s.anonymousGift ? "opacity-50" : ""}`}
+          value={s.anonymousGift ? "" : s.signedName}
+          disabled={s.anonymousGift}
           onChange={(e) => s.set("signedName", e.target.value)}
-          placeholder={s.senderName || "Your name"}
+          placeholder={s.anonymousGift ? "The card goes unsigned" : s.senderName || "Your name"}
           maxLength={40}
         />
+
+        {/*  ⚠️ THE SAME `anonymousGift` AS STEP 2's "Send anonymously" — one
+             flag, shown in both places the customer might look for it. Ticking
+             it here empties the From line on the card but KEEPS what they
+             typed, so unticking brings the name straight back.  */}
+        <button
+          type="button"
+          onClick={() => s.set("anonymousGift", !s.anonymousGift)}
+          aria-pressed={s.anonymousGift}
+          className="mt-3 flex items-center gap-2.5 text-left"
+        >
+          <span
+            className={`w-[20px] h-[20px] rounded-[6px] border-[1.5px] grid place-items-center shrink-0 transition-colors ${
+              s.anonymousGift ? "bg-purple border-purple text-white" : "border-lavender-deep bg-white"
+            }`}
+          >
+            {s.anonymousGift && <Icon name="check" className="w-3 h-3" />}
+          </span>
+          <span className="text-[13px] font-semibold text-purple">
+            Don&apos;t show my name on the card
+          </span>
+        </button>
       </div>
 
       <Continue onClick={() => s.completeStep(4)} />

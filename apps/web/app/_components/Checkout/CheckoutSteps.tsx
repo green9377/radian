@@ -192,10 +192,22 @@ export function Q2Receiving() {
             </Field>
           </div>
 
-          {/*  ⚠️ The card message and "Send anonymously" moved to step 4
-               (owner, 8 Sep 2026). Both are about the CARD, and both were
-               being skipped down here under a phone field.  */}
-          <div className="mt-1">
+          {/*  ⚠️ The card MESSAGE moved to step 4; these two switches did not
+               (owner, 8 Sep 2026 — he missed the anonymous one and asked for
+               it back beside the photo switch, where it has always been).
+
+               "Send anonymously" and the "don't show my name" box on the card
+               step are ONE flag — `anonymousGift`, read and written by both.
+               Two switches for one fact is how a screen ends up contradicting
+               itself.  */}
+          <div className="grid sm:grid-cols-2 gap-3 mt-1">
+            <Toggle
+              icon="eye-off"
+              title="Send anonymously"
+              sub="Your name won't appear on the card"
+              on={s.anonymousGift}
+              onChange={(v) => s.set("anonymousGift", v)}
+            />
             <Toggle
               icon="camera"
               title="Photo updates"

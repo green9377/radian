@@ -72,12 +72,18 @@ import { CheckoutGrid } from "./CheckoutFields";
  * Empty message + a name is not a card: nobody sends a bouquet whose card says
  * only "— Sobuj". So a signature alone is dropped.
  */
-function cardMessage(c: { giftMessage: string; signedName: string }): string | undefined {
+function cardMessage(c: {
+  giftMessage: string;
+  signedName: string;
+  anonymousGift: boolean;
+}): string | undefined {
   const body = c.giftMessage.trim();
   if (!body) return undefined;
-  /*  ⚠️ ONLY `signedName`, never a fallback to the sender's name. The field is
-      prefilled with it, so an empty one means they cleared it on purpose —
-      that is how a card is sent unsigned now.  */
+  /*  ⚠️ "Send anonymously" (step 2) and "Don't show my name" (step 4) are the
+      same flag, and it wins over whatever is typed in From — the field keeps
+      its text so unticking restores the name, but nothing signed reaches the
+      shop while the flag is on.  */
+  if (c.anonymousGift) return body;
   const signed = c.signedName.trim();
   return signed ? `${body}\n— ${signed}` : body;
 }
@@ -520,8 +526,8 @@ export default function CheckoutView() {
           checkout keeps them apart only so the customer can edit the name
           without retyping the message.  */
       giftMessage: c.isGift ? cardMessage(c) : undefined,
-      /*  no name under the message = the shop must not print the sender's  */
-      anonymousGift: c.isGift ? !c.signedName.trim() : false,
+      /*  the switch itself, or an empty From — either way no name is printed  */
+      anonymousGift: c.isGift ? c.anonymousGift || !c.signedName.trim() : false,
       photoUpdates: c.photoUpdates,
 
       address: c.address.trim(),
