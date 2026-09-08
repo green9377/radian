@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ARTICLE_SLUGS, getArticle } from "../../_data/journal";
-import ArticleView from "../../_components/Journal/ArticleView";
 import LiveArticle from "../../_components/Journal/LiveArticle";
+import { getJournalPost } from "../../_data/shop";
 import Reviews from "../../_components/GBE/Reviews";
 import VisitStore from "../../_components/GBE/VisitStore";
 
@@ -15,21 +14,22 @@ import VisitStore from "../../_components/GBE/VisitStore";
 
 type Params = { slug: string };
 
-export function generateStaticParams(): Params[] {
-  return ARTICLE_SLUGS.map((slug) => ({ slug }));
-}
+/*  No `generateStaticParams`: the posts live in the admin, and a hand-written
+    list of slugs is exactly what used to 404 every real article.  */
 
+/*  The title is the article's, and the article lives in the admin — so the
+    page asks for it here rather than reading a hand-written list.  */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
-  if (!article) return {};
+  const post = await getJournalPost(slug);
+  if (!post) return { title: "The Radian Journal" };
   return {
-    title: `${article.title} | The Radian Journal`,
-    description: article.excerpt,
+    title: `${post.title} | The Radian Journal`,
+    description: post.excerpt ?? undefined,
   };
 }
 
@@ -39,16 +39,10 @@ export default async function ArticlePage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const article = getArticle(slug);
 
-  /*
-    A slug the sample list does not know is not automatically wrong — it is very
-    likely an article the owner has just written. It goes to LiveArticle, which
-    asks the API and shows a proper "not found" only when the API also says no.
-
-    Before this, ANY real article 404'd, because the only list of slugs was the
-    hand-written one in _data/journal.ts.
-  */
+  /*  ⚠️ EVERY ARTICLE COMES FROM THE ADMIN (9 Sep 2026). Three samples used to
+      be served from `_data/journal.ts` under Radian's name; `LiveArticle` asks
+      the shop and says "not found" when the shop does.  */
 
   return (
     <main className="bg-[#F6F4FA]">
@@ -66,12 +60,12 @@ export default async function ArticlePage({
           </Link>
           <span className="text-lavender-deep">›</span>
           <span className="text-purple font-semibold truncate max-w-[220px]">
-            {article?.title ?? "Article"}
+            Article
           </span>
         </nav>
 
         <div className="pt-4 pb-16">
-          {article ? <ArticleView article={article} /> : <LiveArticle slug={slug} />}
+          <LiveArticle slug={slug} />
         </div>
       </div>
 

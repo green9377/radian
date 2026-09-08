@@ -7,6 +7,7 @@ import { getOrders, type AccountOrder } from "../../_data/accountApi";
 import { formatTaka } from "../../_data/products";
 import { useToken } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
+import TileImage from "../ui/TileImage";
 import { Empty, Loading, Panel } from "./AccountShell";
 
 /*
@@ -165,12 +166,14 @@ export function OrderCard({ order }: { order: AccountOrder }) {
       </header>
 
       <div className="p-4 flex gap-3.5 items-center flex-wrap">
-        <span className="w-16 h-16 rounded-[14px] shrink-0 overflow-hidden bg-[linear-gradient(160deg,#F1E6F8,#DFC8F0)]">
-          {first?.imageUrl && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={first.imageUrl} alt={first.name} className="w-full h-full object-cover" />
-          )}
-        </span>
+        {/*  the one picture-in-a-card, site-wide: real <img>, lazy, media
+             variants, one quiet placeholder when there is no photo  */}
+        <TileImage
+          src={first?.imageUrl}
+          alt={first?.name ?? "Order"}
+          variant="thumb"
+          className="w-16 h-16 rounded-[14px] shrink-0"
+        />
         <span className="flex-1 min-w-[180px]">
           <b className="block text-[14px] text-purple">
             {first?.name ?? "Order"}

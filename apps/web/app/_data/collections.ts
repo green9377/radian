@@ -1,4 +1,4 @@
-import { PRODUCTS, zoneFilter, type Occasion, type Product } from "./products";
+import type { Occasion } from "./products";
 import type { Zone } from "../_store/useZoneStore";
 
 /*
@@ -124,21 +124,9 @@ export function getCollection(slug: string): CollectionConfig | undefined {
   return COLLECTIONS.find((c) => c.slug === slug);
 }
 
-/**
- * Products in a collection, honoring the zone filter (courier-safe only when
- * shipping All Bangladesh). Pure — same input, same output. API-swap ready.
- */
-export function getCollectionProducts(
-  config: CollectionConfig,
-  zone: Zone | null,
-): Product[] {
-  const min = config.minPaisa ?? 0;
-  const max = config.maxPaisa ?? Number.POSITIVE_INFINITY;
-  return PRODUCTS.filter(
-    (p) =>
-      p.pricePaisa >= min &&
-      p.pricePaisa < max &&
-      (config.occasion ? (p.occ?.includes(config.occasion) ?? false) : true) &&
-      zoneFilter(p, zone),
-  );
-}
+/*
+  ⚠️ `getCollectionProducts()` LIVED HERE AND IS GONE (9 Sep 2026). It filtered
+  `PRODUCTS` — the hand-written catalogue — so any collection the admin had not
+  filled quietly showed invented products. The collection page reads
+  `/shop/collections` and shows nothing when there is nothing.
+*/

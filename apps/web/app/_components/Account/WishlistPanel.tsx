@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getWishlist, removeWish, type AccountWish } from "../../_data/accountApi";
 import { formatTaka } from "../../_data/products";
 import { useToken } from "../../_store/useAuthStore";
+import TileImage from "../ui/TileImage";
 import { Empty, Loading, Panel } from "./AccountShell";
 
 /*
@@ -70,11 +71,8 @@ export default function WishlistPanel() {
               key={w.productId}
               className="border-[1.5px] border-lavender-deep rounded-[16px] overflow-hidden"
             >
-              <Link href={`/p/${w.slug}`} className="block h-[130px] bg-[linear-gradient(160deg,#F1E6F8,#DFC8F0)]">
-                {w.imageUrl && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={w.imageUrl} alt={w.name} className="w-full h-full object-cover" />
-                )}
+              <Link href={`/p/${w.slug}`} className="block">
+                <TileImage src={w.imageUrl} alt={w.name} variant="card" className="h-[130px]" />
               </Link>
               <div className="p-3">
                 <Link href={`/p/${w.slug}`} className="block text-[13px] font-bold text-purple">

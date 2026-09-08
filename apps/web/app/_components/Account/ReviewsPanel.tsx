@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { getReviews, type AccountReviews } from "../../_data/accountApi";
 import { useToken } from "../../_store/useAuthStore";
+import TileImage from "../ui/TileImage";
 import { Empty, Loading, Panel } from "./AccountShell";
 
 /*
@@ -74,12 +75,12 @@ export default function ReviewsPanel() {
                   key={`${w.productId}-${w.orderId}`}
                   className="border-[1.5px] border-lavender-deep rounded-[16px] p-4 mb-3 flex gap-3.5 items-center flex-wrap"
                 >
-                  <span className="w-16 h-16 rounded-[14px] shrink-0 overflow-hidden bg-[linear-gradient(160deg,#F1E6F8,#DFC8F0)]">
-                    {w.imageUrl && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={w.imageUrl} alt={w.name} className="w-full h-full object-cover" />
-                    )}
-                  </span>
+                  <TileImage
+                    src={w.imageUrl}
+                    alt={w.name}
+                    variant="thumb"
+                    className="w-16 h-16 rounded-[14px] shrink-0"
+                  />
                   <span className="flex-1 min-w-[180px]">
                     <b className="block text-[14px] text-purple">{w.name}</b>
                     <span className="block text-[12px] text-body-soft mt-0.5">

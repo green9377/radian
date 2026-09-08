@@ -346,6 +346,13 @@ export class ShopService {
         postcode: true,
         publicPhone: true,
         whatsappPhone: true,
+        /*  the address a customer writes to — the Contact page used to print a
+            made-up one (9 Sep 2026)  */
+        publicEmail: true,
+        /*  the About page's "verified business" block — printed only when the
+            shop actually has the number (9 Sep 2026)  */
+        bin: true,
+        tradeLicenceNo: true,
         mapUrl: true,
         shopImageUrl: true,
       },
@@ -364,6 +371,9 @@ export class ShopService {
       cityLine: [c?.city, c?.postcode].filter(Boolean).join(' ') || null,
       phone: c?.publicPhone ?? null,
       whatsapp: c?.whatsappPhone || c?.publicPhone || null,
+      email: c?.publicEmail ?? null,
+      bin: c?.bin ?? null,
+      tradeLicence: c?.tradeLicenceNo ?? null,
       mapUrl: c?.mapUrl ?? null,
       imageUrl: c?.shopImageUrl ?? null,
       hours: await this.hours.status(),

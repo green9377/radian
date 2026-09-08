@@ -7,6 +7,7 @@ import { getOrder, type AccountOrderDetail } from "../../_data/accountApi";
 import { formatTaka } from "../../_data/products";
 import { useToken } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
+import TileImage from "../ui/TileImage";
 import { Loading, Panel } from "./AccountShell";
 
 /*
@@ -139,12 +140,12 @@ export default function OrderDetailView({ id }: { id: string }) {
           key={l.id}
           className="border-[1.5px] border-lavender-deep rounded-[16px] p-4 mb-3 flex gap-3.5 items-center flex-wrap"
         >
-          <span className="w-16 h-16 rounded-[14px] shrink-0 overflow-hidden bg-[linear-gradient(160deg,#F1E6F8,#DFC8F0)]">
-            {l.imageUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={l.imageUrl} alt={l.name} className="w-full h-full object-cover" />
-            )}
-          </span>
+          <TileImage
+            src={l.imageUrl}
+            alt={l.name}
+            variant="thumb"
+            className="w-16 h-16 rounded-[14px] shrink-0"
+          />
           <span className="flex-1 min-w-[160px]">
             <b className="block text-[14px] text-purple">{l.name}</b>
             <span className="block text-[12px] text-body-soft mt-0.5">
@@ -213,12 +214,12 @@ export default function OrderDetailView({ id }: { id: string }) {
           <div className="grid sm:grid-cols-2 gap-3">
             {o.photos.map((p, i) => (
               <div key={i} className="border-[1.5px] border-lavender-deep rounded-[16px] overflow-hidden">
-                <div className="h-[170px] bg-[linear-gradient(160deg,#F1E6F8,#DFC8F0)]">
-                  {p.url && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={p.url} alt={p.kind} className="w-full h-full object-cover" />
-                  )}
-                </div>
+                <TileImage
+                  src={p.url}
+                  alt={p.kind === "PREP" ? "Before it left the studio" : "At the door"}
+                  variant="card"
+                  className="h-[170px]"
+                />
                 <div className="px-4 py-2.5 text-[12px] text-body-soft">
                   {p.kind === "PREP" ? "Before it left the studio" : "At the door"} ·{" "}
                   {new Date(p.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}

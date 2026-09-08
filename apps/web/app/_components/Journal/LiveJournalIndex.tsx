@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import JournalIndex from "./JournalIndex";
 import { getJournal, type JournalCard } from "../../_data/shop";
 
 /*
@@ -31,8 +30,32 @@ export default function LiveJournalIndex() {
     return () => { alive = false; };
   }, []);
 
-  if (posts === null) return <JournalIndex />;      // still loading
-  if (posts.length === 0) return <JournalIndex />;  // nothing published yet
+  /*  ⚠️ THE THREE SAMPLE ARTICLES ARE GONE (9 Sep 2026). They used to stand in
+      while the API answered and when nothing was published, so a visitor could
+      read a "Radian" article nobody at Radian had written. Loading says
+      loading; empty says empty.  */
+  if (posts === null)
+    return (
+      <p className="text-center text-[13.5px] text-body-soft py-16">Loading the journal…</p>
+    );
+  if (posts.length === 0)
+    return (
+      <div className="max-w-[560px] mx-auto text-center py-16">
+        <h2 className="font-display text-[24px] text-purple font-medium">
+          The journal is being written
+        </h2>
+        <p className="text-[14px] text-body-soft mt-3 leading-relaxed">
+          Flower care, gifting guides and the things we learn in the studio — the
+          first pieces are on their way.
+        </p>
+        <Link
+          href="/fresh-flower"
+          className="inline-block mt-6 bg-purple text-white rounded-[13px] px-6 py-3 font-bold text-[13.5px]"
+        >
+          Shop fresh flowers
+        </Link>
+      </div>
+    );
 
   const [featured, ...rest] = posts;
 

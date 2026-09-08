@@ -7,7 +7,6 @@ import { useZoneStore } from "../../_store/useZoneStore";
 import {
   COLLECTIONS,
   getCollection,
-  getCollectionProducts,
 } from "../../_data/collections";
 import {
   getCollectionDetail,
@@ -112,12 +111,13 @@ export default function CollectionView({ slug }: { slug: string }) {
     setShown(PAGE_SIZE);
   }
 
+  /*  ⚠️ THE SHOP'S OWN PRODUCTS, OR NONE (9 Sep 2026). This used to fall back
+      to `getCollectionProducts(config)` — the hand-written catalogue in
+      `_data/products.ts` — so a collection the admin has not filled showed
+      products that do not exist, at prices nobody set. An empty collection is
+      the truth and says so below.  */
   const results = useMemo<Product[]>(() => {
-    const list = live
-      ? live.items.map(toProduct)
-      : config
-        ? getCollectionProducts(config, effZone)
-        : [];
+    const list = live ? live.items.map(toProduct) : [];
     if (sort === "asc") return [...list].sort((a, b) => a.pricePaisa - b.pricePaisa);
     if (sort === "desc") return [...list].sort((a, b) => b.pricePaisa - a.pricePaisa);
     return list; // featured = data order

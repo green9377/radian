@@ -1,24 +1,16 @@
 /*
   ═══════════════════════════════════════════════════════════════════
-  ABOUT config — brand story + trust page।
+  ABOUT — the shop's own VOICE, and nothing else (9 Sep 2026).
 
-  ⚠️ `draft: true` — খসড়া। যা লেখা আছে তা locked সত্যে grounded (fabricate
-  নয়): Dhaka premium studio, hand-arranged, delivery-first (2hr/same-day/
-  midnight/nationwide), honest pricing, gift experience।
+  ⚠️ What left this file: four "capability" statistics (the first said "2 hr"
+  while the shop's express is three), the legal-document placeholders and a
+  placeholder contact card. Facts belong to the modules that own them — the
+  delivery menu and Company settings — and `AboutView` reads them there. If
+  the shop has not filled a number in, nothing is drawn: no "Pending" pills.
 
-  🔒 কোনো বানানো legal নম্বর নেই। documents[].number = null মানে placeholder —
-  Radian আসল Trade License / BIN / VAT / TIN নম্বর ও scan এখানে বসাবে।
-  documents[].scanUrl = null হলে "Scan pending" state দেখায়; আসল scan/PDF এলে
-  (public/docs/…) শুধু scanUrl বসালেই "View document" active হয়ে যাবে।
-
-  🔒 stats[] — বানানো "X লাখ অর্ডার" নয়। এগুলো Radian-এর সত্যিকারের capability
-  (2hr express, 64 districts nationwide, hand-arranged, midnight)। ভলিউম-সংখ্যা
-  (মোট অর্ডার/গ্রাহক) Radian দিলে যোগ হবে।
-
-  🔒 contact — VisitStore GBE-র মতোই placeholder ঠিকানা/ফোন। আসল ডিটেইল এলে
-  দুই জায়গায় একসাথে আপডেট হবে।
-
-  ⇄ SWAP HERE — CMS এলে ভেতরটা fetch() হবে, AboutView বদলাবে না।
+  What is left is copy: the heading, the story, the four pillars and the four
+  steps. The owner can replace the entire page from Admin → Content → Pages
+  (slug "about"), which wins over everything here.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -27,63 +19,26 @@ export interface AboutPillar {
   body: string;
 }
 
-export interface AboutStat {
-  value: string;
-  label: string;
-}
-
 export interface AboutStep {
   n: string;
   title: string;
   body: string;
 }
 
-export interface AboutDoc {
-  label: string; // "Trade License"
-  authority: string; // issuing body
-  /** null => placeholder pill shown, no fabricated number */
-  number: string | null;
-  /** null => "Scan pending"; real path (e.g. /docs/trade-license.pdf) => active "View document" */
-  scanUrl: string | null;
-}
-
-export interface AboutContact {
-  address: string;
-  area: string;
-  hours: string;
-  hoursSub: string;
-  phone: string;
-  email: string;
-}
-
 export interface AboutContent {
-  updated: string;
-  draft: boolean;
   eyebrow: string;
   heading: string;
   lede: string;
-  stats: AboutStat[];
   story: string[];
   pillars: AboutPillar[];
   steps: AboutStep[];
-  documents: AboutDoc[];
-  contact: AboutContact;
 }
 
 export const ABOUT: AboutContent = {
-  updated: "15 July 2026",
-  draft: true,
   eyebrow: "Our story",
   heading: "Flowers and gifts, delivered while the moment still matters",
   lede: "Radian is a premium flower and gift studio in Dhaka. We hand-arrange every order and get it to the door fast — because a gift is really about a moment, and moments don't wait.",
 
-  // Grounded capability stats — not fabricated volume numbers.
-  stats: [
-    { value: "2 hr", label: "Express delivery in Dhaka" },
-    { value: "64", label: "Districts covered nationwide" },
-    { value: "12 AM", label: "Midnight delivery available" },
-    { value: "100%", label: "Hand-arranged to order" },
-  ],
 
   story: [
     "Radian began with a simple frustration: too many gifts arrive late, look nothing like the photo, or show up with a price tag still attached. We wanted to fix all three.",
@@ -134,47 +89,7 @@ export const ABOUT: AboutContent = {
   ],
 
   // 🔒 Placeholder — Radian to fill real numbers + upload scans. No fabrication.
-  documents: [
-    {
-      label: "Trade License",
-      authority: "Dhaka City Corporation",
-      number: null,
-      scanUrl: null,
-    },
-    {
-      label: "BIN (Business Identification Number)",
-      authority: "National Board of Revenue",
-      number: null,
-      scanUrl: null,
-    },
-    {
-      label: "VAT Registration",
-      authority: "National Board of Revenue",
-      number: null,
-      scanUrl: null,
-    },
-    {
-      label: "TIN (Tax Identification Number)",
-      authority: "National Board of Revenue",
-      number: null,
-      scanUrl: null,
-    },
-    {
-      label: "e-Commerce Registration (DBID)",
-      authority: "Ministry of Commerce",
-      number: null,
-      scanUrl: null,
-    },
-  ],
 
   // 🔒 Placeholder — mirrors VisitStore GBE until real store details are final.
-  contact: {
-    address: "House 12, Road 5, Dhanmondi",
-    area: "Dhaka 1205, Bangladesh",
-    hours: "Open every day, 9 AM – 10 PM",
-    hoursSub: "Including Fridays and holidays",
-    phone: "+880 1X XXX XXXXX",
-    email: "hello@radian.com.bd",
-  },
 };
 // end of ABOUT config

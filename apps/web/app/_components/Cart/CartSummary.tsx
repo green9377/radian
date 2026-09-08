@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { formatTaka } from "../../_data/products";
 import type { ResolvedCart } from "../../_data/cart";
 import type { Quote } from "../../_data/checkoutApi";
 import { useCartStore } from "../../_store/useCartStore";
+import { getGoogleRating } from "../../_data/shop";
 import type { IconName } from "../../_data/productDetails";
 import Icon from "../Pdp/PdpIcons";
 
@@ -68,6 +69,16 @@ export default function CartSummary({
   const setCoupon = useCartStore((s) => s.setCoupon);
 
   const [code, setCode] = useState(couponCode ?? couponRejected?.code ?? "");
+  /*  the shop's own Google rating — null until it answers, and null stays null
+      when it cannot be reached: no rating beats a wrong one  */
+  const [rating, setRating] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getGoogleRating()
+      .then((r) => { if (alive) setRating(r?.rating ?? null); })
+      .catch(() => { if (alive) setRating(null); });
+    return () => { alive = false; };
+  }, []);
   const [open, setOpen] = useState(false);
 
   const { totals, held } = cart;
@@ -274,12 +285,22 @@ export default function CartSummary({
         </p>
       )}
 
-      {/* trust */}
-      <div className="grid grid-cols-3 gap-2 mt-5 pt-5 border-t border-lavender text-center">
+      {/*  trust
+
+           ⚠️ THE RATING IS THE REAL ONE, OR THE TILE IS NOT DRAWN (9 Sep 2026).
+           This row shipped a typed "4.9 on Google". The shop's rating is 4.2,
+           and the checkout had already been fixed to read it live — the cart
+           was simply missed. Same rule as everywhere else: a claim about what
+           other customers did is built from what they actually did.  */}
+      <div
+        className={`grid gap-2 mt-5 pt-5 border-t border-lavender text-center ${
+          rating ? "grid-cols-3" : "grid-cols-2"
+        }`}
+      >
         {([
           { icon: "shield", label: "Freshness\nguarantee" },
           { icon: "check", label: "Secure\npayment" },
-          { icon: "star", label: "4.9 on\nGoogle" },
+          ...(rating ? [{ icon: "star" as IconName, label: `${rating.toFixed(1)} on\nGoogle` }] : []),
         ] satisfies { icon: IconName; label: string }[]).map((t) => (
           <div key={t.label} className="flex flex-col items-center gap-1.5">
             <span className="w-8 h-8 rounded-full bg-lavender grid place-items-center text-orchid">
@@ -293,7 +314,12 @@ export default function CartSummary({
       </div>
 
       <div className="flex flex-wrap justify-center gap-1.5 mt-4">
-        {["bKash", "Nagad", "VISA", "Mastercard", "COD"].map((p) => (
+        {/*  ⚠️ NO "COD" HERE (9 Sep 2026). Cash on delivery is refused on a
+             gift and on anything made to order, and this strip cannot know
+             which basket it is looking at — so it promised a way to pay that
+             the next screen would take away. The wallets and cards are true
+             for every basket.  */}
+        {["bKash", "Nagad", "Rocket", "VISA", "Mastercard"].map((p) => (
           <span
             key={p}
             className="border border-lavender-deep rounded-md px-2 py-1 text-[10.5px] font-semibold text-body-soft"

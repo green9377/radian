@@ -1,6 +1,5 @@
 import type { Zone } from "../_store/useZoneStore";
 import {
-  PRODUCTS,
   zoneFilter,
   type Occasion,
   type Product,
@@ -117,20 +116,12 @@ function tokenize(query: string): { qFull: string; tokens: string[] } {
   return { qFull, tokens };
 }
 
-/**
- * মূল search — zone-filtered, relevance-sorted product list।
- * খালি query = খালি array (caller idle state দেখায়)।
- */
-export function searchProducts(query: string, zone: Zone | null): Product[] {
-  const { qFull, tokens } = tokenize(query);
-  if (tokens.length === 0) return [];
-
-  return PRODUCTS.filter((p) => zoneFilter(p, zone))
-    .map((p) => ({ p, s: scoreProduct(p, tokens, qFull) }))
-    .filter((x) => x.s > 0)
-    .sort((a, b) => b.s - a.s)
-    .map((x) => x.p);
-}
+/*
+  ⚠️ `searchProducts()` — THE SYNCHRONOUS ONE — IS GONE (9 Sep 2026). It
+  searched `PRODUCTS`, the hand-written catalogue, so a shopper could be shown
+  a product the shop does not sell. `searchProductsLive` below asks the shop.
+  The scoring helpers above are kept for the day ranking moves to the server.
+*/
 
 /*
   ═══ THE SWAP, taken 4 Aug 2026 — exactly as the header foretold ═══

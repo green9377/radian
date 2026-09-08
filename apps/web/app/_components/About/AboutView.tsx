@@ -1,5 +1,7 @@
 import Link from "next/link";
+
 import { ABOUT } from "../../_data/about";
+import { getDeliveryModes, getShopCard } from "../../_data/shop";
 
 /*
   AboutView — brand story + trust page (server component, কোনো state নেই)।
@@ -69,19 +71,48 @@ function Icon({ name }: { name: string }) {
   );
 }
 
-export default function AboutView() {
-  const { contact } = ABOUT;
+/*
+  ⚠️ THE FACTS ARE THE SHOP'S OWN (9 Sep 2026).
+
+  This page carried four hand-written statistics, and the first read **"2 hr —
+  Express delivery in Dhaka"** while the shop's express is three hours: the
+  same invented speed claim the hero was cleaned of in August, still here in
+  the About page. The numbers now come from the delivery module and Company
+  settings, and anything the shop has not filled in is simply not drawn.
+
+  What stays hand-written is the STORY — how Radian sees itself, why it exists,
+  the four pillars, how ordering works. That is voice, not data, and the owner
+  can replace the whole page from Admin → Content → Pages ("about"), which wins
+  over everything below.
+*/
+export default async function AboutView() {
+  const [shop, modes] = await Promise.all([
+    getShopCard().catch(() => null),
+    getDeliveryModes(null).catch(() => null),
+  ]);
+
+  /*  The fastest promise the delivery module actually makes, in its own
+      words — never a number typed here.  */
+  const fastest = (modes ?? [])
+    .filter((m) => m.promiseMinutes && m.promiseMinutes > 0)
+    .sort((a, b) => (a.promiseMinutes ?? 0) - (b.promiseMinutes ?? 0))[0];
+  const midnight = (modes ?? []).find((m) => /midnight/i.test(m.typeName || m.label));
+
+  const stats = [
+    fastest?.promiseMinutes && {
+      value:
+        fastest.promiseMinutes % 60 === 0
+          ? `${fastest.promiseMinutes / 60} hr`
+          : `${fastest.promiseMinutes} min`,
+      label: `${fastest.label} inside Dhaka`,
+    },
+    { value: "64", label: "Districts we deliver to" },
+    midnight && { value: "12 AM", label: "Midnight delivery available" },
+    { value: "100%", label: "Hand-arranged to order" },
+  ].filter(Boolean) as { value: string; label: string }[];
 
   return (
     <div className="max-w-[1000px] mx-auto">
-      {/* Draft banner */}
-      {ABOUT.draft && (
-        <div className="max-w-[860px] mx-auto bg-[#FFF7E8] border border-[#F2D9A8] text-[#8A5A00] rounded-[14px] px-4 py-3 mb-8 text-[13px]">
-          <b>Draft.</b> Placeholder brand copy and business details. Radian to
-          replace with its own voice and fill real licence / BIN / VAT / TIN
-          numbers and scans before launch.
-        </div>
-      )}
 
       {/* ── Hero ── */}
       <header className="text-center max-w-[780px] mx-auto mb-10">
@@ -99,7 +130,7 @@ export default function AboutView() {
       {/* ── Stats strip ── */}
       <section className="mb-14">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-lavender-deep rounded-[22px] overflow-hidden shadow-soft">
-          {ABOUT.stats.map((s) => (
+          {stats.map((s) => (
             <div
               key={s.label}
               className="bg-white px-5 py-7 text-center flex flex-col items-center justify-center"
@@ -207,7 +238,29 @@ export default function AboutView() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {ABOUT.documents.map((d) => {
+          {[
+            shop?.tradeLicence
+              ? {
+                  label: "Trade Licence",
+                  authority: "Dhaka City Corporation",
+                  number: shop.tradeLicence,
+                  scanUrl: null as string | null,
+                }
+              : null,
+            shop?.bin
+              ? {
+                  label: "BIN (Business Identification Number)",
+                  authority: "National Board of Revenue",
+                  number: shop.bin,
+                  scanUrl: null as string | null,
+                }
+              : null,
+          ]
+            .filter(
+              (x): x is { label: string; authority: string; number: string; scanUrl: string | null } =>
+                x !== null,
+            )
+            .map((d) => {
             const hasScan = Boolean(d.scanUrl);
             return (
               <div
@@ -282,11 +335,19 @@ export default function AboutView() {
               </div>
 
               {[
-                { icon: "pin", t: contact.address, s: contact.area },
-                { icon: "clock", t: contact.hours, s: contact.hoursSub },
-                { icon: "phone", t: contact.phone, s: "Call or WhatsApp anytime" },
-                { icon: "mail", t: contact.email, s: "For orders and support" },
-              ].map((line, i, arr) => (
+                shop?.address ? { icon: "pin", t: shop.address, s: shop.cityLine ?? "" } : null,
+                shop?.hours?.line
+                  ? { icon: "clock", t: shop.hours.line, s: shop.hours.note ?? shop.hours.pill }
+                  : null,
+                shop?.phone
+                  ? { icon: "phone", t: shop.phone, s: "Call or WhatsApp during opening hours" }
+                  : null,
+                shop?.email
+                  ? { icon: "mail", t: shop.email, s: "For orders and support" }
+                  : null,
+              ]
+                .filter((x): x is { icon: string; t: string; s: string } => x !== null)
+                .map((line, i, arr) => (
                 <div
                   key={line.icon}
                   className={`flex gap-[15px] items-start py-[13px] ${

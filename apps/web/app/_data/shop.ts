@@ -244,6 +244,11 @@ export interface ShopCard {
   cityLine: string | null;
   phone: string | null;
   whatsapp: string | null;
+  /** the address a customer writes to — Company settings (9 Sep 2026) */
+  email: string | null;
+  /** printed on About only when the shop actually has them */
+  bin: string | null;
+  tradeLicence: string | null;
   mapUrl: string | null;
   imageUrl: string | null;
   hours: {
@@ -373,6 +378,12 @@ export interface JournalCard {
 
 /** published posts only — the API filters, so nothing draft can leak */
 export const getJournal = () => get<JournalCard[]>("/content/public/journal");
+
+/** one post, for the article page's <title> — the admin's own row, or null */
+export const getJournalPost = (slug: string) =>
+  get<{ slug: string; title: string; excerpt: string | null }>(
+    `/content/public/journal?slug=${encodeURIComponent(slug)}`,
+  );
 
 export interface GiftFinderStep {
   /** the query parameter this answer becomes — "occasions", "recipients", "budget" */

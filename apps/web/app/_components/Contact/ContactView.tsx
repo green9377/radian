@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import { CONTACT } from "../../_data/contact";
+import { useEffect, useState } from "react";
+
+import { CONTACT_COPY } from "../../_data/contact";
+import { getShopCard, type ShopCard } from "../../_data/shop";
 
 /*
   ContactView — /contact (server component, কোনো state নেই)।
@@ -67,34 +72,74 @@ function SmallIcon({ name }: { name: string }) {
   );
 }
 
+/*
+  ⚠️ THE NUMBERS ARE THE SHOP'S OWN (9 Sep 2026).
+
+  This page printed "+880 1X XXX XXXXX" and an invented Dhanmondi address
+  under a yellow "Draft" banner — on a live shop, two centimetres under the
+  header that shows the real number. Everything factual now comes from
+  `/shop/shop-card`, which is Company settings in the admin: phone, WhatsApp,
+  email, address, city and the opening hours worked out in Bangladesh time.
+
+  A channel with nothing behind it is NOT drawn. A dead "Email us" card is
+  worse than no card: it invites a message nobody will ever read.
+*/
 export default function ContactView() {
+  const [shop, setShop] = useState<ShopCard | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getShopCard().then((c) => { if (alive && c) setShop(c); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
+
+  const waDigits = (shop?.whatsapp ?? "").replace(/\D/g, "");
+  const telDigits = (shop?.phone ?? "").replace(/\D/g, "");
+  const waText = encodeURIComponent("Hi Radian! I'd like to ask about an order.");
+
+  const channels = [
+    waDigits && {
+      key: "whatsapp" as const,
+      label: "WhatsApp us",
+      value: shop!.whatsapp!,
+      sub: "Fastest — usually replies in minutes",
+      href: `https://wa.me/${waDigits}?text=${waText}`,
+    },
+    telDigits && {
+      key: "call" as const,
+      label: "Call the studio",
+      value: shop!.phone!,
+      sub: shop?.hours?.line ?? "During opening hours",
+      href: `tel:+${telDigits}`,
+    },
+    shop?.email && {
+      key: "email" as const,
+      label: "Email us",
+      value: shop.email,
+      sub: "For orders, support and corporate gifting",
+      href: `mailto:${shop.email}`,
+    },
+  ].filter(Boolean) as { key: "whatsapp" | "call" | "email"; label: string; value: string; sub: string; href: string }[];
+
   return (
     <div className="max-w-[1000px] mx-auto">
-      {/* Draft banner */}
-      {CONTACT.draft && (
-        <div className="max-w-[860px] mx-auto bg-[#FFF7E8] border border-[#F2D9A8] text-[#8A5A00] rounded-[14px] px-4 py-3 mb-8 text-[13px]">
-          <b>Draft.</b> Placeholder phone, WhatsApp and email. Radian to fill the
-          real numbers — the links then work automatically.
-        </div>
-      )}
 
       {/* ── Hero ── */}
       <header className="text-center max-w-[720px] mx-auto mb-10">
         <div className="mb-4 flex justify-center">
-          <Eyebrow>{CONTACT.eyebrow}</Eyebrow>
+          <Eyebrow>{CONTACT_COPY.eyebrow}</Eyebrow>
         </div>
         <h1 className="font-display text-[clamp(30px,4.6vw,46px)] font-medium text-purple leading-[1.12]">
-          {CONTACT.heading}
+          {CONTACT_COPY.heading}
         </h1>
         <p className="text-[17px] leading-[1.7] text-body font-light mt-5">
-          {CONTACT.lede}
+          {CONTACT_COPY.lede}
         </p>
       </header>
 
       {/* ── Channel cards ── */}
       <section className="mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {CONTACT.channels.map((c) => (
+          {channels.map((c) => (
             <Link
               key={c.key}
               href={c.href}
@@ -120,7 +165,7 @@ export default function ContactView() {
 
       {/* response note */}
       <p className="text-center text-[13px] text-body-soft font-light mb-14 max-w-[560px] mx-auto">
-        {CONTACT.responseNote}
+        {CONTACT_COPY.responseNote}
       </p>
 
       {/* ── Visit / hours card ── */}
@@ -133,10 +178,19 @@ export default function ContactView() {
                 The Radian studio
               </h2>
             </div>
-            {[
-              { icon: "pin", t: CONTACT.address, s: CONTACT.area },
-              { icon: "clock", t: CONTACT.hours, s: CONTACT.hoursSub },
-            ].map((line, i, arr) => (
+            {([
+              shop?.address
+                ? { icon: "pin", t: shop.address, s: shop.cityLine ?? "" }
+                : null,
+              shop?.hours?.line
+                ? {
+                    icon: "clock",
+                    t: shop.hours.line,
+                    s: shop.hours.note ?? shop.hours.pill,
+                  }
+                : null,
+            ].filter((x): x is { icon: string; t: string; s: string } => x !== null)).map(
+              (line, i, arr) => (
               <div
                 key={line.icon}
                 className={`flex gap-[15px] items-start py-[13px] ${
@@ -179,7 +233,7 @@ export default function ContactView() {
                   <SmallIcon name="pin" />
                 </span>
                 <span className="text-[13px] font-semibold text-purple whitespace-nowrap">
-                  Dhanmondi, Dhaka — map coming soon
+                  {shop?.cityLine || shop?.address || "Our studio in Dhaka"}
                 </span>
               </div>
             </div>
@@ -198,7 +252,7 @@ export default function ContactView() {
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {CONTACT.reasons.map((r) => (
+          {CONTACT_COPY.reasons.map((r) => (
             <div
               key={r.title}
               className="bg-white rounded-[20px] border border-lavender-deep shadow-soft px-7 py-6"
