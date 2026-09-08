@@ -70,9 +70,17 @@ export interface CheckoutState {
 
   /* Q4 — the card (D14) */
   giftMessage: string;
-  /** which set of ready-made lines is offered — never sent to the shop */
+  /** which ready-made line the chips offer — never sent to the shop */
   giftOccasion: string;
-  /** the name hand-written under the message; empty falls back to the sender */
+  giftRelation: string;
+  /**
+   * The name hand-written under the message — the card's "From".
+   *
+   * ⚠️ EMPTY MEANS UNSIGNED, and that is the only way to send anonymously now
+   * (the separate switch went when the step was rebuilt to FlowerAura's
+   * shape). It is prefilled with the sender's own name, so a blank one is a
+   * deliberate act.
+   */
   signedName: string;
   anonymousGift: boolean;
 
@@ -131,6 +139,7 @@ const EMPTY: CheckoutState = {
 
   giftMessage: "",
   giftOccasion: "",
+  giftRelation: "",
   signedName: "",
   anonymousGift: false,
 
@@ -200,6 +209,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
           recipientPhone: "",
           giftMessage: "",
           giftOccasion: "",
+          giftRelation: "",
           anonymousGift: false,
           date: null,
           slotId: null,

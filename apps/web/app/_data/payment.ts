@@ -37,11 +37,18 @@ export interface PaymentMethod {
 }
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
+  /*
+    ⚠️ "Pay Now", not "Online Payment" (owner, 8 Sep 2026 — he asked which
+    name would work harder). "Online Payment" names the plumbing; "Pay Now" is
+    what the customer is about to do, and it is the half of the choice the shop
+    would rather they took. The wallet marks under it do the explaining that
+    the old label was trying to do in words.
+  */
   {
     id: "online",
-    label: "Online Payment",
-    sub: "Card, bKash, Nagad, Rocket — you'll choose on the next screen",
-    logo: "SSL",
+    label: "Pay Now",
+    sub: "bKash · Nagad · Rocket · card — one tap, and it is done",
+    logo: "৳",
     prepaid: true,
     note: "You'll be taken to SSLCommerz to complete payment securely.",
   },
@@ -49,7 +56,7 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     id: "cod",
     label: "Cash on Delivery",
     sub: "Pay our rider when it arrives",
-    logo: "৳",
+    logo: "COD",
     prepaid: false,
     note: "Please keep the exact amount ready for our rider.",
   },

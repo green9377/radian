@@ -68,8 +68,20 @@ export function CheckoutGrid({ shown, children }: { shown: number[]; children: R
 
   return (
     <ShellContext.Provider value={{ shown }}>
-      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[274px_1fr] mt-4">
-        {children}
+      {/*
+        ⚠️ THE RAIL IS THE FIRST COLUMN AND IT STAYS PUT (owner, 8 Sep 2026).
+
+        It used to be a grid item placed AFTER the steps, and a finished step
+        spanned both columns — so every Continue pushed the purple panel
+        further down the page, dragging the finished rows with it. The owner's
+        words: *"purple shape ar box ta puratai sathe sathe abr nicher dike
+        ase … khub biroktikor."*
+
+        Now the shell is two columns for real: the rail on the left, sticky at
+        the top, and ONE stack on the right holding the finished rows and the
+        open panel. Nothing the customer does can move the rail.
+      */}
+      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[274px_1fr] items-start mt-4">
         {/* the rail — hidden on a phone, where the panel names its own step */}
         <div className="hidden lg:block checkout-rail self-start sticky top-4 rounded-[24px] p-3.5 bg-[linear-gradient(168deg,#4D0170_0%,#320049_100%)] shadow-lift">
           <div className="px-3 pt-2 pb-3">
@@ -114,6 +126,8 @@ export function CheckoutGrid({ shown, children }: { shown: number[]; children: R
             })}
           </div>
         </div>
+
+        <div className="min-w-0 flex flex-col gap-3.5">{children}</div>
       </div>
     </ShellContext.Provider>
   );
@@ -154,7 +168,7 @@ export function QCard({
     return (
       <section
         id={`step-${n}`}
-        className="scroll-mt-[120px] lg:col-span-2 bg-white rounded-[20px] border-[1.5px] border-lavender-deep shadow-soft px-4 sm:px-5 py-4 grid gap-4 lg:grid-cols-[230px_1fr_auto] items-start"
+        className="scroll-mt-[120px] bg-white rounded-[20px] border-[1.5px] border-lavender-deep shadow-soft px-4 sm:px-5 py-4 grid gap-4 lg:grid-cols-[210px_1fr_auto] items-start"
       >
         <RailHead n={n} shown={shown} state="done" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-lavender-deep">

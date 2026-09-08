@@ -310,13 +310,16 @@ export function Q5When({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotLoad, s.slotId, method.id]);
 
-  /*  SEVEN DAYS ON THE STRIP, AND A CALENDAR FOR THE REST (owner, 8 Sep 2026).
-      "just 7 day ar date show kre tarpor kew schedule krte chaile tar option
-      ki?" — eight tiles was an arbitrary number, and anybody planning further
-      ahead than the strip had nowhere to go. Seven reads as a week; the eighth
-      tile opens the browser's own date picker (`customDate` below).  */
+  /*  TODAY, TOMORROW, AND A CALENDAR (owner, 8 Sep 2026, second look —
+      FlowerAura's shape exactly: *"today ar tomorrow thakbe and arekta thakbe
+      pick a date"*).
+
+      It was eight tiles, then seven; both were an arbitrary week of chips to
+      read past. Almost every order is today or tomorrow, and anything else is
+      a date somebody already has in mind — which is a calendar's job, not a
+      strip's. The third tile opens the browser's own picker (`customDate`).  */
   const dates = useMemo(
-    () => dateOptions(method, now, 7, leadDays),
+    () => dateOptions(method, now, 2, leadDays),
     [method, now, leadDays],
   );
 
