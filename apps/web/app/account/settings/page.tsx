@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 
 import AccountGuard from "../../_components/Account/AccountGuard";
 import AccountShell from "../../_components/Account/AccountShell";
-import WishlistPanel from "../../_components/Account/WishlistPanel";
+import SettingsPanel from "../../_components/Account/SettingsPanel";
 
 /*  A quiet page (owner, 8 Sep 2026): no reviews rail, no store block, no
     footer. Everything on it comes from `/shop/account/*` — nothing here is
     written in the browser any more.  */
 
 export const metadata: Metadata = {
-  title: "My Wishlist | Radian",
+  title: "Settings | Radian",
   robots: { index: false },
 };
 
@@ -19,7 +19,7 @@ export default function Page() {
       <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 pb-16">
         <AccountGuard>
           <AccountShell>
-            <WishlistPanel />
+            <SettingsPanel />
           </AccountShell>
         </AccountGuard>
       </div>

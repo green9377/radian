@@ -1,190 +1,230 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { Zone } from "../../_store/useZoneStore";
 import {
-  useAddressHydrated,
-  useAddressStore,
-} from "../../_store/useAddressStore";
+  addAddress,
+  editAddress,
+  getAddresses,
+  removeAddress,
+  type AccountAddress,
+} from "../../_data/accountApi";
+import { useToken } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
+import { Empty, Loading, Panel } from "./AccountShell";
 
 /*
-  /account/addresses — শুধু delivery/recipient address।
-  add/edit/delete/set-default — সব functional (useAddressStore, localStorage)।
+  /account/addresses — the Address Book: WHERE GIFTS GO.
+
+  ⚠️ Kept apart from the customer's own address on the Profile screen (the
+  owner's rule, 8 Sep 2026). This screen is other people; that one is them.
+
+  These rows are `Recipient` — the table Customer Management already owns, and
+  the same book the admin sees. The account does not keep a second copy of
+  anybody's address (One Data One Owner).
 */
 
-interface Form {
-  label: string;
-  recipient: string;
-  phone: string;
-  zone: Zone;
-  line: string;
-  isDefault: boolean;
-}
+const input =
+  "w-full border-[1.5px] border-lavender-deep rounded-[13px] px-4 py-3 text-[14px] text-body outline-none transition-colors focus:border-orchid";
 
-const EMPTY: Form = {
-  label: "",
-  recipient: "",
+const RELATIONS = ["mother", "father", "wife", "husband", "partner", "sibling", "friend", "colleague", "other"];
+
+type Draft = {
+  id?: string;
+  name: string;
+  phone: string;
+  line: string;
+  zone: string;
+  relationship: string;
+  isDefault: boolean;
+};
+
+const EMPTY_DRAFT: Draft = {
+  name: "",
   phone: "",
-  zone: "dhaka",
   line: "",
+  zone: "DHAKA",
+  relationship: "other",
   isDefault: false,
 };
 
 export default function AddressesPanel() {
-  const hydrated = useAddressHydrated();
-  const addresses = useAddressStore((s) => s.addresses);
-  const add = useAddressStore((s) => s.add);
-  const update = useAddressStore((s) => s.update);
-  const remove = useAddressStore((s) => s.remove);
-  const setDefault = useAddressStore((s) => s.setDefault);
-
-  const [editing, setEditing] = useState<string | "new" | null>(null);
-  const [form, setForm] = useState<Form>(EMPTY);
+  const token = useToken();
+  const [rows, setRows] = useState<AccountAddress[] | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  function openNew() {
-    setForm(EMPTY);
+  useEffect(() => {
+    if (!token) return;
+    getAddresses(token)
+      .then(setRows)
+      .catch((e) => setErr(e instanceof Error ? e.message : "Could not load your addresses."));
+  }, [token]);
+
+  async function save() {
+    if (!token || !draft) return;
+    setBusy(true);
     setErr(null);
-    setEditing("new");
+    try {
+      const next = draft.id
+        ? await editAddress(token, draft.id, draft)
+        : await addAddress(token, draft);
+      setRows(next);
+      setDraft(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save that address.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function openEdit(id: string) {
-    const a = addresses.find((x) => x.id === id);
-    if (!a) return;
-    setForm({
-      label: a.label,
-      recipient: a.recipient,
-      phone: a.phone,
-      zone: a.zone,
-      line: a.line,
-      isDefault: !!a.isDefault,
-    });
-    setErr(null);
-    setEditing(id);
+  async function drop(id: string) {
+    if (!token) return;
+    setBusy(true);
+    try {
+      setRows(await removeAddress(token, id));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not remove that address.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function save() {
-    if (form.recipient.trim().length < 2) return setErr("Please give the recipient a name.");
-    if (form.line.trim().length < 6) return setErr("Please write the full address.");
-    const payload = {
-      label: form.label.trim() || form.recipient.trim(),
-      recipient: form.recipient.trim(),
-      phone: form.phone.trim(),
-      zone: form.zone,
-      line: form.line.trim(),
-      isDefault: form.isDefault,
-    };
-    if (editing === "new") add(payload);
-    else if (editing) update(editing, payload);
-    setEditing(null);
+  async function makeDefault(id: string) {
+    if (!token) return;
+    setBusy(true);
+    try {
+      setRows(await editAddress(token, id, { isDefault: true }));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[27px] sm:text-[32px] text-purple font-semibold">
-            Delivery addresses
-          </h1>
-          <p className="text-[13px] text-body-soft mt-1">
-            Where your gifts go. Add anyone you send to.
-          </p>
-        </div>
-        {editing === null && (
+    <Panel
+      icon="pin"
+      title="Address book"
+      sub="Where gifts go — pick any of these in one tap at checkout."
+      action={
+        !draft && (
           <button
             type="button"
-            onClick={openNew}
-            className="inline-flex items-center gap-2 h-[44px] px-5 rounded-[14px] bg-purple text-white font-semibold text-[13.5px] hover:bg-purple-deep transition-colors shrink-0"
+            onClick={() => setDraft({ ...EMPTY_DRAFT })}
+            className="bg-white text-purple border-2 border-white rounded-[13px] px-4 py-2.5 font-bold text-[13px]"
           >
-            <Icon name="pin" className="w-[16px] h-[16px]" />
-            Add address
+            + Add new address
           </button>
-        )}
-      </div>
+        )
+      }
+    >
+      {err && (
+        <p className="mb-4 rounded-[13px] bg-[#FDECEE] border border-[#F5C2C7] px-4 py-3 text-[13px] text-[#8A1220]">
+          {err}
+        </p>
+      )}
 
-      {/* form */}
-      {editing !== null && (
-        <div className="bg-white border-[1.5px] border-orchid-mid rounded-[22px] p-5 sm:p-6 mt-5">
-          <h2 className="font-display text-[17px] text-purple font-semibold mb-4">
-            {editing === "new" ? "New delivery address" : "Edit address"}
-          </h2>
+      {draft && (
+        <div className="border-[1.5px] border-orchid-mid bg-[#FDF8FF] rounded-[18px] p-5 mb-5">
+          <b className="block font-display text-[17px] text-purple mb-4">
+            {draft.id ? "Edit address" : "New address"}
+          </b>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Recipient name">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="block text-[12.5px] font-bold text-purple mb-1.5">Who receives it</span>
               <input
-                value={form.recipient}
-                onChange={(e) => setForm({ ...form, recipient: e.target.value })}
-                placeholder="e.g. Meem"
-                className="ipt"
+                className={input}
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                placeholder="Meem Rahman"
               />
-            </Field>
-            <Field label="Label (optional)">
+            </label>
+            <label className="block">
+              <span className="block text-[12.5px] font-bold text-purple mb-1.5">Their phone</span>
               <input
-                value={form.label}
-                onChange={(e) => setForm({ ...form, label: e.target.value })}
-                placeholder="e.g. Meem — Dhanmondi"
-                className="ipt"
+                className={input}
+                value={draft.phone}
+                onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                placeholder="01X XXX XXXXX"
+                inputMode="tel"
               />
-            </Field>
-            <Field label="Phone">
-              <input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="+8801XXXXXXXXX"
-                className="ipt"
-              />
-            </Field>
-            <Field label="Delivery area">
-              <select
-                value={form.zone}
-                onChange={(e) =>
-                  setForm({ ...form, zone: e.target.value as Zone })
-                }
-                className="ipt"
-              >
-                <option value="dhaka">Inside Dhaka</option>
-                <option value="bangladesh">Nationwide</option>
-              </select>
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Full address">
-                <textarea
-                  value={form.line}
-                  onChange={(e) => setForm({ ...form, line: e.target.value })}
-                  rows={2}
-                  placeholder="House, road, area, landmark…"
-                  className="ipt resize-none"
-                />
-              </Field>
-            </div>
+            </label>
           </div>
 
-          <label className="flex items-center gap-2 mt-3 text-[13px] text-body cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.isDefault}
-              onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-              className="w-4 h-4 accent-[#470066]"
+          <label className="block mt-4">
+            <span className="block text-[12.5px] font-bold text-purple mb-1.5">Full address</span>
+            <textarea
+              className={`${input} min-h-[86px] resize-none`}
+              value={draft.line}
+              onChange={(e) => setDraft({ ...draft, line: e.target.value })}
+              placeholder="House 8, Road 27, Flat B4, Dhanmondi — opposite Star Kabab"
             />
-            Set as default delivery address
           </label>
 
-          {err && <p className="text-[12.5px] text-[#B42318] mt-2">{err}</p>}
+          <div className="flex flex-wrap gap-4 items-end mt-4">
+            <label className="block">
+              <span className="block text-[12.5px] font-bold text-purple mb-1.5">Relationship</span>
+              <select
+                className={input}
+                value={draft.relationship}
+                onChange={(e) => setDraft({ ...draft, relationship: e.target.value })}
+              >
+                {RELATIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r[0].toUpperCase() + r.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div className="flex gap-2 mt-5">
+            <div className="inline-flex p-1 bg-lavender rounded-[14px] gap-1">
+              {[
+                { id: "DHAKA", label: "Inside Dhaka" },
+                { id: "BANGLADESH", label: "All Bangladesh" },
+              ].map((z) => (
+                <button
+                  key={z.id}
+                  type="button"
+                  onClick={() => setDraft({ ...draft, zone: z.id })}
+                  className={`px-4 py-2 rounded-[11px] text-[13px] font-bold transition-colors ${
+                    draft.zone === z.id ? "bg-white text-purple shadow-soft" : "text-body-soft"
+                  }`}
+                >
+                  {z.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setDraft({ ...draft, isDefault: !draft.isDefault })}
+              className="flex items-center gap-2.5"
+            >
+              <span
+                className={`w-5 h-5 rounded-[6px] border-[1.5px] grid place-items-center ${
+                  draft.isDefault ? "bg-purple border-purple text-white" : "border-lavender-deep bg-white"
+                }`}
+              >
+                {draft.isDefault && <Icon name="check" className="w-3 h-3" />}
+              </span>
+              <span className="text-[13px] font-bold text-purple">Use this one by default</span>
+            </button>
+          </div>
+
+          <div className="flex gap-2.5 mt-5">
             <button
               type="button"
               onClick={save}
-              className="inline-flex items-center h-[44px] px-6 rounded-[14px] bg-purple text-white font-semibold text-[13.5px] hover:bg-purple-deep transition-colors"
+              disabled={busy}
+              className="bg-purple text-white rounded-[13px] px-6 py-3 font-bold text-[13.5px] disabled:opacity-50"
             >
-              Save address
+              {busy ? "Saving…" : "Save address"}
             </button>
             <button
               type="button"
-              onClick={() => setEditing(null)}
-              className="inline-flex items-center h-[44px] px-5 rounded-[14px] bg-white border-[1.5px] border-lavender-deep text-body-soft font-semibold text-[13.5px] hover:text-purple transition-colors"
+              onClick={() => setDraft(null)}
+              className="bg-white border-[1.5px] border-lavender-deep rounded-[13px] px-5 py-3 font-bold text-[13px] text-body"
             >
               Cancel
             </button>
@@ -192,88 +232,75 @@ export default function AddressesPanel() {
         </div>
       )}
 
-      {/* list */}
-      {!hydrated ? (
-        <p className="text-[13px] text-body-soft mt-6">Loading…</p>
-      ) : addresses.length === 0 ? (
-        <div className="bg-white border-[1.5px] border-dashed border-lavender-deep rounded-[22px] p-10 text-center mt-5">
-          <p className="text-[14px] text-body-soft">
-            No addresses saved yet. Add your first recipient.
+      {!rows && !err && <Loading />}
+
+      {rows && rows.length === 0 && !draft && (
+        <Empty
+          title="No addresses saved yet"
+          sub="Save the ones you send to often — checkout then fills itself in one tap."
+        />
+      )}
+
+      {rows?.map((a) => (
+        <div
+          key={a.id}
+          className={`border-[1.5px] rounded-[16px] p-4 mb-3 ${
+            a.isDefault ? "border-orchid-mid bg-[#FDF8FF]" : "border-lavender-deep"
+          }`}
+        >
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <b className="text-[14px] text-purple">{a.name}</b>
+            <span className="rounded-full bg-lavender text-purple px-2.5 py-1 text-[11px] font-bold">
+              {a.zone === "BANGLADESH" ? "All Bangladesh" : "Inside Dhaka"}
+            </span>
+            {a.isDefault && (
+              <span className="rounded-full bg-[#E8F9EE] text-[#0E7A3D] px-2.5 py-1 text-[11px] font-bold">
+                Default
+              </span>
+            )}
+            <span className="ml-auto flex gap-2">
+              {!a.isDefault && (
+                <button
+                  type="button"
+                  onClick={() => makeDefault(a.id)}
+                  className="rounded-[11px] border-[1.5px] border-lavender-deep bg-white px-3 py-1.5 text-[12.5px] font-bold text-body"
+                >
+                  Make default
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft({
+                    id: a.id,
+                    name: a.name,
+                    phone: a.phone,
+                    line: a.line,
+                    zone: a.zone,
+                    relationship: a.relationship,
+                    isDefault: a.isDefault,
+                  })
+                }
+                className="rounded-[11px] border-[1.5px] border-lavender-deep bg-white px-3 py-1.5 text-[12.5px] font-bold text-body"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => drop(a.id)}
+                className="rounded-[11px] border-[1.5px] border-[#F5C2C7] bg-white px-3 py-1.5 text-[12.5px] font-bold text-[#C4172B]"
+              >
+                Delete
+              </button>
+            </span>
+          </div>
+          <p className="text-[13px] text-body leading-relaxed m-0">
+            {a.line}
+            <br />
+            {a.phone}
           </p>
         </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 gap-3 mt-5">
-          {addresses.map((a) => (
-            <div
-              key={a.id}
-              className="bg-white border-[1.5px] border-lavender-deep rounded-[20px] p-5"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-lavender text-orchid grid place-items-center">
-                  <Icon name="pin" className="w-4 h-4" />
-                </span>
-                <span className="text-[14px] font-semibold text-purple truncate">
-                  {a.label}
-                </span>
-                {a.isDefault && (
-                  <span className="rounded-full bg-orchid-soft text-orchid text-[10.5px] font-semibold px-2 py-0.5 shrink-0">
-                    Default
-                  </span>
-                )}
-              </div>
-              <p className="text-[13px] text-body mt-3">{a.line}</p>
-              <p className="text-[12px] text-body-soft mt-1.5">
-                {a.recipient}
-                {a.phone ? ` · ${a.phone}` : ""} ·{" "}
-                {a.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"}
-              </p>
-
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-lavender text-[12.5px] font-semibold">
-                <button
-                  type="button"
-                  onClick={() => openEdit(a.id)}
-                  className="text-purple hover:text-orchid transition-colors"
-                >
-                  Edit
-                </button>
-                {!a.isDefault && (
-                  <button
-                    type="button"
-                    onClick={() => setDefault(a.id)}
-                    className="text-body-soft hover:text-purple transition-colors"
-                  >
-                    Set default
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => remove(a.id)}
-                  className="ml-auto text-body-soft hover:text-[#B42318] transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-[12px] font-semibold text-body-soft mb-1.5">
-        {label}
-      </span>
-      {children}
-    </label>
+      ))}
+    </Panel>
   );
 }

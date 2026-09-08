@@ -4,6 +4,9 @@ import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { addWish, getWishlist, removeWish } from "../_data/accountApi";
+import { useAuthStore } from "./useAuthStore";
+
 /*
   ═══════════════════════════════════════════════════════════════════
   WISHLIST STORE — Zustand + persist (localStorage: "radian-wishlist")
@@ -20,6 +23,17 @@ import { persist } from "zustand/middleware";
 
   ── order ──────────────────────────────────────────────────────
   নতুন save সামনে বসে (unshift) — "সদ্য যোগ করা" আগে দেখানোই স্বাভাবিক।
+
+  ── SIGNED IN, IT IS THE ACCOUNT'S (owner, 8 Sep 2026) ─────────────
+  A guest still keeps a list in this browser — the heart has to work before
+  anybody logs in, or nobody ever would. The moment there is a session, the
+  same act is also written to `WishlistItem`, and `pullWishlist()` brings the
+  account's list back down on sign-in. So a list made on a phone is on the
+  laptop, and clearing a browser no longer throws it away.
+
+  ⚠️ The server call is fire-and-forget on purpose: a heart that waits for a
+  round trip feels broken, and a failed sync must never lose the local list.
+  The next sign-in pushes anything the server missed.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -36,14 +50,19 @@ export const useWishlistStore = create<WishlistStore>()(
       slugs: [],
 
       toggle: (slug) =>
-        set((s) =>
-          s.slugs.includes(slug)
+        set((s) => {
+          const had = s.slugs.includes(slug);
+          void syncOne(slug, !had);
+          return had
             ? { slugs: s.slugs.filter((x) => x !== slug) }
-            : { slugs: [slug, ...s.slugs] },
-        ),
+            : { slugs: [slug, ...s.slugs] };
+        }),
 
       remove: (slug) =>
-        set((s) => ({ slugs: s.slugs.filter((x) => x !== slug) })),
+        set((s) => {
+          void syncOne(slug, false);
+          return { slugs: s.slugs.filter((x) => x !== slug) };
+        }),
 
       clear: () => set({ slugs: [] }),
     }),
@@ -78,4 +97,39 @@ export function useWishlistCount(): number {
   const n = useWishlistStore((s) => s.slugs.length);
   const hydrated = useWishlistHydrated();
   return hydrated ? n : 0;
+}
+
+/* ─────────────────── the account's copy ─────────────────── */
+
+/** one heart, mirrored to the account — silent when signed out or offline */
+async function syncOne(slug: string, on: boolean) {
+  const token = useAuthStore.getState().token;
+  if (!token) return;
+  try {
+    if (on) await addWish(token, slug);
+    else {
+      /*  The server keys on the product id, and the browser only knows the
+          slug — so the row is found in the account's own list first.  */
+      const mine = await getWishlist(token);
+      const hit = mine.find((w) => w.slug === slug);
+      if (hit) await removeWish(token, hit.productId);
+    }
+  } catch {
+    /* the local list is the customer's; a failed sync must not empty it */
+  }
+}
+
+/**
+ * Sign-in: the account's list becomes this browser's, and anything saved here
+ * as a guest is pushed up first so nothing is lost by logging in.
+ */
+export async function mergeWishlistOnLogin(token: string) {
+  const local = useWishlistStore.getState().slugs;
+  try {
+    for (const slug of local) await addWish(token, slug);
+    const mine = await getWishlist(token);
+    useWishlistStore.setState({ slugs: mine.map((w) => w.slug) });
+  } catch {
+    /* leave the local list alone — it is better than an empty one */
+  }
 }

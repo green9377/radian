@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian — My Account</title>
+<style>
+  :root{
+    --purple:#470066; --purple-deep:#320049; --ink:#2e0442;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#e9a8f5;
+    --lavender:#f7f1fb; --lavender-deep:#efe4f7;
+    --rosegold:#b76e79; --rosegold-light:#e8c9ce;
+    --body:#3a2547; --body-soft:#7a6689;
+    --green:#0e7a3d; --green-soft:#e8f9ee; --green-bd:#c4eed4;
+    --amber:#8a5a00; --amber-soft:#fff7e8; --amber-bd:#f2d9a8;
+    --blue:#1d4ed8; --blue-soft:#eef2ff;
+    --red:#c4172b; --red-soft:#fdecee;
+    --shadow-soft:0 10px 40px rgba(71,0,102,.08);
+    --shadow-lift:0 18px 50px rgba(71,0,102,.14);
+    --page-w:1180px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#faf7fc;color:var(--body);
+       font-family:"Century Gothic",Futura,"Trebuchet MS",system-ui,sans-serif;font-size:14px}
+  a{color:inherit}
+
+  /* ── review annotations (not part of the design) ── */
+  .note{max-width:var(--page-w);margin:38px auto 12px;padding:0 20px}
+  .note b{display:inline-block;background:var(--purple);color:#fff;font-size:11px;
+          letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:999px}
+  .note span{display:block;color:var(--body-soft);font-size:12.5px;margin-top:8px;max-width:860px;line-height:1.55}
+
+  /* ── header ── */
+  .hdr{background:#fff;border-bottom:1px solid var(--lavender-deep)}
+  .hdr-in{max-width:var(--page-w);margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:Georgia,serif;font-size:21px;letter-spacing:.12em;color:var(--purple);font-weight:700}
+  .hdr-r{display:flex;gap:20px;align-items:center;font-size:12px;color:var(--body-soft)}
+
+  .wrap{max-width:var(--page-w);margin:0 auto;padding:20px 20px 50px}
+
+  /* ── the banner ── */
+  .banner{background:linear-gradient(140deg,#4d0170 0%,#320049 60%,#3d0a5c 100%);
+          border-radius:26px;padding:24px 26px;display:flex;align-items:center;gap:20px;
+          box-shadow:var(--shadow-lift);flex-wrap:wrap}
+  .ava{width:76px;height:76px;border-radius:999px;flex:none;display:grid;place-items:center;
+       background:linear-gradient(150deg,#e8c9ce,#b76e79);color:#fff;font-family:Georgia,serif;
+       font-size:27px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.28);position:relative}
+  .ava i{position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-radius:999px;background:#fff;
+         color:var(--purple);font-style:normal;font-size:12px;display:grid;place-items:center;box-shadow:var(--shadow-soft)}
+  .who b{display:block;font-family:Georgia,serif;font-size:24px;color:#fff;font-weight:600}
+  .who span{display:block;color:#dcc4ea;font-size:12.5px;margin-top:5px}
+  .who span em{font-style:normal;color:#fff;font-weight:700}
+  .bpills{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+  .bpill{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:16px;
+         padding:11px 15px;min-width:120px}
+  .bpill u{display:block;text-decoration:none;font-size:11px;color:#dcc4ea;letter-spacing:.04em}
+  .bpill b{display:block;font-family:Georgia,serif;font-size:19px;color:#fff;margin-top:3px}
+
+  /* ── shell ── */
+  .grid{display:grid;grid-template-columns:250px 1fr;gap:20px;align-items:start;margin-top:20px}
+  .nav{background:#fff;border:1.5px solid var(--lavender-deep);border-radius:22px;padding:10px;
+       box-shadow:var(--shadow-soft);position:sticky;top:16px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:14px;
+         text-decoration:none;font-weight:700;font-size:13.5px;color:var(--body)}
+  .nav a i{width:30px;height:30px;border-radius:9px;background:var(--lavender);display:grid;place-items:center;
+           font-style:normal;font-size:14px;flex:none}
+  .nav a.on{background:var(--purple);color:#fff}
+  .nav a.on i{background:rgba(255,255,255,.16)}
+  .nav a.danger{color:var(--red)}
+  .nav hr{border:0;border-top:1px solid var(--lavender-deep);margin:8px 6px}
+
+  .panel{background:#fff;border:1.5px solid var(--lavender-deep);border-radius:22px;
+         box-shadow:var(--shadow-soft);padding:24px 26px}
+  .ptitle{font-family:Georgia,serif;font-size:21px;color:var(--purple);font-weight:600;margin:0 0 3px}
+  /* the three "working" panels wear the brand, not a plain white form */
+  .panel.brand{padding:0;overflow:hidden}
+  .panel.brand > .head{background:linear-gradient(150deg,#4d0170,#320049);padding:20px 26px;
+        display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .panel.brand > .head .ic{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;
+        background:rgba(255,255,255,.14);font-size:19px}
+  .panel.brand > .head h2{font-family:Georgia,serif;font-size:21px;color:#fff;font-weight:600;margin:0}
+  .panel.brand > .head p{margin:3px 0 0;font-size:12.5px;color:#dcc4ea}
+  .panel.brand > .head .btn{margin-left:auto}
+  .panel.brand > .in-pad{padding:22px 26px 24px}
+  .psub{color:var(--body-soft);font-size:12.5px;margin:0 0 20px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+  .btn{border:0;font-family:inherit;font-weight:700;cursor:pointer;border-radius:13px}
+  .btn-p{background:var(--purple);color:#fff;padding:12px 22px;font-size:13.5px}
+  .btn-o{background:#fff;border:2px solid var(--purple);color:var(--purple);padding:10px 18px;font-size:13px}
+  .btn-s{background:#fff;border:1.5px solid var(--lavender-deep);color:var(--body);padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:11px}
+  .btn-d{background:#fff;border:1.5px solid #f5c2c7;color:var(--red);padding:10px 18px;font-size:13px;font-weight:700;border-radius:13px}
+
+  .field{margin-bottom:16px}
+  .field u{display:block;text-decoration:none;font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px}
+  .in{width:100%;border:1.5px solid var(--lavender-deep);border-radius:13px;padding:12px 14px;font-size:14px;
+      font-family:inherit;color:var(--body);background:#fff}
+  .in[disabled]{background:var(--lavender);color:var(--body-soft)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  .tag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700}
+  .t-green{background:var(--green-soft);color:var(--green)}
+  .t-amber{background:var(--amber-soft);color:var(--amber)}
+  .t-blue{background:var(--blue-soft);color:var(--blue)}
+  .t-lav{background:var(--lavender);color:var(--purple)}
+  .t-rose{background:#fdeff0;color:#b42318}
+
+  .box{border:1.5px solid var(--lavender-deep);border-radius:16px;padding:16px;margin-bottom:12px}
+  .box.def{border-color:var(--orchid-mid);background:#fdf8ff}
+  .box .bh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .box .bh b{font-size:14px;color:var(--purple)}
+  .box p{margin:0;font-size:13px;color:var(--body);line-height:1.6}
+  .box .acts{margin-left:auto;display:flex;gap:8px}
+
+  /* orders */
+  .ord{border:1.5px solid var(--lavender-deep);border-radius:18px;overflow:hidden;margin-bottom:14px}
+  .ord{border-color:var(--orchid-mid)}
+  .ord .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+            background:linear-gradient(150deg,#4d0170,#3a0057);padding:12px 16px}
+  .ord .top b{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:#fff}
+  .ord .top span{font-size:12px;color:#dcc4ea}
+  .ord .body{padding:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .th{width:64px;height:64px;border-radius:14px;flex:none;background:linear-gradient(160deg,#f1e6f8,#dfc8f0)}
+  .ord .body .info{flex:1;min-width:180px}
+  .ord .body .info b{display:block;font-size:14px;color:var(--purple)}
+  .ord .body .info span{display:block;font-size:12px;color:var(--body-soft);margin-top:3px}
+  .ord .body .amt{font-family:Georgia,serif;font-size:19px;color:var(--purple)}
+  .ord .foot{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 16px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{border:1.5px solid var(--lavender-deep);background:#fff;border-radius:999px;padding:8px 16px;
+        font-weight:700;font-size:12.5px;color:var(--body);cursor:pointer}
+  .chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+
+  /* live strip */
+  .live{border:1.5px solid var(--green-bd);background:var(--green-soft);border-radius:18px;padding:14px 16px;
+        display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .live b{color:#0e5c31;font-size:14px}
+  .live span{font-size:12.5px;color:#25674a}
+  .live .btn{margin-left:auto}
+
+  /* wishlist */
+  .wl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .wl .card{border:1.5px solid var(--lavender-deep);border-radius:16px;overflow:hidden}
+  .wl .card .img{height:120px;background:linear-gradient(160deg,#f1e6f8,#dfc8f0)}
+  .wl .card .c{padding:12px}
+  .wl .card b{display:block;font-size:13px;color:var(--purple)}
+  .wl .card .pr{font-family:Georgia,serif;font-size:16px;color:var(--purple);margin-top:4px;display:block}
+  .wl .card .btns{display:flex;gap:7px;margin-top:10px}
+
+  /* credit */
+  .bal{background:linear-gradient(150deg,#4d0170,#320049);border-radius:20px;padding:22px 24px;color:#fff;
+       display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  .bal u{display:block;text-decoration:none;font-size:12px;color:#dcc4ea;letter-spacing:.04em}
+  .bal b{display:block;font-family:Georgia,serif;font-size:34px;margin-top:4px}
+  .bal p{margin:0 0 0 auto;max-width:300px;font-size:12px;color:#dcc4ea;line-height:1.55}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11.5px;color:var(--body-soft);text-align:left;font-weight:700;padding:8px 10px;border-bottom:1.5px solid var(--lavender-deep)}
+  td{font-size:13px;padding:12px 10px;border-bottom:1px solid var(--lavender-deep)}
+  td.pos{color:var(--green);font-weight:700}
+  td.neg{color:var(--body);font-weight:700}
+  td.r,th.r{text-align:right}
+
+  /* stars */
+  .stars{color:#e8a33d;letter-spacing:2px;font-size:13px}
+
+  .empty{text-align:center;padding:36px 20px;border:1.5px dashed var(--lavender-deep);border-radius:18px}
+  .empty b{display:block;font-family:Georgia,serif;font-size:17px;color:var(--purple);margin-bottom:6px}
+  .empty span{display:block;font-size:12.5px;color:var(--body-soft);margin-bottom:14px}
+
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.nav{position:static;display:flex;overflow-x:auto;gap:6px}
+    .nav hr{display:none}.two,.wl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="hdr"><div class="hdr-in">
+  <span class="logo">RADIAN</span>
+  <span class="hdr-r"><span>Track Order</span><span>Wishlist</span><span>Cart</span><span><b>My Account</b></span></span>
+</div></div>
+
+<!-- ══════════ 1 · PROFILE ══════════ -->
+<div class="note"><b>1 · My Profile</b>
+  <span>The banner is the account: who you are, since when, and the two numbers worth seeing at a glance. Below it, FlowerAura's shape — a nav down the left, one panel on the right. <b style="background:none;color:var(--purple);padding:0;text-transform:none;letter-spacing:0;font-size:12.5px">Your own address is kept apart from the delivery addresses</b>, as you asked: this one is who <i>you</i> are; the Address Book is where gifts go.</span></div>
+
+<div class="wrap">
+  <div class="banner">
+    <span class="ava">SG<i>✎</i></span>
+    <span class="who">
+      <b>Sobuj Gazi</b>
+      <span>+880 1940 974467 · sobujgazi77@gmail.com · with Radian since <em>March 2026</em></span>
+    </span>
+    <span class="bpills">
+      <span class="bpill"><u>ORDERS</u><b>14</b></span>
+      <span class="bpill"><u>STORE CREDIT</u><b>৳ 450</b></span>
+    </span>
+  </div>
+
+  <div class="grid">
+    <nav class="nav">
+      <a class="on" href="#"><i>👤</i> My Profile</a>
+      <a href="#"><i>📦</i> My Orders</a>
+      <a href="#"><i>📍</i> Address Book</a>
+      <a href="#"><i>💜</i> Wishlist</a>
+      <a href="#"><i>🔔</i> Reminders</a>
+      <a href="#"><i>৳</i> Store Credit</a>
+      <a href="#"><i>⭐</i> My Reviews</a>
+      <hr />
+      <a href="#"><i>⚙️</i> Settings</a>
+      <a class="danger" href="#"><i>⏻</i> Log out</a>
+    </nav>
+
+    <div class="panel brand">
+      <div class="head">
+        <span class="ic">👤</span>
+        <span><h2>My profile</h2><p>What we call you, and how we reach you.</p></span>
+      </div>
+      <div class="in-pad">
+      <div class="two">
+        <div class="field"><u>Full name</u><input class="in" value="Sobuj Gazi" /></div>
+        <div class="field"><u>Phone number · verified</u><input class="in" value="+880 1940 974467" disabled /></div>
+        <div class="field"><u>Email</u><input class="in" value="sobujgazi77@gmail.com" /></div>
+        <div class="field"><u>Birthday · optional</u><input class="in" value="09 August" /></div>
+      </div>
+      <button class="btn btn-p">Save changes</button>
+
+      <hr style="border:0;border-top:1px solid var(--lavender-deep);margin:26px 0 20px" />
+
+      <h3 class="ptitle" style="font-size:17px">Your own address</h3>
+      <p class="psub">For our records and for calling you — never used as a delivery address unless you pick it at checkout.</p>
+      <div class="box">
+        <div class="bh"><b>Sobuj Gazi</b><span class="tag t-lav">Inside Dhaka</span>
+          <span class="acts"><button class="btn-s">Edit</button></span></div>
+        <p>House 1, Road 1, Dhanmondi, Dhaka<br />+880 1940 974467</p>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 2 · ORDERS ══════════ -->
+<div class="note"><b>2 · My Orders</b>
+  <span>Real orders, from the shop's own database — including the ones placed before you ever logged in, matched by the phone number the code was sent to (your ruling). A live order gets the green strip at the top; a delivered one offers a review and a reorder.</span></div>
+
+<div class="wrap"><div class="grid">
+  <nav class="nav">
+    <a href="#"><i>👤</i> My Profile</a>
+    <a class="on" href="#"><i>📦</i> My Orders</a>
+    <a href="#"><i>📍</i> Address Book</a>
+    <a href="#"><i>💜</i> Wishlist</a>
+    <a href="#"><i>🔔</i> Reminders</a>
+    <a href="#"><i>৳</i> Store Credit</a>
+    <a href="#"><i>⭐</i> My Reviews</a>
+    <hr /><a href="#"><i>⚙️</i> Settings</a><a class="danger" href="#"><i>⏻</i> Log out</a>
+  </nav>
+
+  <div class="panel brand">
+    <div class="head">
+      <span class="ic">📦</span>
+      <span><h2>My orders</h2><p>Everything ordered from this number — kept for good.</p></span>
+    </div>
+    <div class="in-pad">
+    <div class="live">
+      <span>🚚</span>
+      <span><b>RAD-55230 is out for delivery</b><br /><span>Arriving today, 3:00 PM – 10:00 PM · Dhanmondi</span></span>
+      <button class="btn btn-o">Track it</button>
+    </div>
+
+    <div class="chips">
+      <button class="chip on">All · 14</button><button class="chip">Active · 1</button>
+      <button class="chip">Delivered · 12</button><button class="chip">Cancelled · 1</button>
+    </div>
+
+    <div class="ord">
+      <div class="top"><b>RAD-55230</b><span>Placed 8 Sept 2026</span><span class="tag t-blue">Out for delivery</span></div>
+      <div class="body">
+        <span class="th"></span>
+        <span class="info"><b>Anniversary GIFT · Pink · Large</b><span>For sobuj · Dhanmondi, Dhaka · Schedule it, Evening</span></span>
+        <span class="amt">৳ 6,999</span>
+      </div>
+      <div class="foot"><button class="btn-s">Track order</button><button class="btn-s">View details</button><button class="btn-s">Need help</button></div>
+    </div>
+
+    <div class="ord">
+      <div class="top"><b>RAD-97612</b><span>Placed 31 Aug 2026</span><span class="tag t-green">Delivered</span></div>
+      <div class="body">
+        <span class="th"></span>
+        <span class="info"><b>Red Roses Bouquet · 12 stems</b><span>For Rupa · Gulshan, Dhaka · delivered 1 Sept, 6:12 PM</span></span>
+        <span class="amt">৳ 1,365</span>
+      </div>
+      <div class="foot"><button class="btn-s">⭐ Write a review</button><button class="btn-s">Order again</button><button class="btn-s">View details</button></div>
+    </div>
+
+    <div class="ord">
+      <div class="top"><b>RAD-82895</b><span>Placed 12 Aug 2026</span><span class="tag t-rose">Cancelled</span></div>
+      <div class="body">
+        <span class="th"></span>
+        <span class="info"><b>Chocolate Box · Medium</b><span>Cancelled 12 Aug · refunded to store credit</span></span>
+        <span class="amt">৳ 4,950</span>
+      </div>
+      <div class="foot"><button class="btn-s">View details</button><button class="btn-s">Order again</button></div>
+    </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════ 3 · ADDRESS BOOK ══════════ -->
+<div class="note"><b>3 · Address Book — where gifts go</b>
+  <span>Separate from your own address, and separate from the Send-again list at checkout: this is the book, and checkout reads it. Each card carries who receives it, their number, the zone and a default.</span></div>
+
+<div class="wrap"><div class="grid">
+  <nav class="nav">
+    <a href="#"><i>👤</i> My Profile</a><a href="#"><i>📦</i> My Orders</a>
+    <a class="on" href="#"><i>📍</i> Address Book</a><a href="#"><i>💜</i> Wishlist</a>
+    <a href="#"><i>🔔</i> Reminders</a><a href="#"><i>৳</i> Store Credit</a><a href="#"><i>⭐</i> My Reviews</a>
+    <hr /><a href="#"><i>⚙️</i> Settings</a><a class="danger" href="#"><i>⏻</i> Log out</a>
+  </nav>
+
+  <div class="panel brand">
+    <div class="head">
+      <span class="ic">📍</span>
+      <span><h2>Address book</h2><p>Pick any of these in one tap at checkout.</p></span>
+      <button class="btn btn-o" style="background:#fff">+ Add new address</button>
+    </div>
+    <div class="in-pad">
+    <div class="box def">
+      <div class="bh"><b>Meem Rahman</b><span class="tag t-lav">🏠 Home</span><span class="tag t-green">Default</span>
+        <span class="acts"><button class="btn-s">Edit</button><button class="btn-s">Delete</button></span></div>
+      <p>House 8, Road 27, Flat B4, Dhanmondi — opposite Star Kabab, Dhaka<br />+880 1775 889677 · Inside Dhaka</p>
+    </div>
+
+    <div class="box">
+      <div class="bh"><b>Ammu</b><span class="tag t-lav">🏡 Family</span>
+        <span class="acts"><button class="btn-s">Edit</button><button class="btn-s">Delete</button></span></div>
+      <p>House 12, Sonadanga R/A, Khulna — beside the bus terminal<br />+880 1712 345678 · All Bangladesh</p>
+    </div>
+
+    <div class="box">
+      <div class="bh"><b>Office · Reception desk</b><span class="tag t-lav">🏢 Office</span>
+        <span class="acts"><button class="btn-s">Edit</button><button class="btn-s">Delete</button></span></div>
+      <p>Level 6, Concord Tower, Gulshan 1, Dhaka<br />+880 1911 223344 · Inside Dhaka</p>
+    </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════ 4 · WISHLIST + 5 · REMINDERS ══════════ -->
+<div class="note"><b>4 · Wishlist &nbsp;·&nbsp; 5 · Reminders</b>
+  <span>Both stop being this-device-only: saved on the account, so a wishlist made on a phone is there on the laptop. A reminder is a promise to message first — the date, who it is for, and how many days before.</span></div>
+
+<div class="wrap"><div class="grid">
+  <nav class="nav">
+    <a href="#"><i>👤</i> My Profile</a><a href="#"><i>📦</i> My Orders</a><a href="#"><i>📍</i> Address Book</a>
+    <a class="on" href="#"><i>💜</i> Wishlist</a><a href="#"><i>🔔</i> Reminders</a>
+    <a href="#"><i>৳</i> Store Credit</a><a href="#"><i>⭐</i> My Reviews</a>
+    <hr /><a href="#"><i>⚙️</i> Settings</a><a class="danger" href="#"><i>⏻</i> Log out</a>
+  </nav>
+
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <div class="row" style="margin-bottom:18px">
+        <div><h2 class="ptitle">Wishlist</h2><p class="psub" style="margin:0">3 saved · kept on your account</p></div>
+        <button class="btn btn-o">Add all to cart</button>
+      </div>
+      <div class="wl">
+        <div class="card"><div class="img"></div><div class="c"><b>Velvet Red Roses</b><span class="pr">৳ 2,450</span>
+          <div class="btns"><button class="btn-s">Add to cart</button><button class="btn-s">Remove</button></div></div></div>
+        <div class="card"><div class="img"></div><div class="c"><b>Anniversary GIFT</b><span class="pr">৳ 6,849</span>
+          <div class="btns"><button class="btn-s">Add to cart</button><button class="btn-s">Remove</button></div></div></div>
+        <div class="card"><div class="img"></div><div class="c"><b>Chocolate Heart Box</b><span class="pr">৳ 1,950</span>
+          <div class="btns"><button class="btn-s">Add to cart</button><button class="btn-s">Remove</button></div></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:18px">
+        <div><h2 class="ptitle">Dates Radian remembers</h2><p class="psub" style="margin:0">We message you before the day — never on the day itself, when it is already too late.</p></div>
+        <button class="btn btn-p">+ Add a date</button>
+      </div>
+      <div class="box">
+        <div class="bh"><b>Ammu's birthday</b><span class="tag t-amber">in 12 days</span>
+          <span class="acts"><button class="btn-s">Edit</button><button class="btn-s">Delete</button></span></div>
+        <p>20 September · remind me 3 days before, by SMS</p>
+      </div>
+      <div class="box">
+        <div class="bh"><b>Our anniversary · Meem</b><span class="tag t-lav">14 February</span>
+          <span class="acts"><button class="btn-s">Edit</button><button class="btn-s">Delete</button></span></div>
+        <p>Remind me 7 days before, by SMS</p>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════ 6 · STORE CREDIT + 7 · REVIEWS ══════════ -->
+<div class="note"><b>6 · Store Credit &nbsp;·&nbsp; 7 · My Reviews</b>
+  <span>The credit the shop already keeps (returns and refunds) finally has a face: a balance and every line that made it. Reviews come in two halves — what is waiting to be written, and what you have written.</span></div>
+
+<div class="wrap"><div class="grid">
+  <nav class="nav">
+    <a href="#"><i>👤</i> My Profile</a><a href="#"><i>📦</i> My Orders</a><a href="#"><i>📍</i> Address Book</a>
+    <a href="#"><i>💜</i> Wishlist</a><a href="#"><i>🔔</i> Reminders</a>
+    <a class="on" href="#"><i>৳</i> Store Credit</a><a href="#"><i>⭐</i> My Reviews</a>
+    <hr /><a href="#"><i>⚙️</i> Settings</a><a class="danger" href="#"><i>⏻</i> Log out</a>
+  </nav>
+
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <h2 class="ptitle">Store credit</h2>
+      <p class="psub">Spend it at checkout — it comes off the bill automatically.</p>
+      <div class="bal">
+        <span><u>AVAILABLE</u><b>৳ 450</b></span>
+        <p>Credit belongs to this phone number. It never expires, and it cannot be sent to anyone else.</p>
+      </div>
+      <table>
+        <tr><th>Date</th><th>What happened</th><th class="r">Amount</th><th class="r">Balance</th></tr>
+        <tr><td>12 Aug 2026</td><td>Refund · RAD-82895 cancelled</td><td class="r pos">+ ৳ 950</td><td class="r">৳ 950</td></tr>
+        <tr><td>18 Aug 2026</td><td>Spent on RAD-90114</td><td class="r neg">− ৳ 500</td><td class="r">৳ 450</td></tr>
+      </table>
+    </div>
+
+    <div class="panel brand">
+      <div class="head">
+        <span class="ic">⭐</span>
+        <span><h2>My reviews</h2><p>Only what was actually delivered to you — that is why they can be trusted.</p></span>
+      </div>
+      <div class="in-pad">
+
+      <!-- WAITING FOR YOUR REVIEW — every delivered product, asked for by name -->
+      <div style="border:1.5px solid var(--amber-bd);background:var(--amber-soft);border-radius:18px;padding:16px 18px;margin-bottom:18px">
+        <b style="display:block;font-family:Georgia,serif;font-size:17px;color:var(--amber)">Waiting for your review · 3</b>
+        <span style="display:block;font-size:12.5px;color:var(--amber);margin-top:4px">
+          These reached the person you sent them to. Tell us how they looked when they arrived — it is the only thing new customers trust.
+        </span>
+      </div>
+
+      <div class="box" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span class="th"></span>
+        <span style="flex:1;min-width:180px">
+          <b style="display:block;font-size:14px;color:var(--purple)">Red Roses Bouquet · 12 stems</b>
+          <span style="display:block;font-size:12px;color:var(--body-soft);margin-top:3px">RAD-97612 · delivered 1 Sept to Rupa</span>
+          <span class="stars" style="display:block;margin-top:7px;font-size:20px;letter-spacing:4px;color:#d9c7e6">★★★★★</span>
+        </span>
+        <button class="btn btn-p" style="margin-left:auto">Write your review</button>
+      </div>
+
+      <div class="box" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span class="th"></span>
+        <span style="flex:1;min-width:180px">
+          <b style="display:block;font-size:14px;color:var(--purple)">Anniversary GIFT · Pink · Large</b>
+          <span style="display:block;font-size:12px;color:var(--body-soft);margin-top:3px">RAD-90114 · delivered 18 Aug to Meem Rahman</span>
+          <span class="stars" style="display:block;margin-top:7px;font-size:20px;letter-spacing:4px;color:#d9c7e6">★★★★★</span>
+        </span>
+        <button class="btn btn-p" style="margin-left:auto">Write your review</button>
+      </div>
+
+      <div class="box" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span class="th"></span>
+        <span style="flex:1;min-width:180px">
+          <b style="display:block;font-size:14px;color:var(--purple)">Midnight Chocolate Cake · 1 kg</b>
+          <span style="display:block;font-size:12px;color:var(--body-soft);margin-top:3px">RAD-88420 · delivered 2 Aug to Ammu</span>
+          <span class="stars" style="display:block;margin-top:7px;font-size:20px;letter-spacing:4px;color:#d9c7e6">★★★★★</span>
+        </span>
+        <button class="btn btn-p" style="margin-left:auto">Write your review</button>
+      </div>
+
+      <!-- ALREADY WRITTEN -->
+      <b style="display:block;font-family:Georgia,serif;font-size:17px;color:var(--purple);margin:26px 0 12px">
+        Your reviews · 5
+      </b>
+
+      <div class="box">
+        <div class="bh"><b>Chocolate Heart Box</b><span class="stars">★★★★★</span><span class="tag t-lav">14 Aug</span>
+          <span class="acts"><button class="btn-s">Edit</button></span></div>
+        <p>Arrived exactly at midnight and she cried. The box was perfect.</p>
+      </div>
+
+      <div class="box">
+        <div class="bh"><b>Velvet Red Roses</b><span class="stars">★★★★☆</span><span class="tag t-lav">2 Aug</span>
+          <span class="acts"><button class="btn-s">Edit</button></span></div>
+        <p>Fresh and full. Two stems were a little short, but the arrangement looked expensive.</p>
+      </div>
+      </div>
+  </div>
+</div></div>
+
+<!-- ══════════ 8 · SETTINGS ══════════ -->
+<div class="note"><b>8 · Settings</b>
+  <span>There is no password to change, so this page is about messages and about leaving. Deleting says plainly what goes and what the shop must keep — orders are the shop's books, and the law does not let them vanish.</span></div>
+
+<div class="wrap"><div class="grid">
+  <nav class="nav">
+    <a href="#"><i>👤</i> My Profile</a><a href="#"><i>📦</i> My Orders</a><a href="#"><i>📍</i> Address Book</a>
+    <a href="#"><i>💜</i> Wishlist</a><a href="#"><i>🔔</i> Reminders</a><a href="#"><i>৳</i> Store Credit</a>
+    <a href="#"><i>⭐</i> My Reviews</a>
+    <hr /><a class="on" href="#"><i>⚙️</i> Settings</a><a class="danger" href="#"><i>⏻</i> Log out</a>
+  </nav>
+
+  <div class="panel">
+    <h2 class="ptitle">Settings</h2>
+    <p class="psub">Signed in on this device · your session lasts 30 days.</p>
+
+    <div class="box"><div class="bh"><b>Order updates</b><span class="tag t-green">On · SMS</span></div>
+      <p style="color:var(--body-soft)">Confirmation, preparation photo and delivery photo. These follow the order — they cannot be switched off.</p></div>
+
+    <div class="box"><div class="bh"><b>Offers and occasion reminders</b>
+      <span class="acts"><button class="btn-s">Turn off</button></span></div>
+      <p style="color:var(--body-soft)">The dates you asked us to remember, and the occasional offer. Off means silence.</p></div>
+
+    <div class="box" style="border-color:#f5c2c7;background:var(--red-soft)">
+      <div class="bh"><b style="color:var(--red)">Delete my account</b></div>
+      <p style="color:#8a1220">Your profile, addresses, wishlist and reminders are erased. Your past orders stay in the shop's books, as the law requires — with your name removed from them.</p>
+      <div style="margin-top:12px"><button class="btn btn-d">Delete my account</button></div>
+    </div>
+  </div>
+</div></div>
+
+<div class="note" style="margin-bottom:60px"><b>What has to be built behind it</b>
+  <span>
+    <b style="background:none;color:var(--purple);padding:0;text-transform:none;letter-spacing:0;font-size:12.5px">A real session, 30 days.</b>
+    Today "logged in" is a note in the browser's own memory — anyone could write it. After the code (or Google) is verified the server issues the session, and every screen above asks the server who you are.<br /><br />
+    <b style="background:none;color:var(--purple);padding:0;text-transform:none;letter-spacing:0;font-size:12.5px">The doors, all new:</b>
+    who am I · my orders (matched by the verified phone, so orders placed before you had an account come too) · the address book (add, edit, delete, default) · wishlist · reminders · store-credit balance and its lines · my reviews · delete my account.<br /><br />
+    <b style="background:none;color:var(--purple);padding:0;text-transform:none;letter-spacing:0;font-size:12.5px">Nothing invented:</b>
+    the customer, the orders, the credit and the reviews all exist in the shop's database already — the account has simply never been allowed to read them. No new business rule is added here; the only two you gave today are the phone match and the 30 days.
+  </span></div>
+
+</body>
+</html>

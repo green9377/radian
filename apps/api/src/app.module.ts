@@ -44,6 +44,7 @@ import { AuthModule } from './auth/auth.module';
 import { AdministrationModule } from './administration/administration.module';
 import { ShopModule } from './shop/shop';
 import { GoogleSignInModule } from './shop/google-signin';
+import { AccountModule } from './shop/account';
 import { ProductDetailModule } from './shop/product-detail';
 import { ShopCatalogModule } from './shop/catalog';
 import { CheckoutModule } from './shop/checkout';
@@ -115,6 +116,8 @@ import { MerchModule } from './products/merch';
     AdministrationModule,
     ShopModule,
     GoogleSignInModule,
+    /*  the storefront account — a real session, and no invented data  */
+    AccountModule,
     ProductDetailModule,
     ShopCatalogModule,
     CheckoutModule,

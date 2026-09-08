@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Radian homepage — design mockup v4 (desktop)</title>
+<!--
+  STANDALONE DESIGN MOCKUP — not application code.
+  Desktop-only. Every piece of content below stands in for a field the admin
+  already owns (banners, section wording, categories, delivery methods, tags,
+  collections, trust badges, footer, FAQ). Product photos are the DEV
+  catalogue's own; product NAMES and PRICES are design placeholders for this
+  review only. Nothing here is business logic.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Jost:wght@300;400;500;600&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#470066; --purple-deep:#320049; --ink:#2e0442;
+  --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#e9a8f5;
+  --lav:#f7f1fb; --lav-deep:#efe4f7; --line:#e9dff1;
+  --rose:#b76e79; --rose-light:#e8c9ce;
+  --body:#5a4a66; --soft:#8d7d98;
+  --display:"Fraunces",Georgia,serif; --ui:"Jost","Segoe UI",sans-serif; --script:"Caveat","Segoe Script",cursive;
+  --r:28px; --shadow:0 10px 30px rgba(71,0,102,.08); --lift:0 24px 50px rgba(71,0,102,.14);
+  --w:1240px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ui);color:var(--ink);background:#fff;font-weight:400;line-height:1.5;-webkit-font-smoothing:antialiased;min-width:1280px}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+img{display:block;max-width:100%}
+.wrap{width:var(--w);margin:0 auto}
+.display{font-family:var(--display);font-weight:500;letter-spacing:-.01em}
+.eyebrow{display:inline-flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--orchid)}
+.eyebrow i{width:34px;height:1px;background:currentColor;opacity:.7}
+.eyebrow.center::before,.eyebrow.center::after{content:"";width:40px;height:1px;background:currentColor;opacity:.6}
+.h2{font-family:var(--display);font-weight:500;font-size:46px;line-height:1.1;letter-spacing:-.015em;color:var(--purple)}
+.sub{font-size:17px;font-weight:300;color:var(--body);margin-top:14px}
+.center{text-align:center}
+.btn{display:inline-flex;align-items:center;gap:12px;height:58px;padding:0 34px;border-radius:999px;font-weight:600;font-size:16px;letter-spacing:.01em;transition:.25s;white-space:nowrap}
+.btn svg{width:18px;height:18px}
+.btn-primary{background:var(--purple);color:#fff;box-shadow:0 14px 30px rgba(71,0,102,.22)}
+.btn-primary:hover{background:var(--purple-deep);transform:translateY(-2px)}
+.btn-outline{border:1.5px solid var(--purple);color:var(--purple);background:#fff}
+.btn-outline:hover{background:var(--purple);color:#fff}
+.btn-ghost{border:1.5px solid rgba(255,255,255,.7);color:#fff}
+.btn-ghost:hover{background:#fff;color:var(--purple)}
+.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ───────── header ───────── */
+.announce{background:linear-gradient(90deg,var(--purple-deep),var(--purple) 55%,#5e1580);color:#fff;font-size:13.5px;letter-spacing:.03em}
+.announce .wrap{display:flex;align-items:center;justify-content:space-between;height:40px}
+.announce .claims{display:flex;align-items:center;gap:14px;flex:1;justify-content:center}
+.announce .claims span{opacity:.92}
+.announce .claims b{font-weight:600;color:var(--orchid-mid)}
+.announce .claims em{font-style:normal;opacity:.45}
+.announce .help{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.announce .help b{font-weight:600}
+header.main{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.hrow{display:flex;align-items:center;gap:22px;height:84px}
+.logo img{height:40px;width:auto}
+.deliver{display:flex;align-items:center;gap:10px;height:50px;padding:0 16px 0 14px;border:1.5px solid var(--line);border-radius:999px;white-space:nowrap}
+.deliver .ic{width:18px;height:18px;color:var(--purple)}
+.deliver small{display:block;font-size:11px;color:var(--soft);line-height:1.1}
+.deliver b{display:block;font-size:14px;font-weight:600;color:var(--purple);line-height:1.2}
+.search{flex:1;display:flex;align-items:center;gap:12px;height:50px;padding:0 20px;background:var(--lav);border-radius:999px;color:var(--soft);font-size:15px}
+.search .ic{width:18px;height:18px}
+.hicons{display:flex;align-items:center;gap:26px}
+.hicon{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;font-weight:500;color:var(--purple);position:relative}
+.hicon .ic{width:23px;height:23px}
+.hicon .badge{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--orchid);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center}
+.catnav{display:flex;align-items:center;gap:40px;height:52px;border-top:1px solid var(--line)}
+.catnav a{display:flex;align-items:center;gap:9px;height:52px;font-size:14.5px;font-weight:500;color:var(--ink);border-bottom:2px solid transparent}
+.catnav a img,.catnav a .cat-ic{width:24px;height:24px;border-radius:7px;object-fit:cover}
+.catnav a .cat-ic{display:grid;place-items:center;background:var(--lav);color:var(--purple)}
+.catnav a .cat-ic .ic{width:15px;height:15px}
+.catnav a.on{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* ───────── hero ───────── */
+/*  One composition from the top of the banner to the bottom of the trust
+    strip. The section is exactly one viewport tall under the header (floored
+    and capped), the copy centres in the band, and the strip sits in the
+    section's foot. The owner's banner artwork is a plain <img>: no shape, no
+    frame, no tint, no fade — it is bottom-anchored on the right half and
+    scales with the width, so nothing in it is ever cut.  */
+.hero{position:relative;overflow:hidden;display:flex;flex-direction:column;
+  --header:177px;--foot:max(108px,calc(5.7vw + 24px));
+  min-height:clamp(560px,calc(100vh - var(--header)),min(820px,52vw));padding-bottom:var(--foot);
+  background:linear-gradient(90deg,#faf5fb 0%,#f8f2f9 30%,#f7f0f7 50%,#f3e9f2 100%)}
+.hero-img{position:absolute;top:0;bottom:0;left:50%;right:0}
+.hero-img img{display:block;width:100%;height:100%;object-fit:cover;object-position:left bottom}
+.hero .hero-grid{position:relative;flex:1;display:grid;grid-template-columns:minmax(0,600px) 1fr;align-items:center;padding:24px 0 20px;gap:24px}
+.hero .copy{position:relative;z-index:1}
+.hero h1{font-family:var(--display);font-weight:500;font-size:56px;line-height:1.06;letter-spacing:-.02em;color:var(--purple);margin-top:22px}
+.hero h1 .accent{background:linear-gradient(92deg,var(--orchid),#9b2fc4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{font-size:18px;font-weight:300;color:var(--body);max-width:46ch;margin-top:18px;line-height:1.55}
+.hero .ctas{display:flex;gap:16px;margin-top:28px}
+.hero .proof{display:flex;margin-top:28px}
+.hero .proof>div{display:flex;align-items:center;gap:10px;padding-right:18px}
+.hero .proof>div+div{border-left:1px solid #dccde8;padding-left:18px}
+.hero .proof>div>div{display:block}
+.hero .proof .ic{width:24px;height:24px;color:var(--purple)}
+.hero .proof b{display:block;font-size:14px;font-weight:600;color:var(--purple);line-height:1.2;white-space:nowrap}
+.hero .proof span{font-size:12.5px;color:var(--soft);white-space:nowrap}
+.float{position:absolute;z-index:2;display:flex;align-items:center;gap:14px;padding:14px 18px 14px 14px;background:rgba(255,255,255,.96);border-radius:20px;box-shadow:var(--lift)}
+.float .fic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--orchid-soft);color:var(--purple);flex:none}
+.float .fic .ic{width:22px;height:22px}
+.float b{display:block;font-size:15px;font-weight:600;color:var(--ink);line-height:1.2}
+.float span{font-size:12.5px;color:var(--soft)}
+.float.f1{right:calc(3.6vw + 14px);top:24px}
+.float.f2{left:calc(50% + 3.7vw);bottom:calc(var(--foot) + 3.6vw);max-width:300px}
+.float.f2 .thumb{width:62px;height:62px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 4px 12px rgba(71,0,102,.15)}
+.float .stars{display:block;color:#f5b400;font-size:13px;letter-spacing:1.5px;margin-bottom:2px}
+.float .quote{display:block;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3}
+.trust{position:absolute;z-index:3;left:3.6vw;right:3.6vw;top:calc(100% - var(--foot))}
+.trust .card{display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-radius:24px;box-shadow:var(--lift);padding:22px 18px}
+.trust .item{display:flex;align-items:center;gap:14px;padding:0 20px;border-left:1px solid var(--line)}
+.trust .item:first-child{border-left:0}
+.trust .tic{width:46px;height:46px;border-radius:14px;background:var(--lav);display:grid;place-items:center;color:var(--purple);flex:none}
+.trust .tic .ic{width:24px;height:24px}
+.trust b{display:block;font-size:15px;font-weight:600;color:var(--ink);line-height:1.15}
+.trust span{font-size:12.5px;color:var(--soft)}
+
+/* ───────── delivery ───────── */
+.delivery{margin-top:0;padding:72px 0 76px;background:radial-gradient(700px 360px at 12% 0%,rgba(207,67,234,.28),rgba(207,67,234,0) 70%),linear-gradient(120deg,#2b0040 0%,#470066 55%,#5b1084 100%);color:#fff}
+.delivery .head{display:flex;align-items:flex-end;justify-content:space-between;gap:30px}
+.delivery .eyebrow{color:var(--orchid-mid)}
+.delivery .eyebrow i{background:var(--orchid)}
+.delivery .h2{color:#fff;margin-top:14px}
+.delivery .sub{color:rgba(255,255,255,.78)}
+.pill{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:999px;background:rgba(207,67,234,.22);border:1px solid rgba(233,168,245,.55);font-size:14.5px;font-weight:500;white-space:nowrap}
+.pill .ic{width:18px;height:18px}
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:38px}
+.mode{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:20px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:.25s}
+.mode.on{background:rgba(207,67,234,.25);border-color:#e9a8f5}
+.mode .mic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(207,67,234,.22);color:var(--orchid-mid);flex:none}
+.mode .mic .ic{width:20px;height:20px}
+.mode b{display:block;font-family:var(--display);font-weight:500;font-size:17px;line-height:1.15}
+.mode span{font-size:12.5px;color:rgba(255,255,255,.72)}
+.delivery .grid{margin-top:30px}
+.delivery .more{display:flex;justify-content:center;margin-top:34px}
+
+/* ───────── product cards ───────── */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.card{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);transition:.3s;color:var(--ink)}
+.card:hover{transform:translateY(-6px);box-shadow:var(--lift)}
+.card .img{position:relative;aspect-ratio:1/1;background:var(--lav)}
+.card .img img{width:100%;height:100%;object-fit:cover}
+.card .dp{position:absolute;top:14px;left:14px;display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.95);color:var(--purple);font-size:11.5px;font-weight:600;letter-spacing:.03em;box-shadow:0 4px 14px rgba(71,0,102,.12)}
+.card .dp::before{content:"";width:7px;height:7px;background:var(--orchid);border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.card .dp.night{background:var(--purple);color:#fff}
+.card .dp.night::before{background:var(--orchid-mid)}
+.card .dp.courier{background:#fff4e3;color:#8a5a00}
+.card .dp.courier::before{background:#e0a25c}
+.card .heart{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--purple)}
+.card .heart .ic{width:16px;height:16px}
+.card .best{position:absolute;left:14px;bottom:12px;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;background:#fff6ec;color:#8a5a00;border:1px solid #ebd3b0;font-size:10.5px;font-weight:600;letter-spacing:.04em}
+.card .body{padding:16px 20px 20px}
+.card h3{font-size:15.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.card .price{font-family:var(--display);font-weight:600;font-size:20px;color:var(--purple)}
+.card .price s{font-family:var(--ui);font-weight:400;font-size:13px;color:var(--soft);margin-left:6px}
+.card .add{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 18px;border-radius:999px;background:var(--lav);color:var(--purple);font-size:13px;font-weight:600;transition:.2s}
+.card .add:hover{background:var(--purple);color:#fff}
+.card .add .ic{width:15px;height:15px}
+
+/* ───────── best sellers ───────── */
+.best-sellers{padding:96px 0 40px}
+.tabs{display:flex;justify-content:center;gap:12px;margin-top:34px}
+.tab{display:inline-flex;align-items:center;gap:9px;height:48px;padding:0 24px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:14.5px;font-weight:500;color:var(--ink);transition:.2s}
+.tab img,.tab .tic{width:22px;height:22px;border-radius:6px;object-fit:cover}
+.tab .tic{display:grid;place-items:center;color:var(--purple)}
+.tab .tic .ic{width:16px;height:16px}
+.tab.on{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 10px 24px rgba(71,0,102,.2)}
+.best-sellers .grid{margin-top:34px}
+.best-sellers .more{display:flex;justify-content:center;margin-top:40px}
+
+/* ───────── gift finder ───────── */
+.finder{padding:80px 0 96px}
+.finder .box{margin-top:40px;display:grid;grid-template-columns:480px 1fr;border-radius:32px;overflow:hidden;background:#fff;box-shadow:var(--lift);border:1px solid var(--line)}
+.finder .left{position:relative;padding:48px 44px;color:#fff;background:radial-gradient(420px 300px at 100% 100%,rgba(207,67,234,.45),rgba(207,67,234,0) 70%),linear-gradient(160deg,#5b1084 0%,#470066 50%,#2b0040 100%);display:flex;flex-direction:column}
+.finder .left .step{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--orchid-mid);display:flex;align-items:center;gap:12px}
+.finder .left .step i{width:34px;height:1px;background:var(--orchid-mid)}
+.finder .left h3{font-family:var(--display);font-weight:500;font-size:40px;line-height:1.08;margin-top:24px;letter-spacing:-.015em}
+.finder .left p{font-size:16px;font-weight:300;color:rgba(255,255,255,.8);max-width:30ch;margin-top:16px}
+.finder .left .pic{margin-top:auto;align-self:flex-end;width:250px;height:190px;border-radius:24px 24px 0 0;overflow:hidden;margin-bottom:-48px;margin-right:-44px;box-shadow:0 20px 40px rgba(0,0,0,.25)}
+.finder .left .pic img{width:100%;height:100%;object-fit:cover}
+.finder .right{padding:44px 52px 40px}
+.stepper{display:grid;grid-template-columns:1fr 1fr 1fr;position:relative}
+.stepper::before{content:"";position:absolute;left:16.6%;right:16.6%;top:17px;height:2px;background:var(--line)}
+.stepper div{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;font-size:14.5px;color:var(--soft)}
+.stepper div i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:600;background:var(--lav-deep);color:var(--soft);border:2px solid #fff}
+.stepper div.on{color:var(--purple);font-weight:600}
+.stepper div.on i{background:var(--purple);color:#fff;box-shadow:0 8px 18px rgba(71,0,102,.28)}
+.stepper div.done i{background:var(--orchid-soft);color:var(--purple)}
+.question{margin-top:40px}
+.question h3{font-family:var(--display);font-weight:500;font-size:32px;color:var(--purple);letter-spacing:-.01em}
+.question p{color:var(--body);font-weight:300;margin-top:6px;font-size:16px}
+.options{display:flex;gap:14px;margin-top:26px;flex-wrap:wrap}
+.opt{width:132px;padding:18px 10px 16px;border-radius:20px;border:2px solid transparent;background:#fff;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:12px;transition:.2s;position:relative}
+.opt:hover{transform:translateY(-3px);box-shadow:var(--lift)}
+.opt.on{border-color:var(--orchid);background:var(--orchid-soft)}
+.opt .oic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--lav);color:var(--purple);overflow:hidden}
+.opt .oic img{width:100%;height:100%;object-fit:cover}
+.opt .oic .ic{width:24px;height:24px}
+.opt b{font-size:14px;font-weight:600;color:var(--purple);text-transform:capitalize}
+.opt .chk{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:var(--purple);color:#fff;display:none;place-items:center}
+.opt .chk .ic{width:12px;height:12px;stroke-width:2.6}
+.opt.on .chk{display:grid}
+.finder .nav{display:flex;align-items:center;justify-content:space-between;margin-top:36px;padding-top:26px;border-top:1px solid var(--line)}
+.finder .skip{height:52px;padding:0 26px;border-radius:999px;background:var(--lav);color:var(--purple);font-weight:600;font-size:15px}
+.finder .skip:hover{background:var(--lav-deep)}
+.finder .step-panel{display:none}
+.finder .step-panel.on{display:block}
+
+/* ───────── about ───────── */
+.about{padding:0 0 96px;background:linear-gradient(180deg,#fff 0%,var(--lav) 100%)}
+.about .box{display:grid;grid-template-columns:1fr 520px;gap:52px;background:#fff;border-radius:36px;box-shadow:var(--lift);padding:56px 52px 56px 60px;border:1px solid var(--line);align-items:stretch}
+.about h2{font-family:var(--display);font-weight:500;font-size:42px;line-height:1.12;color:var(--purple);margin-top:18px;letter-spacing:-.015em;max-width:15ch}
+.about p{font-size:16.5px;color:var(--body);font-weight:300;line-height:1.65;margin-top:16px}
+.about p b{font-weight:600;color:var(--purple)}
+.about .strip{display:flex;align-items:center;gap:18px;margin-top:26px;padding:18px 22px;border-radius:20px;background:var(--lav);font-size:16px;color:var(--ink)}
+.about .strip .sic{width:52px;height:52px;border-radius:16px;background:#fff;display:grid;place-items:center;color:var(--purple);flex:none}
+.about .strip .sic .ic{width:24px;height:24px}
+.about .strip b{color:var(--purple);font-weight:600}
+.about .feats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 24px;margin-top:24px}
+.about .feat{display:flex;align-items:center;gap:12px;font-size:14.5px;font-weight:500;color:var(--ink);line-height:1.25;white-space:nowrap}
+.about .feat .fic{width:46px;height:46px;border-radius:50%;background:var(--lav);display:grid;place-items:center;color:var(--purple);flex:none}
+.about .feat .fic .ic{width:22px;height:22px}
+.about .cta{margin-top:34px}
+.about .visual{position:relative;height:100%;min-height:600px}
+.about .arch{position:absolute;left:0;top:0;width:400px;height:100%;border-radius:200px 200px 36px 36px;overflow:hidden;box-shadow:var(--lift)}
+.about .arch img{width:100%;height:100%;object-fit:cover}
+.about .stats{position:absolute;right:0;top:230px;display:flex;flex-direction:column;gap:14px;width:236px}
+.about .stat{display:flex;align-items:center;gap:14px;padding:16px 18px;background:#fff;border-radius:20px;box-shadow:var(--lift);border:1px solid var(--line)}
+.about .stat .fic{width:44px;height:44px;border-radius:14px;background:var(--orchid-soft);display:grid;place-items:center;color:var(--purple);flex:none}
+.about .stat .fic .ic{width:22px;height:22px}
+.about .stat b{display:block;font-size:15px;font-weight:600;color:var(--ink);line-height:1.15}
+.about .stat span{font-size:12.5px;color:var(--soft)}
+
+/* ───────── faq ───────── */
+.faq{padding:96px 0 80px;background:var(--lav)}
+.faq .cols{display:grid;grid-template-columns:320px 1fr;gap:64px;margin-top:48px;align-items:start}
+.faq .side .script{font-family:var(--display);font-style:italic;font-weight:500;font-size:44px;line-height:1.05;color:var(--purple)}
+.faq .side p{margin-top:18px;font-size:16.5px;font-weight:300;color:var(--body);line-height:1.6}
+.faq .side .chip{display:flex;align-items:center;gap:14px;margin-top:26px;padding:16px 20px;border-radius:20px;background:#fff;box-shadow:var(--shadow)}
+.faq .side .chip .cic{width:44px;height:44px;border-radius:14px;background:var(--orchid-soft);display:grid;place-items:center;color:var(--purple);flex:none}
+.faq .side .chip .cic .ic{width:22px;height:22px}
+.faq .side .chip b{display:block;font-size:14.5px;font-weight:600;color:var(--ink)}
+.faq .side .chip span{font-size:13px;color:var(--purple);font-weight:500}
+.faq .side .pic{margin-top:30px;border-radius:26px;overflow:hidden;height:250px;box-shadow:var(--shadow)}
+.faq .side .pic img{width:100%;height:100%;object-fit:cover}
+.acc{display:flex;flex-direction:column;gap:14px}
+.acc details{background:#fff;border-radius:22px;box-shadow:var(--shadow);border:1px solid #f0e6f6;overflow:hidden}
+.acc summary{list-style:none;display:flex;align-items:center;gap:22px;padding:22px 26px;cursor:pointer}
+.acc summary::-webkit-details-marker{display:none}
+.acc .num{width:46px;height:46px;border-radius:50%;background:var(--lav);display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:15px;color:var(--purple);flex:none}
+.acc .q{flex:1;font-family:var(--display);font-weight:500;font-size:21px;color:var(--purple);letter-spacing:-.01em}
+.acc .plus{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--purple);display:grid;place-items:center;color:var(--purple);flex:none;transition:.25s}
+.acc .plus .ic{width:14px;height:14px;stroke-width:2.2}
+.acc details[open] .plus{background:var(--purple);color:#fff;transform:rotate(45deg)}
+.acc .a{padding:0 26px 24px 94px;font-size:16px;color:var(--body);font-weight:300;line-height:1.65}
+.faq .closer{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:64px;color:var(--soft);font-size:12.5px;letter-spacing:.26em;text-transform:uppercase}
+.faq .closer .leaf{display:flex;align-items:center;gap:18px}
+.faq .closer .leaf i{width:90px;height:1px;background:#d7c6e3}
+.faq .closer .leaf .ic{width:26px;height:26px;color:var(--rose)}
+
+/* ───────── footer ───────── */
+footer{background:var(--purple-deep);color:rgba(255,255,255,.82);padding:64px 0 34px}
+footer .cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
+footer .brand img{height:38px;filter:brightness(0) invert(1)}
+footer .brand p{margin-top:18px;font-weight:300;max-width:40ch;line-height:1.65;font-size:15px}
+footer h4{font-family:var(--display);font-weight:500;font-size:18px;color:#fff;margin-bottom:16px}
+footer li{list-style:none;margin-bottom:10px;font-size:14.5px;font-weight:300}
+footer .pay{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+footer .pay span{height:30px;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:12px;font-weight:500}
+footer .legal{display:flex;justify-content:space-between;margin-top:48px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;color:rgba(255,255,255,.55)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H13z"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v11H2zM14 10h4l3 3.4V17h-7"/><circle cx="6.5" cy="17.7" r="1.8"/><circle cx="17.5" cy="17.7" r="1.8"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.5-7-11.5a7 7 0 0 1 14 0C19 14.5 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5 12 12l9-4.5M12 12v9"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3S4 15 4 9.6A4.6 4.6 0 0 1 12 6.7a4.6 4.6 0 0 1 8 2.9c0 5.4-8 10.7-8 10.7z"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.4l2.2 12.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 8H6"/><circle cx="9.8" cy="20.6" r="1.1"/><circle cx="17.6" cy="20.6" r="1.1"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4"/><path d="M5.5 13v7h13v-7M12 9v11M12 9C9 9 7.2 7.6 7.6 5.8 8 4.2 10.4 4 12 6.6 13.6 4 16 4.2 16.4 5.8 16.8 7.6 15 9 12 9z"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14zM5 19l7-7"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4"/><path d="M8 10.5V7.7a4 4 0 0 1 8 0v2.8"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.4 4h13.2L20 9.5M5.5 12v8h13v-8M10 20v-5h4v5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-flower" viewBox="0 0 24 24"><circle cx="12" cy="11" r="2.6"/><path d="M12 3.5v3M12 15.5c0 3 0 5 0 5M5 7.5l2.5 1.5M19 7.5l-2.5 1.5M5.5 15l2.3-1.6M18.5 15l-2.3-1.6M12 20c-3 0-5-1.5-5-3.5M12 20c3 0 5-1.5 5-3.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-11"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4z"/><path d="M8 9h8M8 12h5"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 18h16M4 18 3 8l5 4 4-7 4 7 5-4-1 10"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5a3 3 0 0 1 0 6M21.5 20a6 6 0 0 0-4.5-5.8"/></symbol>
+  <symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12h18"/></symbol>
+  <symbol id="i-child" viewBox="0 0 24 24"><circle cx="12" cy="10" r="5"/><path d="M5 21a7 7 0 0 1 14 0M9 9.5h.01M15 9.5h.01M10 12.5c.6.7 1.3 1 2 1s1.4-.3 2-1"/></symbol>
+  <symbol id="i-cake" viewBox="0 0 24 24"><path d="M4 20h16v-6a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3zM4 16c1.5 0 1.5 1.2 3 1.2S8.5 16 10 16s1.5 1.2 3 1.2S14.5 16 16 16s1.5 1.2 3 1.2M12 11V8M12 8c-1-1-1.5-2.5 0-4 1.5 1.5 1 3 0 4z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-taka" viewBox="0 0 24 24"><path d="M8 5c2 0 3 1 3 3v8c0 2 1 3 3 3s3-1 3-3M6 11h9"/></symbol>
+</svg>
+
+<!-- ═══════════════════ HEADER (approved structure) ═══════════════════ -->
+<div class="announce">
+  <div class="wrap">
+    <div class="claims">
+      <span><b>⚡ 3 Hours Delivery</b> inside Dhaka</span><em>|</em>
+      <span>Same Day Delivery</span><em>|</em>
+      <span>Midnight Delivery</span><em>|</em>
+      <span>Schedule it</span>
+    </div>
+    <div class="help"><svg class="ic" style="width:16px;height:16px"><use href="#i-phone"/></svg> Need Help? <b>01517 887845</b></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="hrow">
+      <a class="logo" href="#"><img src="https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png" alt="Radian"></a>
+      <button class="deliver"><svg class="ic"><use href="#i-pin"/></svg><span><small>Deliver to</small><b>Inside Dhaka</b></span><svg class="ic" style="width:16px;height:16px;color:#8d7d98"><use href="#i-chev"/></svg></button>
+      <div class="search"><svg class="ic"><use href="#i-search"/></svg> Search flowers, cakes and gifts…</div>
+      <nav class="hicons">
+        <a class="hicon" href="#"><svg class="ic"><use href="#i-box"/></svg>Track Order</a>
+        <a class="hicon" href="#"><svg class="ic"><use href="#i-heart"/></svg>Wishlist</a>
+        <a class="hicon" href="#"><svg class="ic"><use href="#i-cart"/></svg>Cart<span class="badge">0</span></a>
+        <a class="hicon" href="#"><svg class="ic"><use href="#i-user"/></svg>Log in</a>
+        <a class="hicon" href="#"><svg class="ic"><use href="#i-menu"/></svg>More</a>
+      </nav>
+    </div>
+    <nav class="catnav">
+      <a class="on" href="#"><img src="https://media.development.radianbd.com/radian/icons/images-3-_MaChSFjkU.jpg" alt="">Fresh flower</a>
+      <a href="#"><span class="cat-ic"><svg class="ic"><use href="#i-heart"/></svg></span>teddy</a>
+      <a href="#"><span class="cat-ic"><svg class="ic"><use href="#i-gift"/></svg></span>Money Bouquet</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════ HERO — one composition ═══════════════════ -->
+<section class="hero">
+  <div class="hero-img"><img src="hero-banner.jpg" alt=""></div>
+  <div class="wrap hero-grid">
+    <div class="copy">
+      <span class="eyebrow">Flowers for a brighter tomorrow <i></i></span>
+      <h1>Special Moments Deserve <span class="accent">Special Gifts</span></h1>
+      <p class="lead">Fresh flowers, delightful gifts and thoughtful surprises delivered across Dhaka — because every moment matters.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="#">Send a Gift Today <svg class="ic"><use href="#i-arrow"/></svg></a>
+        <a class="btn btn-outline" href="#"><svg class="ic"><use href="#i-gift"/></svg> Explore Occasions</a>
+      </div>
+      <div class="proof">
+        <div><svg class="ic"><use href="#i-truck"/></svg><div><b>3 Hours Delivery</b><span>Inside Dhaka</span></div></div>
+        <div><svg class="ic"><use href="#i-leaf"/></svg><div><b>Fresh &amp; Premium</b><span>Hand-arranged today</span></div></div>
+        <div><svg class="ic"><use href="#i-star"/></svg><div><b>4.2 on Google</b><span>59 customer reviews</span></div></div>
+      </div>
+    </div>
+    <div></div>
+  </div>
+  <div class="float f1"><span class="fic"><svg class="ic"><use href="#i-truck"/></svg></span><div><b>Delivered within 3 hours</b><span>Anywhere inside Dhaka</span></div></div>
+  <div class="float f2"><img class="thumb" src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg" alt=""><div><span class="stars">★★★★★</span><span class="quote">Rated 4.2 on Google</span><span>59 customer reviews</span></div></div>
+  <div class="trust">
+    <div class="card">
+      <div class="item"><span class="tic"><svg class="ic"><use href="#i-store"/></svg></span><div><b>Real Store in Dhaka</b><span>Visit us seven days a week</span></div></div>
+      <div class="item"><span class="tic"><svg class="ic"><use href="#i-lock"/></svg></span><div><b>Secure Payment</b><span>bKash, Nagad and cards</span></div></div>
+      <div class="item"><span class="tic"><svg class="ic"><use href="#i-chat"/></svg></span><div><b>Dedicated Support</b><span>We're always here</span></div></div>
+      <div class="item"><span class="tic"><svg class="ic"><use href="#i-gift"/></svg></span><div><b>Beautiful Packaging</b><span>For a lasting impression</span></div></div>
+      <div class="item"><span class="tic"><svg class="ic"><use href="#i-pin"/></svg></span><div><b>Nationwide Delivery</b><span>Send happiness anywhere</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ DELIVERY / PROMISE ═══════════════════ -->
+<section class="delivery">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <span class="eyebrow">Radian's promise <i></i></span>
+        <h2 class="h2">Need it today? We've got you</h2>
+        <p class="sub">Handpicked gifts, ready to leave within hours — because your moments can't wait.</p>
+      </div>
+      <span class="pill"><svg class="ic"><use href="#i-clock"/></svg> within 3 hours</span>
+    </div>
+    <div class="modes" id="modes">
+      <button class="mode on"><span class="mic"><svg class="ic"><use href="#i-sun"/></svg></span><div><b>3 Hours Delivery</b><span>within 3 hours</span></div></button>
+      <button class="mode"><span class="mic"><svg class="ic"><use href="#i-moon"/></svg></span><div><b>Midnight Delivery</b><span>Surprises at the stroke of 12</span></div></button>
+      <button class="mode"><span class="mic"><svg class="ic"><use href="#i-cal"/></svg></span><div><b>Schedule it</b><span>Pick the date and the slot</span></div></button>
+      <button class="mode"><span class="mic"><svg class="ic"><use href="#i-truck"/></svg></span><div><b>Same Day Delivery</b><span>Ordered today, delivered today</span></div></button>
+    </div>
+    <div class="grid">
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-2-2026-06_06_29-PM_Yx3Hl3lNd.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span></div><div class="body"><h3>Single Rose in Green Wrap</h3><div class="row"><div class="price">৳999<s>৳1,200</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-2-2026-06_09_08-PM_xyJFIKTKM.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span></div><div class="body"><h3>Six Red Roses in Gold Wrap</h3><div class="row"><div class="price">৳1,500<s>৳1,700</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/mtgs8b9y116bea-WhatsApp-Image-2026-08-22-at-9.31.22-PM-1-.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span></div><div class="body"><h3>Pink &amp; Blue Mixed Bouquet</h3><div class="row"><div class="price">৳2,200<s>৳2,500</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/mth5vzop1b63e0-WhatsApp-Image-2026-08-25-at-12.14.09-AM.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span></div><div class="body"><h3>Pink Lily Hand Bouquet</h3><div class="row"><div class="price">৳2,200<s>৳2,500</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+    </div>
+    <div class="more"><a class="btn btn-ghost" href="#">View All Products <svg class="ic"><use href="#i-arrow"/></svg></a></div>
+  </div>
+</section>
+
+<!-- ═══════════════════ BEST SELLERS ═══════════════════ -->
+<section class="best-sellers">
+  <div class="wrap center">
+    <span class="eyebrow center"><svg class="ic" style="width:18px;height:18px"><use href="#i-crown"/></svg> Best sellers</span>
+    <h2 class="h2" style="margin-top:14px">Most loved, always in demand</h2>
+    <p class="sub">Our most-gifted arrangements, chosen again and again by customers across Dhaka.</p>
+    <div class="tabs" id="tabs">
+      <button class="tab on">All Products</button>
+      <button class="tab"><img src="https://media.development.radianbd.com/radian/icons/images-3-_MaChSFjkU.jpg" alt="">Fresh flower</button>
+      <button class="tab"><span class="tic"><svg class="ic"><use href="#i-heart"/></svg></span>teddy</button>
+      <button class="tab"><span class="tic"><svg class="ic"><use href="#i-gift"/></svg></span>Money Bouquet</button>
+    </div>
+    <div class="grid" style="text-align:left">
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2025-10-27-at-12.23.46-PM_qxW_ao6cn.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Red Rose Bouquet — Black &amp; Gold</h3><div class="row"><div class="price">৳2,800<s>৳3,200</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/mtgtvj7a80415b-ChatGPT-Image-Aug-26-2026-03_52_05-PM.jpg" alt=""><span class="dp">Same Day Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Blue &amp; White Lily Hand Bouquet</h3><div class="row"><div class="price">৳1,500<s>৳1,700</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/mth9q4wpdc6b53-1.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>50 Pink Roses in Black Wrap</h3><div class="row"><div class="price">৳4,500<s>৳5,000</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/mtilw133787dcd-OOccG1782642055.jpg" alt=""><span class="dp night">Midnight Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Rose in a Box — Red Velvet</h3><div class="row"><div class="price">৳1,200<s>৳1,400</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/1770276411XlzXG_2M25vvMra.jpg" alt=""><span class="dp courier">National delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Preserved Rose Teddy</h3><div class="row"><div class="price">৳2,500<s>৳2,800</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-19-_-xLTQY95j.jpg" alt=""><span class="dp">Same Day Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Rose Basket with White Heart</h3><div class="row"><div class="price">৳5,500<s>৳6,000</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-2-2026-06_06_29-PM_67WTCoB5k.jpg" alt=""><span class="dp">3 Hours Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Single Red Rose — Crown Wrap</h3><div class="row"><div class="price">৳999<s>৳1,200</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+      <article class="card"><div class="img"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-2-_dZ_OYvr5Sa.jpg" alt=""><span class="dp night">Midnight Delivery</span><span class="heart"><svg class="ic"><use href="#i-heart"/></svg></span><span class="best">★ Best seller</span></div><div class="body"><h3>Luxury 100 Red Roses Bouquet</h3><div class="row"><div class="price">৳9,999<s>৳11,500</s></div><button class="add">Add <svg class="ic"><use href="#i-cart"/></svg></button></div></div></article>
+    </div>
+    <div class="more"><a class="btn btn-outline" href="#">View All Products <svg class="ic"><use href="#i-arrow"/></svg></a></div>
+  </div>
+</section>
+
+<!-- ═══════════════════ GIFT FINDER ═══════════════════ -->
+<section class="finder">
+  <div class="wrap center">
+    <span class="eyebrow center"><svg class="ic" style="width:18px;height:18px"><use href="#i-gift"/></svg> Let us guide you</span>
+    <h2 class="h2" style="margin-top:14px">Find the perfect gift in 3 simple steps</h2>
+    <p class="sub">A few quick answers, and we'll show you the gifts that fit the moment.</p>
+    <div class="box" style="text-align:left">
+      <div class="left">
+        <span class="step"><i></i> <span id="stepLabel">Step 1 of 3</span></span>
+        <h3>It's better when it's personal</h3>
+        <p>Tell us a little about the moment and we'll take care of the rest.</p>
+        <div class="pic"><img src="https://media.development.radianbd.com/radian/products/mtilw133787dcd-OOccG1782642055.jpg" alt=""></div>
+      </div>
+      <div class="right">
+        <div class="stepper" id="stepper">
+          <div class="on"><i>1</i>Recipient</div>
+          <div><i>2</i>Occasion</div>
+          <div><i>3</i>Budget</div>
+        </div>
+
+        <div class="step-panel on" data-step="1">
+          <div class="question"><h3>Who are you buying for?</h3><p>Let us know the special person.</p></div>
+          <div class="options">
+            <button class="opt on"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><img src="https://media.development.radianbd.com/radian/tags/ee-traditional-bengali-mother-hugging-her-child-with-love-png-image_16127794_YJwFLoHTz.png" alt=""></span><b>mom</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><img src="https://media.development.radianbd.com/radian/tags/family-9708974_1280_EqpiZT3N7.png" alt=""></span><b>dad</b></button>
+          </div>
+        </div>
+        <div class="step-panel" data-step="2">
+          <div class="question"><h3>What's the occasion?</h3><p>Pick the moment you are celebrating.</p></div>
+          <div class="options">
+            <button class="opt on"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><img src="https://media.development.radianbd.com/radian/tags/81zajZFJMRL_MrE5DArdS.jpg" alt=""></span><b>birtdhay</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><img src="https://media.development.radianbd.com/radian/tags/images_7pFfF1yUg.jpg" alt=""></span><b>anniversry</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><img src="https://media.development.radianbd.com/radian/tags/mtfdw2sl823b0c-25.png" alt=""></span><b>Valentines Day</b></button>
+          </div>
+        </div>
+        <div class="step-panel" data-step="3">
+          <div class="question"><h3>What's your budget?</h3><p>Every shelf is a Budget card from the admin.</p></div>
+          <div class="options">
+            <button class="opt on"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><svg class="ic"><use href="#i-taka"/></svg></span><b>Under ৳1,000</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><svg class="ic"><use href="#i-taka"/></svg></span><b>৳1,000 – 2,500</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><svg class="ic"><use href="#i-taka"/></svg></span><b>৳2,500 – 5,000</b></button>
+            <button class="opt"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span class="oic"><svg class="ic"><use href="#i-taka"/></svg></span><b>৳5,000 +</b></button>
+          </div>
+        </div>
+
+        <div class="nav">
+          <button class="skip" id="skip">Skip for now</button>
+          <button class="btn btn-primary" id="next">Next Step <svg class="ic"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ ABOUT RADIAN (SEO content) ═══════════════════ -->
+<section class="about">
+  <div class="wrap">
+    <div class="box">
+      <div>
+        <span class="eyebrow"><i></i> About Radian</span>
+        <h2>Flowers &amp; gifts for every moment, across Bangladesh</h2>
+        <p>Looking for the best flower shop in Bangladesh? At Radian Flower &amp; Gift Shop, we bring you fresh flowers, bouquet delivery, gift hampers, and chocolate arrangements to celebrate every special moment.</p>
+        <p>Whether you are in Dhaka, Chittagong, Sylhet, Khulna, or any part of Bangladesh, we ensure your gifts reach your loved ones on time.</p>
+        <p>Our online gift shop in Bangladesh offers a wide range of birthday bouquets, anniversary flowers, festive hampers, and personalized gifts. You can choose fresh roses, lilies, carnations, or long-lasting artificial bouquets for home décor or gifting.</p>
+        <div class="strip"><span class="sic"><svg class="ic"><use href="#i-truck"/></svg></span><div>With <b>same-day online flower delivery</b> in Dhaka and reliable nationwide shipping, sending flowers and gifts across Bangladesh has never been easier.</div></div>
+        <div class="feats">
+          <div class="feat"><span class="fic"><svg class="ic"><use href="#i-flower"/></svg></span>Fresh &amp; premium flowers</div>
+          <div class="feat"><span class="fic"><svg class="ic"><use href="#i-gift"/></svg></span>Beautiful gift hampers</div>
+          <div class="feat"><span class="fic"><svg class="ic"><use href="#i-truck"/></svg></span>Same-day delivery in Dhaka</div>
+          <div class="feat"><span class="fic"><svg class="ic"><use href="#i-pin"/></svg></span>Nationwide shipping</div>
+        </div>
+        <div class="cta"><a class="btn btn-primary" href="#">Read more about Radian <svg class="ic"><use href="#i-arrow"/></svg></a></div>
+      </div>
+      <div class="visual">
+        <div class="arch"><img src="https://media.development.radianbd.com/radian/products/mtfddepx522d3a-WhatsApp-Image-2026-08-26-at-7.01.12-PM.jpg" alt=""></div>
+        <div class="stats">
+          <div class="stat"><span class="fic"><svg class="ic"><use href="#i-store"/></svg></span><div><b>Real store in Dhaka</b><span>Visit us seven days a week</span></div></div>
+          <div class="stat"><span class="fic"><svg class="ic"><use href="#i-heart"/></svg></span><div><b>Every occasion</b><span>Birthdays to weddings</span></div></div>
+          <div class="stat"><span class="fic"><svg class="ic"><use href="#i-truck"/></svg></span><div><b>Delivering</b><span>Across Bangladesh</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FAQ ═══════════════════ -->
+<section class="faq">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow center">FAQs for Radian Flower &amp; Gift Shop</span>
+      <h2 class="h2" style="margin-top:14px">Questions people ask before they order</h2>
+      <p class="sub">Quick answers about ordering, delivery, customisation and more.</p>
+    </div>
+    <div class="cols">
+      <aside class="side">
+        <div class="script">Here to<br>help</div>
+        <p>Still have a question? We're always here to make your gifting experience smooth and joyful.</p>
+        <a class="chip" href="#"><span class="cic"><svg class="ic"><use href="#i-chat"/></svg></span><div><b>Need more help?</b><span>Contact us anytime →</span></div></a>
+        <div class="pic"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg" alt=""></div>
+      </aside>
+      <div class="acc">
+        <details open><summary><span class="num">01</span><span class="q">How can I order flowers in Bangladesh?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Order fresh flowers online from Radian Flower &amp; Gift Shop. We deliver bouquets and gift hampers across Bangladesh for birthdays, anniversaries, and special occasions.</div></details>
+        <details><summary><span class="num">02</span><span class="q">Does Radian Flower offer same-day delivery in Dhaka?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Yes. We provide same-day flower delivery in Dhaka and other major cities, ensuring fresh bouquets reach your doorstep on time.</div></details>
+        <details><summary><span class="num">03</span><span class="q">Can I customize my bouquet or gift hamper?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Yes. You can personalize bouquets, add custom messages, and choose themed gift hampers to make every gift special.</div></details>
+        <details><summary><span class="num">04</span><span class="q">What types of flowers and gifts are available?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">We offer roses, lilies, carnations, gerberas, chocolate bouquets, balloons, and combo gift hampers suitable for birthdays, anniversaries, and festivals.</div></details>
+        <details><summary><span class="num">05</span><span class="q">How do I place an order online?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Browse the flowers and gifts you want, select your bouquet or gift hamper, add personalization if needed, choose the delivery date and time slot, and check out securely.</div></details>
+        <details><summary><span class="num">06</span><span class="q">Which payment methods do you accept?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Cash on delivery inside Dhaka, plus bKash, Nagad, Rocket and Visa / Mastercard through our secure payment gateway.</div></details>
+        <details><summary><span class="num">07</span><span class="q">Can I send a gift anonymously?</span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span></summary><div class="a">Yes. Choose "send as a surprise" at checkout and we won't reveal the sender — the recipient only sees your gift and your message.</div></details>
+      </div>
+    </div>
+    <div class="closer"><div class="leaf"><i></i><svg class="ic"><use href="#i-leaf"/></svg><i></i></div><span>Made with love in Dhaka</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div class="brand">
+        <img src="https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png" alt="Radian">
+        <p>Dhaka's premium flower and gift studio. Hand-arranged, honestly priced, delivered while the moment still matters.</p>
+        <div class="pay"><span>bKash</span><span>Nagad</span><span>Rocket</span><span>VISA</span><span>Mastercard</span><span>COD</span></div>
+      </div>
+      <div><h4>Shop</h4><ul><li>Fresh Flowers</li><li>Cakes &amp; Combos</li><li>Occasions</li><li>Budget Gifts</li><li>Corporate Gifting</li></ul></div>
+      <div><h4>Help</h4><ul><li>Delivery Areas</li><li>Track My Order</li><li>FAQs</li><li>Returns &amp; Refunds</li><li>Contact Us</li></ul></div>
+      <div><h4>Company</h4><ul><li>About Radian</li><li>Visit Radian Flower &amp; Gift Shop</li><li>Journal</li><li>Privacy Policy</li><li>Terms of Service</li></ul></div>
+    </div>
+    <div class="legal"><span>© 2026 Radian Flower &amp; Gift Shop. Made with love in Dhaka.</span><span>Gulshan 1, Dhaka · Open every day, 9 AM – 10 PM</span></div>
+  </div>
+</footer>
+
+<script>
+  // visual behaviour only — tabs, delivery modes, gift finder steps
+  document.querySelectorAll('#tabs .tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('#tabs .tab').forEach(x => x.classList.remove('on')); t.classList.add('on');
+  }));
+  document.querySelectorAll('#modes .mode').forEach(m => m.addEventListener('click', () => {
+    document.querySelectorAll('#modes .mode').forEach(x => x.classList.remove('on')); m.classList.add('on');
+  }));
+  document.querySelectorAll('.options').forEach(g => g.querySelectorAll('.opt').forEach(o => o.addEventListener('click', () => {
+    g.querySelectorAll('.opt').forEach(x => x.classList.remove('on')); o.classList.add('on');
+  })));
+  let step = 1;
+  const show = () => {
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.toggle('on', Number(p.dataset.step) === step));
+    document.querySelectorAll('#stepper div').forEach((d, i) => { d.classList.toggle('on', i + 1 === step); d.classList.toggle('done', i + 1 < step); });
+    document.getElementById('stepLabel').textContent = `Step ${step} of 3`;
+    document.getElementById('next').innerHTML = step === 3 ? 'Show my gifts <svg class="ic"><use href="#i-arrow"/></svg>' : 'Next Step <svg class="ic"><use href="#i-arrow"/></svg>';
+    document.getElementById('skip').textContent = step === 1 ? 'Skip for now' : 'Back';
+  };
+  document.getElementById('next').addEventListener('click', () => { step = Math.min(3, step + 1); show(); });
+  document.getElementById('skip').addEventListener('click', () => { step = step === 1 ? 2 : step - 1; show(); });
+</script>
+</body>
+</html>

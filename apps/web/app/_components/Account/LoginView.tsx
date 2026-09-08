@@ -7,12 +7,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   OTP_LENGTH,
   googleClientId,
-  googleSignIn,
   lastOtpChannel,
   normalizeLoginPhone,
   requestLoginOtp,
-  verifyOtp,
 } from "../../_data/auth";
+import { accountLogin, accountLoginGoogle } from "../../_data/accountApi";
+import { mergeWishlistOnLogin } from "../../_store/useWishlistStore";
 import { useAuthHydrated, useAuthStore } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
 
@@ -56,7 +56,8 @@ export default function LoginView() {
 
   const hydrated = useAuthHydrated();
   const customer = useAuthStore((s) => s.customer);
-  const login = useAuthStore((s) => s.login);
+  const token = useAuthStore((s) => s.token);
+  const signIn = useAuthStore((s) => s.signIn);
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   /* Google: the button is drawn only when the server has a Client ID */
@@ -83,8 +84,8 @@ export default function LoginView() {
 
   /* already signed in → straight through */
   useEffect(() => {
-    if (hydrated && customer) router.replace(redirect);
-  }, [hydrated, customer, redirect, router]);
+    if (hydrated && token) router.replace(redirect);
+  }, [hydrated, token, redirect, router]);
 
   /* Google's button: the script, then the button, only with a Client ID */
   useEffect(() => {
@@ -97,7 +98,7 @@ export default function LoginView() {
     };
   }, []);
   useEffect(() => {
-    if (!gClientId || step !== "phone" || !hydrated || customer) return;
+    if (!gClientId || step !== "phone" || !hydrated || token) return;
     const draw = () => {
       const g = window.google?.accounts.id;
       const el = gButtonRef.current;
@@ -122,15 +123,19 @@ export default function LoginView() {
       document.getElementById(id)?.addEventListener("load", draw);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gClientId, step, hydrated, customer]);
+  }, [gClientId, step, hydrated, token]);
 
   async function onGoogle(credential: string) {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const r = await googleSignIn(credential);
-      login(r.customer.phone ?? "", { name: r.customer.name, email: r.customer.email });
+      /*  ⚠️ The SERVER issues the session — Google's word alone is not a
+          login here. It answers with a token or it refuses (an email we have
+          no order from has no account to open).  */
+      const r = await accountLoginGoogle(credential);
+      signIn(r.token, r.customer);
+      await mergeWishlistOnLogin(r.token);
       router.replace(redirect);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Google sign-in did not work. Please try again.");
@@ -209,23 +214,34 @@ export default function LoginView() {
     else boxRefs.current[text.length]?.focus();
   }
 
+  /**
+   * The code, and with it the session.
+   *
+   * ⚠️ ONE CALL, NOT TWO (8 Sep 2026). It used to verify the code and then
+   * "log in" by writing a made-up customer into this browser. The server does
+   * both now: it checks the code and answers with the session token and the
+   * customer's real record — or it refuses, and nobody is signed in.
+   */
   async function verify(code: string) {
     if (busy) return;
     setBusy(true);
-    const ok = await verifyOtp(normalized!, code);
-    setBusy(false);
-    if (ok) {
-      login(normalized!);
+    try {
+      const r = await accountLogin(normalized!, code);
+      signIn(r.token, r.customer);
+      /*  hearts tapped before signing in are not lost by signing in  */
+      await mergeWishlistOnLogin(r.token);
       router.replace(redirect);
-    } else {
-      setError("That code didn't match. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That code didn't match. Try again.");
       setDigits(Array(OTP_LENGTH).fill(""));
       boxRefs.current[0]?.focus();
+    } finally {
+      setBusy(false);
     }
   }
 
   /* while hydrating, or already signed in → blank */
-  if (!hydrated || customer) {
+  if (!hydrated || token) {
     return (
       <div className="min-h-[50vh] grid place-items-center">
         <span className="text-[13.5px] text-body-soft">Loading…</span>

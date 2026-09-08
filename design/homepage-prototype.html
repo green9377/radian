@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radian Flower &amp; Gift Shop – Best Flower Shop in Bangladesh | Fresh Flowers, Gift Hampers, Same-Day Delivery Dhaka</title>
+<meta name="description" content="Order fresh flowers, bouquets, chocolates, balloons and gift hampers from Radian Flower & Gift Shop. Premium flowers & personalized gifts for every occasion in Bangladesh. Same-day delivery in Dhaka, nationwide shipping. Shop now!">
+<meta name="keywords" content="Online gift shop, flower delivery, chocolate gift box, personalized gifts, artificial flowers, balloon bouquet, send gifts Bangladesh, anniversary gifts, birthday surprises, surprise delivery, Best Flower Shop in Bangladesh, Fresh Flowers Dhaka, Gift Hampers Bangladesh">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  DESIGN PROTOTYPE ONLY — standalone HTML for visual review.
+  Not wired to the app. Product photos are loaded from the DEV media host;
+  names and prices are realistic placeholders taken from the current radianbd.com catalogue.
+-->
+<style>
+  :root{
+    --purple:#470066; --purple-deep:#320049; --ink:#2e0442;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#e9a8f5;
+    --lavender:#f7f1fb; --lavender-deep:#efe4f7;
+    --rosegold:#b76e79; --rosegold-light:#e8c9ce; --gold:#c9a24a;
+    --body:#3a2547; --muted:#7a6689; --line:#eadff2; --white:#fff;
+    --font-display:"Fraunces",Georgia,serif; --font-ui:"Jost","Century Gothic",sans-serif;
+    --r-sm:10px; --r-md:14px; --r-lg:20px;
+    --shadow-soft:0 10px 40px rgba(71,0,102,.08); --shadow-lift:0 22px 60px rgba(71,0,102,.16);
+    --wrap:1280px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:var(--font-ui);color:var(--body);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.55}
+  img{max-width:100%;display:block}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+  h1,h2,h3,h4{font-family:var(--font-display);color:var(--ink);margin:0;font-weight:500;line-height:1.12;letter-spacing:-.01em}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 32px}
+  .sec{padding:92px 0}
+  .sec.tight{padding:64px 0}
+  .sec.lav{background:var(--lavender)}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:40px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--rosegold)}
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--rosegold)}
+  .sec-head h2{font-size:clamp(30px,3.4vw,44px);margin-top:12px}
+  .sec-head p.lead{margin:12px 0 0;max-width:560px;color:var(--muted);font-size:17px}
+  .link-more{font-weight:700;color:var(--purple);white-space:nowrap;display:inline-flex;align-items:center;gap:8px;border-bottom:2px solid var(--orchid-mid);padding-bottom:2px}
+  .link-more:hover{border-color:var(--purple)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.01em;padding:15px 28px;border-radius:12px;border:2px solid transparent;transition:transform .2s,box-shadow .2s,background .2s;white-space:nowrap}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--purple);color:#fff;box-shadow:0 12px 30px rgba(71,0,102,.28)}
+  .btn-primary:hover{background:var(--purple-deep)}
+  .btn-outline{background:#fff;color:var(--purple);border-color:var(--purple)}
+  .btn-outline:hover{background:var(--lavender)}
+  .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.5)}
+  .btn-ghost:hover{background:rgba(255,255,255,.22)}
+  .btn-rose{background:var(--orchid);color:#fff;box-shadow:0 12px 30px rgba(207,67,234,.3)}
+  .btn-rose:hover{background:#b92fd4}
+  .btn-sm{padding:11px 18px;font-size:14px;border-radius:10px}
+
+  /* ---------- top bar ---------- */
+  .topbar{background:var(--purple-deep);color:#f3e6fa;font-size:13px;font-weight:500}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:38px}
+  .topbar ul{list-style:none;margin:0;padding:0;display:flex;gap:26px}
+  .topbar li{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .topbar li b{color:#fff;font-weight:700}
+  .topbar .dot{width:5px;height:5px;border-radius:50%;background:var(--orchid)}
+  .topbar .right{display:flex;gap:22px}
+  .topbar .right a:hover{color:#fff}
+
+  /* ---------- header ---------- */
+  .hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .25s}
+  .hdr.scrolled{box-shadow:0 10px 30px rgba(71,0,102,.08)}
+  .hdr .wrap{display:flex;align-items:center;justify-content:space-between;height:82px;gap:24px}
+  .logo{flex:none;display:flex}
+  .logo img{height:36px;width:auto}
+  .nav{display:flex;align-items:center;gap:4px;list-style:none;margin:0;padding:0}
+  .nav>li{position:relative}
+  .nav>li>a{display:block;white-space:nowrap;padding:12px 12px;font-weight:600;font-size:15px;color:var(--ink);border-radius:10px;transition:background .2s,color .2s}
+  .nav>li>a:hover,.nav>li.open>a{background:var(--lavender);color:var(--purple)}
+  .nav>li>a.hot{color:var(--rosegold)}
+  .icons{display:flex;align-items:center;gap:4px}
+  .icon-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:10px;color:var(--purple);background:none;border:0;font-size:11.5px;font-weight:600;letter-spacing:.02em}
+  .icon-btn:hover{background:var(--lavender)}
+  .icon-btn svg{width:22px;height:22px}
+  .badge-n{position:absolute;top:2px;right:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--orchid);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .burger{display:none;background:none;border:0;padding:8px;color:var(--purple)}
+  .burger svg{width:26px;height:26px}
+  /* mega menu */
+  .mega{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%) translateY(8px);width:min(1080px,calc(100vw - 48px));background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lift);padding:28px 32px 30px;display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1.3fr;gap:28px;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}
+  .nav>li:hover .mega,.nav>li.open .mega{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+  .mega h4{font-family:var(--font-ui);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--rosegold);margin:0 0 12px}
+  .mega ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+  .mega li a{font-size:14.5px;color:var(--body)}
+  .mega li a:hover{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
+  .mega .feat{background:var(--lavender);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;min-height:230px;background-size:cover;background-position:center;color:#fff;position:relative;overflow:hidden}
+  .mega .feat::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(50,0,73,0) 30%,rgba(50,0,73,.85))}
+  .mega .feat *{position:relative;z-index:1}
+  .mega .feat b{font-family:var(--font-display);font-size:20px;font-weight:500}
+  .mega .feat span{font-size:13px;opacity:.9}
+  .nav>li:nth-child(n+3) .mega{display:none}
+  /* mobile drawer */
+  .drawer{position:fixed;inset:0;z-index:80;display:none}
+  .drawer.open{display:block}
+  .drawer .veil{position:absolute;inset:0;background:rgba(46,4,66,.5)}
+  .drawer .panel{position:absolute;top:0;left:0;bottom:0;width:min(86vw,360px);background:#fff;padding:22px 22px 40px;overflow:auto}
+  .drawer .panel a.item{display:block;padding:14px 4px;border-bottom:1px solid var(--line);font-weight:600;font-size:17px;color:var(--ink)}
+  .drawer .close{background:none;border:0;color:var(--purple);font-size:28px;line-height:1;float:right}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;overflow:hidden;background:radial-gradient(1200px 600px at 12% 0%,#fbf5ff 0%,#f7f1fb 40%,#fff 100%)}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding-top:64px;padding-bottom:72px;min-height:640px}
+  .hero .petal{position:absolute;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,var(--orchid-soft),var(--orchid-mid));opacity:.55;filter:blur(2px);transform:rotate(-40deg)}
+  .hero .p1{width:360px;height:360px;right:-140px;top:-190px;opacity:.38}
+  .hero .p2{width:120px;height:120px;left:46%;bottom:-30px;opacity:.28}
+  .hero-copy{position:relative;z-index:1}
+  .hero-copy .eyebrow{margin-bottom:22px}
+  .hero-copy h1{font-size:clamp(40px,5.2vw,68px);font-weight:500;line-height:1.04;letter-spacing:-.02em;max-width:11ch}
+  .hero-copy h1 em{font-style:italic;color:var(--purple);font-weight:400}
+  .hero-copy p{font-size:18.5px;color:var(--muted);max-width:520px;margin:24px 0 32px}
+  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap}
+  .hero-trust{display:flex;gap:28px;margin-top:38px;padding-top:26px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .hero-trust div{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--body)}
+  .hero-trust b{font-family:var(--font-display);font-size:20px;color:var(--ink);font-weight:600}
+  .hero-trust .stars{color:var(--gold);letter-spacing:1px}
+  .hero-visual{position:relative;z-index:1;height:560px}
+  .hero-visual .main{position:absolute;left:60px;top:0;width:min(420px,70%);height:560px;border-radius:24px;overflow:hidden;box-shadow:var(--shadow-lift);background:var(--lavender-deep)}
+  .hero-visual .main img{width:100%;height:100%;object-fit:cover}
+  .hero-visual .side{position:absolute;right:0;bottom:60px;width:200px;height:250px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lift);border:6px solid #fff;background:var(--lavender-deep)}
+  .hero-visual .side img{width:100%;height:100%;object-fit:cover}
+  .hero-visual .chip{position:absolute;left:0;top:64px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:var(--shadow-soft);display:flex;align-items:center;gap:12px;font-size:13px;color:var(--body);border:1px solid var(--line)}
+  .hero-visual .chip .ok{width:34px;height:34px;border-radius:50%;background:#e8f7ec;color:#1f8f47;display:flex;align-items:center;justify-content:center}
+  .hero-visual .chip b{display:block;font-size:14px;color:var(--ink)}
+  .hero-visual .chip2{left:auto;right:30px;top:20px;background:var(--purple);color:#fff;border:0}
+  .hero-visual .chip2 b{color:#fff}
+  .hero-visual .chip2 .ok{background:rgba(255,255,255,.14);color:#fff}
+
+  /* ---------- promise strip ---------- */
+  .promise{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}
+  .promise .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+  .promise .pc{display:flex;align-items:center;gap:14px;padding:22px 20px;border-right:1px solid var(--line);font-size:14px;color:var(--muted);min-width:0}
+  .promise .pc:last-child{border-right:0}
+  .promise b{display:block;font-size:15px;color:var(--ink);font-weight:700}
+  .promise .ic{width:44px;height:44px;border-radius:12px;background:var(--lavender);color:var(--purple);display:flex;align-items:center;justify-content:center;flex:none}
+  .promise .ic svg{width:22px;height:22px}
+
+  /* ---------- occasions ---------- */
+  .occ-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .occ{position:relative;display:block;height:300px;border-radius:14px;overflow:hidden;background:var(--lavender-deep);isolation:isolate}
+  .occ img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+  .occ:hover img{transform:scale(1.05)}
+  .occ::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(50,0,73,0) 40%,rgba(50,0,73,.86) 100%)}
+  .occ .t{position:absolute;left:20px;right:20px;bottom:18px;z-index:1;color:#fff}
+  .occ .t b{display:block;font-family:var(--font-display);font-size:24px;font-weight:500}
+  .occ .t span{font-size:13px;opacity:.85;display:flex;align-items:center;gap:6px;margin-top:4px}
+  .occ.tall{height:400px}
+
+  /* ---------- gift finder ---------- */
+  .finder{background:var(--purple-deep);color:#fff;position:relative;overflow:hidden}
+  .finder::before{content:"";position:absolute;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(207,67,234,.35),rgba(207,67,234,0) 65%);right:-160px;top:-260px}
+  .finder .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:start;position:relative}
+  .finder h2{color:#fff;font-size:clamp(32px,3.6vw,46px)}
+  .finder h2 em{font-style:italic;color:var(--orchid-mid);font-weight:400}
+  .finder .eyebrow{color:var(--orchid-mid)}
+  .finder .eyebrow::before{background:var(--orchid-mid)}
+  .finder p.lead{color:#dcc6ea;font-size:17px;max-width:420px;margin:16px 0 28px}
+  .steps{display:grid;gap:22px}
+  .step{border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:18px 20px;background:rgba(255,255,255,.04)}
+  .step .lab{display:flex;align-items:center;gap:12px;font-weight:600;font-size:15px;margin-bottom:12px}
+  .step .lab i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--orchid);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{border:1.5px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;transition:all .15s}
+  .pill:hover{border-color:#fff}
+  .pill.on{background:#fff;color:var(--purple);border-color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+  .finder-cta{display:flex;align-items:center;gap:18px;margin-top:6px;flex-wrap:wrap}
+  .finder-cta small{color:#dcc6ea}
+  .results{margin-top:28px;display:none}
+  .results.show{display:block}
+  .results h3{color:#fff;font-size:22px;margin-bottom:14px;font-family:var(--font-ui);font-weight:600}
+  .results h3 span{color:var(--orchid-mid);font-weight:500}
+  .res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .res{background:#fff;color:var(--body);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .res .ph{aspect-ratio:1/1;background:var(--lavender-deep)}
+  .res .ph img{width:100%;height:100%;object-fit:cover}
+  .res .in{padding:12px 14px 14px}
+  .res .in b{display:block;font-size:14px;color:var(--ink);line-height:1.3;height:36px;overflow:hidden}
+  .res .in .pr{font-weight:700;color:var(--purple);margin-top:6px}
+  .res .in .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rosegold);margin-top:6px}
+
+  /* ---------- product cards ---------- */
+  .prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+  .card .ph{position:relative;aspect-ratio:1/1;background:var(--lavender);overflow:hidden}
+  .card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+  .card:hover .ph img{transform:scale(1.04)}
+  .card .tags{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+  .tag-b{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border-radius:6px;background:#fff;color:var(--purple);box-shadow:0 4px 12px rgba(71,0,102,.12)}
+  .tag-b.hot{background:var(--orchid);color:#fff}
+  .tag-b.night{background:var(--purple-deep);color:#fff}
+  .card .wish{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;background:#fff;border:0;color:var(--purple);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(71,0,102,.12)}
+  .card .wish svg{width:18px;height:18px}
+  .card .quick{position:absolute;left:12px;right:12px;bottom:12px;transform:translateY(140%);opacity:0;transition:transform .25s,opacity .25s}
+  .card:hover .quick{transform:translateY(0);opacity:1}
+  .card .quick .btn{width:100%}
+  .card .in{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .card .cat{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rosegold);font-weight:700}
+  .card h3{font-family:var(--font-ui);font-size:16px;font-weight:600;color:var(--ink);line-height:1.35}
+  .card .price{display:flex;align-items:baseline;gap:10px;margin-top:auto;padding-top:8px}
+  .card .price b{font-family:var(--font-display);font-size:22px;color:var(--purple);font-weight:600}
+  .card .price s{color:var(--muted);font-size:14px}
+  .card .price .off{font-size:12px;font-weight:700;color:#1f8f47;background:#e8f7ec;padding:2px 7px;border-radius:6px}
+  .card .meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+  .card .meta .st{color:var(--gold)}
+  .card .del{display:inline-flex;align-items:center;gap:6px}
+
+  /* ---------- budget ---------- */
+  .bud-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .bud{position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:340px;border-radius:14px;overflow:hidden;background:var(--lavender-deep);color:#fff;padding:22px}
+  .bud img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s}
+  .bud:hover img{transform:scale(1.05)}
+  .bud::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(50,0,73,.05) 30%,rgba(50,0,73,.9) 100%)}
+  .bud>*:not(img){position:relative;z-index:1}
+  .bud small{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--orchid-mid)}
+  .bud b{font-family:var(--font-display);font-size:34px;font-weight:500;display:block;margin:6px 0 4px}
+  .bud span{font-size:14px;opacity:.9}
+  .bud .go{margin-top:14px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+  .bud.prem{background:linear-gradient(160deg,#3a0052,#6a0a8f)}
+  .bud.prem::after{background:linear-gradient(180deg,rgba(50,0,73,0) 20%,rgba(50,0,73,.7))}
+  .bud.prem small{color:#e8c9ce}
+
+  /* ---------- categories ---------- */
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .catc{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s,box-shadow .25s}
+  .catc:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+  .catc .ph{height:190px;background:var(--lavender);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .catc .ph img{width:100%;height:100%;object-fit:cover}
+  .catc .ph svg{width:72px;height:72px;color:var(--purple)}
+  .catc .ph.ill{background:linear-gradient(160deg,var(--orchid-soft),var(--lavender-deep))}
+  .catc .in{padding:18px 20px 20px}
+  .catc .in b{display:block;font-family:var(--font-display);font-size:21px;color:var(--ink);font-weight:500}
+  .catc .in span{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+  .catc .in i{font-style:normal;display:inline-flex;align-items:center;gap:6px;color:var(--purple);font-weight:700;font-size:14px;margin-top:12px}
+
+  /* ---------- why ---------- */
+  .why .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+  .why-visual{position:relative;height:620px}
+  .why-visual .big{position:absolute;left:0;top:0;width:78%;height:520px;border-radius:20px;overflow:hidden;box-shadow:var(--shadow-lift);background:var(--lavender-deep)}
+  .why-visual .big img{width:100%;height:100%;object-fit:cover}
+  .why-visual .small{position:absolute;right:0;bottom:0;width:48%;height:300px;border-radius:16px;overflow:hidden;border:8px solid #fff;box-shadow:var(--shadow-lift);background:var(--lavender-deep)}
+  .why-visual .small img{width:100%;height:100%;object-fit:cover}
+  .why-visual .stat{position:absolute;left:24px;bottom:56px;background:#fff;border-radius:14px;padding:16px 20px;box-shadow:var(--shadow-soft);border:1px solid var(--line)}
+  .why-visual .stat b{font-family:var(--font-display);font-size:30px;color:var(--purple);display:block;font-weight:600;line-height:1}
+  .why-visual .stat span{font-size:13px;color:var(--muted)}
+  .why-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px}
+  .why-item{display:flex;gap:16px;padding:20px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+  .why-item .ic{flex:none;width:48px;height:48px;border-radius:12px;background:var(--lavender);color:var(--purple);display:flex;align-items:center;justify-content:center}
+  .why-item .ic svg{width:24px;height:24px}
+  .why-item b{display:block;font-size:16px;color:var(--ink);font-weight:700;margin-bottom:4px}
+  .why-item span{font-size:14px;color:var(--muted)}
+
+  /* ---------- moments gallery ---------- */
+  .mo-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:220px;gap:14px}
+  .mo{position:relative;border-radius:12px;overflow:hidden;background:var(--lavender-deep)}
+  .mo img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+  .mo:hover img{transform:scale(1.05)}
+  .mo.w2{grid-column:span 2}
+  .mo.h2{grid-row:span 2}
+  .mo .cap{position:absolute;left:0;right:0;bottom:0;padding:34px 16px 14px;background:linear-gradient(180deg,rgba(50,0,73,0),rgba(50,0,73,.8));color:#fff;font-size:13px;opacity:0;transition:opacity .3s}
+  .mo:hover .cap{opacity:1}
+  .mo .cap b{display:block;font-size:14px}
+  .mo-strip{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:28px;color:var(--muted);font-size:14px}
+  .mo-strip a{color:var(--purple);font-weight:700}
+
+  /* ---------- reviews ---------- */
+  .rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .rev{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 26px 22px;display:flex;flex-direction:column;gap:14px;position:relative}
+  .rev .q{position:absolute;right:22px;top:16px;font-family:var(--font-display);font-size:64px;line-height:1;color:var(--lavender-deep)}
+  .rev .stars{color:var(--gold);letter-spacing:2px;font-size:15px}
+  .rev p{margin:0;font-size:15.5px;color:var(--body);line-height:1.6;flex:1}
+  .rev .who{display:flex;align-items:center;gap:12px;padding-top:14px;border-top:1px solid var(--line)}
+  .rev .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--orchid));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .rev .who b{display:block;font-size:14.5px;color:var(--ink)}
+  .rev .who span{font-size:12.5px;color:var(--muted)}
+  .rev .ctx{margin-left:auto;white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--rosegold);background:#fbf1f2;padding:5px 9px;border-radius:6px}
+  .grating{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 20px}
+  .grating .g{width:38px;height:38px;border-radius:50%;background:var(--lavender);display:flex;align-items:center;justify-content:center;font-weight:700;color:#4285f4;font-size:18px}
+  .grating b{font-family:var(--font-display);font-size:26px;color:var(--ink);font-weight:600}
+  .grating span{font-size:13px;color:var(--muted)}
+
+  /* ---------- delivery ---------- */
+  .del-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:18px}
+  .delc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px}
+  .delc.dark{background:var(--purple);color:#fff;border-color:transparent}
+  .delc .ic{width:48px;height:48px;border-radius:12px;background:var(--lavender);color:var(--purple);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .delc.dark .ic{background:rgba(255,255,255,.14);color:#fff}
+  .delc .ic svg{width:24px;height:24px}
+  .delc h3{font-size:22px;margin-bottom:10px}
+  .delc.dark h3{color:#fff}
+  .delc ul{margin:0;padding:0;list-style:none;display:grid;gap:9px;font-size:14.5px}
+  .delc li{display:flex;gap:10px;align-items:flex-start}
+  .delc li::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--orchid);margin-top:8px}
+  .delc.dark li::before{background:var(--orchid-mid)}
+  .delc .note{margin-top:14px;font-size:13px;color:var(--muted);padding:12px 14px;background:var(--lavender);border-radius:10px}
+  .delc .slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .delc .slots span{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.14)}
+
+  /* ---------- store ---------- */
+  .store .wrap{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch}
+  .map{position:relative;border-radius:16px;overflow:hidden;background:#efe4f7;min-height:420px;border:1px solid var(--line)}
+  .map svg{position:absolute;inset:0;width:100%;height:100%}
+  .map .pin{position:absolute;left:50%;top:46%;transform:translate(-50%,-100%);text-align:center}
+  .map .pin .lbl{background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink);box-shadow:var(--shadow-soft);margin-bottom:8px;white-space:nowrap}
+  .map .pin svg{position:static;width:38px;height:38px;color:var(--orchid);filter:drop-shadow(0 6px 10px rgba(71,0,102,.3))}
+  .map .ph{position:absolute;left:18px;bottom:18px;background:#fff;padding:6px;border-radius:12px;box-shadow:var(--shadow-soft);width:150px}
+  .map .ph img{border-radius:8px;aspect-ratio:1/1;object-fit:cover}
+  .storec{background:var(--purple-deep);color:#fff;border-radius:16px;padding:40px 44px;display:flex;flex-direction:column}
+  .storec h2{color:#fff;font-size:36px}
+  .storec .eyebrow{color:var(--orchid-mid)}
+  .storec .eyebrow::before{background:var(--orchid-mid)}
+  .storec dl{display:grid;grid-template-columns:auto 1fr;gap:12px 20px;margin:26px 0 0;font-size:15px}
+  .storec dt{color:#dcc6ea;font-weight:600}
+  .storec dd{margin:0}
+  .storec .hours{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);padding:8px 12px;border-radius:8px;font-size:13.5px;margin-top:6px}
+  .storec .hours i{width:8px;height:8px;border-radius:50%;background:#4ade80;font-style:normal}
+  .storec .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:30px}
+
+  /* ---------- SEO ---------- */
+  .seo{background:var(--lavender);padding:80px 0}
+  .seo .box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:48px 56px;max-width:1080px;margin:0 auto}
+  .seo h2{font-size:clamp(26px,2.8vw,34px);line-height:1.2}
+  .seo h3{font-size:22px;margin:34px 0 10px}
+  .seo p{font-size:16px;line-height:1.75;margin:0 0 14px;color:var(--body)}
+  .seo a{color:var(--purple);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--orchid-mid)}
+  .seo .clip{position:relative;max-height:260px;overflow:hidden;transition:max-height .5s ease}
+  .seo .clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(180deg,rgba(255,255,255,0),#fff)}
+  .seo .clip.open{max-height:none}
+  .seo .clip.open::after{display:none}
+  .seo .toggle{margin-top:22px;display:flex;justify-content:center}
+  .seo ul.links{columns:2;gap:40px;padding-left:18px;margin:0 0 14px}
+  .seo ul.links li{margin-bottom:6px;font-size:15px}
+  .seo .blog{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px;list-style:none;padding:0;margin:10px 0 0}
+  .seo .blog li{font-size:15px;padding-left:16px;position:relative}
+  .seo .blog li::before{content:"";position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:var(--orchid)}
+
+  /* ---------- FAQ ---------- */
+  .faq{max-width:900px;margin:0 auto}
+  .faq details{border-bottom:1px solid var(--line)}
+  .faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 4px;font-family:var(--font-display);font-size:20px;color:var(--ink);font-weight:500}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary i{flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--purple);color:var(--purple);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:20px;line-height:1;transition:transform .25s}
+  .faq details[open] summary i{transform:rotate(45deg);background:var(--purple);color:#fff}
+  .faq .a{padding:0 4px 22px;color:var(--body);font-size:15.5px;line-height:1.7;max-width:760px}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--purple-deep);color:#e9d9f2}
+  .ft-top{padding:64px 0 48px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.3fr;gap:36px}
+  .ft-top h4{font-family:var(--font-ui);color:#fff;font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin:0 0 18px;font-weight:700}
+  .ft-top ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;font-size:14.5px}
+  .ft-top a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+  .ft-brand img{height:34px;filter:brightness(0) invert(1)}
+  .ft-brand p{font-size:14.5px;max-width:320px;margin:18px 0 22px;color:#cdb6dc}
+  .social{display:flex;gap:10px}
+  .social a{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff}
+  .social a:hover{background:var(--orchid)}
+  .social svg{width:18px;height:18px}
+  .news{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px}
+  .news p{margin:0 0 14px;font-size:14px;color:#cdb6dc}
+  .news form{display:flex;gap:8px}
+  .news input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.2);color:#fff;border-radius:10px;padding:12px 14px;font-family:inherit;font-size:14px}
+  .news input::placeholder{color:#b9a3c8}
+  .ft-contact li{display:flex;gap:10px;align-items:flex-start}
+  .ft-contact svg{width:18px;height:18px;flex:none;margin-top:3px;color:var(--orchid-mid)}
+  .ft-bottom{border-top:1px solid rgba(255,255,255,.12);padding:22px 0 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:13px;color:#b9a3c8;flex-wrap:wrap}
+  .pay{display:flex;gap:8px;flex-wrap:wrap}
+  .pay span{border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:#fff;letter-spacing:.04em}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1180px){
+    .nav>li>a{padding:12px 9px;font-size:14px}
+    .prod-grid,.occ-grid,.cat-grid,.bud-grid{grid-template-columns:repeat(3,1fr)}
+    .occ.tall{height:300px}
+    .mo-grid{grid-template-columns:repeat(3,1fr)}
+    .ft-top{grid-template-columns:1.2fr 1fr 1fr 1fr;}
+    .ft-top .news-col{grid-column:1/-1}
+  }
+  @media (max-width:980px){
+    .topbar ul li:nth-child(n+3){display:none}
+    .nav,.icons .lbl{display:none}
+    .burger{display:block}
+    .hdr .wrap{height:70px;gap:8px}
+    .logo img{height:26px}
+    .icon-btn{padding:8px 6px}
+    .hero .wrap{grid-template-columns:1fr;padding-top:44px;padding-bottom:40px;min-height:0}
+    .hero-visual{height:460px;max-width:520px;margin:0 auto;width:100%}
+    .hero-visual .main{left:0;width:64%;height:460px}
+    .hero-visual .side{width:44%;height:230px;bottom:30px}
+    .hero-visual .chip{left:0;top:auto;bottom:0}
+    .hero-visual .chip2{right:0;left:auto;top:8px;bottom:auto}
+    .promise .wrap{grid-template-columns:1fr 1fr;padding:0}
+    .promise .pc:nth-child(2){border-right:0}
+    .promise .pc{border-bottom:1px solid var(--line)}
+    .promise .pc:nth-child(n+3){border-bottom:0}
+    .finder .wrap{grid-template-columns:1fr;gap:28px}
+    .why .wrap{grid-template-columns:1fr;gap:34px}
+    .why-visual{height:520px}
+    .why-visual .stat{left:16px;top:16px;bottom:auto}
+    .rev-grid{grid-template-columns:1fr 1fr}
+    .del-grid{grid-template-columns:1fr}
+    .store .wrap{grid-template-columns:1fr}
+    .map{min-height:340px}
+    .seo .box{padding:32px 26px}
+    .seo ul.links{columns:1}
+    .seo .blog{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    .wrap{padding:0 18px}
+    .sec{padding:60px 0}
+    .sec-head{flex-direction:column;align-items:flex-start;margin-bottom:26px}
+    .hero-copy h1{max-width:none}
+    .hero-trust{gap:14px 18px}
+    .hero-trust div{flex:1 1 40%}
+    .scroller{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -18px;padding-left:18px;padding-right:18px;-webkit-overflow-scrolling:touch}
+    .scroller>*{flex:0 0 78%;scroll-snap-align:start}
+    .occ,.occ.tall{height:260px}
+    .bud{height:280px}
+    .mo-grid{grid-template-columns:1fr 1fr;grid-auto-rows:160px}
+    .mo.w2{grid-column:span 2}
+    .res-grid{grid-template-columns:1fr 1fr}
+    .rev-grid{grid-template-columns:1fr}
+    .why-grid{grid-template-columns:1fr}
+    .why-visual{height:420px}
+    .why-visual .big{height:340px;width:80%}
+    .why-visual .small{height:220px}
+    .storec{padding:28px 22px}
+    .storec h2{font-size:30px}
+    .ft-top{grid-template-columns:1fr 1fr;gap:28px}
+    .ft-top .ft-brand{grid-column:1/-1}
+    .topbar .right{display:none}
+    .topbar .wrap{justify-content:center}
+    .topbar ul li:nth-child(n+2){display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <div class="wrap">
+    <ul>
+      <li><span class="dot"></span><b>2-hour delivery</b> inside Dhaka</li>
+      <li><span class="dot"></span><b>Same-day</b> &amp; <b>midnight</b> surprises</li>
+      <li><span class="dot"></span><b>Nationwide</b> delivery, 64 districts</li>
+    </ul>
+    <div class="right">
+      <a href="#track">Track order</a>
+      <a href="#faq">Help</a>
+      <a href="tel:+8801519779378">01519-779378</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<header class="hdr" id="hdr">
+  <div class="wrap">
+    <button class="burger" aria-label="Menu" onclick="document.getElementById('drawer').classList.add('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="logo" href="#top" aria-label="Radian Flower &amp; Gift Shop">
+      <img src="https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png" alt="Radian Flower &amp; Gift Shop">
+    </a>
+    <nav aria-label="Main">
+      <ul class="nav">
+        <li><a href="#top">Home</a></li>
+        <li>
+          <a href="#flowers">Flowers</a>
+          <div class="mega">
+            <div>
+              <h4>Featured</h4>
+              <ul>
+                <li><a href="#">All Flowers</a></li><li><a href="#">Best Selling</a></li><li><a href="#">Bridal Bouquets</a></li>
+                <li><a href="#">Premium Flower Bag</a></li><li><a href="#">Luxury Flower Box</a></li><li><a href="#">Basket Arrangements</a></li>
+                <li><a href="#">Stand Bouquets</a></li><li><a href="#">Hand Bouquets</a></li><li><a href="#">Corporate Bouquet</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Bloom varieties</h4>
+              <ul>
+                <li><a href="#">Roses</a></li><li><a href="#">Lilies</a></li><li><a href="#">Orchids</a></li><li><a href="#">Carnations</a></li>
+                <li><a href="#">Gerberas</a></li><li><a href="#">Sunflowers</a></li><li><a href="#">Tulips (seasonal)</a></li>
+                <li><a href="#">Dried &amp; Preserved</a></li><li><a href="#">Artificial Flowers</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>By colour</h4>
+              <ul>
+                <li><a href="#">Red Flowers</a></li><li><a href="#">Pink Flowers</a></li><li><a href="#">White Flowers</a></li>
+                <li><a href="#">Yellow Flowers</a></li><li><a href="#">Purple Flowers</a></li><li><a href="#">Blue Flowers</a></li><li><a href="#">Mixed Colours</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Special moments</h4>
+              <ul>
+                <li><a href="#">Birthday</a></li><li><a href="#">Anniversary</a></li><li><a href="#">Love &amp; Romance</a></li>
+                <li><a href="#">Proposal &amp; Engagement</a></li><li><a href="#">Wedding</a></li><li><a href="#">Get Well Soon</a></li>
+                <li><a href="#">Congratulations</a></li><li><a href="#">Thank You</a></li><li><a href="#">New Baby</a></li>
+              </ul>
+            </div>
+            <a class="feat" href="#" style="background-image:url(https://media.development.radianbd.com/radian/products/Valentine-s-special-2-_dZ_OYvr5Sa.jpg)">
+              <b>100 Red Roses</b>
+              <span>The grand gesture, delivered tonight.</span>
+            </a>
+          </div>
+        </li>
+        <li><a href="#categories">Chocolates</a></li>
+        <li><a href="#categories">Balloons</a></li>
+        <li><a href="#categories">Combos</a></li>
+        <li><a href="#categories">Moments &amp; Memories</a></li>
+        <li><a href="#categories">Gifts</a></li>
+        <li><a href="#occasions">Occasions</a></li>
+      </ul>
+    </nav>
+    <div class="icons">
+      <button class="icon-btn" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="lbl">Search</span>
+      </button>
+      <button class="icon-btn" aria-label="Account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg><span class="lbl">Account</span>
+      </button>
+      <button class="icon-btn" aria-label="Wishlist">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 8-3.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9Z"/></svg><span class="lbl">Wishlist</span>
+      </button>
+      <button class="icon-btn" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span class="lbl">Cart</span>
+        <span class="badge-n">2</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- mobile drawer -->
+<div class="drawer" id="drawer">
+  <div class="veil" onclick="document.getElementById('drawer').classList.remove('open')"></div>
+  <div class="panel">
+    <button class="close" aria-label="Close" onclick="document.getElementById('drawer').classList.remove('open')">&times;</button>
+    <img src="https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png" alt="Radian" style="height:30px;margin:6px 0 18px">
+    <a class="item" href="#top">Home</a><a class="item" href="#flowers">Flowers</a><a class="item" href="#categories">Chocolates</a>
+    <a class="item" href="#categories">Balloons</a><a class="item" href="#categories">Combos</a><a class="item" href="#categories">Moments &amp; Memories</a>
+    <a class="item" href="#categories">Gifts</a><a class="item" href="#occasions">Occasions</a>
+    <a class="item" href="#track">Track order</a><a class="item" href="#store">Visit our store</a>
+  </div>
+</div>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <span class="petal p1"></span><span class="petal p2"></span>
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="eyebrow">Dhaka's premium flower &amp; gift studio</span>
+      <h1>Say it with something <em>they'll remember.</em></h1>
+      <p>Hand-tied fresh flowers, chocolates, balloons and curated gift hampers — arranged by real florists in Gulshan and delivered across Dhaka in as little as two hours, and nationwide.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#bestsellers">Send a Gift
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+        <a class="btn btn-outline" href="#occasions">Explore Occasions</a>
+      </div>
+      <div class="hero-trust">
+        <div><b>4.2</b><span><span class="stars">★★★★★</span><br>59 verified Google reviews</span></div>
+        <div><b>2h</b><span>Express delivery<br>inside Dhaka</span></div>
+        <div><b>64</b><span>Districts covered<br>nationwide</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="main"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-3-2026-10_39_11-AM_Ispm46qPH.jpg" alt="Red rose bouquet in black wrap"></div>
+      <div class="side"><img src="https://media.development.radianbd.com/radian/products/mth9q4wpdc6b53-1.jpg" alt="Pink rose bouquet"></div>
+      <div class="chip"><span class="ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg></span><div><b>Delivered · 11:40 AM</b>Anniversary surprise, Banani</div></div>
+      <div class="chip chip2"><span class="ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span><div><b>Order by 8 PM</b>for midnight delivery</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROMISE STRIP ============ -->
+<div class="promise">
+  <div class="wrap">
+    <div class="pc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 3 4 14h7l-1 7 9-11h-7l1-7Z"/></svg></span><div><b>2-Hour Delivery</b>Express inside Dhaka</div></div>
+    <div class="pc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.5-6.5-1.4 1.4M6.9 17.1l-1.4 1.4m0-12.9 1.4 1.4m10.2 10.2 1.4 1.4"/></svg></span><div><b>Same-Day Delivery</b>Order before 6 PM</div></div>
+    <div class="pc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span><div><b>Midnight Surprise</b>11 PM – 1 AM slot</div></div>
+    <div class="pc"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></span><div><b>Nationwide Delivery</b>Chocolates, gifts &amp; artificial flowers</div></div>
+  </div>
+</div>
+
+<!-- ============ SHOP BY OCCASION ============ -->
+<section class="sec" id="occasions">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Shop by occasion</span><h2>For every moment worth marking</h2></div>
+      <a class="link-more" href="#">All occasions <span>→</span></a>
+    </div>
+    <div class="occ-grid scroller">
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/mtfksrqk06d3bf-ChatGPT-Image-May-4-2026-01_50_20-PM.jpg" alt="Birthday flowers"><div class="t"><b>Birthday</b><span>Bouquets, cakes-to-go combos, balloons</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-3-2026-10_39_11-AM_Ispm46qPH.jpg" alt="Anniversary roses"><div class="t"><b>Anniversary</b><span>Roses, luxury boxes, midnight delivery</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-2-_dZ_OYvr5Sa.jpg" alt="Love and romance"><div class="t"><b>Love &amp; Romance</b><span>100-rose bouquets, heart boxes</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/mtgtvj7a80415b-ChatGPT-Image-Aug-26-2026-03_52_05-PM.jpg" alt="Congratulations flowers"><div class="t"><b>Congratulations</b><span>Bright lilies &amp; mixed bouquets</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/mth5vzop1b63e0-WhatsApp-Image-2026-08-25-at-12.14.09-AM.jpg" alt="Thank you flowers"><div class="t"><b>Thank You</b><span>Gratitude, arranged beautifully</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/1770276411XlzXG_2M25vvMra.jpg" alt="New baby gifts"><div class="t"><b>New Baby</b><span>Soft toys, pastels &amp; balloons</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg" alt="Wedding flowers"><div class="t"><b>Wedding</b><span>Bridal bouquets, garlands, stage décor</span></div></a>
+      <a class="occ" href="#"><img src="https://media.development.radianbd.com/radian/products/mth9q4wpdc6b53-1.jpg" alt="Corporate and special moments"><div class="t"><b>Corporate &amp; Special Moments</b><span>Reception flowers, bulk gifting</span></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GIFT FINDER ============ -->
+<section class="sec finder" id="finder">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">Gift finder</span>
+      <h2>Not sure what <em>to send?</em></h2>
+      <p class="lead">Tell us who it's for, the occasion and your budget — we'll shortlist gifts our florists would pick. Three taps, no scrolling.</p>
+    </div>
+    <div>
+      <div class="steps">
+        <div class="step" data-step="who">
+          <div class="lab"><i>1</i> Who is it for?</div>
+          <div class="pills">
+            <button class="pill" data-v="her">Her</button><button class="pill" data-v="him">Him</button><button class="pill" data-v="mom">Mom</button>
+            <button class="pill" data-v="dad">Dad</button><button class="pill" data-v="friend">Friend</button><button class="pill" data-v="colleague">Colleague</button><button class="pill" data-v="kids">Kids</button>
+          </div>
+        </div>
+        <div class="step" data-step="occ">
+          <div class="lab"><i>2</i> What's the occasion?</div>
+          <div class="pills">
+            <button class="pill" data-v="birthday">Birthday</button><button class="pill" data-v="anniversary">Anniversary</button><button class="pill" data-v="love">Love &amp; Romance</button>
+            <button class="pill" data-v="congrats">Congratulations</button><button class="pill" data-v="thanks">Thank You</button><button class="pill" data-v="baby">New Baby</button><button class="pill" data-v="sorry">I'm Sorry</button>
+          </div>
+        </div>
+        <div class="step" data-step="budget">
+          <div class="lab"><i>3</i> Your budget</div>
+          <div class="pills">
+            <button class="pill" data-v="1">Under ৳1,000</button><button class="pill" data-v="2">৳1,000 – 2,000</button>
+            <button class="pill" data-v="3">৳2,000 – 5,000</button><button class="pill" data-v="4">৳5,000+</button>
+          </div>
+        </div>
+      </div>
+      <div class="finder-cta" style="margin-top:22px">
+        <button class="btn btn-rose" id="findBtn" onclick="runFinder()">Show my gifts</button>
+        <small id="findHint">Pick one from each step</small>
+      </div>
+      <div class="results" id="results">
+        <h3>Our florists suggest <span id="resFor"></span></h3>
+        <div class="res-grid" id="resGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEST SELLERS ============ -->
+<section class="sec" id="bestsellers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Best sellers</span><h2>Loved across Dhaka this week</h2><p class="lead">The bouquets and boxes people come back for — hand-arranged the morning they leave our studio.</p></div>
+      <a class="link-more" href="#">View all best sellers <span>→</span></a>
+    </div>
+    <div class="prod-grid scroller" id="bestGrid"></div>
+  </div>
+</section>
+
+<!-- ============ SHOP BY BUDGET ============ -->
+<section class="sec lav tight" id="budget">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Shop by budget</span><h2>Thoughtful at every price</h2></div>
+    </div>
+    <div class="bud-grid scroller">
+      <a class="bud" href="#"><img src="https://media.development.radianbd.com/radian/products/ChatGPT-Image-Jun-2-2026-06_06_29-PM_67WTCoB5k.jpg" alt=""><small>Little gestures</small><b>Under ৳1,000</b><span>Single-stem bouquets, chocolate bars, greeting cards</span><span class="go">Shop now →</span></a>
+      <a class="bud" href="#"><img src="https://media.development.radianbd.com/radian/products/mtfksrqk06d3bf-ChatGPT-Image-May-4-2026-01_50_20-PM.jpg" alt=""><small>Everyday favourites</small><b>Under ৳2,000</b><span>Hand bouquets, chocolate boxes, balloon bunches</span><span class="go">Shop now →</span></a>
+      <a class="bud" href="#"><img src="https://media.development.radianbd.com/radian/products/mth5vzop1b63e0-WhatsApp-Image-2026-08-25-at-12.14.09-AM.jpg" alt=""><small>Make it special</small><b>Under ৳3,000</b><span>Lily bouquets, flower &amp; chocolate combos</span><span class="go">Shop now →</span></a>
+      <a class="bud prem" href="#"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-2-_dZ_OYvr5Sa.jpg" alt=""><small>Premium gifts</small><b>৳5,000+</b><span>100-rose bouquets, luxury boxes, grand hampers</span><span class="go">Explore premium →</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CATEGORIES / WHAT WE OFFER ============ -->
+<section class="sec" id="categories">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">What we offer</span><h2>Everything for the moment, in one place</h2></div>
+      <a class="link-more" href="#">Browse all categories <span>→</span></a>
+    </div>
+    <div class="cat-grid scroller" id="flowers">
+      <a class="catc" href="#"><div class="ph"><img src="https://media.development.radianbd.com/radian/products/mtfddepx522d3a-WhatsApp-Image-2026-08-26-at-7.01.12-PM.jpg" alt="Fresh flowers"></div><div class="in"><b>Fresh Flowers</b><span>Roses, lilies, orchids, gerberas — cut fresh daily</span><i>Shop flowers →</i></div></a>
+      <a class="catc" href="#"><div class="ph ill"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 58V30"/><path d="M32 30c-8 0-14-6-14-14 8 0 14 6 14 14Zm0 0c8 0 14-6 14-14-8 0-14 6-14 14Z"/><circle cx="32" cy="14" r="7"/><path d="M22 44c4-2 6-2 10 0 4-2 6-2 10 0"/></svg></div><div class="in"><b>Artificial Flowers</b><span>Long-lasting bouquets and jewellery, ships nationwide</span><i>Shop artificial →</i></div></a>
+      <a class="catc" href="#"><div class="ph"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-19-_-xLTQY95j.jpg" alt="Gift hampers"></div><div class="in"><b>Gift Hampers</b><span>Curated baskets for birthdays, Eid and corporate gifting</span><i>Shop hampers →</i></div></a>
+      <a class="catc" href="#"><div class="ph"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-4-_VbVzzs9nF.jpg" alt="Chocolates"></div><div class="in"><b>Chocolates</b><span>Ferrero, Cadbury, KitKat — bouquets, boxes &amp; hearts</span><i>Shop chocolates →</i></div></a>
+      <a class="catc" href="#"><div class="ph ill"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="24" cy="22" rx="11" ry="14"/><ellipse cx="42" cy="26" rx="9" ry="12"/><path d="M24 36l-2 4h4l-2-4Zm18 2-2 4h4l-2-4Z"/><path d="M24 40c0 8-4 12-2 18m20-16c0 6-4 10-2 16"/></svg></div><div class="in"><b>Balloons</b><span>Helium bunches, surprise boxes, custom-message balloons</span><i>Shop balloons →</i></div></a>
+      <a class="catc" href="#"><div class="ph"><img src="https://media.development.radianbd.com/radian/products/21_90cb8_jK_.jpg" alt="Combos"></div><div class="in"><b>Combos</b><span>Flowers + chocolates + teddy, ready to gift</span><i>Shop combos →</i></div></a>
+      <a class="catc" href="#"><div class="ph ill"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="24" width="44" height="30" rx="3"/><path d="M10 34h44M32 24v30M20 24c-4-4-4-10 0-10s8 6 12 10c4-4 8-10 12-10s4 6 0 10"/></svg></div><div class="in"><b>Personalized Gifts</b><span>Names, messages and photos on bouquets, boxes and cards</span><i>Personalize a gift →</i></div></a>
+      <a class="catc" href="#"><div class="ph ill"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20c12 6 36 6 48 0M8 20v8c12 6 36 6 48 0v-8"/><path d="M14 40h36M18 50h28"/><circle cx="20" cy="14" r="3"/><circle cx="44" cy="12" r="3"/><circle cx="32" cy="10" r="3"/></svg></div><div class="in"><b>Surprise &amp; Decoration</b><span>Bedroom setups, car décor, wedding stages, events</span><i>Book decoration →</i></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY RADIAN ============ -->
+<section class="sec lav why" id="why">
+  <div class="wrap">
+    <div class="why-visual">
+      <div class="big"><img src="https://media.development.radianbd.com/radian/products/mtfddepx522d3a-WhatsApp-Image-2026-08-26-at-7.01.12-PM.jpg" alt="Florist holding a fresh rose bouquet at the Radian store"></div>
+      <div class="small"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg" alt="Mixed lily and rose bouquet"></div>
+      <div class="stat"><b>12,000+</b><span>gifts delivered since 2019</span></div>
+    </div>
+    <div>
+      <span class="eyebrow">Why choose Radian</span>
+      <h2 style="font-size:clamp(30px,3.4vw,44px);margin-top:12px">A real store, real florists, and a promise we keep every day</h2>
+      <div class="why-grid">
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-5 0-8-3-8-8 5 0 8 3 8 8Zm0 0c0-5 3-8 8-8 0 5-3 8-8 8Zm0-8V3"/><path d="M8 6c2 0 4 2 4 5 0-3 2-5 4-5"/></svg></span><div><b>Fresh &amp; quality products</b><span>Blooms sourced daily; every arrangement is checked before it leaves.</span></div></div>
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 3 4 14h7l-1 7 9-11h-7l1-7Z"/></svg></span><div><b>Same-day Dhaka delivery</b><span>Express in 2 hours, same-day slots and midnight surprises.</span></div></div>
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></span><div><b>Nationwide delivery</b><span>Chocolates, hampers and artificial flowers to all 64 districts.</span></div></div>
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h16v12H4zM4 8l2-4h12l2 4M12 8v12"/></svg></span><div><b>Premium packaging</b><span>Crown wraps, black &amp; gold paper, ribboned boxes — gift-ready.</span></div></div>
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/></svg></span><div><b>Trusted service</b><span>4.2★ on Google from 59 verified reviews. Photo before dispatch, photo on delivery.</span></div></div>
+        <div class="why-item"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12M9 21v-6h6v6"/></svg></span><div><b>Real store, real florists</b><span>Walk into our Gulshan-1 studio and watch your gift being arranged.</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CUSTOMER MOMENTS ============ -->
+<section class="sec" id="moments">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Real customer moments</span><h2>Delivered, unwrapped, remembered</h2></div>
+      <a class="link-more" href="#">Follow @radiangiftshop <span>→</span></a>
+    </div>
+    <div class="mo-grid">
+      <a class="mo h2" href="#"><img src="https://media.development.radianbd.com/radian/products/mtgs8b9y116bea-WhatsApp-Image-2026-08-22-at-9.31.22-PM-1-.jpg" alt=""><div class="cap"><b>Pastel lily bouquet</b>Birthday · Dhanmondi</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/mtfddepx522d3a-WhatsApp-Image-2026-08-26-at-7.01.12-PM.jpg" alt=""><div class="cap"><b>Red roses, ready to go</b>Anniversary · Gulshan</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2025-10-27-at-12.23.48-PM_joFSpGguy.jpg" alt=""><div class="cap"><b>Surprise at the office</b>Congratulations · Motijheel</div></a>
+      <a class="mo h2" href="#"><img src="https://media.development.radianbd.com/radian/products/mtgtvj7a80415b-ChatGPT-Image-Aug-26-2026-03_52_05-PM.jpg" alt=""><div class="cap"><b>Blue lily hand bouquet</b>Thank you · Uttara</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg" alt=""><div class="cap"><b>Mixed lilies &amp; roses</b>Wedding · Banani</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-16-_YwDahuUsn.jpg" alt=""><div class="cap"><b>Double heart of roses</b>Valentine's · Bashundhara</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/Valentine-s-special-19-_-xLTQY95j.jpg" alt=""><div class="cap"><b>Rose basket with a white heart</b>Proposal · Mirpur</div></a>
+      <a class="mo" href="#"><img src="https://media.development.radianbd.com/radian/products/mth5vzop1b63e0-WhatsApp-Image-2026-08-25-at-12.14.09-AM.jpg" alt=""><div class="cap"><b>Pink oriental lilies</b>Get well soon · Mohammadpur</div></a>
+    </div>
+    <div class="mo-strip">Tag <a href="#">@radiangiftshop</a> to be featured · Every order gets a preparation photo and a delivery photo on WhatsApp</div>
+  </div>
+</section>
+
+<!-- ============ REVIEWS ============ -->
+<section class="sec lav" id="reviews">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Customer reviews</span><h2>What people say after the doorbell rings</h2></div>
+      <div class="grating"><span class="g">G</span><div><b>4.2</b> <span style="color:var(--gold);letter-spacing:1px">★★★★☆</span><br><span>59 verified Google reviews</span></div></div>
+    </div>
+    <div class="rev-grid">
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★★</div><p>I recently purchased a birthday present from here and couldn't be happier. The website was easy to use, checkout was smooth, and I received my order promptly.</p><div class="who"><span class="av">S</span><div><b>Samiul</b><span>Verified buyer · Dhaka</span></div><span class="ctx">Birthday</span></div></div>
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★★</div><p>If you want to give something to your special person and also want to keep your privacy, this is the best gift shop. They ensure your privacy from their end. Best one.</p><div class="who"><span class="av">I</span><div><b>Ibrahim</b><span>Verified buyer · Dhaka</span></div><span class="ctx">Surprise</span></div></div>
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★★</div><p>Thank you Radian BD, I can't explain how happy she was! You guys are excellent.</p><div class="who"><span class="av">S</span><div><b>Saidul Islam</b><span>Verified buyer · Chattogram</span></div><span class="ctx">Anniversary</span></div></div>
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★★</div><p>Just bought this masterpiece — it looks absolutely stunning. The packaging alone was worth it.</p><div class="who"><span class="av">D</span><div><b>Dola Chowdhury</b><span>Verified buyer · Dhaka</span></div><span class="ctx">Luxury box</span></div></div>
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★☆</div><p>Finally a page I can trust. Delivered exactly on time and the flowers were fresher than I expected. I'll keep ordering gifts from here.</p><div class="who"><span class="av">I</span><div><b>Istak Hossain</b><span>Verified buyer · Dhaka</span></div><span class="ctx">Fresh flowers</span></div></div>
+      <div class="rev"><span class="q">&ldquo;</span><div class="stars">★★★★★</div><p>Reached right on time for the surprise. They even sent a photo before it left the shop, so I knew exactly what she was getting.</p><div class="who"><span class="av">D</span><div><b>Darshona</b><span>Verified buyer · Dhaka</span></div><span class="ctx">Midnight delivery</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DELIVERY INFORMATION ============ -->
+<section class="sec" id="delivery">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Delivery information</span><h2>Where, when and how we deliver</h2><p class="lead">Simple rules, no surprises — except the one you're sending.</p></div>
+      <a class="link-more" href="#track" id="track">Track an order <span>→</span></a>
+    </div>
+    <div class="del-grid">
+      <div class="delc dark">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></span>
+        <h3>Inside Dhaka</h3>
+        <ul>
+          <li>Express delivery in as little as 2 hours across the city</li>
+          <li>Same-day delivery on orders placed before 6 PM</li>
+          <li>Midnight surprise slot (11 PM – 1 AM) for birthdays and anniversaries</li>
+          <li>Schedule any date and time slot at checkout</li>
+        </ul>
+        <div class="slots"><span>Morning 9–12</span><span>Afternoon 12–4</span><span>Evening 4–9</span><span>Midnight 11–1</span></div>
+      </div>
+      <div class="delc">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></span>
+        <h3>Nationwide</h3>
+        <ul>
+          <li>Delivery to all 64 districts of Bangladesh by trusted courier</li>
+          <li>Typically 1–3 working days outside Dhaka</li>
+          <li>Chocolates, gift hampers, balloons, teddies and artificial flowers travel well</li>
+        </ul>
+        <div class="note">Charges are shown at checkout before you pay — no hidden fees.</div>
+      </div>
+      <div class="delc">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-5 0-8-3-8-8 5 0 8 3 8 8Zm0 0c0-5 3-8 8-8 0 5-3 8-8 8Zm0-8V3"/></svg></span>
+        <h3>Fresh flowers</h3>
+        <ul>
+          <li>Fresh bouquets are hand-delivered by our own riders inside Dhaka only</li>
+          <li>Outside Dhaka, choose artificial flowers, chocolates or a hamper — equally lovely, and they arrive perfect</li>
+          <li>Every fresh order gets a preparation photo before dispatch and a delivery photo</li>
+        </ul>
+        <div class="note">Sending to another city? Our Gift Finder only shows what can reach that address.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STORE / CONTACT ============ -->
+<section class="sec lav store" id="store">
+  <div class="wrap">
+    <div class="map" aria-hidden="true">
+      <svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid slice">
+        <rect width="600" height="420" fill="#efe4f7"/>
+        <g stroke="#fff" stroke-width="14" fill="none" stroke-linecap="round"><path d="M-20 120 C120 100 200 160 340 140 S560 90 640 120"/><path d="M60 -20 C80 120 40 260 90 440"/><path d="M-20 300 C160 280 260 330 420 300 S600 260 640 290"/><path d="M420 -20 C400 120 470 240 440 440"/><path d="M250 -20 C260 120 230 260 270 440"/></g>
+        <g stroke="#fff" stroke-width="6" fill="none"><path d="M-20 200 C140 190 240 230 400 210 S560 190 640 205"/><path d="M160 -20 C170 120 150 260 180 440"/><path d="M340 -20 C350 100 320 280 350 440"/></g>
+        <g fill="#e3d1ef"><circle cx="120" cy="230" r="34"/><circle cx="470" cy="330" r="46"/><circle cx="520" cy="80" r="28"/></g>
+        <path d="M0 360 C120 330 220 400 330 370 S520 330 600 360 L600 420 L0 420Z" fill="#d9e8f5"/>
+        <text x="40" y="60" font-family="Jost,sans-serif" font-size="14" fill="#7a6689">Gulshan Avenue</text>
+        <text x="380" y="395" font-family="Jost,sans-serif" font-size="14" fill="#7a6689">Gulshan Lake</text>
+        <text x="200" y="330" font-family="Jost,sans-serif" font-size="14" fill="#7a6689">Road 2</text>
+      </svg>
+      <div class="pin"><div class="lbl">Radian Flower &amp; Gift Shop · Gulshan-1</div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12Zm0-9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></svg></div>
+      <div class="ph"><img src="https://media.development.radianbd.com/radian/products/WhatsApp-Image-2025-10-27-at-12.23.48-PM_joFSpGguy.jpg" alt=""></div>
+    </div>
+    <div class="storec">
+      <span class="eyebrow">Visit the studio</span>
+      <h2 style="margin-top:12px">Come in, smell the flowers, watch us arrange your gift</h2>
+      <dl>
+        <dt>Address</dt><dd>House 1, Road 2, Lake Par, Gudaraghat, Gulshan-1, Dhaka 1212</dd>
+        <dt>Hours</dt><dd>Every day, 9 AM – 10 PM<br><span class="hours"><i></i>Open now · closes 10 PM</span></dd>
+        <dt>Phone</dt><dd><a href="tel:+8801519779378">01519-779378</a></dd>
+        <dt>WhatsApp</dt><dd><a href="#">+880 1519-779378</a></dd>
+        <dt>Email</dt><dd><a href="mailto:radianbd360@gmail.com">radianbd360@gmail.com</a></dd>
+      </dl>
+      <div class="ctas">
+        <a class="btn btn-rose" href="#">Get directions</a>
+        <a class="btn btn-ghost" href="#">Contact us</a>
+        <a class="btn btn-ghost" href="#">WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SEO CONTENT ============ -->
+<section class="seo" id="about">
+  <div class="wrap">
+    <div class="box">
+      <span class="eyebrow">About Radian</span>
+      <h2 style="margin-top:12px">Radian Flower &amp; Gift Shop – Best Flower Shop in Bangladesh for Fresh Flowers &amp; Gift Hampers</h2>
+      <div class="clip" id="seoClip">
+        <p>Looking for the best flower shop in Bangladesh? At Radian Flower &amp; Gift Shop, we bring you fresh flowers, bouquet delivery, gift hampers, and chocolate arrangements to celebrate every special moment.</p>
+        <p>Whether you are in Dhaka, Chittagong, Sylhet, Khulna, or any part of Bangladesh, we ensure your gifts reach your loved ones on time.</p>
+        <p>Our online gift shop in Bangladesh offers a wide range of birthday bouquets, anniversary flowers, festive hampers, and personalized gifts. You can choose fresh roses, lilies, carnations, or long-lasting artificial bouquets for home décor or gifting.</p>
+        <p>With same-day <a href="/flowers">online flower delivery</a> in Dhaka and reliable nationwide shipping, sending flowers and gifts across Bangladesh has never been easier.</p>
+        <p>Experience the joy of thoughtful gifting today. Shop beautiful flowers, chocolates, and gift hampers to surprise your loved ones anywhere in Bangladesh.</p>
+
+        <h3>Why Choose Radian Flower &amp; Gift Shop?</h3>
+        <p>Radian Flower &amp; Gift Shop is recognized as the best flower shop in Bangladesh for its trusted service, fresh flowers, and premium bouquets.</p>
+        <p>Our experienced florists craft each arrangement with care, ensuring quality and freshness for every occasion. Whether it's a birthday, anniversary, or special celebration, we deliver smiles across Dhaka and nationwide.</p>
+        <p>As a top florist in Dhaka, we focus on customer satisfaction, offering reliable flower delivery and beautifully packaged gifts that make every moment memorable.</p>
+        <p>From same-day delivery in Dhaka to nationwide shipping across Bangladesh, we make it simple to send thoughtful gifts to your loved ones.</p>
+        <p>Choose Radian Flower &amp; Gift Shop for fresh flowers, chocolate bouquets, personalized hampers, and dependable service. Experience hassle-free gifting with a florist you can trust.</p>
+
+        <h3>Fresh &amp; Artificial Bouquets for Every Occasion</h3>
+        <p>At Radian Flower &amp; Gift Shop, we offer a variety of fresh <a href="/roses">roses</a>, <a href="/lilies">lilies</a>, <a href="/orchids">orchids</a>, <a href="/gerberas">gerberas</a>, and seasonal blooms for any occasion. Whether it's a <a href="/wedding-engagement">wedding</a>, <a href="/birthday">birthday</a>, or corporate event, our expert florists will create the perfect arrangement. For weddings, we specialize in bridal bouquets and centerpieces, while birthdays call for cheerful mixed bouquets. Our corporate arrangements make a sophisticated gift or décor.</p>
+        <p>Choose from roses, lilies, carnations, gerberas, and seasonal blooms sourced locally and internationally. Each floral arrangement is designed to suit birthdays, anniversaries, weddings, or festive celebrations across Bangladesh.</p>
+        <p>For lasting beauty, explore our <a href="/artificial-flowers">artificial bouquets</a>, crafted to maintain elegance at home or as a thoughtful gift. We provide romantic flowers for loved ones, cheerful mixed bouquets, and custom arrangements tailored to your preference.</p>
+        <p>With our reliable flower delivery Bangladesh, sending thoughtful gifts has never been easier. Every bouquet is handled with care to ensure freshness and quality on delivery.</p>
+        <p>Order your bouquet today and bring a smile to someone special.</p>
+
+        <h3>Chocolate &amp; Balloon Bouquets – Sweet Surprises</h3>
+        <p>Make celebrations memorable with our <a href="/chocolate-bouquets">chocolate bouquets</a> and colorful <a href="/all-balloon-bouquets">balloon arrangements</a>.</p>
+        <p>Perfect for birthday gifts, <a href="/anniversary">anniversary gifts</a>, or festival surprises, these unique gift ideas combine sweet treats with vibrant décor.</p>
+        <p>Each bouquet is customizable, allowing you to add personal touches or favorite flavors. Our creative team ensures every gift leaves a lasting impression, whether in Dhaka or anywhere in Bangladesh.</p>
+        <p>From celebration décor to thoughtful combos, these bouquets add joy and excitement to every occasion.</p>
+        <p>Send chocolate bouquets today and make your loved ones' day unforgettable.</p>
+
+        <h3>Gift Hampers &amp; Combos – Thoughtful All-in-One Gifts</h3>
+        <p>At Radian Flower &amp; Gift Shop, our gift hampers and <a href="/all-combos">combo packages</a> are designed for every occasion. Choose from flowers, chocolates, balloons, and festive treats carefully curated in elegant hampers. Each combo package saves time while offering a complete gift solution.</p>
+        <p>Our premium gift hampers Bangladesh are perfect for birthdays, anniversaries, festivals, and corporate gifting. Every hamper is assembled with attention to detail to impress your loved ones or colleagues.</p>
+        <p>With same-day delivery in Dhaka and across Bangladesh, sending thoughtful gifts has never been easier. These all-in-one presents make celebrations simple, meaningful, and memorable.</p>
+        <p>Send a gift hamper today and delight someone special.</p>
+
+        <h3>Personalized &amp; Custom Gifts</h3>
+        <p>Make gifting personal with custom bouquets and personalized gifts from Radian Flower &amp; Gift Shop. Add names, messages, or themed designs to create a truly unique gift. You can choose from roses, lilies, carnations, or mixed bouquets and combine them with chocolates or balloons.</p>
+        <p>Our custom bouquets Bangladesh are perfect for birthdays, anniversaries, or any special occasion. Personalized gifts show thoughtfulness and make celebrations unforgettable.</p>
+        <p>Short, simple messages and customized designs make your gift stand out and create lasting memories for the recipient. Create your personalized gift now and make every moment special.</p>
+
+        <h3>Same-Day Flower Delivery &amp; Easy Ordering</h3>
+        <p>Radian Flower &amp; Gift Shop offers reliable same-day flower delivery in Dhaka and across Bangladesh. Choose your favorite bouquet, gift hamper, or personalized gift, add a message, and we'll deliver it fresh and on time.</p>
+        <p>Our online ordering process is simple: select a product, enter recipient details, and choose the delivery date. Payments are secure and convenient.</p>
+        <p>Whether it's birthdays, anniversaries, or surprise gifts, our experienced florists ensure every order looks perfect. With fresh flowers, chocolates, balloons, and festive gifts, sending happiness is easy and fast.</p>
+        <p>Order now for same-day delivery and make someone's day special in Bangladesh.</p>
+
+        <h3>Event &amp; Wedding Decoration Services</h3>
+        <p>Make your weddings and special events memorable with professional flower delivery and decoration services in Dhaka and across Bangladesh.</p>
+        <p>We offer wedding décor, event balloons, and floral arrangements tailored to your theme. Our experienced decorators ensure everything is set on time, so your celebration looks perfect.</p>
+        <p>Whether it's a Dhaka wedding, engagement, or anniversary party, we bring freshness and elegance to every event. Book decoration services today and let us create stunning event experiences.</p>
+
+        <h3>Occasion-Based Quick Links</h3>
+        <p>Find the perfect gift for birthdays, anniversaries, or Valentine's Day with our online gift shop in Bangladesh. Explore flower combos, chocolate gifts, and curated hampers designed to make moments special.</p>
+        <ul class="links">
+          <li><a href="/birthday">Birthday gifts</a></li><li><a href="/anniversary">Anniversary gifts</a></li><li><a href="/love-romance">Love &amp; Romance</a></li>
+          <li><a href="/valentines-day">Valentine's Day</a></li><li><a href="/mothers-day">Mother's Day</a></li><li><a href="/proposal">Proposal &amp; Engagement</a></li>
+          <li><a href="/wedding-engagement">Wedding</a></li><li><a href="/get-well-soon">Get Well Soon</a></li><li><a href="/congratulations">Congratulations</a></li>
+          <li><a href="/thank-you">Thank You</a></li><li><a href="/baby-shower-welcome-baby">New Baby</a></li><li><a href="/corporate-gifting">Corporate Gifting</a></li>
+          <li><a href="/for-her">Gifts for Her</a></li><li><a href="/for-him">Gifts for Him</a></li><li><a href="/mother">Gifts for Mom</a></li><li><a href="/best-friend">Gifts for Best Friend</a></li>
+        </ul>
+        <p>Quick links make it easy to browse celebration gifts for every occasion and send smiles instantly. Whether it's a romantic gesture, a friend's birthday, or a festive celebration, we have options for every moment.</p>
+        <p>Find gifts for every occasion and make someone's day special.</p>
+
+        <h3>Reliable Delivery Across Bangladesh</h3>
+        <p>Enjoy fast and dependable same-day flower delivery in Bangladesh. We guarantee fresh flowers, timely doorstep delivery, and midnight delivery options for last-minute surprises.</p>
+        <p>Our nationwide network ensures your gifts reach loved ones anywhere in the country, fresh and on time. Order now for fast delivery and spread happiness with just a few clicks.</p>
+
+        <h3>Offers &amp; Discounts</h3>
+        <p>Check out our special offers at our online gift shop in Bangladesh. Enjoy festival deals, seasonal discounts, and budget-friendly gifts for every occasion.</p>
+        <p>Limited-time offers make it easy to send flowers, chocolates, or hampers without stretching your budget. Grab the latest offers and make gifting simple and affordable.</p>
+
+        <h3>From the Radian blog</h3>
+        <ul class="blog">
+          <li><a href="/blog/how-to-surprise-your-partner-with-flowers-tips-for-a-memorable-gift">How to Surprise Your Partner with Flowers: Tips for a Memorable Gift</a></li>
+          <li><a href="/blog/how-to-choose-the-right-gift-for-your-loved-ones">How to Choose the Right Gift for Your Loved Ones</a></li>
+          <li><a href="/blog/top-10-popular-flowers-and-their-meanings-choose-the-perfect-bouquet-for-every-occasion">Top 10 Popular Flowers and Their Meanings</a></li>
+          <li><a href="/blog/5-unique-gift-combo-ideas-for-every-occasion-flowers-chocolates-and-more">5 Unique Gift Combo Ideas for Every Occasion</a></li>
+          <li><a href="/blog/why-sameday-flower-delivery-makes-your-gifts-extra-special">Why Same-Day Flower Delivery Makes Your Gifts Extra Special</a></li>
+          <li><a href="/blog/top-7-tips-to-keep-your-fresh-flowers-last-longer-at-home">Top 7 Tips to Keep Your Fresh Flowers Last Longer at Home</a></li>
+        </ul>
+
+        <h3>Shop Now</h3>
+        <p>Choose the best flower shop in Bangladesh for your next gift. Send flowers, personalized bouquets, and thoughtful gifts to create happy, memorable moments.</p>
+        <p>Celebrate birthdays, anniversaries, or any special day and share love with just a few clicks. Shop now and make someone's day special.</p>
+      </div>
+      <div class="toggle"><button class="btn btn-outline btn-sm" id="seoBtn" onclick="toggleSeo()">Read more about Radian</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="sec" id="faq">
+  <div class="wrap">
+    <div class="sec-head" style="justify-content:center;text-align:center"><div><span class="eyebrow" style="justify-content:center">FAQs for Radian Flower &amp; Gift Shop</span><h2>Questions people ask before they order</h2></div></div>
+    <div class="faq">
+      <details open><summary>1. How can I order flowers in Bangladesh?<i>+</i></summary><div class="a">Order fresh flowers online from Radian Flower &amp; Gift Shop. We deliver bouquets and gift hampers across Bangladesh for birthdays, anniversaries, and special occasions.</div></details>
+      <details><summary>2. Does Radian Flower offer same-day delivery in Dhaka?<i>+</i></summary><div class="a">Yes. We provide same-day flower delivery in Dhaka and other major cities, ensuring fresh bouquets reach your doorstep on time.</div></details>
+      <details><summary>3. Can I customize my bouquet or gift hamper?<i>+</i></summary><div class="a">Yes. You can personalize bouquets, add custom messages, and choose themed gift hampers to make every gift special.</div></details>
+      <details><summary>4. What types of flowers and gifts are available?<i>+</i></summary><div class="a">We offer roses, lilies, carnations, gerberas, chocolate bouquets, balloons, and combo gift hampers suitable for birthdays, anniversaries, and festivals.</div></details>
+      <details><summary>5. How do I place an order online?<i>+</i></summary><div class="a">On our website you can browse the flowers and gifts you want. Select your bouquet or gift hamper, add personalization if needed, choose the delivery date and time slot, and check out securely.</div></details>
+      <details><summary>6. Which payment methods do you accept?<i>+</i></summary><div class="a">Cash on delivery inside Dhaka, plus bKash, Nagad, Rocket and Visa / Mastercard through our secure payment gateway.</div></details>
+      <details><summary>7. Can I send a gift anonymously?<i>+</i></summary><div class="a">Yes. Choose "send as a surprise" at checkout and we won't reveal the sender — the recipient only sees your gift and your message.</div></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="ft-top">
+      <div class="ft-brand">
+        <img src="https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png" alt="Radian">
+        <p>Celebrate with elegance. Fresh flowers, chocolates, balloons and gift hampers from a real store in Gulshan-1 — delivered across Dhaka and nationwide.</p>
+        <div class="social">
+          <a href="https://www.facebook.com/radiangiftshop" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.5 1.6-1.5h1.6V4.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1v2.4H7.6V14h2.7v8h3.2Z"/></svg></a>
+          <a href="https://www.instagram.com/radiangiftshop" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
+          <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 1.7.7 2.3.8 3.1.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"/></svg></a>
+          <a href="#" aria-label="Messenger"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.1 2 11.3c0 2.9 1.4 5.5 3.7 7.2V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2Zm1 12.5-2.6-2.7-5 2.7 5.5-5.8 2.6 2.7 4.9-2.7-5.4 5.8Z"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <ul><li><a href="#">Flowers</a></li><li><a href="#">Chocolates</a></li><li><a href="#">Balloons</a></li><li><a href="#">Combos &amp; Hampers</a></li><li><a href="#">Gifts</a></li><li><a href="#">Moments &amp; Memories</a></li><li><a href="#">Occasions</a></li><li><a href="#">Best Sellers</a></li></ul>
+      </div>
+      <div>
+        <h4>Occasions</h4>
+        <ul><li><a href="#">Birthday</a></li><li><a href="#">Anniversary</a></li><li><a href="#">Love &amp; Romance</a></li><li><a href="#">Wedding</a></li><li><a href="#">New Baby</a></li><li><a href="#">Congratulations</a></li><li><a href="#">Thank You</a></li><li><a href="#">Corporate Gifting</a></li></ul>
+      </div>
+      <div>
+        <h4>Customer support</h4>
+        <ul><li><a href="#">Track my order</a></li><li><a href="#">Delivery information</a></li><li><a href="#">Shipping policy</a></li><li><a href="#">Return &amp; refund policy</a></li><li><a href="#">Terms &amp; conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#faq">FAQs</a></li><li><a href="#">About us</a></li><li><a href="#">Contact us</a></li></ul>
+      </div>
+      <div class="news-col">
+        <h4>Contact</h4>
+        <ul class="ft-contact" style="margin-bottom:20px">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span>House 1, Road 2, Lake Par, Gudaraghat, Gulshan-1, Dhaka</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg><span>01519-779378 · 9 AM – 10 PM, every day</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>radianbd360@gmail.com</span></li>
+        </ul>
+        <div class="news">
+          <h4 style="margin-bottom:8px">Occasion reminders</h4>
+          <p>Get a nudge before the dates that matter, plus early access to festival offers. No spam.</p>
+          <form onsubmit="event.preventDefault();this.querySelector('input').value='';this.querySelector('button').textContent='Subscribed';"><input type="email" placeholder="Your email address" required><button class="btn btn-rose btn-sm" type="submit">Sign up</button></form>
+        </div>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <span>© 2026 Radian Flower &amp; Gift Shop · Gulshan-1, Dhaka, Bangladesh</span>
+      <div class="pay"><span>bKash</span><span>Nagad</span><span>Rocket</span><span>VISA</span><span>Mastercard</span><span>Cash on delivery</span></div>
+    </div>
+  </div>
+</footer>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Florist","name":"Radian Flower & Gift Shop","image":"https://media.development.radianbd.com/radian/brand/Radian-Logo-png_bQVCN3EB8.png","telephone":"+8801519779378","email":"radianbd360@gmail.com","priceRange":"৳৳","address":{"@type":"PostalAddress","streetAddress":"House 1, Road 2, Lake Par, Gudaraghat, Gulshan-1","addressLocality":"Dhaka","postalCode":"1212","addressCountry":"BD"},"openingHours":"Mo-Su 09:00-22:00","areaServed":"Bangladesh","sameAs":["https://www.facebook.com/radiangiftshop","https://www.instagram.com/radiangiftshop"]}
+</script>
+
+<script>
+/* ---------- data (placeholder catalogue for the prototype) ---------- */
+const M = 'https://media.development.radianbd.com/radian/products/';
+const PRODUCTS = [
+  {n:'Luxury 100 Red Roses Bouquet', p:9999, m:11500, img:'Valentine-s-special-2-_dZ_OYvr5Sa.jpg', cat:'Roses', tag:'hot', del:'Midnight', sold:'71 sold', who:['her','him'], occ:['love','anniversary'], b:4},
+  {n:'Classic 12 Red Roses in Black Wrap', p:1800, m:2000, img:'ChatGPT-Image-Jun-3-2026-10_39_11-AM_Ispm46qPH.jpg', cat:'Roses', tag:'hot', del:'2h express', sold:'140 sold', who:['her','friend'], occ:['love','anniversary','birthday','sorry'], b:2},
+  {n:'Pink Lily & Roses Handy Bouquet', p:3500, m:3900, img:'WhatsApp-Image-2026-08-20-at-6.24.40-PM_rMVdMrtQX.jpg', cat:'Lilies', tag:'', del:'Same day', sold:'38 sold', who:['her','mom','colleague'], occ:['birthday','congrats','thanks'], b:3},
+  {n:'Premium Pink Oriental Lily Bouquet', p:2200, m:2500, img:'mth5vzop1b63e0-WhatsApp-Image-2026-08-25-at-12.14.09-AM.jpg', cat:'Lilies', tag:'', del:'2h express', sold:'52 sold', who:['her','mom','colleague','friend'], occ:['thanks','congrats','birthday','sorry'], b:3},
+  {n:'Heart Box – Roses & Ferrero Rocher', p:6500, m:7499, img:'Valentine-s-special-4-_VbVzzs9nF.jpg', cat:'Combos', tag:'night', del:'Midnight', sold:'29 sold', who:['her'], occ:['love','anniversary'], b:4},
+  {n:'Rose Basket with White Heart', p:5500, m:6000, img:'Valentine-s-special-19-_-xLTQY95j.jpg', cat:'Baskets', tag:'', del:'Same day', sold:'17 sold', who:['her','mom'], occ:['love','anniversary','birthday'], b:4},
+  {n:'Premium Mixed Fresh Flower Bouquet in Pink Crown Wrap', p:1500, m:1800, img:'mtfksrqk06d3bf-ChatGPT-Image-May-4-2026-01_50_20-PM.jpg', cat:'Mixed', tag:'', del:'2h express', sold:'96 sold', who:['her','mom','friend','kids'], occ:['birthday','thanks','baby','congrats'], b:2},
+  {n:'Preserved Rose Teddy Gift', p:2500, m:2800, img:'1770276411XlzXG_2M25vvMra.jpg', cat:'Gifts', tag:'', del:'Nationwide', sold:'44 sold', who:['her','kids','friend'], occ:['birthday','baby','love'], b:3},
+  {n:'Single Red Rose – Crown Wrap', p:999, m:1200, img:'ChatGPT-Image-Jun-2-2026-06_06_29-PM_67WTCoB5k.jpg', cat:'Roses', tag:'', del:'2h express', sold:'210 sold', who:['her','him','friend','colleague','dad'], occ:['love','thanks','sorry','birthday'], b:1},
+  {n:'Blue & White Lily Hand Bouquet', p:1500, m:1700, img:'mtgtvj7a80415b-ChatGPT-Image-Aug-26-2026-03_52_05-PM.jpg', cat:'Lilies', tag:'', del:'Same day', sold:'23 sold', who:['him','dad','colleague','friend'], occ:['congrats','thanks','birthday'], b:2},
+  {n:'Rose in a Box – Red Velvet', p:1200, m:1400, img:'mtilw133787dcd-OOccG1782642055.jpg', cat:'Gift box', tag:'', del:'Nationwide', sold:'61 sold', who:['her','mom'], occ:['love','anniversary','thanks'], b:2},
+  {n:'Luxury Pink Rose Bouquet – 50 Stems', p:4500, m:5000, img:'mth9q4wpdc6b53-1.jpg', cat:'Roses', tag:'hot', del:'Same day', sold:'33 sold', who:['her','mom'], occ:['birthday','anniversary','congrats'], b:3},
+  {n:'Red Rose Bouquet – Black & Gold Wrap', p:2800, m:3200, img:'WhatsApp-Image-2025-10-27-at-12.23.46-PM_qxW_ao6cn.jpg', cat:'Roses', tag:'', del:'2h express', sold:'48 sold', who:['her','him'], occ:['love','anniversary','birthday'], b:3},
+  {n:'Chocolate Heart Hamper – Love', p:7499, m:8200, img:'21_90cb8_jK_.jpg', cat:'Chocolates', tag:'', del:'Nationwide', sold:'12 sold', who:['her','him','friend'], occ:['love','anniversary','birthday','congrats'], b:4},
+  {n:'Double Heart of Red Roses', p:5999, m:6500, img:'Valentine-s-special-16-_YwDahuUsn.jpg', cat:'Roses', tag:'night', del:'Midnight', sold:'19 sold', who:['her'], occ:['love','anniversary'], b:4},
+  {n:'Pastel Lily Butterfly Bouquet', p:999, m:1200, img:'mtgs8b9y116bea-WhatsApp-Image-2026-08-22-at-9.31.22-PM-1-.jpg', cat:'Lilies', tag:'', del:'2h express', sold:'77 sold', who:['her','mom','friend','kids','colleague'], occ:['birthday','baby','thanks','congrats','sorry'], b:1},
+];
+const tk = n => '৳' + n.toLocaleString('en-US');
+
+/* ---------- best sellers ---------- */
+(function(){
+  const order = [1,0,2,6,3,11,7,4];
+  const g = document.getElementById('bestGrid');
+  g.innerHTML = order.map(i => {
+    const p = PRODUCTS[i];
+    const off = Math.round((1 - p.p/p.m)*100);
+    const tag = p.tag==='hot' ? '<span class="tag-b hot">Bestseller</span>' : '';
+    const del = p.del==='Midnight' ? '<span class="tag-b night">Midnight</span>' : `<span class="tag-b">${p.del}</span>`;
+    return `<article class="card">
+      <div class="ph"><img src="${M+p.img}" alt="${p.n}" loading="lazy">
+        <div class="tags">${tag}${del}</div>
+        <button class="wish" aria-label="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-9-9a4.6 4.6 0 0 1 8-3.5A4.6 4.6 0 0 1 21 11c-2 4.6-9 9-9 9Z"/></svg></button>
+        <div class="quick"><a class="btn btn-primary btn-sm" href="#">Add to cart</a></div>
+      </div>
+      <div class="in"><span class="cat">${p.cat}</span><h3>${p.n}</h3>
+        <div class="meta"><span class="st">★★★★★ <span style="color:var(--muted)">4.9</span></span><span>${p.sold}</span></div>
+        <div class="price"><b>${tk(p.p)}</b><s>${tk(p.m)}</s>${off>0?`<span class="off">${off}% off</span>`:''}</div>
+      </div></article>`;
+  }).join('');
+})();
+
+/* ---------- gift finder ---------- */
+const pick = {who:null, occ:null, budget:null};
+document.querySelectorAll('.step').forEach(step => {
+  const key = step.dataset.step;
+  step.querySelectorAll('.pill').forEach(btn => btn.addEventListener('click', () => {
+    step.querySelectorAll('.pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on'); pick[key] = btn.dataset.v; updateHint();
+  }));
+});
+function updateHint(){
+  const left = ['who','occ','budget'].filter(k => !pick[k]).length;
+  document.getElementById('findHint').textContent = left ? `${left} step${left>1?'s':''} to go` : 'Ready — show my gifts';
+  if(!left) runFinder();
+}
+const WHO = {her:'her',him:'him',mom:'Mom',dad:'Dad',friend:'a friend',colleague:'a colleague',kids:'the kids'};
+const OCC = {birthday:'birthday',anniversary:'anniversary',love:'a romantic moment',congrats:'congratulations',thanks:'saying thank you',baby:'a new baby',sorry:'an apology'};
+function runFinder(){
+  if(!pick.who||!pick.occ||!pick.budget){ document.getElementById('findHint').textContent = 'Please pick one option in each step'; return; }
+  const b = +pick.budget;
+  let list = PRODUCTS.filter(p => p.b===b && p.who.includes(pick.who) && p.occ.includes(pick.occ));
+  if(list.length<3) list = list.concat(PRODUCTS.filter(p => p.b===b && !list.includes(p) && (p.who.includes(pick.who)||p.occ.includes(pick.occ))));
+  if(list.length<3) list = list.concat(PRODUCTS.filter(p => p.b===b && !list.includes(p)));
+  list = list.slice(0,3);
+  document.getElementById('resFor').textContent = `for ${WHO[pick.who]} · ${OCC[pick.occ]}`;
+  document.getElementById('resGrid').innerHTML = list.map(p => `<a class="res" href="#"><div class="ph"><img src="${M+p.img}" alt="${p.n}" loading="lazy"></div><div class="in"><b>${p.n}</b><div class="pr">${tk(p.p)}</div><span class="tag">${p.del}</span></div></a>`).join('');
+  const r = document.getElementById('results'); r.classList.add('show');
+  r.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ---------- SEO read more ---------- */
+function toggleSeo(){
+  const c = document.getElementById('seoClip'), b = document.getElementById('seoBtn');
+  const open = c.classList.toggle('open');
+  b.textContent = open ? 'Show less' : 'Read more about Radian';
+  if(!open) document.getElementById('about').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ---------- header shadow ---------- */
+const hdr = document.getElementById('hdr');
+addEventListener('scroll', () => hdr.classList.toggle('scrolled', scrollY > 8), {passive:true});
+</script>
+</body>
+</html>

@@ -4,17 +4,16 @@ import AccountGuard from "../../_components/Account/AccountGuard";
 import AccountShell from "../../_components/Account/AccountShell";
 import OrdersView from "../../_components/Account/OrdersView";
 
-/*
-  /account/orders — order history (logged-in only).
-  A quiet page (owner, 8 Sep 2026): no reviews, no store block, no footer.
-*/
+/*  A quiet page (owner, 8 Sep 2026): no reviews rail, no store block, no
+    footer. Everything on it comes from `/shop/account/*` — nothing here is
+    written in the browser any more.  */
 
 export const metadata: Metadata = {
   title: "My Orders | Radian",
   robots: { index: false },
 };
 
-export default function OrdersPage() {
+export default function Page() {
   return (
     <main className="bg-[#F6F4FA]">
       <div className="max-w-[var(--page-w)] mx-auto px-4 sm:px-6 pb-16">
@@ -24,7 +23,6 @@ export default function OrdersPage() {
           </AccountShell>
         </AccountGuard>
       </div>
-
     </main>
   );
 }

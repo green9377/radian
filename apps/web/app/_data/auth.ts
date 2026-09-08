@@ -1,99 +1,20 @@
-import type { Zone } from "../_store/useZoneStore";
 import { normalizeBdPhone } from "../_store/useCheckoutStore";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  AUTH — WhatsApp login. No password: in Bangladesh a code on WhatsApp is
-  what people expect, and it is the number we already deliver to.
+  LOGIN — the one-time code, and Google. No password anywhere.
 
-  The code half is REAL as of 2 Sep 2026 — see §OTP below.
+  ⚠️ WHAT LEFT THIS FILE, 8 Sep 2026. A constant called `DEMO_CUSTOMER` used
+  to live here — "Nusrat Jahan", two addresses in Banani, an own address in
+  Dhanmondi — and `customerFromPhone()` handed it to whoever logged in, so
+  every account screen drew that same invented person. The account is the
+  server's now (`_data/accountApi.ts` → `/shop/account/*`) and nothing about a
+  customer is written in this app any more.
 
-  The profile half below (DEMO_CUSTOMER and the addresses) is still demo
-  data, and is the next thing to replace: GET /me once the Customer module
-  exposes it. Logging in is now safe; what the account SHOWS afterwards is
-  not yet the customer's own.
+  What is left is the mechanics of getting in: normalising the number, asking
+  for the code, and Google's client id.
   ═══════════════════════════════════════════════════════════════════
 */
-
-export interface Address {
-  id: string;
-  label: string; // Home / Office
-  recipient: string;
-  phone: string;
-  zone: Zone;
-  line: string;
-  isDefault?: boolean;
-}
-
-export interface Customer {
-  name: string;
-  phone: string; // +8801XXXXXXXXX
-  email: string;
-  /** UTC ms — when they joined */
-  joinedAt: number;
-  addresses: Address[];
-}
-
-/* demo — matches the SENDER in orders.ts */
-export const DEMO_CUSTOMER: Customer = {
-  name: "Nusrat Jahan",
-  phone: "+8801712345678",
-  email: "nusrat.jahan@example.com",
-  joinedAt: Date.parse("2025-11-02T00:00:00Z"),
-  addresses: [
-    {
-      id: "addr-home",
-      label: "Home",
-      recipient: "Nusrat Jahan",
-      phone: "+8801712345678",
-      zone: "dhaka",
-      line: "House 42, Road 11, Banani, Dhaka 1213",
-      isDefault: true,
-    },
-    {
-      id: "addr-office",
-      label: "Office",
-      recipient: "Nusrat Jahan",
-      phone: "+8801712345678",
-      zone: "dhaka",
-      line: "Level 6, Concord Tower, Gulshan 1, Dhaka 1212",
-    },
-  ],
-};
-
-/* the customer's own address (Profile tab) — not a delivery address */
-export interface OwnAddress {
-  line: string;
-  zone: Zone;
-  phone: string;
-}
-
-export const DEMO_OWN_ADDRESS: OwnAddress = {
-  line: "Level 6, Concord Tower, Gulshan 1, Dhaka 1212",
-  zone: "dhaka",
-  phone: "+8801712345678",
-};
-
-/* delivery / recipient address seed (Addresses tab) — where gifts go */
-export const SEED_DELIVERY_ADDRESSES: Address[] = [
-  {
-    id: "addr-meem",
-    label: "Meem — Dhanmondi",
-    recipient: "Meem",
-    phone: "+8801611000292",
-    zone: "dhaka",
-    line: "House 8, Road 27, Dhanmondi · opposite Star Kabab, Dhaka 1209",
-    isDefault: true,
-  },
-  {
-    id: "addr-ammu",
-    label: "Ammu — Uttara",
-    recipient: "Ammu",
-    phone: "+8801911000114",
-    zone: "dhaka",
-    line: "House 14, Sector 7, Uttara, Dhaka 1230",
-  },
-];
 
 /* ─────────────────── OTP ───────────────────
 
@@ -187,15 +108,6 @@ export async function verifyOtp(phone: string, code: string): Promise<boolean> {
 }
 
 /** the signed-in customer: the entered phone (and, from Google, the name and email) over the demo profile */
-export function customerFromPhone(phone: string, extra?: { name?: string; email?: string }): Customer {
-  return {
-    ...DEMO_CUSTOMER,
-    phone,
-    ...(extra?.name ? { name: extra.name } : {}),
-    ...(extra?.email ? { email: extra.email } : {}),
-  };
-}
-
 /* ─────────────────── GOOGLE ───────────────────
    "Continue with Google" (owner, 8 Sep 2026). Google's own button hands the
    browser an ID token; the server checks it with Google and answers with the

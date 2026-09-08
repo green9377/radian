@@ -1525,6 +1525,8 @@ model Product {
   reviews       Review[] // what customers said about this one
   reviewInvites ReviewInvite[]
 
+  wishlistedBy WishlistItem[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -2311,6 +2313,13 @@ model Customer {
   whatsappVerified Boolean        @default(false)
   country          String         @default("Bangladesh") // residence; anything else means NRB
   ownAddressLine   String?
+  /// The customer's OWN address — kept apart from the delivery addresses on
+  /// purpose (owner, 8 Sep 2026: "user address ar tar delivery address seta
+  /// jen oivabe alada thake"). This is who they are; `Recipient` is where
+  /// gifts go, and the two must never be shown as one list.
+  ownAddressZone   DeliveryZone?
+  /// "MM-DD" — the year is nobody's business, and the greeting only needs the day
+  birthday         String?
   joinedAt         DateTime       @default(now())
   status           CustomerStatus @default(ACTIVE) // block ≠ delete (DEC-CUS-003)
   note             String?
@@ -2335,6 +2344,8 @@ model Customer {
   conversations    Conversation[] // INB-RULE-007 — Inbox references, never copies
   reviews          Review[] @relation("CustomerReviews") // DEC-WEB-006
   reviewInvites    ReviewInvite[] @relation("CustomerReviewInvites")
+  sessions         CustomerSession[] // the storefront account (owner, 8 Sep 2026)
+  wishlist         WishlistItem[]
 
   // ---- OWNED BY SALES (read-only mirror; the Customer module never writes
   // these) (DEC-CUS-004) ----
@@ -2357,6 +2368,52 @@ enum CustomerStatus {
 
 /// Recipient book - a sub-entity owned by the customer, not a Customer of its
 /// own (DEC-CUS-005)
+/// ── THE STOREFRONT ACCOUNT (owner, 8 Sep 2026) ────────────────────────────
+/// Until today "signed in" was a note the browser wrote to itself, so the
+/// account could only ever show invented data — anyone could have written that
+/// note. This row is the real thing: the server issues it after a one-time
+/// code (or Google) is verified, and every account screen asks the server who
+/// is calling.
+///
+/// ⚠️ The raw token is NEVER stored. Only its SHA-256 lives here, so a copy of
+/// this table cannot be used to sign in as anybody. It is the same reasoning
+/// as `PhoneOtp.codeHash`.
+///
+/// Thirty days, the owner's ruling — a flower shop is not visited daily, and
+/// asking for a code every week would cost more orders than it protects.
+model CustomerSession {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  /// what asked for it — so "signed in on this device" can be told apart later
+  userAgent  String?
+  /// logging out, or deleting the account, ends it here and everywhere
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([expiresAt])
+}
+
+/// The wishlist, on the ACCOUNT rather than in one browser (owner, 8 Sep 2026).
+/// It lived in localStorage, so a list made on a phone did not exist on the
+/// laptop — and a shop that forgets what you liked is a shop you leave.
+model WishlistItem {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id])
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+}
+
 model Recipient {
   id           String       @id @default(cuid())
   customerId   String

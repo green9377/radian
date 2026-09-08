@@ -1,272 +1,188 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { Zone } from "../../_store/useZoneStore";
-import { useAuthStore } from "../../_store/useAuthStore";
-import {
-  useProfileHydrated,
-  useProfileStore,
-} from "../../_store/useProfileStore";
+import { getMe, saveMe, type AccountCustomer } from "../../_data/accountApi";
+import { useAuthStore, useToken } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
+import { Loading, Panel } from "./AccountShell";
 
 /*
-  /account/profile — avatar upload + নিজের address (functional mock)।
-  name/phone/email session থেকে (read-only); avatar/ownAddress editable।
+  /account — My Profile.
+
+  ⚠️ EVERY FIELD HERE IS THE CUSTOMER'S OWN ROW, not a browser's memory. It
+  used to be a constant named `DEMO_CUSTOMER`, so every person who ever logged
+  in saw "Nusrat Jahan" and two addresses in Banani.
+
+  ★ THE OWN ADDRESS IS KEPT APART from the delivery addresses (owner, 8 Sep
+  2026). This one says who the customer IS — it is what we read back when we
+  call them. Where gifts go is the Address Book, a different screen and a
+  different table (`Recipient`).
+
+  ★ The phone is not editable. It is the identity the session was issued
+  against; changing it means proving the new one with a code, which is its own
+  flow, not a text box on a profile.
 */
 
-const MAX_BYTES = 1_500_000; // ~1.5MB — localStorage-এ বড় image রাখব না
+const input =
+  "w-full border-[1.5px] border-lavender-deep rounded-[13px] px-4 py-3 text-[14px] text-body outline-none transition-colors focus:border-orchid";
 
 export default function ProfilePanel() {
-  const customer = useAuthStore((s) => s.customer)!;
-  const hydrated = useProfileHydrated();
-  const avatar = useProfileStore((s) => s.avatar);
-  const setAvatar = useProfileStore((s) => s.setAvatar);
-  const ownAddress = useProfileStore((s) => s.ownAddress);
-  const setOwnAddress = useProfileStore((s) => s.setOwnAddress);
+  const token = useToken();
+  const setCustomer = useAuthStore((s) => s.setCustomer);
 
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [imgErr, setImgErr] = useState<string | null>(null);
-
-  const [editAddr, setEditAddr] = useState(false);
+  const [me, setMe] = useState<AccountCustomer | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [line, setLine] = useState("");
-  const [zone, setZone] = useState<Zone>("dhaka");
-  const [phone, setPhone] = useState("");
+  const [zone, setZone] = useState("DHAKA");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  const initials = customer.name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  useEffect(() => {
+    if (!token) return;
+    getMe(token)
+      .then((c) => {
+        setMe(c);
+        setName(c.name === "Guest" ? "" : c.name);
+        setEmail(c.email ?? "");
+        setBirthday(c.birthday ?? "");
+        setLine(c.ownAddress?.line ?? "");
+        setZone(c.ownAddress?.zone ?? "DHAKA");
+      })
+      .catch((e) => setErr(e instanceof Error ? e.message : "Could not load your profile."));
+  }, [token]);
 
-  const since = new Date(customer.joinedAt).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // একই ফাইল আবার বাছলেও trigger হয়
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setImgErr("Please pick an image file.");
-      return;
+  async function onSave() {
+    if (!token) return;
+    setBusy(true);
+    setErr(null);
+    setSaved(false);
+    try {
+      const c = await saveMe(token, {
+        name,
+        email,
+        birthday,
+        ownAddressLine: line,
+        ownAddressZone: zone,
+      });
+      setMe(c);
+      setCustomer(c);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save that.");
+    } finally {
+      setBusy(false);
     }
-    if (file.size > MAX_BYTES) {
-      setImgErr("The photo must be under 1.5 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatar(typeof reader.result === "string" ? reader.result : null);
-      setImgErr(null);
-    };
-    reader.readAsDataURL(file);
   }
 
-  function openAddr() {
-    setLine(ownAddress?.line ?? "");
-    setZone(ownAddress?.zone ?? "dhaka");
-    setPhone(ownAddress?.phone ?? customer.phone);
-    setEditAddr(true);
+  if (!me && !err) {
+    return (
+      <Panel icon="user" title="My profile" sub="What we call you, and how we reach you.">
+        <Loading />
+      </Panel>
+    );
   }
-
-  function saveAddr() {
-    setOwnAddress({ line: line.trim(), zone, phone: phone.trim() });
-    setEditAddr(false);
-  }
-
-  const rows: { label: string; value: string }[] = [
-    { label: "Name", value: customer.name },
-    { label: "WhatsApp number", value: customer.phone },
-    { label: "Email", value: customer.email },
-    { label: "Member since", value: since },
-  ];
 
   return (
-    <div>
-      <h1 className="font-display text-[27px] sm:text-[32px] text-purple font-semibold">
-        Profile & Updates
-      </h1>
-      <p className="text-[13px] text-body-soft mt-1">
-        Your photo, details and how we reach you.
-      </p>
+    <Panel icon="user" title="My profile" sub="What we call you, and how we reach you.">
+      {err && (
+        <p className="mb-4 rounded-[13px] bg-[#FDECEE] border border-[#F5C2C7] px-4 py-3 text-[13px] text-[#8A1220]">
+          {err}
+        </p>
+      )}
 
-      {/* avatar */}
-      <div className="bg-white border-[1.5px] border-lavender-deep rounded-[22px] p-5 sm:p-6 mt-6 flex items-center gap-5">
-        <span className="w-20 h-20 rounded-full overflow-hidden bg-orchid-soft text-orchid grid place-items-center font-display text-[26px] font-semibold shrink-0">
-          {hydrated && avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatar}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            initials
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="text-[15px] font-semibold text-purple">{customer.name}</p>
-          <p className="text-[12.5px] text-body-soft">
-            JPG or PNG, up to 1.5MB.
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-2 h-[38px] px-4 rounded-[12px] bg-purple text-white font-semibold text-[12.5px] hover:bg-purple-deep transition-colors"
-            >
-              <Icon name="upload" className="w-[15px] h-[15px]" />
-              {avatar ? "Change photo" : "Upload photo"}
-            </button>
-            {hydrated && avatar && (
-              <button
-                type="button"
-                onClick={() => setAvatar(null)}
-                className="h-[38px] px-3 rounded-[12px] text-[12.5px] font-semibold text-body-soft hover:text-[#B42318] transition-colors"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-          {imgErr && (
-            <p className="text-[12px] text-[#B42318] mt-1.5">{imgErr}</p>
-          )}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <label className="block">
+          <span className="block text-[12.5px] font-bold text-purple mb-1.5">Full name</span>
+          <input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+        </label>
+
+        <label className="block">
+          <span className="block text-[12.5px] font-bold text-purple mb-1.5">
+            Phone number · verified
+          </span>
+          <input className={`${input} bg-lavender text-body-soft`} value={me?.phone ?? ""} disabled />
+        </label>
+
+        <label className="block">
+          <span className="block text-[12.5px] font-bold text-purple mb-1.5">Email</span>
           <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            onChange={onPick}
-            className="hidden"
+            className={input}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@email.com"
+            inputMode="email"
           />
-        </div>
+        </label>
+
+        <label className="block">
+          <span className="block text-[12.5px] font-bold text-purple mb-1.5">
+            Birthday <span className="font-normal text-body-soft">· optional</span>
+          </span>
+          <input
+            className={input}
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            placeholder="MM-DD, e.g. 08-09"
+            maxLength={5}
+          />
+        </label>
       </div>
 
-      {/* details */}
-      <div className="bg-white border-[1.5px] border-lavender-deep rounded-[22px] p-5 sm:p-6 mt-4">
-        <dl className="divide-y divide-lavender">
-          {rows.map((r) => (
-            <div
-              key={r.label}
-              className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-            >
-              <dt className="text-[12.5px] text-body-soft">{r.label}</dt>
-              <dd className="text-[13.5px] font-semibold text-purple text-right">
-                {r.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+      <div className="mt-6 pt-6 border-t border-lavender-deep">
+        <h2 className="font-display text-[17px] text-purple font-semibold m-0">Your own address</h2>
+        <p className="text-[12.5px] text-body-soft mt-1 mb-4">
+          For our records and for calling you — where gifts go lives in the Address Book.
+        </p>
 
-      {/* own address */}
-      <div className="bg-white border-[1.5px] border-lavender-deep rounded-[22px] p-5 sm:p-6 mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 font-display text-[17px] text-purple font-semibold">
-            <Icon name="pin" className="w-[17px] h-[17px] text-orchid" />
-            Your address
-          </h2>
-          {!editAddr && (
+        <label className="block">
+          <span className="block text-[12.5px] font-bold text-purple mb-1.5">Address</span>
+          <textarea
+            className={`${input} min-h-[86px] resize-none`}
+            value={line}
+            onChange={(e) => setLine(e.target.value)}
+            placeholder="House 1, Road 1, Dhanmondi, Dhaka"
+          />
+        </label>
+
+        <div className="inline-flex p-1 bg-lavender rounded-[14px] gap-1 mt-3">
+          {[
+            { id: "DHAKA", label: "Inside Dhaka" },
+            { id: "BANGLADESH", label: "All Bangladesh" },
+          ].map((z) => (
             <button
+              key={z.id}
               type="button"
-              onClick={openAddr}
-              className="text-[12.5px] font-semibold text-orchid hover:text-purple transition-colors"
+              onClick={() => setZone(z.id)}
+              className={`px-4 py-2 rounded-[11px] text-[13px] font-bold transition-colors ${
+                zone === z.id ? "bg-white text-purple shadow-soft" : "text-body-soft"
+              }`}
             >
-              {ownAddress ? "Edit" : "Add"}
+              {z.label}
             </button>
-          )}
+          ))}
         </div>
+      </div>
 
-        {editAddr ? (
-          <div className="mt-4">
-            <label className="block mb-3">
-              <span className="block text-[12px] font-semibold text-body-soft mb-1.5">
-                Full address
-              </span>
-              <textarea
-                value={line}
-                onChange={(e) => setLine(e.target.value)}
-                rows={2}
-                placeholder="House, road, area…"
-                className="ipt resize-none"
-              />
-            </label>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label className="block">
-                <span className="block text-[12px] font-semibold text-body-soft mb-1.5">
-                  Area
-                </span>
-                <select
-                  value={zone}
-                  onChange={(e) => setZone(e.target.value as Zone)}
-                  className="ipt"
-                >
-                  <option value="dhaka">Inside Dhaka</option>
-                  <option value="bangladesh">Nationwide</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="block text-[12px] font-semibold text-body-soft mb-1.5">
-                  Phone
-                </span>
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+8801XXXXXXXXX"
-                  className="ipt"
-                />
-              </label>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                type="button"
-                onClick={saveAddr}
-                className="inline-flex items-center h-[42px] px-5 rounded-[13px] bg-purple text-white font-semibold text-[13px] hover:bg-purple-deep transition-colors"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditAddr(false)}
-                className="inline-flex items-center h-[42px] px-4 rounded-[13px] bg-white border-[1.5px] border-lavender-deep text-body-soft font-semibold text-[13px] hover:text-purple transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : hydrated && ownAddress ? (
-          <div className="mt-3">
-            <p className="text-[13.5px] text-body">{ownAddress.line}</p>
-            <p className="text-[12px] text-body-soft mt-1.5">
-              {ownAddress.phone} ·{" "}
-              {ownAddress.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"}
-            </p>
-          </div>
-        ) : (
-          <p className="text-[13px] text-body-soft mt-3">
-            No personal address saved yet.
-          </p>
+      <div className="flex items-center gap-3 mt-6">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={busy}
+          className="bg-purple text-white rounded-[13px] px-7 py-3 font-bold text-[13.5px] disabled:opacity-50"
+        >
+          {busy ? "Saving…" : "Save changes"}
+        </button>
+        {saved && (
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#0E7A3D]">
+            <Icon name="check" className="w-4 h-4" /> Saved
+          </span>
         )}
       </div>
-
-      {/* WhatsApp preference */}
-      <div className="flex items-start gap-3 bg-[#F1FBF4] border-[1.5px] border-[#CDEFD9] rounded-[20px] p-5 mt-4">
-        <span className="w-10 h-10 rounded-full bg-[#E1F6E8] text-[#1DA851] grid place-items-center shrink-0">
-          <Icon name="wa" className="w-[19px] h-[19px]" />
-        </span>
-        <div>
-          <p className="text-[13.5px] font-semibold text-purple">
-            Updates go to WhatsApp {customer.phone}
-          </p>
-          <p className="text-[12.5px] text-body-soft mt-1">
-            Order confirmations, delivery photos and occasion reminders. Sign-in
-            is by OTP — no password to remember.
-          </p>
-        </div>
-      </div>
-    </div>
+    </Panel>
   );
 }
