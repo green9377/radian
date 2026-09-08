@@ -220,3 +220,31 @@ one-time code, and sending one is real outbound — which the owner has to
 approve. Everything that can be checked without it was: the table exists, the
 API is up, every account door answers **401** without a session and refuses a
 made-up token. The first login on DEV proves the rest.
+
+---
+
+## 7. THE SHOP CHANGED FONTS — 9 Sep
+
+**Spectral (display) + Public Sans (everything else)**, chosen by the owner
+from twenty systems he asked to see together. Live on DEV.
+
+- the switch is **two files**: `apps/web/app/layout.tsx` and
+  `apps/web/app/globals.css`. Every screen reads `font-display` / `font-ui`,
+  so nothing else needed touching
+- **`apps/admin` was NOT changed** — still Fraunces + Jost + Manrope. That is
+  a separate decision over 192 screens, and the owner has not made it
+- the twenty candidates and the small-print strip that decided it live in
+  **`design/font-options.html`** — keep it; it is the cheapest way to answer
+  "can we just try a font"
+- the reasoning, and the two defects that went out with the old pair
+  (132 faked bolds, faked italics), are in `RADIAN_FRONTEND_AUDIT_9SEP.md` §E
+
+⚠️ **The trap worth remembering: `next/font` preloads EVERY declared face.**
+The first cut declared five weights in two styles and shipped **268 KB of
+fonts on every page load, of which the homepage drew five faces**. Trimmed to
+four upright weights, with the italic on its own non-preloaded load, it is
+**99 KB**. Nothing warns you about this — measure it:
+
+```js
+performance.getEntriesByType("resource").filter(r => /woff2/.test(r.name))
+```
