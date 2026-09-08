@@ -208,17 +208,52 @@ export class MetaPollService implements OnModuleInit, OnModuleDestroy {
       for (const c of rows) {
         for (const p of c.participants?.data ?? []) {
           const name = nameOf(p);
-          if (!p.id || !name || setup.ours.has(p.id)) continue;
-          const r = await this.prisma.db.conversation.updateMany({
+          if (!p.id || setup.ours.has(p.id)) continue;
+
+          if (name) {
+            const r = await this.prisma.db.conversation.updateMany({
+              where: {
+                channel: setup.channel,
+                externalIdentity: p.id,
+                deletedAt: null,
+                OR: [{ guestName: null }, { guestName: '' }],
+              },
+              data: { guestName: name.slice(0, 120) },
+            });
+            named += r.count;
+          }
+
+          /*
+            DEC-INB-009. The face, for threads that existed before there was a
+            column to keep it in. The listing above does not carry a picture,
+            so this is one extra call — but only for a thread that has no face
+            yet, so it costs nothing once the backlog is done.
+          */
+          const faceless = await this.prisma.db.conversation.findFirst({
             where: {
               channel: setup.channel,
               externalIdentity: p.id,
               deletedAt: null,
-              OR: [{ guestName: null }, { guestName: '' }],
+              guestAvatarUrl: null,
             },
-            data: { guestName: name.slice(0, 120) },
+            select: { id: true },
           });
-          named += r.count;
+          if (!faceless) continue;
+
+          const prof = await this.get<{ profile_pic?: string; username?: string }>(
+            setup,
+            `/${p.id}?fields=profile_pic,username`,
+          );
+          const patch = {
+            ...(prof?.profile_pic ? { guestAvatarUrl: prof.profile_pic } : {}),
+            ...(prof?.username ? { guestHandle: prof.username.slice(0, 80) } : {}),
+          };
+          if (Object.keys(patch).length) {
+            await this.prisma.db.conversation.update({
+              where: { id: faceless.id },
+              data: patch,
+            });
+          }
         }
       }
 

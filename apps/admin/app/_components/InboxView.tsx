@@ -51,8 +51,156 @@ function ago(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-function displayName(c: ApiInboxListItem): string {
-  return c.customer?.name || c.guestName || "Guest";
+/*
+  The owner's rule (2 Sep): never leave a thread reading "Guest" when we know
+  the number. A hundred conversations came in from the phone with numbers and
+  no names, and "Guest · Guest · Guest" cannot be worked through — the number
+  at least tells one from another, and staff recognise regulars by it.
+
+  "Guest" is now only for a web-chat visitor who has given nothing at all.
+*/
+function displayName(c: { customer?: { name: string } | null; guestName?: string | null; guestPhone?: string | null }): string {
+  return c.customer?.name || c.guestName || c.guestPhone || "Guest";
+}
+
+/*
+  DEC-INB-009 — the face beside the name.
+
+  Messenger and Instagram hand us a profile picture; WhatsApp never does, and
+  that is Meta's restriction on every platform, not a gap here. So initials are
+  the normal case, not the error case, and they are drawn to look deliberate:
+  the same name always gets the same brand colour, so a thread is recognisable
+  by its tile before the text is read.
+*/
+const AVATAR_TONES = [
+  { bg: "#f3e8ff", fg: "#6b21a8" }, // brand purple
+  { bg: "#fce7f3", fg: "#9d174d" }, // brand pink
+  { bg: "#ede9fe", fg: "#5b21b6" }, // soft lavender
+  { bg: "#fdf0e3", fg: "#9a5b21" }, // rose gold
+];
+
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  const first = words[0][0] ?? "";
+  const last = words.length > 1 ? (words[words.length - 1][0] ?? "") : "";
+  return (first + last).toUpperCase();
+}
+
+/*
+  DEC-INB-010 — the picture, the voice note and the file, shown as themselves.
+
+  Until now a customer sending a photo of the bouquet they wanted produced the
+  word "[image]", and staff had to open WhatsApp on a phone to see it. The file
+  is ours (copied out of Meta, whose links expire), so it can simply be drawn.
+
+  A caption that is only the placeholder is dropped — the picture says it.
+*/
+function MessageMedia({
+  m,
+}: {
+  m: {
+    mediaUrl?: string | null;
+    mediaKind?: string | null;
+    mediaMime?: string | null;
+    mediaName?: string | null;
+  };
+}) {
+  if (!m.mediaUrl) return null;
+  const url = m.mediaUrl;
+
+  if (m.mediaKind === "image" || m.mediaKind === "sticker") {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="block mb-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={m.mediaKind === "sticker" ? "Sticker" : "Photo"}
+          className={
+            m.mediaKind === "sticker"
+              ? "w-28 h-28 object-contain"
+              : "rounded-2xl max-h-72 w-auto object-cover"
+          }
+        />
+      </a>
+    );
+  }
+
+  if (m.mediaKind === "audio") {
+    // Voice notes are how customers actually order here, so the player is
+    // full width rather than a link that has to be opened.
+    return (
+      <audio controls preload="none" src={url} className="mb-2 w-56 max-w-full" />
+    );
+  }
+
+  if (m.mediaKind === "video") {
+    return (
+      <video controls preload="metadata" src={url} className="mb-2 rounded-2xl max-h-72 w-auto" />
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      download={m.mediaName ?? undefined}
+      className="mb-2 flex items-center gap-2 underline font-bold break-all"
+    >
+      📎 {m.mediaName || "Attachment"}
+    </a>
+  );
+}
+
+function Avatar({
+  name,
+  url,
+  size = 38,
+}: {
+  name: string;
+  url?: string | null;
+  size?: number;
+}) {
+  const [broken, setBroken] = useState(false);
+  // Meta's picture URLs are signed and expire, so a dead one is expected —
+  // it falls back to initials instead of showing a torn-image icon.
+  const showPhoto = Boolean(url) && !broken;
+  const tone =
+    AVATAR_TONES[
+      Math.abs(
+        [...name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7),
+      ) % AVATAR_TONES.length
+    ];
+
+  return (
+    <span
+      className="shrink-0 rounded-full overflow-hidden grid place-items-center font-extrabold"
+      style={{
+        width: size,
+        height: size,
+        background: showPhoto ? "#f1f5f9" : tone.bg,
+        color: tone.fg,
+        fontSize: Math.round(size * 0.36),
+      }}
+      title={name}
+    >
+      {showPhoto ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url as string}
+          alt={name}
+          width={size}
+          height={size}
+          className="w-full h-full object-cover"
+          onError={() => setBroken(true)}
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        initials(name)
+      )}
+    </span>
+  );
 }
 
 /*
@@ -539,14 +687,25 @@ export default function InboxView() {
                   openId === c.id ? "bg-[#f7f0fb]" : "hover:bg-[#fbf9fd]"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ background: channelOf(c.channel).dot }}
-                    title={channelOf(c.channel).label}
-                  />
-                  <span className="text-[14px] font-extrabold text-gray-900 flex-1 truncate">
-                    {displayName(c)}
+                <div className="flex items-center gap-2.5">
+                  <span className="relative shrink-0">
+                    <Avatar name={displayName(c)} url={c.guestAvatarUrl} size={38} />
+                    {/* the channel dot rides the tile, so it costs no width */}
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white"
+                      style={{ background: channelOf(c.channel).dot }}
+                      title={channelOf(c.channel).label}
+                    />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[14px] font-extrabold text-gray-900 truncate">
+                      {displayName(c)}
+                    </span>
+                    {c.guestHandle && (
+                      <span className="block text-[11.5px] font-semibold text-gray-400 truncate">
+                        @{c.guestHandle}
+                      </span>
+                    )}
                   </span>
                   {c.unreadForStaff > 0 && (
                     <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-full bg-[#cf43ea] text-white text-[11px] font-extrabold">
@@ -620,11 +779,17 @@ export default function InboxView() {
                     >
                       {channelOf(detail.channel).label}
                     </span>
+                    <Avatar
+                      name={displayName(detail)}
+                      url={detail.guestAvatarUrl}
+                      size={30}
+                    />
                     <p className="text-[17px] font-extrabold text-gray-900 truncate">
-                      {detail.customer?.name || detail.guestName || "Guest"}
+                      {displayName(detail)}
                     </p>
                   </div>
                   <p className="text-[12px] font-medium text-gray-400 mt-0.5">
+                    {detail.guestHandle && `@${detail.guestHandle} · `}
                     {detail.customer?.phone || detail.guestPhone || "No phone shared"}
                     {detail.customer && ` · ${detail.customer.ordersCount} orders`}
                   </p>
@@ -714,6 +879,7 @@ export default function InboxView() {
                                 "Replied from Meta")}
                           </p>
                         )}
+                        <MessageMedia m={m} />
                         <MessageBody body={m.body} />
                         <p
                           className={`text-[10.5px] font-bold mt-1.5 ${

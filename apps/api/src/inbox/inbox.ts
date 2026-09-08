@@ -387,6 +387,10 @@ export class InboxService {
       lastMessageAt: c.lastMessageAt,
       guestName: c.guestName,
       guestPhone: c.guestPhone,
+      // DEC-INB-009 — null on WhatsApp by Meta's design; the screen draws
+      // initials instead.
+      guestAvatarUrl: c.guestAvatarUrl,
+      guestHandle: c.guestHandle,
       customer: c.customer,
       assignee: c.assignee,
       lastMessage: c.messages[0] ?? null,
@@ -420,6 +424,8 @@ export class InboxService {
           select: {
             id: true, direction: true, authorType: true, body: true,
             createdAt: true, authorUser: { select: { name: true } },
+            // DEC-INB-010 — our own copy of the file, not Meta's expiring link.
+            mediaUrl: true, mediaMime: true, mediaKind: true, mediaName: true,
           },
         },
         escalations: { orderBy: { createdAt: 'desc' }, take: 10 },

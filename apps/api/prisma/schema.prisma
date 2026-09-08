@@ -7724,6 +7724,17 @@ model Conversation {
   guestName  String?
   guestPhone String?
 
+  /// DEC-INB-009 - the face and the handle beside the name, so staff know who
+  /// they are answering at a glance.
+  ///
+  /// Meta's own URLs expire, so this is a cache, never the source: empty is
+  /// always allowed and the screen falls back to initials.
+  ///
+  /// WhatsApp fills NEITHER — Cloud API does not expose a customer's photo or
+  /// handle to businesses, on any platform. Messenger and Instagram fill both.
+  guestAvatarUrl String?
+  guestHandle    String?
+
   /// WEB_CHAT's browser secret: whoever holds this key owns the thread.
   /// On other channels the external identity (PSID/phone) does that job.
   clientKey String @unique @default(cuid())
@@ -7779,6 +7790,23 @@ model Message {
   authorUser   AppUser? @relation("MessageAuthor", fields: [authorUserId], references: [id])
 
   body String
+
+  /// DEC-INB-010 - the picture, the voice note, the file itself.
+  ///
+  /// Meta's own media URLs need the access token and expire in minutes, so
+  /// they cannot be put in a browser. The file is copied once into our own
+  /// media store and THIS is the URL staff open - it keeps working after Meta's
+  /// link is dead, and it is what makes "[image]" an actual image.
+  ///
+  /// Null on a plain text message, and null when the copy failed: the text is
+  /// stored either way, because losing the message to save the picture would
+  /// be the worse trade.
+  mediaUrl  String?
+  mediaMime String?
+  /// image | audio | video | document | sticker - what to draw, not how.
+  mediaKind String?
+  /// The sender's own filename, for documents.
+  mediaName String?
 
   /// The channel's own message id - stops duplicate webhooks (Phase 3).
   externalMessageId String? @unique

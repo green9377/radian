@@ -5,21 +5,27 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
-  DEMO_OTP,
   OTP_LENGTH,
+  lastOtpChannel,
   normalizeLoginPhone,
+  requestLoginOtp,
   verifyOtp,
 } from "../../_data/auth";
 import { useAuthHydrated, useAuthStore } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
 
 /*
-  WhatsApp login — mock, দুই ধাপ: phone → OTP।
+  Login in two steps: phone → the code we really sent.
 
-  আসল কিছু পাঠানো হয় না; DEMO_OTP মিললেই session (auth.ts §mock)।
-  logged-in থাকলে সরাসরি redirect।
+  Real since 2 Sep 2026 (DEC-WA-010). Until that day this screen printed the
+  code on itself — "Demo — enter code 123456" — and accepted it for any number,
+  on a shop taking real orders. The code is now sent by the server (WhatsApp,
+  then SMS, then email) and only the server says whether it matched.
 
-  ⇄ SWAP HERE — Auth module lock হলে requestOtp/verifyOtp আসল API হবে।
+  It names the channel that WORKED, and never the one that failed. The owner's
+  first real code arrived by SMS while this screen insisted "on WhatsApp",
+  which sends a customer hunting in the wrong app; naming a FAILURE would be
+  different — it would turn a login box into a way of asking who has WhatsApp.
 */
 
 export default function LoginView() {
@@ -37,6 +43,17 @@ export default function LoginView() {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  /* The code is now really sent and really checked, so both take a moment —
+     and a second click while one is in flight must not start another. */
+  const [busy, setBusy] = useState(false);
+  /*
+    The owner, 2 Sep: pressing Resend too soon said "Bad Request" and then
+    sat there. A number that counts down answers both halves of the question
+    — that the wait is deliberate, and how long is left.
+  */
+  const [waitSec, setWaitSec] = useState(0);
+  /* Which app the code actually went to — named only on success. */
+  const [channel, setChannel] = useState<string | null>(null);
 
   const boxRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -45,15 +62,44 @@ export default function LoginView() {
     if (hydrated && customer) router.replace(redirect);
   }, [hydrated, customer, redirect, router]);
 
-  function sendCode(e: React.FormEvent) {
+  /* The cooldown, ticking. */
+  useEffect(() => {
+    if (waitSec <= 0) return;
+    const t = setTimeout(() => setWaitSec((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [waitSec]);
+
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const norm = normalizeLoginPhone(phoneRaw);
     if (!norm) {
-      setError("Enter a valid Bangladeshi number — 01XXXXXXXXX.");
+      // With or without the leading 0 — both are the same number (2 Sep).
+      setError("Enter a valid Bangladeshi mobile number.");
       return;
     }
-    setNormalized(norm);
+    setBusy(true);
     setError(null);
+    const failed = await requestLoginOtp(norm);
+    setBusy(false);
+    if (failed) {
+      /*  A code asked for a moment ago is still valid — so the cooldown is
+          not an error here, it is the reason to go to the boxes and type the
+          one already on the phone.  */
+      const secs = Number(failed.match(/(\d+)\s*second/)?.[1] ?? 0);
+      if (secs > 0) {
+        setWaitSec(secs);
+        setNormalized(norm);
+        setDigits(Array(OTP_LENGTH).fill(""));
+        setStep("otp");
+        setTimeout(() => boxRefs.current[0]?.focus(), 50);
+        return;
+      }
+      setError(failed);
+      return;
+    }
+    setChannel(lastOtpChannel);
+    setNormalized(norm);
     setDigits(Array(OTP_LENGTH).fill(""));
     setStep("otp");
     setTimeout(() => boxRefs.current[0]?.focus(), 50);
@@ -86,8 +132,12 @@ export default function LoginView() {
     else boxRefs.current[text.length]?.focus();
   }
 
-  function verify(code: string) {
-    if (verifyOtp(code)) {
+  async function verify(code: string) {
+    if (busy) return;
+    setBusy(true);
+    const ok = await verifyOtp(normalized!, code);
+    setBusy(false);
+    if (ok) {
       login(normalized!);
       router.replace(redirect);
     } else {
@@ -164,8 +214,8 @@ export default function LoginView() {
               Enter your code
             </h1>
             <p className="text-center text-[13.5px] text-body-soft mt-2">
-              Sent to <span className="text-purple font-semibold">{normalized}</span> on
-              WhatsApp.
+              Sent to <span className="text-purple font-semibold">{normalized}</span>
+              {channel ? ` on ${channel}.` : "."}
             </p>
 
             <div
@@ -193,11 +243,6 @@ export default function LoginView() {
               <p className="text-center text-[12.5px] text-[#B42318] mt-3">{error}</p>
             )}
 
-            <p className="text-center text-[12px] text-body-soft mt-4">
-              Demo — enter code{" "}
-              <span className="font-semibold text-purple">{DEMO_OTP}</span>
-            </p>
-
             <div className="flex items-center justify-center gap-4 mt-5 text-[12.5px]">
               <button
                 type="button"
@@ -212,13 +257,34 @@ export default function LoginView() {
               <span className="text-lavender-deep">·</span>
               <button
                 type="button"
-                onClick={() => {
+                disabled={busy || waitSec > 0}
+                onClick={async () => {
+                  if (busy || waitSec > 0 || !normalized) return;
+                  setBusy(true);
+                  setError(null);
+                  const failed = await requestLoginOtp(normalized);
+                  setBusy(false);
+                  if (failed) {
+                    // The server says how long; show it counting rather than
+                    // as a sentence that then goes stale on the screen.
+                    const secs = Number(failed.match(/(\d+)\s*second/)?.[1] ?? 0);
+                    if (secs > 0) setWaitSec(secs);
+                    else setError(failed);
+                    return;
+                  }
+                  setChannel(lastOtpChannel);
                   setResent(true);
                   setTimeout(() => setResent(false), 2500);
                 }}
-                className="text-orchid font-semibold hover:text-purple transition-colors"
+                className="text-orchid font-semibold hover:text-purple transition-colors disabled:opacity-50"
               >
-                {resent ? "Code re-sent ✓" : "Resend code"}
+                {waitSec > 0
+                  ? `Resend in ${waitSec}s`
+                  : resent
+                    ? "Code re-sent ✓"
+                    : busy
+                      ? "Sending…"
+                      : "Resend code"}
               </button>
             </div>
           </>

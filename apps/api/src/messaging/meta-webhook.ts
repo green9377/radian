@@ -289,27 +289,40 @@ export class MetaWebhookService {
     });
     if (existing) {
       // A thread created while the profile was unreadable stays "Guest"
-      // forever unless somebody tries again.
-      if (!existing.guestName) {
-        const name = knownName || (await this.profileName(channel, psid));
-        if (name) {
+      // forever unless somebody tries again — and the same is true of a face
+      // that was missing when the thread was made (DEC-INB-009).
+      if (!existing.guestName || !existing.guestAvatarUrl) {
+        const p = await this.profileOf(channel, psid);
+        const patch = {
+          ...(!existing.guestName && (knownName || p.name)
+            ? { guestName: knownName || p.name }
+            : {}),
+          ...(!existing.guestAvatarUrl && p.avatarUrl
+            ? { guestAvatarUrl: p.avatarUrl }
+            : {}),
+          ...(!existing.guestHandle && p.handle ? { guestHandle: p.handle } : {}),
+        };
+        if (Object.keys(patch).length) {
           await this.prisma.db.conversation.update({
-            where: { id: existing.id }, data: { guestName: name },
+            where: { id: existing.id }, data: patch,
           });
-          existing.guestName = name;
+          Object.assign(existing, patch);
         }
       }
       return existing;
     }
 
     try {
+      // Meta gives a scoped id, not a phone number, so the profile is fetched
+      // separately — and a failure there must not lose the message.
+      const p = await this.profileOf(channel, psid);
       return await this.prisma.db.conversation.create({
         data: {
           channel,
           externalIdentity: psid,
-          // Meta gives a scoped id, not a phone number, so the name is fetched
-          // separately — and a failure there must not lose the message.
-          guestName: knownName || (await this.profileName(channel, psid)),
+          guestName: knownName || p.name,
+          guestAvatarUrl: p.avatarUrl,
+          guestHandle: p.handle,
         },
       });
     } catch (e) {
@@ -324,11 +337,23 @@ export class MetaWebhookService {
     }
   }
 
-  private async profileName(channel: InboxChannel, id: string): Promise<string | null> {
+  /**
+   * DEC-INB-009. The name, the face and the handle in one call — asking for
+   * the picture separately would double the calls for the same profile.
+   *
+   * `profile_pic` is a signed URL that expires, so it is cached and allowed to
+   * go stale; the screen falls back to initials. WhatsApp has no equivalent —
+   * Cloud API does not give a business its customer's photo or handle.
+   */
+  private async profileOf(
+    channel: InboxChannel,
+    id: string,
+  ): Promise<{ name: string | null; avatarUrl: string | null; handle: string | null }> {
+    const blank = { name: null, avatarUrl: null, handle: null };
     const instagram = channel === InboxChannel.INSTAGRAM;
     const token = await this.token(instagram ? 'INSTAGRAM' : 'FACEBOOK_PAGE',
       instagram ? 'INSTAGRAM_TOKEN' : 'FACEBOOK_PAGE_TOKEN');
-    if (!token) return null;
+    if (!token) return blank;
 
     /*
       Instagram has usernames. On Messenger many Page tokens return only
@@ -337,7 +362,9 @@ export class MetaWebhookService {
       username (7 Aug).
     */
     const host = instagram ? IG_GRAPH : GRAPH;
-    const fields = instagram ? 'name,username' : 'name,first_name,last_name';
+    const fields = instagram
+      ? 'name,username,profile_pic'
+      : 'name,first_name,last_name,profile_pic';
     try {
       const res = await fetch(`${host}/${id}?fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -350,18 +377,26 @@ export class MetaWebhookService {
         */
         const body = await res.text();
         this.log.warn(`no profile for ${channel} ${id} (${res.status}): ${body.slice(0, 300)}`);
-        return this.nameFromConversations(channel, id, token, host);
+        return {
+          ...blank,
+          name: await this.nameFromConversations(channel, id, token, host),
+        };
       }
       const j = (await res.json()) as {
         name?: string; username?: string; first_name?: string; last_name?: string;
+        profile_pic?: string;
       };
       const joined = [j.first_name, j.last_name].filter(Boolean).join(' ');
       const name = (j.name || joined || j.username)?.slice(0, 120) || null;
       if (!name) this.log.warn(`profile for ${channel} ${id} came back without a name`);
-      return name;
+      return {
+        name,
+        avatarUrl: j.profile_pic?.trim() || null,
+        handle: j.username?.trim().slice(0, 80) || null,
+      };
     } catch (e) {
       this.log.warn(`profile lookup failed for ${channel} ${id}: ${e instanceof Error ? e.message : e}`);
-      return null;
+      return blank;
     }
   }
 

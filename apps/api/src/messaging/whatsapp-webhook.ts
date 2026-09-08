@@ -10,7 +10,9 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Request } from 'express';
 import {
   ConversationStatus,
@@ -51,10 +53,35 @@ interface WaMessage {
     button_reply?: { title?: string };
     list_reply?: { title?: string };
   };
-  image?: { caption?: string };
-  document?: { filename?: string; caption?: string };
+  /*
+    DEC-INB-010. Every media type arrives the same shape — an id we must
+    exchange for a URL, plus whatever the sender typed with it.
+  */
+  image?: { id?: string; mime_type?: string; caption?: string };
+  audio?: { id?: string; mime_type?: string; voice?: boolean };
+  video?: { id?: string; mime_type?: string; caption?: string };
+  sticker?: { id?: string; mime_type?: string };
+  document?: { id?: string; mime_type?: string; filename?: string; caption?: string };
   referral?: { source_id?: string; headline?: string; ctwa_clid?: string };
 }
+
+/** What a media message turns into once the file is ours. */
+interface SavedMedia {
+  mediaUrl: string | null;
+  mediaMime: string | null;
+  mediaKind: string | null;
+  mediaName: string | null;
+}
+
+const NO_MEDIA: SavedMedia = {
+  mediaUrl: null,
+  mediaMime: null,
+  mediaKind: null,
+  mediaName: null,
+};
+
+/* Meta refuses anything larger; there is no point streaming it either. */
+const MEDIA_MAX_BYTES = 25 * 1024 * 1024;
 
 interface WaValue {
   metadata?: { display_phone_number?: string; phone_number_id?: string };
@@ -174,7 +201,7 @@ export class WhatsAppWebhookService {
         for (const m of v.messages ?? []) await this.onMessage(v, m);
         for (const e of v.message_echoes ?? []) await this.onEcho(e);
         for (const h of v.history ?? []) await this.onHistory(h);
-        if (v.state_sync?.length) this.onStateSync(v.state_sync);
+        if (v.state_sync?.length) await this.onStateSync(v.state_sync);
       }
     }
   }
@@ -237,6 +264,7 @@ export class WhatsAppWebhookService {
           authorType: MessageAuthor.CUSTOMER,
           body: this.text(m).slice(0, 2000),
           externalMessageId: m.id,
+          ...(await this.saveMedia(m)),
         },
       });
 
@@ -314,15 +342,158 @@ export class WhatsAppWebhookService {
   }
 
   /**
-   * The phone's address book. Deliberately log-only: Customers owns customer
-   * records (One Data One Owner), and a contact in someone's phone is not a
-   * customer of the shop.
+   * The phone's address book, replayed after onboarding.
+   *
+   * Still NOT a customer record (One Data One Owner — Customers owns those).
+   * All it does is put a name on the thread: history arrives with numbers
+   * only, so without this every imported conversation reads "Guest" and staff
+   * cannot tell one from another.
+   *
+   * Only ever fills a blank. A name already on the thread came from the
+   * customer's own WhatsApp profile or from staff, and both beat a label out
+   * of somebody's phone book.
    */
-  private onStateSync(rows: NonNullable<WaValue['state_sync']>) {
+  private async onStateSync(rows: NonNullable<WaValue['state_sync']>) {
+    let named = 0;
+
+    for (const r of rows) {
+      if (r.action !== 'add') continue;
+
+      const waId = r.contact?.phone_number?.replace(/\D/g, '');
+      const name = (r.contact?.full_name || r.contact?.first_name)?.trim();
+      if (!waId || !name) continue;
+
+      const hit = await this.prisma.db.conversation
+        .updateMany({
+          where: {
+            channel: InboxChannel.WHATSAPP,
+            externalIdentity: waId,
+            guestName: null,
+            deletedAt: null,
+          },
+          data: { guestName: name.slice(0, 120) },
+        })
+        .catch(() => ({ count: 0 }));
+
+      named += hit.count;
+    }
+
     const added = rows.filter((r) => r.action === 'add').length;
     this.log.log(
-      `contact sync — ${added} added/changed, ${rows.length - added} removed`,
+      `contact sync — ${added} added/changed, ${rows.length - added} removed, ` +
+        `${named} thread(s) named`,
     );
+  }
+
+  /* ---- DEC-INB-010: the file itself ---- */
+
+  /** Which of the media shapes this message is, if any. */
+  private mediaPart(m: WaMessage) {
+    const parts = [
+      ['image', m.image],
+      ['sticker', m.sticker],
+      ['audio', m.audio],
+      ['video', m.video],
+      ['document', m.document],
+    ] as const;
+    for (const [kind, part] of parts) {
+      if (part?.id) return { kind, part };
+    }
+    return null;
+  }
+
+  /**
+   * Copy the file out of Meta and into our own media store.
+   *
+   * Two hops, both needing the token: the id gives a URL, the URL gives bytes.
+   * That URL is short-lived and token-gated, so it can never go to a browser —
+   * which is why this copies rather than links.
+   *
+   * Never throws. A message whose picture could not be fetched is still worth
+   * having; it keeps its caption and shows as a plain "[image]".
+   */
+  private async saveMedia(m: WaMessage): Promise<SavedMedia> {
+    const found = this.mediaPart(m);
+    if (!found) return NO_MEDIA;
+
+    const dir = process.env.MEDIA_DIR;
+    const base = (process.env.PUBLIC_MEDIA_URL ?? '').replace(/\/+$/, '');
+    if (!dir || !base) {
+      this.log.warn('media arrived but MEDIA_DIR / PUBLIC_MEDIA_URL are not set');
+      return NO_MEDIA;
+    }
+
+    const creds = await this.integrations
+      .credentials('MESSAGING', 'WHATSAPP')
+      .catch(() => null);
+    const token = creds?.apiKey?.trim() || process.env.WHATSAPP_TOKEN;
+    if (!token) return NO_MEDIA;
+
+    const auth = { Authorization: `Bearer ${token}` };
+    try {
+      const lookup = await fetch(
+        `https://graph.facebook.com/v23.0/${found.part.id}`,
+        { headers: auth },
+      );
+      if (!lookup.ok) {
+        this.log.warn(`media lookup failed (${lookup.status}) for ${found.kind}`);
+        return NO_MEDIA;
+      }
+      const meta = (await lookup.json()) as {
+        url?: string;
+        mime_type?: string;
+        file_size?: number;
+      };
+      if (!meta.url) return NO_MEDIA;
+      if ((meta.file_size ?? 0) > MEDIA_MAX_BYTES) {
+        this.log.warn(`media too large (${meta.file_size} bytes), skipped`);
+        return NO_MEDIA;
+      }
+
+      const file = await fetch(meta.url, { headers: auth });
+      if (!file.ok) {
+        this.log.warn(`media download failed (${file.status}) for ${found.kind}`);
+        return NO_MEDIA;
+      }
+      const bytes = Buffer.from(await file.arrayBuffer());
+
+      const mime = meta.mime_type || found.part.mime_type || '';
+      const ext = this.extFor(mime, found.kind);
+      const name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}${ext}`;
+      const rel = `radian/inbox/${name}`;
+      await mkdir(join(dir, 'radian', 'inbox'), { recursive: true });
+      await writeFile(join(dir, rel), bytes);
+
+      return {
+        mediaUrl: `${base}/${rel}`,
+        mediaMime: mime || null,
+        mediaKind: found.kind,
+        mediaName:
+          found.kind === 'document'
+            ? (m.document?.filename?.slice(0, 200) ?? null)
+            : null,
+      };
+    } catch (e) {
+      this.log.warn(
+        `media copy failed: ${e instanceof Error ? e.message : e}`,
+      );
+      return NO_MEDIA;
+    }
+  }
+
+  /** A sensible extension, so the file downloads with a usable name. */
+  private extFor(mime: string, kind: string): string {
+    const known: Record<string, string> = {
+      'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
+      'audio/ogg': '.ogg', 'audio/mpeg': '.mp3', 'audio/mp4': '.m4a',
+      'audio/aac': '.aac', 'audio/amr': '.amr',
+      'video/mp4': '.mp4', 'video/3gpp': '.3gp',
+      'application/pdf': '.pdf',
+    };
+    const bare = mime.split(';')[0].trim();
+    if (known[bare]) return known[bare];
+    const guess = { image: '.jpg', sticker: '.webp', audio: '.ogg', video: '.mp4' }[kind];
+    return guess ?? '.bin';
   }
 
   /* ---- shared writers ---- */
@@ -342,6 +513,7 @@ export class WhatsAppWebhookService {
           authorType: MessageAuthor.CUSTOMER,
           body: this.text(m).slice(0, 2000),
           externalMessageId: m.id,
+          ...(await this.saveMedia(m)),
           ...(at ? { createdAt: at } : {}),
         },
       });
@@ -373,6 +545,9 @@ export class WhatsAppWebhookService {
           authorType: author,
           body: this.text(m).slice(0, 2000),
           externalMessageId: m.id,
+          // The owner's own photo to a customer is worth keeping too — the
+          // thread is unreadable if only half of it has pictures.
+          ...(await this.saveMedia(m)),
           ...(at ? { createdAt: at } : {}),
         },
       });
@@ -444,12 +619,25 @@ export class WhatsAppWebhookService {
         }
       : {};
 
+    /*
+      A thread built from history has no name — the history payload carries
+      only the number. So the first live message is the first chance to stop
+      calling this person "Guest". Fill it in, never overwrite: a name the
+      owner typed himself beats one WhatsApp guessed.
+    */
+    const name =
+      profileName?.trim() && !existing?.guestName
+        ? { guestName: profileName.trim().slice(0, 120) }
+        : {};
+
     if (existing) {
-      if (Object.keys(ad).length) {
+      const patch = { ...ad, ...name };
+      if (Object.keys(patch).length) {
         await this.prisma.db.conversation.update({
           where: { id: existing.id },
-          data: ad,
+          data: patch,
         });
+        return { ...existing, ...patch };
       }
       return existing;
     }

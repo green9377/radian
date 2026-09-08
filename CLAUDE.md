@@ -56,6 +56,69 @@
 
 ## ২. গঠন ও চালানো
 
+### 🧭 WHERE EVERYTHING STANDS — 2 September 2026
+
+**Read this before believing anything further down.** Code lives in three
+places and they are NOT the same today. A session that assumes they are will
+look for files that are not there — which is exactly what went wrong on
+2 Sep, and why this block exists.
+
+| place | what it is on | note |
+|---|---|---|
+| **GitHub** `origin/main` | `bab4a56` | the trunk. Nothing since 2 Sep noon has been merged into it |
+| **GitHub** `origin/outbound-safety` | `11f4428` | ⬅️ **the active branch. All current work is here** |
+| **VPS** `/root/apps/radian` | branch `outbound-safety` @ `4780b04` | **the running system.** One commit behind the branch |
+| **laptop** `D:\radian` | `main` @ `95f1457` | ⚠️ **behind everything**, plus uncommitted `CLAUDE.md` edits |
+
+⚠️ **THE VPS IS NOT ON `main`.** Since 2 Sep it runs the `outbound-safety`
+branch on purpose, for verification before merging. `git pull` on the VPS pulls
+that branch, not main. Check with `git rev-parse --abbrev-ref HEAD` before
+assuming.
+
+**The branches, and which are alive:**
+
+| branch | state |
+|---|---|
+| `main` | the trunk. Merge target, nothing pending in it |
+| `outbound-safety` | **ALIVE** — outbound guard, escalation notifier, regression-suite allowlist |
+| `outbound-guard` | dead. Superseded by `outbound-safety`; never merge it |
+| `security-31aug` | parked. An older session's work, not reviewed |
+| `docs-golden-rules` | merged into main as `bab4a56`. Done |
+
+**What to read first, in this order (changed 2 Sep):**
+
+1. **`RADIAN_GOLIVE_AUDIT.md`** ⬅️ **THE PRIMARY ROADMAP NOW.** The owner's
+   words: *"এই Master Go-Live Checklist-টাই এখন আমাদের primary roadmap"*.
+   Every module classified BLOCKER / POST-LAUNCH / READY / UNKNOWN, with a
+   five-stage checklist. Do not start work outside it without asking.
+2. **`RADIAN_GOLDEN_RULES.md`** — the twelve permanent engineering rules.
+3. `RADIAN_ENVIRONMENTS.md` — where things run and why they stay apart.
+4. `RADIAN_PHASE9_DIRECTION.md` — the admin on a phone. **Now POST-LAUNCH**,
+   not the first read it used to be.
+
+**Standing orders from the owner (2 Sep), until he says otherwise:**
+
+- **Do NOT turn the AI on.** DEV shares the shop's REAL Facebook, Instagram,
+  WhatsApp and SMS credentials, so an AI reply can reach a real customer
+- **Do NOT send real outbound** of any kind without asking first
+- **Do NOT merge to `main` and do NOT deploy** without explicit approval
+- **Never handle his password or PIN, and never mint an `AppSession` row**
+- One page or feature at a time; ask before assuming a business rule
+
+**⚠️ ONE SESSION AT A TIME (owner's rule, 2 Sep 2026).** On 2 Sep two sessions
+worked this repo at once. Nothing was lost, but `main` was rebased under a
+running session, the same four commits ended up with two sets of hashes, and a
+commit appeared inside another session's branch that its author had never seen.
+Half of that day's confusion came from there, not from the code.
+
+So: **one session works this repo at a time.** If a second one has to start,
+give it its own branch and say so out loud. Before touching anything, a session
+runs `git fetch` and `git log -1 --oneline` in BOTH the laptop folder and the
+VPS - not because it is tidy, but because on 2 Sep both had moved since the
+last time anyone looked.
+
+---
+
 ### 📍 READ `RADIAN_ENVIRONMENTS.md` FIRST (1 Sep 2026)
 
 Everything about **where things run and why they stay apart** now lives in
@@ -145,7 +208,15 @@ say "go to this link and look", the work is not finished. Always run
 `BUILD_CHECK.bat` before pushing, because `start:dev` swallows type errors
 (see §5).
 
-### ⚡ VPS production (Hostinger) — THE ONLY system (29 Aug, confirmed 30 Aug)
+### 📜 HISTORY — how the VPS was first set up (29–30 Aug 2026)
+
+> ⚠️ **READ THE §2 BLOCK ABOVE INSTEAD, AND `RADIAN_ENVIRONMENTS.md`.**
+> This section is kept for WHY, not for HOW. Everything operational in it was
+> true on 30 August and is not true now: the containers were renamed on 1 Sep,
+> `docker-compose.prod.yml` and `.env.production` are gone, and the migration
+> count has moved. A session that follows the commands below will go looking
+> for containers that do not exist — which is exactly what happened on
+> 2 Sep 2026 and is why this warning is here.
 
 The whole stack runs on the owner's Hostinger VPS. **Vercel, Render and Neon
 are all SUSPENDED (29 Aug, owner's order)** — not deleted: Vercel projects
@@ -188,8 +259,15 @@ radianbd.com stays untouched for the future official launch.
 > 30 Aug). It runs the owner's **existing, trading shop** — getCommerce 3.0.0,
 > its own admin at `app-area.radianbd.com`, a live cart, real prices, Google
 > Tag Manager, and **395 URLs in Google's index** (201 `/product/<slug>`,
-> 167 `/category/<slug>`, 9 blog posts). Our system serves flat `/[slug]`, so
-> **not one of those URL shapes survives a cutover** without a redirect map.
+> 167 `/category/<slug>`, 9 blog posts). None of those shapes is what we serve,
+> so a cutover needs a redirect map.
+>
+> ✅ **Corrected 1 Sep, by walking it:** our products are at **`/p/<slug>`**,
+> NOT the flat `/[slug]` this file used to claim (the flat form of a real
+> product slug is the 404 page). Flat `/<slug>` is categories and content
+> pages. So the old URLs map **by shape** — `/product/x → /p/x`,
+> `/category/x → /x` — which is a far smaller job than a hand-built list of
+> 395. Nobody should plan the cutover off the old sentence.
 >
 > Owner's ruling, 30 Aug: *"tmi ki akhonei real domain a add krbe? ata kintu
 > akhon dorkar nai"* · *"live ar ktha vule jaw."* **Build the system first.**
@@ -197,12 +275,12 @@ radianbd.com stays untouched for the future official launch.
 > and any migration are their own later conversation —
 > `RADIAN_PHASE6_DIRECTION.md` §3 keeps the measurements for whoever opens it.
 
-| part | URL | where |
+| part | URL | where **(names as of 30 Aug — all renamed `*_dev` on 1 Sep)** |
 |---|---|---|
-| web | https://development.radianbd.com | container `radian_web_prod` |
-| admin | https://admin.development.radianbd.com | container `radian_admin_prod` |
-| api | https://api.development.radianbd.com | container `radian_api_prod` |
-| db | internal only | container `radian_postgres_prod`, PG16, full Neon demo data restored (193 tables, 128 migrations, 0 errors) |
+| web | https://development.radianbd.com | ~~`radian_web_prod`~~ → **`radian_web_dev`** |
+| admin | https://admin.development.radianbd.com | ~~`radian_admin_prod`~~ → **`radian_admin_dev`** |
+| api | https://api.development.radianbd.com | ~~`radian_api_prod`~~ → **`radian_api_dev`** |
+| db | internal only | ~~`radian_postgres_prod`~~ → **`radian_postgres_dev`**, PG16 (193 tables / 128 migrations was 30 Aug; see §2 for today) |
 | media | https://media.development.radianbd.com | Caddy file_server from `/root/apps/radian/media` (immutable cache, nosniff) |
 
 - **Images live on the VPS since 29 Aug (owner's order), NOT ImageKit.**
@@ -230,15 +308,15 @@ radianbd.com stays untouched for the future official launch.
 
 - VPS: `srv1937497.hstgr.cloud`, AlmaLinux 10, KVM 4 (4 vCPU / 16GB / 200GB), root via Hostinger Web console (hPanel → VPS → Web console, auto-login)
 - Code at `/root/apps/radian`, cloned via GitHub deploy key `radian-vps` (read-only)
-- Run: `cd /root/apps/radian && docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build postgres api admin web caddy` (docker-compose.ip.yml was only for the IP phase — no longer used)
+- ~~Run: `docker compose -f docker-compose.prod.yml --env-file .env.production …`~~ **DEAD — that file and that env do not exist. The command is in §2.**
 - `.env.production` lives ONLY on the VPS (chmod 600). It needed `DIRECT_URL` added (schema.prisma requires it) — same value as `DATABASE_URL` there
-- `docker-compose.ip.yml` publishes ports for the IP phase; when radianbd.com DNS points at the VPS, drop it and start `caddy` from docker-compose.prod.yml instead (config already written), then rebuild web+admin with https URLs (NEXT_PUBLIC_* is build-time)
+- ~~`docker-compose.ip.yml`~~ **DEAD.** Caddy now lives alone in `docker-compose.edge.yml` (project name `radian_edge`) and already holds 80/443 for both stacks
 - Still empty in VPS env (values live only in Render env): WHATSAPP_*, RESEND_API_KEY, ANTHROPIC_API_KEY. SSLCommerz blank = sandbox (intended). Neon URL kept at `/root/.neon_url` for re-syncs
 - To update the VPS: web terminal → `cd /root/apps/radian && git pull && docker compose ... up -d --build`
-- ⚠️ VPS clone carries LOCAL edits (29 Aug): `apps/admin/Dockerfile.prod` + `docker-compose.prod.yml` got `NEXT_PUBLIC_WEB_URL` (fixes admin "View website" opening the Vercel demo). The SAME edit sits uncommitted in the local repo — commit it with the next push, then on the VPS run `git checkout -- apps/admin/Dockerfile.prod docker-compose.prod.yml` before `git pull`
-- ⚠️ Local repo had an UNPUSHED commit (0ac42d0 "Gateway screen...") + 40 uncommitted WIP files when the VPS was set up — VPS deliberately runs origin/main (ec400a4), and nothing was pushed from here so the WIP would not leak to demo. Also `.git/index.lock` is stale since 26 Aug and undeletable from the sandbox — remove it on Windows before the next commit
+- ~~⚠️ VPS clone carries LOCAL edits (29 Aug)~~ **RESOLVED.** Checked 2 Sep: the VPS working tree is clean apart from the untracked `media/` folder, which is data
+- ~~⚠️ `.git/index.lock` is stale and undeletable from the sandbox~~ **RESOLVED** — it was deleted on 2 Sep and commits have been made since
 - Daily DB backup: root cron `15 3 * * * /root/radian_backup.sh` → `/root/apps/radian/backups/daily_<1-7>.sql` (weekday rotation, tested)
-- Checkup on the VPS (231 GETs, ALL CLEAR 29 Aug): make a temp `AppSession` row for an OWNER user in psql, then `docker exec -e RADIAN_TOKEN=<token> radian_api_prod node scripts/checkup.mjs`; delete the session row after
+- Checkup on the VPS (231 GETs, ALL CLEAR 29 Aug): the container is now `radian_api_dev`. ⚠️ It needs an OWNER token. The old note said to mint a temporary `AppSession` row in psql — **the owner forbade that on 2 Sep 2026**. Ask him to run it, or to supply a token himself
 
 ### লোকাল (এখন আর ব্যবহার হয় না, ইতিহাসের জন্য রইল)
 
@@ -274,7 +352,8 @@ SSLCommerz (sandbox), track order, review, policy/FAQ/SEO — সব API থে�
 OWNER/MANAGER/STAFF role, টাকার কাজে ৪-সংখ্যার PIN।
 (পুরনো guide-এর "কোনো guard নেই (D10)" — **অচল**।)
 
-Migration: **৭৫টা**।
+Migration: **১৩৭টা** (২ সেপ্টেম্বর ২০২৬-এ DEV-এর `_prisma_migrations` থেকে গোনা。
+আগে এখানে "৭৫টা" লেখা ছিল — সংখ্যাটা বদলালে এখানেও বদলাতে হবে)。
 
 ### কোন ডকুমেন্ট বিশ্বাস করব
 
@@ -287,7 +366,10 @@ Migration: **৭৫টা**।
 | `RADIAN_WHATSAPP_SETUP.md` · `RADIAN_MESSENGER_INSTAGRAM.md` | messaging চ্যানেল — সেটআপ, সিদ্ধান্ত, ফাঁদ (৬ আগস্ট) |
 | ~~`RADIAN_DEPLOY_GUIDE.md`~~ | **পুরনো** (২৬ জুলাই) — উপরে সংশোধনী আছে |
 | `RADIAN_PENDING.md` | **চলমান কাজের একমাত্র বোর্ড** (৭ আগস্ট) — উপরের অংশ সবসময় তাজা; নিচের A–F পুরনো backlog |
-| **`RADIAN_PHASE8_DIRECTION.md`** | **⬅️ FIRST READ OF A NEW CHAT (1 Sep)** — what Phase 7 closed, what is on the table for Phase 8, the test rows left on the system, and the traps. **Phases 0–7 CLOSED** |
+| **`RADIAN_GOLIVE_AUDIT.md`** | **⬅️ FIRST READ OF A NEW CHAT (2 Sep)** — the owner's primary roadmap. Every module classified, nine go-live blockers named, one five-stage Master Checklist. Work outside it needs his say-so |
+| **`RADIAN_GOLDEN_RULES.md`** | the twelve permanent engineering rules (2 Sep). A proposal that conflicts with one of these is raised, not implemented |
+| `RADIAN_PHASE9_DIRECTION.md` | the admin on a phone — measured, with a ratchet. **Was the first read; is now POST-LAUNCH** per the go-live audit. **Phases 0–8 CLOSED on our side** |
+| `RADIAN_PHASE8_DIRECTION.md` | Phase 8 hand-over — closed 1 Sep. History, except §5, which lists the four Phase 8 things that are still **the owner's**: opening balances · the SSLCommerz live key · `WHATSAPP_*` and `RESEND_API_KEY` · the real catalogue |
 | `RADIAN_PHASE7_DIRECTION.md` | Phase 7 hand-over — **closed 1 Sep**. History now; read only for why a Phase 7 decision was made |
 | **`RADIAN_ORDER_MAP_AND_TESTS.md`** | **read right after it** (31 Aug) — which modules an order is joined to and by what (26 files), the 11 doors of the lifecycle, and 39 tests marked walked or not |
 | `RADIAN_PHASE6_DIRECTION.md` | Phase 6 hand-over — **closed 31 Aug**. History now; read only for why a Phase 6 decision was made |
@@ -530,7 +612,7 @@ there and real books are kept; only the gateway key is sandbox.
 | **`RADIAN_DOCTOR.bat`** | **সব ঠিক আছে কিনা এক পর্দায়** — আটকালে প্রথমে এটা |
 | **`RADIAN_CHECKUP.bat`** | **যন্ত্র নিজেই নিজের দোষ খোঁজে** (৯ আগস্ট) — ২১৭টা GET খুলে দেখে: crash, ভাঙা ছবি, imageUrl-এ CSS, error-এ বাংলা, ফিরে আসা বানানো লেখা。 endpoint-এর তালিকা controller পড়ে বানায়, তাই নতুন route যোগ হলেও পুরনো হয় না。 **কেবল পড়ে — production-এও নিরাপদ**。 `demo` = ইন্টারনেটের demo, `screens` = admin-এর ১৯২টা পাতাও খুলে দেখে (playwright লাগে) |
 | `BUILD_CHECK.bat` | prisma generate + build (push/deploy-এর আগে) |
-| `RUN_TESTS.bat` | ২৫টা locked business rule (`full` দিলে গভীর) |
+| `RUN_TESTS.bat` | locked business rule (`full` দিলে গভীর)。 ⚠️ **২ সেপ্টেম্বর ঠিক করা হয়েছে** — এটা মৃত Render ঠিকানায় তাক করা ছিল, তাই ২৯ অগাস্ট থেকে suite কিছুই ছুঁতে পারেনি。 এখন DEV-এ, আর `regression-suite.js`-এ allowlist বসানো: development/localhost ছাড়া কোথাও চলবে না (suite অর্ডার **বসায়**, তাই এটা জরুরি) |
 | `PRE_DEPLOY_CHECK.bat` | DB-তে যা ইন্টারনেটে যাওয়া উচিত নয় |
 | `radian_migrate.bat` · `radian_fix_generate.bat` | migration (কনটেইনারে) |
 | `radian_backup.bat` · `radian_restore.bat` | DB ব্যাকআপ |
@@ -559,4 +641,12 @@ there and real books are kept; only the gateway key is sandbox.
 
 ---
 
-_সর্বশেষ হালনাগাদ: ৪ আগস্ট ২০২৬ — deployment প্রস্তুতির পর।_
+_সর্বশেষ হালনাগাদ: ২ সেপ্টেম্বর ২০২৬ — §২-এ "কী কোথায়" ব্লক যোগ, পুরনো
+`*_prod` container আর `docker-compose.prod.yml`-এর মিথ্যা নির্দেশগুলো
+বাতিল চিহ্নিত, migration ৭৫ → ১৩৭, আর Go-Live audit-কে প্রথম পাঠ করা হলো।_
+
+> **কেন এতগুলো জিনিস একসাথে ঠিক করতে হলো:** একই ফাইলে উপরে নতুন সত্যি আর
+> নিচে পুরনো নির্দেশ পাশাপাশি ছিল。 নতুন সেশন নিচেরটা পড়ে এমন container আর
+> compose ফাইল খুঁজত যেগুলোর অস্তিত্বই নেই, আর "কিছু মিলছে না" বলে সময় নষ্ট
+> করত。 **পুরনো ব্রিফ কোনো ব্রিফ না থাকার চেয়ে খারাপ** — এই ফাইলের নিজের
+> কথাই。 কিছু বদলালে এখানেও বদলান。

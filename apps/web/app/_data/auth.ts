@@ -3,19 +3,15 @@ import { normalizeBdPhone } from "../_store/useCheckoutStore";
 
 /*
   ═══════════════════════════════════════════════════════════════════
-  AUTH (MOCK) — WhatsApp login।
+  AUTH — WhatsApp login. No password: in Bangladesh a code on WhatsApp is
+  what people expect, and it is the number we already deliver to.
 
-  Customer BD ফোন দেয় → আমরা "WhatsApp-এ code পাঠালাম" (আসলে পাঠাই না)
-  → code মিলে গেলে session। Password নেই — BD-তে WhatsApp/OTP-ই স্বাভাবিক।
+  The code half is REAL as of 2 Sep 2026 — see §OTP below.
 
-  ⚠️ এটা mock। কোনো আসল যাচাই হয় না — যেকোনো valid BD ফোন +
-     DEMO_OTP দিলেই ঢোকা যায়। শুধু UI/flow বানানো, যাতে backend এলে
-     swap সহজ হয়।
-
-  ⇄ SWAP HERE — Auth/Customer module lock হলে:
-     requestOtp() → POST /auth/otp/request (আসল WhatsApp Business API),
-     verifyOtp()  → POST /auth/otp/verify → JWT/session cookie,
-     DEMO_CUSTOMER → GET /me।
+  The profile half below (DEMO_CUSTOMER and the addresses) is still demo
+  data, and is the next thing to replace: GET /me once the Customer module
+  exposes it. Logging in is now safe; what the account SHOWS afterwards is
+  not yet the customer's own.
   ═══════════════════════════════════════════════════════════════════
 */
 
@@ -99,20 +95,95 @@ export const SEED_DELIVERY_ADDRESSES: Address[] = [
   },
 ];
 
-/* ─────────────────── MOCK OTP ─────────────────── */
+/* ─────────────────── OTP ───────────────────
+
+   DEC-WA-010. Real, as of 2 Sep 2026.
+
+   ⚠️ What was here until today: a DEMO_OTP of "123456" that let anybody into
+   anybody's account — order history, addresses, the lot — on a system taking
+   real orders. It was written when nothing behind it existed. Nothing behind
+   it is missing any more, so it is gone; if a code cannot be sent, login
+   fails rather than falling back to something that always works.
+
+   The server decides the channel (WhatsApp → SMS → email) and never says
+   which one failed, so a login screen cannot be used to find out who has
+   WhatsApp.
+*/
 
 export const OTP_LENGTH = 6;
-/** demo-তে সবসময় এই code কাজ করে (আসল কিছু পাঠানো হয় না) */
-export const DEMO_OTP = "123456";
+
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
 /** valid BD ফোন? → normalized (+880…) নাকি null */
 export function normalizeLoginPhone(raw: string): string | null {
   return normalizeBdPhone(raw);
 }
 
-/** mock verify — যেকোনো ফোনে DEMO_OTP মিললেই pass */
-export function verifyOtp(code: string): boolean {
-  return code.replace(/\s/g, "") === DEMO_OTP;
+/**
+ * Which channel actually carried the last code — "WhatsApp", "SMS", "email".
+ *
+ * The screen used to say "on WhatsApp" whatever happened, and the owner's
+ * first real code arrived by SMS (2 Sep). A screen that names the wrong app
+ * sends the customer hunting in the wrong place, so it now says what the
+ * server did. A FAILED channel is still never named: that would turn a login
+ * box into a way of asking who has WhatsApp.
+ */
+export let lastOtpChannel: string | null = null;
+
+/** Ask for a code. Returns null when sent, or the reason it was not. */
+export async function requestLoginOtp(phone: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API}/shop/otp/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, purpose: "LOGIN" }),
+    });
+    const j = (await res.json()) as {
+      sent?: boolean;
+      via?: string | null;
+      error?: string;
+      message?: string;
+      statusCode?: number;
+    };
+    if (j.sent) {
+      lastOtpChannel =
+        { WHATSAPP: "WhatsApp", SMS: "SMS", EMAIL: "email" }[j.via ?? ""] ?? null;
+      return null;
+    }
+
+    /*
+      Two shapes come back, and reading them in the wrong order is what put
+      "Bad Request" on the screen where "Please wait 57 seconds" belonged
+      (found by the owner, 2 Sep):
+
+        refused   { message: "Please wait 57 seconds…", error: "Bad Request",
+                    statusCode: 400 }   ← Nest: `error` is the HTTP class name
+        undelivered { sent: false, error: "We could not reach that number…" }
+                                        ← ours: `error` IS the sentence
+
+      So statusCode is the tell: when it is there, the sentence is in
+      `message`. A customer should never be shown either word "Bad Request".
+    */
+    if (j.statusCode) return j.message || "That did not work. Try again.";
+    return j.error || j.message || "We could not send the code. Try again.";
+  } catch {
+    return "We could not reach Radian. Check your connection and try again.";
+  }
+}
+
+/** True only if the server says the code is right. Never decided here. */
+export async function verifyOtp(phone: string, code: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API}/shop/otp/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, purpose: "LOGIN", code: code.replace(/\s/g, "") }),
+    });
+    const j = (await res.json()) as { ok?: boolean };
+    return j.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 /** logged-in customer বানাও — entered phone বসিয়ে DEMO profile */
