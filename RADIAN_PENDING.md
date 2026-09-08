@@ -6,6 +6,14 @@
 
 ---
 
+## 📍 8 Sep 2026 — the newest hand-over is `RADIAN_HANDOVER_8SEP.md`
+
+Everything built 5–8 Sep (category and product pages, checkout shell, quiet
+pages, notification routing with templates, Google sign-in, SMTP email, the
+admin menu redesign), where the branches stand, how to deploy, and what is
+next. The Phase 9 section below is older and still valid as the mobile plan.
+
+
 ## 🟠 PHASE 9 IS SET UP AND WAITING — **the admin on a phone**
 
 Everything Phase 9 needs is ready; **the phase itself has not started.** The

@@ -56,6 +56,14 @@
 
 ## ২. গঠন ও চালানো
 
+### 📍 8 SEPTEMBER 2026 — READ `RADIAN_HANDOVER_8SEP.md` BEFORE THE BLOCK BELOW
+
+The block below was true on 2 Sep and is out of date. Today: the active
+branch is **`inv-rev-4-opening-guard`** (main merged into it), the VPS runs
+merge commits of that branch, and the hand-over file lists everything built
+5–8 Sep, how it was shipped, and what the owner asked for next
+(**the checkout page design**, in a new chat).
+
 ### 🧭 WHERE EVERYTHING STANDS — 2 September 2026
 
 **Read this before believing anything further down.** Code lives in three
