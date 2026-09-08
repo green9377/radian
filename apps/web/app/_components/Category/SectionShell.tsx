@@ -38,12 +38,18 @@ export function SectionHead({
   subheading,
   gold = false,
   onDark = false,
+  align = "center",
+  className = "",
 }: {
   eyebrow?: string;
   heading?: string;
   subheading?: string;
   gold?: boolean;
   onDark?: boolean;
+  /*  the delivery band sits its heading on the left with the countdown beside
+      it, the way the homepage's band does (owner, 9 Sep 2026)  */
+  align?: "center" | "left";
+  className?: string;
 }) {
   if (!eyebrow && !heading) return null;
   return (
@@ -54,6 +60,8 @@ export function SectionHead({
       subtitle={subheading ?? ""}
       tone={onDark ? "dark" : "light"}
       petal={gold ? "gold" : "orchid"}
+      align={align}
+      className={className}
     />
   );
 }

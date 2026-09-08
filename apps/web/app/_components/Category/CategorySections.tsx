@@ -164,7 +164,17 @@ export default function CategorySections({
             return <ProductRail key={key} section={section} products={config.combos} zone={zone} />;
 
           case "deliveryBand":
-            return <CategoryDelivery key={key} section={section} zone={zone} />;
+            /*  scoped to this category: the products under the tabs are the
+                ones on this page that can travel that fast  */
+            return (
+              <CategoryDelivery
+                key={key}
+                section={section}
+                zone={zone}
+                categorySlug={apiSlug}
+                subSlug={apiSub}
+              />
+            );
 
           case "crossSellRail":
             return <TileRail key={key} section={section} tiles={config.crossSell} gold />;
