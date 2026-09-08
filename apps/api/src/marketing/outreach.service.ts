@@ -144,7 +144,7 @@ export class OutreachService {
           return (
             r.customer.name.toLowerCase().includes(s2) ||
             r.recipient.name.toLowerCase().includes(s2) ||
-            r.customer.phone.includes(s2)
+            (r.customer.phone ?? '').includes(s2)
           );
         })
       : rows;

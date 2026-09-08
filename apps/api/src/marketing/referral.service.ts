@@ -57,7 +57,10 @@ export class ReferralService {
 
     const base =
       (c.name || 'FRIEND').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) || 'FRIEND';
-    const tail = c.phone.replace(/\D/g, '').slice(-4);
+    /*  a Google sign-in has no number yet (8 Sep 2026) — the code is made
+        from the name alone then, and it is still unique because of the
+        collision loop below.  */
+    const tail = (c.phone ?? '').replace(/\D/g, '').slice(-4);
     let code = `${base}${tail}`;
     for (let i = 0; i < 50; i += 1) {
       const clash = await this.prisma.referralCode.findUnique({ where: { code } });

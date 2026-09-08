@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { getMe, saveMe, type AccountCustomer } from "../../_data/accountApi";
+import { addPhone, getMe, saveMe, type AccountCustomer } from "../../_data/accountApi";
+import { normalizeLoginPhone, requestLoginOtp } from "../../_data/auth";
 import { useAuthStore, useToken } from "../../_store/useAuthStore";
 import Icon from "../Pdp/PdpIcons";
 import { Loading, Panel } from "./AccountShell";
@@ -41,6 +42,14 @@ export default function ProfilePanel() {
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  /*  Adding a number to a Google account — the code proves it, exactly as at
+      login. A typed number is a claim; this account's orders, deliveries and
+      credit are all matched on it (owner, 8 Sep 2026).  */
+  const [newPhone, setNewPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [phoneErr, setPhoneErr] = useState<string | null>(null);
+
   useEffect(() => {
     if (!token) return;
     getMe(token)
@@ -54,6 +63,42 @@ export default function ProfilePanel() {
       })
       .catch((e) => setErr(e instanceof Error ? e.message : "Could not load your profile."));
   }, [token]);
+
+  async function onSendCode() {
+    const norm = normalizeLoginPhone(newPhone);
+    if (!norm) {
+      setPhoneErr("Enter a valid Bangladeshi mobile number.");
+      return;
+    }
+    setBusy(true);
+    setPhoneErr(null);
+    const failed = await requestLoginOtp(norm);
+    setBusy(false);
+    /*  A cooldown is not a failure: a code asked for a moment ago is still
+        the one to type.  */
+    if (failed && !/second/i.test(failed)) {
+      setPhoneErr(failed);
+      return;
+    }
+    setSent(true);
+  }
+
+  async function onAddPhone() {
+    if (!token) return;
+    setBusy(true);
+    setPhoneErr(null);
+    try {
+      const c = await addPhone(token, newPhone, code);
+      setMe(c);
+      setCustomer(c);
+      setSent(false);
+      setCode("");
+    } catch (e) {
+      setPhoneErr(e instanceof Error ? e.message : "That code did not match.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onSave() {
     if (!token) return;
@@ -101,12 +146,64 @@ export default function ProfilePanel() {
           <input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
         </label>
 
-        <label className="block">
-          <span className="block text-[12.5px] font-bold text-purple mb-1.5">
-            Phone number · verified
-          </span>
-          <input className={`${input} bg-lavender text-body-soft`} value={me?.phone ?? ""} disabled />
-        </label>
+        {me?.phone ? (
+          <label className="block">
+            <span className="block text-[12.5px] font-bold text-purple mb-1.5">
+              Phone number · verified
+            </span>
+            <input className={`${input} bg-lavender text-body-soft`} value={me.phone} disabled />
+          </label>
+        ) : (
+          <div className="block">
+            <span className="block text-[12.5px] font-bold text-purple mb-1.5">Phone number</span>
+            {!sent ? (
+              <div className="flex gap-2">
+                <input
+                  className={input}
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="01X XXX XXXXX"
+                  inputMode="tel"
+                />
+                <button
+                  type="button"
+                  onClick={onSendCode}
+                  disabled={busy}
+                  className="shrink-0 rounded-[13px] border-2 border-purple text-purple font-bold text-[13px] px-4 disabled:opacity-50"
+                >
+                  Send code
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  className={input}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6-digit code"
+                  inputMode="numeric"
+                />
+                <button
+                  type="button"
+                  onClick={onAddPhone}
+                  disabled={busy || code.length < 6}
+                  className="shrink-0 rounded-[13px] bg-purple text-white font-bold text-[13px] px-4 disabled:opacity-50"
+                >
+                  Add number
+                </button>
+              </div>
+            )}
+            <span className="block text-[12px] text-body-soft mt-1.5">
+              {phoneErr ? (
+                <span className="text-[#C4172B]">{phoneErr}</span>
+              ) : sent ? (
+                "We sent a code to that number."
+              ) : (
+                "Your orders and deliveries are matched on this number."
+              )}
+            </span>
+          </div>
+        )}
 
         <label className="block">
           <span className="block text-[12.5px] font-bold text-purple mb-1.5">Email</span>

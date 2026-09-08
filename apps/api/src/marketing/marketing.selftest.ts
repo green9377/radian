@@ -278,7 +278,7 @@ async function main() {
           channelId: channel.id,
           customerId: o.customerId ?? buyer.id,
           senderName: `${TAG} sender`,
-          senderPhone: o.phone ?? buyer.phone,
+          senderPhone: o.phone ?? buyer.phone ?? '',
           zone: 'DHAKA',
           address: 'Gulshan 1, Dhaka',
           subtotalPaisa: o.subtotal,
@@ -1334,7 +1334,7 @@ async function main() {
         customerId: ghost.id,
         name: `${TAG} ghost wife`,
         relationship: 'wife',
-        phone: ghost.phone,
+        phone: ghost.phone ?? '',
         zone: 'DHAKA',
         addressLine: 'Uttara, Dhaka',
       },
@@ -1434,7 +1434,7 @@ async function main() {
         to: 'nobody@example.com', subject: 'x', html: 'x', customerId: quiet.id,
       }), 'not to be contacted');
     await refuses('and so does SMS', () =>
-      messaging.sendSms({ to: quiet.phone, text: 'x', customerId: quiet.id }),
+      messaging.sendSms({ to: quiet.phone ?? '', text: 'x', customerId: quiet.id }),
       'not to be contacted');
 
     console.log('\n--- the whole sweep runs, and says what it did ---');

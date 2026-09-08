@@ -22,7 +22,12 @@ const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 export interface AccountCustomer {
   id: string;
   name: string;
-  phone: string;
+  /**
+   * ⚠️ NULL for somebody who signed in with Google before ever ordering
+   * (owner, 8 Sep 2026). The account works without it; the number is proved
+   * with a code on the profile, or arrives with their first order.
+   */
+  phone: string | null;
   email: string | null;
   joinedAt: string;
   imageUrl: string | null;
@@ -205,6 +210,13 @@ export const getMe = (t: string) => call<AccountCustomer>("/me", t);
 
 export const saveMe = (t: string, b: Record<string, string | null>) =>
   call<AccountCustomer>("/me", t, { method: "PATCH", body: JSON.stringify(b) });
+
+/** the number, with the code that proves it — never a typed claim alone */
+export const addPhone = (t: string, phone: string, code: string) =>
+  call<AccountCustomer>("/me/phone", t, {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  });
 
 export const getOrders = (t: string) => call<AccountOrder[]>("/orders", t);
 export const getOrder = (t: string, id: string) =>

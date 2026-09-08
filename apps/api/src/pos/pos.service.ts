@@ -939,7 +939,7 @@ export class PosService {
           channel: { connect: { id: channelId } },
           customer: { connect: { id: customer.id } },
           senderName: customer.name,
-          senderPhone: customer.phone,
+          senderPhone: customer.phone ?? '',
           fulfillmentType: FulfillmentType.COUNTER,
           promisedBy: promisedFor,
           branchId: dto.branchId ?? shift.registerId ?? null,
@@ -1147,7 +1147,7 @@ export class PosService {
       orderBy: { placedAt: 'asc' },
       include: { customer: { select: { id: true, name: true, phone: true } } },
     });
-    const byCustomer = new Map<string, { customerId: string; name: string; phone: string; duePaisa: number; oldest: Date; orders: { id: string; orderNo: string; duePaisa: number; placedAt: Date }[] }>();
+    const byCustomer = new Map<string, { customerId: string; name: string; phone: string | null; duePaisa: number; oldest: Date; orders: { id: string; orderNo: string; duePaisa: number; placedAt: Date }[] }>();
     for (const o of orders) {
       const key = o.customerId;
       const row = byCustomer.get(key) ?? { customerId: key, name: o.customer.name, phone: o.customer.phone, duePaisa: 0, oldest: o.placedAt, orders: [] };

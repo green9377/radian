@@ -62,8 +62,10 @@ export default function LiveChat({ open, onClose }: { open: boolean; onClose: ()
           forgetChat(); // thread হারিয়েছে — নতুন করে শুরু
         }
       }
-      if (customer) {
-        // DEC-INB-006 — login থাকলে কিছুই জিজ্ঞেস না
+      /*  DEC-INB-006 — nothing is asked of a signed-in customer. A Google
+          sign-in may not have a number yet (8 Sep 2026), and then the chat
+          asks for one like any visitor's rather than opening nameless.  */
+      if (customer?.phone) {
         try {
           const v = await startChat({ name: customer.name, phone: customer.phone });
           if (!cancelled) {

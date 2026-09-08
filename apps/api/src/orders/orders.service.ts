@@ -532,7 +532,9 @@ export class OrdersService {
           /*  টাইপ করা পরিচয়ই রসিদের snapshot; CRM-এর ঘর fallback মাত্র।
               দেখুন CreateOrderDto.senderName-এর নোট (মালিকের রায়, ৩ আগস্ট)।  */
           senderName: dto.senderName?.trim() || customer.name,
-          senderPhone: dto.senderPhone?.trim() || customer.phone,
+          /*  a customer who signed in with Google may not have a number on
+              file yet; the one typed on the order is then the only one  */
+          senderPhone: dto.senderPhone?.trim() || customer.phone || '',
           senderEmail: dto.senderEmail?.trim() || customer.email,
           isGift: dto.isGift ?? false,
           recipientName: dto.recipientName,

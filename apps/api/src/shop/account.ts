@@ -74,7 +74,7 @@ function hashToken(raw: string): string {
 }
 
 export interface CustomerRequest extends Request {
-  customer?: { id: string; phone: string; name: string };
+  customer?: { id: string; phone: string | null; name: string };
 }
 
 @Injectable()
@@ -201,7 +201,7 @@ export class AccountService {
   publicProfile(c: {
     id: string;
     name: string;
-    phone: string;
+    phone: string | null;
     email: string | null;
     joinedAt: Date;
     imageUrl: string | null;
@@ -227,7 +227,7 @@ export class AccountService {
     const c = await this.prisma.db.customer.findUnique({ where: { id: customerId } });
     if (!c) throw new UnauthorizedException('Please sign in again');
     const [orderCount, credit] = await Promise.all([
-      this.orderWhere(c.id, c.phone).then((where) => this.prisma.db.order.count({ where })),
+      this.prisma.db.order.count({ where: this.orderWhere(c.id, c.phone) }),
       this.creditBalance(c.id),
     ]);
     return { ...this.publicProfile(c), orderCount, creditPaisa: credit.balancePaisa };
@@ -267,19 +267,57 @@ export class AccountService {
     return s === 'BANGLADESH' || s === 'NATIONWIDE' ? DeliveryZone.BANGLADESH : DeliveryZone.DHAKA;
   }
 
+  /**
+   * The number, proved with a code, put on an account that had none.
+   *
+   * ⚠️ If another customer already holds that number, this is refused rather
+   * than merged. Two accounts becoming one is a decision about somebody's
+   * order history and their store credit — the owner's call, not a side
+   * effect of a profile screen.
+   */
+  async attachPhone(customerId: string, phoneRaw: string, code: string) {
+    const phone = this.e164(phoneRaw);
+    if (!phone) throw new BadRequestException('Enter a valid Bangladeshi number.');
+    if (!(await this.otpOk(phone, code)))
+      throw new UnauthorizedException('That code is wrong or has expired.');
+
+    const taken = await this.prisma.db.customer.findFirst({
+      where: { phone, NOT: { id: customerId } },
+      select: { id: true },
+    });
+    if (taken)
+      throw new BadRequestException(
+        'That number already belongs to another account. Sign in with the number instead.',
+      );
+
+    const c = await this.prisma.db.customer.update({
+      where: { id: customerId },
+      data: { phone },
+    });
+    return this.publicProfile(c);
+  }
+
   /* ─────────────────── the orders ─────────────────── */
 
-  /** DEC-ACC-002 — mine, and everything ordered from my verified number */
-  private async orderWhere(customerId: string, phone: string) {
+  /**
+   * DEC-ACC-002 — mine, and everything ordered from my verified number.
+   *
+   * ⚠️ A Google account that has never ordered has no number yet, and then
+   * matching on `senderPhone` must not happen at all: `senderPhone: null`
+   * would quietly match nothing useful, and an empty string would match
+   * somebody else's rubbish row. Without a phone, only what is linked to this
+   * customer counts.
+   */
+  private orderWhere(customerId: string, phone: string | null) {
     return {
       deletedAt: null,
-      OR: [{ customerId }, { senderPhone: phone }],
+      ...(phone ? { OR: [{ customerId }, { senderPhone: phone }] } : { customerId }),
     };
   }
 
-  async orders(customerId: string, phone: string) {
+  async orders(customerId: string, phone: string | null) {
     const rows = await this.prisma.db.order.findMany({
-      where: await this.orderWhere(customerId, phone),
+      where: this.orderWhere(customerId, phone),
       orderBy: { placedAt: 'desc' },
       take: 100,
       include: {
@@ -292,9 +330,9 @@ export class AccountService {
     return rows.map((o) => this.orderCard(o));
   }
 
-  async order(customerId: string, phone: string, id: string) {
+  async order(customerId: string, phone: string | null, id: string) {
     const o = await this.prisma.db.order.findFirst({
-      where: { id, ...(await this.orderWhere(customerId, phone)) },
+      where: { id, ...this.orderWhere(customerId, phone) },
       include: {
         lines: {
           where: { deletedAt: null },
@@ -582,7 +620,7 @@ export class AccountService {
      Two halves, and the first one is the point: every delivered product that
      has not been reviewed yet, asked for by name (owner, 8 Sep 2026). */
 
-  async reviews(customerId: string, phone: string) {
+  async reviews(customerId: string, phone: string | null) {
     const written = await this.prisma.db.review.findMany({
       where: { customerId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
@@ -591,7 +629,7 @@ export class AccountService {
 
     const delivered = await this.prisma.db.order.findMany({
       where: {
-        ...(await this.orderWhere(customerId, phone)),
+        ...this.orderWhere(customerId, phone),
         deliveryStatus: 'delivered',
       },
       orderBy: { placedAt: 'desc' },
@@ -724,24 +762,72 @@ export class AccountController {
   }
 
   /**
-   * Google. The email is what Google vouched for; a customer record with that
-   * email signs in. Somebody Google knows but the shop does not has no phone
-   * yet, so there is nothing to hold an account against — they are told to use
-   * their number, which is the identity here.
+   * Google.
+   *
+   * ⚠️ AN EMAIL WE HAVE NEVER SEEN IS STILL A SIGN-IN (owner, 8 Sep 2026:
+   * *"login kre dhuke pore order dite parbe, somossa nai"*). It used to be
+   * refused — "we have no order from that email yet" — which made the account
+   * a reward for having ordered, exactly backwards for a shop that wants the
+   * order. The customer record is created here from what Google vouched for,
+   * with no phone; the number arrives when they prove it on the profile, or
+   * the first time they order.
    */
   @Post('login/google')
   async loginGoogle(@Body() b: { credential?: string }, @Req() req: Request) {
     const g = await this.google.signIn(b?.credential ?? '');
-    if (!g.customer.phone)
-      throw new BadRequestException(
-        'We have no order from that email yet. Please sign in with your mobile number.',
-      );
-    const customer = await this.prisma.db.customer.findFirst({
-      where: { phone: g.customer.phone, deletedAt: null },
-    });
-    if (!customer) throw new UnauthorizedException('Please sign in with your mobile number.');
+    const email = g.customer.email.trim().toLowerCase();
+
+    /*  The phone first when Google's answer carried one (an existing
+        customer), otherwise the email — and only then a new record.  */
+    let customer = g.customer.phone
+      ? await this.prisma.db.customer.findFirst({ where: { phone: g.customer.phone } })
+      : null;
+    if (!customer)
+      customer = await this.prisma.db.customer.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+
+    if (customer?.deletedAt)
+      customer = await this.prisma.db.customer.update({
+        where: { id: customer.id },
+        data: { deletedAt: null },
+      });
+
+    if (!customer)
+      customer = await this.prisma.db.customer.create({
+        data: {
+          name: g.customer.name?.trim() || email.split('@')[0],
+          email,
+          phone: null,
+          whatsappVerified: false,
+        },
+      });
+
+    if (customer.status === 'BLOCKED')
+      throw new UnauthorizedException('This account cannot sign in. Please contact us.');
+
+    /*  Google verified the email; if the record had none, it has one now.  */
+    if (!customer.email)
+      customer = await this.prisma.db.customer.update({
+        where: { id: customer.id },
+        data: { email },
+      });
+
     const token = await this.svc.issue(customer.id, req.headers['user-agent'] as string | undefined);
     return { ok: true as const, token, customer: this.svc.publicProfile(customer) };
+  }
+
+  /**
+   * Adding the phone to an account that signed in with Google.
+   *
+   * ⚠️ A CODE IS REQUIRED, always. A phone number typed into a profile is a
+   * claim, not a fact — and this number is what the order list, the delivery
+   * and the store credit are matched on. It is proved the same way a login is.
+   */
+  @UseGuards(CustomerGuard)
+  @Post('me/phone')
+  addPhone(@Req() req: CustomerRequest, @Body() b: { phone?: string; code?: string }) {
+    return this.svc.attachPhone(req.customer!.id, b?.phone ?? '', b?.code ?? '');
   }
 
   @UseGuards(CustomerGuard)

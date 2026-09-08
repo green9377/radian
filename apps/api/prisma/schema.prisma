@@ -2308,7 +2308,15 @@ model Segment {
 model Customer {
   id               String         @id @default(cuid())
   name             String
-  phone            String         @unique // +<country><number>; login identity
+  /// +<country><number> — the identity for anybody who has ever ordered.
+  ///
+  /// ⚠️ NULLABLE SINCE 8 Sep 2026, and only for one case: somebody who signs
+  /// in with Google before they have ever ordered. The owner: *"login kre
+  /// dhuke pore order dite parbe, somossa nai."* Postgres allows many NULLs
+  /// under a unique index, so this stays the identity for everyone who has
+  /// one. The number is filled in the moment they prove it with a code, or
+  /// the first time they order.
+  phone            String?        @unique
   email            String?
   whatsappVerified Boolean        @default(false)
   country          String         @default("Bangladesh") // residence; anything else means NRB

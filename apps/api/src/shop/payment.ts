@@ -251,7 +251,7 @@ export class SslCommerzService {
 
       cus_name: order.senderName || order.customer.name,
       cus_email: order.senderEmail || order.customer.email || 'noreply@radian.com.bd',
-      cus_phone: order.senderPhone || order.customer.phone,
+      cus_phone: order.senderPhone || order.customer.phone || '',
       cus_add1: order.address,
       cus_city: order.zone === 'DHAKA' ? 'Dhaka' : 'Bangladesh',
       cus_country: 'Bangladesh',
