@@ -326,10 +326,34 @@ export function Q5When({
       It was eight tiles, then seven; both were an arbitrary week of chips to
       read past. Almost every order is today or tomorrow, and anything else is
       a date somebody already has in mind — which is a calendar's job, not a
-      strip's. The third tile opens the browser's own picker (`customDate`).  */
+      strip's. The third tile opens the browser's own picker (`customDate`).
+
+      ⚠️ ALWAYS THESE TWO DAYS — `leadDays` IS NOT PASSED, and that is on
+      purpose (owner, 8 Sep, third look: *"abar avabe kn show krche"*). Given a
+      lead time, `dateOptions` pads the strip with up to three greyed lead-in
+      days and then the live ones, so a made-to-order basket drew FIVE tiles
+      reading "Sep 27 · Sep 28 · Sep 29 · Sep 30 · Oct 1" — the wall of chips
+      this design exists to remove.
+
+      The wait is disabled here instead: today and tomorrow grey out when the
+      basket cannot be made by then, the amber line above says why in one
+      sentence, and the calendar's own `min` is the first date that works. So
+      the shape never changes — two days and a calendar — and nothing
+      impossible can be picked from either.  */
+  /** the first date this basket can be made by — the floor for tiles and calendar */
+  const minDate = useMemo(() => {
+    const d = new Date(now);
+    d.setDate(now.getDate() + Math.max(0, leadDays));
+    return toISODate(d);
+  }, [now, leadDays]);
+
   const dates = useMemo(
-    () => dateOptions(method, now, 2, leadDays),
-    [method, now, leadDays],
+    () =>
+      dateOptions(method, now, 2, 0).map((d) => ({
+        ...d,
+        disabled: d.disabled || d.id < minDate,
+      })),
+    [method, now, minDate],
   );
 
   /*  A date chosen from the calendar rather than the strip — it gets its own
@@ -337,11 +361,6 @@ export function Q5When({
       of them selected.  */
   const customDate = s.date && !dates.some((d) => d.id === s.date) ? s.date : null;
   const dateRef = useRef<HTMLInputElement>(null);
-  const minDate = useMemo(() => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + Math.max(0, leadDays));
-    return toISODate(d);
-  }, [now, leadDays]);
   const isToday = method.todayOnly || s.date === today;
   const isTodayRef = useRef(isToday);
   isTodayRef.current = isToday;
