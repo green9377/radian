@@ -7430,6 +7430,14 @@ model MessagingSetting {
   emailReplyTo     String?
   /// Mailgun needs its domain; the others ignore this
   emailDomain      String?
+  /* ---- SMTP (owner, 8 Sep 2026): the second way to send email, beside the
+     HTTP providers above. Used when emailProvider = SMTP. ---- */
+  emailSmtpHost   String?
+  emailSmtpPort   Int?    @default(587)
+  emailSmtpUser   String?
+  emailSmtpPass   String? @db.Text
+  /// true = TLS from the first byte (port 465); false = STARTTLS (587)
+  emailSmtpSecure Boolean @default(false)
 
   /* ---- SMS ---- */
   smsEnabled  Boolean @default(false)

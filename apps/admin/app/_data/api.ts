@@ -6668,6 +6668,10 @@ export interface ApiMessaging {
   emailApiKey: null; emailKeySet: boolean;
   emailFromName: string | null; emailFromAddress: string | null;
   emailReplyTo: string | null; emailDomain: string | null;
+  /* SMTP (8 Sep 2026) — used when emailProvider is SMTP */
+  emailSmtpHost: string | null; emailSmtpPort: number | null;
+  emailSmtpUser: string | null; emailSmtpPass: null; emailSmtpPassSet: boolean;
+  emailSmtpSecure: boolean;
   smsEnabled: boolean; smsProvider: string;
   smsApiKey: null; smsKeySet: boolean;
   smsSenderId: string | null; smsCustomUrl: string | null;

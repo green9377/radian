@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import nodemailer from 'nodemailer';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
@@ -68,13 +69,27 @@ export class MessagingService {
 
   private async emailConf() {
     const c = await this.integrations.credentials('MESSAGING', 'EMAIL');
+    const provider = (c.found && c.variant) || 'BREVO';
+    /*  SMTP (owner, 8 Sep 2026) — the second door beside the HTTP providers.
+        host:port travel in baseUrl; 465 means TLS from the first byte.  */
+    const [smtpHost, smtpPortRaw] = provider === 'SMTP' && c.found && c.baseUrl ? c.baseUrl.split(':') : [null, null];
+    const smtpPort = Number(smtpPortRaw) || 587;
     return {
       enabled: !!(c.found && c.isEnabled),
-      provider: (c.found && c.variant) || 'BREVO',
+      provider,
       apiKey: (c.found && c.apiKey) || null,
       fromAddress: (c.found && c.username) || null,
       fromName: (c.found && c.clientId) || null,
       domain: (c.found && c.baseUrl) || null,
+      smtp: provider === 'SMTP'
+        ? {
+            host: smtpHost || null,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            user: (c.found && c.clientSecret) || (c.found && c.username) || null,
+            pass: (c.found && c.password) || null,
+          }
+        : null,
     };
   }
 
@@ -89,13 +104,15 @@ export class MessagingService {
   }
 
   /** keys are passwords — the screen learns only that one exists */
-  private safe<T extends { emailApiKey: string | null; smsApiKey: string | null }>(row: T) {
+  private safe<T extends { emailApiKey: string | null; smsApiKey: string | null; emailSmtpPass?: string | null }>(row: T) {
     return {
       ...row,
       emailApiKey: null,
       smsApiKey: null,
+      emailSmtpPass: null,
       emailKeySet: !!row.emailApiKey,
       smsKeySet: !!row.smsApiKey,
+      emailSmtpPassSet: !!row.emailSmtpPass,
     };
   }
 
@@ -116,6 +133,12 @@ export class MessagingService {
     if (dto.emailFromAddress !== undefined) data.emailFromAddress = t('emailFromAddress');
     if (dto.emailReplyTo !== undefined) data.emailReplyTo = t('emailReplyTo');
     if (dto.emailDomain !== undefined) data.emailDomain = t('emailDomain');
+    // SMTP (8 Sep 2026)
+    if (dto.emailSmtpHost !== undefined) data.emailSmtpHost = t('emailSmtpHost');
+    if (dto.emailSmtpPort !== undefined) data.emailSmtpPort = Math.min(65535, Math.max(1, Number(dto.emailSmtpPort) || 587));
+    if (dto.emailSmtpUser !== undefined) data.emailSmtpUser = t('emailSmtpUser');
+    if (dto.emailSmtpPass !== undefined) data.emailSmtpPass = t('emailSmtpPass');
+    if (dto.emailSmtpSecure !== undefined) data.emailSmtpSecure = !!dto.emailSmtpSecure;
 
     if (dto.smsEnabled !== undefined) data.smsEnabled = !!dto.smsEnabled;
     if (dto.smsProvider !== undefined) data.smsProvider = String(dto.smsProvider);
@@ -130,6 +153,7 @@ export class MessagingService {
 
     const audit: Record<string, unknown> = { ...(data as Record<string, unknown>) };
     if ('emailApiKey' in audit) audit.emailApiKey = audit.emailApiKey ? '(set)' : '(cleared)';
+    if ('emailSmtpPass' in audit) audit.emailSmtpPass = audit.emailSmtpPass ? '(set)' : '(cleared)';
     if ('smsApiKey' in audit) audit.smsApiKey = audit.smsApiKey ? '(set)' : '(cleared)';
     await this.audit.record({ entityType: ENTITY, entityId: 'singleton', action: 'UPDATE', actorName, changes: audit });
 
@@ -142,9 +166,9 @@ export class MessagingService {
       email: {
         enabled: email.enabled,
         provider: email.provider,
-        keySet: !!email.apiKey,
+        keySet: email.smtp ? !!(email.smtp.host && email.smtp.pass) : !!email.apiKey,
         fromSet: !!email.fromAddress,
-        ready: email.enabled && !!email.apiKey && !!email.fromAddress,
+        ready: email.enabled && (email.smtp ? !!(email.smtp.host && email.smtp.pass) : !!email.apiKey) && !!email.fromAddress,
       },
       sms: {
         enabled: sms.enabled,
@@ -213,7 +237,12 @@ export class MessagingService {
     const conf = await this.emailConf();
     const s = await this.get(); // still owns reply-to and the test addresses
     if (!conf.enabled) throw new BadRequestException('Email is switched off');
-    if (!conf.apiKey) throw new BadRequestException('No email key has been saved yet');
+    if (conf.smtp) {
+      if (!conf.smtp.host) throw new BadRequestException('Set the SMTP host');
+      if (!conf.smtp.pass) throw new BadRequestException('No SMTP password has been saved yet');
+    } else if (!conf.apiKey) {
+      throw new BadRequestException('No email key has been saved yet');
+    }
     if (!conf.fromAddress) throw new BadRequestException('Set the address emails are sent from');
 
     const from = { name: conf.fromName ?? 'Radian', email: conf.fromAddress };
@@ -243,6 +272,25 @@ export class MessagingService {
 
     try {
       switch (conf.provider) {
+        case 'SMTP': {
+          const t = nodemailer.createTransport({
+            host: conf.smtp!.host!,
+            port: conf.smtp!.port,
+            secure: conf.smtp!.secure,
+            auth: { user: conf.smtp!.user!, pass: conf.smtp!.pass! },
+            connectionTimeout: 15_000,
+          });
+          const info = await t.sendMail({
+            from: `"${from.name.replace(/"/g, "'")}" <${from.email}>`,
+            to: input.to,
+            subject: input.subject,
+            html: input.html,
+            ...(s.emailReplyTo ? { replyTo: s.emailReplyTo } : {}),
+          });
+          result = { ok: true, providerRef: info.messageId, raw: info.response };
+          break;
+        }
+
         case 'RESEND':
           result = await this.http('https://api.resend.com/emails', {
             method: 'POST',
@@ -294,7 +342,7 @@ export class MessagingService {
         default:
           result = await this.http('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
-            headers: { 'api-key': conf.apiKey, 'content-type': 'application/json', accept: 'application/json' },
+            headers: { 'api-key': conf.apiKey ?? '', 'content-type': 'application/json', accept: 'application/json' },
             body: JSON.stringify({
               sender: from,
               to: [{ email: input.to }],

@@ -30,6 +30,7 @@ const EMAIL_PROVIDERS = [
   { key: "RESEND", name: "Resend", note: "simplest to set up, 3,000 free a month" },
   { key: "SENDGRID", name: "SendGrid", note: "widely used, stricter sign-up" },
   { key: "MAILGUN", name: "Mailgun", note: "needs its own sending domain" },
+  { key: "SMTP", name: "SMTP (any mail server)", note: "Gmail, Zoho, Hostinger mail, cPanel — host, port, login and password" },
 ];
 
 const SMS_PROVIDERS = [
@@ -44,6 +45,7 @@ export function MessagingView() {
   const [s, setS] = useState<ApiMessaging | null>(null);
   const [st, setSt] = useState<ApiMessagingStatus | null>(null);
   const [emailKey, setEmailKey] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
   const [smsKey, setSmsKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState("");
@@ -66,12 +68,13 @@ export function MessagingView() {
     setBusy(true); setErr(""); setOk("");
     try {
       const body: Record<string, unknown> = { ...s };
-      delete body.id; delete body.emailKeySet; delete body.smsKeySet;
+      delete body.id; delete body.emailKeySet; delete body.smsKeySet; delete body.emailSmtpPassSet;
       // only send a key if a new one was typed — otherwise it would be wiped
       if (emailKey.trim()) body.emailApiKey = emailKey.trim(); else delete body.emailApiKey;
+      if (smtpPass.trim()) body.emailSmtpPass = smtpPass.trim(); else delete body.emailSmtpPass;
       if (smsKey.trim()) body.smsApiKey = smsKey.trim(); else delete body.smsApiKey;
       await saveMessaging(body);
-      setEmailKey(""); setSmsKey(""); setOk("Saved");
+      setEmailKey(""); setSmsKey(""); setSmtpPass(""); setOk("Saved");
       await load();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
@@ -146,14 +149,47 @@ export function MessagingView() {
                 </p>
               </div>
 
-              <div>
-                <Lbl>API key {s.emailKeySet && <Chip tone="emerald">one is saved</Chip>}</Lbl>
-                <input className={input} type="password" value={emailKey}
-                  name="radian-email-key" autoComplete="new-password"
-                  data-1p-ignore data-lpignore="true"
-                  placeholder={s.emailKeySet ? "leave blank to keep the saved one" : "paste the key"}
-                  onChange={(e) => setEmailKey(e.target.value)} />
-              </div>
+              {s.emailProvider !== "SMTP" && (
+                <div>
+                  <Lbl>API key {s.emailKeySet && <Chip tone="emerald">one is saved</Chip>}</Lbl>
+                  <input className={input} type="password" value={emailKey}
+                    name="radian-email-key" autoComplete="new-password"
+                    data-1p-ignore data-lpignore="true"
+                    placeholder={s.emailKeySet ? "leave blank to keep the saved one" : "paste the key"}
+                    onChange={(e) => setEmailKey(e.target.value)} />
+                </div>
+              )}
+
+              {s.emailProvider === "SMTP" && (
+                <>
+                  <div className="grid grid-cols-[1fr_120px] gap-3">
+                    <div><Lbl>SMTP host</Lbl>
+                      <input className={input} value={s.emailSmtpHost ?? ""} placeholder="smtp.gmail.com"
+                        onChange={(e) => set("emailSmtpHost", e.target.value)} /></div>
+                    <div><Lbl>Port</Lbl>
+                      <input className={input} inputMode="numeric" value={s.emailSmtpPort ?? 587}
+                        onChange={(e) => set("emailSmtpPort", Number(e.target.value) || 587)} /></div>
+                  </div>
+                  <label className="flex items-center gap-2 text-[13px] text-body">
+                    <input type="checkbox" checked={!!s.emailSmtpSecure}
+                      onChange={(e) => set("emailSmtpSecure", e.target.checked)} />
+                    TLS from the first byte (port 465). Off = STARTTLS on 587.
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Lbl>SMTP login</Lbl>
+                      <input className={input} value={s.emailSmtpUser ?? ""} placeholder="usually the from address"
+                        autoComplete="off" onChange={(e) => set("emailSmtpUser", e.target.value)} /></div>
+                    <div>
+                      <Lbl>SMTP password {s.emailSmtpPassSet && <Chip tone="emerald">one is saved</Chip>}</Lbl>
+                      <input className={input} type="password" value={smtpPass}
+                        name="radian-smtp-pass" autoComplete="new-password"
+                        data-1p-ignore data-lpignore="true"
+                        placeholder={s.emailSmtpPassSet ? "leave blank to keep the saved one" : "app password"}
+                        onChange={(e) => setSmtpPass(e.target.value)} />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div><Lbl>From name</Lbl>
@@ -180,7 +216,7 @@ export function MessagingView() {
               </button>
               {!st.email.ready && (
                 <p className="text-[11.5px] text-body-soft mt-0 mb-0">
-                  Switch it on, save a key and a from-address first. Save before testing.
+                  Switch it on, save a key (or the SMTP login) and a from-address first. Save before testing.
                 </p>
               )}
 

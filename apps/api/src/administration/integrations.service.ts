@@ -116,11 +116,13 @@ export const PROVIDERS: Manifest[] = [
       'Invite links, password resets and any email campaign. Nothing can be emailed at all until this exists — including the invite links on the Access screen.',
     movedFrom: 'MessagingSetting.emailApiKey',
     fields: [
-      { key: 'variant', label: 'Provider', hint: 'BREVO · RESEND · SENDGRID · MAILGUN', secret: false },
-      { key: 'apiKey', label: 'API key', secret: true },
+      { key: 'variant', label: 'Provider', hint: 'BREVO · RESEND · SENDGRID · MAILGUN · SMTP', secret: false },
+      { key: 'apiKey', label: 'API key', hint: 'HTTP providers only; SMTP uses the login and password below', secret: true, optional: true },
       { key: 'username', label: 'From address', hint: 'Must be verified with the provider', secret: false },
       { key: 'clientId', label: 'From name', secret: false },
-      { key: 'baseUrl', label: 'Sending domain', hint: 'Mailgun needs this; the others ignore it', secret: false, optional: true },
+      { key: 'baseUrl', label: 'Sending domain / SMTP host', hint: 'Mailgun: the domain. SMTP: host:port, e.g. smtp.gmail.com:587 (465 = TLS)', secret: false, optional: true },
+      { key: 'clientSecret', label: 'SMTP login', hint: 'SMTP only — usually the from address', secret: true, optional: true },
+      { key: 'password', label: 'SMTP password', hint: 'SMTP only — an app password for Gmail', secret: true, optional: true },
     ],
   },
   {
@@ -437,8 +439,15 @@ export class IntegrationsService {
           found: true as const, isEnabled: m.emailEnabled, isLive: true,
           apiKey: m.emailApiKey, variant: m.emailProvider,
           username: m.emailFromAddress, clientId: m.emailFromName,
-          baseUrl: m.emailDomain,
-          clientSecret: null, password: null, webhookSecret: null,
+          /*  SMTP (8 Sep 2026) rides the same shape: host:port in baseUrl,
+              the login in clientSecret, the password in password, and
+              "secure" as the port 465 convention.  */
+          baseUrl: m.emailProvider === 'SMTP'
+            ? (m.emailSmtpHost ? `${m.emailSmtpHost}:${m.emailSmtpSecure ? 465 : (m.emailSmtpPort ?? 587)}` : null)
+            : m.emailDomain,
+          clientSecret: m.emailProvider === 'SMTP' ? m.emailSmtpUser : null,
+          password: m.emailProvider === 'SMTP' ? m.emailSmtpPass : null,
+          webhookSecret: null,
         };
       return {
         found: true as const, isEnabled: m.smsEnabled, isLive: true,
