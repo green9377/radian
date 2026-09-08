@@ -142,7 +142,7 @@ Google button drawn; all pages above walked.
 
 ## 5. Next (the owner's words, 8 Sep evening)
 
-**"Checkout page design থেকে start করব"** — in a new chat. The stepper
+**"We will start from the checkout page design"** — in a new chat. The stepper
 shell is done; what he wants changed next in its design is not yet said.
 Ask, then show, then build.
 
