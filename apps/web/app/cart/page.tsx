@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import CartView from "../_components/Cart/CartView";
-import Reviews from "../_components/GBE/Reviews";
-import VisitStore from "../_components/GBE/VisitStore";
 
 /*
-  /cart — server shell, ভেতরের সবটা CartView (client, localStorage লাগে)।
+  /cart — the server shell; everything inside is CartView (client, it needs
+  localStorage). Page background tinted, content on a white card — as on
+  the PDP. A quiet page (owner, 8 Sep 2026): no reviews, no store block, no
+  footer. SupportPanel stays (layout.tsx).
 
-  Page background tinted, content সাদা card-এ — PDP-র মতোই।
-  Footer + SupportPanel layout.tsx-এ। GBE order (locked):
-  Reviews → Visit Store → Footer.
-
-  ⚠️ Board-এর "Need Help Choosing" section এখানে নেই — D19: SupportPanel-ই
-  একমাত্র support channel।
+  No "Need Help Choosing" section here — D19: SupportPanel is the one
+  support channel.
 */
 
 export const metadata: Metadata = {
@@ -42,9 +39,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

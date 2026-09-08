@@ -3,12 +3,10 @@ import type { Metadata } from "next";
 import AccountGuard from "../../_components/Account/AccountGuard";
 import AccountShell from "../../_components/Account/AccountShell";
 import OrdersView from "../../_components/Account/OrdersView";
-import Reviews from "../../_components/GBE/Reviews";
-import VisitStore from "../../_components/GBE/VisitStore";
 
 /*
-  /account/orders — order history (logged-in only)।
-  GBE locked order: Reviews → VisitStore → Footer (Footer layout-এ)।
+  /account/orders — order history (logged-in only).
+  A quiet page (owner, 8 Sep 2026): no reviews, no store block, no footer.
 */
 
 export const metadata: Metadata = {
@@ -27,9 +25,6 @@ export default function OrdersPage() {
         </AccountGuard>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

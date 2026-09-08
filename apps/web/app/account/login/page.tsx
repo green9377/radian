@@ -2,14 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import LoginView from "../../_components/Account/LoginView";
-import Reviews from "../../_components/GBE/Reviews";
-import VisitStore from "../../_components/GBE/VisitStore";
 
 /*
-  /account/login — WhatsApp login (mock)।
-
-  useSearchParams client-এ (?redirect=…) — Next 16-এ Suspense লাগে।
-  GBE locked order: Reviews → VisitStore → Footer (Footer layout-এ)।
+  /account/login — WhatsApp login.
+  useSearchParams runs on the client (?redirect=...), which needs Suspense.
+  A quiet page (owner, 8 Sep 2026): no reviews, no store block, no footer.
 */
 
 export const metadata: Metadata = {
@@ -32,9 +29,6 @@ export default function LoginPage() {
         </Suspense>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

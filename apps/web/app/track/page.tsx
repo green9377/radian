@@ -2,20 +2,16 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import TrackOrderView from "../_components/Checkout/TrackOrderView";
-import Reviews from "../_components/GBE/Reviews";
-import VisitStore from "../_components/GBE/VisitStore";
 
 /*
-  /track — Order tracking page।
+  /track — order tracking. "Track this order" on order-success lands here
+  (/track?id=RAD-XXXXX). Only the delivery timeline — no receipt, no prices
+  (the reasoning is in the track view). useSearchParams runs on the client,
+  which needs a Suspense boundary. A quiet page (owner, 8 Sep 2026): no
+  reviews, no store block, no footer.
 
-  order-success থেকে "Track this order" (/track?id=RAD-XXXXX) এখানে আসে।
-  শুধু delivery timeline দেখায় — receipt/দাম নয় (§track view-এ কারণ)।
-
-  useSearchParams client-এ — Next 16-এ Suspense boundary লাগে।
-  GBE locked order: Reviews → VisitStore → Footer (Footer layout-এ)।
-
-  ⇄ SWAP HERE — Ecommerce lock হলে /track/[id] server component হয়ে
-  order fetch করবে।
+  SWAP HERE — once Ecommerce is locked, /track/[id] becomes a server
+  component that fetches the order.
 */
 
 export const metadata: Metadata = {
@@ -38,9 +34,6 @@ export default function TrackPage() {
         </Suspense>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

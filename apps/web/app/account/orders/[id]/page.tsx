@@ -3,17 +3,17 @@ import type { Metadata } from "next";
 import AccountGuard from "../../../_components/Account/AccountGuard";
 import AccountShell from "../../../_components/Account/AccountShell";
 import OrderDetailView from "../../../_components/Account/OrderDetailView";
-import Reviews from "../../../_components/GBE/Reviews";
-import VisitStore from "../../../_components/GBE/VisitStore";
 
 /*
-  /account/orders/[id] — এক order-এর detail (logged-in only)।
+  /account/orders/[id] — one order's detail (logged-in only).
 
-  id client-এ resolve হয় (seed ∪ live), তাই generateStaticParams নেই —
-  live order localStorage-এ, server জানে না। GBE order (locked) নিচে।
+  The id is resolved on the client (seed plus live orders), so there is no
+  generateStaticParams — a live order sits in localStorage, the server does
+  not know it. A quiet page (owner, 8 Sep 2026): no reviews, no store
+  block, no footer.
 
-  ⇄ SWAP HERE — Ecommerce lock হলে server component হয়ে GET /orders/:id,
-  তখন notFound() server-side হবে।
+  SWAP HERE — once Ecommerce is locked this becomes a server component
+  doing GET /orders/:id, and notFound() moves server-side.
 */
 
 type Params = { id: string };
@@ -40,9 +40,6 @@ export default async function OrderDetailPage({
         </AccountGuard>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

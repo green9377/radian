@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { getShopFooter, type ShopFooter } from "../../_data/shop";
+import { isQuietPage } from "../../_data/quietPages";
 import ShopLogo from "../ui/ShopLogo";
 
 /*
@@ -90,6 +92,7 @@ function SocIcon({ name }: { name: string }) {
 }
 
 export default function Footer() {
+  const pathname = usePathname();
   const [data, setData] = useState<ShopFooter | null>(null);
 
   useEffect(() => {
@@ -97,6 +100,9 @@ export default function Footer() {
     getShopFooter().then((d) => { if (alive && d) setData(d); });
     return () => { alive = false; };
   }, []);
+
+  // the quiet pages carry no footer (owner, 8 Sep 2026) — after every hook
+  if (isQuietPage(pathname)) return null;
 
   const cols = data?.footerGroups?.length
     ? data.footerGroups.map((g) => ({ heading: g.title, links: g.links }))

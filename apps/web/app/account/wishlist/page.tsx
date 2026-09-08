@@ -3,13 +3,11 @@ import type { Metadata } from "next";
 import AccountGuard from "../../_components/Account/AccountGuard";
 import AccountShell from "../../_components/Account/AccountShell";
 import WishlistPanel from "../../_components/Account/WishlistPanel";
-import Reviews from "../../_components/GBE/Reviews";
-import VisitStore from "../../_components/GBE/VisitStore";
 
 /*
-  /account/wishlist — Wishlist tab: saved item + user folder (grouping)।
-  standalone /wishlist আলাদা (WishlistView) থাকে।
-  GBE locked order: Reviews → VisitStore → Footer (layout-এ)।
+  /account/wishlist — the Wishlist tab: saved items plus the customer's own
+  folders. The standalone /wishlist (WishlistView) stays separate.
+  A quiet page (owner, 8 Sep 2026): no reviews, no store block, no footer.
 */
 
 export const metadata: Metadata = {
@@ -28,9 +26,6 @@ export default function AccountWishlistPage() {
         </AccountGuard>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

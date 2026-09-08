@@ -2,15 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import WishlistView from "../_components/Wishlist/WishlistView";
-import Reviews from "../_components/GBE/Reviews";
-import VisitStore from "../_components/GBE/VisitStore";
 
 /*
-  /wishlist — server shell, ভেতরের সবটা WishlistView (client, localStorage লাগে)।
-
-  Cart page-এর হুবহু গঠন: tinted bg, breadcrumb, GBE locked
-  (Reviews → Visit Store → Footer)। Footer + SupportPanel layout.tsx-এ।
-  noindex — ব্যক্তিগত save-list, index করার মতো নয়।
+  /wishlist — the server shell; everything inside is WishlistView (client,
+  it needs localStorage). The cart page's exact structure: tinted bg,
+  breadcrumb. A quiet page (owner, 8 Sep 2026): no reviews, no store block,
+  no footer. noindex — a personal list, nothing to index.
 */
 
 export const metadata: Metadata = {
@@ -38,9 +35,6 @@ export default function WishlistPage() {
         </div>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }

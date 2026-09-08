@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import CheckoutView from "../_components/Checkout/CheckoutView";
-import Reviews from "../_components/GBE/Reviews";
-import VisitStore from "../_components/GBE/VisitStore";
 
 /*
   /checkout — the server shell; everything inside is CheckoutView (client:
@@ -11,7 +9,7 @@ import VisitStore from "../_components/GBE/VisitStore";
 
   The shell is FlowerAura's shape (owner, 7 Sep 2026): its own slim header
   (Header.tsx swaps it in on this path), no breadcrumb, one way back — to the
-  cart. GBE order (locked): Reviews → Visit Store → Footer (layout.tsx).
+  cart. A quiet page (owner, 8 Sep 2026): no reviews, no store block, no footer.
 
   No "Need Help Choosing" section here — D19: SupportPanel is the one support
   channel. No WhatsApp-order button either.
@@ -39,9 +37,6 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* GBE — locked order */}
-      <Reviews />
-      <VisitStore />
     </main>
   );
 }
