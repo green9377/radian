@@ -19,30 +19,45 @@ import Tracking from "./_components/Tracking";
   x-height built for exactly that, and Spectral is a serif drawn for screens
   rather than for paper.
 
-  ⚠️ Two long-standing defects go with them:
+  ⚠️ `font-bold` is used 132 times and NEITHER old face carried a 700, so
+  every bold button on the shop was a browser-smeared 600 — against the
+  owner's rule that buttons are bold and clear (22 Aug). Both faces carry a
+  real 700 now; Public Sans is variable, so one file holds every weight.
 
-  · `font-bold` was used 132 times and NEITHER face carried a 700, so every
-    bold button on the shop was a browser-smeared 600 — against the owner's
-    rule that buttons are bold and clear (22 Aug). Both faces now carry a
-    real 700; Public Sans is variable, so it carries every weight in one file.
+  ⚠️ EVERY DECLARED FACE IS PRELOADED — measured, not assumed. The first cut
+  of this asked for five weights in both styles and shipped **268 KB of fonts
+  on every page load, of which the homepage used five faces**. `next/font`
+  emits a `<link rel=preload>` per declared file, so an unused weight is not
+  free; it is paid for on the first paint, on a phone, in Dhaka. Hence:
 
-  · `italic` was used on five review quotes and card messages with no italic
-    loaded, so those were slanted uprights. Spectral's italic is a real cut.
+  · upright Spectral is trimmed to the four weights the shop actually uses
+    (300 was asked for twice — those two headings now sit at 400)
+  · the italic is loaded SEPARATELY and NOT preloaded. It appears on five
+    review quotes and card messages, all below the fold, so it costs nothing
+    until a page shows one. `globals.css` points `.font-display.italic` at it
+  · the UI italic is left to the browser. It is three small places (a gift
+    message, the VISA mark) and a real italic file is 28 KB on every page
 
-  Declaring a face costs nothing until a page uses it: the browser fetches a
-  weight only when text on the page asks for it.
+  Anyone adding a weight here should re-measure: `performance.getEntriesByType
+  ("resource").filter(r => /woff2/.test(r.name))` in the console.
 */
 const spectral = Spectral({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const spectralItalic = Spectral({
+  subsets: ["latin"],
+  variable: "--font-display-italic",
+  weight: ["400"],
+  style: ["italic"],
+  preload: false,
 });
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-ui",
-  style: ["normal", "italic"],
 });
 
 /*
@@ -92,7 +107,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${spectral.variable} ${publicSans.variable} font-ui antialiased`}>
+      <body
+        className={`${spectral.variable} ${spectralItalic.variable} ${publicSans.variable} font-ui antialiased`}
+      >
         {/*
           Section headings load HERE, not on the homepage.
 

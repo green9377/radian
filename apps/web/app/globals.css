@@ -43,6 +43,14 @@
   --section-gap: 30px;
 }
 
+/* A heading that is also italic gets the REAL italic cut, not the browser's
+   smeared copy of the upright. The italic is a separate, non-preloaded load
+   (see `app/layout.tsx` for why), so this one rule is what joins the two.
+   Two classes beat one, so it wins over Tailwind's own `font-display`. */
+.font-display.italic {
+  font-family: var(--font-display-italic), Georgia, "Times New Roman", serif;
+}
+
 /* In-page jumps (#related on a sold-out product) glide instead of snapping.
    CSS, not JavaScript — a browser that ignores it still jumps, which is the
    behaviour we actually need. Anyone who has asked for less motion gets none. */
