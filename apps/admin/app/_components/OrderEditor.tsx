@@ -16,6 +16,9 @@ import {
   orderAssignments,
   listRiders,
   listCourierServices,
+  orderMessagesFor,
+  retryOrderMessage,
+  type ApiOrderMessage,
   type ApiCustomer,
   type ApiRider,
   type ApiCourierService,
@@ -875,6 +878,9 @@ export default function OrderEditor({ id }: { id: string }) {
             </Panel>
           )}
 
+          {/* MESSAGES — every SMS / email / WhatsApp about this order, and why one did not go */}
+          {sec === "activity" && <OrderMessagesPanel orderId={o.id} />}
+
           {/* ACTIVITY */}
           {sec === "activity" && (
             <Panel title="Activity log" icon="clock" tone="blue" hint="who, when and what — written automatically, never editable">
@@ -938,5 +944,73 @@ export default function OrderEditor({ id }: { id: string }) {
         </aside>
       </div>
     </div>
+  );
+}
+
+/*  The messages the system sent this customer about the order (owner, 8 Sep
+    2026): which door each left by — SMS for a Bangladeshi number, email for a
+    foreign one, WhatsApp last — and, when one failed, the provider's reason.
+    A failed one can be retried from here.  */
+const MSG_KIND: Record<string, string> = {
+  ORDER_CONFIRMATION: "Order confirmation",
+  ORDER_CONFIRMATION_COD: "Order confirmation (COD)",
+  ORDER_OUT_FOR_DELIVERY: "Out for delivery",
+  ORDER_DELIVERED: "Delivered",
+  PAYMENT_FAILED: "Payment failed",
+  REVIEW_REQUEST: "Review request",
+};
+const MSG_TONE: Record<ApiOrderMessage["status"], Tone> = { SENT: "green", FAILED: "gold", SKIPPED: "purple", QUEUED: "blue" };
+
+function OrderMessagesPanel({ orderId }: { orderId: string }) {
+  const [rows, setRows] = useState<ApiOrderMessage[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = () => orderMessagesFor(orderId).then(setRows).catch(() => setRows([]));
+  useEffect(() => { void load(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
+
+  async function retry(id: string) {
+    setBusy(id);
+    try { await retryOrderMessage(id); await load(); } finally { setBusy(null); }
+  }
+
+  const failed = (rows ?? []).filter((m) => m.status === "FAILED").length;
+  return (
+    <Panel title="Messages to the customer" icon="phone" tone={failed ? "gold" : "green"} count={rows?.length}
+      hint="SMS for a Bangladeshi number, email for a foreign one, WhatsApp last. A failed one says why, and can be sent again.">
+      <div className="p-5">
+        {!rows ? <p className="text-[13px] text-body-soft m-0">Loading…</p>
+          : rows.length === 0 ? <p className="text-[13px] text-body-soft m-0">Nothing sent yet.</p> : (
+          <div className="flex flex-col gap-2.5">
+            {rows.map((m) => {
+              const t = TONE[MSG_TONE[m.status]];
+              return (
+                <div key={m.id} className="flex items-start gap-3 rounded-[12px] border border-lavender-deep bg-white px-3.5 py-2.5">
+                  <span className="text-[11px] font-bold rounded-full px-2 py-0.5 shrink-0 mt-0.5" style={{ background: t.soft, color: t.text }}>
+                    {m.status.toLowerCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] text-body font-medium">
+                      {MSG_KIND[m.kind] ?? m.kind}
+                      {m.attempt > 1 && <span className="text-body-soft font-normal"> · attempt {m.attempt}</span>}
+                      <span className="text-body-soft font-normal"> · via {m.channel}</span>
+                    </div>
+                    <div className="text-[12.5px] text-body-soft">
+                      {m.sentAt ? `sent ${shortDate(Date.parse(m.sentAt))}, ${clockTime(Date.parse(m.sentAt))}` : `due ${shortDate(Date.parse(m.dueAt))}, ${clockTime(Date.parse(m.dueAt))}`}
+                    </div>
+                    {m.error && <div className="text-[12.5px] mt-0.5" style={{ color: TONE.gold.text }}>{m.error}</div>}
+                  </div>
+                  {(m.status === "FAILED" || m.status === "SKIPPED") && (
+                    <button type="button" disabled={busy === m.id} onClick={() => retry(m.id)}
+                      className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] bg-purple text-white shrink-0 disabled:opacity-50">
+                      {busy === m.id ? "Sending…" : "Send again"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 }

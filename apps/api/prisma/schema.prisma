@@ -7393,6 +7393,30 @@ enum TargetState {
 //          message costs money, no answer is not good enough.
 // ============================================================
 
+/// The words of every SMS and email the system sends about an order or a
+/// login code (owner, 8 Sep 2026). WhatsApp keeps Meta's approved templates;
+/// SMS and email carry these. One row per kind and channel; the newest active
+/// one is used. No active row for a kind = that message is skipped and says
+/// so in the order's message log. Placeholders: {name} {order} {total} {link}
+/// {product} {code} {minutes} {shop} {phone}.
+model MessageTemplate {
+  id      String              @id @default(cuid())
+  /// an OrderMessageKind, or LOGIN_OTP
+  kind    String
+  channel OrderMessageChannel
+  name    String
+  /// email only
+  subject String?
+  body    String              @db.Text
+  isActive Boolean            @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([kind, channel, isActive])
+}
+
 model MessagingSetting {
   id String @id @default("singleton")
 

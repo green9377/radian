@@ -6687,6 +6687,25 @@ export interface ApiMessageLog {
   provider: string | null; isTest: boolean; actorName: string | null; createdAt: string;
 }
 
+/* The words of every SMS and email (owner, 8 Sep 2026) — Email & SMS → Templates */
+export interface ApiWording {
+  id: string; kind: string; channel: "SMS" | "EMAIL"; name: string;
+  subject: string | null; body: string; isActive: boolean; createdAt: string; updatedAt: string;
+}
+export interface ApiWordingList {
+  rows: ApiWording[];
+  gaps: { kind: string; channel: "SMS" | "EMAIL" }[];
+  kinds: string[];
+  placeholders: Record<string, string>;
+}
+export const wordingList = () => j<ApiWordingList>("/messaging/wording");
+export const wordingCreate = (b: { kind: string; channel: "SMS" | "EMAIL"; name?: string; subject?: string; body: string }) =>
+  j<ApiWording>("/messaging/wording", { method: "POST", body: JSON.stringify(b) });
+export const wordingUpdate = (id: string, b: { name?: string; subject?: string; body?: string; isActive?: boolean }) =>
+  j<ApiWording>(`/messaging/wording/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const wordingRemove = (id: string) =>
+  j<{ ok: boolean }>(`/messaging/wording/${id}`, { method: "DELETE" });
+
 export const messagingSettings = () => j<ApiMessaging>("/marketing/messaging");
 export const messagingStatus = () => j<ApiMessagingStatus>("/marketing/messaging/status");
 export const saveMessaging = (b: Record<string, unknown>) =>
@@ -7479,6 +7498,8 @@ export interface ApiOrderMessage {
   kind: string;
   attempt: number;
   status: "QUEUED" | "SENT" | "FAILED" | "SKIPPED";
+  /** which door it left by — SMS, EMAIL or WHATSAPP (owner's route, 8 Sep 2026) */
+  channel: "SMS" | "EMAIL" | "WHATSAPP";
   providerMessageId: string | null;
   error: string | null;
   templateName: string | null;
@@ -7497,6 +7518,8 @@ export const listCheckoutLeads = (status?: string) =>
 
 export const orderMessagesFor = (orderId: string) =>
   j<ApiOrderMessage[]>(`/messaging/order/${orderId}`);
+export const retryOrderMessage = (id: string) =>
+  j<{ result: "SENT" | "FAILED" | "SKIPPED" }>("/messaging/retry", { method: "POST", body: JSON.stringify({ id }) });
 
 /** The sweeper is off on demo (DEC-WA-007), so this is the only way to verify */
 export const runRecoverySweep = () =>

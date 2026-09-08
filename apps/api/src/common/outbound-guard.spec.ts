@@ -9,6 +9,7 @@ import { WhatsAppCloudService } from './whatsapp-cloud';
 import { ChannelSender } from '../messaging/channel-sender.service';
 import { MessagingService } from '../marketing/messaging.service';
 import { OtpService } from '../messaging/otp.service';
+import { MessageTemplatesService } from '../messaging/message-templates.service';
 import { OrderMessagesService } from '../messaging/order-messages.service';
 import { LIMIT_SEEDS, clampLimitValue, clampWindowMinutes, clampBreachAction } from './outbound-limits.const';
 
@@ -138,6 +139,18 @@ function makePrisma(world: World) {
         update: async (a: { data: Record<string, unknown> }) => { orderMessageWrites.push(a.data); return a.data; },
       },
       reviewInvite: { findFirst: async () => null, updateMany: async () => ({ count: 0 }) },
+      /*  8 Sep 2026 — the route (BD → SMS, foreign → email, else WhatsApp)
+          reads the admin's wording, the customer's email on file and the
+          shop's name. Wording exists; nobody is on file; no company row.  */
+      messageTemplate: {
+        findFirst: async (a: { where: { kind: string; channel: string } }) => ({
+          id: 't1', kind: a.where.kind, channel: a.where.channel, name: 'x',
+          subject: 'subject', body: '{name} {order} {code}', isActive: true,
+        }),
+      },
+      customer: { findFirst: async () => null },
+      order: { findFirst: async () => null },
+      companySetting: { findFirst: async () => null },
     },
   } as never;
 }
@@ -169,11 +182,12 @@ function build(opts: { live?: boolean; manualKill?: boolean; tripped?: boolean }
   const guard = new OutboundGuard(settings, prisma, audit);
   const wa = new WhatsAppCloudService(integrations, guard);
   const messaging = new MessagingService(prisma, audit, integrations, guard);
+  const wording = new MessageTemplatesService(prisma, audit);
   return {
     world, settings, guard, wa, messaging,
     sender: new ChannelSender(wa, integrations, guard),
-    otp: new OtpService(prisma, wa, messaging),
-    orderMessages: new OrderMessagesService(prisma, wa, msgSettings),
+    otp: new OtpService(prisma, wa, messaging, wording),
+    orderMessages: new OrderMessagesService(prisma, wa, msgSettings, messaging, wording),
   };
 }
 

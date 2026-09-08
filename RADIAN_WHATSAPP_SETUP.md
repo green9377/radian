@@ -466,3 +466,34 @@ Coexistence কোনো সাধারণ সেটিং নয়。 Meta-�
 
 ⚠️ পুরো সময়টায় দোকানের নম্বরে কেউ হাত দেবে না。 শেষ ধাপে মালিক নিজের
 ফোনে **Connect** চাপবেন — সম্মতি ছাড়া কিছুই ঘটে না (DEC-WA-001-এর লাল রেখা)。
+
+---
+
+## 8 Sep 2026 — WhatsApp is the LAST door, not the first (owner's rule)
+
+WhatsApp was costing too much. Every message the system sends a customer —
+order confirmation, COD confirmation, out for delivery, delivered, payment
+failed, the review request, and the login code — now leaves by this route
+(`apps/api/src/common/notify-route.ts`):
+
+| the customer's number | first | then |
+|---|---|---|
+| Bangladeshi (+880 / 880 / 01X) | SMS | WhatsApp |
+| foreign, with an email on the order / on file | email | WhatsApp |
+| foreign, no email | WhatsApp | — |
+
+- A door that is **not set up** (switched off, no key, no wording) passes to
+  the next. A door that is set up and **fails** is recorded FAILED with the
+  provider's reason — it does not quietly fall back and cost a WhatsApp
+  message. The order page (Activity log → "Messages to the customer") shows
+  every message, its door and its reason, with "Send again".
+- SMS and email words live in **Admin → Marketing → Email & SMS → Templates**
+  (`MessageTemplate`; kinds above plus `LOGIN_OTP`; placeholders `{name}
+  {order} {total} {link} {product} {code} {minutes} {shop} {phone}`). The
+  newest active row per kind and channel is used; none = skipped, and the
+  order's message log says so. WhatsApp keeps Meta's approved templates.
+- The login code goes to the email **on file** for the phone (customer
+  record, else the newest order from it) — never to an address typed into the
+  login form, which would let anyone sign in as any number.
+- DEV: the outbound guard still sends SMS only to `RADIAN_TEST_PHONE` and
+  email only to the test address; nothing here changes that.

@@ -391,14 +391,17 @@ export const placeOrder = (input: PlaceOrderIn) =>
     their order. The point is only to learn whether the number we will send
     every update to is a number that actually receives.  */
 
-export const resendPhoneCode = (phone: string, email?: string) =>
+/*  8 Sep 2026 — no email travels from here: the code goes to the address on
+    file for that phone (the order's own), or the next channel. The server
+    decides the route (BD number → SMS, foreign → email, else WhatsApp).  */
+export const resendPhoneCode = (phone: string) =>
   post<{
     sent: boolean;
     via: "WHATSAPP" | "SMS" | "EMAIL" | null;
     to: string | null;
     expiresInSec: number;
     error?: string;
-  }>("/shop/otp/send", { phone, purpose: "CHECKOUT", email });
+  }>("/shop/otp/send", { phone, purpose: "CHECKOUT" });
 
 /*  DEC-RTN-015 part 2 — ask for a code so store credit can be spent. The answer
     is the same for every number, so it can never be used to find out who shops

@@ -4,6 +4,8 @@ import { OtpChannel, OtpPurpose, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { MessagingService } from '../marketing/messaging.service';
+import { routeFor } from '../common/notify-route';
+import { MessageTemplatesService } from './message-templates.service';
 
 /*
   The one-time code (DEC-WA-010).
@@ -13,15 +15,20 @@ import { MessagingService } from '../marketing/messaging.service';
   services that do work by driving a logged-in WhatsApp session, which risks
   the number being banned — a bad trade for a Tech Provider account.
 
-  So the code is not checked, it is SENT, and delivery decides. That reaches
-  the same answer with nothing at risk: a number without WhatsApp fails at the
-  send, and the next channel takes over.
+  So the code is not checked, it is SENT, and delivery decides: a number
+  without WhatsApp fails at the send, and that is reported.
 
-  ── The order the channels are tried (owner's rule, 29 Aug) ──────────────
-    foreign number : WhatsApp → email
-    Bangladeshi    : WhatsApp → SMS → email
-  Email is the last resort in both, and only when we have an address.
-  A foreign number never gets SMS: our gateway is domestic.
+  ── The order the channels are tried (owner's rule, 8 Sep 2026) ──────────
+  The same rule as every order message (`common/notify-route.ts`):
+    Bangladeshi number : SMS   → WhatsApp
+    foreign number     : email → WhatsApp   (email only when we have one)
+  WhatsApp is the last resort because it is the expensive one.
+
+  ── Whose email ───────────────────────────────────────────────────────────
+  The email ON FILE for that phone — the customer's record, else the last
+  order placed from it. Never an address typed into the login form: a code
+  sent to whatever address the visitor typed would let anyone sign in as any
+  phone number by typing their own email.
 
   ── What is deliberately NOT done here ───────────────────────────────────
   No customerId is passed to the email and SMS senders. That skips
@@ -69,6 +76,7 @@ export class OtpService {
     private readonly prisma: PrismaService,
     private readonly wa: WhatsAppCloudService,
     private readonly messaging: MessagingService,
+    private readonly wording: MessageTemplatesService,
   ) {}
 
   /* ---------------- sending ---------------- */
@@ -76,8 +84,6 @@ export class OtpService {
   async send(input: {
     phone: string;
     purpose: OtpPurpose;
-    /** Only used if WhatsApp and SMS both fail. */
-    email?: string | null;
   }): Promise<OtpSendResult> {
     const phone = this.e164(input.phone);
     if (!phone)
@@ -110,10 +116,10 @@ export class OtpService {
     });
 
     const attempts: Attempt[] = [];
-    const local = this.isBangladeshi(phone);
+    const email = await this.emailOnFile(phone);
 
-    for (const channel of this.chain(local, input.email)) {
-      const to = channel === OtpChannel.EMAIL ? input.email!.trim() : phone;
+    for (const channel of this.chain(phone, email)) {
+      const to = channel === OtpChannel.EMAIL ? email! : phone;
       const r = await this.deliver(channel, to, code);
       attempts.push({
         channel,
@@ -160,19 +166,30 @@ export class OtpService {
       via: null,
       to: null,
       expiresInSec: 0,
-      error: input.email
-        ? 'We could not reach that number or email. Please check them and try again.'
-        : 'We could not reach that number. Add an email address and we will send it there.',
+      error: 'We could not reach that number. Please check it and try again.',
     };
   }
 
-  /** The owner's routing rule, in one place so it reads like the rule. */
-  private chain(local: boolean, email?: string | null): OtpChannel[] {
-    const chain: OtpChannel[] = [OtpChannel.WHATSAPP];
-    // Our SMS gateway is domestic; sending abroad through it fails, slowly.
-    if (local) chain.push(OtpChannel.SMS);
-    if (email?.trim()) chain.push(OtpChannel.EMAIL);
-    return chain;
+  /** The owner's routing rule — the same one every order message follows. */
+  private chain(phone: string, email: string | null): OtpChannel[] {
+    return routeFor(phone, email).map((d) =>
+      d === 'SMS' ? OtpChannel.SMS : d === 'EMAIL' ? OtpChannel.EMAIL : OtpChannel.WHATSAPP,
+    );
+  }
+
+  /** The customer's record first, else the newest order placed from this phone. */
+  private async emailOnFile(phone: string): Promise<string | null> {
+    const c = await this.prisma.db.customer.findFirst({
+      where: { phone, deletedAt: null },
+      select: { email: true },
+    });
+    if (c?.email?.trim()) return c.email.trim();
+    const o = await this.prisma.db.order.findFirst({
+      where: { senderPhone: phone, deletedAt: null, senderEmail: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: { senderEmail: true },
+    });
+    return o?.senderEmail?.trim() || null;
   }
 
   private async deliver(channel: OtpChannel, to: string, code: string) {
@@ -186,26 +203,25 @@ export class OtpService {
         });
         return { ok: r.ok, error: r.ok ? undefined : r.error };
       }
+      /*  The admin's own words (Email & SMS → Templates, kind LOGIN_OTP).
+          No wording = that door is not set up, and the next one tries.  */
+      const tpl = await this.wording.pick('LOGIN_OTP', channel === OtpChannel.SMS ? 'SMS' : 'EMAIL');
+      if (!tpl) return { ok: false, error: `no ${channel} wording for LOGIN_OTP` };
+      const vars = { code, minutes: String(EXPIRY_MINUTES), shop: await this.shopName() };
+      const text = this.wording.render(tpl.body, vars);
       if (channel === OtpChannel.SMS) {
         // No customerId — see the note at the top of this file.
-        const r = await this.messaging.sendSms({
-          origin: 'otp',
-          kind: 'otp',
-          to,
-          text: `${code} is your Radian verification code. It expires in ${EXPIRY_MINUTES} minutes. Do not share it with anyone.`,
-        });
+        const r = await this.messaging.sendSms({ origin: 'otp', kind: 'otp', to, text });
         return { ok: r.ok, error: r.ok ? undefined : r.error };
       }
       const r = await this.messaging.sendEmail({
         origin: 'otp',
         kind: 'otp',
         to,
-        subject: `${code} is your Radian verification code`,
+        subject: this.wording.render(tpl.subject ?? `${code} is your verification code`, vars),
         html:
-          `<p style="font:16px system-ui">Your Radian verification code is</p>` +
-          `<p style="font:700 32px system-ui;letter-spacing:4px">${code}</p>` +
-          `<p style="font:14px system-ui;color:#666">It expires in ${EXPIRY_MINUTES} minutes. ` +
-          `If you did not ask for this, you can ignore this email — nobody can use it without you.</p>`,
+          `<p style="font:16px system-ui;white-space:pre-wrap">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>` +
+          `<p style="font:700 32px system-ui;letter-spacing:4px">${code}</p>`,
       });
       return { ok: r.ok, error: r.ok ? undefined : r.error };
     } catch (e) {
@@ -321,8 +337,13 @@ export class OtpService {
     return null;
   }
 
-  private isBangladeshi(e164: string) {
-    return e164.startsWith('+880');
+  private async shopName(): Promise<string> {
+    try {
+      const c = await this.prisma.db.companySetting.findFirst({ select: { tradeName: true } });
+      return c?.tradeName?.trim() || 'Radian';
+    } catch {
+      return 'Radian';
+    }
   }
 
   /** Enough for the customer to recognise it, not enough to read it out. */

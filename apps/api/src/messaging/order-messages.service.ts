@@ -1,9 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import { OrderMessageKind, OrderMessageStatus, Prisma } from '@prisma/client';
+import { OrderMessageChannel, OrderMessageKind, OrderMessageStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TPL, WhatsAppCloudService } from '../common/whatsapp-cloud';
+import { routeFor } from '../common/notify-route';
+import { MessagingService } from '../marketing/messaging.service';
 import { MessagingSettingsService } from './messaging-settings.service';
+import { MessageTemplatesService, type TemplateKind } from './message-templates.service';
 
 /*
   The only path for any message about an order.
@@ -13,6 +16,15 @@ import { MessagingSettingsService } from './messaging-settings.service';
   sweep; this way the worst case is a row not yet sent, which the sweep fixes.
   Nothing here can block an order — a message is a courtesy, the order is the
   contract.
+
+  WHICH DOOR (owner, 8 Sep 2026 — `common/notify-route.ts`): a Bangladeshi
+  number gets SMS, a foreign number gets email when the order has one, and
+  WhatsApp is the last resort. SMS and email carry the admin's own wording
+  (`MessageTemplatesService`); WhatsApp keeps Meta's approved templates. A
+  primary door that is not set up (switched off, no key) hands over to
+  WhatsApp; a primary door that is set up and FAILS is recorded as failed and
+  shows in the order's message log — it does not quietly fall back and cost
+  a WhatsApp message.
 */
 
 /** One place for the kind → template mapping. */
@@ -31,6 +43,7 @@ const TEMPLATE_FOR: Record<OrderMessageKind, string> = {
 const REVIEW_REQUEST_DELAY_MS = 24 * 3600_000;
 
 const taka = (paisa: number) => `৳${(paisa / 100).toLocaleString('en-IN')}`;
+const escapeHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 @Injectable()
 export class OrderMessagesService {
@@ -40,6 +53,8 @@ export class OrderMessagesService {
     private readonly prisma: PrismaService,
     private readonly wa: WhatsAppCloudService,
     private readonly settings: MessagingSettingsService,
+    private readonly messaging: MessagingService,
+    private readonly wording: MessageTemplatesService,
   ) {}
 
   /* ---- queue ---- */
@@ -206,31 +221,50 @@ export class OrderMessagesService {
       invite = { token: inv.token, productName: inv.product?.name ?? null };
     }
 
-    let payload: Record<string, unknown>;
-    try {
-      payload = this.payloadFor(m.kind, o, await this.settings.supportPhone(), invite);
-    } catch (e) {
-      await this.prisma.db.orderMessage.update({
-        where: { id },
-        data: { status: OrderMessageStatus.FAILED, error: (e as Error).message.slice(0, 500) },
-      });
-      return 'FAILED';
+    const supportPhone = await this.settings.supportPhone();
+
+    /*  The door, in the owner's order. A door that is not set up passes to
+        the next; a door that is set up and fails stops here, as FAILED.  */
+    const doors = routeFor(o.senderPhone, o.senderEmail);
+    let outcome: { ok: boolean; configured: boolean; error?: string; messageId?: string } = {
+      ok: false, configured: false, error: 'no channel could take this message',
+    };
+    let usedChannel: OrderMessageChannel = OrderMessageChannel.WHATSAPP;
+    for (const door of doors) {
+      usedChannel = door;
+      if (door === 'WHATSAPP') {
+        let payload: Record<string, unknown>;
+        try {
+          payload = this.payloadFor(m.kind, o, supportPhone, invite);
+        } catch (e) {
+          await this.prisma.db.orderMessage.update({
+            where: { id },
+            data: { status: OrderMessageStatus.FAILED, channel: door, error: (e as Error).message.slice(0, 500) },
+          });
+          return 'FAILED';
+        }
+        const r = await this.wa.sendRaw(o.senderPhone, payload, {
+          origin: 'order-message',
+          /*  The kind is the repeat guard's key: the same order confirmation must
+              not go twice, but a confirmation and a delivered notice are different
+              messages to the same person and both should arrive.  */
+          kind: `order:${m.kind}`,
+        });
+        outcome = { ok: r.ok, configured: r.configured, error: r.error, messageId: r.messageId ?? undefined };
+      } else {
+        outcome = await this.sendWorded(door, m.kind, o, supportPhone, invite);
+      }
+      if (outcome.ok || outcome.configured) break;
     }
-    const r = await this.wa.sendRaw(o.senderPhone, payload, {
-      origin: 'order-message',
-      /*  The kind is the repeat guard's key: the same order confirmation must
-          not go twice, but a confirmation and a delivered notice are different
-          messages to the same person and both should arrive.  */
-      kind: `order:${m.kind}`,
-    });
+    const r = outcome;
 
     await this.prisma.db.orderMessage.update({
       where: { id },
       data: r.ok
-        ? { status: OrderMessageStatus.SENT, sentAt: new Date(), providerMessageId: r.messageId ?? null, error: null }
+        ? { status: OrderMessageStatus.SENT, channel: usedChannel, sentAt: new Date(), providerMessageId: r.messageId ?? null, error: null }
         : !r.configured
-          ? { status: OrderMessageStatus.SKIPPED, error: 'WhatsApp is not connected' }
-          : { status: OrderMessageStatus.FAILED, error: (r.error ?? 'unknown').slice(0, 500) },
+          ? { status: OrderMessageStatus.SKIPPED, channel: usedChannel, error: r.error ?? 'no channel is set up' }
+          : { status: OrderMessageStatus.FAILED, channel: usedChannel, error: (r.error ?? 'unknown').slice(0, 500) },
     });
 
     if (r.ok && invite) {
@@ -257,6 +291,70 @@ export class OrderMessagesService {
       return 'already paid';
     }
     return null;
+  }
+
+  /**
+   * SMS or email, in the admin's words. `configured: false` means the door is
+   * not set up (switched off, no key, no wording) and the next door may try;
+   * `configured: true, ok: false` means it is set up and the send failed.
+   */
+  private async sendWorded(
+    channel: OrderMessageChannel,
+    kind: OrderMessageKind,
+    o: { id: string; orderNo: string; senderName: string; senderPhone: string; senderEmail: string | null; totalPaisa: number },
+    supportPhone: string,
+    invite?: { token: string; productName: string | null },
+  ): Promise<{ ok: boolean; configured: boolean; error?: string; messageId?: string }> {
+    const tpl = await this.wording.pick(kind as TemplateKind, channel);
+    if (!tpl) return { ok: false, configured: false, error: `no ${channel} wording for ${kind} (Admin → Email & SMS → Templates)` };
+
+    const shop = await this.shopName();
+    const base = (process.env.PUBLIC_WEB_URL ?? '').replace(/\/$/, '');
+    const link =
+      kind === OrderMessageKind.REVIEW_REQUEST && invite
+        ? `${base}/review/${invite.token}`
+        : kind === OrderMessageKind.PAYMENT_FAILED
+          ? `${base}/pay/${o.orderNo}`
+          : `${base}/track?id=${encodeURIComponent(o.orderNo)}`;
+    const vars = {
+      name: o.senderName,
+      order: o.orderNo,
+      total: taka(o.totalPaisa),
+      link,
+      product: invite?.productName ?? 'your order',
+      shop,
+      phone: supportPhone,
+    };
+    const body = this.wording.render(tpl.body, vars);
+
+    try {
+      if (channel === OrderMessageChannel.SMS) {
+        const r = await this.messaging.sendSms({ to: o.senderPhone, text: body, origin: 'order-message', kind: `order:${kind}` });
+        return { ok: r.ok, configured: true, error: r.ok ? undefined : r.error, messageId: r.providerRef ?? undefined };
+      }
+      if (!o.senderEmail) return { ok: false, configured: false, error: 'no email on the order' };
+      const r = await this.messaging.sendEmail({
+        to: o.senderEmail,
+        subject: this.wording.render(tpl.subject ?? `${shop} — ${o.orderNo}`, vars),
+        html: `<div style="font:15px/1.6 system-ui,sans-serif;color:#222;white-space:pre-wrap">${escapeHtml(body)}</div>`,
+        origin: 'order-message',
+        kind: `order:${kind}`,
+      });
+      return { ok: r.ok, configured: true, error: r.ok ? undefined : r.error, messageId: r.providerRef ?? undefined };
+    } catch (e) {
+      /*  "SMS is switched off" / "No SMS key" / "Email is switched off" are
+          thrown, not returned — that door is not set up, and the next may try.  */
+      return { ok: false, configured: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  private async shopName(): Promise<string> {
+    try {
+      const c = await this.prisma.db.companySetting.findFirst({ select: { tradeName: true, legalName: true } });
+      return c?.tradeName?.trim() || c?.legalName?.trim() || 'Radian';
+    } catch {
+      return 'Radian';
+    }
   }
 
   /** Template and values for one kind. */

@@ -1,11 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Module,
   Param,
+  Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { CheckoutLeadStatus, OtpPurpose } from '@prisma/client';
 import { MarketingModule } from '../marketing/marketing.module';
@@ -14,7 +17,8 @@ import { EscalationNotifier } from './escalation-notifier.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppCloudModule } from '../common/whatsapp-cloud';
-import { Public, Roles } from '../auth/auth.guard';
+import { Public, Roles, type AuthedRequest } from '../auth/auth.guard';
+import { MessageTemplatesService, PLACEHOLDERS, TEMPLATE_KINDS } from './message-templates.service';
 import { MessagingSettingsService } from './messaging-settings.service';
 import { OrderMessagesService } from './order-messages.service';
 import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
@@ -51,7 +55,47 @@ export class MessagingController {
     private readonly settings: MessagingSettingsService,
     private readonly templates: WhatsAppTemplatesService,
     private readonly metaPoll: MetaPollService,
+    private readonly wording: MessageTemplatesService,
   ) {}
+
+  private actor(req: AuthedRequest): string {
+    return req.actor?.name ?? 'Admin';
+  }
+
+  /* The words of every SMS and email (owner, 8 Sep 2026) — written, edited
+     and removed here; WhatsApp keeps Meta's templates below. */
+
+  @Get('wording')
+  @Roles('OWNER', 'MANAGER')
+  async wordingList() {
+    const [rows, gaps] = await Promise.all([this.wording.list(), this.wording.gaps()]);
+    return { rows, gaps, kinds: TEMPLATE_KINDS, placeholders: PLACEHOLDERS };
+  }
+
+  @Post('wording')
+  @Roles('OWNER')
+  wordingCreate(
+    @Body() b: { kind: string; channel: string; name?: string; subject?: string; body?: string; isActive?: boolean },
+    @Req() req: AuthedRequest,
+  ) {
+    return this.wording.create(b, this.actor(req));
+  }
+
+  @Patch('wording/:id')
+  @Roles('OWNER')
+  wordingUpdate(
+    @Param('id') id: string,
+    @Body() b: { name?: string; subject?: string; body?: string; isActive?: boolean },
+    @Req() req: AuthedRequest,
+  ) {
+    return this.wording.update(id, b, this.actor(req));
+  }
+
+  @Delete('wording/:id')
+  @Roles('OWNER')
+  wordingRemove(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.wording.remove(id, this.actor(req));
+  }
 
   /*
     "Sync now" — go and fetch what Meta never pushed, on every connected
@@ -200,11 +244,12 @@ export class CheckoutLeadController {
 
   @Public()
   @Post('otp/send')
-  sendOtp(@Body() b: { phone?: string; purpose?: OtpPurpose; email?: string }) {
+  sendOtp(@Body() b: { phone?: string; purpose?: OtpPurpose }) {
+    /*  No email is taken from the browser (8 Sep 2026): the code goes to the
+        address ON FILE for the phone, or nowhere — see OtpService.  */
     return this.otp.send({
       phone: b?.phone ?? '',
       purpose: b?.purpose ?? OtpPurpose.CHECKOUT,
-      email: b?.email,
     });
   }
 
@@ -264,6 +309,7 @@ export class CheckoutLeadController {
     OtpService,
     ChannelSender,
     EscalationNotifier,
+    MessageTemplatesService,
   ],
   controllers: [
     MessagingController,

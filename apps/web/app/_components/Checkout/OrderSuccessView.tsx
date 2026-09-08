@@ -70,7 +70,7 @@ import TileImage from "../ui/TileImage";
   WENT, never where it did not: "no WhatsApp on this number" is a fact about
   a stranger that a public page should not hand out.
 */
-function PhoneVerifyBlock({ phone, email }: { phone: string; email?: string }) {
+function PhoneVerifyBlock({ phone }: { phone: string }) {
   /*  Opens already in the "we sent it" state: checkout sent a code on the way
       here, so asking the customer to press Send first would mean a second
       code for no reason while the first is still in the air.  */
@@ -105,7 +105,7 @@ function PhoneVerifyBlock({ phone, email }: { phone: string; email?: string }) {
     setErr(null);
     setState("sending");
     try {
-      const r = await resendPhoneCode(phone, email);
+      const r = await resendPhoneCode(phone);
       if (r.ok && r.data.sent) {
         setSentTo({ via: r.data.via, to: r.data.to });
       } else {
@@ -383,7 +383,7 @@ export default function OrderSuccessView() {
           </span>
         </div>
 
-        <PhoneVerifyBlock phone={order.sender.phone} email={order.sender.email} />
+        <PhoneVerifyBlock phone={order.sender.phone} />
       </div>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start mt-9">

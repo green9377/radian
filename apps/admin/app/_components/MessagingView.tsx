@@ -7,7 +7,8 @@ import {
 } from "./FinanceUI";
 import {
   messagingSettings, messagingStatus, saveMessaging, testMessaging, messagingHistory, ago,
-  type ApiMessaging, type ApiMessagingStatus, type ApiMessageLog,
+  wordingList, wordingCreate, wordingUpdate, wordingRemove,
+  type ApiMessaging, type ApiMessagingStatus, type ApiMessageLog, type ApiWording, type ApiWordingList,
 } from "../_data/api";
 
 /*
@@ -39,7 +40,7 @@ const SMS_PROVIDERS = [
 ];
 
 export function MessagingView() {
-  const [tab, setTab] = useState<"SETUP" | "HISTORY">("SETUP");
+  const [tab, setTab] = useState<"SETUP" | "TEMPLATES" | "HISTORY">("SETUP");
   const [s, setS] = useState<ApiMessaging | null>(null);
   const [st, setSt] = useState<ApiMessagingStatus | null>(null);
   const [emailKey, setEmailKey] = useState("");
@@ -115,6 +116,7 @@ export function MessagingView() {
 
       <Tabs value={tab} onChange={setTab} items={[
         { key: "SETUP", label: "Set up", emoji: "⚙", tone: "sky" },
+        { key: "TEMPLATES", label: "Templates", emoji: "✎", tone: "brand" },
         { key: "HISTORY", label: "What was sent", emoji: "📜", tone: "slate" },
       ]} />
 
@@ -275,8 +277,168 @@ export function MessagingView() {
         </div>
       )}
 
+      {tab === "TEMPLATES" && <Wording setErr={setErr} />}
       {tab === "HISTORY" && <History setErr={setErr} />}
     </div>
+  );
+}
+
+/* ---------------- the words of every SMS and email ----------------
+   Owner, 8 Sep 2026: a Bangladeshi number gets SMS, a foreign number gets
+   email (when the order has one), WhatsApp is the last resort. WhatsApp
+   keeps Meta's approved templates; these are the SMS and email words —
+   one per message kind and channel, written, edited and removed here.
+   The system reads the newest active one at send time; a kind with none is
+   skipped and the order's message log says so.  */
+
+const KIND_LABEL: Record<string, string> = {
+  ORDER_CONFIRMATION: "Order confirmation",
+  ORDER_CONFIRMATION_COD: "Order confirmation (cash on delivery)",
+  ORDER_OUT_FOR_DELIVERY: "Out for delivery",
+  ORDER_DELIVERED: "Delivered",
+  PAYMENT_FAILED: "Payment failed",
+  REVIEW_REQUEST: "Review request",
+  LOGIN_OTP: "Login code",
+};
+
+type Draft = { id?: string; kind: string; channel: "SMS" | "EMAIL"; name: string; subject: string; body: string };
+
+function Wording({ setErr }: { setErr: (s: string) => void }) {
+  const [d, setD] = useState<ApiWordingList | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setD(await wordingList()); } catch (e) { setErr((e as Error).message); }
+  }, [setErr]);
+  useEffect(() => { void load(); }, [load]);
+
+  async function save() {
+    if (!draft || busy) return;
+    setBusy(true);
+    try {
+      if (draft.id) await wordingUpdate(draft.id, { name: draft.name, subject: draft.subject, body: draft.body });
+      else await wordingCreate({ kind: draft.kind, channel: draft.channel, name: draft.name, subject: draft.subject, body: draft.body });
+      setDraft(null);
+      await load();
+    } catch (e) { setErr((e as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  async function toggle(row: ApiWording) {
+    try { await wordingUpdate(row.id, { isActive: !row.isActive }); await load(); }
+    catch (e) { setErr((e as Error).message); }
+  }
+
+  async function remove(row: ApiWording) {
+    if (!window.confirm(`Remove "${row.name}"? The system will stop sending this ${row.channel} until another is written.`)) return;
+    try { await wordingRemove(row.id); await load(); }
+    catch (e) { setErr((e as Error).message); }
+  }
+
+  const kinds = d?.kinds ?? Object.keys(KIND_LABEL);
+  const rows = d?.rows ?? [];
+  const gaps = d?.gaps ?? [];
+
+  return (
+    <>
+      {gaps.length > 0 && (
+        <Banner tone="amber" emoji="!" title={`${gaps.length} message${gaps.length === 1 ? "" : "s"} with no active wording`}>
+          {gaps.map((g) => `${KIND_LABEL[g.kind] ?? g.kind} · ${g.channel}`).join(" · ")} — these are skipped until written.
+        </Banner>
+      )}
+
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="text-[12.5px] text-body-soft">
+          Placeholders:{" "}
+          {Object.entries(d?.placeholders ?? {}).map(([k, v]) => (
+            <span key={k} title={v} className="inline-block mr-2 font-mono text-purple">{`{${k}}`}</span>
+          ))}
+        </div>
+        <button className={btnPrimary} style={btnPrimaryStyle}
+          onClick={() => setDraft({ kind: kinds[0], channel: "SMS", name: "", subject: "", body: "" })}>
+          + New template
+        </button>
+      </div>
+
+      {draft && (
+        <Card className="p-5 mb-5">
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div>
+              <Lbl>Message</Lbl>
+              <select className={input} value={draft.kind} disabled={!!draft.id}
+                onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
+                {kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>)}
+              </select>
+            </div>
+            <div>
+              <Lbl>Channel</Lbl>
+              <select className={input} value={draft.channel} disabled={!!draft.id}
+                onChange={(e) => setDraft({ ...draft, channel: e.target.value as "SMS" | "EMAIL" })}>
+                <option value="SMS">SMS</option>
+                <option value="EMAIL">Email</option>
+              </select>
+            </div>
+            <div>
+              <Lbl>Name</Lbl>
+              <input className={input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                placeholder={KIND_LABEL[draft.kind]} />
+            </div>
+          </div>
+          {draft.channel === "EMAIL" && (
+            <div className="mt-4">
+              <Lbl>Subject</Lbl>
+              <input className={input} value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+            </div>
+          )}
+          <div className="mt-4">
+            <Lbl>{draft.channel === "SMS" ? "Text" : "Body"}</Lbl>
+            <textarea className={`${input} min-h-[140px]`} value={draft.body}
+              onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+            {draft.channel === "SMS" && (
+              <div className="text-[11.5px] text-body-soft mt-1">
+                {draft.body.length} characters · one SMS is 160 (English)
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button className={btnPrimary} style={btnPrimaryStyle} onClick={save} disabled={busy}>
+              {busy ? "Saving…" : draft.id ? "Save changes" : "Create"}
+            </button>
+            <button className={btnGhost} onClick={() => setDraft(null)}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      <Card className="overflow-hidden">
+        {rows.length === 0 ? (
+          <Empty emoji="✎" title="No templates yet" sub="Write one per message and channel; the system picks the newest active one." />
+        ) : (
+          <Table head={<><Th>Message</Th><Th>Channel</Th><Th>Name</Th><Th>Words</Th><Th>Active</Th><Th></Th></>}>
+            {rows.map((r) => (
+              <tr key={r.id} className={r.isActive ? "" : "opacity-60"}>
+                <Td><span className="font-semibold text-purple">{KIND_LABEL[r.kind] ?? r.kind}</span></Td>
+                <Td><Chip tone={r.channel === "EMAIL" ? "sky" : "brand"}>{r.channel.toLowerCase()}</Chip></Td>
+                <Td>{r.name}</Td>
+                <Td>
+                  {r.subject && <div className="text-[12.5px] font-semibold text-purple">{r.subject}</div>}
+                  <div className="text-[11.5px] text-body-soft max-w-[360px] whitespace-pre-wrap">{r.body.slice(0, 160)}{r.body.length > 160 ? "…" : ""}</div>
+                </Td>
+                <Td>
+                  <button className={btnGhost} onClick={() => toggle(r)}>{r.isActive ? "On" : "Off"}</button>
+                </Td>
+                <Td>
+                  <div className="flex gap-2">
+                    <button className={btnGhost} onClick={() => setDraft({ id: r.id, kind: r.kind, channel: r.channel, name: r.name, subject: r.subject ?? "", body: r.body })}>Edit</button>
+                    <button className={btnGhost} onClick={() => remove(r)}>Remove</button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Card>
+    </>
   );
 }
 

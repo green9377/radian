@@ -1299,11 +1299,8 @@ Queued rather than sent directly: COD and prepaid say different
     const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
     if (needsPhoneVerify) {
       void this.otp
-        .send({
-          phone: order.senderPhone,
-          purpose: OtpPurpose.CHECKOUT,
-          email: order.senderEmail ?? undefined,
-        })
+        // the order's own email is on file now — OtpService finds it itself
+        .send({ phone: order.senderPhone, purpose: OtpPurpose.CHECKOUT })
         .catch((e) => this.log?.warn?.(`otp send failed for ${order.orderNo}: ${e}`));
     }
 
