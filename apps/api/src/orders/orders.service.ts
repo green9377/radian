@@ -1238,7 +1238,11 @@ export class OrdersService {
     const gate = this.editableFields(o);
     const actorName = dto.actorName ?? 'Admin';
 
-    const recipientTouched = dto.recipientName !== undefined || dto.recipientPhone !== undefined || dto.giftMessage !== undefined;
+    const recipientTouched =
+      dto.recipientName !== undefined ||
+      dto.recipientPhone !== undefined ||
+      dto.giftMessage !== undefined ||
+      dto.photoUpdates !== undefined;
     const deliveryTouched = dto.address !== undefined || dto.deliveryNotes !== undefined || dto.methodLabel !== undefined || dto.date !== undefined || dto.slotLabel !== undefined;
     const existingItemsTouched = !!(dto.removeLineIds?.length || dto.lineQty?.length);
     const moneyTouched = dto.adjustmentPaisa !== undefined || dto.deliveryPaisa !== undefined || !!dto.lineDiscounts;
@@ -1359,6 +1363,7 @@ export class OrdersService {
         recipientName: dto.recipientName,
         recipientPhone: dto.recipientPhone,
         giftMessage: dto.giftMessage,
+        photoUpdates: dto.photoUpdates,
         address: dto.address,
         deliveryNotes: dto.deliveryNotes,
         methodLabel: dto.methodLabel,

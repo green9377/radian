@@ -190,6 +190,8 @@ export interface OrderPhoto {
   at: number;
   by: string;
   caption: string;
+  /** the real photograph, when one was uploaded; empty falls back to `bg` */
+  url?: string;
   bg: string;
 }
 

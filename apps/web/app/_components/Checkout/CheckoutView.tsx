@@ -40,16 +40,18 @@ import { clientKey, useCheckoutLead } from "../../_store/useCheckoutLead";
 import { useZoneStore } from "../../_store/useZoneStore";
 import Icon from "../Pdp/PdpIcons";
 import { CheckoutSticky, CheckoutSummary } from "./CheckoutSummary";
-import { Q3Where, Q4When } from "./CheckoutDelivery";
+import { Q3Where, Q5When } from "./CheckoutDelivery";
 import { Q5Payment } from "./CheckoutPayment";
 import { Q1Details, Q2Receiving } from "./CheckoutSteps";
+import { Q4Message } from "./CheckoutMessage";
 import { CheckoutGrid } from "./CheckoutFields";
 
 /*
   ═══════════════════════════════════════════════════════════════════
   CHECKOUT — orchestrator
 
-  ★ Five steps: Details → Receiver → Where → When → Payment
+  ★ Six steps: Details → Receiver → Where → Card Message → When → Payment
+  The card message is drawn only for a gift (`shown`, below).
 
   ★ The delivery timeline is **not** here (locked, 14 July)
   Showing a timeline before the order is confirmed is promising something that
@@ -62,6 +64,26 @@ import { CheckoutGrid } from "./CheckoutFields";
   ★ Prices: resolveCart() → checkoutTotals(). Checkout adds nothing up itself.
   ═══════════════════════════════════════════════════════════════════
 */
+
+/**
+ * The card, exactly as it will be hand-written: the message, and under it the
+ * signature — unless they asked for it to go unsigned.
+ *
+ * Empty message + a name is not a card: nobody sends a bouquet whose card says
+ * only "— Sobuj". So a signature alone is dropped.
+ */
+function cardMessage(c: {
+  giftMessage: string;
+  signedName: string;
+  senderName: string;
+  anonymousGift: boolean;
+}): string | undefined {
+  const body = c.giftMessage.trim();
+  if (!body) return undefined;
+  if (c.anonymousGift) return body;
+  const signed = c.signedName.trim() || c.senderName.trim();
+  return signed ? `${body}\n— ${signed}` : body;
+}
 
 export default function CheckoutView() {
   const router = useRouter();
@@ -163,7 +185,7 @@ export default function CheckoutView() {
     /*  The API has not answered yet → the old list holds the place so the
         screen is not empty. The real prices drop in the moment it answers.  */
     const allowed = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-    /*  ⚠️ `Q4When` does these exact same three steps. If the two differ, the
+    /*  ⚠️ `Q5When` does these exact same three steps. If the two differ, the
         screen shows one method while the price/receipt says another.  */
     return allowed.find((m) => m.id === c.method) ?? allowed[0] ?? METHODS[1];
   }, [zone, c.method, liveMethods]);
@@ -288,7 +310,7 @@ export default function CheckoutView() {
           name: c.senderName.trim() || undefined,
           phone: normalizeBdPhone(c.senderPhone) ?? (c.senderPhone.trim() || undefined),
           email: c.senderEmail.trim() || undefined,
-          stage: c.step >= 5 ? "PAYMENT" : c.step >= 3 ? "DELIVERY" : "DETAILS",
+          stage: c.step >= 6 ? "PAYMENT" : c.step >= 3 ? "DELIVERY" : "DETAILS",
           /*  Whatever was typed — this is what staff need when they call: who
               it is for, where, and when.  */
           draft: {
@@ -429,7 +451,7 @@ export default function CheckoutView() {
         note on `ValidateOpts.method`).  */
     const opts = { now: new Date(), leadDays, speeds, method };
 
-    for (const n of [1, 2, 3, 4]) {
+    for (const n of [1, 2, 3, 5]) {
       if (Object.keys(validateStep(n, state, opts)).length > 0) {
         c.openStep(n);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -495,7 +517,12 @@ export default function CheckoutView() {
       recipientPhone: c.isGift
         ? (normalizeBdPhone(c.recipientPhone) ?? undefined)
         : undefined,
-      giftMessage: c.isGift ? c.giftMessage.trim() || undefined : undefined,
+      /*  ⚠️ THE SIGNATURE TRAVELS INSIDE THE MESSAGE, on purpose. The card is
+          hand-written from this one text, and the studio must not have to
+          join two fields (and guess where the dash goes) at the bench. The
+          checkout keeps them apart only so the customer can edit the name
+          without retyping the message.  */
+      giftMessage: c.isGift ? cardMessage(c) : undefined,
       anonymousGift: c.anonymousGift,
       photoUpdates: c.photoUpdates,
 
@@ -556,7 +583,13 @@ export default function CheckoutView() {
     place(
       buildOrder({
         cart,
-        checkout: { ...state, method: method.id, payment },
+        /*  the receipt shows the card as it was written — signature and all  */
+        checkout: {
+          ...state,
+          method: method.id,
+          payment,
+          giftMessage: cardMessage(state) ?? "",
+        },
         zone: zone ?? "dhaka",
         totals: {
           ...totals,
@@ -625,7 +658,17 @@ export default function CheckoutView() {
         </div>
       )}
 
-      <CheckoutGrid shown={allHeld ? [1, 2, 3] : [1, 2, 3, 4, 5]}>
+      {/*
+        WHICH STEPS THIS CHECKOUT HAS (owner, 8 Sep 2026)
+        · the card (4) only for a gift — there is no card on an order to
+          yourself, and an empty step is a step
+        · When and Payment leave when every item is held in this zone
+        The store is told the same list, because `completeStep` walks to the
+        next step that is DRAWN — never blindly to n + 1.
+      */}
+      <CheckoutGrid
+        shown={allHeld ? [1, 2, 3] : c.isGift ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 5, 6]}
+      >
         <Q1Details />
         <Q2Receiving />
         <Q3Where
@@ -633,6 +676,7 @@ export default function CheckoutView() {
           deliverableCount={cart.totals.activeQty}
           allHeld={allHeld}
         />
+        {!allHeld && c.isGift && <Q4Message />}
 
         {/*
           When every item is held in this zone (0 deliverable), showing
@@ -642,7 +686,7 @@ export default function CheckoutView() {
         */}
         {!allHeld && (
           <>
-            <Q4When
+            <Q5When
               subtotalPaisa={totals.subtotalPaisa}
               leadDays={leadDays}
               preorder={preorder}

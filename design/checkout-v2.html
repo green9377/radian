@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian — Checkout redesign</title>
+<style>
+  :root{
+    --purple:#470066; --purple-deep:#320049; --ink:#2e0442;
+    --orchid:#cf43ea; --orchid-soft:#f9e9fd; --orchid-mid:#e9a8f5;
+    --lavender:#f7f1fb; --lavender-deep:#efe4f7;
+    --rosegold:#b76e79; --rosegold-light:#e8c9ce;
+    --body:#3a2547; --body-soft:#7a6689;
+    --green:#0e7a3d; --green-soft:#e8f9ee; --green-bd:#c4eed4;
+    --amber:#8a5a00; --amber-soft:#fff7e8; --amber-bd:#f2d9a8;
+    --red:#c4172b;
+    --shadow-soft:0 10px 40px rgba(71,0,102,.08);
+    --shadow-lift:0 18px 50px rgba(71,0,102,.14);
+    --page-w:1200px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#faf7fc;color:var(--body);
+       font-family:"Century Gothic",Futura,"Trebuchet MS",system-ui,sans-serif;font-size:14px}
+  .display{font-family:Georgia,"Times New Roman",serif}
+  a{color:inherit}
+
+  /* ── review annotations (not part of the design) ── */
+  .note{max-width:var(--page-w);margin:34px auto 10px;padding:0 20px}
+  .note b{display:inline-block;background:var(--purple);color:#fff;font-size:11px;
+          letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:999px}
+  .note span{display:block;color:var(--body-soft);font-size:12.5px;margin-top:8px;max-width:820px;line-height:1.55}
+
+  /* ── slim checkout header ── */
+  .hdr{background:#fff;border-bottom:1px solid var(--lavender-deep)}
+  .hdr-in{max-width:var(--page-w);margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:Georgia,serif;font-size:22px;letter-spacing:.12em;color:var(--purple);font-weight:700}
+  .hdr-r{display:flex;gap:22px;align-items:center;font-size:12.5px;color:var(--body-soft)}
+  .hdr-r b{color:var(--purple)}
+  .pill-lock{display:inline-flex;gap:7px;align-items:center;background:var(--green-soft);
+             color:var(--green);border:1px solid var(--green-bd);padding:6px 12px;border-radius:999px;font-weight:700;font-size:12px}
+
+  .wrap{max-width:var(--page-w);margin:0 auto;padding:22px 20px 60px}
+  .back{display:inline-block;color:var(--purple);font-weight:700;font-size:13px;text-decoration:none;margin-bottom:14px}
+
+  .grid{display:grid;grid-template-columns:274px 1fr;gap:22px;align-items:start}
+
+  /* ══ THE RAIL — deep purple panel, unmistakably not a form ══ */
+  .rail{background:linear-gradient(168deg,#4d0170 0%,#320049 100%);border-radius:24px;padding:14px;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.14), var(--shadow-lift);position:sticky;top:18px}
+  .rail-head{padding:10px 12px 14px}
+  .rail-head b{display:block;color:#fff;font-family:Georgia,serif;font-size:17px;font-weight:600}
+  .rail-head i{display:block;color:#dcc4ea;font-style:normal;font-size:11.5px;margin-top:3px;letter-spacing:.03em}
+  .bar{height:5px;border-radius:99px;background:rgba(255,255,255,.16);margin:6px 12px 14px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:55%;border-radius:99px;
+         background:linear-gradient(90deg,var(--rosegold-light),var(--rosegold))}
+  .step{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;margin-bottom:6px;
+        color:#e7d8f0;transition:.18s;cursor:pointer}
+  .step .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;
+            background:rgba(255,255,255,.10);font-size:16px}
+  .step .tx b{display:block;font-family:Georgia,serif;font-size:15px;font-weight:600;line-height:1.15}
+  .step .tx i{display:block;font-style:normal;font-size:11.5px;opacity:.72;margin-top:2px}
+  .step.now{background:#fff;color:var(--purple);box-shadow:0 8px 22px rgba(0,0,0,.22)}
+  .step.now .ic{background:var(--purple);color:#fff}
+  .step.done .ic{background:var(--green-soft);color:var(--green)}
+  .step.done{color:#fff}
+  .step.todo{opacity:.62}
+
+  /* ══ PANELS ══ */
+  .panel{background:#fff;border:1.5px solid var(--lavender-deep);border-radius:24px;
+         box-shadow:var(--shadow-soft);padding:26px 28px}
+  .lead{font-family:Georgia,serif;font-size:23px;color:var(--purple);font-weight:600;margin:0 0 4px}
+  .lead+.sub{color:var(--body-soft);font-size:12.5px;margin:0 0 20px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  label.f{display:block;margin-bottom:16px}
+  label.f>span{display:block;font-size:12.5px;font-weight:700;color:var(--purple);
+               letter-spacing:.02em;margin-bottom:7px}
+  label.f>span em{font-style:normal;color:var(--red);margin-left:2px}
+  label.f>span u{text-decoration:none;font-weight:400;color:var(--body-soft)}
+  .in{width:100%;border:1.5px solid var(--lavender-deep);border-radius:14px;padding:13px 15px;
+      font-size:14px;color:var(--body);font-family:inherit;background:#fff;outline:none;transition:.15s}
+  .in:focus{border-color:var(--orchid);box-shadow:0 0 0 4px var(--orchid-soft)}
+  .in::placeholder{color:#b6a6c2}
+  .phone{display:flex;gap:9px}
+  .phone select{width:112px;flex:none;border:1.5px solid var(--lavender-deep);border-radius:14px;
+                padding:13px 10px;font-family:inherit;font-size:14px;color:var(--body);background:#fff}
+  textarea.in{min-height:104px;resize:none;line-height:1.5}
+
+  .btn{border:0;font-family:inherit;font-weight:700;cursor:pointer;border-radius:14px}
+  .btn-go{background:var(--purple);color:#fff;padding:15px 34px;font-size:14.5px;margin-top:8px;
+          box-shadow:0 8px 20px rgba(71,0,102,.22)}
+  .btn-go:hover{background:var(--purple-deep)}
+  .btn-ghost{background:#fff;border:2px solid var(--purple);color:var(--purple);padding:11px 20px;font-size:13px}
+
+  .seg{display:inline-flex;background:var(--lavender);padding:5px;border-radius:15px;gap:5px}
+  .seg button{border:0;background:transparent;font-family:inherit;font-weight:700;font-size:13.5px;
+              color:var(--body-soft);padding:11px 22px;border-radius:11px;cursor:pointer}
+  .seg button.on{background:#fff;color:var(--purple);box-shadow:var(--shadow-soft)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{border:1.5px solid var(--lavender-deep);background:#fff;border-radius:999px;padding:9px 17px;
+        font-family:inherit;font-weight:700;font-size:13px;color:var(--body);cursor:pointer}
+  .chip.on{border-color:var(--orchid);background:var(--orchid-soft);color:var(--purple)}
+  .chip.dash{border-style:dashed;color:var(--orchid)}
+
+  .tog{display:flex;gap:12px;align-items:center;border:1.5px solid var(--lavender-deep);background:#fff;
+       border-radius:16px;padding:13px 15px;cursor:pointer}
+  .tog.on{border-color:var(--orchid-mid);background:#fdf6ff}
+  .tog .ti{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;flex:none;
+           background:var(--lavender);font-size:15px}
+  .tog.on .ti{background:#fff;color:var(--orchid)}
+  .tog .tt{flex:1;min-width:0}
+  .tog .tt b{display:block;font-size:13.5px;color:var(--purple)}
+  .tog .tt i{display:block;font-style:normal;font-size:11.5px;color:var(--body-soft);margin-top:1px}
+  .sw{width:44px;height:25px;border-radius:99px;background:var(--lavender-deep);padding:3px;flex:none}
+  .tog.on .sw{background:var(--orchid)}
+  .sw i{display:block;width:19px;height:19px;border-radius:99px;background:#fff;transition:.18s}
+  .tog.on .sw i{transform:translateX(19px)}
+
+  /* method / slot / date */
+  .cards2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mcard{text-align:left;border:1.5px solid var(--lavender-deep);background:#fff;border-radius:16px;
+         padding:15px;font-family:inherit;cursor:pointer}
+  .mcard.on{border:2px solid var(--purple);background:var(--orchid-soft);box-shadow:0 4px 14px rgba(122,46,168,.18)}
+  .mcard.off{background:var(--lavender);cursor:not-allowed}
+  .mcard .t{display:flex;align-items:center;gap:9px}
+  .mcard .t b{font-size:14.5px;color:var(--purple);font-weight:700}
+  .mcard.off .t b{color:var(--body-soft)}
+  .mcard .t .p{margin-left:auto;font-size:13.5px;font-weight:700;color:var(--purple)}
+  .mcard .s{display:block;font-size:11.5px;color:var(--body-soft);margin-top:6px}
+  .mcard.off .s{color:var(--amber)}
+
+  .dates{display:flex;gap:9px;flex-wrap:wrap}
+  .d{width:78px;border:1.5px solid var(--lavender-deep);background:#fff;border-radius:15px;padding:10px 4px;
+     text-align:center;font-family:inherit;cursor:pointer}
+  .d u{display:block;text-decoration:none;font-size:11px;color:var(--body-soft);font-weight:700;letter-spacing:.04em}
+  .d b{display:block;font-family:Georgia,serif;font-size:21px;color:var(--purple);line-height:1.1;margin:2px 0}
+  .d i{display:block;font-style:normal;font-size:10.5px;color:var(--body-soft)}
+  .d.on{border-color:var(--orchid);background:var(--orchid);box-shadow:0 6px 16px rgba(207,67,234,.3)}
+  .d.on u,.d.on b,.d.on i{color:#fff}
+  .d.more{width:96px;border-style:dashed;border-color:var(--orchid-mid);display:grid;place-items:center}
+  .d.more b{font-family:inherit;font-size:12.5px;color:var(--orchid);font-weight:700}
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .sl{border:1.5px solid var(--lavender-deep);background:#fff;border-radius:14px;padding:12px 13px;
+      text-align:left;font-family:inherit;cursor:pointer}
+  .sl b{display:block;font-size:13px;color:var(--purple);font-weight:700}
+  .sl i{display:block;font-style:normal;font-size:11px;color:var(--body-soft);margin-top:3px}
+  .sl.on{border-color:var(--orchid);background:var(--orchid-soft)}
+  .sl.low i{color:var(--amber);font-weight:700}
+  .sl.off{background:var(--lavender);cursor:not-allowed}
+  .sl.off b{color:var(--body-soft)}
+  .sl.off i{color:var(--amber)}
+
+  .grp{margin-top:22px}
+  .grp>.gt{display:block;font-size:12.5px;font-weight:700;color:var(--purple);margin-bottom:10px}
+  .grp>.gt em{font-style:normal;color:var(--red)}
+  .info{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:999px;
+        border:1.5px solid var(--orchid-mid);color:var(--orchid);font-size:10px;font-weight:700;
+        margin-left:6px;cursor:help;vertical-align:middle}
+
+  .blocked{margin-top:16px;border:1px solid var(--amber-bd);background:var(--amber-soft);border-radius:16px;
+           padding:13px 16px;color:var(--amber);font-size:12.5px;font-weight:700}
+
+  /* card message */
+  .cardprev{border:1.5px solid var(--rosegold-light);border-radius:20px;padding:22px;
+            background:linear-gradient(160deg,#fffdfd,#fdf4f5);position:relative;min-height:168px}
+  .cardprev:before{content:"";position:absolute;inset:9px;border:1px solid var(--rosegold-light);border-radius:14px;pointer-events:none}
+  .cardprev .rl{font-family:Georgia,serif;font-size:12px;letter-spacing:.18em;color:var(--rosegold);text-transform:uppercase}
+  .cardprev p{font-family:Georgia,serif;font-size:16px;color:var(--ink);line-height:1.65;margin:14px 0 0;white-space:pre-wrap}
+  .cardprev .fr{font-family:Georgia,serif;font-size:13.5px;color:var(--body-soft);margin-top:16px;text-align:right}
+  .count{text-align:right;font-size:11.5px;color:var(--body-soft);margin-top:6px}
+
+  /* done row */
+  .doneRow{background:#fff;border:1.5px solid var(--lavender-deep);border-radius:20px;
+           box-shadow:var(--shadow-soft);padding:15px 18px;display:grid;
+           grid-template-columns:230px 1fr auto;gap:16px;align-items:center;margin-bottom:14px}
+  .doneRow .h{display:flex;gap:11px;align-items:center}
+  .doneRow .h .ic{width:38px;height:38px;border-radius:12px;background:var(--green-soft);color:var(--green);
+                  display:grid;place-items:center;font-size:15px}
+  .doneRow .h b{font-family:Georgia,serif;font-size:15px;color:var(--purple)}
+  .doneRow .h i{display:block;font-style:normal;font-size:11px;color:var(--body-soft)}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .facts div u{display:block;text-decoration:none;font-size:11.5px;color:var(--body-soft)}
+  .facts div b{display:block;font-size:13px;color:var(--ink);font-weight:600;margin-top:2px}
+  .edit{border:1.5px solid var(--lavender-deep);background:#fff;border-radius:999px;padding:8px 15px;
+        font-family:inherit;font-weight:700;font-size:12.5px;color:var(--purple);cursor:pointer}
+
+  /* bill */
+  .paygrid{display:grid;grid-template-columns:1fr 340px;gap:20px;margin-top:22px;
+           padding-top:22px;border-top:1px solid var(--lavender-deep)}
+  .line{display:flex;gap:14px;align-items:center;border:1.5px solid var(--lavender-deep);
+        border-radius:16px;padding:12px;margin-bottom:10px}
+  .line .th{width:56px;height:56px;border-radius:12px;background:linear-gradient(160deg,#f1e6f8,#dfc8f0);flex:none}
+  .line .tt{flex:1;min-width:0}
+  .line .tt b{display:block;font-size:13.5px;color:var(--purple)}
+  .line .tt i{display:block;font-style:normal;font-size:11.5px;color:var(--body-soft);margin-top:2px}
+  .line .pr{font-weight:700;color:var(--purple);font-size:14px}
+  .bill{background:var(--lavender);border:1.5px solid var(--lavender-deep);border-radius:20px;padding:20px;position:sticky;top:18px}
+  .bill h4{font-family:Georgia,serif;font-size:17px;color:var(--purple);margin:0 0 14px;font-weight:600}
+  .bl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--body-soft);margin-bottom:9px}
+  .bl b{color:var(--body);font-weight:700}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--lavender-deep);
+       padding-top:14px;margin-top:14px}
+  .tot span{font-size:13px;color:var(--purple);font-weight:700}
+  .tot b{font-family:Georgia,serif;font-size:29px;color:var(--purple)}
+  .place{width:100%;background:var(--purple);color:#fff;border:0;border-radius:16px;padding:17px;
+         font-family:inherit;font-weight:700;font-size:15.5px;margin-top:14px;cursor:pointer;
+         box-shadow:0 10px 24px rgba(71,0,102,.26)}
+  .trust{background:var(--green-soft);border:1px solid var(--green-bd);border-radius:14px;padding:12px 14px;margin-top:12px}
+  .trust div{display:flex;gap:8px;font-size:11.5px;color:#25674a;margin-bottom:6px}
+  .trust div:last-child{margin-bottom:0}
+  .promo{background:transparent;border:0;color:var(--orchid);font-family:inherit;font-weight:700;
+         font-size:12.5px;padding:0;cursor:pointer;margin:4px 0 2px}
+
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.rail{position:static}.row2,.cards2,.paygrid{grid-template-columns:1fr}
+    .slots{grid-template-columns:1fr 1fr}.doneRow{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="hdr"><div class="hdr-in">
+  <span class="logo">RADIAN</span>
+  <span class="hdr-r"><span class="pill-lock">🔒 Secure checkout</span><span>Need help? <b>01519779378</b></span></span>
+</div></div>
+
+<!-- ══════════════ STEP 1 ══════════════ -->
+<div class="note"><b>Step 1 · Your Details</b>
+  <span>Phone, not "WhatsApp number". No line under the field, no green box under the email. Four things on the screen: name, phone, email, Continue. The rail on the left is now a deep purple panel — it can never be mistaken for part of the form.</span></div>
+
+<div class="wrap">
+  <a class="back" href="#">‹ Back to cart</a>
+  <div class="grid">
+    <div class="rail">
+      <div class="rail-head"><b>Your order</b><i>Step 1 of 6 · about 2 minutes</i></div>
+      <div class="bar"><i style="width:8%"></i></div>
+      <div class="step now"><span class="ic">👤</span><span class="tx"><b>Your Details</b><i>Step 1</i></span></div>
+      <div class="step todo"><span class="ic">🎁</span><span class="tx"><b>Who's Receiving?</b><i>Step 2</i></span></div>
+      <div class="step todo"><span class="ic">📍</span><span class="tx"><b>Where?</b><i>Step 3</i></span></div>
+      <div class="step todo"><span class="ic">💌</span><span class="tx"><b>Card Message</b><i>Step 4</i></span></div>
+      <div class="step todo"><span class="ic">🕑</span><span class="tx"><b>When?</b><i>Step 5</i></span></div>
+      <div class="step todo"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+    </div>
+
+    <div class="panel">
+      <h2 class="lead">Let us know you better</h2>
+      <div class="row2">
+        <label class="f"><span>Your name<em>*</em></span><input class="in" value="Sobuj Gazi" /></label>
+        <label class="f"><span>Phone number<em>*</em><span class="info" title="We send the confirmation, the preparation photo and the delivery photo to this number.">i</span></span>
+          <span class="phone"><select><option>BD +880</option><option>US +1</option><option>UK +44</option></select>
+          <input class="in" value="01940974467" /></span></label>
+      </div>
+      <label class="f"><span>Email <u>· optional</u></span><input class="in" placeholder="you@email.com" /></label>
+      <button class="btn btn-go">Continue ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ STEP 2 ══════════════ -->
+<div class="note"><b>Step 2 · Who's Receiving?</b>
+  <span>The gift message has left this step — it is now its own step, so this screen asks one question only: who is it for. No grey line under the receiver's phone. Both switches stay, bold and readable.</span></div>
+
+<div class="wrap"><div class="grid">
+  <div class="rail">
+    <div class="rail-head"><b>Your order</b><i>Step 2 of 6</i></div>
+    <div class="bar"><i style="width:25%"></i></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Your Details</b><i>Sobuj Gazi</i></span></div>
+    <div class="step now"><span class="ic">🎁</span><span class="tx"><b>Who's Receiving?</b><i>Step 2</i></span></div>
+    <div class="step todo"><span class="ic">📍</span><span class="tx"><b>Where?</b><i>Step 3</i></span></div>
+    <div class="step todo"><span class="ic">💌</span><span class="tx"><b>Card Message</b><i>Step 4</i></span></div>
+    <div class="step todo"><span class="ic">🕑</span><span class="tx"><b>When?</b><i>Step 5</i></span></div>
+    <div class="step todo"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+  </div>
+
+  <div>
+    <div class="doneRow">
+      <span class="h"><span class="ic">✓</span><span><b>Your Details</b><i>Step 1</i></span></span>
+      <span class="facts"><div><u>Full name</u><b>Sobuj Gazi</b></div><div><u>Phone</u><b>+880 01940974467</b></div><div><u>Email</u><b>—</b></div></span>
+      <button class="edit">✎ Edit</button>
+    </div>
+
+    <div class="panel">
+      <h2 class="lead">Who is this for?</h2>
+      <div class="seg"><button class="on">It's a gift</button><button>It's for me</button></div>
+
+      <div class="grp"><span class="gt">Send again to</span>
+        <div class="chips"><button class="chip on">Meem Rahman</button><button class="chip">Ammu</button><button class="chip dash">+ Someone new</button></div>
+      </div>
+
+      <div class="row2" style="margin-top:22px">
+        <label class="f"><span>Receiver's name<em>*</em></span><input class="in" placeholder="Meem Rahman" /></label>
+        <label class="f"><span>Receiver's phone<em>*</em><span class="info" title="Bangladeshi number. Our rider calls it on arrival.">i</span></span><input class="in" placeholder="01X XXX XXXXX" /></label>
+      </div>
+
+      <div class="row2" style="gap:12px">
+        <div class="tog"><span class="ti">🙈</span><span class="tt"><b>Send anonymously</b><i>Your name won't appear on the card</i></span><span class="sw"><i></i></span></div>
+        <div class="tog on"><span class="ti">📷</span><span class="tt"><b>Photo updates</b><i>The arrangement and the delivery, sent to you</i></span><span class="sw"><i></i></span></div>
+      </div>
+
+      <button class="btn btn-go">Continue ›</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════ STEP 3 ══════════════ -->
+<div class="note"><b>Step 3 · Where?</b>
+  <span>One address box, one optional rider note. The hint lines are gone; the placeholder already shows the shape of a good address.</span></div>
+
+<div class="wrap"><div class="grid">
+  <div class="rail">
+    <div class="rail-head"><b>Your order</b><i>Step 3 of 6</i></div>
+    <div class="bar"><i style="width:42%"></i></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Your Details</b><i>Sobuj Gazi</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Who's Receiving?</b><i>Meem Rahman</i></span></div>
+    <div class="step now"><span class="ic">📍</span><span class="tx"><b>Where?</b><i>Step 3</i></span></div>
+    <div class="step todo"><span class="ic">💌</span><span class="tx"><b>Card Message</b><i>Step 4</i></span></div>
+    <div class="step todo"><span class="ic">🕑</span><span class="tx"><b>When?</b><i>Step 5</i></span></div>
+    <div class="step todo"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="lead">Where should it go?</h2>
+    <div class="grp" style="margin-top:6px"><span class="gt">Delivering to</span>
+      <div class="seg"><button class="on">Inside Dhaka</button><button>All Bangladesh</button></div>
+    </div>
+    <div class="grp">
+      <label class="f"><span>Full address<em>*</em><span class="info" title="House, road, flat, area — and a landmark if it helps our rider.">i</span></span>
+        <textarea class="in" placeholder="House 8, Road 27, Flat B4, Dhanmondi — opposite Star Kabab"></textarea></label>
+      <label class="f"><span>Note for the rider <u>· optional</u></span><input class="in" placeholder="Call before arriving" /></label>
+    </div>
+    <button class="btn btn-go">Continue ›</button>
+  </div>
+</div></div>
+
+<!-- ══════════════ STEP 4 ══════════════ -->
+<div class="note"><b>Step 4 · Card Message — the new step</b>
+  <span>FlowerAura's "Special Note", made Radian's. Occasion chips fill ready-made lines, the card on the right shows exactly what will be hand-written, and "From" is filled from step 1. Admin already receives this text on the order (Recipient &amp; gift → Gift message); it will get its own card there so the studio can copy it without hunting.</span></div>
+
+<div class="wrap"><div class="grid">
+  <div class="rail">
+    <div class="rail-head"><b>Your order</b><i>Step 4 of 6</i></div>
+    <div class="bar"><i style="width:58%"></i></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Your Details</b><i>Sobuj Gazi</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Who's Receiving?</b><i>Meem Rahman</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Where?</b><i>Dhanmondi, Dhaka</i></span></div>
+    <div class="step now"><span class="ic">💌</span><span class="tx"><b>Card Message</b><i>Step 4</i></span></div>
+    <div class="step todo"><span class="ic">🕑</span><span class="tx"><b>When?</b><i>Step 5</i></span></div>
+    <div class="step todo"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="lead">Write the card</h2>
+    <p class="sub">Hand-written on a Radian card and tucked into the bouquet — the part they keep.</p>
+
+    <div class="row2" style="gap:26px">
+      <div>
+        <div class="grp" style="margin-top:0"><span class="gt">What is the occasion?</span>
+          <div class="chips">
+            <button class="chip on">Anniversary</button><button class="chip">Birthday</button>
+            <button class="chip">Love</button><button class="chip">Thank you</button><button class="chip">Congratulations</button>
+          </div>
+        </div>
+
+        <div class="grp"><span class="gt">Pick a line, or write your own</span>
+          <div class="chips">
+            <button class="chip">Ten years and I'd still pick you.</button>
+            <button class="chip">Happy anniversary, my love.</button>
+            <button class="chip">Here's to us — and to all of it again.</button>
+          </div>
+        </div>
+
+        <div class="grp">
+          <label class="f" style="margin-bottom:0"><span>Your message <u>· optional</u></span>
+            <textarea class="in">Happy anniversary, Meem.
+Ten years and I'd still pick you.</textarea></label>
+          <div class="count">62 / 200</div>
+        </div>
+
+        <label class="f"><span>Signed</span><input class="in" value="Sobuj" /></label>
+      </div>
+
+      <div>
+        <span class="gt" style="display:block;font-size:12.5px;font-weight:700;color:var(--purple);margin-bottom:10px">On the card</span>
+        <div class="cardprev">
+          <span class="rl">Radian</span>
+          <p>Happy anniversary, Meem.
+Ten years and I'd still pick you.</p>
+          <div class="fr">— Sobuj</div>
+        </div>
+        <div class="tog" style="margin-top:12px"><span class="ti">🙈</span><span class="tt"><b>Don't sign it</b><i>The card goes without your name</i></span><span class="sw"><i></i></span></div>
+      </div>
+    </div>
+
+    <button class="btn btn-go">Continue ›</button>
+  </div>
+</div></div>
+
+<!-- ══════════════ STEP 5 ══════════════ -->
+<div class="note"><b>Step 5 · When?</b>
+  <span>Seven days on the strip, and an eighth tile — <b style="background:none;color:var(--orchid);padding:0;font-size:12.5px;text-transform:none;letter-spacing:0">Pick a date</b> — opens the calendar for anything further out. The paragraphs are gone: what is closed says so on the tile itself, in one bold line, and the reason sits behind the ⓘ.</span></div>
+
+<div class="wrap"><div class="grid">
+  <div class="rail">
+    <div class="rail-head"><b>Your order</b><i>Step 5 of 6</i></div>
+    <div class="bar"><i style="width:76%"></i></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Your Details</b><i>Sobuj Gazi</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Who's Receiving?</b><i>Meem Rahman</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Where?</b><i>Dhanmondi, Dhaka</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Card Message</b><i>Written</i></span></div>
+    <div class="step now"><span class="ic">🕑</span><span class="tx"><b>When?</b><i>Step 5</i></span></div>
+    <div class="step todo"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="lead">When should it arrive?</h2>
+
+    <div class="cards2">
+      <button class="mcard on"><span class="t">⚡<b>2 Hour Express</b><span class="p">৳300</span></span><span class="s">At their door within 2 hours</span></button>
+      <button class="mcard"><span class="t">☀️<b>Same Day</b><span class="p">৳150</span></span><span class="s">Choose a slot for today</span></button>
+      <button class="mcard"><span class="t">🌙<b>Midnight Surprise</b><span class="p">৳260</span></span><span class="s">11:30 PM – 12:30 AM</span></button>
+      <button class="mcard off"><span class="t">📅<b>Schedule It</b><span class="p">৳150</span></span><span class="s">Closed for this order <span class="info" title="Anniversary GIFT needs 1 day to make, so the earliest dates are closed.">i</span></span></button>
+    </div>
+
+    <div class="grp"><span class="gt">Delivery date<em>*</em></span>
+      <div class="dates">
+        <button class="d"><u>TUE</u><b>8</b><i>Today</i></button>
+        <button class="d on"><u>WED</u><b>9</b><i>Tomorrow</i></button>
+        <button class="d"><u>THU</u><b>10</b><i>Sep</i></button>
+        <button class="d"><u>FRI</u><b>11</b><i>Sep</i></button>
+        <button class="d"><u>SAT</u><b>12</b><i>Sep</i></button>
+        <button class="d"><u>SUN</u><b>13</b><i>Sep</i></button>
+        <button class="d"><u>MON</u><b>14</b><i>Sep</i></button>
+        <button class="d more"><b>📅 Pick a date</b></button>
+      </div>
+    </div>
+
+    <div class="grp"><span class="gt">Time slot<em>*</em></span>
+      <div class="slots">
+        <button class="sl on"><b>9:00 AM – 3:00 PM</b><i>Available</i></button>
+        <button class="sl low"><b>3:00 PM – 10:00 PM</b><i>Only 3 left</i></button>
+        <button class="sl off"><b>Fixed time · +৳100</b><i>Fully booked</i></button>
+      </div>
+    </div>
+
+    <div class="blocked">Anniversary GIFT can't take Schedule It — remove it and the rest open up.</div>
+
+    <button class="btn btn-go">Continue to payment ›</button>
+  </div>
+</div></div>
+
+<!-- ══════════════ STEP 6 ══════════════ -->
+<div class="note"><b>Step 6 · Payment &amp; Summary</b>
+  <span>Cash on Delivery is not drawn at all when it cannot be taken (a gift, or an advance-required item) — a greyed card that says "no" is a question the customer did not need. When both are open, they are two equal cards and the live one is unmistakable. The bill stays on the right with one Place Order.</span></div>
+
+<div class="wrap"><div class="grid">
+  <div class="rail">
+    <div class="rail-head"><b>Your order</b><i>Step 6 of 6</i></div>
+    <div class="bar"><i style="width:100%"></i></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Your Details</b><i>Sobuj Gazi</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Who's Receiving?</b><i>Meem Rahman</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Where?</b><i>Dhanmondi, Dhaka</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>Card Message</b><i>Written</i></span></div>
+    <div class="step done"><span class="ic">✓</span><span class="tx"><b>When?</b><i>9 Sep · Evening</i></span></div>
+    <div class="step now"><span class="ic">🔒</span><span class="tx"><b>Payment</b><i>Step 6</i></span></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="lead">How would you like to pay?</h2>
+
+    <div class="cards2">
+      <button class="mcard on"><span class="t"><span style="background:var(--purple);color:#fff;border-radius:9px;padding:6px 8px;font-size:11px;font-weight:700">SSL</span><b>Online Payment</b><span class="p">✓</span></span>
+        <span class="s">Card, bKash, Nagad, Rocket — chosen on the next screen</span></button>
+      <button class="mcard"><span class="t"><span style="background:#fff;border:1.5px solid var(--lavender-deep);border-radius:9px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--purple)">৳</span><b>Cash on Delivery</b></span>
+        <span class="s">Pay our rider when it arrives</span></button>
+    </div>
+
+    <div class="grp" style="margin-top:16px">
+      <div class="tog" style="cursor:default"><span class="ti">🎟️</span><span class="tt"><b>Have store credit with us?</b><i>We send a code to +880 01940974467</i></span><button class="btn btn-ghost">Send code</button></div>
+    </div>
+
+    <div class="paygrid">
+      <div>
+        <div class="line"><span class="th"></span><span class="tt"><b>Anniversary GIFT</b><i>Pink · Large · Standard</i></span><span class="pr">৳6,849</span></div>
+        <div class="line"><span class="th"></span><span class="tt"><b>Radian card message</b><i>Hand-written · free</i></span><span class="pr">৳0</span></div>
+      </div>
+      <div class="bill">
+        <h4>Bill Summary</h4>
+        <div class="bl"><span>Subtotal · 1 item</span><b>৳6,849</b></div>
+        <div class="bl"><span>Delivery · 2 Hour Express</span><b>৳300</b></div>
+        <button class="promo">🏷️ Have a promo code?</button>
+        <div class="tot"><span>Total</span><b>৳7,149</b></div>
+        <button class="place">Place Order · ৳7,149</button>
+        <div class="trust">
+          <div>🔒 256-bit encrypted payment</div>
+          <div>🌿 Freshness guarantee — replaced free if imperfect</div>
+          <div>⭐ 4.2 on Google — from real reviews</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="note" style="margin-bottom:60px"><b>Also being fixed, behind the screen</b>
+  <span>Admin → order → Photos &amp; proof will get a real upload button on the order itself (today the only place to upload is Delivery → Proof photos), and it will follow the order's own Photo-updates switch: on = upload and send, off = upload for the file only. The card message will sit in its own panel on the order so the studio can read and copy it.</span></div>
+
+</body>
+</html>

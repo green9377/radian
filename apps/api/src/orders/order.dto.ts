@@ -110,6 +110,15 @@ export interface EditOrderDto {
   recipientName?: string;
   recipientPhone?: string;
   giftMessage?: string;
+  /**
+   * Does the customer get the preparation and delivery photographs?
+   *
+   * ⚠️ It was set once at checkout and could never be changed again — the
+   * admin printed "Photo updates are on" and gave nobody a way to turn them
+   * off (owner, 8 Sep 2026). It rides with the recipient gate: the same
+   * people, at the same stages, who may fix the receiver's name.
+   */
+  photoUpdates?: boolean;
   address?: string;
   deliveryNotes?: string;
   methodLabel?: string;

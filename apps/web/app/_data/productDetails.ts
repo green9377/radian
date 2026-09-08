@@ -24,7 +24,9 @@ export type IconName =
   | "sparkle" | "gift" | "store" | "clock" | "pen" | "check" | "chev"
   | "cart" | "heart" | "tag" | "play" | "upload" | "wa" | "search"
   /* added for checkout */
-  | "user" | "pin" | "camera" | "lock" | "phone" | "eye-off";
+  | "user" | "pin" | "camera" | "lock" | "phone" | "eye-off"
+  /* added for the card-message step and the date picker (8 Sep 2026) */
+  | "note" | "calendar";
 
 /**
  * The same names, as a runtime list.
@@ -43,6 +45,7 @@ export const ICON_NAMES: readonly IconName[] = [
   "sparkle", "gift", "store", "clock", "pen", "check", "chev",
   "cart", "heart", "tag", "play", "upload", "wa", "search",
   "user", "pin", "camera", "lock", "phone", "eye-off",
+  "note", "calendar",
 ];
 
 export const asIconName = (v: string | null | undefined): IconName =>

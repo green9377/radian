@@ -20,22 +20,26 @@ import {
 } from "./CheckoutFields";
 
 /*
-  Q1 — Your Details   ·   Q2 — Who's Receiving + Gift Touches
+  Q1 — Your Details   ·   Q2 — Who's Receiving
 
   ★ The sender's phone takes a country code (locked, 14 July — the owner).
   Many customers live abroad and send flowers to a mother in Dhaka; their own
-  number is not +880. And all of Radian's communication starts on WhatsApp
-  (confirmation → prep photo → delivery photo), so the number MUST be a
-  WhatsApp one — which is what the line under the field says plainly.
+  number is not +880.
+
+  ★ IT IS "PHONE NUMBER", NOT "WHATSAPP NUMBER" (owner, 8 Sep 2026). The field
+  demanded a WhatsApp number and explained itself in a grey line underneath —
+  but a Bangladeshi customer is messaged by SMS now (`notify-route.ts` sends
+  BD → SMS, foreign → email, WhatsApp last), so the demand was both narrower
+  than the truth and one more thing to read at the checkout. What we do with
+  the number lives behind the ⓘ.
 
   ★ The receiver's phone takes no country code — the gift is going to
-  Bangladesh, so the receiver is in Bangladesh. And theirs need not be a
-  WhatsApp number: the rider will call it.
+  Bangladesh, so the receiver is in Bangladesh.
+
+  ★ The card message is NOT here any more. It is step 4, `CheckoutMessage`.
 
   ★ A red * on a required field — what cannot be skipped, at a glance.
 */
-
-const MSG_MAX = 200;
 
 export function Q1Details() {
   const s = useCheckoutStore();
@@ -56,7 +60,7 @@ export function Q1Details() {
       done={s.done.includes(1)}
       facts={[
         { label: "Full name", value: s.senderName },
-        { label: "WhatsApp number", value: `${s.senderDial} ${s.senderPhone}` },
+        { label: "Phone", value: `${s.senderDial} ${s.senderPhone}` },
         ...(s.senderEmail ? [{ label: "Email", value: s.senderEmail }] : []),
       ]}
       onOpen={() => s.openStep(1)}
@@ -73,9 +77,9 @@ export function Q1Details() {
         </Field>
 
         <Field
-          label="WhatsApp number"
+          label="Phone number"
           required
-          hint="Must be a WhatsApp number — we send confirmation, the preparation photo and the delivery photo there."
+          hint="We send the confirmation, the preparation photo and the delivery photo to this number. Sending from abroad? Pick your country code and we will reach you there."
           error={errors.senderPhone}
         >
           <PhoneInput
@@ -100,14 +104,6 @@ export function Q1Details() {
         </Field>
       </div>
 
-      <div className="mt-4 rounded-[14px] bg-[#E8F9EE] border border-[#C4EED4] px-4 py-3 flex gap-2.5">
-        <Icon name="wa" className="w-[18px] h-[18px] text-[#0E7A3D] shrink-0 mt-[1px]" />
-        <p className="text-[12.5px] text-[#25674A] leading-snug">
-          Sending from abroad? Pick your country code — we&apos;ll message you on
-          WhatsApp wherever you are.
-        </p>
-      </div>
-
       <Continue onClick={onContinue} />
     </QCard>
   );
@@ -125,9 +121,9 @@ export function Q2Receiving() {
 
   const facts = s.isGift
     ? [
-        { label: "Receiver", value: `${s.recipientName}${s.anonymousGift ? " · sent anonymously" : ""}` },
+        { label: "Receiver", value: s.recipientName },
         { label: "Receiver's phone", value: s.recipientPhone },
-        { label: "Card message", value: s.giftMessage.trim() || "No message" },
+        { label: "Photo updates", value: s.photoUpdates ? "On" : "Off" },
       ]
     : [{ label: "Receiver", value: "For me" }];
 
@@ -183,7 +179,7 @@ export function Q2Receiving() {
             <Field
               label="Receiver's phone"
               required
-              hint="Bangladeshi number. Our rider calls on arrival — WhatsApp isn't needed."
+              hint="A Bangladeshi number — our rider calls it on arrival."
               error={errors.recipientPhone}
             >
               <input
@@ -196,38 +192,14 @@ export function Q2Receiving() {
             </Field>
           </div>
 
-          {/* ─── gift message (D14 — moved here from the PDP / cart) ─── */}
-          <div className="mt-4">
-            <Field
-              label="Gift message"
-              optional
-              hint="Hand-written on a Radian card — the part they keep"
-            >
-              <textarea
-                className={`${inputClass} min-h-[92px] resize-none`}
-                value={s.giftMessage}
-                maxLength={MSG_MAX}
-                onChange={(e) => s.set("giftMessage", e.target.value)}
-                placeholder="Happy birthday, Meem. Ten years and I'd still pick you."
-              />
-            </Field>
-            <div className="text-right text-[11.5px] text-body-soft mt-1">
-              {s.giftMessage.length}/{MSG_MAX}
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-3 mt-2">
-            <Toggle
-              icon="eye-off"
-              title="Send anonymously"
-              sub="Your name won't appear on the card"
-              on={s.anonymousGift}
-              onChange={(v) => s.set("anonymousGift", v)}
-            />
+          {/*  ⚠️ The card message and "Send anonymously" moved to step 4
+               (owner, 8 Sep 2026). Both are about the CARD, and both were
+               being skipped down here under a phone field.  */}
+          <div className="mt-1">
             <Toggle
               icon="camera"
               title="Photo updates"
-              sub="We WhatsApp you the arrangement and the delivery"
+              sub="The arrangement and the delivery, sent to you"
               on={s.photoUpdates}
               onChange={(v) => s.set("photoUpdates", v)}
             />
@@ -240,7 +212,7 @@ export function Q2Receiving() {
           <Toggle
             icon="camera"
             title="Photo updates"
-            sub="We WhatsApp you a photo before it leaves the studio"
+            sub="A photo before it leaves the studio"
             on={s.photoUpdates}
             onChange={(v) => s.set("photoUpdates", v)}
           />

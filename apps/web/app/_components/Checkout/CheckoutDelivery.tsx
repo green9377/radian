@@ -28,10 +28,17 @@ import {
 import Icon from "../Pdp/PdpIcons";
 import { promisePhrase } from "../../_data/deliveryClaims";
 import { fetchSlotLoad } from "../../_data/checkoutApi";
-import { Continue, Field, QCard, Seg, inputClass } from "./CheckoutFields";
+import { Continue, Field, Info, QCard, Seg, inputClass } from "./CheckoutFields";
+
+/** "12 September" — one shape for every date this screen prints in a sentence */
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+}
 
 /*
-  Q3 — Where   ·   Q4 — When   (two separate steps, locked 14 July)
+  Q3 — Where   ·   Q5 — When   (two separate steps, locked 14 July)
+
+  ★ When is step 5 since 8 Sep 2026 — the card message took step 4.
 
   ★ NO district / thana / area dropdowns (D27)
   One big box, in both zones. Every dropdown is another decision and more
@@ -180,7 +187,7 @@ export function Q3Where({
             : "Full address"
         }
         required
-        hint="House, road, flat, area — and a landmark if it helps our rider"
+        hint="House, road, flat, area — and a landmark if it helps our rider."
         error={errors.address}
       >
         <textarea
@@ -196,7 +203,11 @@ export function Q3Where({
       </Field>
 
       <div className="mt-4">
-        <Field label="Delivery notes" optional>
+        <Field
+          label="Note for the rider"
+          optional
+          hint="Anything that helps at the door — a gate code, a floor, a time to call."
+        >
           <input
             className={inputClass}
             value={s.deliveryNotes}
@@ -215,7 +226,7 @@ export function Q3Where({
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-export function Q4When({
+export function Q5When({
   subtotalPaisa,
   leadDays = 0,
   preorder = null,
@@ -299,10 +310,26 @@ export function Q4When({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotLoad, s.slotId, method.id]);
 
+  /*  SEVEN DAYS ON THE STRIP, AND A CALENDAR FOR THE REST (owner, 8 Sep 2026).
+      "just 7 day ar date show kre tarpor kew schedule krte chaile tar option
+      ki?" — eight tiles was an arbitrary number, and anybody planning further
+      ahead than the strip had nowhere to go. Seven reads as a week; the eighth
+      tile opens the browser's own date picker (`customDate` below).  */
   const dates = useMemo(
-    () => dateOptions(method, now, 8, leadDays),
+    () => dateOptions(method, now, 7, leadDays),
     [method, now, leadDays],
   );
+
+  /*  A date chosen from the calendar rather than the strip — it gets its own
+      tile so the choice is visible, instead of the strip quietly showing none
+      of them selected.  */
+  const customDate = s.date && !dates.some((d) => d.id === s.date) ? s.date : null;
+  const dateRef = useRef<HTMLInputElement>(null);
+  const minDate = useMemo(() => {
+    const d = new Date(now);
+    d.setDate(now.getDate() + Math.max(0, leadDays));
+    return toISODate(d);
+  }, [now, leadDays]);
   const isToday = method.todayOnly || s.date === today;
   const isTodayRef = useRef(isToday);
   isTodayRef.current = isToday;
@@ -315,7 +342,7 @@ export function Q4When({
     order summary still read "Delivery · Same Day · ৳60". The customer is being
     quoted a method the page has just refused.
 
-    `validateStep(4)` would have caught it at "Continue to payment", but only
+    `validateStep(5)` would have caught it at "Continue to payment", but only
     after they had read a wrong total on the way there — and the fee is part of
     that total. A price must never be shown for something that cannot be sold.
 
@@ -369,34 +396,36 @@ export function Q4When({
 
   function onContinue() {
     const state = { ...useCheckoutStore.getState(), method: method.id };
-    const e = validateStep(4, state, { now, leadDays, speeds: spd, method });
+    const e = validateStep(5, state, { now, leadDays, speeds: spd, method });
     setErrors(e);
     if (Object.keys(e).length === 0) {
       s.patch({ method: method.id });
-      s.completeStep(4);
+      s.completeStep(5);
     }
   }
 
   const slotLabel = slotsForMethod.find((x) => x.id === s.slotId)?.label;
   const dateLabel = dates.find((d) => d.id === s.date)?.label;
 
-  const facts = s.done.includes(4)
+  const facts = s.done.includes(5)
     ? [
         { label: "Delivery", value: method.label },
-        ...(dateLabel ? [{ label: "Date", value: dateLabel }] : []),
+        ...(dateLabel || customDate
+          ? [{ label: "Date", value: dateLabel ?? longDate(customDate!) }]
+          : []),
         ...(slotLabel ? [{ label: "Time", value: slotLabel }] : []),
       ]
     : undefined;
 
   return (
     <QCard
-      n={4}
+      n={5}
       title="When?"
-      lead="Choose the delivery date & time"
-      open={s.step === 4}
-      done={s.done.includes(4)}
+      lead="When should it arrive?"
+      open={s.step === 5}
+      done={s.done.includes(5)}
       facts={facts}
-      onOpen={() => s.openStep(4)}
+      onOpen={() => s.openStep(5)}
     >
       {/* ─── method ─── */}
       <div className="grid sm:grid-cols-2 gap-3">
@@ -503,13 +532,13 @@ export function Q4When({
         if (blocked.length === 0) return null;
         const names = [...new Set(blocked.map((b) => b.blockedBy))];
         return (
-          <div className="mt-4 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3.5 flex gap-3">
-            <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0 mt-[1px]" />
-            <p className="text-[13px] text-body leading-snug">
-              <b className="text-purple">{names.join(", ")}</b>{" "}
-              {names.length === 1 ? "can't take" : "can't take"} some of the faster
-              options, so they are closed for this order. Remove{" "}
-              {names.length === 1 ? "it" : "them"} and the rest open up.
+          <div className="mt-4 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3 flex gap-2.5 items-center">
+            <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0" />
+            <p className="text-[13px] font-semibold text-purple leading-snug">
+              {names.join(", ")} can&apos;t take the faster options
+              <Info
+                text={`Remove ${names.length === 1 ? "it" : "them"} from the cart and the faster deliveries open up again.`}
+              />
             </p>
           </div>
         );
@@ -520,32 +549,21 @@ export function Q4When({
            which explains nothing to somebody who ordered a plain product that
            the shop simply does not have yet.  */}
       {leadDays > 0 && (
-        <div className="mt-4 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3.5 flex gap-3">
-          <Icon name="clock" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0 mt-[1px]" />
-          <p className="text-[13px] text-[#8A5A00] leading-snug">
+        <div className="mt-4 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3 flex gap-2.5 items-center">
+          <Icon name="clock" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0" />
+          <p className="text-[13px] font-semibold text-[#8A5A00] leading-snug">
             {preorder ? (
               <>
-                <b>{preorder.name}</b> is a pre-order
+                {preorder.name} is a pre-order
                 {preorder.backOn ? (
-                  <>
-                    {" "}— we start sending these from{" "}
-                    <b>
-                      {new Date(preorder.backOn).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "long",
-                      })}
-                    </b>
-                  </>
+                  <> — sent from {longDate(preorder.backOn)}</>
                 ) : null}
-                , so the earlier dates are closed.
+                <Info text="The earlier dates are closed because this one is not in the studio yet." />
               </>
             ) : (
               <>
-                This order is made to order — we need{" "}
-                <b>
-                  {leadDays} day{leadDays === 1 ? "" : "s"}
-                </b>{" "}
-                before it can go out, so the earliest dates are closed.
+                Made to order — {leadDays} day{leadDays === 1 ? "" : "s"} before it can go out
+                <Info text="We start making it the day you order, so the earliest dates are closed." />
               </>
             )}
           </p>
@@ -568,23 +586,22 @@ export function Q4When({
         promise is actually configured.
       */}
       {method.timing === "FROM_CONFIRM" && promisePhrase(method.promiseMinutes ?? null) && (
-        <div className="mt-5 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3.5 flex gap-3">
-          <Icon name="bolt" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0 mt-[1px]" />
-          <p className="text-[13px] text-[#8A5A00] leading-snug">
-            We start arranging the moment you pay —{" "}
-            <b>at their door {promisePhrase(method.promiseMinutes ?? null)}</b>. No date
-            or slot to pick.
+        <div className="mt-5 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3 flex gap-2.5 items-center">
+          <Icon name="bolt" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0" />
+          <p className="text-[13px] font-semibold text-[#8A5A00] leading-snug">
+            At their door {promisePhrase(method.promiseMinutes ?? null)}
+            <Info text="We start arranging the moment you pay, so there is no date or slot to pick." />
           </p>
         </div>
       )}
 
       {/* ─── courier ─── */}
       {method.id === "courier" && (
-        <div className="mt-5 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3.5 flex gap-3">
-          <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0 mt-[1px]" />
-          <p className="text-[13px] text-body leading-snug">
-            Arrives <b className="text-purple">{courierWindow(now, leadDays)}</b>. Our courier
-            partner calls before delivery — time slots are inside Dhaka only.
+        <div className="mt-5 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3 flex gap-2.5 items-center">
+          <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0" />
+          <p className="text-[13px] font-semibold text-purple leading-snug">
+            Arrives {courierWindow(now, leadDays)}
+            <Info text="Our courier partner calls before delivery. Time slots are inside Dhaka only." />
           </p>
         </div>
       )}
@@ -606,16 +623,18 @@ export function Q4When({
                   type="button"
                   disabled={d.disabled}
                   onClick={() => s.patch({ date: d.id, slotId: null })}
-                  className={`shrink-0 w-[76px] rounded-[14px] border-[1.5px] py-2.5 text-center transition-colors ${
+                  className={`shrink-0 w-[78px] rounded-[15px] border-[1.5px] py-2.5 text-center transition-colors ${
                     on
-                      ? "border-orchid bg-orchid text-white"
+                      ? "border-orchid bg-orchid text-white shadow-soft"
                       : d.disabled
                         ? "border-lavender-deep bg-lavender text-body-soft/50 cursor-not-allowed"
                         : "border-lavender-deep bg-white text-purple hover:border-orchid-mid"
                   }`}
                 >
-                  <span className="block text-[11px] opacity-80">{d.day}</span>
-                  <span className="block font-display text-[18px] font-semibold leading-tight">
+                  <span className="block text-[11px] font-bold tracking-[0.04em] opacity-80">
+                    {d.day}
+                  </span>
+                  <span className="block font-display text-[19px] font-semibold leading-tight">
                     {d.date}
                   </span>
                   <span className="block text-[10.5px] opacity-80 truncate px-0.5">
@@ -624,12 +643,59 @@ export function Q4When({
                 </button>
               );
             })}
+
+            {/*  the chosen calendar date, standing in the strip like the rest  */}
+            {customDate && (
+              <button
+                type="button"
+                onClick={() => dateRef.current?.showPicker?.()}
+                className="shrink-0 w-[78px] rounded-[15px] border-[1.5px] border-orchid bg-orchid text-white shadow-soft py-2.5 text-center"
+              >
+                <span className="block text-[11px] font-bold tracking-[0.04em] opacity-80">
+                  {new Date(customDate).toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()}
+                </span>
+                <span className="block font-display text-[19px] font-semibold leading-tight">
+                  {new Date(customDate).getDate()}
+                </span>
+                <span className="block text-[10.5px] opacity-80 truncate px-0.5">
+                  {new Date(customDate).toLocaleDateString("en-GB", { month: "short" })}
+                </span>
+              </button>
+            )}
+
+            {/*  ── further out than the week ───────────────────────────────
+                 The owner's question, 8 Sep: "and if somebody wants to
+                 schedule beyond that?" This tile is the answer — the
+                 browser's own calendar, with `min` set to the first date this
+                 basket can actually be made by, so a date the strip would have
+                 greyed out cannot be reached around the back either.  */}
+            <div className="shrink-0 relative">
+              <button
+                type="button"
+                onClick={() => dateRef.current?.showPicker?.()}
+                className="w-[104px] h-full rounded-[15px] border-[1.5px] border-dashed border-orchid-mid bg-white text-orchid grid place-items-center gap-1 px-2 py-2.5 hover:border-orchid transition-colors"
+              >
+                <Icon name="calendar" className="w-[18px] h-[18px]" />
+                <span className="text-[12px] font-bold leading-tight">
+                  {customDate ? "Change date" : "Pick a date"}
+                </span>
+              </button>
+              <input
+                ref={dateRef}
+                type="date"
+                min={minDate}
+                value={s.date ?? ""}
+                onChange={(e) => e.target.value && s.patch({ date: e.target.value, slotId: null })}
+                aria-label="Pick another delivery date"
+                className="absolute inset-0 opacity-0 pointer-events-none"
+              />
+            </div>
           </div>
 
           {errors.date && <p className="text-[12px] text-[#C4172B] mt-1.5">{errors.date}</p>}
 
           {method.midnight && dates[0]?.disabled && (
-            <p className="text-[12px] text-body-soft mt-2">
+            <p className="text-[12.5px] font-semibold text-[#8A5A00] mt-2.5">
               Tonight&apos;s midnight is closed — orders for tonight end at 6 PM.
             </p>
           )}

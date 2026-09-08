@@ -18,6 +18,9 @@ import {
   listCourierServices,
   orderMessagesFor,
   retryOrderMessage,
+  addOrderPhoto,
+  editOrder,
+  uploadItemImage,
   type ApiOrderMessage,
   type ApiCustomer,
   type ApiRider,
@@ -223,6 +226,7 @@ export default function OrderEditor({ id }: { id: string }) {
   const [openMaterials, setOpenMaterials] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedEntry, setCopiedEntry] = useState(false);
+  const [copiedCard, setCopiedCard] = useState(false);
   /*  carrier hand-off — Phase 6: the ONE path is a DeliveryAssignment
       (POST /delivery/assignments), so the parcel reaches the board, analytics,
       cost posting and COD reconciliation. The old /orders/:id/courier wrote
@@ -233,6 +237,9 @@ export default function OrderEditor({ id }: { id: string }) {
   const [riders, setRiders] = useState<ApiRider[]>([]);
   const [couriers, setCouriers] = useState<ApiCourierService[]>([]);
   const [assignment, setAssignment] = useState<ApiAssignment | null>(null);
+  /* proof photographs, added from the order itself (8 Sep 2026) */
+  const [uploading, setUploading] = useState<"PREP" | "DELIVERY" | null>(null);
+  const [photoErr, setPhotoErr] = useState("");
   /* record a payment */
   const [payAmt, setPayAmt] = useState(0);
   const [payKind, setPayKind] = useState<"COD_COLLECTED" | "ADVANCE" | "PAYMENT" | "REFUND">("COD_COLLECTED");
@@ -245,6 +252,42 @@ export default function OrderEditor({ id }: { id: string }) {
     getCustomer(adapted.customerId).then(setCust).catch(() => setCust(null));
     orderAssignments(id).then((rows) => setAssignment(rows.find((a) => a.isActive) ?? null)).catch(() => setAssignment(null));
   }
+  /**
+   * Add (or replace) a proof photograph on this order.
+   *
+   * ⚠️ The picture is UPLOADED and the row keeps the address — DLV-R08. A phone
+   * photograph as a base64 data-URL regularly blew past the request limit, and
+   * the shot the rider thought he had filed was never saved.
+   */
+  async function uploadPhoto(kind: "PREP" | "DELIVERY", file: File) {
+    setPhotoErr("");
+    setUploading(kind);
+    try {
+      const url = await uploadItemImage(file, "delivery", 1400);
+      await addOrderPhoto(id, { kind, url, capturedBy: "Admin" });
+      await reload();
+    } catch (e) {
+      setPhotoErr(e instanceof Error ? e.message : "Could not upload that photo.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  /** the customer's copy of those photographs — on or off, from the order itself */
+  async function togglePhotoUpdates() {
+    if (!o) return;
+    setPhotoErr("");
+    setBusy(true);
+    try {
+      await editOrder(id, { photoUpdates: !o.photoUpdates });
+      await reload();
+    } catch (e) {
+      setPhotoErr(e instanceof Error ? e.message : "Could not change that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   useEffect(() => {
     listRiders().then((r) => setRiders(r.filter((x) => x.isActive))).catch(() => setRiders([]));
     listCourierServices().then((c) => setCouriers(c.filter((x) => x.isActive))).catch(() => setCouriers([]));
@@ -571,9 +614,49 @@ export default function OrderEditor({ id }: { id: string }) {
                   <div className="p-5">
                     <Row k="Recipient" v={o.recipient?.customerId ? <Link href={`/customers/${o.recipient.customerId}`} className="text-purple font-medium underline">{o.recipient?.name}</Link> : o.recipient?.name} />
                     <Row k="Recipient phone" v={o.recipient?.phone ? <span className="inline-flex items-center gap-2.5">{o.recipient.phone}<a href={`tel:${o.recipient.phone}`} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-1 rounded-[8px] border bg-white" style={{ color: TONE.green.text, borderColor: TONE.green.border }}><Icon name="phone" size={12} /> Call</a></span> : "—"} />
-                    <Row k="Gift message" v={o.giftMessage || "—"} />
                     <Row k="Anonymous gift" v={o.anonymousGift ? "Yes — hide sender" : "No"} />
                     <Row k="Photo updates" v={o.photoUpdates ? "On" : "Off"} />
+                  </div>
+                </Panel>
+              ) : null}
+
+              {/*  ── THE CARD, AS IT WILL BE WRITTEN (owner, 8 Sep 2026) ──
+                   It used to be one `Row` among eight, truncated beside its
+                   label, and the customer's line breaks were gone. This is
+                   what somebody at the bench copies by hand, so it gets the
+                   card's own shape and a Copy button — and it prints exactly
+                   what the checkout sent, signature and all.  */}
+              {o.isGift ? (
+                <Panel title="Card message" icon="edit" tone="rose" hint="hand-written on the Radian card — copy it exactly, line breaks included">
+                  <div className="p-5">
+                    {o.giftMessage ? (
+                      <>
+                        <div className="rounded-[14px] border p-5" style={{ borderColor: TONE.rose.border, background: TONE.rose.bg }}>
+                          <div className="text-[11.5px] uppercase tracking-[0.18em]" style={{ color: TONE.rose.text }}>Radian</div>
+                          <p className="whitespace-pre-wrap text-[15px] leading-[1.7] text-purple m-0 mt-3">{o.giftMessage}</p>
+                        </div>
+                        <div className="mt-3 flex items-center gap-3 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard?.writeText(o.giftMessage ?? "");
+                              setCopiedCard(true);
+                              setTimeout(() => setCopiedCard(false), 1600);
+                            }}
+                            className="text-[13px] font-bold px-4 py-2.5 rounded-[10px] border-2 border-purple text-purple"
+                          >
+                            {copiedCard ? "Copied" : "Copy the message"}
+                          </button>
+                          {o.anonymousGift && (
+                            <span className="text-[12.5px] font-bold" style={{ color: TONE.amber.text }}>
+                              Unsigned — the sender&apos;s name must not appear on the card
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-[13.5px] text-body-soft m-0">No message — the card goes blank.</p>
+                    )}
                   </div>
                 </Panel>
               ) : (
@@ -791,35 +874,92 @@ export default function OrderEditor({ id }: { id: string }) {
             </Panel>
           )}
 
-          {/* PHOTOS */}
+          {/* PHOTOS
+              8 Sep 2026 — this panel could only LOOK at photographs. The one
+              place to add one was Delivery → Proof photos, which meant leaving
+              the order and searching for it again, so in practice nobody did
+              and the switch below said "photo updates are on" about photos
+              that were never taken. Both are real controls now. */}
           {sec === "photos" && (
-            <Panel title="Photos & proof" icon="photo" tone="blue" hint="captured by Delivery — before it leaves, and at the door">
+            <Panel title="Photos & proof" icon="photo" tone="blue" hint="before it leaves the studio, and at the door — the customer is sent these when photo updates are on">
               <div className="p-5">
+                {photoErr && (
+                  <div className="mb-4 rounded-[12px] px-4 py-3 text-[13px] font-medium border" style={{ background: TONE.rose.bg, borderColor: TONE.rose.border, color: TONE.rose.text }}>
+                    {photoErr}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-                  {[["Before delivery", o.prepPhoto, "Added when the order is prepared."], ["After delivery", o.deliveryPhoto, "Added at handover."]].map(([label, photo, empty]) => {
+                  {([
+                    ["Before delivery", o.prepPhoto, "Nothing yet — add the bouquet before it leaves.", "PREP"],
+                    ["After delivery", o.deliveryPhoto, "Nothing yet — add the handover shot.", "DELIVERY"],
+                  ] as const).map(([label, photo, empty, kind]) => {
                     const ph = photo as Order["prepPhoto"];
                     const t = ph ? TONE.green : TONE.purple;
                     return (
-                      <div key={label as string} className="border rounded-[14px] overflow-hidden" style={{ borderColor: t.border, background: t.bg }}>
+                      <div key={label} className="border rounded-[14px] overflow-hidden" style={{ borderColor: t.border, background: t.bg }}>
                         <div className="px-3.5 pt-3 pb-2 text-[12px] font-medium uppercase tracking-[0.04em] flex items-center gap-1.5" style={{ color: t.text }}>
-                          {ph && <Icon name="check" size={13} />} {label as string}
+                          {ph && <Icon name="check" size={13} />} {label}
                         </div>
                         {ph ? (
                           <>
-                            <div className="h-[150px] relative" style={{ background: ph.bg }}><span className="absolute bottom-2 left-2 text-[11px] bg-white/90 text-purple px-2 py-0.5 rounded-full font-medium">{ph.caption}</span></div>
-                            <div className="px-3.5 py-2.5 text-[12px]" style={{ color: t.text }}>{ph.by} · {shortDate(ph.at)}, {clockTime(ph.at)}</div>
+                            <div className="h-[170px] relative" style={{ background: ph.bg }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {ph.url && <img src={ph.url} alt={label} className="w-full h-full object-cover" />}
+                              {ph.caption && <span className="absolute bottom-2 left-2 text-[11px] bg-white/90 text-purple px-2 py-0.5 rounded-full font-medium">{ph.caption}</span>}
+                            </div>
+                            <div className="px-3.5 py-2.5 text-[12px] flex items-center justify-between gap-2 flex-wrap" style={{ color: t.text }}>
+                              <span>{ph.by} · {shortDate(ph.at)}, {clockTime(ph.at)}</span>
+                              {ph.url && <a href={ph.url} target="_blank" rel="noreferrer" className="font-bold underline">Open</a>}
+                            </div>
                           </>
                         ) : (
-                          <div className="h-[180px] grid place-items-center text-center px-4"><div>
+                          <div className="h-[170px] grid place-items-center text-center px-4"><div>
                             <div className="w-10 h-10 rounded-full grid place-items-center mx-auto mb-2" style={{ background: t.soft, color: t.text }}><Icon name="photo" size={20} /></div>
-                            <p className="text-[12px] m-0" style={{ color: t.text }}>{empty as string}</p>
+                            <p className="text-[12px] m-0" style={{ color: t.text }}>{empty}</p>
                           </div></div>
                         )}
+                        <div className="px-3.5 pb-3.5 pt-1">
+                          <label className="inline-flex items-center gap-2 text-[13px] font-bold px-4 py-2.5 rounded-[10px] text-white cursor-pointer" style={{ background: TONE.blue.solid, opacity: uploading ? 0.5 : 1 }}>
+                            <Icon name="photo" size={14} />
+                            {uploading === kind ? "Uploading…" : ph ? "Replace photo" : "Add photo"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={Boolean(uploading)}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                e.target.value = "";
+                                if (f) void uploadPhoto(kind, f);
+                              }}
+                            />
+                          </label>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className="mt-4 flex items-center gap-2 text-[13px] text-body-soft"><Icon name="check" size={15} /> Photo updates to the customer are {o.photoUpdates ? "on" : "off"}.</div>
+
+                {/*  The switch the owner asked for: it decides whether these
+                     photographs are SENT. Off is not a reason to stop taking
+                     them — the shop keeps its own proof either way, which is
+                     what the line under it says.  */}
+                <div className="mt-5 border rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap" style={{ borderColor: o.photoUpdates ? TONE.green.border : "#efe4f7", background: o.photoUpdates ? TONE.green.bg : "#fff" }}>
+                  <div>
+                    <div className="text-[13.5px] font-bold text-purple">Send these photos to the customer</div>
+                    <div className="text-[12px] text-body-soft mt-0.5">Off keeps them on the order as our own proof — nothing is sent.</div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void togglePhotoUpdates()}
+                    aria-pressed={o.photoUpdates}
+                    className="w-[52px] h-[30px] rounded-full p-[3px] shrink-0 disabled:opacity-50"
+                    style={{ background: o.photoUpdates ? TONE.green.solid : "#e9dcf5" }}
+                  >
+                    <span className="block w-[24px] h-[24px] rounded-full bg-white transition-transform" style={{ transform: o.photoUpdates ? "translateX(22px)" : "none" }} />
+                  </button>
+                </div>
               </div>
             </Panel>
           )}

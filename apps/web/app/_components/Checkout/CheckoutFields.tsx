@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 
 import type { IconName } from "../../_data/productDetails";
 
@@ -20,59 +20,99 @@ import Icon from "../Pdp/PdpIcons";
    left, ONE step open on the right, and a finished step collapsing into a
    full-width row — its facts in columns and a pencil to reopen it.
 
-   The shell is one CSS grid (`CheckoutGrid`). The rail — the open step's tile
-   and the tiles of the steps not reached yet — is drawn by the grid itself
-   from the store, so it can stand as one column beside the panel. A `QCard`
-   draws only what belongs to its step: the full-width row when it is done,
-   the panel when it is open, nothing while it waits.
+   ★ THE RAIL IS A DEEP PURPLE PANEL (owner, 8 Sep 2026). It was white cards
+   beside white cards, so on the one screen where a customer must always know
+   where they are, the map looked like more of the form. It is now one dark
+   panel with a progress bar, and the step they are on is the white tile
+   inside it — readable across the room, and impossible to mistake for a
+   field.
 
-   Only the shell changed; every field, rule and store call inside the steps
-   is the one that was there before.
+   ★ Every step stays on the rail, finished ones included. Watching four ticks
+   appear is the reassurance the rail exists for; the finished rows above the
+   panel are what to press to change something.
+
+   The shell is one CSS grid (`CheckoutGrid`). A `QCard` draws only what
+   belongs to its step: the full-width row when it is done, the panel when it
+   is open, nothing while it waits.
 */
 
 export const STEP_TITLES = [
   "Your Details",
   "Who's Receiving?",
   "Where?",
+  "Card Message",
   "When?",
-  "Payment & Summary",
+  "Payment",
 ] as const;
 
-const STEP_ICONS: IconName[] = ["user", "gift", "pin", "clock", "lock"];
+const STEP_ICONS: IconName[] = ["user", "gift", "pin", "note", "clock", "lock"];
 
-/** which steps the shell is drawing right now — Q4/Q5 leave when every item is held */
-const ShellContext = createContext<{ shown: number[] }>({ shown: [1, 2, 3, 4, 5] });
+/** which steps the shell is drawing right now — the card, When and Payment can leave */
+const ShellContext = createContext<{ shown: number[] }>({ shown: [1, 2, 3, 4, 5, 6] });
 
 export function CheckoutGrid({ shown, children }: { shown: number[]; children: ReactNode }) {
   const step = useCheckoutStore((s) => s.step);
   const done = useCheckoutStore((s) => s.done);
   const openStep = useCheckoutStore((s) => s.openStep);
-  const rail = shown.filter((n) => n === step || !done.includes(n));
+  const setShownSteps = useCheckoutStore((s) => s.setShownSteps);
+
+  /*  The store needs the list too: `completeStep` walks to the next step that
+      is actually drawn, never blindly to n + 1 (see the note there).  */
+  const shownKey = shown.join(",");
+  useEffect(() => {
+    setShownSteps(shownKey.split(",").map(Number));
+  }, [shownKey, setShownSteps]);
+
+  const at = shown.indexOf(step);
+  const progress = Math.round(((at < 0 ? 0 : at) / Math.max(1, shown.length - 1)) * 100);
 
   return (
     <ShellContext.Provider value={{ shown }}>
-      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[250px_1fr] mt-4">
+      <div className="checkout-grid grid gap-x-5 gap-y-4 lg:grid-cols-[274px_1fr] mt-4">
         {children}
         {/* the rail — hidden on a phone, where the panel names its own step */}
-        <div className="hidden lg:flex flex-col gap-3 checkout-rail self-start">
-          {rail.map((n) => {
-            const open = n === step;
-            return (
-              <button
-                key={n}
-                type="button"
-                disabled={open}
-                onClick={() => openStep(n)}
-                className={`text-left rounded-[20px] border-[1.5px] px-4 py-4 transition-colors ${
-                  open
-                    ? "bg-white border-purple border-l-[5px] shadow-soft"
-                    : "bg-white/60 border-lavender-deep hover:bg-white"
-                }`}
-              >
-                <RailHead n={n} shown={shown} state={open ? "open" : "pending"} />
-              </button>
-            );
-          })}
+        <div className="hidden lg:block checkout-rail self-start sticky top-4 rounded-[24px] p-3.5 bg-[linear-gradient(168deg,#4D0170_0%,#320049_100%)] shadow-lift">
+          <div className="px-3 pt-2 pb-3">
+            <b className="block font-display text-[17px] text-white font-semibold">Your order</b>
+            <span className="block text-[11.5px] text-[#DCC4EA] mt-0.5">
+              Step {at < 0 ? 1 : at + 1} of {shown.length}
+            </span>
+          </div>
+          <div className="h-[5px] rounded-full bg-white/15 mx-3 mb-3.5 overflow-hidden">
+            <span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,#E8C9CE,#B76E79)] transition-[width] duration-300"
+              style={{ width: `${Math.max(6, progress)}%` }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {shown.map((n) => {
+              const open = n === step;
+              const finished = done.includes(n) && !open;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={open}
+                  onClick={() => openStep(n)}
+                  className={`text-left rounded-[16px] px-3 py-3 transition-colors ${
+                    open
+                      ? "bg-white shadow-[0_8px_22px_rgba(0,0,0,0.22)]"
+                      : finished
+                        ? "text-white hover:bg-white/10"
+                        : "text-[#E7D8F0]/60"
+                  }`}
+                >
+                  <RailHead
+                    n={n}
+                    shown={shown}
+                    state={open ? "open" : finished ? "done" : "pending"}
+                    onDark={!open}
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </ShellContext.Provider>
@@ -159,7 +199,18 @@ export function QCard({
   return null;
 }
 
-function RailHead({ n, shown, state }: { n: number; shown: number[]; state: "done" | "open" | "pending" }) {
+function RailHead({
+  n,
+  shown,
+  state,
+  onDark = false,
+}: {
+  n: number;
+  shown: number[];
+  state: "done" | "open" | "pending";
+  /** on the purple rail the text is light; the finished ROWS are on white */
+  onDark?: boolean;
+}) {
   const title = STEP_TITLES[n - 1];
   const icon = STEP_ICONS[n - 1] ?? "check";
   const tone =
@@ -167,27 +218,24 @@ function RailHead({ n, shown, state }: { n: number; shown: number[]; state: "don
       ? "bg-[#E8F9EE] text-[#0E7A3D]"
       : state === "open"
         ? "bg-purple text-white shadow-soft"
-        : "bg-lavender text-body-soft";
+        : onDark
+          ? "bg-white/10 text-white/80"
+          : "bg-lavender text-body-soft";
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <span className={`relative w-11 h-11 rounded-[13px] grid place-items-center shrink-0 ${tone}`}>
-        <Icon name={icon} className="w-5 h-5" />
-        {state === "done" && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0E7A3D] text-white grid place-items-center">
-            <Icon name="check" className="w-2.5 h-2.5" />
-          </span>
-        )}
+      <span className={`relative w-10 h-10 rounded-[12px] grid place-items-center shrink-0 ${tone}`}>
+        <Icon name={icon} className="w-[19px] h-[19px]" />
       </span>
       <span className="min-w-0">
         <span
-          className={`block font-display text-[16px] leading-tight ${
-            state === "pending" ? "text-body-soft font-medium" : "text-purple font-semibold"
+          className={`block font-display text-[15.5px] leading-tight font-semibold ${
+            onDark ? "text-inherit" : "text-purple"
           }`}
         >
           {title}
         </span>
-        <span className="block text-[12px] text-body-soft mt-0.5">
-          Step {shown.indexOf(n) + 1}/{shown.length}
+        <span className={`block text-[11.5px] mt-0.5 ${onDark ? "opacity-70" : "text-body-soft"}`}>
+          Step {shown.indexOf(n) + 1} of {shown.length}
         </span>
       </span>
     </div>
@@ -205,6 +253,13 @@ export function Field({
   children,
 }: {
   label: string;
+  /**
+   * ★ HOUSE RULE 17 — this is NOT printed under the field any more (owner,
+   * 8 Sep 2026). Every field carried a grey sentence, and five steps of grey
+   * sentences is what made checkout feel like paperwork. It lives behind the
+   * ⓘ beside the label: still there for whoever wants it, silent for everyone
+   * else. An ERROR is different and still prints — that one has to be read.
+   */
   hint?: string;
   optional?: boolean;
   /** ★ A red star on a required field — what cannot be skipped, at a glance */
@@ -220,14 +275,24 @@ export function Field({
         {optional && (
           <span className="font-normal text-body-soft"> · optional</span>
         )}
+        {hint && <Info text={hint} />}
       </span>
       {children}
-      {error ? (
-        <span className="block text-[12px] text-[#C4172B] mt-1.5">{error}</span>
-      ) : hint ? (
-        <span className="block text-[12px] text-body-soft mt-1.5">{hint}</span>
-      ) : null}
+      {error && <span className="block text-[12px] text-[#C4172B] mt-1.5">{error}</span>}
     </label>
+  );
+}
+
+/** the small ⓘ — the explanation, on hover, for whoever wants it */
+export function Info({ text }: { text: string }) {
+  return (
+    <span
+      title={text}
+      aria-label={text}
+      className="ml-1.5 inline-grid place-items-center align-middle w-[16px] h-[16px] rounded-full border-[1.5px] border-orchid-mid text-orchid text-[10px] font-bold cursor-help select-none"
+    >
+      i
+    </span>
   );
 }
 

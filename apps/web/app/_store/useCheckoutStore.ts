@@ -21,8 +21,15 @@ import type { PaymentId } from "../_data/payment";
   ═══════════════════════════════════════════════════════════════════
   CHECKOUT STORE — Zustand + persist ("radian-checkout")
 
-  ★ Five steps (locked, 14 July — sobuj)
-    1 Your Details → 2 Who's Receiving → 3 Where → 4 When → 5 Payment
+  ★ Six steps (owner, 8 Sep 2026)
+    1 Your Details → 2 Who's Receiving → 3 Where → 4 Card Message →
+    5 When → 6 Payment
+
+  The card message used to sit inside step 2, under the receiver's phone. It
+  is its own step now: writing to somebody is a different act from typing
+  their number, and squeezed under a form field nobody wrote more than a line.
+  Step 4 is drawn only for a gift — there is no card on an order to yourself,
+  so `shownSteps` skips it and `completeStep` steps over it (see below).
 
   "Where" and "When" are separate: writing an address and choosing a time are
   two different jobs for the mind. Together they make the card long, and people
@@ -41,7 +48,10 @@ import type { PaymentId } from "../_data/payment";
   ═══════════════════════════════════════════════════════════════════
 */
 
-export const TOTAL_STEPS = 5;
+export const TOTAL_STEPS = 6;
+
+/** every step, in order — what `shownSteps` is narrowed from */
+export const ALL_STEPS = [1, 2, 3, 4, 5, 6] as const;
 
 export interface CheckoutState {
   /* Q1 — Your details */
@@ -51,14 +61,20 @@ export interface CheckoutState {
   senderPhone: string;
   senderEmail: string;
 
-  /* Q2 — Who's receiving + gift touches (D14) */
+  /* Q2 — Who's receiving */
   isGift: boolean;
   recipientName: string;
   /** always a Bangladeshi number — no country code needed */
   recipientPhone: string;
-  giftMessage: string;
-  anonymousGift: boolean;
   photoUpdates: boolean;
+
+  /* Q4 — the card (D14) */
+  giftMessage: string;
+  /** which set of ready-made lines is offered — never sent to the shop */
+  giftOccasion: string;
+  /** the name hand-written under the message; empty falls back to the sender */
+  signedName: string;
+  anonymousGift: boolean;
 
   /* Q3 — Where */
   address: string;
@@ -83,9 +99,19 @@ export interface CheckoutState {
 interface CheckoutStore extends CheckoutState {
   step: number;
   done: number[];
+  /**
+   * The steps this checkout is actually drawing — set by the shell.
+   *
+   * ⚠️ `completeStep` needs it. It used to go to `n + 1`, and with a step
+   * hidden (no card on a self order, no When/Payment when every item is held
+   * in this zone) that lands on a step nobody is drawing: every card closed,
+   * a blank page and no way forward.
+   */
+  shownSteps: number[];
 
   set: <K extends keyof CheckoutState>(key: K, value: CheckoutState[K]) => void;
   patch: (p: Partial<CheckoutState>) => void;
+  setShownSteps: (list: number[]) => void;
   openStep: (n: number) => void;
   completeStep: (n: number) => void;
   resetAfterOrder: () => void;
@@ -101,9 +127,12 @@ const EMPTY: CheckoutState = {
   isGift: true, // most of Radian's orders are gifts
   recipientName: "",
   recipientPhone: "",
-  giftMessage: "",
-  anonymousGift: false,
   photoUpdates: true,
+
+  giftMessage: "",
+  giftOccasion: "",
+  signedName: "",
+  anonymousGift: false,
 
   address: "",
   deliveryNotes: "",
@@ -128,6 +157,7 @@ type Persisted = Pick<
   | "recipientName"
   | "recipientPhone"
   | "photoUpdates"
+  | "signedName"
   | "address"
   | "deliveryNotes"
 >;
@@ -138,16 +168,24 @@ export const useCheckoutStore = create<CheckoutStore>()(
       ...EMPTY,
       step: 1,
       done: [],
+      shownSteps: [...ALL_STEPS],
 
       set: (key, value) => set({ [key]: value } as Partial<CheckoutStore>),
       patch: (p) => set(p as Partial<CheckoutStore>),
+
+      setShownSteps: (list) =>
+        set((s) =>
+          s.shownSteps.length === list.length && s.shownSteps.every((n, i) => n === list[i])
+            ? s
+            : { shownSteps: list },
+        ),
 
       openStep: (n) => set({ step: n }),
 
       completeStep: (n) =>
         set((s) => ({
           done: s.done.includes(n) ? s.done : [...s.done, n],
-          step: n + 1,
+          step: s.shownSteps.find((x) => x > n) ?? n + 1,
         })),
 
       /*
@@ -161,6 +199,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
           recipientName: "",
           recipientPhone: "",
           giftMessage: "",
+          giftOccasion: "",
           anonymousGift: false,
           date: null,
           slotId: null,
@@ -183,6 +222,7 @@ export const useCheckoutStore = create<CheckoutStore>()(
         recipientName: s.recipientName,
         recipientPhone: s.recipientPhone,
         photoUpdates: s.photoUpdates,
+        signedName: s.signedName,
         address: s.address,
         deliveryNotes: s.deliveryNotes,
       }),
@@ -258,8 +298,8 @@ export interface StepErrors {
 export interface ValidateOpts {
   now?: Date;
   /*  DEC-PDP-10 — largest "days to make" in the cart.
-      ⚠️ DEFAULTS TO 0, and that default is safe for exactly one reason: steps
-      1–3 and 5 never look at it. Step 4 must always be given the real value —
+      ⚠️ DEFAULTS TO 0, and that default is safe for exactly one reason: every
+      step but When ignores it. Step 5 must always be given the real value —
       a "Place order" that revalidates with 0 would wave through a date the
       picker had greyed out.  */
   leadDays?: number;
@@ -268,7 +308,7 @@ export interface ValidateOpts {
   /**
    * DEC-DLV-009 — the whole delivery row that was chosen on screen.
    *
-   * ⚠️ **Required at step 4.** This used to read `getMethod(s.method)`, and
+   * ⚠️ **Required at the When step.** This used to read `getMethod(s.method)`, and
    * `s.method` is now a database row id — which never matches anything in the
    * hand-written list. On the miss it silently assumed "Same Day", then failed
    * to find the live slot in the hand-written `SLOTS` and said *"That slot is
@@ -314,7 +354,11 @@ export function validateStep(
       e.address = "Add house, road and area — our rider needs the full address.";
   }
 
-  if (n === 4) {
+  /*  Step 4 — the card. Nothing is required: a bouquet may go without a
+      message, and refusing to move on because somebody left it blank would be
+      the shop insisting on being sentimental.  */
+
+  if (n === 5) {
     const method = opts.method ?? getMethod(s.method);
     if (!method) {
       e.method = "Pick a delivery option.";
@@ -358,7 +402,7 @@ export function validateStep(
     }
   }
 
-  if (n === 5 && !s.payment) e.payment = "Choose how you'd like to pay.";
+  if (n === 6 && !s.payment) e.payment = "Choose how you'd like to pay.";
 
   return e;
 }

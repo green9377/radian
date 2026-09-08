@@ -17,7 +17,14 @@ import { sendCreditCode } from "../../_data/checkoutApi";
   asking it here would be the same decision twice.
 
   ★ COD (D26): never on a gift order, never when a prepaidOnly product is in
-  the cart. The card is not hidden — it is greyed out and it says WHY.
+  the cart.
+
+  ⚠️ WHEN IT CANNOT BE TAKEN IT IS NOT DRAWN AT ALL (owner, 8 Sep 2026):
+  *"if cash on is not available then don't show it — hiding is better than
+  showing it dead."* It used to be a greyed card with the reason on it, which
+  on the last screen before paying reads as a door the customer must think
+  about and then be refused by. What is left is what they can actually do:
+  one live option, or two.
 
   ★ No promo code here — it lives in the Order Summary, directly above the
   total (locked). The code belongs where the discount can be seen as a number.
@@ -33,26 +40,29 @@ export function Q5Payment({
 }) {
   const s = useCheckoutStore();
 
-  const options = paymentOptions({ isGift: s.isGift, lines });
+  const all = paymentOptions({ isGift: s.isGift, lines });
+  /*  ⚠️ `defaultPayment` still reads the FULL list — it picks the first
+      available one, and that answer must not change with what is drawn.  */
   const active: PaymentId =
-    options.find((o) => o.method.id === s.payment && o.available)?.method.id ??
-    defaultPayment(options);
+    all.find((o) => o.method.id === s.payment && o.available)?.method.id ??
+    defaultPayment(all);
+  const options = all.filter((o) => o.available);
 
-  const note = options.find((o) => o.method.id === active)?.method.note;
+  const note = all.find((o) => o.method.id === active)?.method.note;
 
   return (
     <QCard
-      n={5}
-      title="Payment & Summary"
-      lead="Payment & order summary"
-      open={s.step === 5}
-      done={s.done.includes(5)}
+      n={6}
+      title="Payment"
+      lead="How would you like to pay?"
+      open={s.step === 6}
+      done={s.done.includes(6)}
       summary={
-        s.payment ? options.find((o) => o.method.id === s.payment)?.method.label : undefined
+        s.payment ? all.find((o) => o.method.id === s.payment)?.method.label : undefined
       }
-      onOpen={() => s.openStep(5)}
+      onOpen={() => s.openStep(6)}
     >
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${options.length > 1 ? "sm:grid-cols-2" : ""}`}>
         {options.map(({ method, available, reason }) => {
           const on = available && method.id === active;
 

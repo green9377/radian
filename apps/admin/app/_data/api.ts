@@ -1554,12 +1554,18 @@ export function orderContactPhone(o: ApiOrder): string {
 export function adaptOrder(a: ApiOrder): any {
   const photo = (kind: "PREP" | "DELIVERY") => {
     const p = (a.photos || []).find((x) => x.kind === kind);
+    /*  ⚠️ `url` USED TO BE POURED INTO `bg` (fixed 8 Sep 2026), so a real
+        photograph became `style="background: https://media…"` — which paints
+        nothing. Every uploaded proof photo showed as the lavender placeholder,
+        and the screens looked as if nobody had ever added one. The URL is its
+        own field now; `bg` stays what it always was, a gradient stand-in.  */
     return p
       ? {
           at: Date.parse(p.capturedAt) || Date.now(),
           by: p.capturedBy || "",
           caption: p.caption || "",
-          bg: p.bg || p.url || "linear-gradient(160deg,#EFE4F8,#DBC3F0)",
+          url: p.url || "",
+          bg: p.bg || "linear-gradient(160deg,#EFE4F8,#DBC3F0)",
         }
       : null;
   };

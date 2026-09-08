@@ -97,6 +97,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
   phone: (
     <path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z" />
   ),
+  /* the card that goes with the flowers — a folded note with two written lines */
+  note: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2.4" />
+      <path d="M7.5 10h9M7.5 13.5h5.5" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3.5" y="5.5" width="17" height="14" rx="2.4" />
+      <path d="M3.5 10h17M8 3.5v4M16 3.5v4" />
+    </>
+  ),
   "eye-off": (
     <>
       <path d="M3 3l18 18" />
