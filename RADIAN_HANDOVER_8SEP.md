@@ -184,3 +184,39 @@ Deferred, still: mobile optimisation (a menu on a phone — see
 `RADIAN_PENDING.md` Phase 9) · the VPS build-freeze fix · quick-add on cards
 for option-less products (asked, not decided) · whole-admin font (Manrope is
 on the menu only).
+
+---
+
+## 6. THE ACCOUNT IS REAL — 8 Sep, late night
+
+The owner asked what the customer profile actually was. It was a constant:
+`DEMO_CUSTOMER` ("Nusrat Jahan", two Banani addresses) handed to whoever
+logged in, six hand-written orders, and addresses / wishlist / dates in one
+browser's localStorage. Only the login was real. His instruction: *"sob jen
+real hoy, kon mock jen na hoy."*
+
+Built and deployed to DEV (`5cd8124`, design approved first in
+`design/account-v1.html`):
+
+- **`CustomerSession`** — issued after the code or Google is verified, **30
+  days** (his ruling), only the SHA-256 stored, `Authorization: Bearer`. NOT
+  the admin's `x-radian-token`
+- **`/shop/account/*`** — login · logout · me (read/write) · orders · order ·
+  addresses CRUD · reminders · wishlist · credit · reviews · delete account
+- **orders include guest orders**, matched on the verified phone (his ruling)
+- **`WishlistItem`** is the only other new table; everything else is read
+  from the module that owns it (Customer, Order, Recipient,
+  RecipientOccasion, CustomerCredit, Review)
+- eight screens rebuilt from the server; the customer's OWN address is kept
+  apart from the delivery addresses, as he insisted
+- deleting an account erases profile/addresses/wishlist/dates and every
+  session, and leaves the ORDERS with the name taken off — the shop's books
+- deleted for good: `DEMO_CUSTOMER`, `customerFromPhone`, `_data/orders.ts`,
+  `useProfileStore`, `useAddressStore`, `useReminderStore`,
+  `useWishlistGroupStore`, `DashboardView` and its helpers
+
+⚠️ **NOT WALKED END TO END YET, and only for one reason:** signing in needs a
+one-time code, and sending one is real outbound — which the owner has to
+approve. Everything that can be checked without it was: the table exists, the
+API is up, every account door answers **401** without a session and refuses a
+made-up token. The first login on DEV proves the rest.
