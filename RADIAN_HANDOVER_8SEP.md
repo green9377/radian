@@ -146,6 +146,40 @@ Google button drawn; all pages above walked.
 shell is done; what he wants changed next in its design is not yet said.
 Ask, then show, then build.
 
+### ✅ DONE, 8 Sep late evening — the checkout redesign
+
+He said it in that new chat and it is built, on DEV and walked
+(`296aca9`, `3974afa`, `8416078`; the design he approved first is
+`design/checkout-v2.html`).
+
+**Six steps now:** Details · Who's Receiving · Where · **Card Message** ·
+When · Payment. The card step is drawn only for a gift; `completeStep` walks
+to the next step that is DRAWN, never to `n + 1` (`shownSteps` in the store),
+because with the card hidden `n + 1` lands on a step nobody renders.
+
+- "Phone number", not "WhatsApp number" — BD is messaged by SMS now
+- every grey helper line moved behind the small ⓘ (house rule 17); errors
+  still print
+- Card Message: occasion chips, ready-made lines, counter, signature, and the
+  card drawn beside it. The signature travels INSIDE `giftMessage` (one text
+  for the bench to copy)
+- When: one bold line where a paragraph was; **seven** dates and a "Pick a
+  date" tile with `min` = the first date this basket can be made by
+- COD is not drawn at all when it cannot be taken
+- the rail is the deep purple panel, with a progress bar
+
+**Admin, same commit:** order → Photos & proof can add/replace a photograph
+(the only place was Delivery → Proof photos), the "send these to the customer"
+switch is real (`photoUpdates` on `EditOrderDto`, on the NOTES gate — the
+recipient gate closes before the photos are even taken), and the card message
+has its own panel with Copy. Also fixed: `adaptOrder` poured a photo's `url`
+into `bg`, so **every uploaded proof photo had been showing as the lavender
+placeholder**.
+
+⚠️ **Not walked by me, for lack of a way to drive a file picker:** the actual
+photo upload click-through, and the two-payment-cards case (every cart I had
+held an advance-required product, which correctly closes COD). Worth one look.
+
 Deferred, still: mobile optimisation (a menu on a phone — see
 `RADIAN_PENDING.md` Phase 9) · the VPS build-freeze fix · quick-add on cards
 for option-less products (asked, not decided) · whole-admin font (Manrope is
