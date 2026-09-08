@@ -30,6 +30,15 @@ import { promisePhrase } from "../../_data/deliveryClaims";
 import { fetchSlotLoad } from "../../_data/checkoutApi";
 import { Continue, Field, Info, QCard, Seg, inputClass } from "./CheckoutFields";
 
+/** "Wed, 9 Sep" — the small line under a date tile */
+function dayAndDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 /** "12 September" — one shape for every date this screen prints in a sentence */
 function longDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
@@ -620,7 +629,15 @@ export function Q5When({
             <span className="text-[#C4172B] ml-0.5">*</span>
           </span>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {/*
+            ── THREE WIDE TILES, FLOWERAURA'S SHAPE (owner, 8 Sep 2026) ──
+            The narrow 78px chips with a weekday abbreviation and a big number
+            were a calendar squeezed into a strip — "today, tomorrow and pick a
+            date bosbe, avabe kn abr asche". A delivery date is read as a WORD
+            (today · tomorrow) with the date underneath it as confirmation, not
+            as a number to decode. Three equal tiles, nothing to scroll.
+          */}
+          <div className="grid grid-cols-3 gap-2.5 max-w-[520px]">
             {dates.map((d) => {
               const on = d.id === s.date;
               return (
@@ -629,61 +646,52 @@ export function Q5When({
                   type="button"
                   disabled={d.disabled}
                   onClick={() => s.patch({ date: d.id, slotId: null })}
-                  className={`shrink-0 w-[78px] rounded-[15px] border-[1.5px] py-2.5 text-center transition-colors ${
+                  className={`rounded-[14px] border-[1.5px] px-3 py-3 text-center transition-colors ${
                     on
-                      ? "border-orchid bg-orchid text-white shadow-soft"
+                      ? "border-purple bg-purple text-white shadow-soft"
                       : d.disabled
                         ? "border-lavender-deep bg-lavender text-body-soft/50 cursor-not-allowed"
                         : "border-lavender-deep bg-white text-purple hover:border-orchid-mid"
                   }`}
                 >
-                  <span className="block text-[11px] font-bold tracking-[0.04em] opacity-80">
-                    {d.day}
-                  </span>
-                  <span className="block font-display text-[19px] font-semibold leading-tight">
-                    {d.date}
-                  </span>
-                  <span className="block text-[10.5px] opacity-80 truncate px-0.5">
-                    {d.label}
+                  <span className="block text-[14px] font-bold leading-tight">{d.label}</span>
+                  <span
+                    className={`block text-[11.5px] mt-1 ${on ? "text-white/75" : "text-body-soft"}`}
+                  >
+                    {dayAndDate(d.id)}
                   </span>
                 </button>
               );
             })}
 
-            {/*  the chosen calendar date, standing in the strip like the rest  */}
-            {customDate && (
-              <button
-                type="button"
-                onClick={() => dateRef.current?.showPicker?.()}
-                className="shrink-0 w-[78px] rounded-[15px] border-[1.5px] border-orchid bg-orchid text-white shadow-soft py-2.5 text-center"
-              >
-                <span className="block text-[11px] font-bold tracking-[0.04em] opacity-80">
-                  {new Date(customDate).toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()}
-                </span>
-                <span className="block font-display text-[19px] font-semibold leading-tight">
-                  {new Date(customDate).getDate()}
-                </span>
-                <span className="block text-[10.5px] opacity-80 truncate px-0.5">
-                  {new Date(customDate).toLocaleDateString("en-GB", { month: "short" })}
-                </span>
-              </button>
-            )}
-
-            {/*  ── further out than the week ───────────────────────────────
+            {/*  ── further out than tomorrow ───────────────────────────────
                  The owner's question, 8 Sep: "and if somebody wants to
-                 schedule beyond that?" This tile is the answer — the
-                 browser's own calendar, with `min` set to the first date this
-                 basket can actually be made by, so a date the strip would have
-                 greyed out cannot be reached around the back either.  */}
-            <div className="shrink-0 relative">
+                 schedule beyond that?" This tile is the answer — the browser's
+                 own calendar, with `min` set to the first date this basket can
+                 actually be made by, so a date the strip would have greyed out
+                 cannot be reached around the back either. Once a date is
+                 chosen it is what the tile says, so the choice is never
+                 invisible.  */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => dateRef.current?.showPicker?.()}
-                className="w-[104px] h-full rounded-[15px] border-[1.5px] border-dashed border-orchid-mid bg-white text-orchid grid place-items-center gap-1 px-2 py-2.5 hover:border-orchid transition-colors"
+                className={`w-full h-full rounded-[14px] border-[1.5px] px-3 py-3 text-center transition-colors ${
+                  customDate
+                    ? "border-purple bg-purple text-white shadow-soft"
+                    : "border-dashed border-orchid-mid bg-white text-orchid hover:border-orchid"
+                }`}
               >
-                <Icon name="calendar" className="w-[18px] h-[18px]" />
-                <span className="text-[12px] font-bold leading-tight">
+                <span className="flex items-center justify-center gap-1.5 text-[14px] font-bold leading-tight">
+                  <Icon name="calendar" className="w-[15px] h-[15px]" />
                   {customDate ? "Change date" : "Pick a date"}
+                </span>
+                <span
+                  className={`block text-[11.5px] mt-1 ${
+                    customDate ? "text-white/75" : "text-body-soft"
+                  }`}
+                >
+                  {customDate ? dayAndDate(customDate) : "Any other day"}
                 </span>
               </button>
               <input

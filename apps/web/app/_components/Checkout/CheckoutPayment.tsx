@@ -54,8 +54,6 @@ export function Q5Payment({
     defaultPayment(all);
   const options = all.filter((o) => o.available);
 
-  const note = all.find((o) => o.method.id === active)?.method.note;
-
   return (
     <QCard
       n={6}
@@ -68,97 +66,100 @@ export function Q5Payment({
       }
       onOpen={() => s.openStep(6)}
     >
-      <div className={`grid gap-3 ${options.length > 1 ? "sm:grid-cols-2" : ""}`}>
-        {options.map(({ method, available, reason }) => {
-          const on = available && method.id === active;
+      <div className={`grid gap-3.5 items-stretch ${options.length > 1 ? "sm:grid-cols-2" : ""}`}>
+        {options.map(({ method }) => {
+          const on = method.id === active;
 
           return (
             <button
               key={method.id}
               type="button"
-              disabled={!available}
               onClick={() => s.set("payment", method.id)}
               /*  House rule 16 — which one is chosen has to read across the
-                  room. The live card takes the brand colour, a heavier border
-                  and a soft shadow; the others stay quiet. A 1.5px tint change
-                  was not enough to tell at a glance, on the one screen where
-                  picking the wrong thing costs money.  */
-              className={`text-left rounded-[16px] border-2 p-4 transition-all ${
+                  room. The live card takes the brand colour, a heavier border,
+                  a soft shadow and a filled radio; the other stays quiet.  */
+              className={`text-left rounded-[20px] border-2 p-5 flex flex-col transition-all ${
                 on
-                  ? "border-purple bg-orchid-soft shadow-[0_4px_14px_rgba(122,46,168,0.18)]"
-                  : available
-                    ? "border-lavender-deep bg-white hover:border-orchid-mid"
-                    : "border-lavender-deep bg-lavender cursor-not-allowed"
+                  ? "border-purple bg-[linear-gradient(160deg,#FCF3FE_0%,#FFFFFF_78%)] shadow-[0_10px_26px_rgba(71,0,102,0.14)]"
+                  : "border-lavender-deep bg-white hover:border-orchid-mid"
               }`}
             >
-              <span className="flex items-center gap-2.5">
+              <span className="flex items-center gap-3">
                 <span
-                  className={`w-10 h-9 rounded-[10px] grid place-items-center text-[11px] font-semibold shrink-0 ${
-                    on
-                      ? "bg-purple text-white shadow-soft"
-                      : available
-                        ? "bg-white text-purple shadow-soft"
-                        : "bg-white/60 text-body-soft"
+                  className={`w-11 h-11 rounded-[13px] grid place-items-center shrink-0 transition-colors ${
+                    on ? "bg-purple text-white shadow-soft" : "bg-lavender text-purple"
                   }`}
                 >
-                  {method.logo}
+                  <Icon
+                    name={method.id === "online" ? "lock" : "truck"}
+                    className="w-[19px] h-[19px]"
+                  />
                 </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-[17px] font-semibold text-purple leading-tight">
+                    {method.label}
+                  </span>
+                  <span className="block text-[12px] text-body-soft mt-1 leading-snug">
+                    {method.sub}
+                  </span>
+                </span>
+
+                {/*  a radio, not a tick: a tick says "done", and this is a
+                     choice between two things.  */}
                 <span
-                  className={`text-[14.5px] ${
-                    on
-                      ? "font-bold text-purple"
-                      : available
-                        ? "font-semibold text-purple"
-                        : "font-semibold text-body-soft"
+                  className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center shrink-0 self-start transition-colors ${
+                    on ? "border-purple" : "border-lavender-deep"
                   }`}
                 >
-                  {method.label}
+                  {on && <span className="w-[11px] h-[11px] rounded-full bg-purple" />}
                 </span>
-                {on && <Icon name="check" className="w-[18px] h-[18px] ml-auto text-purple" />}
               </span>
 
-              <span
-                className={`block text-[12px] mt-1.5 leading-snug ${
-                  available ? "text-body-soft" : "text-[#8A5A00]"
-                }`}
-              >
-                {available ? method.sub : reason}
-              </span>
-
-              {/*  the wallets and cards, in their own colours — the row a
+              {/*  the wallets and cards, each in its own colour — the row a
                    Bangladeshi shopper looks for before trusting a checkout.
                    Marks, not logos: no image files, nothing to load, and
                    nobody's trademark reproduced.  */}
-              {method.id === "online" && available && (
-                <span className="flex flex-wrap items-center gap-1.5 mt-3">
+              {method.id === "online" ? (
+                <span className="flex flex-wrap items-center gap-1.5 mt-4">
                   {WALLETS.map((w) => (
                     <span
                       key={w.label}
-                      className="rounded-[7px] px-2 py-1 text-[10.5px] font-bold text-white leading-none"
+                      className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center text-[11px] font-bold text-white"
                       style={{ background: w.bg }}
                     >
                       {w.label}
                     </span>
                   ))}
-                  <span className="rounded-[7px] border border-lavender-deep bg-white px-2 py-1 text-[10.5px] font-bold text-[#1A1F71] leading-none">
+                  <span className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center border border-lavender-deep bg-white text-[11px] font-bold italic tracking-wide text-[#1A1F71]">
                     VISA
                   </span>
-                  <span className="rounded-[7px] border border-lavender-deep bg-white px-2 py-1 text-[10.5px] font-bold text-[#B34700] leading-none">
-                    Mastercard
+                  <span className="h-[26px] px-2 rounded-[8px] inline-flex items-center gap-1 border border-lavender-deep bg-white">
+                    <span className="w-[13px] h-[13px] rounded-full bg-[#EB001B]" />
+                    <span className="w-[13px] h-[13px] rounded-full bg-[#F79E1B] -ml-[6px] mix-blend-multiply" />
+                  </span>
+                </span>
+              ) : (
+                <span className="flex flex-wrap items-center gap-1.5 mt-4">
+                  <span className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center bg-[#E8F9EE] text-[11px] font-bold text-[#0E7A3D]">
+                    Pay at the door
+                  </span>
+                  <span className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center border border-lavender-deep bg-white text-[11px] font-bold text-body-soft">
+                    Cash only
                   </span>
                 </span>
               )}
+
+              <span className="mt-4 pt-3 border-t border-lavender-deep flex items-center gap-2 text-[11.5px] text-body-soft">
+                <Icon name="shield" className="w-[14px] h-[14px] text-[#0E7A3D] shrink-0" />
+                {method.id === "online"
+                  ? "Secured by SSLCommerz — we never see your card"
+                  : "Please keep the exact amount ready for our rider"}
+              </span>
             </button>
           );
         })}
       </div>
-
-      {note && (
-        <p className="flex items-center gap-2 text-[12px] text-body-soft mt-3">
-          <Icon name="lock" className="w-4 h-4 text-[#0E7A3D] shrink-0" />
-          {note}
-        </p>
-      )}
 
       {/*  ⚠️ THE STORE-CREDIT BOX IS GONE FROM THIS SCREEN (owner, 8 Sep 2026:
            *"ata kon dorkar nai thakar"*). "Have store credit with us? — we
