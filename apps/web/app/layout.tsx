@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getSiteSeo } from "./_data/seo";
-import { Fraunces, Jost } from "next/font/google";
+import { Spectral, Public_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "./_components/Header/Header";
 import Footer from "./_components/GBE/Footer";
@@ -9,16 +9,40 @@ import { SectionTextProvider } from "./_components/ui/SectionHead";
 import ZoneSync from "./_components/ZoneSync";
 import Tracking from "./_components/Tracking";
 
-const fraunces = Fraunces({
+/*
+  ═══ THE SHOP'S TWO FACES — Spectral + Public Sans (owner, 9 Sep 2026) ═══
+
+  Chosen from twenty systems drawn side by side (`design/font-options.html`,
+  option 8). Fraunces + Jost went out for one reason: Jost is a geometric sans
+  with a small x-height, and nine tenths of this shop is 12–14px — a price, a
+  phone number, a delivery window. Public Sans is a grotesque with a tall
+  x-height built for exactly that, and Spectral is a serif drawn for screens
+  rather than for paper.
+
+  ⚠️ Two long-standing defects go with them:
+
+  · `font-bold` was used 132 times and NEITHER face carried a 700, so every
+    bold button on the shop was a browser-smeared 600 — against the owner's
+    rule that buttons are bold and clear (22 Aug). Both faces now carry a
+    real 700; Public Sans is variable, so it carries every weight in one file.
+
+  · `italic` was used on five review quotes and card messages with no italic
+    loaded, so those were slanted uprights. Spectral's italic is a real cut.
+
+  Declaring a face costs nothing until a page uses it: the browser fetches a
+  weight only when text on the page asks for it.
+*/
+const spectral = Spectral({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
-const jost = Jost({
+const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-ui",
-  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
 /*
@@ -68,7 +92,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${jost.variable} font-ui antialiased`}>
+      <body className={`${spectral.variable} ${publicSans.variable} font-ui antialiased`}>
         {/*
           Section headings load HERE, not on the homepage.
 

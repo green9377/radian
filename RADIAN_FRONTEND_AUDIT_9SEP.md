@@ -108,12 +108,44 @@ icon-only buttons (heart, remove, edit) have no `aria-label`.
 
 ---
 
-## E · The typography — the owner is right
+## E · The typography — SETTLED 9 Sep 2026
 
-Today: **Fraunces** for headings, **Jost** for everything else
-(`app/layout.tsx`).
+> ### ✅ The owner chose **Spectral + Public Sans** (option 8 of twenty)
+>
+> Live on the shop since 9 Sep. Set in **`apps/web/app/layout.tsx`** and
+> **`apps/web/app/globals.css`** — those two files are the whole switch;
+> every screen reads `font-display` / `font-ui` and follows.
+>
+> **Spectral** — a serif drawn by Production Type for screens rather than for
+> paper: even colour, restrained contrast, real italics. It replaces Fraunces,
+> whose playful wobble read craft-fair against the purple.
+>
+> **Public Sans** — the grotesque of the US Web Design System, tall x-height,
+> sturdy digits. It replaces Jost for the reason below: nine tenths of this
+> shop is 12–14px, and Jost was faint at that size.
+>
+> **Two defects went out with them**, both invisible until the fonts were
+> counted:
+> · `font-bold` is used **132 times** and neither old face carried a 700 — so
+>   every bold button on the shop was a browser-smeared 600, against the
+>   owner's own rule (22 Aug: buttons are bold and clear). Both new faces
+>   carry a real 700.
+> · `italic` is used on review quotes and card messages with no italic loaded,
+>   so those were slanted uprights. Spectral's italic is a real cut.
+>
+> The twenty candidates, and the small-print strip that decided it, stay in
+> **`design/font-options.html`** — worth keeping, because the next person who
+> wants to "just try a font" can see all twenty in one screen.
+>
+> ⚠️ **The admin was NOT changed.** `apps/admin` still runs Fraunces + Jost +
+> Manrope. That is a separate decision and a separate 192-screen surface.
 
-Why it does not feel premium:
+The reasoning that led here, kept because it is the test to re-run if anyone
+ever proposes changing this again:
+
+Before: **Fraunces** for headings, **Jost** for everything else.
+
+Why it did not feel premium:
 
 1. **Jost is the problem, not the serif.** It is a geometric sans in the Futura
    family: wide, low x-height, thin at 12–13px. Most of this shop is 12–14px
@@ -126,18 +158,14 @@ Why it does not feel premium:
 3. **The pair does not agree.** A quirky serif plus a geometric sans is a
    1930s-poster combination; nothing in it says "expensive gift, safe hands".
 
-Three replacements are drawn side by side in **`design/font-options.html`** —
-the same hero, product card, price, form and button in each, so the choice is
-made by eye and not by name:
-
-| Option | Display | UI | Why |
-|---|---|---|---|
-| **A · Editorial luxury** | Playfair Display | **Manrope** | Manrope is what the admin's own menu already uses, so shop and Business OS finally share a voice. Tall x-height, excellent numerals — prices stop looking thin |
-| **B · Soft romance** | Cormorant Garamond | Inter | The most "flower shop" of the three: high-contrast, feminine, delicate. Inter keeps the forms plain and legible |
-| **C · Modern gift house** | DM Serif Display | DM Sans | One family, two cuts. The tightest, most contemporary look — closest to Floward |
-
-My recommendation is **A**. It is the only one that also fixes the small-text
-problem, and it makes the storefront and the admin look like one company.
+Three replacements were drawn first, then twenty when the owner asked to see
+more (`design/font-options.html`) — the same hero, product card, price, form
+and button in each, so the choice was made by eye and not by name. My own
+recommendation had been Playfair Display + Manrope; the owner picked **8 ·
+Spectral + Public Sans**, which is the quieter of the two and holds small text
+better. The strip at the bottom of that file — twenty-one small-print lines,
+no headings, no colour — is what settled it, and is the right way to judge any
+future proposal.
 
 ---
 

@@ -16,9 +16,14 @@
   --color-body-soft: #7a6689;
   --color-amber: #b45309;
 
-  /* ---- Typography ---- */
-  --font-display: var(--font-display), Georgia, serif;
-  --font-ui: var(--font-ui), "Century Gothic", sans-serif;
+  /* ---- Typography: Spectral (display) + Public Sans (everything else) ----
+     Loaded in `app/layout.tsx`; the reasoning lives there.
+     The fallbacks are the shapes to fall back TO while the real faces load:
+     a book serif for Spectral, a grotesque for Public Sans. The old
+     "Century Gothic" fallback was chosen for Jost and would now flash a
+     completely different letterform on the first paint. */
+  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-ui), -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* ---- Shape & elevation ---- */
   --radius-lg: 28px;
