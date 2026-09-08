@@ -17,9 +17,9 @@ import NotificationsBell from "./NotificationsBell";
   any other route auto-expands it, and a manual close stays closed because the effect
   only fires when the path itself changes.
 */
-/** A sub-menu entry. It may itself carry a sub-menu — Marketing is one module
-    with four sub-modules under it, and each of those has its own screens
-    (owner, 28 Jul 2026), so the nav goes three deep, not two. */
+/** A sub-menu entry. `subs` on a sub is kept in the type for the access
+    helpers, but since 8 Sep 2026 the nav is two levels only — a module and
+    its one list — and nothing in GROUPS nests deeper. */
 type Sub = { label: string; href: string; match?: (p: string) => boolean; subs?: Sub[]; roles?: Role[] };
 /** who may even SEE this entry. Missing = everybody signed in.
     The server enforces the same rule — this only stops staff from
@@ -50,30 +50,26 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
   items.find((it) => !!it.href && (p === it.href || p.startsWith(it.href + "/")));
 
 /*  ═══════════════════════════════════════════════════════════════════════
-    HOW THIS PANEL IS ARRANGED — owner, 18 August 2026 (replaces the 17 Aug
-    Website/Shop/Internal arrangement, which the owner found hard to read:
-    "Website" vs "Shop" vs "Internal" describe where a thing BELONGS, and he
-    thinks in terms of what he is DOING).
+    HOW THIS PANEL IS ARRANGED — owner, 8 September 2026.
 
-    Groups now follow the rhythm of a working day, most-touched first:
+    The old panel folded menus inside menus inside menus (Marketing went three
+    deep, Administration → Integrations too) and the owner called it a maze.
+    The rule now: a section label → a module → ONE click opens ONE list, and
+    nothing folds inside that list. Two levels, never three.
 
-      TODAY'S WORK    what arrives and must be handled: orders, delivery,
-                      messages, returns, the counter
-      WHAT YOU SELL   the shop window and the catalogue behind it
-      STOCK & BUYING  goods in: inventory, purchases, suppliers, items, assembly
-      MONEY           the books, and the questions that cross modules
-      GROWTH          bringing people in and knowing who they are
-      SETUP           set once, changed rarely — the far end on purpose
+    Two dashboards stand above every section — the whole business, and the
+    books — and signing in lands on the first of them.
 
-    The three rules from the previous arrangement still hold, unchanged:
+    The sections follow who does the work: SALES (orders → delivery → returns),
+    SHOP (the counter), CATALOG (what is sold and how the website shows it),
+    STOCK (the stockroom and buying), ACCOUNTS (the books), CUSTOMERS &
+    MARKETING, STAFF, SETTINGS (set once, changed rarely).
 
-    1. A MODULE MAY APPEAR IN TWO PLACES; ITS DATA MAY NOT. Returns now has
-       ONE top-level row (the whole book). The website door and the counter
-       door live inside Orders and POS as filtered links (?channel=) —
-       DEC-RTN-016, one table, one total.
-    2. A MODULE'S DAILY SCREENS AND ITS SETUP SCREENS CAN LIVE APART.
-       Delivery's board is in TODAY'S WORK; Methods & slots stay in SETUP.
-    3. A REPORT LIVES WHERE ITS DECISION LIVES.
+    A module's own click opens its overview page, so no list carries an
+    "Overview" row. The three rules from before still hold: a module may appear
+    in two places but its data may not (Returns has one book; the online and
+    counter doors are filtered links); daily screens and setup screens may
+    live apart; a report lives where its decision lives.
 
     ⚠️ NOT ONE href CHANGED. Access keys derive from hrefs (ADM-RULE-001), so
     every tick and bookmark survives. After editing this array, regenerate the
@@ -81,43 +77,28 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
     ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    title: "Today's work", accent: "#f0a8b8", emblem: "clock",
+    title: "Dashboards", accent: "#cf43ea", emblem: "sparkle",
     items: [
-      /*  Orders — the website's output (owner, 17 Aug 2026: "order holo online
-          ba website releted"). A counter sale is NOT here; it is under Shop,
-          in POS. Both still land in the one Order table (DEC-POS-001) — this
-          is a menu, not a second ledger.  */
+      { label: "Business Dashboard", href: "/intelligence", icon: "sparkle" },
+      { label: "Accounts Dashboard", href: "/finance", icon: "wallet", roles: ["OWNER", "MANAGER"] },
+    ],
+  },
+  {
+    title: "Sales", accent: "#f0a8b8", emblem: "bag",
+    items: [
       {
         label: "Orders", href: "/orders", icon: "bag",
         subs: [
-          { label: "Overview", href: "/orders", match: exact("/orders") },
           { label: "All orders", href: "/orders/list" },
           { label: "Needs action", href: "/orders/action" },
-          { label: "Payments", href: "/orders/payments" },
-          { label: "Online payments", href: "/orders/online-payments" },
-          { label: "Returns", href: "/returns?channel=online" }, // → the online door, DEC-RTN-016
-          { label: "Recovery", href: "/orders/recovery" },
           { label: "Scheduled", href: "/orders/scheduled" },
           { label: "Cancelled", href: "/orders/cancelled" },
+          { label: "Payments", href: "/orders/payments" },
+          { label: "Online payments", href: "/orders/online-payments" },
+          { label: "Recovery", href: "/orders/recovery" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },
-      /*  DELIVERY — the work half. Board, proof, carrier settlement and the
-          cost report; every one of them a thing that happens today.
-
-          "Cost & performance" stays HERE and not in Intelligence on purpose
-          (rule 3): reading it sends you straight to Methods & slots to change
-          a zone. A report and the decision it drives belong in one room.
-          Intelligence answers the questions that cross modules; this one does
-          not leave Delivery.
-
-          ⚠️ KEEP THE href. It is tempting to drop it the way Catalog does,
-          since the first child points at the same /delivery — but that is
-          exactly backwards here. With the href, the parent keys as "delivery"
-          and the board keys as "delivery.overview" (subKey's same-href rule),
-          which is what the access registry has always held. Without it, the
-          parent would slug "delivery" from its LABEL and the board would slug
-          "delivery" from its href — two rows, one key.  */
       {
         label: "Delivery", href: "/delivery", icon: "truck",
         subs: [
@@ -127,66 +108,41 @@ const GROUPS: Group[] = [
           { label: "Cost & performance", href: "/delivery/performance" },
         ],
       },
-      // Inbox — every customer conversation, whatever channel it arrived on.
-      { label: "Inbox", href: "/inbox", icon: "mail" },
-      /*  RETURNS & REFUNDS — the WHOLE book, and the only row that carries the
-          totals (RADIAN_RETURNS_MODULE_ARCHITECTURE.md, DEC-RTN-005..016).
-          The website and the counter each have a narrowed door above; this is
-          where they meet and where every figure is added up. Staff-initiated
-          only; refund ≤ collected; restock via Inventory.
-
-          "Reasons & settings" is NOT here — it is set once and lives in
-          Configuration, by the same rule that split Delivery.
-
-          ⚠️ /returns/[id] is dynamic — new/settings are reserved static names.  */
       {
         label: "Returns & Refunds", href: "/returns", icon: "returnArrow",
         subs: [
-          { label: "Overview (all returns)", href: "/returns", match: exact("/returns") },
+          { label: "All returns", href: "/returns", match: exact("/returns") },
           { label: "New return", href: "/returns/new" },
+          { label: "Online returns", href: "/returns?channel=online" },
+          { label: "Counter returns", href: "/returns?channel=counter" },
         ],
       },
-      // POS = the physical-store counter (RADIAN_POS_MODULE_ARCHITECTURE.md, 23 Jul).
-      // Separate module, but a completed sale lands in the unified Order ledger
-      // (channel=POS, DEC-POS-001).
-      // ⚠️ /pos/[static] only — no dynamic segment yet. /pos = Overview.
+      { label: "Inbox", href: "/inbox", icon: "mail" },
+    ],
+  },
+  {
+    title: "Shop", accent: "#e9c46a", emblem: "register",
+    items: [
       {
         label: "POS", href: "/pos", icon: "register",
         subs: [
-          { label: "Overview", href: "/pos", match: exact("/pos") },
           { label: "Sell (counter)", href: "/pos/sell" },
           { label: "Today / Shift", href: "/pos/shift" },
-          { label: "Sales history", href: "/pos/sales" },
           { label: "Day-close", href: "/pos/day-close" },
-          // DEC-POS-022 — ordered today, taken later; the goods wait on the shelf
+          { label: "Sales history", href: "/pos/sales" },
           { label: "Advance orders", href: "/pos/advance" },
           { label: "Due board", href: "/pos/due" },
-          { label: "Returns", href: "/returns?channel=counter" }, // the counter door, DEC-RTN-016
           { label: "Settings", href: "/pos/settings" },
         ],
       },
     ],
   },
   {
-    title: "What you sell", accent: "#e07be0", emblem: "star",
+    title: "Catalog", accent: "#e07be0", emblem: "flower",
     items: [
-      /*  Products = what goes ON those pages. It sits in Website and not in
-          some master-data drawer because a product IS a page in the shop:
-          editing one changes what a customer sees within the minute.
-
-          6 Aug 2026 (owner): "Variants & options" moved to Catalog (it is a
-          store-facing classification master, like Categories/Tags/Brands),
-          and "Daily capacity" moved to Assembly (it is a back-of-house
-          production limit). URLs unchanged, so access ticks survive.
-
-          ⚠️ The physical master BEHIND a product — Items (flowers, ribbon,
-          paper) — is deliberately NOT here. A customer never sees an item;
-          it lives in Internal beside Inventory and Assembly, which is the
-          only place it is ever used.  */
       {
         label: "Products", href: "/products", icon: "flower",
         subs: [
-          { label: "Overview", href: "/products", match: exact("/products") },
           { label: "All products", href: "/products/list" },
           { label: "Stock", href: "/products/stock" },
           { label: "Margin", href: "/products/margin" },
@@ -194,82 +150,13 @@ const GROUPS: Group[] = [
           { label: "Catalog funnel", href: "/products/funnel" },
           { label: "Add-ons", href: "/products/addons" },
           { label: "Upgrades", href: "/products/upgrades" },
-          /*  DEC-PRD-050 — Best seller / New arrival are decided by numbers
-              now, and this is where the numbers are set. Filed under Products
-              rather than Storefront because "best seller" is a thing the owner
-              thinks about while looking at products.  */
           { label: "Badge rules", href: "/products/badges" },
           { label: "Bulk actions", href: "/products/bulk" },
           { label: "Trash", href: "/products/trash" },
         ],
       },
-      /*  Storefront leads the group: it is the thing the rest of this section
-          is about. Everything below it feeds what these pages display.
-
-          ⚠️ ONE LEVEL, NOT TWO — and this is the second correction, so it is
-          worth writing down properly.
-
-          First it was ten entries sitting at the top of the panel. The owner
-          asked for one module with the rest inside it, so they were grouped
-          into Pages / Blocks / Words / Shop details. That fixed the top of the
-          panel and broke everything under it: reaching Banners went from one
-          click to three, and every click needed a decision — "is a banner a
-          Block or a Page?" — that only the person who invented the grouping
-          could answer.
-
-          The grouping still exists where it costs nothing: on the Overview
-          screen, where all four are visible at once and nothing is hidden
-          behind a word. In the nav, a plain list is easier than a tidy tree.
-          Tidiness that costs clicks is not tidiness.  */
       {
-        label: "Storefront", href: "/storefront", icon: "store",
-        subs: [
-          { label: "Overview", href: "/storefront", match: exact("/storefront") },
-
-          /*  ── PAGES ───────────────────────────────────────────────────────
-              Everything a page needs is now INSIDE the page — owner, 31 Jul.
-
-              Banners, the trust strip, the budget cards and every section's
-              wording used to be four more rows here. They belong to the
-              homepage and to nothing else, so they are edited inside the
-              homepage: open a section, and its editor is right there. The
-              standalone screens still exist at their old addresses for anyone
-              who arrives by link or bookmark; they are simply not a place he
-              has to KNOW about any more.  */
-          { label: "Homepage", href: "/storefront/layout" },
-          { label: "Category pages", href: "/storefront/category-page" },
-
-          /*  ── EVERY PAGE ──────────────────────────────────────────────────
-              These are not part of one page. Reviews, the shop card and the
-              footer render at the bottom of EVERY page, and the journal is its
-              own section of the site. Filing them inside the homepage would be
-              filing them under one of the many pages they appear on.  */
-          { label: "Reviews", href: "/storefront/reviews" },
-          { label: "Journal", href: "/storefront/journal" },
-          /*  Terms, Refund Policy, Privacy, FAQ — the storefront reads these
-              from the Content module (4 Aug); this is where they are written.
-              bKash/SSLCommerz merchant review asks to SEE these pages live.  */
-          { label: "Pages & FAQs", href: "/storefront/pages" },
-          { label: "Visit the shop", href: "/storefront/hours" },
-          { label: "Footer & menus", href: "/storefront/footer" },
-        ],
-      },
-      /*  Catalog = the classification masters under one roof (owner, 6 Aug
-          2026: "choto choto 3 ta jinis main module e bose ache — ek module
-          kore sub-module bosao"). Website, because these ARE the shop's
-          navigation: a category is a menu entry a customer clicks.
-
-          THE URLS DO NOT MOVE — /categories, /tags and /brands keep every
-          deep link and every existing access tick; only the menu groups them.
-
-          ⚠️ NO href on the parent, deliberately. Access keys derive from
-          hrefs (moduleKey/subKey below): give this row /categories and its
-          key collides with the Categories screen's own key, which is the
-          key every existing tick points at. href-less, the row derives
-          "catalog" from its label and simply opens the branch on click —
-          the three children keep their exact old keys and old ticks.  */
-      {
-        label: "Catalog", icon: "layers",
+        label: "Categories & Tags", icon: "layers",
         subs: [
           { label: "Categories", href: "/categories" },
           { label: "Occasions & Tags", href: "/tags" },
@@ -277,17 +164,27 @@ const GROUPS: Group[] = [
           { label: "Variants & options", href: "/products/variants" },
         ],
       },
+      {
+        label: "Website", href: "/storefront", icon: "store",
+        subs: [
+          { label: "Homepage", href: "/storefront/layout" },
+          { label: "Category pages", href: "/storefront/category-page" },
+          { label: "Pages & FAQs", href: "/storefront/pages" },
+          { label: "Reviews", href: "/storefront/reviews" },
+          { label: "Journal", href: "/storefront/journal" },
+          { label: "Visit the shop", href: "/storefront/hours" },
+          { label: "Footer & menus", href: "/storefront/footer" },
+          { label: "SEO", href: "/marketing/seo", match: (p) => p.startsWith("/marketing/seo"), roles: ["OWNER", "MANAGER"] },
+        ],
+      },
     ],
   },
   {
-    title: "Stock & buying", accent: "#5ec9a8", emblem: "box",
+    title: "Stock", accent: "#5ec9a8", emblem: "box",
     items: [
-      // Inventory = stock's ONE owner (RADIAN_INVENTORY_MODULE_ARCHITECTURE.md, 22 Jul).
-      // Immutable ledger + AVCO money.
       {
         label: "Inventory", href: "/inventory", icon: "warehouse",
         subs: [
-          { label: "Overview", href: "/inventory", match: exact("/inventory") },
           { label: "Stock board", href: "/inventory/stock" },
           { label: "Opening stock", href: "/inventory/opening" },
           { label: "Transfer", href: "/inventory/transfer" },
@@ -295,87 +192,50 @@ const GROUPS: Group[] = [
           { label: "Stocktake", href: "/inventory/stocktake" },
           { label: "Movements", href: "/inventory/movements" },
           { label: "Reports", href: "/inventory/reports" },
+          { label: "Warehouses", href: "/inventory/warehouses" },
           { label: "Settings", href: "/inventory/settings" },
         ],
       },
-      // Purchases = the buying book (RADIAN_PURCHASE_MODULE_ARCHITECTURE.md, 22 Jul).
-      // One entity, two doors: quick market entry + advance orders (DEC-PUR-001).
-      // Requisition/Order screens arrive with the first branch — deliberately absent.
-      // ⚠️ /purchases/[id] is dynamic — list/new/returns are reserved static names.
       {
         label: "Purchases", href: "/purchases", icon: "cart",
         roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Overview", href: "/purchases", match: exact("/purchases") },
           { label: "All purchases", href: "/purchases/list" },
           { label: "New purchase", href: "/purchases/new" },
-          { label: "Returns", href: "/purchases/returns" },
+          { label: "Purchase returns", href: "/purchases/returns" },
           { label: "Reports", href: "/purchases/reports" },
         ],
       },
-      // Suppliers = everyone Radian pays (RADIAN_SUPPLIER_MODULE_ARCHITECTURE.md, 23 Jul).
-      // Purchase only references it (DEC-SUP-001).
-      // ⚠️ /suppliers/[id] is dynamic — list/new/settings are reserved static names.
       {
         label: "Suppliers", href: "/suppliers", icon: "users",
         roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
-          // "New supplier" left the nav (owner, 19 Aug) — the button on All
-          // suppliers/Overview is the door, same as Vendors. Route unchanged.
           { label: "All suppliers", href: "/suppliers/list" },
-          // DEC-SUP-009 — fulfillment vendors' own workspace (cake-type partners):
-          // same Supplier table underneath, their own face on top
           { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
           { label: "Settings", href: "/suppliers/settings" },
         ],
       },
-      /*  Items = the physical master behind every Product
-          (RADIAN_ITEM_MODULE_ARCHITECTURE.md). It sat beside Products for a
-          year; it is here now because an item is a thing in a bucket in the
-          back room. Nobody outside ever sees one, and the screens that use it
-          are the two directly above.
-
-          ⚠️ /items/[id] is dynamic — the static names below can never be item
-          ids. Everything the Item module needs lives INSIDE it (owner, 21
-          Jul): its own category tree, its own colour/size master, and Units.  */
       {
         label: "Items", href: "/items", icon: "gem",
         subs: [
-          { label: "Overview", href: "/items", match: exact("/items") },
           { label: "All items", href: "/items/list" },
           { label: "New item", href: "/items/new" },
-          /* Recipes moved OUT with the Recipe tab (DEC-ITM-011 phase 3) — it belongs to
-             Assembly, and two homes for one idea is the confusion we just removed.
-             Costs removed too: every figure on it already lives on Overview (the "no
-             cost" alert) or All items (cost column, sort by dearest, the No-cost tick),
-             and half its numbers were about recipes. A screen that only repeats other
-             screens costs attention and gives nothing back. (sobuj, 21 Jul) */
           { label: "Item categories", href: "/items/categories" },
           { label: "Item types", href: "/items/types" },
           { label: "Pricing", href: "/items/pricing" },
           { label: "Colours", href: "/items/colors" },
           { label: "Sizes", href: "/items/sizes" },
-          // Units lives under Items (owner's call, 21 Jul) — units exist to serve
-          // items, so that is where people look. No top-level entry, or it appears twice.
           { label: "Units", href: "/items/units" },
           { label: "Trash", href: "/items/trash" },
         ],
       },
-      // Assembly v2 (RADIAN_ASSEMBLY_MODULE_ARCHITECTURE.md, redesign 23 Jul):
-      // Template (no stock touch) → Pipeline (components → Assembly floor) →
-      // Finished goods → Transfer (owner picks the Item). Stock via Inventory only.
       {
         label: "Assembly", href: "/assembly", icon: "tools",
         subs: [
-          { label: "Overview", href: "/assembly", match: exact("/assembly") },
           { label: "Templates", href: "/assembly/templates" },
           { label: "Production pipeline", href: "/assembly/pipeline" },
           { label: "Finished goods", href: "/assembly/finished" },
           { label: "Wastage", href: "/assembly/wastage" },
-          /*  Daily capacity — how much can be MADE per day. A back-of-house
-              production limit, so it lives here beside Assembly, not in
-              Products. URL unchanged (/products/capacity), 6 Aug 2026.  */
           { label: "Daily capacity", href: "/products/capacity" },
           { label: "Settings", href: "/assembly/settings" },
         ],
@@ -383,227 +243,120 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Money", accent: "#e9c46a", emblem: "cash",
+    title: "Accounts", accent: "#e9c46a", emblem: "cash",
     items: [
       {
         label: "Finance", href: "/finance", icon: "wallet",
         roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Overview", href: "/finance", match: (p) => p === "/finance" },
           { label: "Money accounts", href: "/finance/accounts" },
-          { label: "Chart of accounts", href: "/finance/chart" },
-          { label: "Expenses", href: "/finance/expenses" },
           { label: "Money in & moving", href: "/finance/income" },
-          { label: "Partners", href: "/finance/partners" },
+          { label: "Expenses", href: "/finance/expenses" },
           { label: "Monthly bills", href: "/finance/recurring" },
-          { label: "Staff advance & salary", href: "/finance/staff" },
+          { label: "Partners", href: "/finance/partners" },
           { label: "Cash with carriers", href: "/finance/carrier" },
           { label: "Payment gateway", href: "/finance/gateway" },
           { label: "Assets & loans", href: "/finance/assets" },
-          { label: "Reports", href: "/finance/reports" },
-          { label: "Books vs reality", href: "/finance/drift" },
-          { label: "VAT challan (Mushak 6.3)", href: "/finance/vat" },
-          { label: "Ledger", href: "/finance/ledger" },
-          { label: "Manual journal", href: "/finance/journal" },
+          { label: "Staff advance & salary", href: "/finance/staff" },
           { label: "Settings", href: "/finance/settings" },
         ],
       },
-      /*  INTELLIGENCE — RADIAN_INTELLIGENCE_MODULE_ARCHITECTURE.md (29 Jul 2026).
-          ONE module with four sub-modules, exactly as the owner's own map has
-          it. The Executive Dashboard is a SUB-MODULE, not a module of its own —
-          an earlier pass got that wrong and it is worth not repeating.
-
-          Last in Internal on purpose: by rule 3 in the header comment, a
-          module's own reports stay with that module, and only the questions
-          that cross modules ("where did this month's profit come from") land
-          here. So this is the room you enter after the work, not during it.
-
-          NO role gate on the module itself. DEC-INT-005 gives STAFF the
-          Executive Dashboard deliberately — the Today list IS their work, and
-          the server withholds cost and cash from it per figure rather than
-          closing the door. An earlier pass put roles here and hid the whole
-          module from staff, which quietly reversed a locked decision.  */
       {
-        label: "Intelligence", href: "/intelligence", icon: "sparkle",
+        label: "Books & Reports", icon: "book",
+        roles: ["OWNER", "MANAGER"],
         subs: [
-          { label: "Executive dashboard", href: "/intelligence", match: exact("/intelligence") },
-          { label: "Analytics", href: "/intelligence/analytics", roles: ["OWNER", "MANAGER"] },
-          { label: "Reports", href: "/intelligence/reports", roles: ["OWNER", "MANAGER"] },
-          { label: "Targets & KPIs", href: "/intelligence/kpis", roles: ["OWNER", "MANAGER"] },
-          { label: "Forecast & market", href: "/intelligence/forecast", roles: ["OWNER", "MANAGER"] },
+          { label: "Ledger", href: "/finance/ledger" },
+          { label: "Manual journal", href: "/finance/journal" },
+          { label: "Chart of accounts", href: "/finance/chart" },
+          { label: "Reports", href: "/finance/reports" },
+          { label: "Books vs reality", href: "/finance/drift" },
+          { label: "VAT challan (Mushak 6.3)", href: "/finance/vat" },
+        ],
+      },
+      {
+        label: "Analytics", icon: "chart",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Analytics", href: "/intelligence/analytics" },
+          { label: "Reports", href: "/intelligence/reports" },
+          { label: "Targets & KPIs", href: "/intelligence/kpis" },
+          { label: "Forecast & market", href: "/intelligence/forecast" },
         ],
       },
     ],
   },
   {
-    title: "Growth", accent: "#7fb4f0", emblem: "chart",
+    title: "Customers & Marketing", accent: "#7fb4f0", emblem: "heart",
     items: [
-      {
-        label: "Marketing & Growth", href: "/marketing", icon: "megaphone",
-        roles: ["OWNER", "MANAGER"],
-        subs: [
-          { label: "Overview", href: "/marketing", match: exact("/marketing") },
-          {
-            label: "Campaigns", href: "/marketing/campaigns",
-            match: (p) => p.startsWith("/marketing/campaigns"),
-            subs: [
-              { label: "Overview", href: "/marketing/campaigns", match: exact("/marketing/campaigns") },
-              { label: "All campaigns", href: "/marketing/campaigns/list" },
-              { label: "Order sources", href: "/marketing/campaigns/sources" },
-            ],
-          },
-          {
-            label: "Offers & Promotions", href: "/marketing/offers",
-            match: (p) => p.startsWith("/marketing/offers"),
-            subs: [
-              { label: "Overview", href: "/marketing/offers", match: (p) => p === "/marketing/offers" || p.startsWith("/marketing/offers/perf") },
-              { label: "Offers", href: "/marketing/offers/list", match: (p) => p.startsWith("/marketing/offers/list") || (/^\/marketing\/offers\/[^/]+$/.test(p) && !["/marketing/offers/coupons", "/marketing/offers/templates", "/marketing/offers/settings", "/marketing/offers/approvals"].includes(p)) },
-              { label: "Coupons", href: "/marketing/offers/coupons" },
-              { label: "Templates", href: "/marketing/offers/templates" },
-              { label: "Approvals", href: "/marketing/offers/approvals" },
-              { label: "Settings", href: "/marketing/offers/settings" },
-            ],
-          },
-          {
-            label: "Affiliates & Partners", href: "/marketing/affiliates",
-            match: (p) => p.startsWith("/marketing/affiliates"),
-            subs: [
-              { label: "Overview", href: "/marketing/affiliates", match: exact("/marketing/affiliates") },
-              { label: "All affiliates", href: "/marketing/affiliates/list" },
-              { label: "Commission ledger", href: "/marketing/affiliates/commissions" },
-              { label: "Payouts", href: "/marketing/affiliates/payouts" },
-            ],
-          },
-          {
-            label: "Occasions & Outreach", href: "/marketing/occasions",
-            match: (p) => p.startsWith("/marketing/occasions") || p.startsWith("/marketing/outreach"),
-            subs: [
-              { label: "Occasions due", href: "/marketing/occasions" },
-              { label: "Contact history", href: "/marketing/outreach", match: exact("/marketing/outreach") },
-              { label: "Do not contact", href: "/marketing/outreach/optouts" },
-            ],
-          },
-          {
-            // MKT-D18 — messages, lists and a queue. No API needed; when one
-            // is verified, "send them all" joins the same screen.
-            label: "WhatsApp", href: "/marketing/whatsapp",
-            match: (p) => p.startsWith("/marketing/whatsapp"),
-          },
-          {
-            // MKT-D19 — provider-agnostic; nothing sends without a key.
-            label: "Email & SMS", href: "/marketing/messaging",
-            match: (p) => p.startsWith("/marketing/messaging"),
-          },
-          {
-            // DEC-WA-002…008 — failed payments and unfinished checkouts. Kept
-            // under Marketing because this is win-back work, not sales
-            // accounting — and Meta classes the checkout_abandoned template
-            // as Marketing.
-            label: "Recover lost orders", href: "/marketing/recovery",
-            match: (p) => p.startsWith("/marketing/recovery"),
-          },
-          {
-            // MKT-D16 — a customer brings a friend. Points one way, a discount
-            // the other, and the one points ledger Loyalty now shares.
-            label: "Referral", href: "/marketing/referral",
-            match: (p) => p.startsWith("/marketing/referral"),
-          },
-          {
-            // MKT-D21 — points on ordinary purchases. Same ledger as Referral,
-            // so a customer sees one balance and not two arguing ones.
-            label: "Loyalty points", href: "/marketing/loyalty",
-            match: (p) => p.startsWith("/marketing/loyalty"),
-          },
-          {
-            // MKT-D20 — what Meta charged and what it bought. The one marketing
-            // screen that is fully useful today: the ads are already running.
-            label: "Ad numbers", href: "/marketing/ads",
-            match: (p) => p.startsWith("/marketing/ads"),
-          },
-          {
-            // Every pixel and tag id, pasted once (MKT-D15).
-            label: "Tracking codes", href: "/marketing/tracking",
-          },
-          {
-            // What Google and Facebook see. Being found is marketing.
-            label: "SEO", href: "/marketing/seo",
-            match: (p) => p.startsWith("/marketing/seo"),
-            subs: [
-              { label: "Where we stand", href: "/marketing/seo", match: exact("/marketing/seo") },
-              { label: "Pages", href: "/marketing/seo?tab=pages" },
-              { label: "Old links", href: "/marketing/seo?tab=redirects" },
-              { label: "Site-wide", href: "/marketing/seo?tab=settings" },
-            ],
-          },
-          { label: "Settings", href: "/marketing/settings" },
-        ],
-      },
       {
         label: "Customers", href: "/customers", icon: "heart",
         subs: [
-          { label: "Overview", href: "/customers", match: exact("/customers") },
           { label: "All customers", href: "/customers/list" },
           { label: "Segments", href: "/customers/segments" },
+          { label: "Occasions", href: "/customers/occasions" },
           { label: "Risk & blocklist", href: "/customers/risk" },
           { label: "Consent", href: "/customers/consent" },
           { label: "Duplicates & merge", href: "/customers/duplicates" },
-          { label: "Occasions", href: "/customers/occasions" },
+        ],
+      },
+      {
+        /*  href /marketing on purpose: its key "marketing" is what judges the
+            API's /marketing/* routes and holds the existing access ticks.  */
+        label: "Marketing", href: "/marketing", icon: "megaphone",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Campaigns", href: "/marketing/campaigns" },
+          { label: "Order sources", href: "/marketing/campaigns/sources" },
+          { label: "Ad numbers", href: "/marketing/ads" },
+          { label: "Tracking codes", href: "/marketing/tracking" },
+          { label: "Marketing settings", href: "/marketing/settings" },
+        ],
+      },
+      {
+        label: "Offers & Coupons", href: "/marketing/offers", icon: "tag",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Offers", href: "/marketing/offers/list", match: (p) => p.startsWith("/marketing/offers/list") || (/^\/marketing\/offers\/[^/]+$/.test(p) && !["/marketing/offers/coupons", "/marketing/offers/templates", "/marketing/offers/settings", "/marketing/offers/approvals"].includes(p)) },
+          { label: "Coupons", href: "/marketing/offers/coupons" },
+          { label: "Templates", href: "/marketing/offers/templates" },
+          { label: "Approvals", href: "/marketing/offers/approvals" },
+          { label: "Settings", href: "/marketing/offers/settings" },
+        ],
+      },
+      {
+        label: "Outreach & Loyalty", icon: "star",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "Occasions due", href: "/marketing/occasions" },
+          { label: "Contact history", href: "/marketing/outreach", match: exact("/marketing/outreach") },
+          { label: "Do not contact", href: "/marketing/outreach/optouts" },
+          { label: "Recover lost orders", href: "/marketing/recovery" },
+          { label: "Referral", href: "/marketing/referral" },
+          { label: "Loyalty points", href: "/marketing/loyalty" },
+        ],
+      },
+      {
+        label: "Messaging", icon: "phone",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "WhatsApp", href: "/marketing/whatsapp" },
+          { label: "Email & SMS", href: "/marketing/messaging" },
+        ],
+      },
+      {
+        label: "Affiliates", href: "/marketing/affiliates", icon: "users",
+        roles: ["OWNER", "MANAGER"],
+        subs: [
+          { label: "All affiliates", href: "/marketing/affiliates/list" },
+          { label: "Commission ledger", href: "/marketing/affiliates/commissions" },
+          { label: "Payouts", href: "/marketing/affiliates/payouts" },
         ],
       },
     ],
   },
   {
-    title: "Setup", accent: "#b9aecf", emblem: "gear",
+    title: "Staff", accent: "#b9aecf", emblem: "user",
     items: [
-      /*  Delivery's SETUP half — the other end of the split described in
-          Internal. Riders stay here rather than in People because adding a
-          rider is a delivery capability, not a person you have a relationship
-          with; couriers left this menu on 12 Aug 2026 and are added in
-          Administration → Courier & delivery, keys and all.
-
-          ⚠️ href-less parent, same reason as Delivery's work half: /delivery
-          belongs to the fulfilment board's key.  */
-      /*  The channel master moved out of Orders on 21 Aug: this page books
-          WEBSITE orders only, and the channel a sale came through is now chosen
-          at the till (DEC-POS-019). The master itself is a setting, so it lives
-          with the other settings.  */
-      {
-        label: "Sales channels", href: "/orders/channels", icon: "store",
-      },
-      /*  Warehouses are a shop-wide fact (CLAUDE.md §15) — POS sells from them,
-          purchases land in them, assembly picks from them. So they are set up
-          here with the other whole-shop settings, not inside Inventory
-          (owner, 21 Aug: "warehouse setup... setup niye jaw").  */
-      {
-        label: "Warehouses", href: "/inventory/warehouses", icon: "warehouse",
-      },
-      /*  DEC-GBL-001 (owner, 21 Aug) — the payment list was five lists: three
-          enums, a POS-only switch and Finance's accounts, so bKash off at the
-          till was still on a purchase bill. It is one shop-wide setting now,
-          and it sits with the other shop-wide settings.  */
-      {
-        label: "Payment methods", href: "/administration/payment-methods", icon: "wallet",
-        roles: ["OWNER", "MANAGER"],
-      },
-      {
-        label: "Delivery setup", icon: "truck",
-        subs: [
-          // order = the work order (owner, 19 Aug): make masters, then connect, then riders
-          { label: "Methods & slots", href: "/delivery/zones" },
-          { label: "Setup", href: "/delivery/setup" },
-          { label: "Riders", href: "/delivery/riders" },
-        ],
-      },
-      /*  Returns' setup half (DEC-RTN-016) — reasons, approval rules and
-          default refund methods. Written once, then left alone for months,
-          which is why it no longer sits in the menu people open to handle
-          today's return.  */
-      { label: "Returns settings", href: "/returns/settings", icon: "gear" },
-      // Employee / HR (RADIAN_HR_MODULE_ARCHITECTURE.md, 28 Jul). Finance
-      // references it, never owns it. What a person is paid is a money fact,
-      // so MANAGER and up; the personal columns are stripped server-side for
-      // anyone but the OWNER.
-      // ⚠️ /employees/[id] is dynamic — new / attendance / payroll are reserved.
       {
         label: "Staff", href: "/employees", icon: "user",
         roles: ["OWNER", "MANAGER"],
@@ -616,59 +369,44 @@ const GROUPS: Group[] = [
           { label: "Removed staff", href: "/employees/trash" },
         ],
       },
-      /*  ADMINISTRATION (30 Jul 2026) — RADIAN_ADMINISTRATION_MODULE_ARCHITECTURE.md
-          Replaces the old "Settings" entry, which had NO href at all: a menu row
-          that did nothing when clicked, sitting there since the first build.
-
-          The module is OWNER-only as a whole, and that is deliberate rather than
-          careless: the screen that hands out access also hands out the power to
-          hand out access. "My password & PIN" is the one thing everybody needs,
-          so it stays outside as its own row.
-
-          ⚠️ These sub-entries are the LAST hand-written roles in this file. Once
-          §7 stage 3 lands, the sidebar draws itself from GET /administration/menu
-          and this array stops deciding anything. Until then, adding a screen here
-          means regenerating apps/api/src/administration/registry.def.ts — the two
-          lists disagreeing is the exact bug this module was built to end. */
+    ],
+  },
+  {
+    title: "Settings", accent: "#b9aecf", emblem: "gear",
+    items: [
       {
-        label: "Administration", href: "/administration", icon: "shield", roles: ["OWNER"],
+        label: "Shop setup", icon: "gear",
         subs: [
-          { label: "Overview", href: "/administration", match: exact("/administration") },
-          { label: "Access control", href: "/administration/access" },
-          /*  These two point at the screens that ALREADY work rather than at
-              new stubs. Moving a working screen behind a placeholder because
-              the menu was being tidied would be a step backwards dressed up as
-              progress. They move to /administration/* when there is something
-              better to move them to.  */
-          { label: "People & accounts", href: "/settings/people" },
-          { label: "Activity & sessions", href: "/settings/audit" },
-          { label: "Company settings", href: "/administration/company" },
-          { label: "All settings", href: "/administration/settings" },
-          { label: "Backup & restore", href: "/administration/backup" },
-          /*  ADM-D09 — EVERY outside service lives here, on the owner's
-              instruction (30 Jul): Facebook, WhatsApp, Google, Meta, all of it.
-              Grouped rather than one flat list, and payment sits at the top
-              deliberately — a flat list makes "this one moves money" and "this
-              one counts page views" look like the same kind of setting.
-
-              What is NOT here is the CONTENT that travels over these
-              connections: the WhatsApp wording stays in Marketing, the SEO
-              titles in SEO. That line is what stops a key having two homes.  */
-          {
-            label: "Integrations & keys", href: "/administration/integrations",
-            subs: [
-              { label: "All keys", href: "/administration/integrations", match: exact("/administration/integrations") },
-              { label: "Payment gateways", href: "/administration/integrations/payment" },
-              { label: "Courier & delivery", href: "/administration/integrations/courier" },
-              { label: "Messaging", href: "/administration/integrations/messaging" },
-              { label: "Social & ads", href: "/administration/integrations/social" },
-              { label: "Tracking & analytics", href: "/administration/integrations/analytics" },
-            ],
-          },
+          { label: "Company settings", href: "/administration/company", roles: ["OWNER"] },
+          { label: "Sales channels", href: "/orders/channels" },
+          { label: "Payment methods", href: "/administration/payment-methods", roles: ["OWNER", "MANAGER"] },
+          { label: "Delivery methods & slots", href: "/delivery/zones" },
+          { label: "Delivery setup", href: "/delivery/setup" },
+          { label: "Riders", href: "/delivery/riders" },
+          { label: "Returns settings", href: "/returns/settings" },
+          { label: "All settings", href: "/administration/settings", roles: ["OWNER"] },
         ],
       },
-      // SEO moved into the Marketing group (owner, 28 Jul 2026) — being found
-      // is marketing, not a system setting. /settings/seo is now a redirect.
+      {
+        label: "Integrations & keys", href: "/administration/integrations", icon: "shield", roles: ["OWNER"],
+        subs: [
+          { label: "All keys", href: "/administration/integrations", match: exact("/administration/integrations") },
+          { label: "Payment gateways", href: "/administration/integrations/payment" },
+          { label: "Courier & delivery", href: "/administration/integrations/courier" },
+          { label: "Messaging", href: "/administration/integrations/messaging" },
+          { label: "Social & ads", href: "/administration/integrations/social" },
+          { label: "Tracking & analytics", href: "/administration/integrations/analytics" },
+        ],
+      },
+      {
+        label: "Access & security", href: "/administration", icon: "lock", roles: ["OWNER"],
+        subs: [
+          { label: "Access control", href: "/administration/access" },
+          { label: "People & accounts", href: "/settings/people" },
+          { label: "Activity & sessions", href: "/settings/audit" },
+          { label: "Backup & restore", href: "/administration/backup" },
+        ],
+      },
       { label: "My password & PIN", href: "/settings/me", icon: "lock" },
     ],
   },
@@ -832,100 +570,29 @@ export default function AdminSidebar() {
       .filter((g) => g.items.length > 0);
   }, [me?.role, me, access]);
 
-  /*  Which DEPARTMENT is open (owner, 18 Aug 2026, refined same day).
+  /*  Arriving in a module opens exactly its list and folds every other one,
+      so the page you are standing on is always visible in the nav.
 
-      An accordion, exactly like the modules inside it: opening one department
-      closes the others, and clicking the open one closes it too — nothing is
-      pinned open, not even the department you are standing in. Six coloured
-      headers are calm; twenty-five rows are not.
-
-      Stored in localStorage so the panel opens the way it was left. Restoring
-      the window does NOT re-open anything (the pathname guard below) — only a
-      real click or a real navigation moves this.  */
-  const OPEN_KEY = "radian.nav.openGroup";
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(OPEN_KEY);
-      setOpenGroup(saved !== null ? (saved === "" ? null : saved) : "Today's work");
-    } catch { /* unreadable preference = the default */ }
-  }, []);
-  const setOpenGroupSticky = (title: string | null) => {
-    setOpenGroup(title);
-    try { window.localStorage.setItem(OPEN_KEY, title ?? ""); } catch { /* ignore */ }
-  };
-  const toggleGroup = (title: string) =>
-    setOpenGroupSticky(openGroup === title ? null : title);
-
-  // Arriving in a module opens exactly its branch and folds everything else.
-  // Three levels now, so landing on /marketing/affiliates/payouts has to open
-  // BOTH "Marketing & Growth" and "Affiliates & Partners" — otherwise the page
-  // you are standing on is not visible anywhere in the nav.
-  //
-  //  ⚠️ GUARDED BY REAL NAVIGATION (owner, 18 Aug 2026). This used to depend on
-  //  [pathname, visibleGroups] — and visibleGroups is rebuilt whenever access
-  //  refreshes, which happens on window focus. So minimising the browser and
-  //  coming back re-opened every branch the user had deliberately closed.
-  //  Now it fires only when the PATH actually changes: a click that goes
-  //  somewhere. Closing a menu and staying put stays closed.
+      ⚠️ GUARDED BY REAL NAVIGATION (owner, 18 Aug 2026). This used to depend
+      on [pathname, visibleGroups] — and visibleGroups is rebuilt whenever
+      access refreshes, which happens on window focus. So minimising the
+      browser and coming back re-opened every list the user had closed. Now it
+      fires only when the PATH actually changes.  */
   const lastPath = useRef<string | null>(null);
   useEffect(() => {
     if (lastPath.current === pathname) return; // focus/refresh, not navigation
     lastPath.current = pathname;
-
     const active = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
-    if (!active) return;
-
-    /*  Real navigation into a folded department unfolds it (accordion), or the
-        page you land on would be invisible in the nav.  */
-    const holder = visibleGroups.find((g) => g.items.includes(active));
-    if (holder && openGroup !== holder.title) setOpenGroupSticky(holder.title);
-
-    if (!active.subs) return;
-    const keys = [active.label];
-    const activeSub = active.subs.find(
-      (s) => s.subs && (s.match ? s.match(pathname) : pathname === s.href || pathname.startsWith(s.href + "/")),
-    );
-    if (activeSub) keys.push(`${active.label}::${activeSub.label}`);
-
-    // REPLACE, not merge — arriving somewhere folds every other branch away,
-    // so the sidebar always shows one open path: the one you are standing on.
-    setExpanded((prev) => {
-      if (prev.size === keys.length && keys.every((k) => prev.has(k))) return prev;
-      return new Set(keys);
-    });
+    if (!active || !active.subs) return;
+    setExpanded((prev) => (prev.size === 1 && prev.has(active.label) ? prev : new Set([active.label])));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, visibleGroups]);
 
-  /*  Accordion — one open at a time (sobuj, 28 Jul: "je module click krbo seta
-      on hobe onno ta auto off hoye jabe").
-
-      Before this, opening a second module left the first one open, and after a
-      few clicks the sidebar was a wall of links with no shape to it. Now:
-
-        · opening a module closes every other module
-        · opening a sub-module closes its siblings, but leaves its parent open
-          — a child cannot be visible with its parent shut
-
-      Keys are "Module" for level 2 and "Module::Sub-module" for level 3, so a
-      sibling is simply anything sharing the same prefix. */
+  /*  Accordion — one list open at a time (sobuj, 28 Jul: "je module click
+      krbo seta on hobe onno ta auto off hoye jabe"). Two levels only since
+      8 Sep 2026, so a key is simply the module's label.  */
   const toggle = (key: string) =>
-    setExpanded((prev) => {
-      if (prev.has(key)) {
-        // closing: this one and anything nested inside it
-        const n = new Set<string>();
-        for (const k of prev) if (k !== key && !k.startsWith(`${key}::`)) n.add(k);
-        return n;
-      }
-      const parent = key.includes("::") ? key.slice(0, key.lastIndexOf("::")) : null;
-      // keep only this branch's ancestors — every other branch folds away
-      const n = new Set<string>();
-      if (parent) {
-        for (const k of prev) if (k === parent || parent.startsWith(`${k}::`)) n.add(k);
-      }
-      n.add(key);
-      return n;
-    });
+    setExpanded((prev) => (prev.has(key) ? new Set() : new Set([key])));
 
   /*  The invite / reset link pages are reached with no session at all, so there
       is no nav to draw — and drawing one from a null user would show the STAFF
@@ -936,225 +603,163 @@ export default function AdminSidebar() {
   const activeItem = pickActive(visibleGroups.flatMap((g) => g.items), pathname);
 
   return (
-    <aside className="w-[250px] shrink-0 text-white px-3 py-5 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto border-r border-white/[0.06]"
-      style={{ background: "linear-gradient(176deg,#2b0e40 0%,#38124f 46%,#2a0d3e 100%)" }}>
+    <aside
+      className="w-[262px] shrink-0 text-white px-3 py-4 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto font-nav"
+      style={{
+        background: "linear-gradient(180deg,#3a0054 0%,#470066 42%,#5b0f83 100%)",
+        /*  Design A (owner, 8 Sep 2026): depth inside the deep purple — a soft
+            inner shadow down the edges and a faint glow at the top, so the
+            panel reads as a lit surface rather than a flat block.  */
+        boxShadow: "inset -18px 0 32px -20px rgba(0,0,0,.55), inset 18px 0 32px -22px rgba(0,0,0,.35), inset 0 40px 60px -40px rgba(207,67,234,.35)",
+      }}
+    >
       <div className="flex items-center gap-3 px-2 pb-4">
-        <div className="w-[36px] h-[36px] rounded-[50%_50%_50%_0] -rotate-45 shrink-0"
-          style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)", boxShadow: "0 0 18px rgba(207,67,234,0.45)" }} />
+        <div className="w-[34px] h-[34px] rounded-[50%_50%_50%_0] -rotate-45 shrink-0"
+          style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)", boxShadow: "0 0 18px rgba(207,67,234,0.5)" }} />
         <div>
-          <b className="font-display text-[20px] text-white font-semibold block leading-none tracking-[0.01em]">Radian</b>
-          <small className="text-[#d9c2ec] text-[10.5px] font-semibold tracking-[0.16em] uppercase">Admin OS</small>
+          <b className="text-[20px] font-extrabold text-white block leading-none tracking-[-0.02em]">RADIAN</b>
+          <small className="text-[#e5b3bc] text-[10px] font-extrabold tracking-[0.18em] uppercase">Admin OS</small>
         </div>
       </div>
 
       {/*  6 Aug 2026 — owner: one click from anywhere in the admin into the
-          live shop. WEB_BASE, never a hardcoded domain, so it opens whichever
-          storefront this environment actually serves (demo today, radianbd.com
-          after cutover).  */}
+          live shop. WEB_BASE, never a hardcoded domain.  */}
       <a
         href={WEB_BASE}
         target="_blank"
         rel="noreferrer"
-        className="mx-1 mb-4 flex items-center justify-center gap-2 rounded-[12px] border border-white/[0.14] bg-white/[0.07] hover:bg-white/[0.14] text-white text-[13px] font-semibold py-2.5 transition-colors backdrop-blur"
+        className="mx-1 mb-3 flex items-center justify-center gap-2 rounded-[12px] border border-white/[0.14] bg-white/[0.07] hover:bg-white/[0.14] text-white text-[13px] font-bold py-2.5 transition-colors"
       >
         ↗ View website
       </a>
 
-      <nav className="text-[15px]">
+      <nav className="text-[14px]">
         {visibleGroups.map((g) => {
-          const shut = openGroup !== g.title;
-          const holdsActive = !!activeItem && g.items.includes(activeItem);
+          const dashboards = g.title === "Dashboards";
           return (
-          <div key={g.title} className="mb-1.5">
-            {/*  Department header — its colour, its icon, and the whole row is
-                the fold control. An accordion: opening one closes the rest,
-                and even the department you are standing in may be closed
-                (owner, 18 Aug). A closed department holding the current page
-                keeps a small dot so "where am I" is never lost.  */}
-            <button
-              type="button"
-              onClick={() => toggleGroup(g.title)}
-              aria-expanded={!shut}
-              className={"w-full flex items-center gap-2.5 px-2 py-2 rounded-[12px] transition-colors " +
-                (shut ? "hover:bg-white/[0.06]" : "")}
-              style={shut ? undefined : { background: `${g.accent}14` }}
-            >
-              <span
-                className="w-[27px] h-[27px] rounded-[9px] grid place-items-center shrink-0"
-                style={{ background: `${g.accent}26`, color: g.accent, boxShadow: shut ? undefined : `0 0 12px ${g.accent}33` }}
-              >
-                <Icon name={g.emblem} size={15} strokeWidth={2.4} />
-              </span>
-              <span
-                className="text-[11.5px] font-extrabold tracking-[0.14em] uppercase flex-1 text-left"
-                style={{ color: shut ? `${g.accent}cc` : g.accent }}
-              >
-                {g.title}
-              </span>
-              {shut && holdsActive && (
-                <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: g.accent }} />
-              )}
-              {shut && !holdsActive && (
-                <span className="text-[10.5px] font-bold text-white/35 tabular-nums">{g.items.length}</span>
-              )}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
-                className={"shrink-0 transition-transform duration-200 " + (shut ? "opacity-40" : "rotate-90 opacity-70")}
-                style={{ color: g.accent }}>
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            {!shut && (
-            <div className="mt-1 ml-[13px] pl-[10px] border-l-2" style={{ borderColor: `${g.accent}40` }}>
-            {g.items.map((it) => {
-              /*  Exactly ONE module highlights — the one the path really belongs
-                  to. A sub match wins over a bare href prefix, so /products/variants
-                  lights Catalog, not Products (see pickActive). 6 Aug 2026.  */
-              const parentActive = it === activeItem;
-              const open = expanded.has(it.label);
-              const rowCls =
-                "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-[11px] mb-0.5 font-medium transition-all text-left " +
-                (parentActive
-                  ? "text-white font-semibold"
-                  : "text-white/[0.92] hover:bg-white/[0.09]");
-              const rowStyle = parentActive
-                ? { background: `linear-gradient(135deg, ${g.accent}52, #8A2BB066)`, boxShadow: `inset 0 0 0 1px ${g.accent}55` }
-                : undefined;
-              const label = (
-                <>
-                  <span className="w-[20px] grid place-items-center shrink-0"
-                    style={{ color: parentActive ? "#fff" : `${g.accent}e6` }}>
-                    <Icon name={it.icon} size={17} strokeWidth={2.1} />
-                  </span>
-                  <span className="flex-1 min-w-0 truncate text-[14.5px]">{it.label}</span>
-                </>
-              );
-              const chevron = (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  className={"shrink-0 opacity-70 transition-transform duration-200 " + (open ? "rotate-90" : "")}>
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
-              );
-
-              return (
-                <div key={it.label}>
-                  {/* THE WHOLE ROW is the control (sobuj, 21 Jul: "module a click krlei
-                      sub module on hobe, abar click krle off"). Clicking a module with a
-                      sub-menu opens it AND goes to the module; clicking it again just
-                      closes the menu and leaves you where you are. The tiny arrow was a
-                      needlessly small target. */}
-                  {it.subs ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const wasOpen = expanded.has(it.label);
-                        toggle(it.label);
-                        if (!wasOpen && it.href) router.push(it.href);
-                      }}
-                      aria-expanded={open}
-                      className={rowCls}
-                      style={rowStyle}
-                    >
-                      {label}
-                      {chevron}
-                    </button>
-                  ) : it.href ? (
-                    <Link href={it.href} className={rowCls} style={rowStyle}>{label}</Link>
-                  ) : (
-                    <span className={rowCls + " opacity-60 cursor-default"} title="Coming soon">{label}</span>
-                  )}
-                  {it.subs && open && (
-                    <div className="ml-[30px] mb-1.5 border-l-2 border-white/15 pl-2.5">
-                      {it.subs.map((s) => {
-                        const on = s.match ? s.match(pathname) : pathname === s.href || pathname.startsWith(s.href + "/");
-                        const subCls =
-                          "block px-3 py-2 rounded-[8px] mb-0.5 text-[14px] transition-colors " +
-                          (on ? "text-white font-semibold bg-white/[0.16]" : "text-white/[0.82] font-medium hover:text-white hover:bg-white/[0.09]");
-
-                        /* A sub-module — its own screens hang off it. Same rule as
-                           the module row above: the whole row is the control, one
-                           click opens it AND goes there, a second click closes it. */
-                        if (s.subs) {
-                          const key = `${it.label}::${s.label}`;
-                          const subOpen = expanded.has(key);
-                          return (
-                            <div key={s.href}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const wasOpen = expanded.has(key);
-                                  toggle(key);
-                                  if (!wasOpen) router.push(s.href);
-                                }}
-                                aria-expanded={subOpen}
-                                className={subCls + " w-full text-left flex items-center gap-2"}
-                              >
-                                <span className="flex-1 min-w-0 truncate">{s.label}</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"
-                                  strokeLinecap="round" strokeLinejoin="round"
-                                  className={"shrink-0 opacity-70 transition-transform duration-200 " + (subOpen ? "rotate-90" : "")}>
-                                  <path d="M9 6l6 6-6 6" />
-                                </svg>
-                              </button>
-                              {subOpen && (
-                                <div className="ml-[10px] mb-1 border-l-2 border-white/10 pl-2.5">
-                                  {s.subs.map((t) => {
-                                    const tOn = t.match ? t.match(pathname) : pathname === t.href || pathname.startsWith(t.href + "/");
-                                    return (
-                                      <Link key={t.href} href={t.href}
-                                        className={"block px-3 py-1.5 rounded-[8px] mb-0.5 text-[13px] transition-colors " +
-                                          (tOn ? "text-white font-semibold bg-white/[0.14]" : "text-white/[0.72] hover:text-white hover:bg-white/[0.08]")}>
-                                        {t.label}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <Link key={s.href} href={s.href} className={subCls}>
-                            {s.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
+            <div key={g.title} className="mb-1">
+              {!dashboards && (
+                <div className="text-[10.5px] font-extrabold tracking-[0.18em] uppercase text-[#e5b3bc] px-3 pt-4 pb-1.5">
+                  {g.title}
                 </div>
-              );
-            })}
+              )}
+              {g.items.map((it) => {
+                const parentActive = it === activeItem;
+                const open = expanded.has(it.label);
+                const rowBase = dashboards
+                  ? "w-full flex items-center gap-3 px-3 py-[11px] rounded-[14px] mb-1.5 text-[14px] font-extrabold transition-all text-left "
+                  : "w-full flex items-center gap-2.5 px-3 py-[9px] rounded-[12px] mb-0.5 text-[14px] font-bold transition-all text-left ";
+                const rowCls =
+                  rowBase +
+                  (parentActive && !open
+                    ? "text-white bg-white/[0.16]"
+                    : open
+                      ? "text-white bg-white/[0.12]"
+                      : dashboards
+                        ? "text-white bg-white/[0.08] hover:bg-white/[0.14]"
+                        : "text-[#f1e6f8] hover:bg-white/[0.08]");
+                const rowStyle =
+                  dashboards && parentActive
+                    ? { background: "#fff", color: "#470066", boxShadow: "0 10px 24px -10px rgba(0,0,0,.6)" }
+                    : open
+                      ? { boxShadow: "0 8px 20px -12px rgba(0,0,0,.7)" }
+                      : undefined;
+                const label = (
+                  <>
+                    <span
+                      className={(dashboards ? "w-[30px] h-[30px] rounded-[9px]" : "w-[26px] h-[26px] rounded-[8px]") + " grid place-items-center shrink-0"}
+                      style={{
+                        background: dashboards && parentActive ? "#f6e6fb" : "rgba(255,255,255,.12)",
+                        color: dashboards && parentActive ? "#7d2ea8" : "#fff",
+                      }}
+                    >
+                      <Icon name={it.icon} size={dashboards ? 16 : 15} strokeWidth={2.4} />
+                    </span>
+                    <span className="flex-1 min-w-0 truncate">{it.label}</span>
+                  </>
+                );
+                const chevron = (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    className={"shrink-0 opacity-70 transition-transform duration-200 " + (open ? "rotate-180" : "")}>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                );
+
+                return (
+                  <div key={it.label}>
+                    {/* THE WHOLE ROW is the control (sobuj, 21 Jul): one click opens
+                        the list AND goes to the module; a second click closes it and
+                        leaves you where you are. */}
+                    {it.subs ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const wasOpen = expanded.has(it.label);
+                          toggle(it.label);
+                          if (!wasOpen && it.href) router.push(it.href);
+                        }}
+                        aria-expanded={open}
+                        className={rowCls}
+                        style={rowStyle}
+                      >
+                        {label}
+                        {chevron}
+                      </button>
+                    ) : it.href ? (
+                      <Link href={it.href} className={rowCls} style={rowStyle}>{label}</Link>
+                    ) : (
+                      <span className={rowCls + " opacity-60 cursor-default"} title="Coming soon">{label}</span>
+                    )}
+                    {it.subs && open && (
+                      /*  The one list. White-on-purple, lifted with a shadow, a
+                          thin rail down its left — what is open cannot be missed.  */
+                      <div
+                        className="ml-[14px] mt-1 mb-2 pl-[10px] py-1.5 border-l-2 border-white/25"
+                      >
+                        {it.subs.map((s) => {
+                          const on = subOwns(s, pathname);
+                          return (
+                            <Link
+                              key={s.href}
+                              href={s.href}
+                              className={"block px-3 py-[7px] rounded-[9px] mb-0.5 text-[13.5px] font-bold transition-colors " +
+                                (on ? "text-[#470066] bg-white" : "text-[#e3cff0] hover:text-white hover:bg-white/[0.1]")}
+                              style={on ? { boxShadow: "0 8px 18px -10px rgba(0,0,0,.7)" } : undefined}
+                            >
+                              {s.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            )}
-          </div>
           );
         })}
       </nav>
 
       {/* who is at the keyboard — the name the ledger will record (DEC-FIN-028) */}
-      <div className="mt-auto px-2 pt-3">
+      <div className="mt-auto px-1 pt-4">
         {me && (
-          <div className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl mb-2" style={{ background: "rgba(255,255,255,0.07)" }}>
-            <div className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold text-white shrink-0"
-              style={{ background: "linear-gradient(135deg,#a021b8,#d98cb3)" }}>
+          <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-[14px] mb-2" style={{ background: "rgba(255,255,255,0.08)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.08)" }}>
+            <div className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-extrabold text-white shrink-0"
+              style={{ background: "linear-gradient(135deg,#cf43ea,#b76e79)" }}>
               {me.name.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[12.5px] font-semibold text-white truncate">{me.name}</div>
-              <div className="text-[10.5px] text-[#d9c2ec] uppercase tracking-[0.06em]">{me.role.toLowerCase()}</div>
+              <div className="text-[13px] font-extrabold text-white truncate">{me.name}</div>
+              <div className="text-[10px] font-bold text-[#e5b3bc] uppercase tracking-[0.12em]">{me.role.toLowerCase()}</div>
             </div>
-            {/*  System notices live behind this bell, beside the name — never
-                as banners on top of working pages (owner, 18 Aug 2026).  */}
             <NotificationsBell />
             <button onClick={signOut} title="Sign out"
-              className="text-[11px] font-bold text-[#d9c2ec] hover:text-white px-2 py-1 rounded-lg">
+              className="text-[11px] font-extrabold text-[#e5b3bc] hover:text-white px-2 py-1 rounded-lg">
               exit
             </button>
           </div>
         )}
-        <div className="text-[11px] text-[#9977b0]">Radian Admin OS</div>
       </div>
     </aside>
   );

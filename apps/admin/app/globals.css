@@ -28,6 +28,8 @@
   /* ---- Typography ---- */
   --font-display: var(--font-display), Georgia, serif;
   --font-ui: var(--font-ui), "Century Gothic", sans-serif;
+  /* the sidebar (8 Sep 2026) — Manrope, bold and clean */
+  --font-nav: var(--font-nav), "Manrope", system-ui, sans-serif;
 
   /* ---- Shape & elevation ---- */
   --radius-lg: 28px;

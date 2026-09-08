@@ -36,162 +36,165 @@ export type RegistryNode = {
 
 export const REGISTRY: RegistryNode[] = [
   {
-    "key": "orders",
+    "key": "intelligence",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Orders",
-    "domain": "Today's work",
-    "href": "/orders",
+    "label": "Business Dashboard",
+    "domain": "Dashboards",
+    "href": "/intelligence",
     "legacyRoles": null,
     "sortOrder": 0
   },
   {
-    "key": "orders.overview",
-    "parentKey": "orders",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Today's work",
+    "key": "finance",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Accounts Dashboard",
+    "domain": "Dashboards",
+    "href": "/finance",
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 1
+  },
+  {
+    "key": "orders",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Orders",
+    "domain": "Sales",
     "href": "/orders",
     "legacyRoles": null,
-    "sortOrder": 1
+    "sortOrder": 2
   },
   {
     "key": "orders.list",
     "parentKey": "orders",
     "kind": "SCREEN",
     "label": "All orders",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/orders/list",
     "legacyRoles": null,
-    "sortOrder": 2
+    "sortOrder": 3
   },
   {
     "key": "orders.action",
     "parentKey": "orders",
     "kind": "SCREEN",
     "label": "Needs action",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/orders/action",
     "legacyRoles": null,
-    "sortOrder": 3
-  },
-  {
-    "key": "orders.payments",
-    "parentKey": "orders",
-    "kind": "SCREEN",
-    "label": "Payments",
-    "domain": "Today's work",
-    "href": "/orders/payments",
-    "legacyRoles": null,
     "sortOrder": 4
-  },
-  {
-    "key": "orders.online-payments",
-    "parentKey": "orders",
-    "kind": "SCREEN",
-    "label": "Online payments",
-    "domain": "Today's work",
-    "href": "/orders/online-payments",
-    "legacyRoles": null,
-    "sortOrder": 5
-  },
-  {
-    "key": "orders.recovery",
-    "parentKey": "orders",
-    "kind": "SCREEN",
-    "label": "Recovery",
-    "domain": "Today's work",
-    "href": "/orders/recovery",
-    "legacyRoles": null,
-    "sortOrder": 6
   },
   {
     "key": "orders.scheduled",
     "parentKey": "orders",
     "kind": "SCREEN",
     "label": "Scheduled",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/orders/scheduled",
     "legacyRoles": null,
-    "sortOrder": 7
+    "sortOrder": 5
   },
   {
     "key": "orders.cancelled",
     "parentKey": "orders",
     "kind": "SCREEN",
     "label": "Cancelled",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/orders/cancelled",
     "legacyRoles": null,
+    "sortOrder": 6
+  },
+  {
+    "key": "orders.payments",
+    "parentKey": "orders",
+    "kind": "SCREEN",
+    "label": "Payments",
+    "domain": "Sales",
+    "href": "/orders/payments",
+    "legacyRoles": null,
+    "sortOrder": 7
+  },
+  {
+    "key": "orders.online-payments",
+    "parentKey": "orders",
+    "kind": "SCREEN",
+    "label": "Online payments",
+    "domain": "Sales",
+    "href": "/orders/online-payments",
+    "legacyRoles": null,
     "sortOrder": 8
+  },
+  {
+    "key": "orders.recovery",
+    "parentKey": "orders",
+    "kind": "SCREEN",
+    "label": "Recovery",
+    "domain": "Sales",
+    "href": "/orders/recovery",
+    "legacyRoles": null,
+    "sortOrder": 9
   },
   {
     "key": "orders.reports",
     "parentKey": "orders",
     "kind": "SCREEN",
     "label": "Reports",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/orders/reports",
     "legacyRoles": null,
-    "sortOrder": 9
+    "sortOrder": 10
   },
   {
     "key": "delivery",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Delivery",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/delivery",
     "legacyRoles": null,
-    "sortOrder": 10
+    "sortOrder": 11
   },
   {
     "key": "delivery.overview",
     "parentKey": "delivery",
     "kind": "SCREEN",
     "label": "Fulfilment board",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/delivery",
     "legacyRoles": null,
-    "sortOrder": 11
+    "sortOrder": 12
   },
   {
     "key": "delivery.proof",
     "parentKey": "delivery",
     "kind": "SCREEN",
     "label": "Proof photos",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/delivery/proof",
     "legacyRoles": null,
-    "sortOrder": 12
+    "sortOrder": 13
   },
   {
     "key": "delivery.settle",
     "parentKey": "delivery",
     "kind": "SCREEN",
     "label": "Settle a carrier",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/delivery/settle",
     "legacyRoles": null,
-    "sortOrder": 13
+    "sortOrder": 14
   },
   {
     "key": "delivery.performance",
     "parentKey": "delivery",
     "kind": "SCREEN",
     "label": "Cost & performance",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/delivery/performance",
-    "legacyRoles": null,
-    "sortOrder": 14
-  },
-  {
-    "key": "inbox",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Inbox",
-    "domain": "Today's work",
-    "href": "/inbox",
     "legacyRoles": null,
     "sortOrder": 15
   },
@@ -200,7 +203,7 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": null,
     "kind": "MODULE",
     "label": "Returns & Refunds",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/returns",
     "legacyRoles": null,
     "sortOrder": 16
@@ -209,8 +212,8 @@ export const REGISTRY: RegistryNode[] = [
     "key": "returns.overview",
     "parentKey": "returns",
     "kind": "SCREEN",
-    "label": "Overview (all returns)",
-    "domain": "Today's work",
+    "label": "All returns",
+    "domain": "Sales",
     "href": "/returns",
     "legacyRoles": null,
     "sortOrder": 17
@@ -220,27 +223,27 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "returns",
     "kind": "SCREEN",
     "label": "New return",
-    "domain": "Today's work",
+    "domain": "Sales",
     "href": "/returns/new",
     "legacyRoles": null,
     "sortOrder": 18
+  },
+  {
+    "key": "inbox",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Inbox",
+    "domain": "Sales",
+    "href": "/inbox",
+    "legacyRoles": null,
+    "sortOrder": 19
   },
   {
     "key": "pos",
     "parentKey": null,
     "kind": "MODULE",
     "label": "POS",
-    "domain": "Today's work",
-    "href": "/pos",
-    "legacyRoles": null,
-    "sortOrder": 19
-  },
-  {
-    "key": "pos.overview",
-    "parentKey": "pos",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos",
     "legacyRoles": null,
     "sortOrder": 20
@@ -250,7 +253,7 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Sell (counter)",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/sell",
     "legacyRoles": null,
     "sortOrder": 21
@@ -260,28 +263,28 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Today / Shift",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/shift",
     "legacyRoles": null,
     "sortOrder": 22
-  },
-  {
-    "key": "pos.sales",
-    "parentKey": "pos",
-    "kind": "SCREEN",
-    "label": "Sales history",
-    "domain": "Today's work",
-    "href": "/pos/sales",
-    "legacyRoles": null,
-    "sortOrder": 23
   },
   {
     "key": "pos.day-close",
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Day-close",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/day-close",
+    "legacyRoles": null,
+    "sortOrder": 23
+  },
+  {
+    "key": "pos.sales",
+    "parentKey": "pos",
+    "kind": "SCREEN",
+    "label": "Sales history",
+    "domain": "Shop",
+    "href": "/pos/sales",
     "legacyRoles": null,
     "sortOrder": 24
   },
@@ -290,7 +293,7 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Advance orders",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/advance",
     "legacyRoles": null,
     "sortOrder": 25
@@ -300,7 +303,7 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Due board",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/due",
     "legacyRoles": null,
     "sortOrder": 26
@@ -310,7 +313,7 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": "pos",
     "kind": "SCREEN",
     "label": "Settings",
-    "domain": "Today's work",
+    "domain": "Shop",
     "href": "/pos/settings",
     "legacyRoles": null,
     "sortOrder": 27
@@ -320,928 +323,922 @@ export const REGISTRY: RegistryNode[] = [
     "parentKey": null,
     "kind": "MODULE",
     "label": "Products",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products",
     "legacyRoles": null,
     "sortOrder": 28
-  },
-  {
-    "key": "products.overview",
-    "parentKey": "products",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "What you sell",
-    "href": "/products",
-    "legacyRoles": null,
-    "sortOrder": 29
   },
   {
     "key": "products.list",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "All products",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/list",
     "legacyRoles": null,
-    "sortOrder": 30
+    "sortOrder": 29
   },
   {
     "key": "products.stock",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Stock",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/stock",
     "legacyRoles": null,
-    "sortOrder": 31
+    "sortOrder": 30
   },
   {
     "key": "products.margin",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Margin",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/margin",
     "legacyRoles": null,
-    "sortOrder": 32
+    "sortOrder": 31
   },
   {
     "key": "products.health",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Health",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/health",
     "legacyRoles": null,
-    "sortOrder": 33
+    "sortOrder": 32
   },
   {
     "key": "products.funnel",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Catalog funnel",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/funnel",
     "legacyRoles": null,
-    "sortOrder": 34
+    "sortOrder": 33
   },
   {
     "key": "products.addons",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Add-ons",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/addons",
     "legacyRoles": null,
-    "sortOrder": 35
+    "sortOrder": 34
   },
   {
     "key": "products.upgrades",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Upgrades",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/upgrades",
     "legacyRoles": null,
-    "sortOrder": 36
+    "sortOrder": 35
   },
   {
     "key": "products.badges",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Badge rules",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/badges",
     "legacyRoles": null,
-    "sortOrder": 37
+    "sortOrder": 36
   },
   {
     "key": "products.bulk",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Bulk actions",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/bulk",
     "legacyRoles": null,
-    "sortOrder": 38
+    "sortOrder": 37
   },
   {
     "key": "products.trash",
     "parentKey": "products",
     "kind": "SCREEN",
     "label": "Trash",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/products/trash",
     "legacyRoles": null,
+    "sortOrder": 38
+  },
+  {
+    "key": "categories-tags",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Categories & Tags",
+    "domain": "Catalog",
+    "href": null,
+    "legacyRoles": null,
     "sortOrder": 39
+  },
+  {
+    "key": "categories",
+    "parentKey": "categories-tags",
+    "kind": "SCREEN",
+    "label": "Categories",
+    "domain": "Catalog",
+    "href": "/categories",
+    "legacyRoles": null,
+    "sortOrder": 40
+  },
+  {
+    "key": "tags",
+    "parentKey": "categories-tags",
+    "kind": "SCREEN",
+    "label": "Occasions & Tags",
+    "domain": "Catalog",
+    "href": "/tags",
+    "legacyRoles": null,
+    "sortOrder": 41
+  },
+  {
+    "key": "brands",
+    "parentKey": "categories-tags",
+    "kind": "SCREEN",
+    "label": "Brands",
+    "domain": "Catalog",
+    "href": "/brands",
+    "legacyRoles": null,
+    "sortOrder": 42
+  },
+  {
+    "key": "products.variants",
+    "parentKey": "categories-tags",
+    "kind": "SCREEN",
+    "label": "Variants & options",
+    "domain": "Catalog",
+    "href": "/products/variants",
+    "legacyRoles": null,
+    "sortOrder": 43
   },
   {
     "key": "storefront",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Storefront",
-    "domain": "What you sell",
+    "label": "Website",
+    "domain": "Catalog",
     "href": "/storefront",
     "legacyRoles": null,
-    "sortOrder": 40
-  },
-  {
-    "key": "storefront.overview",
-    "parentKey": "storefront",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "What you sell",
-    "href": "/storefront",
-    "legacyRoles": null,
-    "sortOrder": 41
+    "sortOrder": 44
   },
   {
     "key": "storefront.layout",
     "parentKey": "storefront",
     "kind": "SCREEN",
     "label": "Homepage",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/storefront/layout",
     "legacyRoles": null,
-    "sortOrder": 42
+    "sortOrder": 45
   },
   {
     "key": "storefront.category-page",
     "parentKey": "storefront",
     "kind": "SCREEN",
     "label": "Category pages",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/storefront/category-page",
     "legacyRoles": null,
-    "sortOrder": 43
-  },
-  {
-    "key": "storefront.reviews",
-    "parentKey": "storefront",
-    "kind": "SCREEN",
-    "label": "Reviews",
-    "domain": "What you sell",
-    "href": "/storefront/reviews",
-    "legacyRoles": null,
-    "sortOrder": 44
-  },
-  {
-    "key": "storefront.journal",
-    "parentKey": "storefront",
-    "kind": "SCREEN",
-    "label": "Journal",
-    "domain": "What you sell",
-    "href": "/storefront/journal",
-    "legacyRoles": null,
-    "sortOrder": 45
+    "sortOrder": 46
   },
   {
     "key": "storefront.pages",
     "parentKey": "storefront",
     "kind": "SCREEN",
     "label": "Pages & FAQs",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/storefront/pages",
     "legacyRoles": null,
-    "sortOrder": 46
+    "sortOrder": 47
+  },
+  {
+    "key": "storefront.reviews",
+    "parentKey": "storefront",
+    "kind": "SCREEN",
+    "label": "Reviews",
+    "domain": "Catalog",
+    "href": "/storefront/reviews",
+    "legacyRoles": null,
+    "sortOrder": 48
+  },
+  {
+    "key": "storefront.journal",
+    "parentKey": "storefront",
+    "kind": "SCREEN",
+    "label": "Journal",
+    "domain": "Catalog",
+    "href": "/storefront/journal",
+    "legacyRoles": null,
+    "sortOrder": 49
   },
   {
     "key": "storefront.hours",
     "parentKey": "storefront",
     "kind": "SCREEN",
     "label": "Visit the shop",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/storefront/hours",
     "legacyRoles": null,
-    "sortOrder": 47
+    "sortOrder": 50
   },
   {
     "key": "storefront.footer",
     "parentKey": "storefront",
     "kind": "SCREEN",
     "label": "Footer & menus",
-    "domain": "What you sell",
+    "domain": "Catalog",
     "href": "/storefront/footer",
-    "legacyRoles": null,
-    "sortOrder": 48
-  },
-  {
-    "key": "catalog",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Catalog",
-    "domain": "What you sell",
-    "href": null,
-    "legacyRoles": null,
-    "sortOrder": 49
-  },
-  {
-    "key": "categories",
-    "parentKey": "catalog",
-    "kind": "SCREEN",
-    "label": "Categories",
-    "domain": "What you sell",
-    "href": "/categories",
-    "legacyRoles": null,
-    "sortOrder": 50
-  },
-  {
-    "key": "tags",
-    "parentKey": "catalog",
-    "kind": "SCREEN",
-    "label": "Occasions & Tags",
-    "domain": "What you sell",
-    "href": "/tags",
     "legacyRoles": null,
     "sortOrder": 51
   },
   {
-    "key": "brands",
-    "parentKey": "catalog",
+    "key": "marketing.seo",
+    "parentKey": "storefront",
     "kind": "SCREEN",
-    "label": "Brands",
-    "domain": "What you sell",
-    "href": "/brands",
-    "legacyRoles": null,
+    "label": "SEO",
+    "domain": "Catalog",
+    "href": "/marketing/seo",
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
     "sortOrder": 52
-  },
-  {
-    "key": "products.variants",
-    "parentKey": "catalog",
-    "kind": "SCREEN",
-    "label": "Variants & options",
-    "domain": "What you sell",
-    "href": "/products/variants",
-    "legacyRoles": null,
-    "sortOrder": 53
   },
   {
     "key": "inventory",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Inventory",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory",
     "legacyRoles": null,
-    "sortOrder": 54
-  },
-  {
-    "key": "inventory.overview",
-    "parentKey": "inventory",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Stock & buying",
-    "href": "/inventory",
-    "legacyRoles": null,
-    "sortOrder": 55
+    "sortOrder": 53
   },
   {
     "key": "inventory.stock",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Stock board",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/stock",
     "legacyRoles": null,
-    "sortOrder": 56
+    "sortOrder": 54
   },
   {
     "key": "inventory.opening",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Opening stock",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/opening",
     "legacyRoles": null,
-    "sortOrder": 57
+    "sortOrder": 55
   },
   {
     "key": "inventory.transfer",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Transfer",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/transfer",
     "legacyRoles": null,
-    "sortOrder": 58
+    "sortOrder": 56
   },
   {
     "key": "inventory.issue",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Wastage & Gift",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/issue",
     "legacyRoles": null,
-    "sortOrder": 59
+    "sortOrder": 57
   },
   {
     "key": "inventory.stocktake",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Stocktake",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/stocktake",
     "legacyRoles": null,
-    "sortOrder": 60
+    "sortOrder": 58
   },
   {
     "key": "inventory.movements",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Movements",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/movements",
     "legacyRoles": null,
-    "sortOrder": 61
+    "sortOrder": 59
   },
   {
     "key": "inventory.reports",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Reports",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/reports",
     "legacyRoles": null,
-    "sortOrder": 62
+    "sortOrder": 60
+  },
+  {
+    "key": "inventory.warehouses",
+    "parentKey": "inventory",
+    "kind": "SCREEN",
+    "label": "Warehouses",
+    "domain": "Stock",
+    "href": "/inventory/warehouses",
+    "legacyRoles": null,
+    "sortOrder": 61
   },
   {
     "key": "inventory.settings",
     "parentKey": "inventory",
     "kind": "SCREEN",
     "label": "Settings",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/inventory/settings",
     "legacyRoles": null,
-    "sortOrder": 63
+    "sortOrder": 62
   },
   {
     "key": "purchases",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Purchases",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/purchases",
     "legacyRoles": [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 64
-  },
-  {
-    "key": "purchases.overview",
-    "parentKey": "purchases",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Stock & buying",
-    "href": "/purchases",
-    "legacyRoles": null,
-    "sortOrder": 65
+    "sortOrder": 63
   },
   {
     "key": "purchases.list",
     "parentKey": "purchases",
     "kind": "SCREEN",
     "label": "All purchases",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/purchases/list",
     "legacyRoles": null,
-    "sortOrder": 66
+    "sortOrder": 64
   },
   {
     "key": "purchases.new",
     "parentKey": "purchases",
     "kind": "SCREEN",
     "label": "New purchase",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/purchases/new",
     "legacyRoles": null,
-    "sortOrder": 67
+    "sortOrder": 65
   },
   {
     "key": "purchases.returns",
     "parentKey": "purchases",
     "kind": "SCREEN",
-    "label": "Returns",
-    "domain": "Stock & buying",
+    "label": "Purchase returns",
+    "domain": "Stock",
     "href": "/purchases/returns",
     "legacyRoles": null,
-    "sortOrder": 68
+    "sortOrder": 66
   },
   {
     "key": "purchases.reports",
     "parentKey": "purchases",
     "kind": "SCREEN",
     "label": "Reports",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/purchases/reports",
     "legacyRoles": null,
-    "sortOrder": 69
+    "sortOrder": 67
   },
   {
     "key": "suppliers",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Suppliers",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/suppliers",
     "legacyRoles": [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 70
-  },
-  {
-    "key": "suppliers.overview",
-    "parentKey": "suppliers",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Stock & buying",
-    "href": "/suppliers",
-    "legacyRoles": null,
-    "sortOrder": 71
+    "sortOrder": 68
   },
   {
     "key": "suppliers.list",
     "parentKey": "suppliers",
     "kind": "SCREEN",
     "label": "All suppliers",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/suppliers/list",
     "legacyRoles": null,
-    "sortOrder": 72
+    "sortOrder": 69
   },
   {
     "key": "suppliers.vendors",
     "parentKey": "suppliers",
     "kind": "SCREEN",
     "label": "Vendors",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/suppliers/vendors",
     "legacyRoles": null,
-    "sortOrder": 73
+    "sortOrder": 70
   },
   {
     "key": "suppliers.settings",
     "parentKey": "suppliers",
     "kind": "SCREEN",
     "label": "Settings",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/suppliers/settings",
     "legacyRoles": null,
-    "sortOrder": 74
+    "sortOrder": 71
   },
   {
     "key": "items",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Items",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items",
     "legacyRoles": null,
-    "sortOrder": 75
-  },
-  {
-    "key": "items.overview",
-    "parentKey": "items",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Stock & buying",
-    "href": "/items",
-    "legacyRoles": null,
-    "sortOrder": 76
+    "sortOrder": 72
   },
   {
     "key": "items.list",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "All items",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/list",
     "legacyRoles": null,
-    "sortOrder": 77
+    "sortOrder": 73
   },
   {
     "key": "items.new",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "New item",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/new",
     "legacyRoles": null,
-    "sortOrder": 78
+    "sortOrder": 74
   },
   {
     "key": "items.categories",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Item categories",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/categories",
     "legacyRoles": null,
-    "sortOrder": 79
+    "sortOrder": 75
   },
   {
     "key": "items.types",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Item types",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/types",
     "legacyRoles": null,
-    "sortOrder": 80
+    "sortOrder": 76
   },
   {
     "key": "items.pricing",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Pricing",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/pricing",
     "legacyRoles": null,
-    "sortOrder": 81
+    "sortOrder": 77
   },
   {
     "key": "items.colors",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Colours",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/colors",
     "legacyRoles": null,
-    "sortOrder": 82
+    "sortOrder": 78
   },
   {
     "key": "items.sizes",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Sizes",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/sizes",
     "legacyRoles": null,
-    "sortOrder": 83
+    "sortOrder": 79
   },
   {
     "key": "items.units",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Units",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/units",
     "legacyRoles": null,
-    "sortOrder": 84
+    "sortOrder": 80
   },
   {
     "key": "items.trash",
     "parentKey": "items",
     "kind": "SCREEN",
     "label": "Trash",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/items/trash",
     "legacyRoles": null,
-    "sortOrder": 85
+    "sortOrder": 81
   },
   {
     "key": "assembly",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Assembly",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly",
     "legacyRoles": null,
-    "sortOrder": 86
-  },
-  {
-    "key": "assembly.overview",
-    "parentKey": "assembly",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Stock & buying",
-    "href": "/assembly",
-    "legacyRoles": null,
-    "sortOrder": 87
+    "sortOrder": 82
   },
   {
     "key": "assembly.templates",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Templates",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly/templates",
     "legacyRoles": null,
-    "sortOrder": 88
+    "sortOrder": 83
   },
   {
     "key": "assembly.pipeline",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Production pipeline",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly/pipeline",
     "legacyRoles": null,
-    "sortOrder": 89
+    "sortOrder": 84
   },
   {
     "key": "assembly.finished",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Finished goods",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly/finished",
     "legacyRoles": null,
-    "sortOrder": 90
+    "sortOrder": 85
   },
   {
     "key": "assembly.wastage",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Wastage",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly/wastage",
     "legacyRoles": null,
-    "sortOrder": 91
+    "sortOrder": 86
   },
   {
     "key": "products.capacity",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Daily capacity",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/products/capacity",
     "legacyRoles": null,
-    "sortOrder": 92
+    "sortOrder": 87
   },
   {
     "key": "assembly.settings",
     "parentKey": "assembly",
     "kind": "SCREEN",
     "label": "Settings",
-    "domain": "Stock & buying",
+    "domain": "Stock",
     "href": "/assembly/settings",
     "legacyRoles": null,
-    "sortOrder": 93
-  },
-  {
-    "key": "finance",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Finance",
-    "domain": "Money",
-    "href": "/finance",
-    "legacyRoles": [
-      "OWNER",
-      "MANAGER"
-    ],
-    "sortOrder": 94
-  },
-  {
-    "key": "finance.overview",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Money",
-    "href": "/finance",
-    "legacyRoles": null,
-    "sortOrder": 95
+    "sortOrder": 88
   },
   {
     "key": "finance.accounts",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Money accounts",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/accounts",
     "legacyRoles": null,
-    "sortOrder": 96
-  },
-  {
-    "key": "finance.chart",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Chart of accounts",
-    "domain": "Money",
-    "href": "/finance/chart",
-    "legacyRoles": null,
-    "sortOrder": 97
-  },
-  {
-    "key": "finance.expenses",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Expenses",
-    "domain": "Money",
-    "href": "/finance/expenses",
-    "legacyRoles": null,
-    "sortOrder": 98
+    "sortOrder": 89
   },
   {
     "key": "finance.income",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Money in & moving",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/income",
     "legacyRoles": null,
-    "sortOrder": 99
+    "sortOrder": 90
   },
   {
-    "key": "finance.partners",
+    "key": "finance.expenses",
     "parentKey": "finance",
     "kind": "SCREEN",
-    "label": "Partners",
-    "domain": "Money",
-    "href": "/finance/partners",
+    "label": "Expenses",
+    "domain": "Accounts",
+    "href": "/finance/expenses",
     "legacyRoles": null,
-    "sortOrder": 100
+    "sortOrder": 91
   },
   {
     "key": "finance.recurring",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Monthly bills",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/recurring",
     "legacyRoles": null,
-    "sortOrder": 101
+    "sortOrder": 92
   },
   {
-    "key": "finance.staff",
+    "key": "finance.partners",
     "parentKey": "finance",
     "kind": "SCREEN",
-    "label": "Staff advance & salary",
-    "domain": "Money",
-    "href": "/finance/staff",
+    "label": "Partners",
+    "domain": "Accounts",
+    "href": "/finance/partners",
     "legacyRoles": null,
-    "sortOrder": 102
+    "sortOrder": 93
   },
   {
     "key": "finance.carrier",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Cash with carriers",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/carrier",
     "legacyRoles": null,
-    "sortOrder": 103
+    "sortOrder": 94
   },
   {
     "key": "finance.gateway",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Payment gateway",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/gateway",
     "legacyRoles": null,
-    "sortOrder": 104
+    "sortOrder": 95
   },
   {
     "key": "finance.assets",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Assets & loans",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/assets",
     "legacyRoles": null,
-    "sortOrder": 105
+    "sortOrder": 96
   },
   {
-    "key": "finance.reports",
+    "key": "finance.staff",
     "parentKey": "finance",
     "kind": "SCREEN",
-    "label": "Reports",
-    "domain": "Money",
-    "href": "/finance/reports",
+    "label": "Staff advance & salary",
+    "domain": "Accounts",
+    "href": "/finance/staff",
     "legacyRoles": null,
-    "sortOrder": 106
-  },
-  {
-    "key": "finance.drift",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Books vs reality",
-    "domain": "Money",
-    "href": "/finance/drift",
-    "legacyRoles": null,
-    "sortOrder": 107
-  },
-  {
-    "key": "finance.vat",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "VAT challan (Mushak 6.3)",
-    "domain": "Money",
-    "href": "/finance/vat",
-    "legacyRoles": null,
-    "sortOrder": 108
-  },
-  {
-    "key": "finance.ledger",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Ledger",
-    "domain": "Money",
-    "href": "/finance/ledger",
-    "legacyRoles": null,
-    "sortOrder": 109
-  },
-  {
-    "key": "finance.journal",
-    "parentKey": "finance",
-    "kind": "SCREEN",
-    "label": "Manual journal",
-    "domain": "Money",
-    "href": "/finance/journal",
-    "legacyRoles": null,
-    "sortOrder": 110
+    "sortOrder": 97
   },
   {
     "key": "finance.settings",
     "parentKey": "finance",
     "kind": "SCREEN",
     "label": "Settings",
-    "domain": "Money",
+    "domain": "Accounts",
     "href": "/finance/settings",
+    "legacyRoles": null,
+    "sortOrder": 98
+  },
+  {
+    "key": "books-reports",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Books & Reports",
+    "domain": "Accounts",
+    "href": null,
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 99
+  },
+  {
+    "key": "finance.ledger",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "Ledger",
+    "domain": "Accounts",
+    "href": "/finance/ledger",
+    "legacyRoles": null,
+    "sortOrder": 100
+  },
+  {
+    "key": "finance.journal",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "Manual journal",
+    "domain": "Accounts",
+    "href": "/finance/journal",
+    "legacyRoles": null,
+    "sortOrder": 101
+  },
+  {
+    "key": "finance.chart",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "Chart of accounts",
+    "domain": "Accounts",
+    "href": "/finance/chart",
+    "legacyRoles": null,
+    "sortOrder": 102
+  },
+  {
+    "key": "finance.reports",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "Reports",
+    "domain": "Accounts",
+    "href": "/finance/reports",
+    "legacyRoles": null,
+    "sortOrder": 103
+  },
+  {
+    "key": "finance.drift",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "Books vs reality",
+    "domain": "Accounts",
+    "href": "/finance/drift",
+    "legacyRoles": null,
+    "sortOrder": 104
+  },
+  {
+    "key": "finance.vat",
+    "parentKey": "books-reports",
+    "kind": "SCREEN",
+    "label": "VAT challan (Mushak 6.3)",
+    "domain": "Accounts",
+    "href": "/finance/vat",
+    "legacyRoles": null,
+    "sortOrder": 105
+  },
+  {
+    "key": "analytics",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Analytics",
+    "domain": "Accounts",
+    "href": null,
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 106
+  },
+  {
+    "key": "intelligence.analytics",
+    "parentKey": "analytics",
+    "kind": "SCREEN",
+    "label": "Analytics",
+    "domain": "Accounts",
+    "href": "/intelligence/analytics",
+    "legacyRoles": null,
+    "sortOrder": 107
+  },
+  {
+    "key": "intelligence.reports",
+    "parentKey": "analytics",
+    "kind": "SCREEN",
+    "label": "Reports",
+    "domain": "Accounts",
+    "href": "/intelligence/reports",
+    "legacyRoles": null,
+    "sortOrder": 108
+  },
+  {
+    "key": "intelligence.kpis",
+    "parentKey": "analytics",
+    "kind": "SCREEN",
+    "label": "Targets & KPIs",
+    "domain": "Accounts",
+    "href": "/intelligence/kpis",
+    "legacyRoles": null,
+    "sortOrder": 109
+  },
+  {
+    "key": "intelligence.forecast",
+    "parentKey": "analytics",
+    "kind": "SCREEN",
+    "label": "Forecast & market",
+    "domain": "Accounts",
+    "href": "/intelligence/forecast",
+    "legacyRoles": null,
+    "sortOrder": 110
+  },
+  {
+    "key": "customers",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Customers",
+    "domain": "Customers & Marketing",
+    "href": "/customers",
     "legacyRoles": null,
     "sortOrder": 111
   },
   {
-    "key": "intelligence",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Intelligence",
-    "domain": "Money",
-    "href": "/intelligence",
+    "key": "customers.list",
+    "parentKey": "customers",
+    "kind": "SCREEN",
+    "label": "All customers",
+    "domain": "Customers & Marketing",
+    "href": "/customers/list",
     "legacyRoles": null,
     "sortOrder": 112
   },
   {
-    "key": "intelligence.overview",
-    "parentKey": "intelligence",
+    "key": "customers.segments",
+    "parentKey": "customers",
     "kind": "SCREEN",
-    "label": "Executive dashboard",
-    "domain": "Money",
-    "href": "/intelligence",
+    "label": "Segments",
+    "domain": "Customers & Marketing",
+    "href": "/customers/segments",
     "legacyRoles": null,
     "sortOrder": 113
   },
   {
-    "key": "intelligence.analytics",
-    "parentKey": "intelligence",
+    "key": "customers.occasions",
+    "parentKey": "customers",
     "kind": "SCREEN",
-    "label": "Analytics",
-    "domain": "Money",
-    "href": "/intelligence/analytics",
-    "legacyRoles": [
-      "OWNER",
-      "MANAGER"
-    ],
+    "label": "Occasions",
+    "domain": "Customers & Marketing",
+    "href": "/customers/occasions",
+    "legacyRoles": null,
     "sortOrder": 114
   },
   {
-    "key": "intelligence.reports",
-    "parentKey": "intelligence",
+    "key": "customers.risk",
+    "parentKey": "customers",
     "kind": "SCREEN",
-    "label": "Reports",
-    "domain": "Money",
-    "href": "/intelligence/reports",
-    "legacyRoles": [
-      "OWNER",
-      "MANAGER"
-    ],
+    "label": "Risk & blocklist",
+    "domain": "Customers & Marketing",
+    "href": "/customers/risk",
+    "legacyRoles": null,
     "sortOrder": 115
   },
   {
-    "key": "intelligence.kpis",
-    "parentKey": "intelligence",
+    "key": "customers.consent",
+    "parentKey": "customers",
     "kind": "SCREEN",
-    "label": "Targets & KPIs",
-    "domain": "Money",
-    "href": "/intelligence/kpis",
-    "legacyRoles": [
-      "OWNER",
-      "MANAGER"
-    ],
+    "label": "Consent",
+    "domain": "Customers & Marketing",
+    "href": "/customers/consent",
+    "legacyRoles": null,
     "sortOrder": 116
   },
   {
-    "key": "intelligence.forecast",
-    "parentKey": "intelligence",
+    "key": "customers.duplicates",
+    "parentKey": "customers",
     "kind": "SCREEN",
-    "label": "Forecast & market",
-    "domain": "Money",
-    "href": "/intelligence/forecast",
-    "legacyRoles": [
-      "OWNER",
-      "MANAGER"
-    ],
+    "label": "Duplicates & merge",
+    "domain": "Customers & Marketing",
+    "href": "/customers/duplicates",
+    "legacyRoles": null,
     "sortOrder": 117
   },
   {
     "key": "marketing",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Marketing & Growth",
-    "domain": "Growth",
+    "label": "Marketing",
+    "domain": "Customers & Marketing",
     "href": "/marketing",
     "legacyRoles": [
       "OWNER",
@@ -1250,711 +1247,569 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 118
   },
   {
-    "key": "marketing.overview",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Growth",
-    "href": "/marketing",
-    "legacyRoles": null,
-    "sortOrder": 119
-  },
-  {
     "key": "marketing.campaigns",
     "parentKey": "marketing",
     "kind": "SCREEN",
     "label": "Campaigns",
-    "domain": "Growth",
+    "domain": "Customers & Marketing",
     "href": "/marketing/campaigns",
     "legacyRoles": null,
-    "sortOrder": 120
-  },
-  {
-    "key": "marketing.campaigns.overview",
-    "parentKey": "marketing.campaigns",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Growth",
-    "href": "/marketing/campaigns",
-    "legacyRoles": null,
-    "sortOrder": 121
-  },
-  {
-    "key": "marketing.campaigns.list",
-    "parentKey": "marketing.campaigns",
-    "kind": "SCREEN",
-    "label": "All campaigns",
-    "domain": "Growth",
-    "href": "/marketing/campaigns/list",
-    "legacyRoles": null,
-    "sortOrder": 122
+    "sortOrder": 119
   },
   {
     "key": "marketing.campaigns.sources",
-    "parentKey": "marketing.campaigns",
+    "parentKey": "marketing",
     "kind": "SCREEN",
     "label": "Order sources",
-    "domain": "Growth",
+    "domain": "Customers & Marketing",
     "href": "/marketing/campaigns/sources",
     "legacyRoles": null,
-    "sortOrder": 123
-  },
-  {
-    "key": "marketing.offers",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Offers & Promotions",
-    "domain": "Growth",
-    "href": "/marketing/offers",
-    "legacyRoles": null,
-    "sortOrder": 124
-  },
-  {
-    "key": "marketing.offers.overview",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Growth",
-    "href": "/marketing/offers",
-    "legacyRoles": null,
-    "sortOrder": 125
-  },
-  {
-    "key": "marketing.offers.list",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Offers",
-    "domain": "Growth",
-    "href": "/marketing/offers/list",
-    "legacyRoles": null,
-    "sortOrder": 126
-  },
-  {
-    "key": "marketing.offers.coupons",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Coupons",
-    "domain": "Growth",
-    "href": "/marketing/offers/coupons",
-    "legacyRoles": null,
-    "sortOrder": 127
-  },
-  {
-    "key": "marketing.offers.templates",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Templates",
-    "domain": "Growth",
-    "href": "/marketing/offers/templates",
-    "legacyRoles": null,
-    "sortOrder": 128
-  },
-  {
-    "key": "marketing.offers.approvals",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Approvals",
-    "domain": "Growth",
-    "href": "/marketing/offers/approvals",
-    "legacyRoles": null,
-    "sortOrder": 129
-  },
-  {
-    "key": "marketing.offers.settings",
-    "parentKey": "marketing.offers",
-    "kind": "SCREEN",
-    "label": "Settings",
-    "domain": "Growth",
-    "href": "/marketing/offers/settings",
-    "legacyRoles": null,
-    "sortOrder": 130
-  },
-  {
-    "key": "marketing.affiliates",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Affiliates & Partners",
-    "domain": "Growth",
-    "href": "/marketing/affiliates",
-    "legacyRoles": null,
-    "sortOrder": 131
-  },
-  {
-    "key": "marketing.affiliates.overview",
-    "parentKey": "marketing.affiliates",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Growth",
-    "href": "/marketing/affiliates",
-    "legacyRoles": null,
-    "sortOrder": 132
-  },
-  {
-    "key": "marketing.affiliates.list",
-    "parentKey": "marketing.affiliates",
-    "kind": "SCREEN",
-    "label": "All affiliates",
-    "domain": "Growth",
-    "href": "/marketing/affiliates/list",
-    "legacyRoles": null,
-    "sortOrder": 133
-  },
-  {
-    "key": "marketing.affiliates.commissions",
-    "parentKey": "marketing.affiliates",
-    "kind": "SCREEN",
-    "label": "Commission ledger",
-    "domain": "Growth",
-    "href": "/marketing/affiliates/commissions",
-    "legacyRoles": null,
-    "sortOrder": 134
-  },
-  {
-    "key": "marketing.affiliates.payouts",
-    "parentKey": "marketing.affiliates",
-    "kind": "SCREEN",
-    "label": "Payouts",
-    "domain": "Growth",
-    "href": "/marketing/affiliates/payouts",
-    "legacyRoles": null,
-    "sortOrder": 135
-  },
-  {
-    "key": "marketing.occasions",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Occasions & Outreach",
-    "domain": "Growth",
-    "href": "/marketing/occasions",
-    "legacyRoles": null,
-    "sortOrder": 136
-  },
-  {
-    "key": "marketing.occasions.overview",
-    "parentKey": "marketing.occasions",
-    "kind": "SCREEN",
-    "label": "Occasions due",
-    "domain": "Growth",
-    "href": "/marketing/occasions",
-    "legacyRoles": null,
-    "sortOrder": 137
-  },
-  {
-    "key": "marketing.outreach",
-    "parentKey": "marketing.occasions",
-    "kind": "SCREEN",
-    "label": "Contact history",
-    "domain": "Growth",
-    "href": "/marketing/outreach",
-    "legacyRoles": null,
-    "sortOrder": 138
-  },
-  {
-    "key": "marketing.outreach.optouts",
-    "parentKey": "marketing.occasions",
-    "kind": "SCREEN",
-    "label": "Do not contact",
-    "domain": "Growth",
-    "href": "/marketing/outreach/optouts",
-    "legacyRoles": null,
-    "sortOrder": 139
-  },
-  {
-    "key": "marketing.whatsapp",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "WhatsApp",
-    "domain": "Growth",
-    "href": "/marketing/whatsapp",
-    "legacyRoles": null,
-    "sortOrder": 140
-  },
-  {
-    "key": "marketing.messaging",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Email & SMS",
-    "domain": "Growth",
-    "href": "/marketing/messaging",
-    "legacyRoles": null,
-    "sortOrder": 141
-  },
-  {
-    "key": "marketing.recovery",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Recover lost orders",
-    "domain": "Growth",
-    "href": "/marketing/recovery",
-    "legacyRoles": null,
-    "sortOrder": 142
-  },
-  {
-    "key": "marketing.referral",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Referral",
-    "domain": "Growth",
-    "href": "/marketing/referral",
-    "legacyRoles": null,
-    "sortOrder": 143
-  },
-  {
-    "key": "marketing.loyalty",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "Loyalty points",
-    "domain": "Growth",
-    "href": "/marketing/loyalty",
-    "legacyRoles": null,
-    "sortOrder": 144
+    "sortOrder": 120
   },
   {
     "key": "marketing.ads",
     "parentKey": "marketing",
     "kind": "SCREEN",
     "label": "Ad numbers",
-    "domain": "Growth",
+    "domain": "Customers & Marketing",
     "href": "/marketing/ads",
     "legacyRoles": null,
-    "sortOrder": 145
+    "sortOrder": 121
   },
   {
     "key": "marketing.tracking",
     "parentKey": "marketing",
     "kind": "SCREEN",
     "label": "Tracking codes",
-    "domain": "Growth",
+    "domain": "Customers & Marketing",
     "href": "/marketing/tracking",
     "legacyRoles": null,
-    "sortOrder": 146
-  },
-  {
-    "key": "marketing.seo",
-    "parentKey": "marketing",
-    "kind": "SCREEN",
-    "label": "SEO",
-    "domain": "Growth",
-    "href": "/marketing/seo",
-    "legacyRoles": null,
-    "sortOrder": 147
-  },
-  {
-    "key": "marketing.seo.overview",
-    "parentKey": "marketing.seo",
-    "kind": "SCREEN",
-    "label": "Where we stand",
-    "domain": "Growth",
-    "href": "/marketing/seo",
-    "legacyRoles": null,
-    "sortOrder": 148
+    "sortOrder": 122
   },
   {
     "key": "marketing.settings",
     "parentKey": "marketing",
     "kind": "SCREEN",
-    "label": "Settings",
-    "domain": "Growth",
+    "label": "Marketing settings",
+    "domain": "Customers & Marketing",
     "href": "/marketing/settings",
     "legacyRoles": null,
-    "sortOrder": 149
+    "sortOrder": 123
   },
   {
-    "key": "customers",
+    "key": "marketing.offers",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Customers",
-    "domain": "Growth",
-    "href": "/customers",
-    "legacyRoles": null,
-    "sortOrder": 150
-  },
-  {
-    "key": "customers.overview",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Growth",
-    "href": "/customers",
-    "legacyRoles": null,
-    "sortOrder": 151
-  },
-  {
-    "key": "customers.list",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "All customers",
-    "domain": "Growth",
-    "href": "/customers/list",
-    "legacyRoles": null,
-    "sortOrder": 152
-  },
-  {
-    "key": "customers.segments",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Segments",
-    "domain": "Growth",
-    "href": "/customers/segments",
-    "legacyRoles": null,
-    "sortOrder": 153
-  },
-  {
-    "key": "customers.risk",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Risk & blocklist",
-    "domain": "Growth",
-    "href": "/customers/risk",
-    "legacyRoles": null,
-    "sortOrder": 154
-  },
-  {
-    "key": "customers.consent",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Consent",
-    "domain": "Growth",
-    "href": "/customers/consent",
-    "legacyRoles": null,
-    "sortOrder": 155
-  },
-  {
-    "key": "customers.duplicates",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Duplicates & merge",
-    "domain": "Growth",
-    "href": "/customers/duplicates",
-    "legacyRoles": null,
-    "sortOrder": 156
-  },
-  {
-    "key": "customers.occasions",
-    "parentKey": "customers",
-    "kind": "SCREEN",
-    "label": "Occasions",
-    "domain": "Growth",
-    "href": "/customers/occasions",
-    "legacyRoles": null,
-    "sortOrder": 157
-  },
-  {
-    "key": "orders.channels",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Sales channels",
-    "domain": "Setup",
-    "href": "/orders/channels",
-    "legacyRoles": null,
-    "sortOrder": 158
-  },
-  {
-    "key": "inventory.warehouses",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Warehouses",
-    "domain": "Setup",
-    "href": "/inventory/warehouses",
-    "legacyRoles": null,
-    "sortOrder": 159
-  },
-  {
-    "key": "administration.payment-methods",
-    "parentKey": null,
-    "kind": "MODULE",
-    "label": "Payment methods",
-    "domain": "Setup",
-    "href": "/administration/payment-methods",
+    "label": "Offers & Coupons",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers",
     "legacyRoles": [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 160
+    "sortOrder": 124
   },
   {
-    "key": "delivery-setup",
+    "key": "marketing.offers.list",
+    "parentKey": "marketing.offers",
+    "kind": "SCREEN",
+    "label": "Offers",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers/list",
+    "legacyRoles": null,
+    "sortOrder": 125
+  },
+  {
+    "key": "marketing.offers.coupons",
+    "parentKey": "marketing.offers",
+    "kind": "SCREEN",
+    "label": "Coupons",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers/coupons",
+    "legacyRoles": null,
+    "sortOrder": 126
+  },
+  {
+    "key": "marketing.offers.templates",
+    "parentKey": "marketing.offers",
+    "kind": "SCREEN",
+    "label": "Templates",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers/templates",
+    "legacyRoles": null,
+    "sortOrder": 127
+  },
+  {
+    "key": "marketing.offers.approvals",
+    "parentKey": "marketing.offers",
+    "kind": "SCREEN",
+    "label": "Approvals",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers/approvals",
+    "legacyRoles": null,
+    "sortOrder": 128
+  },
+  {
+    "key": "marketing.offers.settings",
+    "parentKey": "marketing.offers",
+    "kind": "SCREEN",
+    "label": "Settings",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/offers/settings",
+    "legacyRoles": null,
+    "sortOrder": 129
+  },
+  {
+    "key": "outreach-loyalty",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Delivery setup",
-    "domain": "Setup",
+    "label": "Outreach & Loyalty",
+    "domain": "Customers & Marketing",
     "href": null,
-    "legacyRoles": null,
-    "sortOrder": 161
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 130
   },
   {
-    "key": "delivery.zones",
-    "parentKey": "delivery-setup",
+    "key": "marketing.occasions",
+    "parentKey": "outreach-loyalty",
     "kind": "SCREEN",
-    "label": "Methods & slots",
-    "domain": "Setup",
-    "href": "/delivery/zones",
+    "label": "Occasions due",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/occasions",
     "legacyRoles": null,
-    "sortOrder": 162
+    "sortOrder": 131
   },
   {
-    "key": "delivery.setup",
-    "parentKey": "delivery-setup",
+    "key": "marketing.outreach",
+    "parentKey": "outreach-loyalty",
     "kind": "SCREEN",
-    "label": "Setup",
-    "domain": "Setup",
-    "href": "/delivery/setup",
+    "label": "Contact history",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/outreach",
     "legacyRoles": null,
-    "sortOrder": 163
+    "sortOrder": 132
   },
   {
-    "key": "delivery.riders",
-    "parentKey": "delivery-setup",
+    "key": "marketing.outreach.optouts",
+    "parentKey": "outreach-loyalty",
     "kind": "SCREEN",
-    "label": "Riders",
-    "domain": "Setup",
-    "href": "/delivery/riders",
+    "label": "Do not contact",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/outreach/optouts",
     "legacyRoles": null,
-    "sortOrder": 164
+    "sortOrder": 133
   },
   {
-    "key": "returns.settings",
+    "key": "marketing.recovery",
+    "parentKey": "outreach-loyalty",
+    "kind": "SCREEN",
+    "label": "Recover lost orders",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/recovery",
+    "legacyRoles": null,
+    "sortOrder": 134
+  },
+  {
+    "key": "marketing.referral",
+    "parentKey": "outreach-loyalty",
+    "kind": "SCREEN",
+    "label": "Referral",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/referral",
+    "legacyRoles": null,
+    "sortOrder": 135
+  },
+  {
+    "key": "marketing.loyalty",
+    "parentKey": "outreach-loyalty",
+    "kind": "SCREEN",
+    "label": "Loyalty points",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/loyalty",
+    "legacyRoles": null,
+    "sortOrder": 136
+  },
+  {
+    "key": "messaging",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Returns settings",
-    "domain": "Setup",
-    "href": "/returns/settings",
+    "label": "Messaging",
+    "domain": "Customers & Marketing",
+    "href": null,
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 137
+  },
+  {
+    "key": "marketing.whatsapp",
+    "parentKey": "messaging",
+    "kind": "SCREEN",
+    "label": "WhatsApp",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/whatsapp",
     "legacyRoles": null,
-    "sortOrder": 165
+    "sortOrder": 138
+  },
+  {
+    "key": "marketing.messaging",
+    "parentKey": "messaging",
+    "kind": "SCREEN",
+    "label": "Email & SMS",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/messaging",
+    "legacyRoles": null,
+    "sortOrder": 139
+  },
+  {
+    "key": "marketing.affiliates",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Affiliates",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/affiliates",
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 140
+  },
+  {
+    "key": "marketing.affiliates.list",
+    "parentKey": "marketing.affiliates",
+    "kind": "SCREEN",
+    "label": "All affiliates",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/affiliates/list",
+    "legacyRoles": null,
+    "sortOrder": 141
+  },
+  {
+    "key": "marketing.affiliates.commissions",
+    "parentKey": "marketing.affiliates",
+    "kind": "SCREEN",
+    "label": "Commission ledger",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/affiliates/commissions",
+    "legacyRoles": null,
+    "sortOrder": 142
+  },
+  {
+    "key": "marketing.affiliates.payouts",
+    "parentKey": "marketing.affiliates",
+    "kind": "SCREEN",
+    "label": "Payouts",
+    "domain": "Customers & Marketing",
+    "href": "/marketing/affiliates/payouts",
+    "legacyRoles": null,
+    "sortOrder": 143
   },
   {
     "key": "employees",
     "parentKey": null,
     "kind": "MODULE",
     "label": "Staff",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees",
     "legacyRoles": [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 166
+    "sortOrder": 144
   },
   {
     "key": "employees.overview",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "All staff",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees",
     "legacyRoles": null,
-    "sortOrder": 167
+    "sortOrder": 145
   },
   {
     "key": "employees.new",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "New employee",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees/new",
     "legacyRoles": null,
-    "sortOrder": 168
+    "sortOrder": 146
   },
   {
     "key": "employees.roles",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "Job roles",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees/roles",
     "legacyRoles": null,
-    "sortOrder": 169
+    "sortOrder": 147
   },
   {
     "key": "employees.attendance",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "Attendance",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees/attendance",
     "legacyRoles": null,
-    "sortOrder": 170
+    "sortOrder": 148
   },
   {
     "key": "employees.payroll",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "Payroll",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees/payroll",
     "legacyRoles": null,
-    "sortOrder": 171
+    "sortOrder": 149
   },
   {
     "key": "employees.trash",
     "parentKey": "employees",
     "kind": "SCREEN",
     "label": "Removed staff",
-    "domain": "Setup",
+    "domain": "Staff",
     "href": "/employees/trash",
     "legacyRoles": null,
-    "sortOrder": 172
+    "sortOrder": 150
   },
   {
-    "key": "administration",
+    "key": "shop-setup",
     "parentKey": null,
     "kind": "MODULE",
-    "label": "Administration",
-    "domain": "Setup",
-    "href": "/administration",
-    "legacyRoles": [
-      "OWNER"
-    ],
-    "sortOrder": 173
-  },
-  {
-    "key": "administration.overview",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "Overview",
-    "domain": "Setup",
-    "href": "/administration",
+    "label": "Shop setup",
+    "domain": "Settings",
+    "href": null,
     "legacyRoles": null,
-    "sortOrder": 174
-  },
-  {
-    "key": "administration.access",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "Access control",
-    "domain": "Setup",
-    "href": "/administration/access",
-    "legacyRoles": null,
-    "sortOrder": 175
-  },
-  {
-    "key": "settings.people",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "People & accounts",
-    "domain": "Setup",
-    "href": "/settings/people",
-    "legacyRoles": null,
-    "sortOrder": 176
-  },
-  {
-    "key": "settings.audit",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "Activity & sessions",
-    "domain": "Setup",
-    "href": "/settings/audit",
-    "legacyRoles": null,
-    "sortOrder": 177
+    "sortOrder": 151
   },
   {
     "key": "administration.company",
-    "parentKey": "administration",
+    "parentKey": "shop-setup",
     "kind": "SCREEN",
     "label": "Company settings",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/company",
+    "legacyRoles": [
+      "OWNER"
+    ],
+    "sortOrder": 152
+  },
+  {
+    "key": "orders.channels",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Sales channels",
+    "domain": "Settings",
+    "href": "/orders/channels",
     "legacyRoles": null,
-    "sortOrder": 178
+    "sortOrder": 153
+  },
+  {
+    "key": "administration.payment-methods",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Payment methods",
+    "domain": "Settings",
+    "href": "/administration/payment-methods",
+    "legacyRoles": [
+      "OWNER",
+      "MANAGER"
+    ],
+    "sortOrder": 154
+  },
+  {
+    "key": "delivery.zones",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Delivery methods & slots",
+    "domain": "Settings",
+    "href": "/delivery/zones",
+    "legacyRoles": null,
+    "sortOrder": 155
+  },
+  {
+    "key": "delivery.setup",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Delivery setup",
+    "domain": "Settings",
+    "href": "/delivery/setup",
+    "legacyRoles": null,
+    "sortOrder": 156
+  },
+  {
+    "key": "delivery.riders",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Riders",
+    "domain": "Settings",
+    "href": "/delivery/riders",
+    "legacyRoles": null,
+    "sortOrder": 157
+  },
+  {
+    "key": "returns.settings",
+    "parentKey": "shop-setup",
+    "kind": "SCREEN",
+    "label": "Returns settings",
+    "domain": "Settings",
+    "href": "/returns/settings",
+    "legacyRoles": null,
+    "sortOrder": 158
   },
   {
     "key": "administration.settings",
-    "parentKey": "administration",
+    "parentKey": "shop-setup",
     "kind": "SCREEN",
     "label": "All settings",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/settings",
-    "legacyRoles": null,
-    "sortOrder": 179
-  },
-  {
-    "key": "administration.backup",
-    "parentKey": "administration",
-    "kind": "SCREEN",
-    "label": "Backup & restore",
-    "domain": "Setup",
-    "href": "/administration/backup",
-    "legacyRoles": null,
-    "sortOrder": 180
+    "legacyRoles": [
+      "OWNER"
+    ],
+    "sortOrder": 159
   },
   {
     "key": "administration.integrations",
-    "parentKey": "administration",
-    "kind": "SCREEN",
+    "parentKey": null,
+    "kind": "MODULE",
     "label": "Integrations & keys",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations",
-    "legacyRoles": null,
-    "sortOrder": 181
+    "legacyRoles": [
+      "OWNER"
+    ],
+    "sortOrder": 160
   },
   {
     "key": "administration.integrations.overview",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "All keys",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations",
     "legacyRoles": null,
-    "sortOrder": 182
+    "sortOrder": 161
   },
   {
     "key": "administration.integrations.payment",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "Payment gateways",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations/payment",
     "legacyRoles": null,
-    "sortOrder": 183
+    "sortOrder": 162
   },
   {
     "key": "administration.integrations.courier",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "Courier & delivery",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations/courier",
     "legacyRoles": null,
-    "sortOrder": 184
+    "sortOrder": 163
   },
   {
     "key": "administration.integrations.messaging",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "Messaging",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations/messaging",
     "legacyRoles": null,
-    "sortOrder": 185
+    "sortOrder": 164
   },
   {
     "key": "administration.integrations.social",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "Social & ads",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations/social",
     "legacyRoles": null,
-    "sortOrder": 186
+    "sortOrder": 165
   },
   {
     "key": "administration.integrations.analytics",
     "parentKey": "administration.integrations",
     "kind": "SCREEN",
     "label": "Tracking & analytics",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/administration/integrations/analytics",
     "legacyRoles": null,
-    "sortOrder": 187
+    "sortOrder": 166
+  },
+  {
+    "key": "administration",
+    "parentKey": null,
+    "kind": "MODULE",
+    "label": "Access & security",
+    "domain": "Settings",
+    "href": "/administration",
+    "legacyRoles": [
+      "OWNER"
+    ],
+    "sortOrder": 167
+  },
+  {
+    "key": "administration.access",
+    "parentKey": "administration",
+    "kind": "SCREEN",
+    "label": "Access control",
+    "domain": "Settings",
+    "href": "/administration/access",
+    "legacyRoles": null,
+    "sortOrder": 168
+  },
+  {
+    "key": "settings.people",
+    "parentKey": "administration",
+    "kind": "SCREEN",
+    "label": "People & accounts",
+    "domain": "Settings",
+    "href": "/settings/people",
+    "legacyRoles": null,
+    "sortOrder": 169
+  },
+  {
+    "key": "settings.audit",
+    "parentKey": "administration",
+    "kind": "SCREEN",
+    "label": "Activity & sessions",
+    "domain": "Settings",
+    "href": "/settings/audit",
+    "legacyRoles": null,
+    "sortOrder": 170
+  },
+  {
+    "key": "administration.backup",
+    "parentKey": "administration",
+    "kind": "SCREEN",
+    "label": "Backup & restore",
+    "domain": "Settings",
+    "href": "/administration/backup",
+    "legacyRoles": null,
+    "sortOrder": 171
   },
   {
     "key": "settings.me",
     "parentKey": null,
     "kind": "MODULE",
     "label": "My password & PIN",
-    "domain": "Setup",
+    "domain": "Settings",
     "href": "/settings/me",
     "legacyRoles": null,
-    "sortOrder": 188
+    "sortOrder": 172
   }
 ];

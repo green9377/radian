@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Jost } from "next/font/google";
+import { Fraunces, Jost, Manrope } from "next/font/google";
 import "./globals.css";
 import AdminSidebar from "./_components/AdminSidebar";
 import AccessGate from "./_components/AccessGate";
@@ -20,6 +20,13 @@ const jost = Jost({
   variable: "--font-ui",
   weight: ["300", "400", "500", "600"],
 });
+/*  The menu's face (owner, 8 Sep 2026: "bold and clean, not a thin, tired
+    font"). Manrope at 700/800 — the sidebar only, for now.  */
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-nav",
+  weight: ["600", "700", "800"],
+});
 
 export const metadata: Metadata = {
   title: "Radian Admin — Business OS",
@@ -36,7 +43,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${fraunces.variable} ${jost.variable} font-ui antialiased`}
+        className={`${fraunces.variable} ${jost.variable} ${manrope.variable} font-ui antialiased`}
       >
         {/* DEC-FIN-028 — nothing inside is reachable without signing in */}
         <AuthGate>
