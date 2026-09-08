@@ -7,19 +7,18 @@ import { persist } from "zustand/middleware";
 import { customerFromPhone, type Customer } from "../_data/auth";
 
 /*
-  Mock auth session — logged-in customer localStorage-এ ধরে রাখে।
+  The signed-in customer, kept in localStorage.
 
-  ⚠️ কোনো নিরাপত্তা নেই — শুধু frontend flow। token/cookie নেই,
-     কারণ backend নেই।
-
-  ⇄ SWAP HERE — Auth module lock হলে session server-side cookie হবে;
-     এই store শুধু hydration/UI flag ধরে রাখবে, customer আসবে /me থেকে।
+  The code and the Google sign-in are checked by the server; the session
+  itself is still this browser's memory — there is no server-side cookie
+  yet. SWAP HERE once the Auth module lands: this store keeps only the
+  hydration / UI flag and the customer comes from /me.
 */
 
 interface AuthStore {
   customer: Customer | null;
-  /** verified phone দিয়ে session শুরু */
-  login: (phone: string) => void;
+  /** start the session for a verified phone (name and email when Google supplied them) */
+  login: (phone: string, extra?: { name?: string; email?: string }) => void;
   logout: () => void;
 }
 
@@ -27,7 +26,7 @@ export const useAuthStore = create<AuthStore>()(
   persist<AuthStore, [], [], Pick<AuthStore, "customer">>(
     (set) => ({
       customer: null,
-      login: (phone) => set({ customer: customerFromPhone(phone) }),
+      login: (phone, extra) => set({ customer: customerFromPhone(phone, extra) }),
       logout: () => set({ customer: null }),
     }),
     {
@@ -38,7 +37,7 @@ export const useAuthStore = create<AuthStore>()(
   ),
 );
 
-/** SSR/hydration mismatch এড়াতে — localStorage পড়া শেষ কিনা */
+/** has localStorage been read — avoids the SSR/hydration mismatch */
 export function useAuthHydrated(): boolean {
   return useSyncExternalStore(
     (onChange) => useAuthStore.persist.onFinishHydration(onChange),

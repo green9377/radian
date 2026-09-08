@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   OTP_LENGTH,
+  googleClientId,
+  googleSignIn,
+  googleSignInComplete,
   lastOtpChannel,
   normalizeLoginPhone,
   requestLoginOtp,
@@ -26,7 +29,25 @@ import Icon from "../Pdp/PdpIcons";
   first real code arrived by SMS while this screen insisted "on WhatsApp",
   which sends a customer hunting in the wrong app; naming a FAILURE would be
   different — it would turn a login box into a way of asking who has WhatsApp.
+
+  8 Sep 2026: the route is the owner's — a Bangladeshi number gets the code by
+  SMS, a foreign one by email, WhatsApp last — so the screen promises "a
+  code", not an app. And "Continue with Google": Google's own button, the
+  server checks the token, a new account is asked for its phone number once.
 */
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (o: { client_id: string; callback: (r: { credential: string }) => void; ux_mode?: string }) => void;
+          renderButton: (el: HTMLElement, o: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
 
 export default function LoginView() {
   const router = useRouter();
@@ -37,7 +58,11 @@ export default function LoginView() {
   const customer = useAuthStore((s) => s.customer);
   const login = useAuthStore((s) => s.login);
 
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "google-phone">("phone");
+  /* Google: the button is drawn only when the server has a Client ID */
+  const [gClientId, setGClientId] = useState<string | null>(null);
+  const [gTicket, setGTicket] = useState<{ ticket: string; name: string } | null>(null);
+  const gButtonRef = useRef<HTMLDivElement | null>(null);
   const [phoneRaw, setPhoneRaw] = useState("");
   const [normalized, setNormalized] = useState<string | null>(null);
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
@@ -57,10 +82,90 @@ export default function LoginView() {
 
   const boxRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-  /* logged-in হলে ভিতরে পাঠাও */
+  /* already signed in → straight through */
   useEffect(() => {
     if (hydrated && customer) router.replace(redirect);
   }, [hydrated, customer, redirect, router]);
+
+  /* Google's button: the script, then the button, only with a Client ID */
+  useEffect(() => {
+    let alive = true;
+    googleClientId().then((id) => {
+      if (alive) setGClientId(id);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!gClientId || step !== "phone" || !hydrated || customer) return;
+    const draw = () => {
+      const g = window.google?.accounts.id;
+      const el = gButtonRef.current;
+      if (!g || !el) return;
+      g.initialize({ client_id: gClientId, callback: (r) => void onGoogle(r.credential) });
+      el.innerHTML = "";
+      g.renderButton(el, { theme: "outline", size: "large", shape: "pill", width: 340, text: "continue_with" });
+    };
+    if (window.google?.accounts) {
+      draw();
+      return;
+    }
+    const id = "google-gsi";
+    if (!document.getElementById(id)) {
+      const sc = document.createElement("script");
+      sc.id = id;
+      sc.src = "https://accounts.google.com/gsi/client";
+      sc.async = true;
+      sc.onload = draw;
+      document.head.appendChild(sc);
+    } else {
+      document.getElementById(id)?.addEventListener("load", draw);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gClientId, step, hydrated, customer]);
+
+  async function onGoogle(credential: string) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await googleSignIn(credential);
+      if (r.ok) {
+        login(r.customer.phone, { name: r.customer.name, email: r.customer.email });
+        router.replace(redirect);
+        return;
+      }
+      setGTicket({ ticket: r.ticket, name: r.name });
+      setPhoneRaw("");
+      setStep("google-phone");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Google sign-in did not work. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishGoogle(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !gTicket) return;
+    const norm = normalizeLoginPhone(phoneRaw) ?? (phoneRaw.trim().startsWith("+") ? phoneRaw.trim() : null);
+    if (!norm) {
+      setError("Enter a valid mobile number.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await googleSignInComplete(gTicket.ticket, norm);
+      login(r.customer.phone, { name: r.customer.name, email: r.customer.email });
+      router.replace(redirect);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not work. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   /* The cooldown, ticking. */
   useEffect(() => {
@@ -147,7 +252,7 @@ export default function LoginView() {
     }
   }
 
-  /* hydration চলাকালীন / already logged-in → খালি */
+  /* while hydrating, or already signed in → blank */
   if (!hydrated || customer) {
     return (
       <div className="min-h-[50vh] grid place-items-center">
@@ -161,21 +266,64 @@ export default function LoginView() {
       <div className="w-full max-w-[420px] bg-white border-[1.5px] border-lavender-deep rounded-[28px] shadow-soft p-7 sm:p-9">
         {/* brand mark */}
         <span className="w-14 h-14 rounded-[50%_50%_50%_0] -rotate-45 bg-orchid-soft text-orchid grid place-items-center mx-auto">
-          <Icon name="wa" className="w-7 h-7 rotate-45" />
+          <Icon name="lock" className="w-7 h-7 rotate-45" />
         </span>
 
-        {step === "phone" ? (
+        {step === "google-phone" ? (
+          <>
+            <h1 className="text-center font-display text-[24px] text-purple font-semibold mt-5">
+              {gTicket?.name ? `Welcome, ${gTicket.name.split(" ")[0]}` : "One more thing"}
+            </h1>
+            <p className="text-center text-[13.5px] text-body-soft mt-2">
+              Your mobile number — it is where every order update goes.
+            </p>
+            <form onSubmit={finishGoogle} className="mt-7">
+              <label className="block text-[12px] font-semibold text-body-soft mb-1.5">Mobile number</label>
+              <input
+                type="tel"
+                inputMode="tel"
+                autoFocus
+                value={phoneRaw}
+                onChange={(e) => {
+                  setPhoneRaw(e.target.value);
+                  setError(null);
+                }}
+                placeholder="01XXXXXXXXX, or +44… from abroad"
+                className="w-full rounded-[14px] border-[1.5px] border-lavender-deep bg-lavender focus:border-orchid transition-colors px-4 py-3 text-[14.5px] text-purple outline-none placeholder:text-body-soft/60"
+              />
+              {error && <p className="text-[12.5px] text-[#B42318] mt-2">{error}</p>}
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full mt-5 h-[52px] inline-flex items-center justify-center gap-2 bg-purple text-white rounded-[16px] font-bold text-[14.5px] hover:bg-purple-deep transition disabled:opacity-70"
+              >
+                {busy ? "Saving…" : "Finish signing in"}
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("phone");
+                setGTicket(null);
+                setError(null);
+              }}
+              className="block mx-auto mt-4 text-[12.5px] text-body-soft hover:text-purple"
+            >
+              Use a code instead
+            </button>
+          </>
+        ) : step === "phone" ? (
           <>
             <h1 className="text-center font-display text-[26px] text-purple font-semibold mt-5">
               Log in to Radian
             </h1>
             <p className="text-center text-[13.5px] text-body-soft mt-2">
-              We&apos;ll send a login code to your WhatsApp — no password needed.
+              We&apos;ll send you a login code — no password needed.
             </p>
 
             <form onSubmit={sendCode} className="mt-7">
               <label className="block text-[12px] font-semibold text-body-soft mb-1.5">
-                WhatsApp number
+                Mobile number
               </label>
               <div className="flex items-center rounded-[14px] border-[1.5px] border-lavender-deep bg-lavender focus-within:border-orchid transition-colors overflow-hidden">
                 <span className="pl-3.5 pr-2 py-3 text-[14px] text-body-soft font-medium border-r border-lavender-deep">
@@ -201,12 +349,24 @@ export default function LoginView() {
 
               <button
                 type="submit"
-                className="w-full mt-5 h-[52px] inline-flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-[16px] font-semibold text-[14.5px] hover:brightness-95 transition"
+                disabled={busy}
+                className="w-full mt-5 h-[52px] inline-flex items-center justify-center gap-2 bg-purple text-white rounded-[16px] font-bold text-[14.5px] hover:bg-purple-deep transition disabled:opacity-70"
               >
-                <Icon name="wa" className="w-[19px] h-[19px]" />
-                Send code on WhatsApp
+                {busy ? "Sending…" : "Send login code"}
+                {!busy && <Icon name="chev" className="w-4 h-4 -rotate-90" />}
               </button>
             </form>
+
+            {gClientId && (
+              <>
+                <div className="flex items-center gap-3 my-5 text-[12px] text-body-soft">
+                  <span className="h-px flex-1 bg-lavender-deep" />
+                  or
+                  <span className="h-px flex-1 bg-lavender-deep" />
+                </div>
+                <div ref={gButtonRef} className="flex justify-center min-h-[44px]" />
+              </>
+            )}
           </>
         ) : (
           <>

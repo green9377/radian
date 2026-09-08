@@ -139,6 +139,14 @@ export const PROVIDERS: Manifest[] = [
 
   /* ---------------- SOCIAL ---------------- */
   {
+    provider: 'GOOGLE_SIGNIN', label: 'Google Sign-In', kind: 'SOCIAL', hasSandbox: false,
+    matters:
+      '"Continue with Google" on the login page. Without the Client ID the button is not drawn and customers log in with a code only. Create it at console.cloud.google.com → APIs & Services → Credentials → OAuth client ID (Web), with the shop\'s addresses as authorised JavaScript origins.',
+    fields: [
+      { key: 'clientId', label: 'OAuth Client ID', hint: 'ends in .apps.googleusercontent.com — not a secret', secret: false },
+    ],
+  },
+  {
     provider: 'META_ADS', label: 'Meta Ads (Facebook & Instagram)', kind: 'SOCIAL',
     hasSandbox: false,
     matters: 'Reading what the ads actually spent, so reported profit is not overstated.',

@@ -43,6 +43,7 @@ import { SeoModule } from './seo/seo.module';
 import { AuthModule } from './auth/auth.module';
 import { AdministrationModule } from './administration/administration.module';
 import { ShopModule } from './shop/shop';
+import { GoogleSignInModule } from './shop/google-signin';
 import { ProductDetailModule } from './shop/product-detail';
 import { ShopCatalogModule } from './shop/catalog';
 import { CheckoutModule } from './shop/checkout';
@@ -113,6 +114,7 @@ import { MerchModule } from './products/merch';
     AuthModule,
     AdministrationModule,
     ShopModule,
+    GoogleSignInModule,
     ProductDetailModule,
     ShopCatalogModule,
     CheckoutModule,

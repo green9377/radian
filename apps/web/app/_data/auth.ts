@@ -29,12 +29,12 @@ export interface Customer {
   name: string;
   phone: string; // +8801XXXXXXXXX
   email: string;
-  /** UTC ms — কবে join করল */
+  /** UTC ms — when they joined */
   joinedAt: number;
   addresses: Address[];
 }
 
-/* demo — orders.ts-এর SENDER-এর সাথে মিল */
+/* demo — matches the SENDER in orders.ts */
 export const DEMO_CUSTOMER: Customer = {
   name: "Nusrat Jahan",
   phone: "+8801712345678",
@@ -61,7 +61,7 @@ export const DEMO_CUSTOMER: Customer = {
   ],
 };
 
-/* নিজের personal address (Profile tab) — delivery address নয় */
+/* the customer's own address (Profile tab) — not a delivery address */
 export interface OwnAddress {
   line: string;
   zone: Zone;
@@ -74,7 +74,7 @@ export const DEMO_OWN_ADDRESS: OwnAddress = {
   phone: "+8801712345678",
 };
 
-/* delivery/recipient address seed (Addresses tab) — যাদের কাছে gift যায় */
+/* delivery / recipient address seed (Addresses tab) — where gifts go */
 export const SEED_DELIVERY_ADDRESSES: Address[] = [
   {
     id: "addr-meem",
@@ -114,7 +114,7 @@ export const OTP_LENGTH = 6;
 
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
-/** valid BD ফোন? → normalized (+880…) নাকি null */
+/** a valid BD phone → normalised (+880…), else null */
 export function normalizeLoginPhone(raw: string): string | null {
   return normalizeBdPhone(raw);
 }
@@ -186,7 +186,56 @@ export async function verifyOtp(phone: string, code: string): Promise<boolean> {
   }
 }
 
-/** logged-in customer বানাও — entered phone বসিয়ে DEMO profile */
-export function customerFromPhone(phone: string): Customer {
-  return { ...DEMO_CUSTOMER, phone };
+/** the signed-in customer: the entered phone (and, from Google, the name and email) over the demo profile */
+export function customerFromPhone(phone: string, extra?: { name?: string; email?: string }): Customer {
+  return {
+    ...DEMO_CUSTOMER,
+    phone,
+    ...(extra?.name ? { name: extra.name } : {}),
+    ...(extra?.email ? { email: extra.email } : {}),
+  };
 }
+
+/* ─────────────────── GOOGLE ───────────────────
+   "Continue with Google" (owner, 8 Sep 2026). Google's own button hands the
+   browser an ID token; the server checks it with Google and answers with the
+   customer, or asks for a phone number once (a new account needs the number
+   every order runs on). The button is drawn only when the server has a
+   Client ID (Setup → Integrations → Google Sign-In). */
+
+export type GoogleSignInAnswer =
+  | { ok: true; customer: { name: string; phone: string; email: string } }
+  | { ok: false; needPhone: true; name: string; ticket: string };
+
+export async function googleClientId(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API}/shop/auth/google`);
+    const j = (await res.json()) as { clientId?: string | null };
+    return j.clientId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function postAuth<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const j = (await res.json()) as T & { message?: string | string[]; statusCode?: number };
+  if (!res.ok) {
+    const m = Array.isArray(j.message) ? j.message[0] : j.message;
+    throw new Error(m || "That did not work. Please try again.");
+  }
+  return j;
+}
+
+export const googleSignIn = (credential: string) =>
+  postAuth<GoogleSignInAnswer>("/shop/auth/google", { credential });
+
+export const googleSignInComplete = (ticket: string, phone: string) =>
+  postAuth<{ ok: true; customer: { name: string; phone: string; email: string } }>(
+    "/shop/auth/google/complete",
+    { ticket, phone },
+  );
