@@ -534,8 +534,12 @@ export function Q5When({
         return (
           <div className="mt-4 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3 flex gap-2.5 items-center">
             <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0" />
+            {/*  ⚠️ ONE STRING, NOT `{expr} text` — walked on DEV, 8 Sep 2026:
+                 it rendered "…15% OFFcan't take", the space between the
+                 product's name and the sentence swallowed by JSX. Interpolate
+                 the whole line and there is nothing to swallow.  */}
             <p className="text-[13px] font-semibold text-purple leading-snug">
-              {names.join(", ")} can&apos;t take the faster options
+              {`${names.join(", ")} can’t take the faster options`}
               <Info
                 text={`Remove ${names.length === 1 ? "it" : "them"} from the cart and the faster deliveries open up again.`}
               />
@@ -554,15 +558,14 @@ export function Q5When({
           <p className="text-[13px] font-semibold text-[#8A5A00] leading-snug">
             {preorder ? (
               <>
-                {preorder.name} is a pre-order
-                {preorder.backOn ? (
-                  <> — sent from {longDate(preorder.backOn)}</>
-                ) : null}
+                {`${preorder.name} is a pre-order${
+                  preorder.backOn ? ` — sent from ${longDate(preorder.backOn)}` : ""
+                }`}
                 <Info text="The earlier dates are closed because this one is not in the studio yet." />
               </>
             ) : (
               <>
-                Made to order — {leadDays} day{leadDays === 1 ? "" : "s"} before it can go out
+                {`Made to order — ${leadDays} day${leadDays === 1 ? "" : "s"} before it can go out`}
                 <Info text="We start making it the day you order, so the earliest dates are closed." />
               </>
             )}
@@ -589,7 +592,7 @@ export function Q5When({
         <div className="mt-5 rounded-[16px] border border-[#F2D9A8] bg-[#FFF7E8] px-4 py-3 flex gap-2.5 items-center">
           <Icon name="bolt" className="w-[18px] h-[18px] text-[#8A5A00] shrink-0" />
           <p className="text-[13px] font-semibold text-[#8A5A00] leading-snug">
-            At their door {promisePhrase(method.promiseMinutes ?? null)}
+            {`At their door ${promisePhrase(method.promiseMinutes ?? null)}`}
             <Info text="We start arranging the moment you pay, so there is no date or slot to pick." />
           </p>
         </div>
@@ -600,7 +603,7 @@ export function Q5When({
         <div className="mt-5 rounded-[16px] border border-lavender-deep bg-lavender px-4 py-3 flex gap-2.5 items-center">
           <Icon name="truck" className="w-[18px] h-[18px] text-purple shrink-0" />
           <p className="text-[13px] font-semibold text-purple leading-snug">
-            Arrives {courierWindow(now, leadDays)}
+            {`Arrives ${courierWindow(now, leadDays)}`}
             <Info text="Our courier partner calls before delivery. Time slots are inside Dhaka only." />
           </p>
         </div>
