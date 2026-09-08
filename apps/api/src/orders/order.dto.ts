@@ -115,8 +115,8 @@ export interface EditOrderDto {
    *
    * ⚠️ It was set once at checkout and could never be changed again — the
    * admin printed "Photo updates are on" and gave nobody a way to turn them
-   * off (owner, 8 Sep 2026). It rides with the recipient gate: the same
-   * people, at the same stages, who may fix the receiver's name.
+   * off (owner, 8 Sep 2026). It rides the NOTES gate: open for as long as the
+   * order is, because the photographs are taken late.
    */
   photoUpdates?: boolean;
   address?: string;

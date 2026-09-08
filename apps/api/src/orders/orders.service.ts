@@ -1241,8 +1241,7 @@ export class OrdersService {
     const recipientTouched =
       dto.recipientName !== undefined ||
       dto.recipientPhone !== undefined ||
-      dto.giftMessage !== undefined ||
-      dto.photoUpdates !== undefined;
+      dto.giftMessage !== undefined;
     const deliveryTouched = dto.address !== undefined || dto.deliveryNotes !== undefined || dto.methodLabel !== undefined || dto.date !== undefined || dto.slotLabel !== undefined;
     const existingItemsTouched = !!(dto.removeLineIds?.length || dto.lineQty?.length);
     const moneyTouched = dto.adjustmentPaisa !== undefined || dto.deliveryPaisa !== undefined || !!dto.lineDiscounts;
@@ -1255,6 +1254,14 @@ export class OrdersService {
     if (dto.addLines?.length && !gate.addItems) throw new BadRequestException('cannot add items once the order is out for delivery');
     if (!gate.notes && (dto.internalNote !== undefined || moneyTouched))
       throw new BadRequestException('order is closed — no edits allowed');
+
+    /*  Photo updates are a MESSAGING choice, not a recipient detail (8 Sep
+        2026). Hung on the recipient gate for an afternoon, it was refused with
+        "recipient locked at this stage" on every order past preparing — which
+        is precisely when the prep photo is taken and somebody wants to say
+        "don't send this one". It stays open as long as the order is open.  */
+    if (!gate.notes && dto.photoUpdates !== undefined)
+      throw new BadRequestException('order is closed — photo updates cannot be changed');
 
     /* ---- item composition (only while gate.items is open) ---- */
     if (dto.removeLineIds?.length) {
