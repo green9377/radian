@@ -13,12 +13,13 @@ import { AuthGate } from "./_components/AuthGate";
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "500", "600"],
+  /* 700/800 — the numbers on the order grid (owner, 9 Sep 2026: "bold") */
+  weight: ["400", "500", "600", "700", "800"],
 });
 const jost = Jost({
   subsets: ["latin"],
   variable: "--font-ui",
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 /*  The menu's face (owner, 8 Sep 2026: "bold and clean, not a thin, tired
     font"). Manrope at 700/800 — the sidebar only, for now.  */

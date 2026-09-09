@@ -1437,7 +1437,8 @@ export interface ApiOrder {
   channelId: string;
   channel?: ApiChannel | null;
   customerId: string;
-  customer?: { id: string; name: string; phone?: string } | null;
+  /** ordersCount is the Customer module's own tally (One Data One Owner) — read for the NEW / REPEAT tag */
+  customer?: { id: string; name: string; phone?: string; ordersCount?: number } | null;
   senderName: string;
   senderPhone: string;
   senderEmail?: string | null;

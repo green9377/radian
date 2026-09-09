@@ -168,7 +168,8 @@ export class OrdersService {
         where,
         include: {
           channel: true,
-          customer: { select: { id: true, name: true } },
+          // ordersCount is the Customer module's own tally — the list shows NEW / REPEAT from it
+          customer: { select: { id: true, name: true, ordersCount: true } },
           _count: { select: { lines: { where: NOT_DELETED } } },
         },
         orderBy: { placedAt: 'desc' },
