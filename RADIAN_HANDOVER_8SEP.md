@@ -448,65 +448,52 @@ address, map link, photo, `ShopHour` — already exists.
 
 ## 11. COLLECT FROM SHOP — 9 Sep
 
-The owner: *"amder kache order diye to shop aseo collect krte parbe … where
-jekhane sekhane ata add krle amr kache mone hy valo hbe. r ta select krle kon
-charge delievry address kichu lagbe na."* Asked about the details, he ruled
-out special rules twice — **the payment is whatever the product already
-demands**, and **the time is picked exactly as with any other method**.
+**It is a switch on the checkout, not a delivery method.** It was built as a
+method first — a `DeliveryMethodKind` the owner had to create, price per zone
+and tick on every product — and he threw that out on sight:
 
-**It is a third `DeliveryMethodKind`**, beside RIDER and COURIER — not a
-concept standing beside one. Price, checkout, orders and reports all key off
-`deliveryMethodId` already; a parallel idea would have meant touching every
-one of them. The charge is 0 because the owner types 0.
+> *"shop theke collect ato jamela kn kra lagbe. just easy kro. check out jkhon
+>  shop collect dibe tkhonei tar delievry charge lagbe na. ar baki sob akdom
+>  same vabei kaj krbe. so admin alada kre zone create kra and kon kon product
+>  shop collect kaj krbe ata thik kra agula to duniar pecher ktha bolle."*
 
-| Where | What happens |
+⚠️ **Worth keeping, because it is the mistake and not the fix.** I modelled it
+as a method because that is where it FITS in the schema — beside RIDER and
+COURIER, keyed off `deliveryMethodId` like everything else. Tidy in the data,
+and it cost him a method to create, a price to set and a tick on every product
+before a single customer could collect anything. **A design that is neat in the
+data and heavy on the person using it is not a good design.**
+
+### What it does now — the whole of it
+
+| | |
 |---|---|
-| **Admin → Delivery → Zones · types · slots** | a new switch on a method: **We deliver it / They collect it** |
-| Checkout, **Where?** | a coloured switch. Choosing it replaces the address form with the shop — address, opening hours, map link, phone, all from Shop settings. Nothing is typed |
-| Checkout, **When?** | one list or the other, never both. The customer already said which |
-| The order | `fulfillmentType: PICKUP` — **this is what keeps it off the delivery board**, which asks for DELIVERY |
-| The homepage band | never shows it. That band is the shop's delivery SPEEDS, and "come and fetch it" is not an answer to "how fast" |
+| Where | one switch in the **Where?** step. **Nothing to set up** |
+| On | the delivery charge is **0**, and **no address is asked for** — the shop's own card is shown instead: address, opening hours, map link, phone, all from Shop settings |
+| Everything else | **untouched.** Same methods, same dates, same slots, same payment rules |
+| The order | `fulfillmentType: PICKUP`, which keeps it off the delivery board; the SHOP's address on the row rather than a blank |
 
-⚠️ **The switch is drawn only when a collection method actually exists.**
-Offering it and then finding nothing under "When" would be worse than not
-offering it at all — so with none set up, the checkout looks exactly as it did.
+### Two bugs the walk caught that reading could not
 
-⚠️ **The server decides, not the browser.** The address is waived by the
-METHOD's own kind, read from the database. A request that merely *claimed* to
-be a collection would otherwise place an addressless order against a rider
-method, and a rider would be sent to an empty line in the address column.
+1. **The label changed and the charge did not** — the summary read
+   *"Collection · 3 Hours Delivery — ৳350"*. `c.collect` was read inside the
+   totals memo and missing from its dependency list, so it was right once and
+   stale for ever after. The quote sent to the server had the same hole, which
+   would have let a FREE_DELIVERY offer waive a charge that was not there.
+2. **"৳0 FREE"** — a struck-out price only means something when there was one.
 
-⚠️ **A collected order carries the SHOP's address**, not an empty string — the
-order screen, the invoice and the customer's own order page all print that
-column, and a blank there reads as data lost.
+⚠️ `DeliveryMethodKind.PICKUP` **stays in the enum, unused and marked so.**
+Dropping a value from a Postgres enum means rebuilding the type: real risk for
+no gain. Nothing reads it.
 
-⚠️ **`FulfillmentType.PICKUP` is its own value, NOT `COUNTER`.** A counter sale
-is rung up at the till and Finance treats it differently. And the Sales list
-filter was widened to include PICKUP — without that, the day this shipped
-every collected order would have vanished from the one screen the owner works
-from.
+### Verified on DEV, by walking it
 
-### What the owner does to switch it on
+Collecting: **Collection · 3 Hours Delivery — FREE**, total ৳2,000. Delivering
+the same cart: **Delivery · 3 Hours Delivery — ৳350**, total ৳2,350. The Where
+step swaps the address form for the shop card with its hours, map link and
+phone.
 
-1. **Admin → Delivery → Zones · types · slots → Add method** — name it
-   ("Collect from Shop"), choose **They collect it**, pick how it works
-   (2-hour promise, a slot, or a date) exactly as for any other method.
-2. **Admin → Delivery → Setup** — give it a price in the Dhaka zone: **0**.
-3. Tick it on the products that may be collected, as with any other method.
+⚠️ **Not walked:** placing a real collected order end to end, so the server
+side (`fulfillmentType: PICKUP`, the shop's address on the row, absence from
+the delivery board) is confirmed by code and not yet by a row in the database.
 
-The switch then appears in checkout by itself.
-
-### Verified, and what was not
-
-Walked on DEV: the migration applied (`RIDER COURIER PICKUP`,
-`DELIVERY COUNTER PICKUP`), all three apps answer 200, and the checkout is
-untouched while no collection method exists. The panel itself was proved by
-feeding ONE fake collection option into that browser only — nothing was
-written to the shop — and the Where step correctly swapped the address form
-for the shop card with its hours, map link and phone.
-
-⚠️ **Not walked end to end**, and only for one reason: placing a real
-collected order needs a delivery method that only the owner should create —
-its name, its shape and its price are his. Once he adds one, the server side
-(address waived, `fulfillmentType: PICKUP`, off the delivery board) is the
-next thing to walk.
