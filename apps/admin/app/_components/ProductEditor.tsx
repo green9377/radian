@@ -6990,16 +6990,23 @@ No bundle products yet — add them on{" "}
                         {iconPick === i && (
                           <div className="px-3 pb-3">
                             <div className="rounded-[12px] bg-lavender/40 border border-lavender-deep p-3">
-                              {/*  ⚠️ The dimensions come first, before the
-                                  picker — stated after a file is already
-                                  chosen, it's too late to be useful.  */}
-                              <div className="flex items-center gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
-                                <span className="text-orchid shrink-0">
+                              {/*  ⚠️ Said before the picker — after a file is
+                                  chosen it is too late to be useful. And it is
+                                  no longer about the SIZE: the shop draws an
+                                  upload and a built-in at the same size, and
+                                  what differs is the file (9 Sep 2026).  */}
+                              <div className="flex items-start gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
+                                <span className="text-orchid shrink-0 mt-0.5">
                                   <Icon name="upload" size={14} />
                                 </span>
-                                <span className="text-[12px] text-body">
-                                  <b className="text-purple font-semibold">96 × 96 px</b> ·
-                                  square · transparent · max 50 KB · SVG, PNG or WebP
+                                <span className="text-[12px] text-body leading-relaxed">
+                                  <b className="text-purple font-semibold">A flat shape on a
+                                  see-through background</b> — SVG, or PNG with real transparency.
+                                  We paint it in the brand purple, so it matches the symbols below.
+                                  <span className="block text-body-soft mt-0.5">
+                                    A photograph or an AI picture will not work at this size,
+                                    whatever its dimensions. Square · max 50 KB.
+                                  </span>
                                 </span>
                               </div>
 

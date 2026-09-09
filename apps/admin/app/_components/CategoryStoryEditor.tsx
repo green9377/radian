@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import Icon from "./Icon";
 import { Info } from "./ItemEditor";
-import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
+import ShopIconPreview, { ICON_NAMES, isShapeIcon } from "./ShopIconPreview";
 import {
   uploadImage,
   listCategoryBadges,
@@ -214,16 +214,28 @@ export default function CategoryStoryEditor({
               {picking === b.id && (
                 <div className="px-3 pb-3">
                   <div className="rounded-[12px] bg-lavender/40 border border-lavender-deep p-3">
-                    {/*  ⚠️ মাপটা আগে, বাছার আগেই। upload বোতামের নিচে লিখলে
-                        সেটা পড়া হয় file বেছে ফেলার পরে — তখন আর কাজে
-                        লাগে না। (TrustStripView-এ শেখা।)  */}
-                    <div className="flex items-center gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
-                      <span className="text-orchid shrink-0">
+                    {/*  ⚠️ Said BEFORE the picker, never under the upload
+                        button — read after a file is chosen it is too late to
+                        be of any use. (Learned in TrustStripView.)
+
+                        ⚠️ And it is no longer about the SIZE. The owner
+                        uploaded at exactly the size this used to print and the
+                        row still looked wrong: the shop draws his file and a
+                        built-in at the same 24px, and what differs is the
+                        file. (9 Sep 2026)  */}
+                    <div className="flex items-start gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
+                      <span className="text-orchid shrink-0 mt-0.5">
                         <Icon name="upload" size={14} />
                       </span>
-                      <span className="text-[12px] text-body">
-                        <b className="text-purple font-semibold">96 × 96 px</b> · square ·
-                        transparent · max 50 KB · SVG, PNG or WebP
+                      <span className="text-[12px] text-body leading-relaxed">
+                        <b className="text-purple font-semibold">A flat shape on a see-through background</b> —
+                        SVG, or PNG with real transparency. We paint it in the brand purple, so it
+                        comes out identical to the symbols below.
+                        <span className="block text-body-soft mt-0.5">
+                          A photograph or an AI picture will not work at this size, whatever its
+                          dimensions — it keeps its own background and its own colours. Square ·
+                          max 50 KB.
+                        </span>
                       </span>
                     </div>
 
@@ -265,10 +277,26 @@ export default function CategoryStoryEditor({
                           onChange={(e) => pickFile(b.id, e.target.files?.[0] ?? null)}
                         />
                       </label>
-                      <span className="text-[11px] text-body-soft">
-                        <b className="font-medium">SVG takes the brand colour · PNG keeps its own</b>
-                      </span>
                     </div>
+
+                    {/*  The verdict the moment it is known, from the stored
+                        file's own name — what the uploader found in the pixels
+                        (`media.ts`), not a guess from the extension.  */}
+                    {b.iconUrl && (
+                      isShapeIcon(b.iconUrl) ? (
+                        <p className="mt-2.5 text-[12px] text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-[9px] px-3 py-2">
+                          <b>This one works.</b> It is a flat shape, so the shop paints it in the
+                          brand colour beside the built-in symbols.
+                        </p>
+                      ) : (
+                        <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                          <b>This is a picture, not an icon.</b> With no see-through background it
+                          shows on the shop as a tiny photo in its own colours, beside symbols that
+                          are all brand purple. Pick a symbol above, or upload the same shape as an
+                          SVG.
+                        </p>
+                      )
+                    )}
                   </div>
                 </div>
               )}

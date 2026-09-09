@@ -244,7 +244,40 @@ export class MediaService {
     // Never overwrite: two products called "rose.jpg" must not replace each
     // other. The unique prefix also makes every URL immutable, which is what
     // lets Caddy serve them with a one-year cache header.
-    const name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}-${safeName(file.originalname)}`;
+    let name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}-${safeName(file.originalname)}`;
+
+    /*
+      ═══ IS THIS A SHAPE OR A PICTURE? — decided here, 9 Sep 2026 ═══════════
+
+      The shop paints an uploaded icon in the brand purple ONLY when the file
+      is a shape: a silhouette with real transparency around it. Painting a
+      photograph would fill its opaque rectangle and produce a solid purple
+      square, so the question has to be answered against the actual pixels —
+      not the extension, and not the folder.
+
+      The answer is carried in the FILE NAME (`…​.icon.png`), which costs no
+      column on the five tables that hold an icon URL, survives the derived
+      `.thumb.webp` rewrite untouched, and is visible to the admin screen and
+      the storefront alike. `ShopIcon` reads it.
+
+      The threshold: a mean alpha under 0.82 means a real amount of the frame
+      is see-through. A photograph saved as a PNG carries an alpha channel too
+      — fully opaque — and that is exactly the case this rejects.
+    */
+    if (folder === 'icons' && RASTER.includes(file.mimetype)) {
+      try {
+        const meta = await sharp(file.buffer).metadata();
+        if (meta.hasAlpha) {
+          const alpha = await sharp(file.buffer).ensureAlpha().extractChannel(3).stats();
+          const mean = alpha.channels[0]?.mean ?? 255;
+          if (mean / 255 < 0.82) name = name.replace(/(\.[a-z0-9]+)$/i, '.icon$1');
+        }
+      } catch {
+        /*  Unreadable by sharp: leave it a picture. Guessing "shape" here
+            would paint a purple block onto the shop's trust row.  */
+      }
+    }
+
     const rel = `radian/${folder}/${name}`;
 
     try {

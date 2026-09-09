@@ -16,6 +16,7 @@ import {
   type ProductDetail,
 } from "../../_data/productDetails";
 import Icon from "./PdpIcons";
+import ShopIcon from "../ui/ShopIcon";
 import TileImage, { imageSrc } from "../ui/TileImage";
 import QtyStepper from "../Common/QtyStepper";
 import { BlkTitle, CtaRow, OutOfZone, SoldOut, StickyBar } from "./PdpBuyBar";
@@ -696,17 +697,20 @@ export default function PdpView({ detail }: { detail: ProductDetail }) {
           <div className="flex flex-wrap gap-x-5 gap-y-2.5 mt-5 pt-4 border-t border-lavender-deep">
             {detail.trust.map((t) => (
               <div key={t.label} className="flex items-center gap-2 min-w-0">
-                {/*  DEC-PRD-023 - the shop's own uploaded icon wins when there
-                    is one. `<img>` rather than `next/image`: the file can be
-                    any size and can be an SVG, which next/image cannot
-                    measure.  */}
+                {/*  ⚠️ `ShopIcon`, NOT this page's own `Icon` — 9 Sep 2026.
+
+                    These badges are set in Admin → Trust strip, whose picker
+                    offers `ShopIcon`'s set. This row drew them with PdpIcons,
+                    a DIFFERENT set that happens to share some names — so a
+                    badge set to `flower`, `cake`, `wallet` or `globe` showed
+                    correctly on the homepage and rendered NOTHING here. One
+                    component owns the shop's icon set now, and it is the one
+                    the admin picker mirrors.
+
+                    It also handles the upload: a shape is painted in the brand
+                    colour, a photograph is placed inside the same box.  */}
                 <span className="w-[22px] h-[22px] grid place-items-center text-orchid shrink-0 overflow-hidden">
-                  {t.iconUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.iconUrl} alt="" className="w-[17px] h-[17px] object-contain" />
-                  ) : (
-                    <Icon name={t.icon} className="w-[16px] h-[16px]" />
-                  )}
+                  <ShopIcon name={t.icon} url={t.iconUrl} className="w-[16px] h-[16px]" />
                 </span>
                 <span className="min-w-0 text-[12.5px] leading-tight">
                   <b className="font-bold text-ink">{t.label}</b>

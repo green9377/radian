@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import SaveBar, { type SaveState } from "./SaveBar";
-import ShopIconPreview, { ICON_NAMES } from "./ShopIconPreview";
+import ShopIconPreview, { ICON_NAMES, isShapeIcon } from "./ShopIconPreview";
 import {
   listTrustBadges, createTrustBadge, updateTrustBadge, deleteTrustBadge, uploadImage,
   type ApiTrustBadge,
@@ -265,12 +265,21 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
           {preview.length === 0 ? (
             <span className="text-[12.5px] text-body-soft">Nothing is switched on for this zone.</span>
           ) : (
+            /*  ⚠️ THE SHOP'S OWN TILE, NOT AN APPROXIMATION — 9 Sep 2026.
+
+                This drew a 30px symbol on white. The shop draws a 24px symbol
+                inside a 46px lavender rounded tile, in purple. So an uploaded
+                photograph looked passable here and like a smudge on the live
+                homepage, and the owner had no way to see it until it was up.
+                Every number below is copied from `TrustStrip.tsx`.  */
             <div className="flex gap-7 min-w-max">
               {preview.map((b) => (
-                <div key={b.id} className="flex items-center gap-3">
-                  <span className="text-orchid shrink-0"><ShopIconPreview name={b.icon} url={b.iconUrl} size={30} /></span>
+                <div key={b.id} className="flex items-center gap-3.5">
+                  <span className="w-[46px] h-[46px] rounded-[14px] bg-lavender text-purple grid place-items-center shrink-0">
+                    <ShopIconPreview name={b.icon} url={b.iconUrl} size={24} />
+                  </span>
                   <div>
-                    <div className="text-[14px] text-purple font-semibold leading-snug whitespace-nowrap">{b.title}</div>
+                    <div className="text-[15px] text-ink font-semibold leading-snug whitespace-nowrap">{b.title}</div>
                     <div className="text-[12.5px] text-body-soft whitespace-nowrap">{b.subtitle}</div>
                   </div>
                 </div>
@@ -373,10 +382,25 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                         Printed under the upload button it was read after the
                         file had already been picked, which is too late to be
                         of any use. */}
-                    <div className="flex items-center gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
-                      <span className="text-orchid shrink-0"><Icon name="upload" size={14} /></span>
-                      <span className="text-[12px] text-body">
-                        <b className="text-purple font-semibold">96 × 96 px</b> · square · transparent background · max 50 KB · SVG, PNG or WebP
+                    {/*  ⚠️ THE SIZE WAS NEVER THE PROBLEM — 9 Sep 2026.
+
+                        The owner uploaded at exactly the size printed here and
+                        the row still looked wrong, because the shop draws his
+                        file and a built-in at the SAME 24px: what differs is
+                        the file. A photograph has its own background and its
+                        own colours, and no size fixes that. So this line now
+                        says the thing that actually decides the result.  */}
+                    <div className="flex items-start gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
+                      <span className="text-orchid shrink-0 mt-0.5"><Icon name="upload" size={14} /></span>
+                      <span className="text-[12px] text-body leading-relaxed">
+                        <b className="text-purple font-semibold">A flat shape on a see-through background</b> —
+                        SVG, or PNG with real transparency. We paint it in the brand purple,
+                        so it comes out identical to the symbols above.
+                        <span className="block text-body-soft mt-0.5">
+                          A photograph or an AI picture will not work at this size, whatever
+                          its dimensions: it keeps its own background and its own colours.
+                          Square · max 50 KB.
+                        </span>
                       </span>
                     </div>
                     <div className="text-[12px] text-body-soft mb-2.5">
@@ -403,10 +427,35 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                         <input type="file" accept="image/svg+xml,image/png,image/webp" className="hidden"
                           onChange={(e) => pickFile(b.id, e.target.files?.[0] ?? null)} />
                       </label>
-                      <span className="text-[11px] text-body-soft">
-                        <b className="font-medium">SVG takes the brand colour · PNG keeps its own</b>
-                      </span>
+                      {b.iconUrl && (
+                        <button
+                          onClick={() => patch(b.id, { iconUrl: null })}
+                          className="text-[12px] text-body-soft hover:text-[#c0392b] font-medium"
+                        >
+                          Remove the upload
+                        </button>
+                      )}
                     </div>
+
+                    {/*  The verdict, in plain words, the moment it is known —
+                        not after it is live on the homepage. The name of the
+                        stored file carries what the uploader found in the
+                        pixels (`media.ts`), so this is a fact, not a guess.  */}
+                    {b.iconUrl && (
+                      isShapeIcon(b.iconUrl) ? (
+                        <p className="mt-2.5 text-[12px] text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-[9px] px-3 py-2">
+                          <b>This one works.</b> It is a flat shape, so the shop paints it in
+                          the brand purple beside the built-in symbols.
+                        </p>
+                      ) : (
+                        <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                          <b>This is a picture, not an icon.</b> It has no see-through
+                          background, so at 24px on the shop it shows as a tiny photo with its
+                          own colours — beside symbols that are all brand purple. Pick one of
+                          the symbols above instead, or upload the same shape as an SVG.
+                        </p>
+                      )
+                    )}
                   </div>
                 </div>
               )}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Zone } from "../Header/Header";
 import { getShopCategories } from "../../_data/shop";
+import ShopIcon from "../ui/ShopIcon";
 
 /*
   Category nav — the row under the header.
@@ -114,15 +115,16 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
                   : "text-body border-transparent hover:text-orchid"
             }`}
           >
-            {/* alt="" — the name is right beside it; a reader announcing the
-                image twice would only repeat the label */}
+            {/*  Through `ShopIcon` since 9 Sep 2026, like every other icon on
+                the shop: a shape takes the colour of the link it sits in —
+                purple when the category is open, orchid when it is hot — and
+                a photograph is placed inside the same 18px box. Hand-rolled
+                here, an uploaded icon kept its own colour and broke the row.
+
+                No alt — the name is right beside it, and a reader announcing
+                the image would only repeat the label.  */}
             {cat.iconUrl && (
-              <img
-                src={cat.iconUrl}
-                alt=""
-                loading="lazy"
-                className="w-[18px] h-[18px] object-contain shrink-0"
-              />
+              <ShopIcon url={cat.iconUrl} className="w-[18px] h-[18px] shrink-0" />
             )}
             {cat.label}
           </Link>
