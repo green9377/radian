@@ -41,6 +41,16 @@
 	file_server
 	header Cache-Control "public, max-age=31536000, immutable"
 	header X-Content-Type-Options "nosniff"
+	# ⚠️ CORS, and it is not optional - 9 Sep 2026.
+	#
+	# Chrome fetches a CSS `mask-image` in CORS mode, unlike a background or an
+	# <img>. Without this header the shop can display an uploaded icon but
+	# cannot PAINT it in the brand colour: the masked element renders empty.
+	# Proved by walking it - the <img> beside it drew the same file fine.
+	#
+	# Safe: everything under this root is already a public URL. The header only
+	# lets a page read pixels it can already show, which is what every CDN does.
+	header Access-Control-Allow-Origin "*"
 }
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -82,4 +92,14 @@
 	file_server
 	header Cache-Control "public, max-age=31536000, immutable"
 	header X-Content-Type-Options "nosniff"
+	# ⚠️ CORS, and it is not optional - 9 Sep 2026.
+	#
+	# Chrome fetches a CSS `mask-image` in CORS mode, unlike a background or an
+	# <img>. Without this header the shop can display an uploaded icon but
+	# cannot PAINT it in the brand colour: the masked element renders empty.
+	# Proved by walking it - the <img> beside it drew the same file fine.
+	#
+	# Safe: everything under this root is already a public URL. The header only
+	# lets a page read pixels it can already show, which is what every CDN does.
+	header Access-Control-Allow-Origin "*"
 }
