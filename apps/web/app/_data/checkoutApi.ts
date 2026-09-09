@@ -51,6 +51,11 @@ export interface QuoteIn {
   couponCode?: string;
   paymentMethod?: "online" | "cod";
   /**
+   * The customer is collecting from the shop (owner, 9 Sep 2026) — so there is
+   * no delivery charge, and a FREE_DELIVERY offer has nothing to waive.
+   */
+  collect?: boolean;
+  /**
    * ⚠️ SEND IT THE MOMENT IT IS TYPED, AND THIS IS NOT OPTIONAL POLISH.
    *
    * The offer engine judges customer-shaped offers — first order, per-customer

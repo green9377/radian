@@ -249,6 +249,9 @@ export default function CheckoutView() {
       couponCode: couponCode ?? undefined,
       paymentMethod: c.payment === "cod" ? "cod" : "online",
       phone: phoneForOffers,
+      /*  So the server prices the same cart the screen is showing: with no
+          delivery charge, a FREE_DELIVERY offer has nothing to waive.  */
+      collect: c.collect,
       /*
         ⚠️ THE DELIVERY GOES WITH THE QUOTE, and it must.
 
@@ -283,7 +286,7 @@ export default function CheckoutView() {
     return () => {
       stale = true;
     };
-  }, [items, zone, couponCode, c.payment, phoneForOffers, method.id, c.slotId, liveMethodPicked, rejectCoupon]);
+  }, [items, zone, couponCode, c.payment, c.collect, phoneForOffers, method.id, c.slotId, liveMethodPicked, rejectCoupon]);
 
   const totals = useMemo(
     () =>
@@ -308,7 +311,12 @@ export default function CheckoutView() {
             : null,
         })
       : null,
-    [cart, zone, method, couponCode, quote],
+    /*  ⚠️ `c.collect` BELONGS HERE, and its absence was caught by walking the
+        screen: the summary said "Collection · 3 Hours Delivery — ৳350". The
+        label had switched and the charge had not, because this memo never
+        re-ran. A value read inside a memo and missing from its dependencies is
+        a value that is right once and stale for ever after.  */
+    [cart, zone, method, couponCode, quote, c.collect],
   );
 
   /*
