@@ -100,8 +100,10 @@ const RASTER = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
   If that happens, either sanitise on upload or keep serving icons through
   <img> and never <object>.
 
-  Icons need SVG: they inherit the brand purple through `currentColor`, and a
-  PNG icon arrives stuck in whatever colour it was drawn.
+  Icons want SVG for a plainer reason than the one that used to stand here:
+  it stays sharp at any size and weighs almost nothing. It does NOT inherit the
+  brand colour — nothing on this shop repaints an upload any more, and the
+  admin screen tells the owner to draw it in #470066 himself (9 Sep 2026).
 
   Brand logos are on the same list (31 Jul 2026). A manufacturer hands over a
   vector logo far more often than a PNG, the admin screen has always told the
@@ -247,37 +249,25 @@ export class MediaService {
     let name = `${Date.now().toString(36)}${randomBytes(3).toString('hex')}-${safeName(file.originalname)}`;
 
     /*
-      ═══ IS THIS A SHAPE OR A PICTURE? — decided here, 9 Sep 2026 ═══════════
+      ═══ DOES IT HAVE A SEE-THROUGH BACKGROUND? ═════════════════════════════
 
-      The shop paints an uploaded icon in the brand purple ONLY when the file
-      is a shape: a silhouette with real transparency around it. Painting a
-      photograph would fill its opaque rectangle and produce a solid purple
-      square, so the question has to be answered against the actual pixels —
-      not the extension, and not the folder.
+      Marked in the FILE NAME (`….icon.png`), which costs no column on the five
+      tables that hold an icon URL and survives the derived `.thumb.webp`
+      rewrite untouched. The admin reads it to WARN — "this file has no
+      see-through background, it will show as a small picture" — and the
+      storefront reads nothing from it at all.
 
-      The answer is carried in the FILE NAME (`…​.icon.png`), which costs no
-      column on the five tables that hold an icon URL, survives the derived
-      `.thumb.webp` rewrite untouched, and is visible to the admin screen and
-      the storefront alike. `ShopIcon` reads it.
+      ⚠️ IT MUST NEVER BE USED TO CHANGE THE PICTURE. For a few hours it was:
+      a transparent upload was repainted in the brand purple, and the owner's
+      red delivery-van PNG became a purple smudge (9 Sep 2026, *"khobordar amn
+      jen r nexta kothaw na hoy"*). Transparency does not mean single-colour —
+      his van is a full-colour illustration WITH transparency, and flattening
+      it threw away the very shading that made it read as a van.
 
-      The threshold: a mean alpha under 0.82 means a real amount of the frame
-      is see-through. A photograph saved as a PNG carries an alpha channel too
-      — fully opaque — and that is exactly the case this rejects.
+      A mean alpha under 0.82 means a real amount of the frame is see-through.
+      A photograph saved as PNG carries an alpha channel too, fully opaque, and
+      that is the case this rejects.
     */
-    if (folder === 'icons' && RASTER.includes(file.mimetype)) {
-      try {
-        const meta = await sharp(file.buffer).metadata();
-        if (meta.hasAlpha) {
-          const alpha = await sharp(file.buffer).ensureAlpha().extractChannel(3).stats();
-          const mean = alpha.channels[0]?.mean ?? 255;
-          if (mean / 255 < 0.82) name = name.replace(/(\.[a-z0-9]+)$/i, '.icon$1');
-        }
-      } catch {
-        /*  Unreadable by sharp: leave it a picture. Guessing "shape" here
-            would paint a purple block onto the shop's trust row.  */
-      }
-    }
-
     const rel = `radian/${folder}/${name}`;
 
     try {

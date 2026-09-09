@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import Icon from "./Icon";
 import { Info } from "./ItemEditor";
-import ShopIconPreview, { ICON_NAMES, isShapeIcon } from "./ShopIconPreview";
+import ShopIconPreview, { ICON_NAMES, hasClearBackground } from "./ShopIconPreview";
 import {
   uploadImage,
   listCategoryBadges,
@@ -228,13 +228,12 @@ export default function CategoryStoryEditor({
                         <Icon name="upload" size={14} />
                       </span>
                       <span className="text-[12px] text-body leading-relaxed">
-                        <b className="text-purple font-semibold">A flat shape on a see-through background</b> —
-                        SVG, or PNG with real transparency. We paint it in the brand purple, so it
-                        comes out identical to the symbols below.
+                        <b className="text-purple font-semibold">Draw it in the shop&rsquo;s purple —
+                        #470066</b> — on a see-through background, SVG or PNG.
                         <span className="block text-body-soft mt-0.5">
-                          A photograph or an AI picture will not work at this size, whatever its
-                          dimensions — it keeps its own background and its own colours. Square ·
-                          max 50 KB.
+                          Whatever you upload is shown exactly as it is: we never change its
+                          colours. A red icon stays red beside purple ones, and a photograph stays
+                          a photograph. Square · max 50 KB.
                         </span>
                       </span>
                     </div>
@@ -283,17 +282,17 @@ export default function CategoryStoryEditor({
                         file's own name — what the uploader found in the pixels
                         (`media.ts`), not a guess from the extension.  */}
                     {b.iconUrl && (
-                      isShapeIcon(b.iconUrl) ? (
-                        <p className="mt-2.5 text-[12px] text-[#0E7A3D] bg-[#E8F9EE] border border-[#C4EED4] rounded-[9px] px-3 py-2">
-                          <b>This one works.</b> It is a flat shape, so the shop paints it in the
-                          brand colour beside the built-in symbols.
+                      hasClearBackground(b.iconUrl) ? (
+                        <p className="mt-2.5 text-[12px] text-body-soft bg-white border border-lavender-deep rounded-[9px] px-3 py-2">
+                          The background is see-through, so it sits cleanly in the tile. Judge it
+                          in the preview at the top of this page — that is the real size on the
+                          real colour. If it does not read there, it will not read on the shop.
                         </p>
                       ) : (
                         <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
-                          <b>This is a picture, not an icon.</b> With no see-through background it
-                          shows on the shop as a tiny photo in its own colours, beside symbols that
-                          are all brand purple. Pick a symbol above, or upload the same shape as an
-                          SVG.
+                          <b>This file has no see-through background.</b> On the shop it shows as a
+                          small picture inside its own square, beside symbols that have none. Pick
+                          a symbol above, or upload the same shape with a transparent background.
                         </p>
                       )
                     )}

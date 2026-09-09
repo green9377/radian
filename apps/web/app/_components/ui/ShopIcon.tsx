@@ -78,26 +78,29 @@ const P: Record<string, React.ReactNode> = {
 };
 
 /*
-  ═══ AN UPLOADED ICON THAT IS A SHAPE IS PAINTED, NOT PLACED — 9 Sep 2026 ═══
+  ═══ AN UPLOAD IS SHOWN EXACTLY AS IT WAS UPLOADED — owner, 9 Sep 2026 ═══
 
-  The admin screen has told the owner for weeks that **"SVG takes the brand
-  colour"**. It did not. Every upload was dropped in as a plain `<img>`, so an
-  SVG kept whatever colour it was drawn in and sat next to built-ins that were
-  brand purple. The promise was real; the code behind it was never written.
+  For a few hours this file repainted uploads in the brand purple: a file with
+  a transparent background was used as a mask and filled with `currentColor`.
+  It was meant to make an uploaded icon match the drawn ones.
 
-  It is written here. A file that is a SHAPE — an SVG, or a raster the uploader
-  found to be genuinely transparent, marked `.icon.` in its own name — is used
-  as a MASK and filled with `currentColor`. It then takes the purple of the
-  tile it sits in, exactly like a built-in, and there is no longer any visible
-  difference between drawing an icon and uploading one.
+  It made the owner's red delivery-van PNG into a purple smudge, and he was
+  right to stop it: *"amr lal icon upload dilam akhon dekhi am hoye gelo … png
+  upload dilam ar akhon icon bujay jay na. khobordar amn jen r nexta kothaw na
+  hoy."*
 
-  ⚠️ A PHOTOGRAPH IS NEVER MASKED. Its alpha is opaque everywhere, so masking
-  it would paint a solid purple square. That is why the decision is made at
-  upload time against the actual pixels (`media.ts`) and carried in the file
-  name, rather than guessed from the extension here.
+  The reasoning was wrong in a way worth remembering. A transparent background
+  does NOT mean a single-colour silhouette. His van is a full-colour
+  illustration WITH transparency, and masking flattens every shade in it into
+  one flat shape — so the picture that at least read as a van became a blob.
+
+  ⚠️ THE RULE NOW, AND IT IS NOT A DETAIL: **nothing this shop shows changes
+  the colours of what the owner uploaded.** A file that needs to be brand
+  purple is drawn brand purple before it is uploaded — the admin screen says
+  so, and prints the hex. Software that silently "improves" a person's own
+  artwork is software they cannot predict, and unpredictable is worse than
+  imperfect.
 */
-const isShape = (url: string) => /\.svg(\?|#|$)/i.test(url) || /\.icon\./i.test(url);
-
 /**
  * A badge's icon — a built-in name, or an uploaded file.
  *
@@ -105,8 +108,8 @@ const isShape = (url: string) => /\.svg(\?|#|$)/i.test(url) || /\.icon\./i.test(
  * than a fallback glyph. A wrong-but-present icon is harder to notice than an
  * absent one, and this row is the shop's trust claims.
  *
- * The upload is drawn through <img> or a CSS mask, never inlined — see the
- * note in `media.ts` about why that is what makes accepting SVG safe.
+ * The upload is drawn through <img>, never inlined — see the note in
+ * `media.ts` about why that is what makes accepting SVG safe.
  */
 export default function ShopIcon({
   name,
@@ -118,28 +121,10 @@ export default function ShopIcon({
   className?: string;
 }) {
   if (url) {
-    if (isShape(url)) {
-      const u = `url("${url}")`;
-      return (
-        <span
-          aria-hidden
-          className={`${className} inline-block bg-current`}
-          style={{
-            WebkitMaskImage: u,
-            maskImage: u,
-            WebkitMaskRepeat: "no-repeat",
-            maskRepeat: "no-repeat",
-            WebkitMaskPosition: "center",
-            maskPosition: "center",
-            WebkitMaskSize: "contain",
-            maskSize: "contain",
-          }}
-        />
-      );
-    }
-    /*  A picture. Kept inside the same box as everything else so it can never
-        be optically larger than its neighbours, and never edge-to-edge in a
-        tile that is meant to have air around its symbol.  */
+    /*  Kept inside the same box as every other icon, so an upload can never be
+        optically larger than its neighbours or run edge-to-edge in a tile that
+        is meant to have air around its symbol. That is the ONLY thing done to
+        it — see the note above.  */
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={url} alt="" className={`${className} object-contain`} />;
   }

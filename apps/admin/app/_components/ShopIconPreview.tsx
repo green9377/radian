@@ -71,35 +71,23 @@ const P: Record<string, React.ReactNode> = {
   droplet: <><path d="M12 3.6c3.5 4.2 5.4 7 5.4 9.4a5.4 5.4 0 1 1-10.8 0c0-2.4 1.9-5.2 5.4-9.4z" /><path d="M9.6 14.2a2.6 2.6 0 0 0 2.6 2.6" /></>,
 };
 
-/*  The same rule the shop uses (`apps/web/.../ui/ShopIcon.tsx`): a file that
-    is a SHAPE — an SVG, or a raster the uploader found genuinely transparent
-    and named `.icon.` — is painted in the brand colour. Anything else is a
-    picture and is placed as it is. This preview has to obey it or the admin
-    shows one thing and the shop another, which is the whole reason the owner
-    could not tell what an upload would look like until it was live. */
-export const isShapeIcon = (url: string) =>
+/*  ⚠️ AN UPLOAD IS SHOWN EXACTLY AS IT WAS UPLOADED — owner, 9 Sep 2026.
+    This preview briefly repainted transparent uploads in the brand colour, as
+    the shop did, and turned his red van into a purple smudge. Nothing here
+    changes the colours of his own artwork. The reasoning is in
+    `apps/web/app/_components/ui/ShopIcon.tsx`; this file must follow it, or
+    the admin shows one thing and the shop another.  */
+
+/** Does the file have a see-through background — the only thing we can tell
+ *  about it, decided at upload against the real pixels (`media.ts`). It is
+ *  used to WARN, never to change the picture. */
+export const hasClearBackground = (url: string) =>
   /\.svg(\?|#|$)/i.test(url) || /\.icon\./i.test(url);
 
 export default function ShopIconPreview({
   name, url, size = 22,
 }: { name?: string | null; url?: string | null; size?: number }) {
   if (url) {
-    if (isShapeIcon(url)) {
-      const u = `url("${url}")`;
-      return (
-        <span
-          aria-hidden
-          className="inline-block bg-current"
-          style={{
-            width: size, height: size,
-            WebkitMaskImage: u, maskImage: u,
-            WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
-            WebkitMaskPosition: "center", maskPosition: "center",
-            WebkitMaskSize: "contain", maskSize: "contain",
-          }}
-        />
-      );
-    }
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={url} alt="" style={{ width: size, height: size }} className="object-contain" />;
   }

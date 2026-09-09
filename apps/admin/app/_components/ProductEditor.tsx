@@ -7000,12 +7000,12 @@ No bundle products yet — add them on{" "}
                                   <Icon name="upload" size={14} />
                                 </span>
                                 <span className="text-[12px] text-body leading-relaxed">
-                                  <b className="text-purple font-semibold">A flat shape on a
-                                  see-through background</b> — SVG, or PNG with real transparency.
-                                  We paint it in the brand purple, so it matches the symbols below.
+                                  <b className="text-purple font-semibold">Draw it in the
+                                  shop&rsquo;s purple — #470066</b> — on a see-through background,
+                                  SVG or PNG.
                                   <span className="block text-body-soft mt-0.5">
-                                    A photograph or an AI picture will not work at this size,
-                                    whatever its dimensions. Square · max 50 KB.
+                                    Whatever you upload is shown exactly as it is; we never change
+                                    its colours. Square · max 50 KB.
                                   </span>
                                 </span>
                               </div>
