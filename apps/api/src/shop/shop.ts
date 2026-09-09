@@ -1,4 +1,5 @@
 import { Controller, Get, Injectable, Module, Query } from '@nestjs/common';
+import { DeliveryMethodKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/auth.guard';
 import { HoursModule, HoursService } from '../storefront/hours';
@@ -693,6 +694,14 @@ export class ShopService {
    * "Open now" pill — a browser uses the visitor's clock, and the container
    * runs six hours behind Dhaka. Same `BD_OFFSET_MS`.
    */
+  /**
+   * The homepage / category band — the shop's delivery SPEEDS.
+   *
+   * ⚠️ A collection method is never in it (9 Sep 2026). The band answers "how
+   * fast can you get this to me", and "come and fetch it" is not an answer to
+   * that question — it would sit among the speeds as though it were one.
+   * Checkout offers it; the boast does not.
+   */
   async deliveryModes(zone?: string) {
     const rows = await this.prisma.db.deliveryMethod.findMany({
       /*  `isFeatured` and not just `isActive` — 3 Aug 2026.
@@ -715,6 +724,8 @@ export class ShopService {
       where: {
         isActive: true,
         isFeatured: true,
+        /*  never a collection — see the note above  */
+        kind: { not: DeliveryMethodKind.PICKUP },
         zone: NATIONWIDE_ALIASES.has(String(zone ?? '').toUpperCase())
           ? 'BANGLADESH'
           : 'DHAKA',

@@ -52,6 +52,16 @@ export interface CreateOrderDto {
   channelId: string;
 
   /**
+   * How this order reaches the customer (9 Sep 2026). Left unsaid it is a
+   * DELIVERY, which is what every order was until "collect from shop".
+   *
+   * ⚠️ PICKUP is what keeps a collected order off the delivery board — the
+   * board asks for `fulfillmentType: DELIVERY` — so nothing else had to be
+   * taught that no rider is coming.
+   */
+  fulfillmentType?: 'DELIVERY' | 'PICKUP';
+
+  /**
    * রসিদে ক্রেতার যে পরিচয় লেখা হবে — checkout-এ **যা টাইপ করা হয়েছে**।
    *
    * ⚠️ না দিলে Customer-এর CRM নামই বসে (admin-এর order form কোনো নাম টাইপ

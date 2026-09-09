@@ -14,7 +14,7 @@ import {
   toLiveMethods,
   type LiveMethod,
 } from "../../_data/delivery";
-import { getDeliveryOptions } from "../../_data/shop";
+import { getDeliveryOptions, getShopCard, type ShopCard } from "../../_data/shop";
 import {
   createPaymentSession,
   fetchQuote,
@@ -152,6 +152,20 @@ export default function CheckoutView() {
     zone's.
   */
   const [liveMethods, setLiveMethods] = useState<LiveMethod[] | null>(null);
+
+  /*  The shop itself, for "collect from shop" — its address, hours and map
+      link all come from Shop settings, so nothing about the shop is written
+      on this screen (owner, 9 Sep 2026).  */
+  const [shop, setShop] = useState<ShopCard | null>(null);
+  useEffect(() => {
+    let stale = false;
+    getShopCard().then((c) => {
+      if (!stale && c) setShop(c);
+    });
+    return () => {
+      stale = true;
+    };
+  }, []);
   /*  DEC-DLV-011 — the cart's slugs are sent too: only deliveries ticked on
       *every* product in the cart reach the menu. "multi product hole win hobe
       se method je method-e sobgula product delivery possible" — the owner
@@ -187,11 +201,13 @@ export default function CheckoutView() {
   const method = useMemo(() => {
     /*  The API has not answered yet → the old list holds the place so the
         screen is not empty. The real prices drop in the moment it answers.  */
-    const allowed = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-    /*  ⚠️ `Q5When` does these exact same three steps. If the two differ, the
-        screen shows one method while the price/receipt says another.  */
+    const all = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
+    /*  ⚠️ `Q5When` does these exact same steps, INCLUDING this filter. If the
+        two differ, the screen shows one method while the price and the receipt
+        say another.  */
+    const allowed = all.filter((m) => Boolean((m as LiveMethod).collect) === c.collect);
     return allowed.find((m) => m.id === c.method) ?? allowed[0] ?? METHODS[1];
-  }, [zone, c.method, liveMethods]);
+  }, [zone, c.method, c.collect, liveMethods]);
 
   /*
     ═══ THE DISCOUNT, FROM THE SHOP — 3 Aug 2026 ═══
@@ -435,7 +451,10 @@ export default function CheckoutView() {
 
   const eta = etaText({ method, date: c.date, slotId: c.slotId });
   const slot = findSlot(method, c.slotId);
-  const deliveryLabel = `Delivery · ${method.label}${slot ? `, ${slot.label}` : ""}`;
+  /*  "Delivery · …" is a lie on an order nobody delivers (9 Sep 2026).  */
+  const deliveryLabel = `${c.collect ? "Collection" : "Delivery"} · ${method.label}${
+    slot ? `, ${slot.label}` : ""
+  }`;
 
   async function onPlaceOrder() {
     /*  The page does not render without these, but this is a function
@@ -530,7 +549,9 @@ export default function CheckoutView() {
       anonymousGift: c.isGift ? c.anonymousGift || !c.signedName.trim() : false,
       photoUpdates: c.photoUpdates,
 
-      address: c.address.trim(),
+      /*  A collection sends no address: the server puts the shop's own on the
+          order, because it is the only one that can be right (9 Sep 2026).  */
+      address: c.collect ? "" : c.address.trim(),
       deliveryNotes: c.deliveryNotes.trim() || undefined,
       date: c.date ?? undefined,
 
@@ -679,6 +700,9 @@ export default function CheckoutView() {
           heldCount={cart.totals.heldQty}
           deliverableCount={cart.totals.activeQty}
           allHeld={allHeld}
+          /*  Offered only when the shop actually sells one — see Q3Where.  */
+          canCollect={(liveMethods ?? []).some((m) => m.collect)}
+          shop={shop}
         />
         {!allHeld && c.isGift && <Q4Message />}
 

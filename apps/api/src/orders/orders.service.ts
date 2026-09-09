@@ -32,7 +32,7 @@ import { FinanceEventsService } from '../finance/finance-events.service';
 import { CapacityService } from '../catalog/capacity';
 import { WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { OrderMessagesService } from '../messaging/order-messages.service';
-import { OrderMessageKind } from '@prisma/client';
+import { FulfillmentType, OrderMessageKind } from '@prisma/client';
 import {
   CreateOrderDto,
   EditOrderDto,
@@ -143,7 +143,14 @@ export class OrdersService {
         too (owner, 21 Aug: searching a POS order number found nothing), and it
         asks with includeCounter=true. The online lists never do.  */
     const where: Prisma.OrderWhereInput =
-      q.includeCounter === 'true' ? {} : { fulfillmentType: 'DELIVERY' };
+      q.includeCounter === 'true'
+        ? {}
+        : /*  ⚠️ AND PICKUP (9 Sep 2026). This said DELIVERY alone, so the day
+              'collect from shop' arrived every such order would have vanished
+              from the owner's Orders screen — a web order he had taken money
+              for, missing from the one list he works from. Only a POS counter
+              sale is meant to be out of this view.  */
+          { fulfillmentType: { in: [FulfillmentType.DELIVERY, FulfillmentType.PICKUP] } };
     if (q.search) {
       where.OR = [
         { orderNo: { contains: q.search, mode: 'insensitive' } },
@@ -196,7 +203,10 @@ export class OrdersService {
    * trip whether the shop has done 40 orders or 40,000.
    */
   async report(q: { from?: string; to?: string }) {
-    const where: Prisma.OrderWhereInput = { fulfillmentType: 'DELIVERY' };
+    const where: Prisma.OrderWhereInput = {
+      // a collected order is still a web order — see the note above
+      fulfillmentType: { in: [FulfillmentType.DELIVERY, FulfillmentType.PICKUP] },
+    };
 
     /*  A blank or unparseable date is ignored rather than refused — a report
         is a read, and half a filter must never mean half a truth. Whatever is
@@ -527,6 +537,10 @@ export class OrdersService {
       const created = await tx.order.create({
         data: {
           orderNo,
+          /*  DELIVERY unless the order is collected — see CreateOrderDto.
+              A POS counter sale sets COUNTER on its own path.  */
+          fulfillmentType:
+            dto.fulfillmentType === 'PICKUP' ? FulfillmentType.PICKUP : FulfillmentType.DELIVERY,
           channel: { connect: { id: dto.channelId } },
           customer: { connect: { id: dto.customerId } },
           /*  টাইপ করা পরিচয়ই রসিদের snapshot; CRM-এর ঘর fallback মাত্র।

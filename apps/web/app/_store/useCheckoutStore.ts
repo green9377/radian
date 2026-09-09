@@ -92,6 +92,15 @@ export interface CheckoutState {
   anonymousGift: boolean;
 
   /* Q3 — Where */
+  /**
+   * Collect from the shop instead of having it delivered (owner, 9 Sep 2026:
+   * *"where jekhane sekhane ata add krle amr kache mone hy valo hbe"*).
+   *
+   * ⚠️ It is only what the CUSTOMER asked for on this screen. What actually
+   * decides an addressless order is the delivery METHOD, checked on the
+   * server — a flag from a browser can be anything.
+   */
+  collect: boolean;
   address: string;
   deliveryNotes: string;
 
@@ -150,6 +159,7 @@ const EMPTY: CheckoutState = {
   signedName: "",
   anonymousGift: false,
 
+  collect: false,
   address: "",
   deliveryNotes: "",
 
@@ -367,7 +377,9 @@ export function validateStep(
   }
 
   if (n === 3) {
-    if (s.address.trim().length < 10)
+    /*  Nothing to ask when the customer is coming to the shop (owner, 9 Sep
+        2026). The address is for whoever carries it, and nobody is.  */
+    if (!s.collect && s.address.trim().length < 10)
       e.address = "Add house, road and area — our rider needs the full address.";
   }
 

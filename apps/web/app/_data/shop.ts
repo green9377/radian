@@ -316,7 +316,8 @@ export interface DeliveryOption {
   typeId: string | null;
   rateId: string;
   name: string;
-  kind: "RIDER" | "COURIER";
+  /** PICKUP = nobody carries it; the customer comes to the shop (9 Sep 2026) */
+  kind: "RIDER" | "COURIER" | "PICKUP";
   feePaisa: number;
   eta: string | null;
   timing: DeliveryTiming;

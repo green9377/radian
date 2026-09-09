@@ -4547,6 +4547,12 @@ model AssemblyProductionLine {
 enum DeliveryMethodKind {
   RIDER // own delivery staff (Dhaka)
   COURIER // third-party parcel (nationwide)
+  /// Nobody carries it - the customer comes to the shop (owner, 9 Sep 2026).
+  /// It is a delivery METHOD and not a thing beside one, because price,
+  /// checkout, orders and reports all key off `deliveryMethodId` already; a
+  /// parallel concept would mean touching every one of them. The charge is
+  /// simply set to 0 in admin, and no rule about it is written in code.
+  PICKUP
 }
 
 /// ── Areas · DEC-DLV-007, owner's instruction 1 August 2026 ────────────────
@@ -5007,7 +5013,13 @@ model DeliveryAssignment {
 
 enum FulfillmentType {
   DELIVERY // online / courier order
-  COUNTER  // POS walk-in / take-away
+  COUNTER // POS walk-in / take-away
+  /// Ordered online, collected at the shop (owner, 9 Sep 2026). Deliberately
+  /// its own value and not COUNTER: a counter sale is rung up at the till and
+  /// Finance treats it differently, while this is a web order that simply
+  /// needs no rider. Being outside DELIVERY is what keeps it off the delivery
+  /// board - nothing else had to be taught about it.
+  PICKUP
 }
 
 enum PosShiftStatus {

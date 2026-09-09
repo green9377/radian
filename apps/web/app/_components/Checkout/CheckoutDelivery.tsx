@@ -27,6 +27,7 @@ import {
 } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
 import { promisePhrase } from "../../_data/deliveryClaims";
+import type { ShopCard } from "../../_data/shop";
 import { fetchSlotLoad } from "../../_data/checkoutApi";
 import { Continue, Field, Info, QCard, Seg, inputClass } from "./CheckoutFields";
 
@@ -64,16 +65,39 @@ export function Q3Where({
   heldCount,
   deliverableCount,
   allHeld,
+  canCollect = false,
+  shop = null,
 }: {
   heldCount: number;
   /** what will actually go to this zone — the address is for these */
   deliverableCount: number;
   /** every item is Dhaka-only; nothing at all goes to this zone */
   allHeld: boolean;
+  /*  ═══ COLLECT FROM SHOP — owner, 9 Sep 2026 ══════════════════════════════
+
+      > *"amder kache order diye to shop aseo collect krte parbe so where
+      >  jekhane sekhane ata add krle amr kache mone hy valo hbe."*
+
+      It belongs in THIS step, and his instinct is right: "where" is the
+      question a collection answers differently, and asking for an address
+      first and taking it away later would be the screen changing its mind.
+
+      ⚠️ Drawn only when the shop actually sells a collection method. Offering
+      it and then finding nothing under "When" would be worse than never
+      offering it, so the switch is absent rather than empty. */
+  canCollect?: boolean;
+  shop?: ShopCard | null;
 }) {
   const s = useCheckoutStore();
   const { zone, setZone } = useZoneStore();
   const [errors, setErrors] = useState<StepErrors>({});
+
+  /*  Switching wipes the method: a rider method cannot carry a collection and
+      a collection cannot be delivered, so leaving the old choice standing
+      would take a contradiction into the next step.  */
+  function onCollect(next: boolean) {
+    s.patch({ collect: next, method: defaultMethod(zone), slotId: null, date: null });
+  }
 
   function onZone(next: Zone) {
     setZone(next);
@@ -95,12 +119,120 @@ export function Q3Where({
       lead="Where should it go?"
       open={s.step === 3}
       done={s.done.includes(3)}
-      facts={[
-        { label: "Delivering to", value: zone === "bangladesh" ? "All Bangladesh" : "Inside Dhaka" },
-        { label: "Address", value: s.address },
-      ]}
+      facts={
+        s.collect
+          ? [
+              { label: "Collecting from", value: shop?.chipTitle || "Our shop" },
+              { label: "Address", value: shop?.address || "" },
+            ]
+          : [
+              { label: "Delivering to", value: zone === "bangladesh" ? "All Bangladesh" : "Inside Dhaka" },
+              { label: "Address", value: s.address },
+            ]
+      }
       onOpen={() => s.openStep(3)}
     >
+      {/*  A two-way choice is a coloured switch (house rule 16): the live half
+          carries the colour, an icon and a soft shadow, and which one is on
+          reads across the room.  */}
+      {canCollect && (
+        <div className="mb-5 grid grid-cols-2 gap-2.5">
+          {([false, true] as const).map((v) => {
+            const on = s.collect === v;
+            return (
+              <button
+                key={String(v)}
+                type="button"
+                onClick={() => onCollect(v)}
+                aria-pressed={on}
+                className={`rounded-[16px] border-[1.5px] px-4 py-3 text-left transition-all ${
+                  on
+                    ? "border-purple bg-purple text-white shadow-[0_10px_24px_rgba(71,0,102,0.22)]"
+                    : "border-lavender-deep bg-white text-body hover:border-orchid-mid"
+                }`}
+              >
+                <span className="flex items-center gap-2 text-[14px] font-bold">
+                  <Icon name={v ? "store" : "truck"} className="w-[18px] h-[18px]" />
+                  {v ? "Collect from shop" : "Deliver it"}
+                </span>
+                <span className={`block text-[12px] mt-0.5 ${on ? "text-white/85" : "text-body-soft"}`}>
+                  {v ? "Free — pick it up yourself" : "A rider brings it to the door"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/*  ═══ COLLECTING — the shop, not a form ══════════════════════════════
+          Nothing is typed here on purpose. Every field on a checkout loses
+          people, and there is nothing to ask: the address is ours. What is
+          shown is what somebody about to walk out of the door needs — where
+          it is, whether it is open, and how to ring.  */}
+      {s.collect ? (
+        <>
+          <div className="rounded-[18px] border-[1.5px] border-lavender-deep bg-lavender/50 p-5">
+            <b className="block font-display text-[18px] text-purple">
+              {shop?.chipTitle || "Our shop"}
+            </b>
+            {shop?.address && (
+              <p className="text-[13.5px] text-body leading-relaxed mt-1.5">{shop.address}</p>
+            )}
+            {shop?.hours?.pill && (
+              <span
+                className={`inline-block mt-3 rounded-full px-3 py-1.5 text-[12px] font-bold ${
+                  shop.hours.isOpenNow
+                    ? "bg-[#E8F9EE] text-[#0E7A3D]"
+                    : "bg-[#FFF7E8] text-[#8A5A00]"
+                }`}
+              >
+                {shop.hours.pill}
+              </span>
+            )}
+            {shop?.hours?.line && (
+              <p className="text-[12.5px] text-body-soft mt-2">{shop.hours.line}</p>
+            )}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {shop?.mapUrl && (
+                <a
+                  href={shop.mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-[12px] bg-purple text-white px-4 py-2.5 text-[13px] font-bold"
+                >
+                  Open in Maps
+                </a>
+              )}
+              {shop?.phone && (
+                <a
+                  href={`tel:${shop.phone}`}
+                  className="rounded-[12px] border-[1.5px] border-lavender-deep bg-white px-4 py-2.5 text-[13px] font-bold text-purple"
+                >
+                  Call {shop.phone}
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <Field
+              label="Anything we should know"
+              optional
+              hint="A time you are coming, or a name we should hand it to."
+            >
+              <input
+                className={inputClass}
+                value={s.deliveryNotes}
+                onChange={(e) => s.set("deliveryNotes", e.target.value)}
+                placeholder="Coming after 6 PM"
+              />
+            </Field>
+          </div>
+
+          <Continue onClick={onContinue} />
+        </>
+      ) : (
+      <>
       <div className="mb-5">
         <span className="block text-[13px] font-semibold text-purple mb-1.5">
           Delivering to
@@ -229,6 +361,8 @@ export function Q3Where({
       <Continue onClick={onContinue} />
         </>
       )}
+      </>
+      )}
     </QCard>
   );
 }
@@ -273,7 +407,19 @@ export function Q5When({
   const today = toISODate(now);
 
   /*  Whatever the delivery module says — the old list only until it answers. */
-  const methods = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
+  /*  ═══ ONE LIST OR THE OTHER, NEVER BOTH — owner, 9 Sep 2026 ═════════════
+
+      The customer already answered "delivered or collected" in the step
+      before. Showing a rider option to somebody who said they are coming to
+      the shop — or a collection to somebody who gave an address — is the
+      screen asking a question it has already been told the answer to.
+
+      Falling back to the built-in list when the module answers nothing: those
+      have no collection in them, so a collection choice with no live methods
+      correctly finds an empty list and says so, rather than quietly offering
+      a rider.  */
+  const all = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
+  const methods = all.filter((m) => Boolean((m as LiveMethod).collect) === s.collect);
   /*  ⚠️ Exactly the same three steps as `CheckoutView`'s `method` memo.  */
   const method = methods.find((m) => m.id === s.method) ?? methods[0] ?? METHODS[1];
 

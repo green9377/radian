@@ -10,7 +10,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { DeliveryMethodKind, DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -594,7 +594,7 @@ export class CheckoutService {
     }
     const method = await this.prisma.db.deliveryMethod.findFirst({
       where: { id: methodId, isActive: true },
-      include: { type: { select: { id: true, timing: true } } },
+      include: { type: { select: { id: true, timing: true, kind: true } } },
     });
     if (!method) throw new BadRequestException('that delivery option is no longer available');
     if (method.zone !== zone)
@@ -987,7 +987,23 @@ export class CheckoutService {
 
   async place(dto: PlaceOrderIn) {
     const zone = this.normZone(dto.zone);
-    if (!dto.address?.trim()) throw new BadRequestException('delivery address required');
+
+    /*  ═══ COLLECT FROM SHOP — owner, 9 Sep 2026 ════════════════════════════
+
+        > *"order diye to shop aseo collect krte parbe … r ta select krle kon
+        >  charge delievry address kichu lagbe na."*
+
+        An address is only needed when somebody is carrying it. The question is
+        answered by the METHOD, never by a flag the browser sends: a request
+        that claimed to be a collection would otherwise place an addressless
+        order against a rider method.
+
+        The charge needs no rule here at all — a collection method's fee is
+        whatever the owner typed in admin, and he types 0.
+    */
+    const collected = await this.isCollectionMethod(dto.deliveryMethodId);
+    if (!collected && !dto.address?.trim())
+      throw new BadRequestException('delivery address required');
 
     const { lines } = await this.resolve(dto.items ?? [], zone);
     const active = lines.filter((l) => !l.held);
@@ -1143,7 +1159,11 @@ export class CheckoutService {
       photoUpdates: dto.photoUpdates ?? true,
 
       zone,
-      address: dto.address.trim(),
+      /*  A collected order carries the SHOP's address, not an empty string.
+          The order screen, the invoice and the customer's own order page all
+          print this column; a blank there reads as data lost rather than as
+          "he is coming to us".  */
+      address: dto.address?.trim() || (collected ? await this.shopAddress() : ''),
       deliveryNotes: dto.deliveryNotes,
       methodLabel: delivery.label ?? undefined,
       date: dto.date,
@@ -1164,6 +1184,10 @@ export class CheckoutService {
       refCode: dto.refCode,
 
       lines: this.toOrderLines(active),
+
+      /*  Off the delivery board, because no rider is coming — the board asks
+          for `fulfillmentType: DELIVERY`, and this is the whole mechanism.  */
+      fulfillmentType: collected ? 'PICKUP' : 'DELIVERY',
 
       /*  ⚠️ "Customer" and not a staff name. This string is what the activity
           timeline shows, and an order that placed itself should not look like
@@ -1209,7 +1233,7 @@ export class CheckoutService {
               zone,
               /*  The gift's delivery address IS the address we know for the
                   recipient.  */
-              addressLine: dto.address.trim(),
+              addressLine: dto.address?.trim() ?? '',
               note: `Saved from website order ${order.orderNo}`,
             },
           });
@@ -1386,6 +1410,37 @@ export class CheckoutService {
    * for a code on every order would be noise they learn to ignore, which is
    * how a verification step stops meaning anything.
    */
+  /**
+   * Is the chosen delivery a COLLECTION — nobody carries it?
+   *
+   * Read from the method's own type, never from anything the browser sends. A
+   * request that simply claimed "I am collecting" could otherwise place an
+   * addressless order against a rider method, and a rider would be sent to an
+   * empty line in the address column.
+   */
+  /** The shop's own address, for an order that is being collected from it. */
+  private async shopAddress(): Promise<string> {
+    try {
+      const c = await this.prisma.db.companySetting.findFirst({
+        select: { tradeName: true, operatingAddress: true, city: true },
+      });
+      return [c?.tradeName, c?.operatingAddress, c?.city].filter(Boolean).join(', ');
+    } catch {
+      return '';
+    }
+  }
+
+  private async isCollectionMethod(methodId?: string): Promise<boolean> {
+    if (!methodId) return false;
+    const m = await this.prisma.db.deliveryMethod
+      .findFirst({
+        where: { id: methodId, isActive: true },
+        select: { kind: true, type: { select: { kind: true } } },
+      })
+      .catch(() => null);
+    return m?.kind === DeliveryMethodKind.PICKUP || m?.type?.kind === DeliveryMethodKind.PICKUP;
+  }
+
   private async phoneAlreadyVerified(phone: string) {
     const clean = phone?.trim();
     if (!clean) return false;

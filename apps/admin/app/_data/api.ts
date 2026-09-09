@@ -4262,7 +4262,8 @@ export interface ApiDeliveryType {
   id: string;
   name: string;
   zone: "DHAKA" | "BANGLADESH";
-  kind: "RIDER" | "COURIER";
+  /** PICKUP = nobody carries it; the customer comes to the shop (9 Sep 2026) */
+  kind: "RIDER" | "COURIER" | "PICKUP";
   sortOrder: number;
   isActive: boolean;
   /** DEC-DLV-010 — which shape this delivery follows */
