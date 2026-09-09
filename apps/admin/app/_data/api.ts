@@ -7540,6 +7540,45 @@ export const saveRecoverySettings = (b: Partial<ApiRecoverySettings>) =>
 export const listCheckoutLeads = (status?: string) =>
   j<ApiCheckoutLead[]>(`/messaging/leads${status ? `?status=${status}` : ""}`);
 
+/* ─────────── Orders → Lost orders (owner, 9 Sep 2026) ───────────
+   Everyone who started to buy and did not finish, on one list. The API decides
+   the kind and the bucket; this file only carries them. */
+export type ApiLostKind = "LEFT" | "FAILED" | "CANCELLED" | "UNPAID";
+export type ApiLostBucket = "OPEN" | "RECOVERED" | "CLOSED";
+export type ApiRecoveryOutcome = "CALLED" | "NO_ANSWER" | "WILL_PAY" | "NOT_INTERESTED" | "ORDERED" | "CLOSED";
+export interface ApiLostRow {
+  key: string;
+  kind: ApiLostKind;
+  bucket: ApiLostBucket;
+  ref: string;
+  leadId: string | null;
+  orderId: string | null;
+  orderNo: string | null;
+  lastSeenAt: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  isGift: boolean;
+  recipientName: string | null;
+  recipientPhone: string | null;
+  address: string | null;
+  draft: Record<string, unknown> | null;
+  stage: "CART" | "DETAILS" | "DELIVERY" | "PAYMENT" | "PLACED";
+  itemCount: number;
+  cartSummary: { name?: string; qty?: number; size?: string; variant?: string }[];
+  totalPaisa: number;
+  reason: string;
+  messaged: boolean;
+  lastOutcome: { outcome: ApiRecoveryOutcome; note: string | null; actor: string; at: string } | null;
+}
+export interface ApiLostList {
+  rows: ApiLostRow[];
+  stats: { open: number; atStakePaisa: number; recovered30: number; recovered30Paisa: number; messaged30: number };
+}
+export const listLostOrders = () => j<ApiLostList>("/messaging/lost");
+export const handleLostOrder = (b: { leadId?: string; orderId?: string; outcome: ApiRecoveryOutcome; note?: string }) =>
+  j<{ id: string }>("/messaging/lost/handle", { method: "POST", body: JSON.stringify(b) });
+
 export const orderMessagesFor = (orderId: string) =>
   j<ApiOrderMessage[]>(`/messaging/order/${orderId}`);
 export const retryOrderMessage = (id: string) =>

@@ -90,12 +90,13 @@ const GROUPS: Group[] = [
         label: "Orders", href: "/orders", icon: "bag",
         subs: [
           { label: "All orders", href: "/orders/list" },
-          { label: "Needs action", href: "/orders/action" },
-          { label: "Scheduled", href: "/orders/scheduled" },
+          /*  Needs action, Scheduled and the old Recovery page left the menu on
+              9 Sep 2026 (owner): All orders carries Confirm/Call on every row,
+              and Lost orders is where the unfinished ones live now.  */
+          { label: "Lost orders", href: "/orders/lost" },
           { label: "Cancelled", href: "/orders/cancelled" },
           { label: "Payments", href: "/orders/payments" },
           { label: "Online payments", href: "/orders/online-payments" },
-          { label: "Recovery", href: "/orders/recovery" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },

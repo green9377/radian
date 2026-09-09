@@ -93,6 +93,7 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
   chevronLeft: <path d="M15 18l-6-6 6-6" />,
+  chevronRight: <path d="M9 6l6 6-6 6" />,
   star: (
     <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z" />
   ),

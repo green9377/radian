@@ -2844,6 +2844,32 @@ enum CheckoutStage {
   PAYMENT
 }
 
+/// What staff did about a lost order (owner, 9 Sep 2026: the "Handled" button
+/// on Orders -> Lost orders). One row per touch; the latest one is the state.
+/// Points at a checkout lead OR an order, never both.
+model RecoveryFollowUp {
+  id        String          @id @default(cuid())
+  leadId    String?
+  orderId   String?
+  outcome   RecoveryOutcome
+  note      String?
+  actor     String
+  createdAt DateTime        @default(now())
+
+  @@index([leadId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+enum RecoveryOutcome {
+  CALLED
+  NO_ANSWER
+  WILL_PAY
+  NOT_INTERESTED
+  ORDERED
+  CLOSED
+}
+
 enum CheckoutLeadStatus {
   /// Still in checkout, or only just gone - the 15 minutes have not passed
   OPEN

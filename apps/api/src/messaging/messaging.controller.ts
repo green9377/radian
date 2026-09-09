@@ -22,6 +22,8 @@ import { MessageTemplatesService, PLACEHOLDERS, TEMPLATE_KINDS } from './message
 import { MessagingSettingsService } from './messaging-settings.service';
 import { OrderMessagesService } from './order-messages.service';
 import { CheckoutLeadsService, type LeadPing } from './checkout-leads.service';
+import { LostOrdersService } from './lost-orders.service';
+import type { RecoveryOutcome } from '@prisma/client';
 import { MessagingSweeper } from './messaging.sweeper';
 import { WhatsAppTemplatesService } from './whatsapp-templates';
 import {
@@ -56,6 +58,7 @@ export class MessagingController {
     private readonly templates: WhatsAppTemplatesService,
     private readonly metaPoll: MetaPollService,
     private readonly wording: MessageTemplatesService,
+    private readonly lost: LostOrdersService,
   ) {}
 
   private actor(req: AuthedRequest): string {
@@ -196,6 +199,30 @@ export class MessagingController {
     });
   }
 
+  /* Orders -> Lost orders (owner, 9 Sep 2026): one list of everyone who
+     started to buy and did not finish, and the one thing staff write about it. */
+
+  @Get('lost')
+  @Roles('OWNER', 'MANAGER', 'STAFF')
+  lostList() {
+    return this.lost.list();
+  }
+
+  @Get('lost/history')
+  @Roles('OWNER', 'MANAGER', 'STAFF')
+  lostHistory(@Query('leadId') leadId?: string, @Query('orderId') orderId?: string) {
+    return this.lost.history({ leadId, orderId });
+  }
+
+  @Post('lost/handle')
+  @Roles('OWNER', 'MANAGER', 'STAFF')
+  lostHandle(
+    @Body() b: { leadId?: string; orderId?: string; outcome: RecoveryOutcome; note?: string },
+    @Req() req: AuthedRequest,
+  ) {
+    return this.lost.handle(b, this.actor(req));
+  }
+
   /** Runs a cycle by hand — the only way to test while the sweeper is off. */
   @Post('sweep')
   @Roles('OWNER')
@@ -303,6 +330,7 @@ export class CheckoutLeadController {
     MessagingSettingsService,
     OrderMessagesService,
     CheckoutLeadsService,
+    LostOrdersService,
     MessagingSweeper,
     WhatsAppTemplatesService,
     WhatsAppWebhookService,

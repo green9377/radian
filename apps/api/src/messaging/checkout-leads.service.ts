@@ -58,10 +58,16 @@ export class CheckoutLeadsService {
     return out;
   }
 
-  /** Called by the storefront as the customer types, throttled. */
+  /**
+   * Called by the storefront as the customer types, throttled.
+   *
+   * ⚠️ STORED WHATEVER THE MESSAGE SWITCHES SAY (owner, 9 Sep 2026: "checkout
+   * page e keu kichu likhle eta anyhow amader ekhane niye asha lagbe"). The
+   * switches decide whether a MESSAGE goes (sweepAbandoned below); the row
+   * itself is the shop's own record and is kept regardless — retention still
+   * applies.
+   */
   async ping(p: LeadPing) {
-    const s = await this.settings.get();
-    if (!s.recoveryEnabled || !s.abandonedEnabled) return { ok: true, stored: false };
     if (!p.clientKey?.trim()) return { ok: true, stored: false };
 
     const data = {
