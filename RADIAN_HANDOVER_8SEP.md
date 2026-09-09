@@ -497,3 +497,66 @@ phone.
 side (`fulfillmentType: PICKUP`, the shop's address on the row, absence from
 the delivery board) is confirmed by code and not yet by a row in the database.
 
+
+---
+
+## 12. THE ORDERS MODULE WAS REDRAWN — 9 Sep, evening
+
+The owner: *"order module er All orders theke report porjonto pura design
+clean; kono extra text na; design bold; mera-mera bhab na."* The pastel panels,
+the eyebrow sentences, the note boxes and the three steppers went. What
+replaced them, chosen from the options in `design/`:
+
+- **`orders-grid-looks.html` look 5 + `orders-admin-samples.html` look B** —
+  a deep-purple band on top (title, one button, the numbers), an eight-cell
+  grid below with lines between every cell, the customer's name as the anchor
+  of a row, solid status pills, labelled buttons (Open · the ONE next step ·
+  Call). `OrderListView.tsx` is the reference implementation; every other
+  order screen takes its pieces.
+- **`order-page-v2.html`** — the order page: band (order no, share buttons,
+  ONE stepper, four facts), a bold action row, a deep-purple section nav,
+  white cards. `OrderEditor.tsx`. Card message is its own section (gifts).
+- **`lost-orders-v1.html`** — the NEW module, see below.
+
+House rule that came out of it: **no tinted card, no loose prose** on an order
+screen. What a card needs to explain sits behind ⓘ (`title=`).
+
+### Lost orders — `/orders/lost` (new)
+
+The owner's brief: *"checkout page e keu kichu likhle eta anyhow amader
+ekhane niye asha lagbe; payment failed / cancelled o ekhane."* One list of
+everyone who started to buy and did not finish. Nothing new is owned —
+three existing tables are read and one small one written:
+
+| source | owner | shows as |
+|---|---|---|
+| `CheckoutLead` | Messaging | **Left at checkout** — whatever they typed (`draft`), how far they got |
+| `PaymentSession` FAILED / CANCELLED | Sales | **Payment failed / cancelled**, with the gateway's reason |
+| `Order` online + unpaid, gateway opened > `unpaidAfterMinutes` ago (or never) | Sales | **Unpaid · closed tab** |
+| `RecoveryFollowUp` (new, append-only) | Messaging | the **Handled** outcome: Called · No answer · Will pay · Not interested · Ordered · Closed |
+
+`GET /messaging/lost` does all the deciding (kind, bucket, reason, the four
+numbers); the admin only draws. Recovered = a lead that converted, an order
+paid on a later attempt, or staff marking Ordered.
+
+⚠️ **A rule changed on purpose:** `CheckoutLeadsService.ping` used to store
+nothing while `recoveryEnabled`/`abandonedEnabled` were off — and both are
+OFF on DEV, which is why the Left-at-checkout tab was empty on 9 Sep evening.
+It stores ALWAYS now; the switches only decide whether a message goes.
+
+Menu: Orders → All orders · **Lost orders** · Cancelled · Payments · Online
+payments · Reports. **Needs action, Scheduled and the old Recovery page are
+off the menu** (routes still exist, unlinked — delete them when convenient;
+`registry.def.ts` was regenerated, drift check 6/6).
+
+Not decided by the owner, so left as it was: the 15 / 30 minute waits,
+`leadRetentionDays`, and the message switches (still on Marketing → Recovery,
+linked from the band).
+
+Small things still open from today: the order page's Delivery fact prints the
+raw ISO date (`2026-09-10`) — format it like the list does; "3 Hours Delivery"
+rows have no Deliver line (no date on express orders); `Customer.ordersCount`
+only moves on delivery, so every test customer reads REPEAT · 2.
+
+Next in the module, in the same language: Cancelled · Payments · Online
+payments · Reports · New order · Orders overview.

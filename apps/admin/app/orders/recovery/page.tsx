@@ -1,6 +1,6 @@
-import { OrdersRecovery } from "../../_components/OrderViews";
+import { redirect } from "next/navigation";
 
-/* /orders/recovery — incomplete checkouts: info captured, order not completed. */
-export default function OrdersRecoveryPage() {
-  return <OrdersRecovery />;
+/* /orders/recovery became Lost orders (9 Sep 2026). */
+export default function Page() {
+  redirect("/orders/lost");
 }

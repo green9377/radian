@@ -1,7 +1,6 @@
-import { OnlinePaymentsLive } from "../../_components/OnlinePayments";
+import { redirect } from "next/navigation";
 
-/* /orders/online-payments — every trip a customer made to the gateway, so
-   "I paid but it says I owe you" has an answer that is not SQL. Read-only. */
-export default function OrdersOnlinePaymentsPage() {
-  return <OnlinePaymentsLive />;
+/* /orders/online-payments folded into Payments -> Gateway attempts (owner, 9 Sep 2026). Old bookmarks land on the new page. */
+export default function Page() {
+  redirect("/orders/payments");
 }

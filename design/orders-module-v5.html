@@ -1,0 +1,224 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Radian · Payments + Reports v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#470066;--deep:#320049;--orchid:#cf43ea;--lav:#f7f1fb;--lavd:#e6d9f0;--line:#e4dbec;--ink:#221733;--mute:#7b6b87;--green:#0e8a44;--amber:#d97706;--red:#d92d20;--indigo:#4f46e5;--blue:#1d7fd6;--grey:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Jost,system-ui,sans-serif;font-size:13px;font-weight:400;line-height:1.4;color:var(--ink);background:#f5f1f8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
+b,strong{font-weight:500}
+.wrap{max-width:1340px;margin:0 auto;padding:18px 22px 80px}
+.pagebar{display:flex;gap:6px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px;width:max-content}
+.pagebar button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:500;color:var(--mute)}
+.pagebar button.on{background:var(--purple);color:#fff}
+.page{display:none}.page.on{display:block}
+.legend{font-size:12px;color:var(--mute);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin-bottom:12px}
+.legend b{color:var(--purple)}
+/* band — same as live */
+.band{border-radius:20px;padding:20px 24px 24px;margin-bottom:16px;color:#fff;background:linear-gradient(135deg,#320049 0%,#5a0a80 100%)}
+.band .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.band h1{font-family:Fraunces,serif;font-size:24px;font-weight:600;line-height:1;display:inline-flex;align-items:center;gap:10px}
+.band h1 i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.4);font:500 11px Jost;display:grid;place-items:center;font-style:normal}
+.newbtn{background:#fff;color:var(--purple);font-weight:500;font-size:14px;padding:10px 20px;border-radius:12px;border:0}
+.rules{font-size:12.5px;color:#d9c5e6;font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.tile{display:block;border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);text-align:left;color:#fff}
+.tile:hover{background:rgba(255,255,255,.14)}
+.tile.on{background:#fff;color:var(--purple);border-color:#fff}
+.tile.on .k{color:var(--mute)}
+.tile .k{display:block;font-size:11.5px;font-weight:500;color:#d9c5e6}
+.tile .v{display:block;font-size:22px;font-weight:500;line-height:1;margin-top:8px}
+.tile .v.hot{color:#ffb4ad}.tile.on .v.hot{color:var(--red)}
+.tile .s{display:block;font-size:11.5px;margin-top:6px;opacity:.75}
+/* toolbar — same as live */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.segs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:2px}
+.segs button{border:0;background:transparent;padding:8px 13px;border-radius:9px;font-weight:500;font-size:13px;color:var(--mute)}
+.segs button.on{background:var(--purple);color:#fff}
+.segs button span{margin-left:5px;opacity:.7}
+.search{flex:1;min-width:240px;position:relative}
+.ipt{height:40px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;font:inherit;font-size:13px;color:var(--ink);width:100%}
+.search .ipt{padding-left:34px}
+.search:before{content:"⌕";position:absolute;left:12px;top:9px;font-size:16px;color:var(--mute)}
+select.ipt{width:auto;min-width:140px;font-weight:500}
+.count{color:var(--mute);font-weight:500}
+/* table — cleaner: no vertical lines, one weight */
+.tbl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1080px}
+th{text-align:left;background:var(--lav);color:var(--purple);font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #efe9f4;vertical-align:top;font-size:13px;line-height:1.45}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fcfaff}
+td.hot{box-shadow:inset 4px 0 0 var(--red)}
+.chk{width:15px;height:15px;accent-color:var(--purple);margin-top:2px}
+.no{color:var(--purple);font-weight:500;white-space:nowrap}
+.name{color:var(--purple);font-weight:500}
+.phone{color:var(--ink);font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.lab{display:block;font-size:11px;color:var(--mute);font-weight:500;line-height:1.2;margin-top:1px}
+.lab+.val{margin-bottom:7px}
+.val{display:block;font-weight:500;color:var(--ink)}
+.val.red{color:var(--red)}
+.soft{color:var(--mute)}
+.icons{display:flex;gap:6px;margin-top:8px}
+.icons span{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;color:var(--mute);background:#fff}
+.tag{display:inline-block;font-size:10.5px;font-weight:500;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:1px;color:#fff}
+.tag.new{background:var(--blue)}.tag.rep{background:var(--green)}.tag.gift{background:var(--orchid)}
+.pill{display:inline-flex;align-items:center;font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:999px;white-space:nowrap;line-height:1.2}
+.pill.placed{background:#fff3e0;color:var(--amber)}.pill.confirmed{background:#e8e7fd;color:var(--indigo)}.pill.preparing{background:#e3f0fb;color:var(--blue)}.pill.out{background:#f9e3fb;color:#a11cc0}.pill.delivered,.pill.paid,.pill.recovered{background:#e3f4ea;color:var(--green)}.pill.cancelled,.pill.unpaid,.pill.failed{background:#fdeceb;color:var(--red)}.pill.cod{background:#ece8f0;color:#4d3d5a}.pill.advance{background:#fff3e0;color:var(--amber)}.pill.grey,.pill.closed{background:#eeeeee;color:var(--grey)}.pill.left{background:#fff3e0;color:var(--amber)}.pill.timeout{background:#eeeeee;color:var(--grey)}
+.stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.money{display:grid;grid-template-columns:38px 1fr;gap:3px 6px;white-space:nowrap}
+.money span{font-size:11px;color:var(--mute);font-weight:500;line-height:1.5}
+.money b{font-weight:500}
+.money b.g{color:var(--green)}.money b.r{color:var(--red)}.money b.d{color:var(--grey)}
+.acts{display:flex;flex-direction:column;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;color:var(--purple);white-space:nowrap;width:100%}
+.btn.p{background:var(--purple);border-color:var(--purple);color:#fff}
+.btn.next{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.orchid{background:var(--orchid);border-color:var(--orchid);color:#fff}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn.call{color:var(--green);border-color:#bfe3cd}
+/* lost orders */
+.kv{display:grid;grid-template-columns:70px 1fr;gap:2px 8px;margin-top:8px;padding:8px 10px;background:#faf7fc;border:1px solid var(--line);border-radius:10px;font-size:12.5px;line-height:1.45}
+.kv span{color:var(--mute);font-weight:500}
+.kv b{font-weight:400;color:var(--ink)}
+.kv b.e{color:#b8a9c5}
+.stage{display:flex;gap:3px;margin-top:8px}
+.stage i{width:18px;height:6px;border-radius:3px;background:#e7dff0}
+.stage i.f{background:var(--purple)}
+.stage-l{font-size:11px;color:var(--mute);margin-top:3px;font-weight:500}
+.reason{color:var(--red);font-weight:500}
+.reason.m{color:var(--mute)}
+.last{font-size:12px;color:var(--mute)}
+.last b{font-weight:500}
+
+.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:12px}
+.tabs button{border:0;background:transparent;padding:9px 14px;font-weight:500;font-size:13px;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1.5px}
+.tabs button.on{color:var(--purple);border-bottom-color:var(--purple)}
+.tabs button span{margin-left:6px;background:var(--lavd);color:var(--purple);border-radius:99px;padding:0 7px;font-size:11px}
+.sub{display:none}.sub.on{display:block}
+.r{text-align:right}
+.kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card .k{font-size:11px;font-weight:500;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:20px;font-weight:500;margin-top:4px}
+.card .d{font-size:11.5px;color:var(--mute);margin-top:2px}
+.card h3{font-size:13px;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between}
+.card h3 span{font-size:11.5px;color:var(--mute);font-weight:400}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.bars{display:flex;align-items:flex-end;gap:5px;height:130px;border-bottom:1px solid var(--line)}
+.bars div{flex:1;background:var(--purple);border-radius:4px 4px 0 0;position:relative;opacity:.9}
+.bars div:after{content:attr(data-l);position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10.5px;color:var(--mute);margin-top:4px}
+.rows{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:140px 1fr 110px;align-items:center;gap:10px;font-size:12.5px}
+.row .bar{height:8px;background:var(--lavd);border-radius:4px;overflow:hidden}.row .bar i{display:block;height:100%;background:var(--purple)}
+.row .n{text-align:right;color:var(--mute)}.row .n b{color:var(--ink)}
+.btn.inline{width:auto}
+.acts.h{flex-direction:row;flex-wrap:wrap}
+.acts.h .btn{width:auto}
+</style></head><body><div class="wrap">
+<div class="pagebar"><button class="on" data-p="pay" onclick="go('pay')">Payments</button><button data-p="rep" onclick="go('rep')">Reports</button></div>
+
+<section class="page on" id="p-pay">
+<div class="legend">One page replaces Payments + Online payments. <b>Orders</b> tab = every order from the money side (record cash / advance, send pay link, refund). <b>Gateway attempts</b> = every SSLCommerz trip (bKash, Nagad, card) — success, failed, cancelled, with the gateway's own reason and references. <b>Returns &amp; refunds</b> = the Returns book for website orders (same record as the Returns module — approve, reject, pay out). Same type as All orders: 13px, weight 500 max.</div>
+<div class="band"><div class="top"><h1>Payments <i>i</i></h1><button class="newbtn">+ Record payment</button></div>
+<div class="tiles">
+<button class="tile on" onclick="ptile(this,0)"><span class="k">Collected today</span><span class="v">৳ 58,900</span><span class="s">online 41,300 · cash 17,600</span></button>
+<button class="tile" onclick="ptile(this,2)"><span class="k">To collect</span><span class="v hot">৳ 18,450</span><span class="s">9 orders · COD &amp; advance</span></button>
+<button class="tile" onclick="ptile(this,3)"><span class="k">Unpaid online</span><span class="v">5</span><span class="s">৳ 12,700 · pay link sent 3</span></button>
+<button class="tile" onclick="tab(document.querySelectorAll('.tabs button')[1],'t-gw')"><span class="k">Gateway failed · 7 days</span><span class="v">11</span><span class="s">of 63 attempts</span></button>
+<button class="tile" onclick="tab(document.querySelectorAll('.tabs button')[2],'t-ref')"><span class="k">Refunds pending</span><span class="v">2</span><span class="s">৳ 3,650 to pay out</span></button>
+</div></div>
+
+<div class="tabs"><button class="on" onclick="tab(this,'t-orders')">Orders<span>41</span></button><button onclick="tab(this,'t-gw')">Gateway attempts<span>63</span></button><button onclick="tab(this,'t-ref')">Returns &amp; refunds<span>4</span></button></div>
+
+<div class="sub on" id="t-orders">
+<div class="tools"><div class="segs" id="psegs"><button class="on">All<span>41</span></button><button>Paid<span>27</span></button><button>Due<span>9</span></button><button>Unpaid online<span>5</span></button><button>Refunded<span>3</span></button></div>
+<div class="search"><input class="ipt" placeholder="Order no, name, phone, transaction id"></div>
+<select class="ipt"><option>Today</option><option>This week</option><option>This month</option><option>Custom</option></select>
+<select class="ipt"><option>All methods</option><option>Online</option><option>Cash on delivery</option></select><span class="count">41 orders</span></div>
+<div class="tbl"><table>
+<thead><tr><th><input type="checkbox" class="chk"></th><th>Order No</th><th>Customer</th><th>Method</th><th>Payment</th><th class="r">Total</th><th class="r">Paid</th><th class="r">Due</th><th>Last movement</th><th>Action</th></tr></thead><tbody>
+<tr><td><input type="checkbox" class="chk"></td><td><span class="no">RD-10231</span><span class="lab">Today · Midnight</span></td><td><span class="name">Nusrat Jahan</span><div class="soft">01711-223344</div></td><td><span class="pill cod">Cash on delivery</span></td><td><span class="pill unpaid">Due on delivery</span></td><td class="r"><b>৳ 3,450</b></td><td class="r soft">৳ 0</td><td class="r" style="color:var(--red)"><b>৳ 3,450</b></td><td><span class="soft">—</span></td><td><div class="acts"><button class="btn p">Record cash</button><a class="btn">Open</a></div></td></tr>
+<tr><td><input type="checkbox" class="chk"></td><td><span class="no">RD-10229</span><span class="lab">Today · 4–6 pm</span></td><td><span class="name">Sadia Islam</span><div class="soft">01911-778899</div></td><td><span class="pill advance">Online + COD</span></td><td><span class="pill advance">Advance paid</span></td><td class="r"><b>৳ 3,200</b></td><td class="r" style="color:var(--green)"><b>৳ 2,000</b></td><td class="r" style="color:var(--red)"><b>৳ 1,200</b></td><td><span class="val">+ ৳ 2,000 · bKash</span><span class="soft">TXN 9K3L2M · 09:51 am</span></td><td><div class="acts"><button class="btn p">Record cash</button><a class="btn">Open</a></div></td></tr>
+<tr><td><input type="checkbox" class="chk"></td><td><span class="no">RD-10226</span><span class="lab">Today · Chattogram</span></td><td><span class="name">Farhana Akter</span><div class="soft">01333-445566</div></td><td><span class="pill unpaid">Online</span></td><td><span class="pill unpaid">Unpaid</span><span class="lab">pay link sent 08:10 am</span></td><td class="r"><b>৳ 2,700</b></td><td class="r soft">৳ 0</td><td class="r" style="color:var(--red)"><b>৳ 2,700</b></td><td><span class="val" style="color:var(--red)">bKash failed</span><span class="soft">11:12 pm · timeout at PIN</span></td><td><div class="acts"><button class="btn p">Send pay link</button><button class="btn">Record payment</button><a class="btn">Open</a></div></td></tr>
+<tr><td><input type="checkbox" class="chk"></td><td><span class="no">RD-10230</span><span class="lab">Today · 2 hour</span></td><td><span class="name">Tanvir Ahmed</span><div class="soft">01819-556677</div></td><td><span class="pill paid">bKash</span></td><td><span class="pill paid">Paid</span></td><td class="r"><b>৳ 2,150</b></td><td class="r" style="color:var(--green)"><b>৳ 2,150</b></td><td class="r soft">৳ 0</td><td><span class="val">+ ৳ 2,150 · bKash</span><span class="soft">TXN 7H2K9P · 10:16 am</span></td><td><div class="acts"><a class="btn">Refund</a><a class="btn">Open</a></div></td></tr>
+<tr><td><input type="checkbox" class="chk"></td><td><span class="no">RD-10227</span><span class="lab">Cancelled</span></td><td><span class="name">Mehedi Hasan</span><div class="soft">01677-889900</div></td><td><span class="pill grey">bKash</span></td><td><span class="pill grey">Refunded</span></td><td class="r"><b>৳ 1,850</b></td><td class="r soft">৳ 1,850</td><td class="r soft">৳ 0</td><td><span class="val">− ৳ 1,850 · refund</span><span class="soft">bKash · 09:30 am · Rakib</span></td><td><div class="acts"><a class="btn">Open</a></div></td></tr>
+</tbody></table></div></div>
+
+<div class="sub" id="t-gw">
+<div class="tools"><div class="segs"><button class="on">All<span>63</span></button><button>Success<span>48</span></button><button>Failed<span>11</span></button><button>Cancelled<span>3</span></button><button>Initiated<span>1</span></button></div>
+<div class="search"><input class="ipt" placeholder="Order no, transaction id, bank reference"></div><span class="count">63 attempts</span></div>
+<div class="tbl"><table>
+<thead><tr><th>When</th><th>Order No</th><th>Customer</th><th>Paid with</th><th>Result</th><th class="r">Amount</th><th>Gateway reference</th><th>Action</th></tr></thead><tbody>
+<tr><td><span class="val">10:16 am</span><span class="soft">09 Sep</span></td><td><span class="no">RD-10230</span></td><td><span class="name">Tanvir Ahmed</span><div class="soft">01819-556677</div></td><td><span class="val">bKash</span><span class="soft">SSLCommerz</span></td><td><span class="pill paid">Success</span></td><td class="r"><b>৳ 2,150</b><span class="lab">kept ৳ 2,107</span></td><td><span class="val">7H2K9P</span><span class="soft">bank BKS20260909A1 · val 2509…</span></td><td><div class="acts"><a class="btn">Open order</a></div></td></tr>
+<tr><td><span class="val">09:51 am</span><span class="soft">09 Sep</span></td><td><span class="no">RD-10229</span></td><td><span class="name">Sadia Islam</span><div class="soft">01911-778899</div></td><td><span class="val">bKash</span><span class="soft">SSLCommerz</span></td><td><span class="pill paid">Success</span></td><td class="r"><b>৳ 2,000</b><span class="lab">kept ৳ 1,960</span></td><td><span class="val">9K3L2M</span><span class="soft">bank BKS20260909B7</span></td><td><div class="acts"><a class="btn">Open order</a></div></td></tr>
+<tr><td><span class="val">11:12 pm</span><span class="soft">08 Sep</span></td><td><span class="no">RD-10226</span></td><td><span class="name">Farhana Akter</span><div class="soft">01333-445566</div></td><td><span class="val">bKash</span><span class="soft">SSLCommerz</span></td><td><span class="pill failed">Failed</span><span class="reason" style="display:block;margin-top:4px">Timeout at PIN</span></td><td class="r"><b>৳ 2,700</b></td><td><span class="val">RAD-10226-2</span><span class="soft">no bank reference</span></td><td><div class="acts"><button class="btn p">Send pay link</button><a class="btn">Open order</a></div></td></tr>
+<tr><td><span class="val">10:41 pm</span><span class="soft">08 Sep</span></td><td><span class="no">RD-10225</span></td><td><span class="name">Arif Hossain</span><div class="soft">01822-333444</div></td><td><span class="val">bKash</span><span class="soft">SSLCommerz</span></td><td><span class="pill failed">Failed</span><span class="reason" style="display:block;margin-top:4px">Insufficient balance</span></td><td class="r"><b>৳ 2,150</b></td><td><span class="val">RAD-10225-1</span><span class="soft">no bank reference</span></td><td><div class="acts"><button class="btn p">Send pay link</button><a class="btn">Open order</a></div></td></tr>
+<tr><td><span class="val">09:05 pm</span><span class="soft">08 Sep</span></td><td><span class="no">RD-10222</span></td><td><span class="name">Rumana Haque</span><div class="soft">01766-123123</div></td><td><span class="val">Nagad</span><span class="soft">SSLCommerz</span></td><td><span class="pill timeout">Cancelled</span><span class="reason m" style="display:block;margin-top:4px">Customer pressed back</span></td><td class="r"><b>৳ 1,650</b></td><td><span class="val">RAD-10222-1</span></td><td><div class="acts"><button class="btn p">Send pay link</button><a class="btn">Open order</a></div></td></tr>
+</tbody></table></div></div>
+
+<div class="sub" id="t-ref">
+<div class="tools"><div class="segs"><button class="on">Open<span>2</span></button><button>Approved<span>1</span></button><button>Completed<span>1</span></button><button>Rejected<span>0</span></button></div>
+<div class="search"><input class="ipt" placeholder="Return no, order no, phone"></div><button class="btn p inline">+ New return</button></div>
+<div class="tbl"><table>
+<thead><tr><th>Return No</th><th>Order No</th><th>Customer</th><th>Reason</th><th>Resolution</th><th class="r">Refund</th><th>Status</th><th>Action</th></tr></thead><tbody>
+<tr><td><span class="no">RT-0031</span><span class="lab">09 Sep · 10:20 am</span></td><td><span class="no">RD-10214</span><span class="lab">delivered 08 Sep</span></td><td><span class="name">Sabbir Khan</span><div class="soft">01777-000999</div></td><td><span class="val">Flowers wilted on arrival</span><span class="soft">2 photos · Rakib</span></td><td><span class="val">Refund</span><span class="soft">Crimson Devotion ×1 · write off</span></td><td class="r"><b>৳ 2,450</b><span class="lab">of ৳ 2,450 paid</span></td><td><span class="pill placed">Pending approval</span></td><td><div class="acts h"><button class="btn green">Approve</button><button class="btn" style="color:var(--red)">Reject</button><a class="btn">Open</a></div></td></tr>
+<tr><td><span class="no">RT-0030</span><span class="lab">09 Sep · 08:55 am</span></td><td><span class="no">RD-10209</span><span class="lab">delivered 07 Sep</span></td><td><span class="name">Lubna Chowdhury</span><div class="soft">01888-555444</div></td><td><span class="val">Wrong cake flavour</span><span class="soft">1 photo · Rakib</span></td><td><span class="val">Partial compensation</span><span class="soft">Chocolate cake 1 lb</span></td><td class="r"><b>৳ 1,200</b><span class="lab">of ৳ 3,100 paid</span></td><td><span class="pill placed">Pending approval</span></td><td><div class="acts h"><button class="btn green">Approve</button><button class="btn" style="color:var(--red)">Reject</button><a class="btn">Open</a></div></td></tr>
+<tr><td><span class="no">RT-0029</span><span class="lab">08 Sep · 04:10 pm</span></td><td><span class="no">RD-10198</span><span class="lab">delivered 06 Sep</span></td><td><span class="name">Imran Sheikh</span><div class="soft">01500-111222</div></td><td><span class="val">Late delivery</span><span class="soft">midnight slot missed</span></td><td><span class="val">Partial compensation</span><span class="soft">delivery fee</span></td><td class="r"><b>৳ 150</b><span class="lab">bKash</span></td><td><span class="pill confirmed">Approved</span><span class="lab">Rakib · 08 Sep</span></td><td><div class="acts h"><button class="btn p">Pay out</button><a class="btn">Open</a></div></td></tr>
+<tr><td><span class="no">RT-0028</span><span class="lab">08 Sep · 09:02 am</span></td><td><span class="no">RD-10227</span><span class="lab">cancelled 09 Sep</span></td><td><span class="name">Mehedi Hasan</span><div class="soft">01677-889900</div></td><td><span class="val">Order cancelled by customer</span></td><td><span class="val">Refund</span><span class="soft">full</span></td><td class="r"><b>৳ 1,850</b><span class="lab">bKash · TXN RF88A2</span></td><td><span class="pill recovered">Completed</span><span class="lab">09 Sep · 09:30 am</span></td><td><div class="acts h"><a class="btn">Open</a></div></td></tr>
+</tbody></table></div></div>
+</section>
+
+<section class="page" id="p-rep">
+<div class="legend">Counted in the database, not on screen. Date range at the top drives every card. Revenue = delivered orders only (existing rule). New splits added: by day, by delivery type, top products. Nothing else on the page.</div>
+<div class="band"><div class="top"><h1>Reports <i>i</i></h1><div style="display:flex;gap:8px"><select class="ipt" style="height:38px;min-width:150px"><option>Last 7 days</option><option>Today</option><option>This month</option><option>Custom</option></select><button class="newbtn">Export</button></div></div></div>
+<div class="kpi">
+<div class="card"><div class="k">Orders</div><div class="v">214</div><div class="d">1 – 7 Sep</div></div>
+<div class="card"><div class="k">Delivered</div><div class="v">198</div><div class="d">93% on time</div></div>
+<div class="card"><div class="k">Revenue</div><div class="v">৳ 4,86,300</div><div class="d">delivered only</div></div>
+<div class="card"><div class="k">Average order</div><div class="v">৳ 2,456</div><div class="d">per delivered order</div></div>
+<div class="card"><div class="k">Cancelled</div><div class="v">7</div><div class="d">3.3%</div></div>
+<div class="card"><div class="k">Lost → recovered</div><div class="v">14 / 52</div><div class="d">27%</div></div>
+</div>
+<div class="g2">
+<div class="card"><h3>Sales by day <span>revenue · delivered</span></h3><div class="bars"><div style="height:55%" data-l="Wed 2"></div><div style="height:62%" data-l="Thu 3"></div><div style="height:78%" data-l="Fri 4"></div><div style="height:100%" data-l="Sat 5"></div><div style="height:48%" data-l="Sun 6"></div><div style="height:66%" data-l="Mon 7"></div><div style="height:71%" data-l="Tue 8"></div></div><div class="soft" style="margin-top:22px;font-size:12px">Best day Saturday · 41 orders · ৳ 92,400</div></div>
+<div class="card"><h3>By delivery type <span>orders · revenue</span></h3><div class="rows">
+<div class="row"><span>Same day</span><div class="bar"><i style="width:52%"></i></div><span class="n"><b>111</b> · ৳ 2.4L</span></div>
+<div class="row"><span>2 hour</span><div class="bar"><i style="width:24%"></i></div><span class="n"><b>52</b> · ৳ 1.1L</span></div>
+<div class="row"><span>Midnight</span><div class="bar"><i style="width:16%"></i></div><span class="n"><b>34</b> · ৳ 0.9L</span></div>
+<div class="row"><span>Nationwide</span><div class="bar"><i style="width:8%"></i></div><span class="n"><b>17</b> · ৳ 0.4L</span></div></div></div>
+</div>
+<div class="g3">
+<div class="card"><h3>By channel</h3><div class="rows">
+<div class="row"><span>Website</span><div class="bar"><i style="width:70%"></i></div><span class="n"><b>150</b> · ৳ 3.4L</span></div>
+<div class="row"><span>Facebook</span><div class="bar"><i style="width:18%"></i></div><span class="n"><b>38</b> · ৳ 0.8L</span></div>
+<div class="row"><span>WhatsApp</span><div class="bar"><i style="width:8%"></i></div><span class="n"><b>17</b> · ৳ 0.4L</span></div>
+<div class="row"><span>Phone</span><div class="bar"><i style="width:4%"></i></div><span class="n"><b>9</b> · ৳ 0.2L</span></div></div></div>
+<div class="card"><h3>By payment</h3><div class="rows">
+<div class="row"><span>Online</span><div class="bar"><i style="width:64%"></i></div><span class="n"><b>137</b> · ৳ 3.3L</span></div>
+<div class="row"><span>Cash on delivery</span><div class="bar"><i style="width:36%"></i></div><span class="n"><b>77</b> · ৳ 1.6L</span></div></div>
+<div class="soft" style="margin-top:14px;font-size:12px">Gateway: 63 attempts · 11 failed · 17%</div></div>
+<div class="card"><h3>Self vs gift</h3><div class="rows">
+<div class="row"><span>Gift</span><div class="bar"><i style="width:63%"></i></div><span class="n"><b>135</b> · ৳ 3.2L</span></div>
+<div class="row"><span>Self</span><div class="bar"><i style="width:37%"></i></div><span class="n"><b>79</b> · ৳ 1.7L</span></div></div>
+<div class="soft" style="margin-top:14px;font-size:12px">New customers 124 · repeat 90</div></div>
+</div>
+<div class="g2">
+<div class="card"><h3>Top products <span>qty · revenue</span></h3><div class="rows">
+<div class="row"><span>Crimson Devotion</span><div class="bar"><i style="width:100%"></i></div><span class="n"><b>38</b> · ৳ 1.3L</span></div>
+<div class="row"><span>Blush Harmony</span><div class="bar"><i style="width:76%"></i></div><span class="n"><b>29</b> · ৳ 0.6L</span></div>
+<div class="row"><span>Mother's Grace</span><div class="bar"><i style="width:55%"></i></div><span class="n"><b>21</b> · ৳ 0.5L</span></div>
+<div class="row"><span>Everlasting</span><div class="bar"><i style="width:42%"></i></div><span class="n"><b>16</b> · ৳ 0.4L</span></div>
+<div class="row"><span>Sunny Wishes</span><div class="bar"><i style="width:34%"></i></div><span class="n"><b>13</b> · ৳ 0.2L</span></div></div></div>
+<div class="card"><h3>By zone <span>orders · revenue</span></h3><div class="rows">
+<div class="row"><span>Inside Dhaka</span><div class="bar"><i style="width:92%"></i></div><span class="n"><b>197</b> · ৳ 4.5L</span></div>
+<div class="row"><span>Nationwide</span><div class="bar"><i style="width:8%"></i></div><span class="n"><b>17</b> · ৳ 0.4L</span></div></div></div>
+</div>
+</section>
+</div>
+<script>
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));document.querySelectorAll('.pagebar button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));window.scrollTo(0,0)}
+function tab(t,id){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));t.classList.add('on');document.querySelectorAll('#p-pay .sub').forEach(s=>s.classList.toggle('on',s.id===id))}
+function ptile(t,i){t.parentElement.querySelectorAll('.tile').forEach(x=>x.classList.remove('on'));t.classList.add('on');tab(document.querySelectorAll('.tabs button')[0],'t-orders');const s=document.querySelectorAll('#psegs button');s.forEach(b=>b.classList.remove('on'));s[i].classList.add('on')}
+</script></body></html>

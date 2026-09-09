@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian Admin — Lost Orders (new module) v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Jost:wght@500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --purple:#470066; --deep:#320049; --ink:#170922; --soft:#4a3a56; --mute:#7b6b87;
+    --orchid:#cf43ea; --lav:#f7f1fb; --lavd:#e6d9f0; --line:#dfd3ea; --rg:#b76e79;
+    --green:#0e8a44; --amber:#d97706; --red:#d92d20; --indigo:#4f46e5; --blue:#1d7fd6;
+    --fr:'Fraunces',Georgia,serif; --jo:'Jost',sans-serif; --ma:'Manrope',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e3ef;color:var(--ink);font-family:var(--jo);font-weight:500}
+  .top{max-width:1400px;margin:0 auto;padding:24px 24px 4px}
+  .top h1{font-family:var(--fr);font-weight:700;font-size:26px;color:var(--purple);margin:0 0 6px}
+  .top p{margin:0;font-size:14px;color:var(--soft);line-height:1.6;max-width:900px}
+  .jump{position:sticky;top:0;z-index:5;background:#e9e3ef;padding:10px 24px;max-width:1400px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap}
+  .jump a{font-family:var(--ma);font-weight:800;font-size:12.5px;text-decoration:none;color:var(--purple);background:#fff;border:1.5px solid var(--line);padding:8px 14px;border-radius:999px}
+  .cap{max-width:1400px;margin:22px auto 0;padding:0 24px;display:flex;align-items:baseline;gap:14px}
+  .cap b{font-family:var(--ma);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--purple)}
+  .cap span{font-size:13.5px;color:var(--soft)}
+  .frame{max-width:1400px;margin:10px auto 0;border-radius:22px;overflow:hidden;display:grid;grid-template-columns:196px 1fr;box-shadow:0 10px 36px rgba(71,0,102,.08);border:1px solid #d9cfe3;background:#f6f3f9}
+  .side{background:var(--deep);color:#e7d8f2;padding:18px 12px;font-family:var(--ma)}
+  .side .brand{display:flex;align-items:center;gap:10px;padding:2px 6px 16px;font-weight:800;font-size:16px;color:#fff}
+  .side .brand i{width:28px;height:28px;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,var(--orchid),var(--rg));transform:rotate(-45deg)}
+  .side .grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:12px 8px 6px;font-weight:800;color:#b394cc}
+  .side a{display:block;text-decoration:none;font-size:13.5px;font-weight:700;padding:8px 10px;border-radius:10px;color:#e7d8f2}
+  .side a.on{background:#fff;color:var(--purple)} .side a.sub{padding-left:24px;font-size:13px}
+  .main{padding:22px 24px 26px;min-width:0}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+  .head h2{margin:0;font-family:var(--fr);font-weight:700;font-size:28px;color:var(--purple);display:flex;align-items:center;gap:10px}
+  .info{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--lavd);color:var(--purple);font-size:11px;display:inline-grid;place-items:center;font-weight:700}
+  .btn{font-family:var(--jo);font-weight:700;font-size:13.5px;border-radius:11px;padding:10px 16px;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+  .btn.p{background:var(--purple);color:#fff;box-shadow:0 8px 22px rgba(71,0,102,.2)}
+  .tools{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .seg{display:inline-flex;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:4px;gap:2px}
+  .seg span{padding:7px 13px;border-radius:8px;font-weight:700;font-size:13px;color:var(--soft)}
+  .seg span.on{background:var(--purple);color:#fff}
+  .seg span em{font-style:normal;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.07)}
+  .seg span.on em{background:rgba(255,255,255,.22)}
+  .search{flex:1;min-width:240px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13.5px;color:var(--mute);display:flex;gap:8px;align-items:center}
+  .sel{background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;font-weight:700;color:var(--purple)}
+
+  /* ---- shared cell content ---- */
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  th{text-align:left;font-family:var(--ma);font-weight:800;font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:11px 12px}
+  td{padding:11px 12px;vertical-align:top}
+  .c-chk{width:34px} .c-no{width:118px} .c-date{width:170px} .c-money{width:130px} .c-st{width:190px} .c-dv{width:160px} .c-act{width:124px}
+  .chk{width:16px;height:16px;border:2px solid var(--lavd);border-radius:4px;display:inline-block;vertical-align:middle}
+  .no{font-family:var(--ma);font-weight:800;font-size:14px;color:var(--purple);white-space:nowrap}
+  .icons{display:flex;gap:6px;margin-top:6px}
+  .icons i{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:11px;color:var(--soft)}
+  .kv span{display:block;color:var(--mute);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+  .kv b{display:block;font-weight:700;color:var(--ink);margin-bottom:5px} .kv b.hot{color:var(--red)}
+  .name{font-weight:700;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;color:#fff;background:var(--c)}
+  .phone{font-weight:700;color:var(--purple);margin-top:3px;display:flex;align-items:center;gap:6px} .phone i{font-style:normal;font-size:11px;color:var(--mute)}
+  .addr{color:var(--soft);font-weight:600;margin-top:3px;line-height:1.4}
+  .rec{margin-top:5px;font-weight:600;color:var(--soft)} .rec b{color:var(--ink)}
+  .money{line-height:1.5;white-space:nowrap}
+  .money span{color:var(--mute);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;display:inline-block;width:46px}
+  .money b{font-family:var(--fr);font-weight:800;font-size:15px}
+  .money .t b{font-size:18px;color:var(--ink)} .money .p b{color:var(--green)} .money .d b{color:var(--red)} .money .d.zero b{color:var(--mute)}
+  .st{display:grid;grid-template-columns:auto 1fr;gap:7px 8px;align-items:center;white-space:nowrap}
+  .st label{color:var(--mute);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  .pill{display:inline-flex;align-items:center;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;color:#fff;background:var(--c);white-space:nowrap}
+  .dv{font-weight:700;color:var(--ink);white-space:nowrap} .dv small{display:block;color:var(--mute);font-weight:600;font-size:12px;margin-top:3px} .dst{margin-top:6px}
+  .acts{display:grid;grid-template-columns:repeat(3,32px);gap:6px}
+  .acts a{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:800;text-decoration:none;background:#fff;color:var(--c);border:1.5px solid var(--c)}
+  .acts a.f{background:var(--c);color:#fff}
+
+  /* ===== V2 dark header ===== */
+  .V2 table{background:#fff;border-radius:14px;overflow:hidden;border:1.5px solid var(--line)}
+  .V2 th{background:var(--deep);color:#fff}
+  .V2 td{border-bottom:1px solid #ece5f2} .V2 tr:last-child td{border-bottom:0}
+  .V2 tbody tr:hover td{background:#fcfaff}
+  .V2 tr.hot td.c-chk{box-shadow:inset 4px 0 0 var(--red)}
+
+  /* ===== V3 card rows ===== */
+  .V3 table{border-spacing:0 10px;margin-top:-10px}
+  .V3 th{color:var(--mute);padding-bottom:0}
+  .V3 td{background:#fff;border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line)}
+  .V3 td.c-chk{border-left:1.5px solid var(--line);border-radius:14px 0 0 14px;box-shadow:inset 5px 0 0 var(--s)}
+  .V3 td.c-act{border-right:1.5px solid var(--line);border-radius:0 14px 14px 0}
+  .V3 td:not(.c-chk):not(.c-act){border-left:1px dashed #ece5f2}
+  .V3 td.c-act{border-left:1px dashed #ece5f2}
+  .V3 tbody tr:hover td{box-shadow:0 8px 24px rgba(71,0,102,.08)} .V3 tbody tr:hover td.c-chk{box-shadow:inset 5px 0 0 var(--s),0 8px 24px rgba(71,0,102,.08)}
+
+  /* ===== V4 compact ledger ===== */
+  .V4 table{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12.5px}
+  .V4 th{background:#f0edf3;color:var(--soft);font-size:11px;padding:8px 10px}
+  .V4 td{padding:8px 10px;border-bottom:1px solid #ece7f0;vertical-align:middle}
+  .V4 tbody tr:nth-child(even) td{background:#faf9fb}
+  .V4 tr:last-child td{border-bottom:0}
+  .V4 .icons{display:none} .V4 .no{font-size:13px}
+  .V4 .kv span{display:inline;font-size:10.5px;margin-right:4px} .V4 .kv b{display:inline;margin:0} .V4 .kv b:first-of-type:after{content:"";display:block}
+  .V4 .name{font-size:13px} .V4 .addr{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px} .V4 .rec{margin-top:2px}
+  .V4 .money{line-height:1.35} .V4 .money b{font-size:13px} .V4 .money .t b{font-size:15px} .V4 .money span{width:40px;font-size:10.5px}
+  .V4 .st{gap:4px 6px} .V4 .st label{display:none} .V4 .st{grid-template-columns:1fr;justify-items:start}
+  .V4 .pill{font-size:10.5px;padding:3px 8px;border-radius:6px}
+  .V4 .dv{font-size:12.5px} .V4 .dv small{font-size:11.5px}
+  .V4 .acts{grid-template-columns:repeat(4,28px);gap:4px} .V4 .acts a{width:28px;height:28px;border-radius:7px;font-size:12px}
+  .V4 .c-act{width:140px}
+  .V4 tr.hot td.c-chk{box-shadow:inset 3px 0 0 var(--red)}
+
+  /* ===== V5 split cells ===== */
+  .V5 table{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+  .V5 th{background:var(--lav);color:var(--purple);border-bottom:1.5px solid var(--line);border-right:1px solid var(--line)} .V5 th:last-child{border-right:0}
+  .V5 td{border-bottom:1px solid var(--line);border-right:1px solid var(--line)} .V5 td:last-child{border-right:0} .V5 tr:last-child td{border-bottom:0}
+  .V5 .c-cust{width:auto} .V5 .name{font-family:var(--fr);font-weight:800;font-size:18px;color:var(--purple)}
+  .V5 .phone{font-size:14px} .V5 .addr,.V5 .rec{font-size:12.5px}
+  .V5 .kv b{font-size:12.5px} .V5 .no{font-size:15px}
+  .V5 .st{grid-template-columns:1fr;gap:5px;justify-items:start} .V5 .st label{display:none}
+  .V5 .c-act{width:150px}
+  .V5 .acts{grid-template-columns:1fr;gap:6px}
+  .V5 .acts a{width:auto;height:34px;border-radius:9px;font-size:12.5px;padding:0 10px;justify-content:start;display:flex;align-items:center;gap:8px}
+  .V5 .acts a:after{content:attr(title);font-weight:700}
+  .V5 .acts a:not(.f):not([title="Call"]){display:none}
+  .V5 .acts a[title="Call"]{display:flex}
+  .V5 tr.hot td.c-chk{box-shadow:inset 4px 0 0 var(--red)}
+</style>
+</head>
+<body>
+<style>
+  .band{background:linear-gradient(135deg,#320049,#5a0a80);color:#fff;border-radius:18px;padding:18px 22px 20px;margin-bottom:14px}
+  .band h2{font-family:var(--fr);font-weight:700;font-size:26px;margin:0;color:#fff}
+  .band .k{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .band .k div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 14px}
+  .band .k span{display:block;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#d9c5e6}
+  .band .k b{display:block;font-family:var(--fr);font-weight:800;font-size:28px;line-height:1;margin-top:6px}
+  .band .k b.hot{color:#ffb4ad}
+  .draft{background:#faf7fc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.5}
+  .draft b{color:var(--ink)} .draft i{font-style:normal;color:var(--mute);font-weight:600}
+  .stage{display:inline-flex;gap:3px;margin-top:6px} .stage i{width:18px;height:6px;border-radius:3px;background:#e7dff0} .stage i.on{background:var(--purple)}
+  .reason{font-weight:700;color:var(--red);font-size:12.5px;white-space:normal}
+  .V5 .acts a:not(.f):not([title="Call"]){display:flex} .V5 .acts a:after{content:none} .V5 .acts a{white-space:nowrap}
+</style><div class="top"><h1>Lost orders — the new module (v1)</h1><p>One list of everyone who started to buy and did not finish: typed something at checkout and left · pressed Place Order and the payment failed or was cancelled · opened the gateway and closed the tab. Whatever they typed is on the row. One call, one link, one outcome.</p></div><div class="frame V5"><aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub">All orders</a><a class="sub on">Lost orders</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside><main class="main"><div class="band"><div style="display:flex;align-items:center;justify-content:space-between"><h2>Lost orders <span class="info" style="border-color:rgba(255,255,255,.4);color:#fff">i</span></h2><span style="font-size:12.5px;font-weight:700;color:#d9c5e6">Rules · Recovery settings ▸</span></div><div class="k"><div><span>Open now</span><b class="hot">14</b></div><div><span>Value at stake</span><b>৳1,02,650</b></div><div><span>Recovered · 30 days</span><b>9 · ৳38,400</b></div><div><span>Auto-messaged</span><b>22</b></div></div></div><div class="tools"><div class="seg"><span class="on">Open <em>14</em></span><span>Left at checkout <em>6</em></span><span>Payment failed / cancelled <em>5</em></span><span>Unpaid · closed tab <em>3</em></span><span>Recovered</span><span>Closed</span></div><div class="search">🔍 Name, phone, order no</div></div><table><thead><tr><th class="c-chk"><span class="chk"></span></th><th class="c-no">Ref</th><th class="c-date">When</th><th class="c-cust">Who &amp; what they left</th><th class="c-money">Value</th><th class="c-st">Why it stopped</th><th class="c-act">Action</th></tr></thead><tbody><tr><td class="c-chk"><span class="chk"></span></td><td class="c-no"><div class="no">Checkout</div><small style="display:block;font-weight:600;color:var(--mute);font-size:11.5px;margin-top:3px">no order yet</small></td><td class="c-date"><div class="kv"><span>Last seen</span><b>Today · 2:40 PM (35 min ago)</b></div></td><td class="c-cust"><div class="name">Tanvir</div><div class="phone">01711 223344 <i>⧉</i></div><div class="draft" style="margin-top:6px"><b>Tanvir</b> · 01711 223344 · <i>gift for</i> <b>Rima</b> · <i>address</i> House 12, Road 5, Dhanmondi · <i>date</i> Tomorrow evening · <i>card:</i> "Happy birthday Rima…"</div><div class="stage"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></td><td class="c-money"><div class="money"><div class="t"><span>Cart</span><b>৳4,150</b></div></div></td><td class="c-st"><div class="st" style="grid-template-columns:1fr;justify-items:start"><span class="pill" style="--c:var(--amber)">Left at Delivery</span><span class="reason">stopped before Payment</span></div></td><td class="c-act"><div class="acts" style="grid-template-columns:1fr"><a class="f" style="--c:var(--green)" title="Call">Call</a><a class="" style="--c:var(--green)" title="WhatsApp cart link">WhatsApp cart link</a><a class="" style="--c:var(--purple)" title="Handled">Handled</a></div></td></tr><tr><td class="c-chk"><span class="chk"></span></td><td class="c-no"><div class="no">Checkout</div><small style="display:block;font-weight:600;color:var(--mute);font-size:11.5px;margin-top:3px">no order yet</small></td><td class="c-date"><div class="kv"><span>Last seen</span><b>Today · 11:05 AM</b></div></td><td class="c-cust"><div class="name">— no name —</div><div class="phone">01819 988776 <i>⧉</i></div><div class="draft" style="margin-top:6px"><i>phone only</i> · 2 items in cart</div><div class="stage"><i class="on"></i><i></i><i></i><i></i></div></td><td class="c-money"><div class="money"><div class="t"><span>Cart</span><b>৳2,350</b></div></div></td><td class="c-st"><div class="st" style="grid-template-columns:1fr;justify-items:start"><span class="pill" style="--c:var(--grey)">Left at Details</span><span class="reason">typed a phone, nothing else</span></div></td><td class="c-act"><div class="acts" style="grid-template-columns:1fr"><a class="f" style="--c:var(--green)" title="Call">Call</a><a class="" style="--c:var(--green)" title="WhatsApp cart link">WhatsApp cart link</a><a class="" style="--c:var(--purple)" title="Handled">Handled</a></div></td></tr><tr><td class="c-chk"><span class="chk"></span></td><td class="c-no"><div class="no">RAD-70104</div><small style="display:block;font-weight:600;color:var(--mute);font-size:11.5px;margin-top:3px">order placed</small></td><td class="c-date"><div class="kv"><span>Last seen</span><b>Yesterday · 9:14 PM</b></div></td><td class="c-cust"><div class="name">Raju Ahmed <span class="tag" style="--c:var(--orchid)">GIFT</span></div><div class="phone">01940 974467 <i>⧉</i></div><div class="draft" style="margin-top:6px"><i>to</i> <b>Mrs. Farhana Karim</b> · Gulshan 2, Road 90 · Midnight Delivery</div><div class="stage"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></td><td class="c-money"><div class="money"><div class="t"><span>Cart</span><b>৳64,055</b></div></div></td><td class="c-st"><div class="st" style="grid-template-columns:1fr;justify-items:start"><span class="pill" style="--c:var(--red)">Payment failed</span><span class="reason">SSLCommerz: card declined</span></div></td><td class="c-act"><div class="acts" style="grid-template-columns:1fr"><a class="f" style="--c:var(--green)" title="Call">Call</a><a class="" style="--c:var(--purple)" title="Send pay link">Send pay link</a><a class="" style="--c:var(--purple)" title="Open order">Open order</a></div></td></tr><tr><td class="c-chk"><span class="chk"></span></td><td class="c-no"><div class="no">RAD-95386</div><small style="display:block;font-weight:600;color:var(--mute);font-size:11.5px;margin-top:3px">order placed</small></td><td class="c-date"><div class="kv"><span>Last seen</span><b>Yesterday · 7:15 PM</b></div></td><td class="c-cust"><div class="name">Sobuj Gazi</div><div class="phone">01940 974467 <i>⧉</i></div><div class="draft" style="margin-top:6px">Comilla Sadar · Courier · 3 items</div><div class="stage"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></td><td class="c-money"><div class="money"><div class="t"><span>Cart</span><b>৳24,348</b></div></div></td><td class="c-st"><div class="st" style="grid-template-columns:1fr;justify-items:start"><span class="pill" style="--c:var(--red)">Payment cancelled</span><span class="reason">pressed Cancel on the gateway</span></div></td><td class="c-act"><div class="acts" style="grid-template-columns:1fr"><a class="f" style="--c:var(--green)" title="Call">Call</a><a class="" style="--c:var(--purple)" title="Send pay link">Send pay link</a><a class="" style="--c:var(--purple)" title="Open order">Open order</a></div></td></tr><tr><td class="c-chk"><span class="chk"></span></td><td class="c-no"><div class="no">RAD-71253</div><small style="display:block;font-weight:600;color:var(--mute);font-size:11.5px;margin-top:3px">order placed</small></td><td class="c-date"><div class="kv"><span>Last seen</span><b>Today · 6:00 PM</b></div></td><td class="c-cust"><div class="name">Sobuj Gazi</div><div class="phone">01940 974467 <i>⧉</i></div><div class="draft" style="margin-top:6px">gulshna-1 dhaka · Schedule it · tomorrow morning</div><div class="stage"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></td><td class="c-money"><div class="money"><div class="t"><span>Cart</span><b>৳3,650</b></div></div></td><td class="c-st"><div class="st" style="grid-template-columns:1fr;justify-items:start"><span class="pill" style="--c:var(--amber)">Unpaid · closed tab</span><span class="reason">gateway opened, no answer after 30 min</span></div></td><td class="c-act"><div class="acts" style="grid-template-columns:1fr"><a class="f" style="--c:var(--green)" title="Call">Call</a><a class="" style="--c:var(--purple)" title="Send pay link">Send pay link</a><a class="" style="--c:var(--purple)" title="Open order">Open order</a></div></td></tr></tbody></table><div style="margin-top:12px;font-size:12.5px;color:var(--soft);font-weight:600"><b style="color:var(--purple)">Handled</b> opens a one-line outcome: Called · No answer · Will pay · Not interested · Ordered — the row moves to Recovered or Closed, and the count on top comes from it.</div></main></div><div style="height:50px"></div></body></html>

@@ -1361,6 +1361,10 @@ export interface ApiOrderReport {
   zone: ApiOrderReportRow[];
   payment: ApiOrderReportRow[];
   type: ApiOrderReportRow[];
+  /** Orders -> Reports, 9 Sep 2026: three more splits, same delivered-only revenue rule */
+  method: ApiOrderReportRow[];
+  day: { date: string; n: number; delivered: number; cancelled: number; revenuePaisa: number }[];
+  products: { productId: string | null; label: string; qty: number; revenuePaisa: number }[];
 }
 export function orderReport(params?: { from?: string; to?: string }): Promise<ApiOrderReport> {
   const q = new URLSearchParams();
@@ -7576,6 +7580,36 @@ export interface ApiLostList {
   stats: { open: number; atStakePaisa: number; recovered30: number; recovered30Paisa: number; messaged30: number };
 }
 export const listLostOrders = () => j<ApiLostList>("/messaging/lost");
+/* ------------------------------------------------------------
+   Payments (Orders -> Payments, 9 Sep 2026) — one page for money on
+   website orders. Gateway attempts are READ ONLY: PaymentSession is
+   written by the gateway callback and nowhere else.
+   ------------------------------------------------------------ */
+export interface ApiOnlinePayment {
+  id: string;
+  tranId: string;
+  provider: string;
+  status: "INITIATED" | "SUCCESS" | "FAILED" | "CANCELLED" | string;
+  amountPaisa: number;
+  createdAt: string;
+  settledAt: string | null;
+  valId: string | null;
+  bankTranId: string | null;
+  cardType: string | null;
+  gatewayStatus: string | null;
+  gatewayReason: string | null;
+  storeAmountPaisa: number | null;
+  order: { id: string; orderNo: string; totalPaisa: number; paidPaisa: number; refundPaisa: number } | null;
+}
+export const listOnlinePayments = (p?: { status?: string; q?: string; take?: number }) => {
+  const q = new URLSearchParams();
+  if (p?.status) q.set("status", p.status);
+  if (p?.q) q.set("q", p.q);
+  if (p?.take) q.set("take", String(p.take));
+  const qs = q.toString();
+  return j<{ rows: ApiOnlinePayment[]; counts: Record<string, number> }>(`/orders/online-payments${qs ? `?${qs}` : ""}`);
+};
+
 export const handleLostOrder = (b: { leadId?: string; orderId?: string; outcome: ApiRecoveryOutcome; note?: string }) =>
   j<{ id: string }>("/messaging/lost/handle", { method: "POST", body: JSON.stringify(b) });
 

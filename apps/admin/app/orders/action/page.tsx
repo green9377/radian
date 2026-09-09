@@ -1,6 +1,6 @@
-import { OrdersActionQueue } from "../../_components/OrderViews";
+import { redirect } from "next/navigation";
 
-/* /orders/action — orders waiting on staff: verify paid, call COD, then confirm. */
-export default function OrdersActionPage() {
-  return <OrdersActionQueue />;
+/* /orders/action left the menu 9 Sep 2026 — All orders carries Confirm on every row. */
+export default function Page() {
+  redirect("/orders/list");
 }

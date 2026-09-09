@@ -1,6 +1,6 @@
-import { OrdersReports } from "../../_components/OrderViews";
+import ReportsView from "../../_components/ReportsView";
 
-/* /orders/reports — channel, zone, payment, self vs gift, AOV. */
+/* /orders/reports — counted by the database; one date range drives every card. */
 export default function OrdersReportsPage() {
-  return <OrdersReports />;
+  return <ReportsView />;
 }

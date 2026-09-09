@@ -94,9 +94,9 @@ const GROUPS: Group[] = [
               9 Sep 2026 (owner): All orders carries Confirm/Call on every row,
               and Lost orders is where the unfinished ones live now.  */
           { label: "Lost orders", href: "/orders/lost" },
-          { label: "Cancelled", href: "/orders/cancelled" },
+          /*  Cancelled is a segment of All orders; Online payments and the
+              order-side Returns list are tabs of Payments (owner, 9 Sep 2026).  */
           { label: "Payments", href: "/orders/payments" },
-          { label: "Online payments", href: "/orders/online-payments" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },

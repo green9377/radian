@@ -1,6 +1,6 @@
-import { OrdersReturns } from "../../_components/OrderViews";
+import { redirect } from "next/navigation";
 
-/* /orders/returns — staff-initiated returns. The Returns module owns the record. */
-export default function OrdersReturnsPage() {
-  return <OrdersReturns />;
+/* /orders/returns folded into Payments -> Returns & refunds (owner, 9 Sep 2026). */
+export default function Page() {
+  redirect("/orders/payments");
 }

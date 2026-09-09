@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian Admin — All orders, grid table (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Jost:wght@500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --purple:#470066; --deep:#320049; --ink:#170922; --soft:#4a3a56; --mute:#7b6b87;
+    --orchid:#cf43ea; --lav:#f7f1fb; --lavd:#e6d9f0; --line:#dfd3ea; --rg:#b76e79;
+    --green:#0e8a44; --amber:#d97706; --red:#d92d20; --indigo:#4f46e5; --blue:#1d7fd6;
+    --fr:'Fraunces',Georgia,serif; --jo:'Jost',sans-serif; --ma:'Manrope',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e3ef;color:var(--ink);font-family:var(--jo);font-weight:500}
+  .top{max-width:1400px;margin:0 auto;padding:24px 24px 8px}
+  .top h1{font-family:var(--fr);font-weight:700;font-size:26px;color:var(--purple);margin:0 0 6px}
+  .top p{margin:0;font-size:14px;color:var(--soft);line-height:1.6;max-width:900px}
+  .frame{max-width:1400px;margin:14px auto 40px;border-radius:22px;overflow:hidden;display:grid;grid-template-columns:196px 1fr;box-shadow:0 10px 36px rgba(71,0,102,.08);border:1px solid #d9cfe3;background:#f6f3f9}
+  .side{background:var(--deep);color:#e7d8f2;padding:18px 12px;font-family:var(--ma)}
+  .side .brand{display:flex;align-items:center;gap:10px;padding:2px 6px 16px;font-weight:800;font-size:16px;color:#fff}
+  .side .brand i{width:28px;height:28px;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,var(--orchid),var(--rg));transform:rotate(-45deg)}
+  .side .grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:12px 8px 6px;font-weight:800;color:#b394cc}
+  .side a{display:block;text-decoration:none;font-size:13.5px;font-weight:700;padding:8px 10px;border-radius:10px;color:#e7d8f2}
+  .side a.on{background:#fff;color:var(--purple)} .side a.sub{padding-left:24px;font-size:13px}
+  .main{padding:22px 24px 30px;min-width:0}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+  .head h2{margin:0;font-family:var(--fr);font-weight:700;font-size:28px;color:var(--purple);display:flex;align-items:center;gap:10px}
+  .info{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--lavd);color:var(--purple);font-size:11px;display:inline-grid;place-items:center;font-weight:700}
+  .btn{font-family:var(--jo);font-weight:700;font-size:13.5px;border-radius:11px;padding:10px 16px;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+  .btn.p{background:var(--purple);color:#fff;box-shadow:0 8px 22px rgba(71,0,102,.2)}
+  .btn.o{background:#fff;color:var(--purple);border-color:var(--lavd)}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px 12px 16px;position:relative;overflow:hidden}
+  .kpi:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:5px;border-radius:0 6px 6px 0;background:var(--c)}
+  .kpi .l{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
+  .kpi .v{font-family:var(--fr);font-weight:800;font-size:28px;line-height:1;margin-top:7px;color:var(--ink)}
+  .kpi.hot .v{color:var(--red)}
+
+  .tools{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .seg{display:inline-flex;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:4px;gap:2px}
+  .seg span{padding:7px 13px;border-radius:8px;font-weight:700;font-size:13px;color:var(--soft)}
+  .seg span.on{background:var(--purple);color:#fff}
+  .seg span em{font-style:normal;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.07)}
+  .seg span.on em{background:rgba(255,255,255,.22)}
+  .search{flex:1;min-width:240px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13.5px;color:var(--mute);display:flex;gap:8px;align-items:center}
+  .sel{background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;font-weight:700;color:var(--purple)}
+  .bulk{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--soft)}
+  .bulk .btn{padding:6px 11px;font-size:12.5px;border-radius:8px}
+
+  /* ---- the grid table ---- */
+  table{width:100%;border-collapse:collapse;background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;font-size:13px}
+  thead th{background:var(--lav);color:var(--purple);font-family:var(--ma);font-weight:800;font-size:12px;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:11px 12px;border-bottom:1.5px solid var(--line);border-right:1px solid var(--line)}
+  thead th:last-child{border-right:0}
+  td{padding:11px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top}
+  td:last-child{border-right:0}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:#fcfaff}
+  tr.hot td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+  .chk{width:16px;height:16px;border:2px solid var(--lavd);border-radius:4px;display:inline-block;vertical-align:middle}
+  .no{font-family:var(--ma);font-weight:800;font-size:14px;color:var(--purple)}
+  .icons{display:flex;gap:6px;margin-top:6px}
+  .icons i{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:11px;color:var(--soft)}
+  .kv{line-height:1.45}
+  .kv span{display:block;color:var(--mute);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+  .kv b{display:block;font-weight:700;color:var(--ink);margin-bottom:5px}
+  .kv b.hot{color:var(--red)}
+  .name{font-weight:700;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .tag{font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;color:#fff;background:var(--blue)}
+  .tag.gift{background:var(--orchid)}
+  .tag.rep{background:var(--green)}
+  .phone{font-weight:700;color:var(--purple);margin-top:3px;display:flex;align-items:center;gap:6px}
+  .phone i{font-style:normal;font-size:11px;color:var(--mute)}
+  .addr{color:var(--soft);font-weight:600;margin-top:3px;line-height:1.4}
+  .rec{margin-top:5px;font-weight:600;color:var(--soft)} .rec b{color:var(--ink)}
+  .money{line-height:1.5;white-space:nowrap}
+  .money span{color:var(--mute);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;display:inline-block;width:46px}
+  .money b{font-family:var(--fr);font-weight:800;font-size:15px}
+  .money .t b{font-size:18px;color:var(--ink)} .money .p b{color:var(--green)} .money .d b{color:var(--red)} .money .d.zero b{color:var(--mute)}
+  .st{display:grid;grid-template-columns:auto 1fr;gap:7px 8px;align-items:center;white-space:nowrap}
+  .st label{color:var(--mute);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  .pill{display:inline-flex;align-items:center;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;color:#fff;background:var(--c);white-space:nowrap}
+  .pill.grey{background:#ece6f1;color:var(--soft)}
+  .pill.o{background:#fff;color:var(--c);border:1.5px solid var(--c)}
+  .dv{font-weight:700;color:var(--ink);white-space:nowrap} .dv small{display:block;color:var(--mute);font-weight:600;font-size:12px;margin-top:3px}
+  .acts{display:grid;grid-template-columns:repeat(3,32px);gap:6px}
+  .acts a{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:800;text-decoration:none;color:#fff;background:var(--c)}
+  .acts a.o{background:#fff;color:var(--c);border:1.5px solid var(--c)}
+  .legend{max-width:1400px;margin:0 auto 40px;padding:0 24px;font-size:13px;color:var(--soft);line-height:1.7}
+  .legend b{color:var(--purple)}
+  .legend .k{display:inline-flex;align-items:center;gap:6px;margin-right:16px}
+  .legend .k i{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:800;color:#fff;background:var(--c)}
+  .legend .k i.o{background:#fff;color:var(--c);border:1.5px solid var(--c)}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>All orders — grid table (v1)</h1>
+  <p>Your old panel's columns, our information, one clean grid: every fact in its own cell, every action a button. Nothing tinted; colour only on status and money.</p>
+</div>
+
+<div class="frame">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a><a>Inbox</a></aside>
+  <main class="main">
+    <div class="head"><h2>All orders <span class="info">i</span></h2><button class="btn p">＋ New order</button></div>
+
+    <div class="kpis">
+      <div class="kpi hot" style="--c:var(--red)"><div class="l">Needs action</div><div class="v">48</div></div>
+      <div class="kpi" style="--c:var(--amber)"><div class="l">Preparing / out</div><div class="v">10</div></div>
+      <div class="kpi" style="--c:var(--green)"><div class="l">Delivered</div><div class="v">17</div></div>
+      <div class="kpi" style="--c:var(--purple)"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+      <div class="kpi" style="--c:var(--rg)"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+    </div>
+
+    <div class="tools">
+      <div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div>
+      <div class="search">🔍 Order no, name, phone, recipient, address</div>
+      <div class="sel">Any date ▾</div><div class="sel">Self &amp; gift ▾</div><div class="sel">All payments ▾</div><div class="sel">All channels ▾</div>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th style="width:34px"><span class="chk"></span></th>
+        <th style="width:118px">Order No</th>
+        <th style="width:170px">Date</th>
+        <th>Customer</th>
+        <th style="width:130px">Total</th>
+        <th style="width:190px">Status</th>
+        <th style="width:150px">Delivery</th>
+        <th style="width:124px">Action</th>
+      </tr></thead>
+      <tbody>
+
+      <tr class="hot">
+        <td><span class="chk"></span></td>
+        <td><div class="no">RAD-71253</div><div class="icons"><i title="Copy">⧉</i><i title="View on site">👁</i><i title="Print">🖨</i></div></td>
+        <td class="kv"><span>Placed</span><b>9 Sep 26, 5:51 PM</b><span>Deliver</span><b class="hot">Today · 9 AM – 3 PM</b></td>
+        <td>
+          <div class="name">Raiyan <span class="tag">NEW</span></div>
+          <div class="phone">01716866185 <i>⧉</i></div>
+          <div class="addr">House 201, Lane 9, Mohakhali DOHS, Cantonment, Dhaka — Flat 1B</div>
+        </td>
+        <td class="money"><div class="t"><span>Total</span><b>৳4,000</b></div><div class="p"><span>Paid</span><b>৳0</b></div><div class="d"><span>Due</span><b>৳4,000</b></div></td>
+        <td><div class="st"><label>Order</label><span class="pill" style="--c:var(--orchid)">Placed</span><label>Payment</label><span class="pill" style="--c:var(--red)">Not paid</span></div></td>
+        <td><div class="dv">Schedule it<small>Inside Dhaka · Website</small></div></td>
+        <td><div class="acts"><a style="--c:var(--purple)" title="Open">👁</a><a style="--c:var(--green)" title="Confirm">✓</a><a style="--c:var(--green)" class="o" title="Call">☎</a><a style="--c:var(--amber)" class="o" title="Edit">✎</a><a style="--c:var(--purple)" class="o" title="Print">🖨</a><a style="--c:var(--red)" class="o" title="Cancel">✕</a></div></td>
+      </tr>
+
+      <tr>
+        <td><span class="chk"></span></td>
+        <td><div class="no">RAD-66816</div><div class="icons"><i>⧉</i><i>👁</i><i>🖨</i></div></td>
+        <td class="kv"><span>Placed</span><b>8 Sep 26, 11:10 PM</b><span>Deliver</span><b>Tomorrow · 3 – 10 PM</b></td>
+        <td>
+          <div class="name">Raju Ahmed <span class="tag rep">REPEAT · 4</span> <span class="tag gift">GIFT</span></div>
+          <div class="phone">01940974467 <i>⧉</i></div>
+          <div class="rec">To <b>Nusrat Jahan</b> · 01711223344</div>
+          <div class="addr">Road 11, Block D, Banani, Dhaka — House 42</div>
+        </td>
+        <td class="money"><div class="t"><span>Total</span><b>৳7,650</b></div><div class="p"><span>Paid</span><b>৳7,650</b></div><div class="d zero"><span>Due</span><b>৳0</b></div></td>
+        <td><div class="st"><label>Order</label><span class="pill" style="--c:var(--indigo)">Confirmed</span><label>Payment</label><span class="pill" style="--c:var(--green)">Paid</span></div></td>
+        <td><div class="dv">Schedule it<small>Inside Dhaka · Website</small></div></td>
+        <td><div class="acts"><a style="--c:var(--purple)">👁</a><a style="--c:var(--amber)" title="Start preparing">▶</a><a style="--c:var(--green)" class="o">☎</a><a style="--c:var(--amber)" class="o">✎</a><a style="--c:var(--purple)" class="o">🖨</a><a style="--c:var(--red)" class="o">✕</a></div></td>
+      </tr>
+
+      <tr>
+        <td><span class="chk"></span></td>
+        <td><div class="no">RAD-87735</div><div class="icons"><i>⧉</i><i>👁</i><i>🖨</i></div></td>
+        <td class="kv"><span>Placed</span><b>8 Sep 26, 2:20 PM</b><span>Deliver</span><b>Tonight · 11:55 PM</b></td>
+        <td>
+          <div class="name">Nusrat Jahan</div>
+          <div class="phone">01711223344 <i>⧉</i></div>
+          <div class="addr">Plot 7, Sector 4, Uttara, Dhaka</div>
+        </td>
+        <td class="money"><div class="t"><span>Total</span><b>৳3,650</b></div><div class="p"><span>Paid</span><b>৳0</b></div><div class="d"><span>Due</span><b>৳3,650</b></div></td>
+        <td><div class="st"><label>Order</label><span class="pill" style="--c:var(--indigo)">Confirmed</span><label>Payment</label><span class="pill" style="--c:var(--amber)">COD</span></div></td>
+        <td><div class="dv">Midnight Delivery<small>Inside Dhaka · WhatsApp</small><span class="pill" style="--c:var(--blue);margin-top:6px">Out for delivery</span></div></td>
+        <td><div class="acts"><a style="--c:var(--purple)">👁</a><a style="--c:var(--green)" title="Mark delivered">✓</a><a style="--c:var(--green)" class="o">☎</a><a style="--c:var(--amber)" class="o">✎</a><a style="--c:var(--purple)" class="o">🖨</a><a style="--c:var(--red)" class="o">✕</a></div></td>
+      </tr>
+
+      <tr>
+        <td><span class="chk"></span></td>
+        <td><div class="no">RAD-70104</div><div class="icons"><i>⧉</i><i>👁</i><i>🖨</i></div></td>
+        <td class="kv"><span>Placed</span><b>7 Sep 26, 9:02 AM</b><span>Delivered</span><b>7 Sep 26, 12:40 PM</b></td>
+        <td>
+          <div class="name">Raju <span class="tag gift">GIFT</span></div>
+          <div class="phone">01819988776 <i>⧉</i></div>
+          <div class="rec">To <b>Mrs. Farhana Karim</b> · 01755667788</div>
+          <div class="addr">Gulshan 2, Road 90, Dhaka — Apartment 5C</div>
+        </td>
+        <td class="money"><div class="t"><span>Total</span><b>৳64,055</b></div><div class="p"><span>Paid</span><b>৳64,055</b></div><div class="d zero"><span>Due</span><b>৳0</b></div></td>
+        <td><div class="st"><label>Order</label><span class="pill" style="--c:var(--green)">Completed</span><label>Payment</label><span class="pill" style="--c:var(--green)">Paid</span></div></td>
+        <td><div class="dv">3 Hours Delivery<small>Inside Dhaka · Website</small><span class="pill" style="--c:var(--green);margin-top:6px">Delivered</span></div></td>
+        <td><div class="acts"><a style="--c:var(--purple)">👁</a><a style="--c:var(--purple)" class="o" title="Photos">📷</a><a style="--c:var(--green)" class="o">☎</a><a style="--c:var(--purple)" class="o">🖨</a><a style="--c:var(--rg)" class="o" title="Return">↩</a></div></td>
+      </tr>
+
+      <tr>
+        <td><span class="chk"></span></td>
+        <td><div class="no">RAD-95386</div><div class="icons"><i>⧉</i><i>👁</i><i>🖨</i></div></td>
+        <td class="kv"><span>Placed</span><b>6 Sep 26, 7:15 PM</b><span>Cancelled</span><b>6 Sep 26, 7:40 PM</b></td>
+        <td>
+          <div class="name">Sobuj Gazi <span class="tag rep">REPEAT · 12</span></div>
+          <div class="phone">01940974467 <i>⧉</i></div>
+          <div class="addr">Comilla Sadar, Comilla</div>
+        </td>
+        <td class="money"><div class="t"><span>Total</span><b>৳24,348</b></div><div class="p"><span>Paid</span><b>৳0</b></div><div class="d zero"><span>Due</span><b>৳0</b></div></td>
+        <td><div class="st"><label>Order</label><span class="pill o" style="--c:var(--red)">Cancelled</span><label>Payment</label><span class="pill grey">—</span></div></td>
+        <td><div class="dv">Courier<small>Nationwide · Facebook</small></div></td>
+        <td><div class="acts"><a style="--c:var(--purple)" class="o">👁</a><a style="--c:var(--purple)" class="o">🖨</a></div></td>
+      </tr>
+
+      </tbody>
+    </table>
+  </main>
+</div>
+
+<div class="legend">
+  <b>Action buttons, left to right:</b>
+  <span class="k"><i style="--c:var(--purple)">👁</i>Open</span>
+  <span class="k"><i style="--c:var(--green)">✓</i>Next step (Confirm → Start preparing → Mark delivered)</span>
+  <span class="k"><i class="o" style="--c:var(--green)">☎</i>Call</span>
+  <span class="k"><i class="o" style="--c:var(--amber)">✎</i>Edit</span>
+  <span class="k"><i class="o" style="--c:var(--purple)">🖨</i>Print</span>
+  <span class="k"><i class="o" style="--c:var(--red)">✕</i>Cancel</span>
+  <br /><b>Filled = the one thing to do next.</b> Outlined = there if you need it. A finished or cancelled order shows only what still makes sense.
+</div>
+</body>
+</html>

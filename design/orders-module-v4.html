@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radian · All orders + Lost orders v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#470066;--deep:#320049;--orchid:#cf43ea;--lav:#f7f1fb;--lavd:#e6d9f0;--line:#e4dbec;--ink:#221733;--mute:#7b6b87;--green:#0e8a44;--amber:#d97706;--red:#d92d20;--indigo:#4f46e5;--blue:#1d7fd6;--grey:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Jost,system-ui,sans-serif;font-size:13px;font-weight:400;line-height:1.4;color:var(--ink);background:#f5f1f8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
+b,strong{font-weight:500}
+.wrap{max-width:1340px;margin:0 auto;padding:18px 22px 80px}
+.pagebar{display:flex;gap:6px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px;width:max-content}
+.pagebar button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:500;color:var(--mute)}
+.pagebar button.on{background:var(--purple);color:#fff}
+.page{display:none}.page.on{display:block}
+.legend{font-size:12px;color:var(--mute);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin-bottom:12px}
+.legend b{color:var(--purple)}
+/* band — same as live */
+.band{border-radius:20px;padding:20px 24px 24px;margin-bottom:16px;color:#fff;background:linear-gradient(135deg,#320049 0%,#5a0a80 100%)}
+.band .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.band h1{font-family:Fraunces,serif;font-size:24px;font-weight:600;line-height:1;display:inline-flex;align-items:center;gap:10px}
+.band h1 i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.4);font:500 11px Jost;display:grid;place-items:center;font-style:normal}
+.newbtn{background:#fff;color:var(--purple);font-weight:500;font-size:14px;padding:10px 20px;border-radius:12px;border:0}
+.rules{font-size:12.5px;color:#d9c5e6;font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.tile{display:block;border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);text-align:left;color:#fff}
+.tile:hover{background:rgba(255,255,255,.14)}
+.tile.on{background:#fff;color:var(--purple);border-color:#fff}
+.tile.on .k{color:var(--mute)}
+.tile .k{display:block;font-size:11.5px;font-weight:500;color:#d9c5e6}
+.tile .v{display:block;font-size:22px;font-weight:500;line-height:1;margin-top:8px}
+.tile .v.hot{color:#ffb4ad}.tile.on .v.hot{color:var(--red)}
+.tile .s{display:block;font-size:11.5px;margin-top:6px;opacity:.75}
+/* toolbar — same as live */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.segs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:2px}
+.segs button{border:0;background:transparent;padding:8px 13px;border-radius:9px;font-weight:500;font-size:13px;color:var(--mute)}
+.segs button.on{background:var(--purple);color:#fff}
+.segs button span{margin-left:5px;opacity:.7}
+.search{flex:1;min-width:240px;position:relative}
+.ipt{height:40px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;font:inherit;font-size:13px;color:var(--ink);width:100%}
+.search .ipt{padding-left:34px}
+.search:before{content:"⌕";position:absolute;left:12px;top:9px;font-size:16px;color:var(--mute)}
+select.ipt{width:auto;min-width:140px;font-weight:500}
+.count{color:var(--mute);font-weight:500}
+/* table — cleaner: no vertical lines, one weight */
+.tbl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1080px}
+th{text-align:left;background:var(--lav);color:var(--purple);font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #efe9f4;vertical-align:top;font-size:13px;line-height:1.45}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fcfaff}
+td.hot{box-shadow:inset 4px 0 0 var(--red)}
+.chk{width:15px;height:15px;accent-color:var(--purple);margin-top:2px}
+.no{color:var(--purple);font-weight:500;white-space:nowrap}
+.name{color:var(--purple);font-weight:500}
+.phone{color:var(--ink);font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.lab{display:block;font-size:11px;color:var(--mute);font-weight:500;line-height:1.2;margin-top:1px}
+.lab+.val{margin-bottom:7px}
+.val{display:block;font-weight:500;color:var(--ink)}
+.val.red{color:var(--red)}
+.soft{color:var(--mute)}
+.icons{display:flex;gap:6px;margin-top:8px}
+.icons span{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;color:var(--mute);background:#fff}
+.tag{display:inline-block;font-size:10.5px;font-weight:500;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:1px;color:#fff}
+.tag.new{background:var(--blue)}.tag.rep{background:var(--green)}.tag.gift{background:var(--orchid)}
+.pill{display:inline-flex;align-items:center;font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:999px;white-space:nowrap;line-height:1.2}
+.pill.placed{background:#fff3e0;color:var(--amber)}.pill.confirmed{background:#e8e7fd;color:var(--indigo)}.pill.preparing{background:#e3f0fb;color:var(--blue)}.pill.out{background:#f9e3fb;color:#a11cc0}.pill.delivered,.pill.paid,.pill.recovered{background:#e3f4ea;color:var(--green)}.pill.cancelled,.pill.unpaid,.pill.failed{background:#fdeceb;color:var(--red)}.pill.cod{background:#ece8f0;color:#4d3d5a}.pill.advance{background:#fff3e0;color:var(--amber)}.pill.grey,.pill.closed{background:#eeeeee;color:var(--grey)}.pill.left{background:#fff3e0;color:var(--amber)}.pill.timeout{background:#eeeeee;color:var(--grey)}
+.stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.money{display:grid;grid-template-columns:38px 1fr;gap:3px 6px;white-space:nowrap}
+.money span{font-size:11px;color:var(--mute);font-weight:500;line-height:1.5}
+.money b{font-weight:500}
+.money b.g{color:var(--green)}.money b.r{color:var(--red)}.money b.d{color:var(--grey)}
+.acts{display:flex;flex-direction:column;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;color:var(--purple);white-space:nowrap;width:100%}
+.btn.p{background:var(--purple);border-color:var(--purple);color:#fff}
+.btn.next{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.orchid{background:var(--orchid);border-color:var(--orchid);color:#fff}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn.call{color:var(--green);border-color:#bfe3cd}
+/* lost orders */
+.kv{display:grid;grid-template-columns:70px 1fr;gap:2px 8px;margin-top:8px;padding:8px 10px;background:#faf7fc;border:1px solid var(--line);border-radius:10px;font-size:12.5px;line-height:1.45}
+.kv span{color:var(--mute);font-weight:500}
+.kv b{font-weight:400;color:var(--ink)}
+.kv b.e{color:#b8a9c5}
+.stage{display:flex;gap:3px;margin-top:8px}
+.stage i{width:18px;height:6px;border-radius:3px;background:#e7dff0}
+.stage i.f{background:var(--purple)}
+.stage-l{font-size:11px;color:var(--mute);margin-top:3px;font-weight:500}
+.reason{color:var(--red);font-weight:500}
+.reason.m{color:var(--mute)}
+.last{font-size:12px;color:var(--mute)}
+.last b{font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pagebar"><button class="on" data-p="all" onclick="go('all')">All orders</button><button data-p="lost" onclick="go('lost')">Lost orders</button></div>
+
+  <!-- ================= ALL ORDERS ================= -->
+  <section class="page on" id="p-all">
+    <div class="legend">Same layout as live. What changed: one typeface, <b>everything 13px</b> — names, order numbers, money included (weight 500, never bold); labels 11px grey; vertical column lines removed; status pills are soft-tinted, not solid; action buttons one size; tiles filter this page (Revenue → Reports, To collect → Payments). Cancelled added as a filter.</div>
+    <div class="band">
+      <div class="top">
+        <h1>All orders <i>i</i></h1>
+        <button class="newbtn">+ New order</button>
+      </div>
+      <div class="tiles">
+        <button class="tile on" onclick="tile(this,1)"><span class="k">Needs action</span><span class="v hot">7</span><span class="s">placed, not confirmed</span></button>
+        <button class="tile" onclick="tile(this,2)"><span class="k">Preparing / out</span><span class="v">12</span><span class="s">4 out for delivery</span></button>
+        <button class="tile" onclick="tile(this,4)"><span class="k">Delivered today</span><span class="v">19</span><span class="s">3 late</span></button>
+        <a class="tile"><span class="k">Revenue today</span><span class="v">৳ 62,300</span><span class="s">Reports →</span></a>
+        <a class="tile"><span class="k">To collect</span><span class="v">৳ 18,450</span><span class="s">Payments →</span></a>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="segs" id="segs"><button class="on">All<span>41</span></button><button>Needs action<span>7</span></button><button>Preparing / out<span>12</span></button><button>Confirmed<span>3</span></button><button>Delivered<span>19</span></button><button>Cancelled<span>2</span></button></div>
+      <div class="search"><input class="ipt" placeholder="Order no, name, phone, recipient, address"></div>
+      <select class="ipt"><option>All delivery</option><option>2 hour</option><option>Same day</option><option>Midnight</option><option>Nationwide</option></select>
+      <select class="ipt"><option>All payment</option><option>Paid</option><option>Unpaid</option><option>COD</option></select>
+      <span class="count">41 orders</span>
+    </div>
+
+    <div class="tbl"><table>
+      <thead><tr><th><input type="checkbox" class="chk"></th><th>Order No</th><th>Date</th><th>Customer</th><th>Total</th><th>Status</th><th>Delivery</th><th>Action</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="hot"><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10231</span><div class="icons"><span>⧉</span><span>✆</span><span>✎</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">09 Sep · 10:42 am</span><span class="lab">Deliver</span><span class="val red">Today · 11:30 pm – 12:00 am</span></td>
+        <td><span class="name">Nusrat Jahan</span><span class="tag new">NEW</span><span class="tag gift">GIFT</span><div style="margin-top:3px"><span class="phone">01711-223344 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:3px">To <b style="color:var(--ink)">Raisa</b> · 01998-777666</div><div class="soft" style="margin-top:2px">House 12, Road 11, Banani, Dhaka</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 3,450</b><span>Paid</span><b class="d">৳ 0</b><span>Due</span><b class="r">৳ 3,450</b></div></td>
+        <td><div class="stack"><span class="pill placed">Placed</span><span class="pill cod">Cash on delivery</span></div></td>
+        <td><span class="val">Midnight</span><span class="soft">Dhaka · Website</span></td>
+        <td><div class="acts"><a class="btn p">Open</a><button class="btn next">Confirm</button><a class="btn call">Call</a></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10230</span><div class="icons"><span>⧉</span><span>✆</span><span>✎</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">09 Sep · 10:15 am</span><span class="lab">Deliver</span><span class="val">Today · by 12:30 pm</span></td>
+        <td><span class="name">Tanvir Ahmed</span><span class="tag rep">REPEAT · 4</span><div style="margin-top:3px"><span class="phone">01819-556677 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:2px">Road 55, Gulshan 2, Dhaka</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 2,150</b><span>Paid</span><b class="g">৳ 2,150</b><span>Due</span><b class="d">৳ 0</b></div></td>
+        <td><div class="stack"><span class="pill confirmed">Confirmed</span><span class="pill paid">Paid · bKash</span></div></td>
+        <td><span class="val">2 hour</span><span class="soft">Dhaka · Website</span><div style="margin-top:6px"><span class="pill preparing">Preparing</span></div></td>
+        <td><div class="acts"><a class="btn p">Open</a><button class="btn orchid">Out for delivery</button><a class="btn call">Call</a></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10229</span><div class="icons"><span>⧉</span><span>✆</span><span>✎</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">09 Sep · 09:50 am</span><span class="lab">Deliver</span><span class="val">Today · 4:00 – 6:00 pm</span></td>
+        <td><span class="name">Sadia Islam</span><span class="tag rep">REPEAT · 2</span><span class="tag gift">GIFT</span><div style="margin-top:3px"><span class="phone">01911-778899 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:3px">To <b style="color:var(--ink)">Ammu</b> · 01711-000222</div><div class="soft" style="margin-top:2px">Sector 7, Uttara, Dhaka</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 3,200</b><span>Paid</span><b class="g">৳ 2,000</b><span>Due</span><b class="r">৳ 1,200</b></div></td>
+        <td><div class="stack"><span class="pill confirmed">Confirmed</span><span class="pill advance">Advance paid</span></div></td>
+        <td><span class="val">Same day</span><span class="soft">Dhaka · Facebook</span><div style="margin-top:6px"><span class="pill out">Out for delivery</span></div></td>
+        <td><div class="acts"><a class="btn p">Open</a><button class="btn green">Delivered</button><a class="btn call">Call</a></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10228</span><div class="icons"><span>⧉</span><span>✆</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">09 Sep · 09:12 am</span><span class="lab">Delivered</span><span class="val">Today · 12:05 pm</span></td>
+        <td><span class="name">Rafiq Corporation</span><span class="tag rep">REPEAT · 11</span><div style="margin-top:3px"><span class="phone">01555-112233 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:2px">Level 4, Motijheel C/A, Dhaka</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 9,600</b><span>Paid</span><b class="g">৳ 9,600</b><span>Due</span><b class="d">৳ 0</b></div></td>
+        <td><div class="stack"><span class="pill delivered">Completed</span><span class="pill paid">Paid · Card</span></div></td>
+        <td><span class="val">Same day</span><span class="soft">Dhaka · Website</span><div style="margin-top:6px"><span class="pill delivered">Delivered</span></div></td>
+        <td><div class="acts"><a class="btn p">Open</a></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10227</span><div class="icons"><span>⧉</span><span>✆</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">09 Sep · 08:40 am</span><span class="lab">Cancelled</span><span class="val">09:02 am · by customer</span></td>
+        <td><span class="name">Mehedi Hasan</span><span class="tag new">NEW</span><div style="margin-top:3px"><span class="phone">01677-889900 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:2px">Block C, Mirpur 10, Dhaka</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 1,850</b><span>Paid</span><b class="d">৳ 1,850</b><span>Refund</span><b class="d">৳ 1,850</b></div></td>
+        <td><div class="stack"><span class="pill cancelled">Cancelled</span><span class="pill grey">Refunded</span></div></td>
+        <td><span class="val">Same day</span><span class="soft">Dhaka · Website</span></td>
+        <td><div class="acts"><a class="btn p">Open</a></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10226</span><div class="icons"><span>⧉</span><span>✆</span><span>✎</span></div></td>
+        <td><span class="lab">Placed</span><span class="val">08 Sep · 11:10 pm</span><span class="lab">Deliver</span><span class="val">Today · by 6:00 pm</span></td>
+        <td><span class="name">Farhana Akter</span><span class="tag rep">REPEAT · 2</span><span class="tag gift">GIFT</span><div style="margin-top:3px"><span class="phone">01333-445566 <small class="soft">⧉</small></span></div><div class="soft" style="margin-top:3px">To <b style="color:var(--ink)">Rumi</b> · 01822-555111</div><div class="soft" style="margin-top:2px">Nasirabad, Chattogram</div></td>
+        <td><div class="money"><span>Total</span><b>৳ 2,700</b><span>Paid</span><b class="d">৳ 0</b><span>Due</span><b class="r">৳ 2,700</b></div></td>
+        <td><div class="stack"><span class="pill placed">Placed</span><span class="pill unpaid">Unpaid · online</span></div></td>
+        <td><span class="val">Nationwide</span><span class="soft">Chattogram · Website</span></td>
+        <td><div class="acts"><a class="btn p">Open</a><button class="btn next">Confirm</button><a class="btn call">Call</a></div></td>
+      </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ================= LOST ORDERS ================= -->
+  <section class="page" id="p-lost">
+    <div class="legend">Same columns as live. <b>Ref</b> now reads: order number + "Order placed", or "Checkout lead" + short id + "No order yet". <b>Who &amp; what they left</b>: name · phone · email, then a label → value block (Recipient / Address / Deliver / Message / Items) one per line — nothing chained with dots, empty = "—". Same 13px, same weights as All orders.</div>
+    <div class="band">
+      <div class="top">
+        <h1>Lost orders <i>i</i></h1>
+        <a class="rules">Rules · Recovery settings ›</a>
+      </div>
+      <div class="tiles" style="grid-template-columns:repeat(4,1fr)">
+        <div class="tile"><span class="k">Open now</span><span class="v hot">31</span><span class="s">6 left at checkout · 8 failed · 17 unpaid</span></div>
+        <div class="tile"><span class="k">Value at stake</span><span class="v">৳ 74,900</span><span class="s">open rows</span></div>
+        <div class="tile"><span class="k">Recovered · 30 days</span><span class="v">14 · ৳ 38,200</span><span class="s">came back and paid</span></div>
+        <div class="tile"><span class="k">Auto-messaged · 30 days</span><span class="v">22</span><span class="s">WhatsApp / SMS sent</span></div>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="segs"><button class="on">Open<span>31</span></button><button>Left at checkout<span>6</span></button><button>Failed / cancelled<span>8</span></button><button>Unpaid<span>17</span></button><button>Recovered<span>14</span></button><button>Closed<span>22</span></button></div>
+      <div class="search"><input class="ipt" placeholder="Name, phone, order no"></div>
+      <span class="count">31 rows</span>
+    </div>
+
+    <div class="tbl"><table>
+      <thead><tr><th><input type="checkbox" class="chk"></th><th>Ref</th><th>When</th><th>Who &amp; what they left</th><th>Value</th><th>Why it stopped</th><th>Action</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">Checkout lead</span><span class="soft" style="display:block">L-1042</span><span class="lab">No order yet</span></td>
+        <td><span class="lab">Last seen</span><span class="val">09 Sep · 11:05 am</span><span class="soft">18 min ago</span><div style="margin-top:6px"><span class="pill preparing">Auto-messaged</span></div></td>
+        <td>
+          <span class="name">Sumaiya Rahman</span><span class="tag gift">GIFT</span>
+          <div style="margin-top:3px"><span class="phone">01712-000111 <small class="soft">⧉</small></span> <span class="soft">· sumaiya@gmail.com</span></div>
+          <div class="kv"><span>Recipient</span><b>Nadia · 01998-777666</b><span>Address</span><b>House 12, Road 4, Dhanmondi, Dhaka</b><span>Deliver</span><b>Today · Midnight</b><span>Message</span><b>"Happy birthday my love"</b><span>Items</span><b>Crimson Devotion ×1, Ferrero Rocher 24 ×1</b></div>
+          <div class="stage"><i class="f"></i><i class="f"></i><i class="f"></i><i></i></div><div class="stage-l">Left at Payment</div>
+        </td>
+        <td><span class="lab">Cart</span><span class="val">৳ 4,350</span><span class="soft">2 items</span></td>
+        <td><div class="stack"><span class="pill left">Left at checkout</span><span class="reason">Stopped at payment step</span><span class="last">No follow-up yet</span></div></td>
+        <td><div class="acts"><a class="btn green">Call</a><a class="btn call">WhatsApp cart link</a><button class="btn">Handled</button></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10225</span><span class="lab">Order placed</span></td>
+        <td><span class="lab">Last seen</span><span class="val">08 Sep · 10:41 pm</span><span class="soft">12 hours ago</span></td>
+        <td>
+          <span class="name">Arif Hossain</span><span class="tag rep">REPEAT · 3</span>
+          <div style="margin-top:3px"><span class="phone">01822-333444 <small class="soft">⧉</small></span></div>
+          <div class="kv"><span>Recipient</span><b>Self</b><span>Address</span><b>Flat B3, Block D, Bashundhara R/A, Dhaka</b><span>Deliver</span><b>09 Sep · Same day · 4–6 pm</b><span>Message</span><b class="e">—</b><span>Items</span><b>Blush Harmony ×1</b></div>
+          <div class="stage"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div><div class="stage-l">Order placed</div>
+        </td>
+        <td><span class="lab">Order</span><span class="val">৳ 2,150</span><span class="soft">1 item</span></td>
+        <td><div class="stack"><span class="pill failed">Payment failed</span><span class="reason">bKash · insufficient balance</span><span class="last"><b style="color:var(--amber)">No answer</b> · Rakib · 09 Sep 9:10 am</span></div></td>
+        <td><div class="acts"><a class="btn green">Call</a><a class="btn call">Send pay link</a><a class="btn">Open order</a><button class="btn">Handled</button></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10219</span><span class="lab">Order placed</span></td>
+        <td><span class="lab">Last seen</span><span class="val">08 Sep · 05:12 pm</span><span class="soft">18 hours ago</span></td>
+        <td>
+          <span class="name">Jannat Ferdous</span><span class="tag new">NEW</span><span class="tag gift">GIFT</span>
+          <div style="margin-top:3px"><span class="phone">01455-666777 <small class="soft">⧉</small></span> <span class="soft">· jannat.f@yahoo.com</span></div>
+          <div class="kv"><span>Recipient</span><b>Abbu · 01711-999000</b><span>Address</span><b>Agrabad, Chattogram</b><span>Deliver</span><b>10 Sep · Nationwide</b><span>Message</span><b>"Happy anniversary Abbu &amp; Ammu"</b><span>Items</span><b>Everlasting ×1, Greeting card ×1</b></div>
+          <div class="stage"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div><div class="stage-l">Order placed</div>
+        </td>
+        <td><span class="lab">Order</span><span class="val">৳ 2,900</span><span class="soft">2 items</span></td>
+        <td><div class="stack"><span class="pill timeout">Unpaid · closed tab</span><span class="reason">Chose online, never paid</span><span class="last">No follow-up yet</span></div></td>
+        <td><div class="acts"><a class="btn green">Call</a><a class="btn call">Send pay link</a><a class="btn">Open order</a><button class="btn">Handled</button></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">Checkout lead</span><span class="soft" style="display:block">L-1039</span><span class="lab">No order yet</span></td>
+        <td><span class="lab">Last seen</span><span class="val">09 Sep · 08:30 am</span><span class="soft">3 hours ago</span></td>
+        <td>
+          <span class="name soft">No name typed</span>
+          <div style="margin-top:3px"><span class="phone">01633-222111 <small class="soft">⧉</small></span></div>
+          <div class="kv"><span>Recipient</span><b class="e">—</b><span>Address</span><b class="e">—</b><span>Deliver</span><b class="e">—</b><span>Message</span><b class="e">—</b><span>Items</span><b>Sunny Wishes ×2</b></div>
+          <div class="stage"><i class="f"></i><i></i><i></i><i></i></div><div class="stage-l">Left at Details</div>
+        </td>
+        <td><span class="lab">Cart</span><span class="val">৳ 3,700</span><span class="soft">2 items</span></td>
+        <td><div class="stack"><span class="pill left">Left at checkout</span><span class="reason">Stopped at contact step</span><span class="last">No follow-up yet</span></div></td>
+        <td><div class="acts"><a class="btn green">Call</a><a class="btn call">WhatsApp cart link</a><button class="btn">Handled</button></div></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" class="chk"></td>
+        <td><span class="no">RD-10203</span><span class="lab">Order placed</span></td>
+        <td><span class="lab">Last seen</span><span class="val">06 Sep · 02:20 pm</span><span class="soft">3 days ago</span></td>
+        <td>
+          <span class="name">Nabila Karim</span><span class="tag rep">REPEAT · 2</span>
+          <div style="margin-top:3px"><span class="phone">01700-121212 <small class="soft">⧉</small></span></div>
+          <div class="kv"><span>Recipient</span><b>Self</b><span>Address</span><b>Road 8, Baridhara, Dhaka</b><span>Deliver</span><b>06 Sep · 2 hour</b><span>Message</span><b class="e">—</b><span>Items</span><b>Blush Harmony ×1</b></div>
+          <div class="stage"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div><div class="stage-l">Order placed</div>
+        </td>
+        <td><span class="lab">Order</span><span class="val">৳ 2,150</span><span class="soft">1 item</span></td>
+        <td><div class="stack"><span class="pill recovered">Recovered</span><span class="reason m">Paid on 2nd attempt · bKash</span><span class="last"><b style="color:var(--green)">Will pay</b> · Rakib · 06 Sep 2:40 pm</span></div></td>
+        <td><div class="acts"><a class="btn">Open order</a></div></td>
+      </tr>
+      </tbody>
+    </table></div>
+  </section>
+</div>
+<script>
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));document.querySelectorAll('.pagebar button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));window.scrollTo(0,0)}
+function tile(t,i){t.parentElement.querySelectorAll('.tile').forEach(x=>x.classList.remove('on'));t.classList.add('on');const s=document.querySelectorAll('#segs button');s.forEach(b=>b.classList.remove('on'));s[i].classList.add('on')}
+</script>
+</body>
+</html>

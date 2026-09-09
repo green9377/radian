@@ -1,6 +1,6 @@
-import { OrdersScheduled } from "../../_components/OrderViews";
+import { redirect } from "next/navigation";
 
-/* /orders/scheduled — open orders grouped by promised date. */
-export default function OrdersScheduledPage() {
-  return <OrdersScheduled />;
+/* /orders/scheduled left the menu 9 Sep 2026 — All orders, Preparing / out. */
+export default function Page() {
+  redirect("/orders/list");
 }

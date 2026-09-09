@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian Admin — Order page, five layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Jost:wght@500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --purple:#470066; --deep:#320049; --ink:#170922; --soft:#4a3a56; --mute:#7b6b87;
+    --orchid:#cf43ea; --lav:#f7f1fb; --lavd:#e6d9f0; --line:#dfd3ea; --rg:#b76e79;
+    --green:#0e8a44; --amber:#d97706; --red:#d92d20; --indigo:#4f46e5; --blue:#1d7fd6;
+    --fr:'Fraunces',Georgia,serif; --jo:'Jost',sans-serif; --ma:'Manrope',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e3ef;color:var(--ink);font-family:var(--jo);font-weight:500}
+  .top{max-width:1400px;margin:0 auto;padding:24px 24px 4px}
+  .top h1{font-family:var(--fr);font-weight:700;font-size:26px;color:var(--purple);margin:0 0 6px}
+  .top p{margin:0;font-size:14px;color:var(--soft);line-height:1.6;max-width:940px}
+  .jump{position:sticky;top:0;z-index:5;background:#e9e3ef;padding:10px 24px;max-width:1400px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap}
+  .jump a{font-family:var(--ma);font-weight:800;font-size:12.5px;text-decoration:none;color:var(--purple);background:#fff;border:1.5px solid var(--line);padding:8px 14px;border-radius:999px}
+  .cap{max-width:1400px;margin:22px auto 0;padding:0 24px;display:flex;align-items:baseline;gap:14px}
+  .cap b{font-family:var(--ma);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--purple)}
+  .cap span{font-size:13.5px;color:var(--soft)}
+  .frame{max-width:1400px;margin:10px auto 0;border-radius:22px;overflow:hidden;box-shadow:0 10px 36px rgba(71,0,102,.08);border:1px solid #d9cfe3;background:#f6f3f9;padding:22px 24px 26px;min-height:520px}
+
+  /* atoms */
+  .btn{font-weight:700;font-size:13px;border-radius:10px;padding:9px 14px;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;font-family:var(--jo)}
+  .btn.p{background:var(--purple);color:#fff} .btn.g{background:var(--green);color:#fff} .btn.o{background:#fff;color:var(--purple);border-color:var(--lavd)} .btn.d{background:#fff;color:var(--red);border-color:#f3c4c0} .btn.w{background:#fff;color:var(--purple)}
+  .btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+  .pill{display:inline-flex;align-items:center;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;color:#fff;background:var(--c);white-space:nowrap}
+  .pill.o{background:#fff;color:var(--c);border:1.5px solid var(--c)}
+  .tag{font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;color:#fff;background:var(--c)}
+  .card{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:16px 18px}
+  .card h3{margin:0 0 10px;font-family:var(--fr);font-weight:700;font-size:17px;color:var(--purple);display:flex;align-items:center;gap:8px}
+  .card h3 .r{margin-left:auto}
+  .info{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--lavd);color:var(--purple);font-size:10px;display:inline-grid;place-items:center;font-weight:700}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+  .kv div{padding:7px 0;border-bottom:1px solid #f0eaf5;display:flex;justify-content:space-between;gap:12px;font-size:13.5px}
+  .kv div span{color:var(--mute);font-weight:600} .kv div b{font-weight:700;text-align:right}
+  .kv.one{grid-template-columns:1fr}
+  .line{display:grid;grid-template-columns:44px 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #f0eaf5} .line:first-of-type{border-top:0}
+  .line .ph{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#f3e8fb,#e8d3f5)}
+  .line b{font-weight:700;font-size:13.5px} .line small{display:block;color:var(--mute);font-weight:600;font-size:12px}
+  .line .q{font-weight:800;color:var(--mute)} .line .p{font-family:var(--fr);font-weight:800;font-size:15px}
+  .total{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:10px;border-top:2px solid var(--lavd)}
+  .total b{font-family:var(--fr);font-weight:800;font-size:22px;color:var(--purple)} .total span{font-weight:800;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .fact{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px 12px 16px;position:relative;overflow:hidden}
+  .fact:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:5px;border-radius:0 6px 6px 0;background:var(--c)}
+  .fact .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute)}
+  .fact .v{font-family:var(--fr);font-weight:800;font-size:21px;color:var(--ink);margin-top:4px;line-height:1.1}
+  .fact .s{font-size:12px;font-weight:700;color:var(--mute);margin-top:4px} .fact .s.due{color:var(--red)}
+  .steps{display:grid;grid-template-columns:repeat(5,1fr);position:relative}
+  .steps:before{content:"";position:absolute;left:10%;right:10%;top:14px;height:4px;background:#ece5f2;border-radius:4px}
+  .st{position:relative;text-align:center;z-index:1}
+  .st i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;margin:0 auto;background:#fff;border:3px solid #ece5f2;font-style:normal;font-weight:800;font-size:12px;color:var(--mute)}
+  .st.now i{border-color:var(--purple);color:var(--purple);box-shadow:0 0 0 4px rgba(71,0,102,.12)}
+  .st b{display:block;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--mute)} .st.now b{color:var(--ink)}
+  .st .now-tag{display:inline-block;margin-top:4px;font-size:10px;font-weight:800;letter-spacing:.08em;background:var(--orchid);color:#fff;padding:2px 7px;border-radius:999px}
+  .dark .steps:before{background:rgba(255,255,255,.18)} .dark .st i{background:var(--deep);border-color:rgba(255,255,255,.3);color:#e7d8f2} .dark .st.now i{background:#fff;border-color:#fff;color:var(--purple);box-shadow:0 0 0 4px rgba(255,255,255,.2)} .dark .st b{color:#d9c5e6} .dark .st.now b{color:#fff}
+  .preview{background:#fff;border:1.5px solid var(--line);border-radius:16px;overflow:hidden}
+  .preview .ph{background:linear-gradient(135deg,var(--purple),var(--orchid));color:#fff;padding:12px 14px}
+  .preview .ph small{display:block;font-family:var(--ma);font-weight:800;font-size:11px;opacity:.85} .preview .ph b{font-family:var(--fr);font-size:16px;font-weight:700}
+  .preview ul{list-style:none;margin:0;padding:10px 14px}
+  .preview li{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13px;font-weight:600;color:var(--mute)}
+  .preview li i{width:14px;height:14px;border-radius:50%;background:#e7dff0} .preview li.on{color:var(--ink);font-weight:700} .preview li.on i{background:var(--purple)}
+  .secnav{background:var(--deep);border-radius:16px;padding:8px;font-family:var(--ma);align-self:start}
+  .secnav a{display:flex;align-items:center;justify-content:space-between;color:#e7d8f2;text-decoration:none;font-weight:800;font-size:13px;padding:10px 12px;border-radius:11px}
+  .secnav a.on{background:#fff;color:var(--purple)} .secnav a em{font-style:normal;font-size:11px;background:rgba(255,255,255,.14);padding:2px 7px;border-radius:999px} .secnav a.on em{background:var(--lav);color:var(--purple)}
+  .log{list-style:none;margin:0;padding:0}
+  .log li{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid #f0eaf5;font-size:13px}
+  .log li:first-child{border-top:0}
+  .log li i{width:12px;height:12px;border-radius:50%;background:var(--lavd);margin-top:3px} .log li.on i{background:var(--purple)}
+  .log li b{font-weight:700} .log li small{display:block;color:var(--mute);font-weight:600;font-size:12px}
+  .log li time{color:var(--mute);font-weight:600;font-size:12px;white-space:nowrap}
+  .h-title{font-family:var(--fr);font-weight:800;font-size:26px;color:var(--purple);margin:0;display:flex;align-items:center;gap:10px}
+  .h-meta{font-size:13px;font-weight:600;color:var(--soft);margin-top:3px}
+  .back{width:38px;height:38px;border-radius:11px;background:#fff;border:1.5px solid var(--line);display:grid;place-items:center;color:var(--purple);font-weight:800}
+  .tabs{display:flex;gap:2px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:4px;margin:14px 0}
+  .tabs span{padding:8px 14px;border-radius:9px;font-weight:700;font-size:13px;color:var(--soft)} .tabs span.on{background:var(--purple);color:#fff}
+  .tabs span em{font-style:normal;font-size:11px;background:rgba(0,0,0,.07);padding:1px 6px;border-radius:999px;margin-left:6px} .tabs span.on em{background:rgba(255,255,255,.22)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .facts4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+</style>
+</head>
+<body>
+<div class="top"><h1>Order page — five layouts</h1><p>Same order (RAD-71253), same facts, same sections. What moves is where the status lives, where the actions sit, and how much is on screen at once.</p></div>
+<div class="jump"><a href="#L1">1 · Band + tabs</a><a href="#L2">2 · Side nav</a><a href="#L3">3 · Two-column dossier</a><a href="#L4">4 · Ticket</a><a href="#L5">5 · Timeline first</a></div>
+
+<!-- ================= 1 · BAND + TABS ================= -->
+<div class="cap" id="L1"><b>1 · Band + tabs</b><span>Same purple band as the list: order, stepper and the four facts live in it. Sections are tabs; one thing on screen at a time.</span></div>
+<div class="frame" style="padding:0">
+  <div class="dark" style="background:linear-gradient(135deg,#320049,#5a0a80);color:#fff;padding:20px 24px 22px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="back" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff">‹</span>
+      <div><div class="h-title" style="color:#fff">RAD-71253 <span class="pill" style="--c:rgba(255,255,255,.18)">SELF</span></div><div class="h-meta" style="color:#d9c5e6">9 Sep 26, 6:00 PM · Website · Schedule it · Sobuj Gazi</div></div>
+      <div style="margin-left:auto;display:flex;gap:8px"><button class="btn w sm">Copy</button><button class="btn w sm">Print</button><button class="btn w sm">WhatsApp</button><button class="btn g">✓ Confirm order</button></div>
+    </div>
+    <div style="margin:18px 0 14px"><div class="steps"><div class="st now"><i>1</i><b>Placed</b></div><div class="st"><i>2</i><b>Confirmed</b></div><div class="st"><i>3</i><b>Preparing</b></div><div class="st"><i>4</i><b>Out for delivery</b></div><div class="st"><i>5</i><b>Delivered</b></div></div></div>
+    <div class="facts4">
+      <div class="fact" style="--c:var(--orchid);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)"><div class="l" style="color:#d9c5e6">Order</div><div class="v" style="color:#fff">Placed</div></div>
+      <div class="fact" style="--c:#ffb4ad;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)"><div class="l" style="color:#d9c5e6">Payment</div><div class="v" style="color:#ffb4ad">Not paid · ৳3,650</div></div>
+      <div class="fact" style="--c:var(--amber);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)"><div class="l" style="color:#d9c5e6">Delivery</div><div class="v" style="color:#fff">Not started</div><div class="s" style="color:#d9c5e6">Tomorrow · 9 AM – 3 PM</div></div>
+      <div class="fact" style="--c:#fff;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)"><div class="l" style="color:#d9c5e6">Total</div><div class="v" style="color:#fff">৳3,650</div><div class="s" style="color:#d9c5e6">1 item · paid ৳0</div></div>
+    </div>
+  </div>
+  <div style="padding:6px 24px 24px">
+    <div class="tabs"><span class="on">Summary</span><span>Customer</span><span>Items <em>1</em></span><span>Delivery</span><span>Photos</span><span>Payment</span><span>Card message</span><span>Activity log</span><span style="margin-left:auto;color:var(--red)">Cancel order</span></div>
+    <div class="grid2">
+      <div class="card"><h3>Customer &amp; recipient <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="kv one"><div><span>Customer</span><b>Sobuj Gazi · REPEAT · 2</b></div><div><span>Phone</span><b>+880 1940 974467</b></div><div><span>Recipient</span><b>Same person</b></div><div><span>Address</span><b>Gulshan-1, Dhaka</b></div></div></div>
+      <div class="card"><h3>Items <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="line"><div class="ph"></div><div><b>Anniversary GIFT</b><small>Pink · Small · Standard</small></div><div class="q">× 1</div><div class="p">৳3,500</div></div><div class="line"><div class="ph" style="background:#efe8f5"></div><div><b>Delivery</b><small>Schedule it · Dhaka</small></div><div class="q"></div><div class="p">৳150</div></div><div class="total"><span>Total</span><b>৳3,650</b></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 2 · SIDE NAV ================= -->
+<div class="cap" id="L2"><b>2 · Side nav</b><span>White stepper card, four fact tiles with a spine, bold action row, then a deep-purple section nav on the left. The v1 direction, built out.</span></div>
+<div class="frame">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <span class="back">‹</span>
+    <div><div class="h-title">RAD-71253 <span class="pill o" style="--c:var(--mute)">SELF</span></div><div class="h-meta">9 Sep 26, 6:00 PM · Website · Schedule it</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px"><button class="btn o sm">Copy</button><button class="btn o sm">Print</button><button class="btn o sm">WhatsApp</button><button class="btn o sm">Email</button><button class="btn p sm">✎ Edit order</button></div>
+  </div>
+  <div class="card" style="padding:16px 22px 12px;margin-bottom:12px"><div class="steps"><div class="st now"><i>1</i><b>Placed</b><span class="now-tag">NOW</span></div><div class="st"><i>2</i><b>Confirmed</b></div><div class="st"><i>3</i><b>Preparing</b></div><div class="st"><i>4</i><b>Out for delivery</b></div><div class="st"><i>5</i><b>Delivered</b></div></div></div>
+  <div class="facts4" style="margin-bottom:12px">
+    <div class="fact" style="--c:var(--orchid)"><div class="l">Order</div><div class="v">Placed</div><div class="s">waiting for you</div></div>
+    <div class="fact" style="--c:var(--red)"><div class="l">Payment</div><div class="v">Not paid</div><div class="s due">৳3,650 due</div></div>
+    <div class="fact" style="--c:var(--amber)"><div class="l">Delivery</div><div class="v">Not started</div><div class="s">Tomorrow · 9 AM – 3 PM</div></div>
+    <div class="fact" style="--c:var(--purple)"><div class="l">Total</div><div class="v">৳3,650</div><div class="s">1 item · paid ৳0</div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px"><button class="btn g">✓ Confirm order</button><button class="btn o">☎ Call customer</button><button class="btn o">Record payment</button><button class="btn d" style="margin-left:auto">Cancel order</button></div>
+  <div style="display:grid;grid-template-columns:220px 1fr;gap:12px">
+    <nav class="secnav"><a class="on">Summary</a><a>Customer &amp; recipient</a><a>Items <em>1</em></a><a>Delivery</a><a>Photos &amp; proof</a><a>Payment <em>৳3,650</em></a><a>Card message</a><a>Activity log</a></nav>
+    <div class="grid2">
+      <div class="card"><h3>Customer &amp; recipient <span class="info">i</span><span class="r"><button class="btn o sm">Edit</button></span></h3><div class="kv one"><div><span>Customer</span><b>Sobuj Gazi</b></div><div><span>Phone</span><b>+880 1940 974467</b></div><div><span>Recipient</span><b>Same person</b></div><div><span>Address</span><b>Gulshan-1, Dhaka</b></div></div></div>
+      <div class="card"><h3>Items <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="line"><div class="ph"></div><div><b>Anniversary GIFT</b><small>Pink · Small · Standard</small></div><div class="q">× 1</div><div class="p">৳3,500</div></div><div class="line"><div class="ph" style="background:#efe8f5"></div><div><b>Delivery</b><small>Schedule it · Dhaka</small></div><div class="q"></div><div class="p">৳150</div></div><div class="total"><span>Total</span><b>৳3,650</b></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 3 · TWO-COLUMN DOSSIER ================= -->
+<div class="cap" id="L3"><b>3 · Two-column dossier</b><span>No nav, no tabs — every section is a card down the left, you scroll. The right column is sticky: status, money, actions, the customer's view. Shopify's shape.</span></div>
+<div class="frame">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <span class="back">‹</span>
+    <div><div class="h-title">RAD-71253 <span class="pill" style="--c:var(--orchid)">Placed</span> <span class="pill" style="--c:var(--red)">Not paid</span> <span class="pill o" style="--c:var(--mute)">Not started</span></div><div class="h-meta">9 Sep 26, 6:00 PM · Website · Schedule it</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px"><button class="btn o sm">Copy</button><button class="btn o sm">Print</button><button class="btn o sm">WhatsApp</button><button class="btn o sm">Email</button><button class="btn p sm">✎ Edit order</button></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:12px;align-items:start">
+    <div style="display:grid;gap:12px">
+      <div class="card"><h3>Items <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="line"><div class="ph"></div><div><b>Anniversary GIFT</b><small>Pink · Small · Standard</small></div><div class="q">× 1</div><div class="p">৳3,500</div></div><div class="line"><div class="ph" style="background:#efe8f5"></div><div><b>Delivery</b><small>Schedule it · Dhaka</small></div><div class="q"></div><div class="p">৳150</div></div><div class="total"><span>Total</span><b>৳3,650</b></div></div>
+      <div class="grid2">
+        <div class="card"><h3>Customer &amp; recipient <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="kv one"><div><span>Customer</span><b>Sobuj Gazi</b></div><div><span>Phone</span><b>+880 1940 974467</b></div><div><span>Recipient</span><b>Same person</b></div><div><span>Address</span><b>Gulshan-1, Dhaka</b></div></div></div>
+        <div class="card"><h3>Delivery <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="kv one"><div><span>Method</span><b>Schedule it</b></div><div><span>When</span><b>Tomorrow · 9 AM – 3 PM</b></div><div><span>Zone</span><b>Inside Dhaka</b></div><div><span>Rider</span><b>—</b></div></div></div>
+      </div>
+      <div class="card"><h3>Activity log</h3><ul class="log"><li class="on"><i></i><div><b>Order placed</b><small>Website · Sobuj Gazi</small></div><time>9 Sep, 6:00 PM</time></li><li><i></i><div><b>Payment attempt opened</b><small>SSLCommerz sandbox</small></div><time>9 Sep, 6:01 PM</time></li></ul></div>
+    </div>
+    <div style="display:grid;gap:12px;position:sticky;top:12px">
+      <div class="card" style="padding:14px 16px"><h3>Where it is</h3>
+        <ul class="log"><li class="on"><i></i><div><b>Placed</b><small>9 Sep, 6:00 PM</small></div><span></span></li><li><i></i><div><b>Confirmed</b></div><span></span></li><li><i></i><div><b>Preparing</b></div><span></span></li><li><i></i><div><b>Out for delivery</b></div><span></span></li><li><i></i><div><b>Delivered</b></div><span></span></li></ul>
+        <div style="display:grid;gap:6px;margin-top:10px"><button class="btn g">✓ Confirm order</button><button class="btn o">☎ Call customer</button><button class="btn d">Cancel order</button></div>
+      </div>
+      <div class="fact" style="--c:var(--red)"><div class="l">Payment</div><div class="v">Not paid</div><div class="s due">৳3,650 due · <u>Record payment</u></div></div>
+      <div class="preview"><div class="ph"><small>CUSTOMER SEES</small><b>Your order is on its way</b></div><ul><li class="on"><i></i>Placed</li><li><i></i>Confirmed</li><li><i></i>Preparing</li><li><i></i>Out for delivery</li><li><i></i>Delivered</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 4 · TICKET ================= -->
+<div class="cap" id="L4"><b>4 · Ticket</b><span>One dense grid, like a printed job ticket: customer · delivery · money side by side, items under, log under that. Status as pills in the header. Nothing hidden, nothing to click.</span></div>
+<div class="frame">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1.5px solid var(--line);background:var(--lav)">
+      <span class="back">‹</span>
+      <div><div class="h-title">RAD-71253</div><div class="h-meta">9 Sep 26, 6:00 PM · Website · Self</div></div>
+      <div style="display:flex;gap:6px;margin-left:14px"><span class="pill" style="--c:var(--orchid)">Placed</span><span class="pill" style="--c:var(--red)">Not paid</span><span class="pill o" style="--c:var(--mute)">Not started</span></div>
+      <div style="margin-left:auto;display:flex;gap:8px"><button class="btn g">✓ Confirm</button><button class="btn o">☎ Call</button><button class="btn o">Print</button><button class="btn o">WhatsApp</button><button class="btn p">✎ Edit</button><button class="btn d">Cancel</button></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr .9fr">
+      <div style="padding:14px 18px;border-right:1.5px solid var(--line)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute);margin-bottom:6px">Customer</div><div style="font-family:var(--fr);font-weight:800;font-size:19px;color:var(--purple)">Sobuj Gazi <span class="tag" style="--c:var(--green)">REPEAT · 2</span></div><div style="font-weight:700;color:var(--purple);margin-top:3px">+880 1940 974467</div><div style="font-size:12.5px;font-weight:600;color:var(--soft);margin-top:4px">Gulshan-1, Dhaka</div><div style="font-size:12.5px;font-weight:600;color:var(--mute);margin-top:4px">Recipient: same person</div></div>
+      <div style="padding:14px 18px;border-right:1.5px solid var(--line)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute);margin-bottom:6px">Delivery</div><div style="font-family:var(--fr);font-weight:800;font-size:19px;color:var(--ink)">Tomorrow · 9 AM – 3 PM</div><div style="font-weight:700;margin-top:3px">Schedule it · Inside Dhaka</div><div style="font-size:12.5px;font-weight:600;color:var(--mute);margin-top:4px">Rider: not assigned · Photo updates: on</div></div>
+      <div style="padding:14px 18px"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute);margin-bottom:6px">Money</div><div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><b style="font-family:var(--fr);font-size:19px">৳3,650</b></div><div style="display:flex;justify-content:space-between;font-weight:700;color:var(--green)"><span>Paid</span><b>৳0</b></div><div style="display:flex;justify-content:space-between;font-weight:800;color:var(--red)"><span>Due</span><b style="font-family:var(--fr);font-size:17px">৳3,650</b></div><button class="btn o sm" style="margin-top:8px;width:100%;justify-content:center">Record payment</button></div>
+    </div>
+    <div style="border-top:1.5px solid var(--line);display:grid;grid-template-columns:1.4fr 1fr">
+      <div style="padding:14px 18px;border-right:1.5px solid var(--line)"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute);margin-bottom:6px">Items · 1</div><div class="line"><div class="ph"></div><div><b>Anniversary GIFT</b><small>Pink · Small · Standard</small></div><div class="q">× 1</div><div class="p">৳3,500</div></div><div class="line"><div class="ph" style="background:#efe8f5"></div><div><b>Delivery charge</b><small>Schedule it · Dhaka</small></div><div class="q"></div><div class="p">৳150</div></div></div>
+      <div style="padding:14px 18px"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--mute);margin-bottom:6px">Activity</div><ul class="log"><li class="on"><i></i><div><b>Order placed</b><small>Website</small></div><time>6:00 PM</time></li><li><i></i><div><b>Payment attempt opened</b><small>SSLCommerz</small></div><time>6:01 PM</time></li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 5 · TIMELINE FIRST ================= -->
+<div class="cap" id="L5"><b>5 · Timeline first</b><span>The left column is the order's life: every step and every log line on one vertical line, the next-step button sitting at the current node. Facts and sections on the right.</span></div>
+<div class="frame">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <span class="back">‹</span>
+    <div><div class="h-title">RAD-71253 <span class="pill o" style="--c:var(--mute)">SELF</span></div><div class="h-meta">9 Sep 26, 6:00 PM · Website · Schedule it</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px"><button class="btn o sm">Copy</button><button class="btn o sm">Print</button><button class="btn o sm">WhatsApp</button><button class="btn p sm">✎ Edit order</button><button class="btn d sm">Cancel</button></div>
+  </div>
+  <div style="display:grid;grid-template-columns:360px 1fr;gap:12px;align-items:start">
+    <div class="card" style="padding:16px 18px">
+      <h3>Journey</h3>
+      <ul class="log">
+        <li class="on"><i></i><div><b>Placed</b><small>9 Sep, 6:00 PM · Website · Sobuj Gazi</small><small>Payment attempt opened · SSLCommerz</small><div style="margin-top:8px;display:flex;gap:6px"><button class="btn g sm">✓ Confirm</button><button class="btn o sm">☎ Call</button></div></div><span></span></li>
+        <li><i></i><div><b>Confirmed</b><small>a message goes to the customer</small></div><span></span></li>
+        <li><i></i><div><b>Preparing</b><small>stock drops here</small></div><span></span></li>
+        <li><i></i><div><b>Out for delivery</b><small>rider assigned in Delivery</small></div><span></span></li>
+        <li><i></i><div><b>Delivered</b><small>COD collected at the door</small></div><span></span></li>
+      </ul>
+    </div>
+    <div style="display:grid;gap:12px">
+      <div class="facts4" style="grid-template-columns:repeat(3,1fr)">
+        <div class="fact" style="--c:var(--red)"><div class="l">Payment</div><div class="v">Not paid</div><div class="s due">৳3,650 due</div></div>
+        <div class="fact" style="--c:var(--amber)"><div class="l">Delivery</div><div class="v">Tomorrow</div><div class="s">9 AM – 3 PM · Schedule it</div></div>
+        <div class="fact" style="--c:var(--purple)"><div class="l">Total</div><div class="v">৳3,650</div><div class="s">1 item</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Customer &amp; recipient <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="kv one"><div><span>Customer</span><b>Sobuj Gazi</b></div><div><span>Phone</span><b>+880 1940 974467</b></div><div><span>Address</span><b>Gulshan-1, Dhaka</b></div></div></div>
+        <div class="card"><h3>Items <span class="r"><button class="btn o sm">Edit</button></span></h3><div class="line"><div class="ph"></div><div><b>Anniversary GIFT</b><small>Pink · Small · Standard</small></div><div class="q">× 1</div><div class="p">৳3,500</div></div><div class="total"><span>Total</span><b>৳3,650</b></div></div>
+      </div>
+      <div class="tabs" style="margin:0"><span class="on">Delivery</span><span>Photos &amp; proof</span><span>Payment</span><span>Card message</span></div>
+    </div>
+  </div>
+</div>
+<div style="height:50px"></div>
+</body>
+</html>

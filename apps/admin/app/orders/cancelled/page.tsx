@@ -1,6 +1,6 @@
-import { OrdersCancelled } from "../../_components/OrderViews";
+import { redirect } from "next/navigation";
 
-/* /orders/cancelled — cancelled orders kept for audit, with refunds issued. */
-export default function OrdersCancelledPage() {
-  return <OrdersCancelled />;
+/* /orders/cancelled folded into All orders -> Cancelled segment (owner, 9 Sep 2026). */
+export default function Page() {
+  redirect("/orders/list");
 }

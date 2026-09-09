@@ -1,6 +1,6 @@
-import { OrdersPayments } from "../../_components/OrderViews";
+import PaymentsView from "../../_components/PaymentsView";
 
-/* /orders/payments — outstanding dues and refunds. Ledger stays with Finance. */
+/* /orders/payments — money on website orders: orders, gateway attempts, returns & refunds (owner, 9 Sep 2026). */
 export default function OrdersPaymentsPage() {
-  return <OrdersPayments />;
+  return <PaymentsView />;
 }

@@ -349,6 +349,11 @@ export default function CheckoutView() {
             date: c.date ?? undefined,
             zone: zoneCodeFor(zone),
             methodLabel: method?.label,
+            /*  the slot and the card message too — Lost orders shows the whole
+                row so a call can start with "you wanted it at midnight, with
+                the card saying…" (owner, 9 Sep 2026)  */
+            slotLabel: findSlot(method, c.slotId)?.label,
+            giftMessage: c.isGift ? c.giftMessage.trim() || undefined : undefined,
             step: c.step,
           },
           /*  ⚠️ Two pictures for two jobs — neither can do the other's.

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Radian Admin — Orders module, five looks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Jost:wght@500;600;700&family=Manrope:wght@600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --purple:#470066; --deep:#320049; --ink:#170922; --soft:#4a3a56; --mute:#7b6b87;
+    --orchid:#cf43ea; --lav:#f7f1fb; --lavd:#e6d9f0; --line:#e3d8ec; --rg:#b76e79;
+    --green:#0e8a44; --amber:#d97706; --red:#d92d20; --indigo:#4f46e5; --blue:#1d7fd6;
+    --fr:'Fraunces',Georgia,serif; --jo:'Jost',sans-serif; --ma:'Manrope',sans-serif; --in:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e3ef;color:var(--ink);font-family:var(--jo);font-weight:500}
+  .top{max-width:1240px;margin:0 auto;padding:26px 24px 6px}
+  .top h1{font-family:var(--fr);font-weight:700;font-size:27px;color:var(--purple);margin:0 0 6px}
+  .top p{margin:0;font-size:14px;color:var(--soft);line-height:1.6;max-width:880px}
+  .jump{position:sticky;top:0;z-index:5;background:#e9e3ef;padding:10px 24px;max-width:1240px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap}
+  .jump a{font-family:var(--ma);font-weight:800;font-size:12.5px;text-decoration:none;color:var(--purple);background:#fff;border:1.5px solid var(--line);padding:8px 14px;border-radius:999px}
+  .cap{max-width:1240px;margin:26px auto 0;padding:0 24px;display:flex;align-items:baseline;gap:14px}
+  .cap b{font-family:var(--ma);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--purple)}
+  .cap span{font-size:13.5px;color:var(--soft)}
+
+  /* ---------- shared skeleton ---------- */
+  .frame{max-width:1240px;margin:12px auto 0;border-radius:22px;overflow:hidden;display:grid;grid-template-columns:200px 1fr;min-height:560px;box-shadow:0 10px 36px rgba(71,0,102,.08);border:1px solid #d9cfe3}
+  .side{padding:18px 12px;font-family:var(--ma)}
+  .side .brand{display:flex;align-items:center;gap:10px;padding:2px 6px 16px;font-weight:800;font-size:16px}
+  .side .brand i{width:28px;height:28px;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,var(--orchid),var(--rg));transform:rotate(-45deg)}
+  .side .grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:12px 8px 6px;font-weight:800;opacity:.65}
+  .side a{display:block;text-decoration:none;font-size:13.5px;font-weight:700;padding:8px 10px;border-radius:10px}
+  .side a.sub{padding-left:24px;font-size:13px}
+  .main{padding:24px 26px 30px;min-width:0}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+  .head h2{margin:0;font-size:28px}
+  .btn{font-weight:700;font-size:13.5px;border-radius:11px;padding:10px 16px;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;font-family:inherit}
+  .btn.sm{padding:7px 12px;font-size:12.5px;border-radius:9px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .kpi .l{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+  .kpi .v{font-size:30px;line-height:1;margin-top:8px;font-weight:800}
+  .tools{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .seg{display:inline-flex;padding:4px;gap:2px;border-radius:11px}
+  .seg span{padding:7px 13px;border-radius:8px;font-weight:700;font-size:13px}
+  .seg span em{font-style:normal;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px}
+  .search{flex:1;min-width:240px;border-radius:11px;padding:9px 13px;font-size:13.5px;display:flex;gap:8px;align-items:center}
+  .tr{display:grid;grid-template-columns:1.6fr 1.3fr .8fr 1.15fr auto;align-items:center;gap:14px;padding:12px 16px}
+  .tr.h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;padding:9px 16px}
+  .no{font-family:var(--ma);font-weight:800;font-size:14px}
+  .who{font-size:12.5px;font-weight:600;margin-top:2px}
+  .dl{font-weight:700;font-size:13px}
+  .dl small{display:block;font-weight:600;font-size:12px;margin-top:2px}
+  .amt{font-weight:800;font-size:17px;text-align:right}
+  .amt small{display:block;font-size:11.5px;font-weight:700;margin-top:1px}
+  .due{color:var(--red)} .ok{color:var(--green)}
+  .pills{display:flex;gap:5px;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .act{display:flex;gap:6px;align-items:center}
+  .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800}
+
+  /* =============== A · PAPER =============== */
+  .A{background:#fff}
+  .A .side{background:#fff;border-right:1px solid #ece6f1;color:var(--ink)}
+  .A .side a{color:var(--soft)} .A .side a.on{color:var(--purple);background:var(--lav)}
+  .A .head h2{font-family:var(--fr);font-weight:700;color:var(--ink)}
+  .A .btn.p{background:var(--ink);color:#fff}
+  .A .kpis{gap:0;border-top:1px solid #ece6f1;border-bottom:1px solid #ece6f1;padding:14px 0}
+  .A .kpi{padding:0 18px;border-left:1px solid #ece6f1} .A .kpi:first-child{border-left:0;padding-left:0}
+  .A .kpi .l{color:var(--mute)} .A .kpi .v{font-family:var(--fr);color:var(--ink)}
+  .A .kpi.hot .v{color:var(--red)}
+  .A .seg{background:transparent;padding:0;gap:14px} .A .seg span{padding:6px 0;border-radius:0;color:var(--mute);border-bottom:2px solid transparent}
+  .A .seg span.on{color:var(--ink);border-bottom-color:var(--ink)} .A .seg span em{background:#f0ecf4;color:var(--soft)}
+  .A .search{background:#f6f3f8;color:var(--mute)}
+  .A .tr{border-top:1px solid #ece6f1} .A .tr.h{border-top:0;color:var(--mute)}
+  .A .no{color:var(--ink)} .A .who,.A .dl small{color:var(--mute)} .A .amt{font-family:var(--fr)}
+  .A .pill{background:#f3eff6;color:var(--ink)} .A .pill i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+  .A .ico{border:1px solid #e6dfec;color:var(--green)} .A .btn.o{border-color:#e6dfec;color:var(--ink)}
+
+  /* =============== B · INK BAND =============== */
+  .B{background:#f6f3f9}
+  .B .side{background:var(--deep);color:#e7d8f2}
+  .B .side a{color:#e7d8f2} .B .side a.on{background:#fff;color:var(--purple)}
+  .B .main{padding:0}
+  .B .band{background:linear-gradient(135deg,var(--deep),#5a0a80);color:#fff;padding:24px 26px 22px}
+  .B .head{margin-bottom:18px} .B .head h2{font-family:var(--fr);font-weight:700;color:#fff}
+  .B .btn.p{background:#fff;color:var(--purple)}
+  .B .kpis{margin:0}
+  .B .kpi{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 14px}
+  .B .kpi .l{color:#d9c5e6} .B .kpi .v{font-family:var(--fr);color:#fff} .B .kpi.hot .v{color:#ffb4ad}
+  .B .below{padding:18px 26px 26px}
+  .B .seg{background:#fff;border:1.5px solid var(--line)} .B .seg span{color:var(--soft)} .B .seg span.on{background:var(--purple);color:#fff}
+  .B .seg span em{background:rgba(0,0,0,.07)} .B .seg span.on em{background:rgba(255,255,255,.22)}
+  .B .search{background:#fff;border:1.5px solid var(--line);color:var(--mute)}
+  .B .tbl{background:#fff;border:1.5px solid var(--line);border-radius:16px;overflow:hidden}
+  .B .tr{border-top:1px solid #efe8f5} .B .tr.h{border-top:0;background:#faf7fc;color:var(--soft)}
+  .B .no{color:var(--purple)} .B .who,.B .dl small{color:var(--soft)} .B .amt{font-family:var(--fr)}
+  .B .pill{background:var(--c);color:#fff} .B .pill.grey{background:#ece6f1;color:var(--soft)}
+  .B .ico{background:#fff;border:1.5px solid var(--line);color:var(--green)} .B .btn.o{background:var(--purple);color:#fff}
+
+  /* =============== C · OUTLINE =============== */
+  .C{background:#fff;font-family:var(--in)}
+  .C .side{background:#fff;border-right:2px solid var(--ink);color:var(--ink)}
+  .C .side a{color:var(--ink)} .C .side a.on{background:var(--ink);color:#fff}
+  .C .head h2{font-family:var(--in);font-weight:800;color:var(--ink);letter-spacing:-.02em}
+  .C .btn{border-radius:8px} .C .btn.p{background:var(--purple);color:#fff}
+  .C .kpi{border:2px solid var(--ink);border-radius:12px;padding:12px 14px}
+  .C .kpi .l{color:var(--ink)} .C .kpi .v{font-family:var(--in);color:var(--ink);letter-spacing:-.02em}
+  .C .kpi.hot{border-color:var(--red)} .C .kpi.hot .v{color:var(--red)}
+  .C .seg{border:2px solid var(--ink);border-radius:9px;padding:3px} .C .seg span{border-radius:6px;color:var(--ink)}
+  .C .seg span.on{background:var(--ink);color:#fff} .C .seg span em{background:#eee} .C .seg span.on em{background:#444;color:#fff}
+  .C .search{border:2px solid var(--ink);border-radius:9px;color:var(--mute)}
+  .C .tbl{border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+  .C .tr{border-top:1.5px solid #e6e0ea} .C .tr.h{border-top:0;color:var(--ink);background:#fafafa}
+  .C .no{color:var(--purple);font-family:var(--in)} .C .who,.C .dl small{color:var(--mute)} .C .amt{font-family:var(--in);letter-spacing:-.02em}
+  .C .pill{border:2px solid var(--c);color:var(--c);border-radius:7px;background:#fff} .C .pill.grey{border-color:#cfc7d6;color:var(--mute)}
+  .C .ico{border:2px solid var(--ink);color:var(--green);border-radius:8px} .C .btn.o{border:2px solid var(--ink);color:var(--ink);border-radius:8px}
+
+  /* =============== D · SOFT LUXE =============== */
+  .D{background:#faf7fb}
+  .D .side{background:var(--deep);color:#e7d8f2;border-radius:0 24px 24px 0}
+  .D .side a{color:#e7d8f2} .D .side a.on{background:rgba(255,255,255,.14);color:#fff}
+  .D .head h2{font-family:var(--fr);font-weight:600;color:var(--purple)}
+  .D .btn{border-radius:999px} .D .btn.p{background:var(--purple);color:#fff;box-shadow:0 10px 24px rgba(71,0,102,.25)}
+  .D .kpi{background:#fff;border-radius:20px;padding:14px 18px;box-shadow:0 8px 26px rgba(71,0,102,.07)}
+  .D .kpi .l{color:var(--mute)} .D .kpi .v{font-family:var(--fr);font-weight:700;color:var(--purple)}
+  .D .kpi.hot .v{color:var(--rg)}
+  .D .seg{background:#fff;border-radius:999px;box-shadow:0 6px 18px rgba(71,0,102,.06)} .D .seg span{border-radius:999px;color:var(--soft)}
+  .D .seg span.on{background:var(--purple);color:#fff} .D .seg span em{background:#f1ebf5} .D .seg span.on em{background:rgba(255,255,255,.22)}
+  .D .search{background:#fff;border-radius:999px;box-shadow:0 6px 18px rgba(71,0,102,.06);color:var(--mute)}
+  .D .tbl{background:#fff;border-radius:22px;box-shadow:0 12px 34px rgba(71,0,102,.08);overflow:hidden}
+  .D .tr{border-top:1px solid #f2ecf6} .D .tr.h{border-top:0;color:var(--mute)}
+  .D .no{color:var(--purple)} .D .who,.D .dl small{color:var(--mute)} .D .amt{font-family:var(--fr);font-weight:700}
+  .D .pill{background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c)} .D .pill.grey{background:#f1ebf5;color:var(--mute)}
+  .D .ico{background:#fff;box-shadow:0 4px 12px rgba(71,0,102,.08);color:var(--green);border-radius:999px} .D .btn.o{background:var(--lav);color:var(--purple)}
+
+  /* =============== E · LEDGER =============== */
+  .E{background:#f4f2f6;font-family:var(--in)}
+  .E .side{background:#fff;border-right:1px solid #e2dce7;color:var(--ink)}
+  .E .side a{color:var(--soft)} .E .side a.on{background:var(--purple);color:#fff}
+  .E .head h2{font-family:var(--in);font-weight:800;font-size:22px;color:var(--ink);letter-spacing:-.01em}
+  .E .btn{border-radius:8px} .E .btn.p{background:var(--purple);color:#fff}
+  .E .kpis{grid-template-columns:repeat(5,auto);justify-content:start;gap:26px;background:#fff;border:1px solid #e2dce7;border-radius:10px;padding:10px 16px}
+  .E .kpi{display:flex;align-items:baseline;gap:8px} .E .kpi .l{color:var(--mute);font-size:11px} .E .kpi .v{font-size:20px;margin:0;font-family:var(--in);letter-spacing:-.02em}
+  .E .kpi.hot .v{color:var(--red)}
+  .E .seg{background:#fff;border:1px solid #e2dce7;border-radius:8px;padding:3px} .E .seg span{border-radius:6px;color:var(--soft);font-size:12.5px;padding:6px 11px}
+  .E .seg span.on{background:var(--purple);color:#fff} .E .seg span em{background:#eee} .E .seg span.on em{background:rgba(255,255,255,.22)}
+  .E .search{background:#fff;border:1px solid #e2dce7;border-radius:8px;color:var(--mute);padding:8px 12px}
+  .E .tbl{background:#fff;border:1px solid #e2dce7;border-radius:10px;overflow:hidden}
+  .E .tr{padding:10px 14px;border-top:1px solid #ece7f0} .E .tr:nth-child(odd):not(.h){background:#faf9fb}
+  .E .tr.h{border-top:0;background:#f0edf3;color:var(--soft)}
+  .E .no{color:var(--purple);font-family:var(--in);font-size:13.5px} .E .who,.E .dl small{color:var(--mute)} .E .amt{font-family:var(--in);font-size:15px;letter-spacing:-.01em}
+  .E .pill{background:var(--c);color:#fff;border-radius:6px;font-size:10.5px} .E .pill.grey{background:#e6e1ea;color:var(--soft)}
+  .E .ico{border:1px solid #e2dce7;color:var(--green);border-radius:7px;width:30px;height:30px} .E .btn.o{border:1px solid #e2dce7;color:var(--purple);background:#fff}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Orders module — five looks, same structure</h1>
+  <p>Same page, same pieces (KPI strip · filter · rows · one button), five different skins. Pick the one that feels clean to you; every other screen in the module follows it.</p>
+</div>
+<div class="jump"><a href="#A">A · Paper</a><a href="#B">B · Ink band</a><a href="#C">C · Outline</a><a href="#D">D · Soft luxe</a><a href="#E">E · Ledger</a></div>
+
+<!-- ============ A ============ -->
+<div class="cap" id="A"><b>A · Paper</b><span>Almost no boxes. Hairlines, black type, one accent. The quietest of the five.</span></div>
+<div class="frame A">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside>
+  <main class="main">
+    <div class="head"><h2>All orders</h2><button class="btn p">＋ New order</button></div>
+    <div class="kpis">
+      <div class="kpi hot"><div class="l">Needs action</div><div class="v">48</div></div>
+      <div class="kpi"><div class="l">Preparing / out</div><div class="v">10</div></div>
+      <div class="kpi"><div class="l">Delivered</div><div class="v">17</div></div>
+      <div class="kpi"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+      <div class="kpi"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+    </div>
+    <div class="tools"><div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div><div class="search">🔍 Order, customer, phone</div></div>
+    <div class="tbl">
+      <div class="tr h"><div>Order</div><div>Delivery</div><div style="text-align:right">Amount</div><div>Status</div><div></div></div>
+      <div class="tr"><div><div class="no">RAD-71253</div><div class="who">Sobuj Gazi · today · Website</div></div><div class="dl">Schedule it<small>Dhaka · Morning 9 AM – 3 PM</small></div><div class="amt">৳3,650<small class="due">Not paid</small></div><div class="pills"><span class="pill" style="--c:var(--orchid)"><i></i>Placed</span><span class="pill" style="--c:#bbb"><i></i>Not started</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-66816</div><div class="who">Raju Ahmed · yesterday · Website · Gift</div></div><div class="dl">Schedule it<small>Dhaka · Evening 3 – 10 PM</small></div><div class="amt">৳7,650<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)"><i></i>Confirmed</span><span class="pill" style="--c:var(--amber)"><i></i>Preparing</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-87735</div><div class="who">Nusrat Jahan · yesterday · WhatsApp</div></div><div class="dl">Midnight Delivery<small>Dhaka</small></div><div class="amt">৳3,650<small class="due">COD due</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)"><i></i>Confirmed</span><span class="pill" style="--c:var(--blue)"><i></i>Out for delivery</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-70104</div><div class="who">Raju · 2 days ago · Website · Gift</div></div><div class="dl">3 Hours Delivery<small>Dhaka</small></div><div class="amt">৳64,055<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--green)"><i></i>Completed</span><span class="pill" style="--c:var(--green)"><i></i>Delivered</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ B ============ -->
+<div class="cap" id="B"><b>B · Ink band</b><span>Numbers sit on a deep purple band; the work below is plain white. Strong, brand-first.</span></div>
+<div class="frame B">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside>
+  <main class="main">
+    <div class="band">
+      <div class="head"><h2>All orders</h2><button class="btn p">＋ New order</button></div>
+      <div class="kpis">
+        <div class="kpi hot"><div class="l">Needs action</div><div class="v">48</div></div>
+        <div class="kpi"><div class="l">Preparing / out</div><div class="v">10</div></div>
+        <div class="kpi"><div class="l">Delivered</div><div class="v">17</div></div>
+        <div class="kpi"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+        <div class="kpi"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+      </div>
+    </div>
+    <div class="below">
+      <div class="tools"><div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div><div class="search">🔍 Order, customer, phone</div></div>
+      <div class="tbl">
+        <div class="tr h"><div>Order</div><div>Delivery</div><div style="text-align:right">Amount</div><div>Status</div><div></div></div>
+        <div class="tr"><div><div class="no">RAD-71253</div><div class="who">Sobuj Gazi · today · Website</div></div><div class="dl">Schedule it<small>Dhaka · Morning 9 AM – 3 PM</small></div><div class="amt">৳3,650<small class="due">Not paid</small></div><div class="pills"><span class="pill" style="--c:var(--orchid)">Placed</span><span class="pill grey">Not started</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+        <div class="tr"><div><div class="no">RAD-66816</div><div class="who">Raju Ahmed · yesterday · Website · Gift</div></div><div class="dl">Schedule it<small>Dhaka · Evening 3 – 10 PM</small></div><div class="amt">৳7,650<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--amber)">Preparing</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+        <div class="tr"><div><div class="no">RAD-87735</div><div class="who">Nusrat Jahan · yesterday · WhatsApp</div></div><div class="dl">Midnight Delivery<small>Dhaka</small></div><div class="amt">৳3,650<small class="due">COD due</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--blue)">Out for delivery</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+        <div class="tr"><div><div class="no">RAD-70104</div><div class="who">Raju · 2 days ago · Website · Gift</div></div><div class="dl">3 Hours Delivery<small>Dhaka</small></div><div class="amt">৳64,055<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--green)">Completed</span><span class="pill" style="--c:var(--green)">Delivered</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ C ============ -->
+<div class="cap" id="C"><b>C · Outline</b><span>Black 2px lines, Inter, no shadows, no fills. Reads like a printed form. Very bold.</span></div>
+<div class="frame C">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside>
+  <main class="main">
+    <div class="head"><h2>All orders</h2><button class="btn p">＋ New order</button></div>
+    <div class="kpis">
+      <div class="kpi hot"><div class="l">Needs action</div><div class="v">48</div></div>
+      <div class="kpi"><div class="l">Preparing / out</div><div class="v">10</div></div>
+      <div class="kpi"><div class="l">Delivered</div><div class="v">17</div></div>
+      <div class="kpi"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+      <div class="kpi"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+    </div>
+    <div class="tools"><div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div><div class="search">🔍 Order, customer, phone</div></div>
+    <div class="tbl">
+      <div class="tr h"><div>Order</div><div>Delivery</div><div style="text-align:right">Amount</div><div>Status</div><div></div></div>
+      <div class="tr"><div><div class="no">RAD-71253</div><div class="who">Sobuj Gazi · today · Website</div></div><div class="dl">Schedule it<small>Dhaka · Morning 9 AM – 3 PM</small></div><div class="amt">৳3,650<small class="due">Not paid</small></div><div class="pills"><span class="pill" style="--c:var(--orchid)">Placed</span><span class="pill grey">Not started</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-66816</div><div class="who">Raju Ahmed · yesterday · Website · Gift</div></div><div class="dl">Schedule it<small>Dhaka · Evening 3 – 10 PM</small></div><div class="amt">৳7,650<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--amber)">Preparing</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-87735</div><div class="who">Nusrat Jahan · yesterday · WhatsApp</div></div><div class="dl">Midnight Delivery<small>Dhaka</small></div><div class="amt">৳3,650<small class="due">COD due</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--blue)">Out for delivery</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-70104</div><div class="who">Raju · 2 days ago · Website · Gift</div></div><div class="dl">3 Hours Delivery<small>Dhaka</small></div><div class="amt">৳64,055<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--green)">Completed</span><span class="pill" style="--c:var(--green)">Delivered</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ D ============ -->
+<div class="cap" id="D"><b>D · Soft luxe</b><span>No borders at all — soft shadows, pills, round corners. Closest to the shop's own look.</span></div>
+<div class="frame D">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside>
+  <main class="main">
+    <div class="head"><h2>All orders</h2><button class="btn p">＋ New order</button></div>
+    <div class="kpis">
+      <div class="kpi hot"><div class="l">Needs action</div><div class="v">48</div></div>
+      <div class="kpi"><div class="l">Preparing / out</div><div class="v">10</div></div>
+      <div class="kpi"><div class="l">Delivered</div><div class="v">17</div></div>
+      <div class="kpi"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+      <div class="kpi"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+    </div>
+    <div class="tools"><div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div><div class="search">🔍 Order, customer, phone</div></div>
+    <div class="tbl">
+      <div class="tr h"><div>Order</div><div>Delivery</div><div style="text-align:right">Amount</div><div>Status</div><div></div></div>
+      <div class="tr"><div><div class="no">RAD-71253</div><div class="who">Sobuj Gazi · today · Website</div></div><div class="dl">Schedule it<small>Dhaka · Morning 9 AM – 3 PM</small></div><div class="amt">৳3,650<small class="due">Not paid</small></div><div class="pills"><span class="pill" style="--c:var(--orchid)">Placed</span><span class="pill grey">Not started</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-66816</div><div class="who">Raju Ahmed · yesterday · Website · Gift</div></div><div class="dl">Schedule it<small>Dhaka · Evening 3 – 10 PM</small></div><div class="amt">৳7,650<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--amber)">Preparing</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-87735</div><div class="who">Nusrat Jahan · yesterday · WhatsApp</div></div><div class="dl">Midnight Delivery<small>Dhaka</small></div><div class="amt">৳3,650<small class="due">COD due</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--blue)">Out for delivery</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-70104</div><div class="who">Raju · 2 days ago · Website · Gift</div></div><div class="dl">3 Hours Delivery<small>Dhaka</small></div><div class="amt">৳64,055<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--green)">Completed</span><span class="pill" style="--c:var(--green)">Delivered</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ E ============ -->
+<div class="cap" id="E"><b>E · Ledger</b><span>Table first. KPIs on one thin strip, zebra rows, compact. The pure work-tool look.</span></div>
+<div class="frame E">
+  <aside class="side"><div class="brand"><i></i>RADIAN</div><div class="grp">Sales</div><a class="on">Orders</a><a class="sub on">All orders</a><a class="sub">Needs action</a><a class="sub">Scheduled</a><a class="sub">Cancelled</a><a class="sub">Payments</a><a class="sub">Online payments</a><a class="sub">Recovery</a><a class="sub">Reports</a><a>Delivery</a><a>Returns &amp; Refunds</a></aside>
+  <main class="main">
+    <div class="head"><h2>All orders</h2><button class="btn p">＋ New order</button></div>
+    <div class="kpis">
+      <div class="kpi hot"><div class="l">Needs action</div><div class="v">48</div></div>
+      <div class="kpi"><div class="l">Preparing / out</div><div class="v">10</div></div>
+      <div class="kpi"><div class="l">Delivered</div><div class="v">17</div></div>
+      <div class="kpi"><div class="l">Revenue</div><div class="v">৳1,16,685</div></div>
+      <div class="kpi"><div class="l">To collect</div><div class="v">৳2,03,735</div></div>
+    </div>
+    <div class="tools"><div class="seg"><span class="on">All <em>100</em></span><span>Needs action <em>48</em></span><span>Confirmed</span><span>Completed</span><span>Cancelled</span></div><div class="search">🔍 Order, customer, phone</div></div>
+    <div class="tbl">
+      <div class="tr h"><div>Order</div><div>Delivery</div><div style="text-align:right">Amount</div><div>Status</div><div></div></div>
+      <div class="tr"><div><div class="no">RAD-71253</div><div class="who">Sobuj Gazi · today · Website</div></div><div class="dl">Schedule it<small>Dhaka · Morning 9 AM – 3 PM</small></div><div class="amt">৳3,650<small class="due">Not paid</small></div><div class="pills"><span class="pill" style="--c:var(--orchid)">Placed</span><span class="pill grey">Not started</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-66816</div><div class="who">Raju Ahmed · yesterday · Website · Gift</div></div><div class="dl">Schedule it<small>Dhaka · Evening 3 – 10 PM</small></div><div class="amt">৳7,650<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--amber)">Preparing</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-87735</div><div class="who">Nusrat Jahan · yesterday · WhatsApp</div></div><div class="dl">Midnight Delivery<small>Dhaka</small></div><div class="amt">৳3,650<small class="due">COD due</small></div><div class="pills"><span class="pill" style="--c:var(--indigo)">Confirmed</span><span class="pill" style="--c:var(--blue)">Out for delivery</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+      <div class="tr"><div><div class="no">RAD-70104</div><div class="who">Raju · 2 days ago · Website · Gift</div></div><div class="dl">3 Hours Delivery<small>Dhaka</small></div><div class="amt">৳64,055<small class="ok">Paid</small></div><div class="pills"><span class="pill" style="--c:var(--green)">Completed</span><span class="pill" style="--c:var(--green)">Delivered</span></div><div class="act"><span class="ico">☎</span><button class="btn o sm">Open</button></div></div>
+    </div>
+  </main>
+</div>
+<div style="height:60px"></div>
+</body>
+</html>

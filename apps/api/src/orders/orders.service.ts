@@ -171,6 +171,8 @@ export class OrdersService {
           // ordersCount is the Customer module's own tally — the list shows NEW / REPEAT from it
           customer: { select: { id: true, name: true, ordersCount: true } },
           _count: { select: { lines: { where: NOT_DELETED } } },
+          // the latest money movement only — Payments shows it as "Last movement"
+          transactions: { orderBy: { createdAt: 'desc' }, take: 1 },
         },
         orderBy: { placedAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -285,6 +287,45 @@ export class OrdersService {
     const revenuePaisa = deliveredAgg._sum.totalPaisa ?? 0;
     const deliveredCount = deliveredAgg._count._all;
 
+    /*  Orders -> Reports, 9 Sep 2026 (owner): three more splits on the same
+        rules — by day, by delivery type, top products. Day and delivery type
+        obey delivered-only for revenue like everything above; the product
+        table counts every line on a non-cancelled order, because a product
+        sold is a product sold whether the van has left yet or not.  */
+    const [byDay, byMethod, revMethod, topLines] = await Promise.all([
+      this.prisma.db.order.findMany({
+        where,
+        select: { placedAt: true, totalPaisa: true, deliveryStatus: true, salesStatus: true },
+      }),
+      this.prisma.db.order.groupBy({ by: ['methodLabel'], where, _count: { _all: true } }),
+      this.prisma.db.order.groupBy({ by: ['methodLabel'], where: delivered, _sum: { totalPaisa: true } }),
+      this.prisma.db.orderLine.groupBy({
+        by: ['productId', 'name'],
+        where: {
+          deletedAt: null,
+          order: { ...where, salesStatus: { not: SalesStatus.cancelled } },
+        },
+        _sum: { qty: true, linePaisa: true },
+        orderBy: { _sum: { qty: 'desc' } },
+        take: 8,
+      }),
+    ]);
+    const dayMap = new Map<string, { n: number; delivered: number; cancelled: number; revenuePaisa: number }>();
+    for (const o of byDay) {
+      const key = o.placedAt.toISOString().slice(0, 10);
+      const d = dayMap.get(key) ?? { n: 0, delivered: 0, cancelled: 0, revenuePaisa: 0 };
+      d.n++;
+      if (o.salesStatus === SalesStatus.cancelled) d.cancelled++;
+      if (o.deliveryStatus === DeliveryStatus.delivered) {
+        d.delivered++;
+        d.revenuePaisa += o.totalPaisa;
+      }
+      dayMap.set(key, d);
+    }
+    const day = [...dayMap.entries()]
+      .map(([date, d]) => ({ date, ...d }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
     return {
       range: {
         from: okFrom ? okFrom.toISOString() : null,
@@ -325,6 +366,17 @@ export class OrdersService {
         byGift.map((r) => ({ key: String(r.isGift), label: r.isGift ? 'Gift' : 'Self', n: r._count._all })),
         revGift.map((r) => ({ key: String(r.isGift), revenuePaisa: r._sum.totalPaisa ?? 0 })),
       ),
+      method: rows(
+        byMethod.map((r) => ({ key: r.methodLabel ?? '', label: r.methodLabel ?? 'Not set', n: r._count._all })),
+        revMethod.map((r) => ({ key: r.methodLabel ?? '', revenuePaisa: r._sum.totalPaisa ?? 0 })),
+      ),
+      day,
+      products: topLines.map((l) => ({
+        productId: l.productId,
+        label: l.name,
+        qty: l._sum.qty ?? 0,
+        revenuePaisa: l._sum.linePaisa ?? 0,
+      })),
     };
   }
 
