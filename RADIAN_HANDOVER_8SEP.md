@@ -443,3 +443,70 @@ So it is a third `DeliveryMethodKind` beside `RIDER` and `COURIER`, with the
 charge set to 0 in admin, the shop's own address and opening hours shown in
 place of the address form, and no rider ever assigned. Everything it needs —
 address, map link, photo, `ShopHour` — already exists.
+
+---
+
+## 11. COLLECT FROM SHOP — 9 Sep
+
+The owner: *"amder kache order diye to shop aseo collect krte parbe … where
+jekhane sekhane ata add krle amr kache mone hy valo hbe. r ta select krle kon
+charge delievry address kichu lagbe na."* Asked about the details, he ruled
+out special rules twice — **the payment is whatever the product already
+demands**, and **the time is picked exactly as with any other method**.
+
+**It is a third `DeliveryMethodKind`**, beside RIDER and COURIER — not a
+concept standing beside one. Price, checkout, orders and reports all key off
+`deliveryMethodId` already; a parallel idea would have meant touching every
+one of them. The charge is 0 because the owner types 0.
+
+| Where | What happens |
+|---|---|
+| **Admin → Delivery → Zones · types · slots** | a new switch on a method: **We deliver it / They collect it** |
+| Checkout, **Where?** | a coloured switch. Choosing it replaces the address form with the shop — address, opening hours, map link, phone, all from Shop settings. Nothing is typed |
+| Checkout, **When?** | one list or the other, never both. The customer already said which |
+| The order | `fulfillmentType: PICKUP` — **this is what keeps it off the delivery board**, which asks for DELIVERY |
+| The homepage band | never shows it. That band is the shop's delivery SPEEDS, and "come and fetch it" is not an answer to "how fast" |
+
+⚠️ **The switch is drawn only when a collection method actually exists.**
+Offering it and then finding nothing under "When" would be worse than not
+offering it at all — so with none set up, the checkout looks exactly as it did.
+
+⚠️ **The server decides, not the browser.** The address is waived by the
+METHOD's own kind, read from the database. A request that merely *claimed* to
+be a collection would otherwise place an addressless order against a rider
+method, and a rider would be sent to an empty line in the address column.
+
+⚠️ **A collected order carries the SHOP's address**, not an empty string — the
+order screen, the invoice and the customer's own order page all print that
+column, and a blank there reads as data lost.
+
+⚠️ **`FulfillmentType.PICKUP` is its own value, NOT `COUNTER`.** A counter sale
+is rung up at the till and Finance treats it differently. And the Sales list
+filter was widened to include PICKUP — without that, the day this shipped
+every collected order would have vanished from the one screen the owner works
+from.
+
+### What the owner does to switch it on
+
+1. **Admin → Delivery → Zones · types · slots → Add method** — name it
+   ("Collect from Shop"), choose **They collect it**, pick how it works
+   (2-hour promise, a slot, or a date) exactly as for any other method.
+2. **Admin → Delivery → Setup** — give it a price in the Dhaka zone: **0**.
+3. Tick it on the products that may be collected, as with any other method.
+
+The switch then appears in checkout by itself.
+
+### Verified, and what was not
+
+Walked on DEV: the migration applied (`RIDER COURIER PICKUP`,
+`DELIVERY COUNTER PICKUP`), all three apps answer 200, and the checkout is
+untouched while no collection method exists. The panel itself was proved by
+feeding ONE fake collection option into that browser only — nothing was
+written to the shop — and the Where step correctly swapped the address form
+for the shop card with its hours, map link and phone.
+
+⚠️ **Not walked end to end**, and only for one reason: placing a real
+collected order needs a delivery method that only the owner should create —
+its name, its shape and its price are his. Once he adds one, the server side
+(address waived, `fulfillmentType: PICKUP`, off the delivery board) is the
+next thing to walk.
