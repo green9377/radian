@@ -148,11 +148,17 @@ export class OrderMessagesService {
 
     const minutes = Math.max(1, s.unpaidAfterMinutes);
     const cutoff = new Date(Date.now() - minutes * 60_000);
+    /*  ⚠️ AND NOT OLDER THAN A DAY. This sweep is for the customer who walked
+        away minutes ago, not for the shop's back catalogue of unpaid orders.
+        Without a floor, the first run after switching recovery on would text
+        everyone who ever abandoned a payment — about orders they have long
+        forgotten — and that is a shop that looks like it spams.  */
+    const floor = new Date(Date.now() - 24 * 3600_000);
 
     const stale = await this.prisma.db.paymentSession.findMany({
       where: {
         status: PaymentSessionStatus.INITIATED,
-        createdAt: { lte: cutoff },
+        createdAt: { gte: floor, lte: cutoff },
         deletedAt: null,
         /*  Still owing, still a live order. A part-paid or cancelled order has
             nothing to recover, and telling either of those that their payment
