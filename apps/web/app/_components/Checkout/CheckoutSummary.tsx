@@ -9,7 +9,6 @@ import type { Quote } from "../../_data/checkoutApi";
 import { getGoogleRating } from "../../_data/shop";
 import { useCartStore } from "../../_store/useCartStore";
 import Icon from "../Pdp/PdpIcons";
-import PayMarks from "../Common/PayMarks";
 import TileImage from "../ui/TileImage";
 
 /*
@@ -180,16 +179,8 @@ export function CheckoutSummary({
         {placing ? "Placing your order…" : `Place Order · ${formatTaka(totals.totalPaisa)}`}
       </button>
 
-      {/*  The same row of marks as /pay and the footer (owner, 9 Sep 2026):
-           the last thing under the button is how the money can be paid.  */}
-      <PayMarks className="mt-4" />
-      <p className="mt-3 flex items-center justify-center gap-[7px] text-[11.5px] text-body-soft">
-        <Icon name="lock" className="w-[15px] h-[15px] text-[#0E7A3D]" />
-        <span>
-          Secured by <b className="text-purple font-bold">SSLCommerz</b> · 256-bit encrypted
-        </span>
-      </p>
-
+      {/*  No payment marks under the button (owner, 9 Sep 2026) — they sit
+           on the Online Payment card above, where the choice is made.  */}
       <TrustBand />
       </aside>
     </div>
@@ -233,6 +224,7 @@ function TrustBand() {
   }, []);
 
   const lines: { icon: "lock" | "heart" | "star"; text: string }[] = [
+    { icon: "lock", text: "256-bit encrypted payment via secure gateway" },
     { icon: "heart", text: "Freshness guarantee — replaced free if imperfect" },
   ];
   if (rating?.rating) {
