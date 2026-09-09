@@ -8,7 +8,7 @@ import {
   type AmountDue,
 } from "../../_data/checkoutApi";
 import { formatTaka } from "../../_data/products";
-import { getShopFooter, type ShopFooter } from "../../_data/shop";
+import PayMarks from "../Common/PayMarks";
 import Icon from "../Pdp/PdpIcons";
 
 /*
@@ -26,10 +26,9 @@ import Icon from "../Pdp/PdpIcons";
   the shop pointing at the customer; *"Let's finish your payment"* is the shop
   standing beside him. Same fact, and one of them loses the order.
 
-  ⚠️ THE PAYMENT MARKS COME FROM THE ADMIN, not from this file. They are the
-  same badges as the footer's (Admin → Storefront → Footer), so the day a
-  wallet is added or dropped it changes in both places at once, and nothing
-  here claims a method the shop no longer takes.
+  ⚠️ THE PAYMENT MARKS ARE `Common/PayMarks` — the one row the footer and the
+  checkout draw too, fed by Admin → Storefront → Footer. Nothing here claims a
+  method the shop no longer takes.
 
   ⚠️ NOTHING PERSONAL IS SHOWN — not the name, not the address, not what was
   bought. Only the order number and what is owed. This link travels over SMS
@@ -41,44 +40,8 @@ import Icon from "../Pdp/PdpIcons";
   ═══════════════════════════════════════════════════════════════════════════
 */
 
-/** Fallbacks, used only until the admin's own badge list answers. */
-const FALLBACK_MARKS = ["bKash", "Nagad", "Rocket", "VISA", "Mastercard"];
-
-/*  Each wallet's own colour, because a row of identical grey chips reads as
-    decoration rather than as "these are the ways you can pay".  */
-const MARK_COLOUR: Record<string, string> = {
-  bkash: "#E2136E",
-  nagad: "#EC1C24",
-  rocket: "#8C3494",
-  visa: "#1A1F71",
-  mastercard: "#EB001B",
-  upay: "#00A651",
-  cellfin: "#0E7A3D",
-};
-
-function PayMark({ label, url }: { label: string; url: string | null }) {
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <span className="inline-flex h-[27px] items-center rounded-[9px] border-[1.5px] border-lavender-deep bg-white px-2.5">
-        <img src={url} alt={label} className="h-[15px] w-auto object-contain" />
-      </span>
-    );
-  }
-  const colour = MARK_COLOUR[label.toLowerCase().replace(/\s+/g, "")] ?? "#3a2547";
-  return (
-    <span
-      className="inline-flex h-[27px] items-center rounded-[9px] border-[1.5px] border-lavender-deep bg-white px-[11px] text-[11.5px] font-extrabold"
-      style={{ color: colour }}
-    >
-      {label}
-    </span>
-  );
-}
-
 export default function PayView({ orderNo }: { orderNo: string }) {
   const [due, setDue] = useState<AmountDue | null | undefined>(undefined);
-  const [marks, setMarks] = useState<{ label: string; imageUrl: string | null }[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,9 +49,6 @@ export default function PayView({ orderNo }: { orderNo: string }) {
     let stale = false;
     fetchAmountDue(orderNo).then((d) => {
       if (!stale) setDue(d);
-    });
-    getShopFooter().then((f: ShopFooter | null) => {
-      if (!stale && f?.badges?.length) setMarks(f.badges);
     });
     return () => {
       stale = true;
@@ -188,8 +148,6 @@ export default function PayView({ orderNo }: { orderNo: string }) {
     );
   }
 
-  const list = marks ?? FALLBACK_MARKS.map((label) => ({ label, imageUrl: null }));
-
   return shell(
     <>
       <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orchid">
@@ -221,11 +179,7 @@ export default function PayView({ orderNo }: { orderNo: string }) {
 
       {error && <p className="mt-3 text-[12.5px] leading-relaxed text-[#8A1220]">{error}</p>}
 
-      <div className="mt-4 flex flex-wrap justify-center gap-[7px]">
-        {list.map((m) => (
-          <PayMark key={m.label} label={m.label} url={m.imageUrl} />
-        ))}
-      </div>
+      <PayMarks className="mt-4" />
 
       <p className="mt-3 flex items-center justify-center gap-[7px] text-[11.5px] text-body-soft">
         <Icon name="lock" className="w-[15px] h-[15px] text-[#0E7A3D]" />

@@ -4,6 +4,7 @@ import { defaultPayment, paymentOptions, type PaymentId } from "../../_data/paym
 import type { ResolvedLine } from "../../_data/cart";
 import { useCheckoutStore } from "../../_store/useCheckoutStore";
 import Icon from "../Pdp/PdpIcons";
+import PayMarks from "../Common/PayMarks";
 import { QCard } from "./CheckoutFields";
 import type { ReactNode } from "react";
 
@@ -30,12 +31,6 @@ import type { ReactNode } from "react";
 */
 
 /** the wallets, in their own brand colours */
-const WALLETS = [
-  { label: "bKash", bg: "#E2136E" },
-  { label: "Nagad", bg: "#EE7623" },
-  { label: "Rocket", bg: "#8C3494" },
-] as const;
-
 export function Q5Payment({
   lines,
   summary,
@@ -116,29 +111,11 @@ export function Q5Payment({
                 </span>
               </span>
 
-              {/*  the wallets and cards, each in its own colour — the row a
-                   Bangladeshi shopper looks for before trusting a checkout.
-                   Marks, not logos: no image files, nothing to load, and
-                   nobody's trademark reproduced.  */}
+              {/*  the wallets and cards — the same row as /pay and the footer,
+                   from the admin's badge list (cash left out: not a way to
+                   pay online).  */}
               {method.id === "online" ? (
-                <span className="flex flex-wrap items-center gap-1.5 mt-4">
-                  {WALLETS.map((w) => (
-                    <span
-                      key={w.label}
-                      className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center text-[11px] font-bold text-white"
-                      style={{ background: w.bg }}
-                    >
-                      {w.label}
-                    </span>
-                  ))}
-                  <span className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center border border-lavender-deep bg-white text-[11px] font-bold italic tracking-wide text-[#1A1F71]">
-                    VISA
-                  </span>
-                  <span className="h-[26px] px-2 rounded-[8px] inline-flex items-center gap-1 border border-lavender-deep bg-white">
-                    <span className="w-[13px] h-[13px] rounded-full bg-[#EB001B]" />
-                    <span className="w-[13px] h-[13px] rounded-full bg-[#F79E1B] -ml-[6px] mix-blend-multiply" />
-                  </span>
-                </span>
+                <PayMarks align="start" hideCod className="mt-4" />
               ) : (
                 <span className="flex flex-wrap items-center gap-1.5 mt-4">
                   <span className="h-[26px] px-2.5 rounded-[8px] inline-flex items-center bg-[#E8F9EE] text-[11px] font-bold text-[#0E7A3D]">

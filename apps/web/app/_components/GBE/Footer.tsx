@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { getShopFooter, type ShopFooter } from "../../_data/shop";
 import { hasFooter } from "../../_data/quietPages";
 import ShopLogo from "../ui/ShopLogo";
+import PayMarks from "../Common/PayMarks";
 
 /*
   GBE part 3 of 3 — Footer. Appears on every page (auth pages: footer only).
@@ -52,7 +53,6 @@ const COLS: { heading: string; links: { label: string; href: string }[] }[] = [
   },
 ];
 
-const PAYMENTS = ["bKash", "Nagad", "Rocket", "VISA", "Mastercard", "COD"];
 
 function SocIcon({ name }: { name: string }) {
   const cls = "w-4 h-4 fill-current";
@@ -112,7 +112,6 @@ export default function Footer() {
     ? data.footerGroups.map((g) => ({ heading: g.title, links: g.links }))
     : COLS;
   const socials = data?.socials ?? [];
-  const badges = data?.badges ?? PAYMENTS.map((label) => ({ label, imageUrl: null as string | null }));
 
   return (
     <footer className="bg-purple-deep text-white/80">
@@ -171,24 +170,9 @@ export default function Footer() {
             <div className="text-[11.5px] tracking-[0.16em] uppercase text-white/55 font-semibold mb-[9px] whitespace-nowrap">
               We accept
             </div>
-            <div className="flex gap-[9px] flex-wrap">
-              {badges.map((p) => (
-                <span
-                  key={p.label}
-                  className="inline-flex items-center gap-[7px] bg-white/10 border border-white/20 text-white text-[12px] font-semibold rounded-[10px] px-[15px] py-2 tracking-[0.03em] whitespace-nowrap"
-                >
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imageUrl} alt={p.label} className="h-[18px] w-auto object-contain" />
-                  ) : (
-                    <>
-                      <span className="w-[7px] h-[7px] bg-orchid rounded-[50%_50%_50%_0] -rotate-45 inline-block" />
-                      {p.label}
-                    </>
-                  )}
-                </span>
-              ))}
-            </div>
+            {/*  the same row of marks as /pay and the checkout (owner, 9 Sep
+                 2026) — white chips, each wallet in its own colour  */}
+            <PayMarks marks={data?.badges} tone="dark" align="start" />
           </div>
           <div className="text-[12.5px] text-white/50 whitespace-nowrap">
             {/* the year is generated, never stored — a footer still saying 2026
