@@ -9,6 +9,7 @@ import { API_BASE } from "../../_data/shop";
 import { track } from "../../_data/tracking";
 import { useOrderHydrated, useOrderStore } from "../../_store/useOrderStore";
 import Icon from "../Pdp/PdpIcons";
+import ShopIcon from "../ui/ShopIcon";
 import DeliveryTimeline from "./DeliveryTimeline";
 import TileImage from "../ui/TileImage";
 
@@ -220,42 +221,112 @@ export default function OrderSuccessView() {
 
   if (!order) return null;
 
-  const placedAt = new Date(order.placedAt).toLocaleString("en-GB", {
-    timeZone: "Asia/Dhaka",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  /*  The first name only. "Thank you, Sobuj" is a person speaking; "Thank you,
+      Sobuj Gazi" is a form letter.  */
+  const firstName = (order.sender.name || "").trim().split(/\s+/)[0] || "there";
+
+  /*  Cash on delivery is the one case where the money has NOT arrived, so the
+      green line is replaced by what is still owed. Read from the order's own
+      payment method, never guessed from a label.  */
+  const isCod = order.payment === "cod";
 
   return (
     <div className="py-8">
-      {/* ─── hero ─── */}
-      <div className="text-center max-w-[620px] mx-auto">
-        <span className="w-16 h-16 rounded-full bg-[#E8F9EE] text-[#0E7A3D] grid place-items-center mx-auto">
-          <Icon name="check" className="w-7 h-7" />
-        </span>
+      {/*
+        ═══ THE HERO — owner's design, approved 9 Sep 2026 ═══════════════════
 
-        <h1 className="font-display text-[30px] sm:text-[36px] text-purple font-semibold mt-5">
-          {order.isGift ? "Their Gift Is On Its Way" : "Your Order Is On Its Way"}
-        </h1>
+        What it replaced: a green tick on a white page under "Your Order Is On
+        Its Way". Green is the colour a bank uses to say a transfer cleared,
+        and this is the happiest second a flower shop gets. It is the shop's
+        own deep purple now, and the headline greets him by name.
 
-        <p className="text-[14.5px] text-body mt-3">
-          {order.isGift && order.recipient?.name
-            ? `${order.recipient.name} will receive it — ${order.etaDone.toLowerCase()}.`
-            : `Arriving ${order.etaDone.toLowerCase()}.`}{" "}
-          We&apos;ve sent the details to {order.sender.phone}.
-        </p>
+        ⚠️ AND IT CONFIRMS THE MONEY, PLAINLY — his instruction: *"mone rakhbe
+        tar payment peyechi ata take confirm krba."* That used to be a small
+        grey pill in a corner reading "Online". It is a green line of its own,
+        directly under the headline, in the shop's own words.
+      */}
+      <div className="max-w-[620px] mx-auto">
+        <div className="relative overflow-hidden rounded-[28px] px-6 sm:px-8 pt-9 pb-8 text-center text-white shadow-[0_18px_50px_rgba(71,0,102,0.14)] bg-[linear-gradient(150deg,#320049_0%,#470066_55%,#5B1279_100%)]">
+          {/*  the orchid glow — the same shape the delivery band uses  */}
+          <span className="pointer-events-none absolute -top-[150px] -right-[110px] w-[400px] h-[400px] rounded-[50%_50%_50%_0] -rotate-45 bg-orchid/[0.18]" />
 
-        <div className="inline-flex flex-wrap items-center justify-center gap-2 mt-5">
-          <span className="rounded-full bg-white border-[1.5px] border-lavender-deep px-4 py-2 text-[13px] font-semibold text-purple">
-            Order {order.id}
+          <span className="relative z-[2] w-16 h-16 rounded-full grid place-items-center mx-auto bg-white/[0.14] border-[1.5px] border-orchid-mid/55">
+            <Icon name="check" className="w-7 h-7" />
           </span>
-          <span className="rounded-full bg-white border-[1.5px] border-lavender-deep px-4 py-2 text-[13px] text-body-soft">
-            {placedAt} · {order.paymentLabel}
-          </span>
+
+          <h1 className="relative z-[2] font-display text-[27px] sm:text-[32px] leading-[1.18] font-semibold mt-4">
+            Thank you, {firstName} —
+            <br />
+            <i className="not-italic text-orchid-mid">your order is confirmed</i>
+          </h1>
+
+          {/*  Only when the money is actually in. A COD order says what is owed
+              instead, in the band below — never both.  */}
+          {!isCod && (
+            <span className="relative z-[2] inline-flex items-center gap-2 mt-3.5 rounded-full bg-[#E8F9EE] border border-[#C4EED4] text-[#0E7A3D] px-4 py-2 text-[13.5px] font-bold">
+              <Icon name="check" className="w-[18px] h-[18px]" />
+              We&rsquo;ve received your {formatTaka(order.totalPaisa)}
+            </span>
+          )}
+
+          <p className="relative z-[2] text-[14.5px] leading-relaxed text-white/[0.88] mt-3 mx-auto max-w-[430px]">
+            {order.isGift && order.recipient?.name
+              ? `${order.recipient.name} gets it ${order.etaDone.toLowerCase()}.`
+              : `Arriving ${order.etaDone.toLowerCase()}.`}{" "}
+            We&rsquo;ll message {order.sender.phone} at every step.
+          </p>
+
+          <div className="relative z-[2] flex flex-wrap items-center justify-center gap-2 mt-4">
+            <span className="rounded-full bg-white/[0.13] border border-white/[0.22] px-3.5 py-[7px] text-[12.5px] font-bold whitespace-nowrap">
+              {order.id}
+            </span>
+            <span
+              className={`rounded-full px-3.5 py-[7px] text-[12.5px] font-bold whitespace-nowrap ${
+                isCod
+                  ? "bg-[#FFF7E8] border border-[#F2D9A8] text-[#8A5A00]"
+                  : "bg-white/[0.13] border border-white/[0.22]"
+              }`}
+            >
+              {isCod ? "Cash on delivery" : order.methodLabel}
+            </span>
+          </div>
         </div>
 
+        {/*
+          ═══ WHAT IS STILL OWED — the owner's Shape A ═════════════════════════
+
+          A cash-on-delivery order has one fact the paid one does not, and a
+          customer who does not read it keeps a rider standing at the door. So
+          it sits directly under the headline rather than down the page.
+
+          The shape is the house's own (rule 17): a coloured spine on the left,
+          the icon in a tinted square, the number large, the explanation quiet.
+          The first attempt put a big number beside a paragraph and the two
+          fought each other.
+        */}
+        {isCod && (
+          <div className="mt-4 flex overflow-hidden rounded-[22px] border-[1.5px] border-[#F2D9A8] bg-white">
+            <span className="w-[6px] shrink-0 bg-[#C08A00]" />
+            <span className="flex flex-1 flex-wrap items-center gap-4 px-5 py-4">
+              <span className="w-11 h-11 rounded-[14px] bg-[#FFF7E8] text-[#8A5A00] grid place-items-center shrink-0">
+                {/*  ⚠️ `ShopIcon`, not this page's `Icon` — PdpIcons has no
+                    wallet, and a name it does not know draws nothing at all.  */}
+                <ShopIcon name="wallet" className="w-6 h-6" />
+              </span>
+              <span>
+                <span className="block text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-[#8A5A00]/75">
+                  Pay the rider
+                </span>
+                <b className="block font-display text-[30px] leading-none text-[#8A5A00] font-semibold">
+                  {formatTaka(order.totalPaisa)}
+                </b>
+              </span>
+              <span className="ml-auto max-w-[210px] text-right text-[12.5px] leading-snug text-body-soft">
+                Please keep it ready — our riders carry no change.
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start mt-9">

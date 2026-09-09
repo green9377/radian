@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getShopFooter, type ShopFooter } from "../../_data/shop";
-import { isQuietPage } from "../../_data/quietPages";
+import { hasFooter } from "../../_data/quietPages";
 import ShopLogo from "../ui/ShopLogo";
 
 /*
@@ -101,8 +101,12 @@ export default function Footer() {
     return () => { alive = false; };
   }, []);
 
-  // the quiet pages carry no footer (owner, 8 Sep 2026) — after every hook
-  if (isQuietPage(pathname)) return null;
+  /*  ⚠️ AN ALLOWLIST NOW, NOT A SKIP LIST (owner, 9 Sep 2026): the footer is
+      drawn on the home page, categories, products and the blog, and nowhere
+      else. The old list of pages to skip meant every new page was born with a
+      full site menu under a customer in the middle of paying. After every
+      hook, as before.  */
+  if (!hasFooter(pathname)) return null;
 
   const cols = data?.footerGroups?.length
     ? data.footerGroups.map((g) => ({ heading: g.title, links: g.links }))
