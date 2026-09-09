@@ -81,7 +81,7 @@ function paymentColour(o: ApiOrder): string {
 function Pill({ colour, outline, children }: { colour: string; outline?: boolean; children: React.ReactNode }) {
   return (
     <span
-      className="inline-flex items-center text-[11px] font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap leading-none"
+      className="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap leading-none"
       style={outline ? { color: colour, border: `1.5px solid ${colour}`, background: "#fff" } : { background: colour, color: "#fff" }}
     >
       {children}
@@ -91,7 +91,7 @@ function Pill({ colour, outline, children }: { colour: string; outline?: boolean
 
 function Tag({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-extrabold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
+    <span className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
       {children}
     </span>
   );
@@ -143,10 +143,10 @@ function nextStep(o: ApiOrder): Next {
 }
 
 const CELL = "px-3 py-3 align-top border-b border-r border-[#dfd3ea] last:border-r-0";
-const LABEL = "block text-[11px] font-bold uppercase tracking-[0.05em] text-[#7b6b87] leading-tight";
-const MONEY_LABEL = "inline-block w-[46px] text-[11px] font-bold uppercase tracking-[0.04em] text-[#7b6b87]";
+const LABEL = "block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#7b6b87] leading-tight";
+const MONEY_LABEL = "inline-block w-[46px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#7b6b87]";
 const ICON_BTN = "w-[22px] h-[22px] rounded-[6px] border border-[#dfd3ea] grid place-items-center text-body-soft hover:text-purple hover:border-purple bg-white";
-const ACT = "h-[34px] rounded-[9px] px-3 inline-flex items-center gap-2 text-[12.5px] font-bold";
+const ACT = "h-[34px] rounded-[9px] px-3 inline-flex items-center gap-2 text-[12.5px] font-semibold";
 
 function copy(text: string) {
   try {
@@ -195,7 +195,7 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
 
       {/* order no */}
       <td className={`${CELL} w-[122px]`}>
-        <Link href={`/orders/${o.id}`} className="font-nav font-extrabold text-[15px] text-purple whitespace-nowrap hover:underline">
+        <Link href={`/orders/${o.id}`} className="font-nav font-bold text-[15px] text-purple whitespace-nowrap hover:underline">
           {o.orderNo}
         </Link>
         <div className="flex gap-1.5 mt-1.5">
@@ -216,11 +216,11 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
       {/* date */}
       <td className={`${CELL} w-[172px]`}>
         <span className={LABEL}>Placed</span>
-        <b className="block text-[12.5px] font-bold text-body mb-1.5">{fmtStamp(o.placedAt)}</b>
+        <b className="block text-[12.5px] font-semibold text-body mb-1.5">{fmtStamp(o.placedAt)}</b>
         {when && !cancelled && (
           <>
             <span className={LABEL}>{second}</span>
-            <b className="block text-[12.5px] font-bold" style={{ color: hot ? SOLID.red : undefined }}>{when}</b>
+            <b className="block text-[12.5px] font-semibold" style={{ color: hot ? SOLID.red : undefined }}>{when}</b>
           </>
         )}
       </td>
@@ -228,40 +228,40 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
       {/* customer */}
       <td className={CELL}>
         <div className="flex items-center gap-2 flex-wrap">
-          <Link href={`/orders/${o.id}`} className="font-display font-extrabold text-[18px] leading-tight text-purple hover:underline">
+          <Link href={`/orders/${o.id}`} className="font-display font-semibold text-[18px] leading-tight text-purple hover:underline">
             {name}
           </Link>
           {count <= 1 ? <Tag colour={SOLID.blue}>NEW</Tag> : <Tag colour={SOLID.green}>REPEAT · {count}</Tag>}
           {o.isGift && <Tag colour={SOLID.orchid}>GIFT</Tag>}
         </div>
-        <div className="flex items-center gap-1.5 mt-1 text-[14px] font-bold text-purple">
+        <div className="flex items-center gap-1.5 mt-1 text-[14px] font-semibold text-purple">
           {o.senderPhone}
           <button type="button" title="Copy phone" className="text-body-soft hover:text-purple" onClick={() => copy(o.senderPhone)}>
             <Icon name="copy" size={11} />
           </button>
         </div>
         {o.isGift && o.recipientName && (
-          <div className="text-[12.5px] font-semibold text-body-soft mt-1">
-            To <b className="font-bold text-body">{o.recipientName}</b>
+          <div className="text-[12.5px] font-medium text-body-soft mt-1">
+            To <b className="font-semibold text-body">{o.recipientName}</b>
             {o.recipientPhone ? ` · ${o.recipientPhone}` : ""}
           </div>
         )}
-        <div className="text-[12.5px] font-semibold text-body-soft mt-1 leading-snug">{o.address}</div>
+        <div className="text-[12.5px] font-medium text-body-soft mt-1 leading-snug">{o.address}</div>
       </td>
 
       {/* total */}
       <td className={`${CELL} w-[132px] whitespace-nowrap`}>
         <div className="leading-[1.55]">
           <span className={MONEY_LABEL}>Total</span>
-          <b className="font-display font-extrabold text-[18px] text-body">{formatTaka(o.totalPaisa)}</b>
+          <b className="font-display font-semibold text-[18px] text-body">{formatTaka(o.totalPaisa)}</b>
         </div>
         <div className="leading-[1.55]">
           <span className={MONEY_LABEL}>Paid</span>
-          <b className="font-display font-extrabold text-[15px]" style={{ color: o.paidPaisa > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(o.paidPaisa)}</b>
+          <b className="font-display font-semibold text-[15px]" style={{ color: o.paidPaisa > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(o.paidPaisa)}</b>
         </div>
         <div className="leading-[1.55]">
           <span className={MONEY_LABEL}>Due</span>
-          <b className="font-display font-extrabold text-[15px]" style={{ color: o.duePaisa > 0 && !cancelled ? SOLID.red : SOLID.grey }}>
+          <b className="font-display font-semibold text-[15px]" style={{ color: o.duePaisa > 0 && !cancelled ? SOLID.red : SOLID.grey }}>
             {formatTaka(cancelled ? 0 : o.duePaisa)}
           </b>
         </div>
@@ -281,8 +281,8 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
 
       {/* delivery */}
       <td className={`${CELL} w-[166px]`}>
-        <b className="block text-[13px] font-bold text-body whitespace-nowrap">{o.methodLabel || "—"}</b>
-        <span className="block text-[12px] font-semibold text-[#7b6b87] mt-0.5 whitespace-nowrap">
+        <b className="block text-[13px] font-semibold text-body whitespace-nowrap">{o.methodLabel || "—"}</b>
+        <span className="block text-[12px] font-medium text-[#7b6b87] mt-0.5 whitespace-nowrap">
           {zoneLabel(o.zone)} · {o.channel?.name ?? "Website"}
         </span>
         {showDelivery && (
@@ -334,16 +334,16 @@ function Band({ loading, s }: { loading: boolean; s: Stats }) {
   return (
     <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
       <div className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="font-display font-bold text-[28px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
+        <h1 className="font-display font-semibold text-[28px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
           All orders
           <span
-            className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-bold grid place-items-center font-ui cursor-help"
+            className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-semibold grid place-items-center font-ui cursor-help"
             title="Every website, Facebook, Instagram, WhatsApp and phone order. Walk-in POS is a separate module. Revenue counts delivered orders only; To collect is every unpaid balance on an open order."
           >
             i
           </span>
         </h1>
-        <Link href="/orders/new" className="bg-white text-purple text-[14px] font-bold px-5 py-2.5 rounded-[12px] inline-flex items-center gap-2 hover:bg-lavender">
+        <Link href="/orders/new" className="bg-white text-purple text-[14px] font-semibold px-5 py-2.5 rounded-[12px] inline-flex items-center gap-2 hover:bg-lavender">
           <Icon name="plus" size={17} /> New order
         </Link>
       </div>
@@ -351,8 +351,8 @@ function Band({ loading, s }: { loading: boolean; s: Stats }) {
         {tiles.map((t) => {
           const inner = (
             <>
-              <span className="block text-[11.5px] font-extrabold tracking-[0.07em] uppercase text-[#d9c5e6]">{t.label}</span>
-              <span className="block font-display font-extrabold text-[30px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>
+              <span className="block text-[11.5px] font-bold tracking-[0.07em] uppercase text-[#d9c5e6]">{t.label}</span>
+              <span className="block font-display font-semibold text-[30px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>
                 {loading ? "…" : t.value}
               </span>
             </>
@@ -448,7 +448,7 @@ export default function OrderListView() {
                 key={label}
                 type="button"
                 onClick={() => setSales(val)}
-                className={`px-3.5 py-2 rounded-[9px] text-[13px] font-bold inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}
+                className={`px-3.5 py-2 rounded-[9px] text-[13px] font-semibold inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}
               >
                 {label}
                 {!loading && (val === "" || val === "placed") && (
@@ -462,19 +462,19 @@ export default function OrderListView() {
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-body-soft">
             <Icon name="search" size={17} />
           </span>
-          <input className="ipt ipt-icon h-[42px] font-semibold" placeholder="Order no, name, phone, recipient, address" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="ipt ipt-icon h-[42px] font-medium" placeholder="Order no, name, phone, recipient, address" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className="ipt max-w-[150px] h-[42px] font-bold" value={type} onChange={(e) => setType(e.target.value)}>
+        <select className="ipt max-w-[150px] h-[42px] font-semibold" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="">Self &amp; gift</option>
           <option value="self">Self only</option>
           <option value="gift">Gift only</option>
         </select>
-        <select className="ipt max-w-[160px] h-[42px] font-bold" value={pay} onChange={(e) => setPay(e.target.value)}>
+        <select className="ipt max-w-[160px] h-[42px] font-semibold" value={pay} onChange={(e) => setPay(e.target.value)}>
           <option value="">All payments</option>
           <option value="online">Online</option>
           <option value="cod">Cash on delivery</option>
         </select>
-        <span className="text-[13px] font-bold text-body-soft">{loading ? "…" : `${rows.length} order${rows.length === 1 ? "" : "s"}`}</span>
+        <span className="text-[13px] font-semibold text-body-soft">{loading ? "…" : `${rows.length} order${rows.length === 1 ? "" : "s"}`}</span>
       </div>
 
       {error && <ErrorBox error={error} onRetry={load} />}
@@ -486,7 +486,7 @@ export default function OrderListView() {
               {HEADS.map((h, i) => (
                 <th
                   key={h || "select"}
-                  className="text-left bg-lavender text-purple font-nav font-extrabold text-[12px] tracking-[0.05em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0"
+                  className="text-left bg-lavender text-purple font-nav font-bold text-[12px] tracking-[0.05em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0"
                 >
                   {i === 0 ? <input type="checkbox" className="w-4 h-4 accent-purple" aria-label="Select all" /> : h}
                 </th>
@@ -505,7 +505,7 @@ export default function OrderListView() {
             <span className="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2 bg-lavender text-purple">
               <Icon name="search" size={20} />
             </span>
-            <p className="text-[13.5px] font-semibold text-body-soft m-0">No orders match.</p>
+            <p className="text-[13.5px] font-medium text-body-soft m-0">No orders match.</p>
           </div>
         )}
       </div>

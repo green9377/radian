@@ -94,7 +94,7 @@ function paymentColour(o: Order): string {
 function Stepper({ steps, current, dead, deadLabel }: { steps: string[]; current: number; dead?: boolean; deadLabel?: string }) {
   if (dead) {
     return (
-      <div className="rounded-[12px] px-4 py-3 text-[13px] font-bold inline-flex items-center gap-2 bg-white/10 border border-white/20 text-[#ffb4ad]">
+      <div className="rounded-[12px] px-4 py-3 text-[13px] font-semibold inline-flex items-center gap-2 bg-white/10 border border-white/20 text-[#ffb4ad]">
         <Icon name="shield" size={16} /> {deadLabel}
       </div>
     );
@@ -108,7 +108,7 @@ function Stepper({ steps, current, dead, deadLabel }: { steps: string[]; current
           <div key={st} className="flex-1 flex flex-col items-center relative min-w-0">
             {i > 0 && <span className="absolute top-[14px] right-1/2 w-full h-[4px] rounded-full" style={{ background: done || now ? "#fff" : "rgba(255,255,255,.18)" }} />}
             <span
-              className="relative z-10 w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-extrabold"
+              className="relative z-10 w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-bold"
               style={
                 done
                   ? { background: "#fff", color: "#470066" }
@@ -119,7 +119,7 @@ function Stepper({ steps, current, dead, deadLabel }: { steps: string[]; current
             >
               {done ? <Icon name="check" size={14} /> : i + 1}
             </span>
-            <span className="mt-2 text-[12.5px] font-bold text-center leading-tight px-1" style={{ color: now || done ? "#fff" : "#d9c5e6" }}>
+            <span className="mt-2 text-[12.5px] font-semibold text-center leading-tight px-1" style={{ color: now || done ? "#fff" : "#d9c5e6" }}>
               {st}
             </span>
           </div>
@@ -134,9 +134,9 @@ function Fact({ label, value, sub, colour, hot }: { label: string; value: string
   return (
     <div className="relative overflow-hidden rounded-[14px] px-4 py-3 pl-[18px] border border-white/15 bg-white/[0.08]">
       <span className="absolute left-0 top-[9px] bottom-[9px] w-[5px] rounded-r-[6px]" style={{ background: colour }} />
-      <div className="text-[11px] font-extrabold tracking-[0.08em] uppercase text-[#d9c5e6]">{label}</div>
-      <div className="font-display font-extrabold text-[21px] leading-tight mt-1" style={{ color: hot ? "#ffb4ad" : "#fff" }}>{value}</div>
-      {sub && <div className="text-[12px] font-bold text-[#d9c5e6] mt-1">{sub}</div>}
+      <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#d9c5e6]">{label}</div>
+      <div className="font-display font-semibold text-[21px] leading-tight mt-1" style={{ color: hot ? "#ffb4ad" : "#fff" }}>{value}</div>
+      {sub && <div className="text-[12px] font-semibold text-[#d9c5e6] mt-1">{sub}</div>}
     </div>
   );
 }
@@ -146,10 +146,10 @@ function Card({ title, count, hint, right, children }: { title: string; icon?: s
   return (
     <div className="bg-white rounded-[16px] border-[1.5px] border-[#dfd3ea] mb-3">
       <div className="flex items-center gap-2 px-5 pt-4 pb-1">
-        <h3 className="font-display font-bold text-[17px] text-purple m-0 leading-tight">{title}</h3>
-        {count !== undefined && <span className="text-[11px] font-extrabold px-2 py-[2px] rounded-full bg-lavender text-purple">{count}</span>}
+        <h3 className="font-display font-semibold text-[17px] text-purple m-0 leading-tight">{title}</h3>
+        {count !== undefined && <span className="text-[11px] font-bold px-2 py-[2px] rounded-full bg-lavender text-purple">{count}</span>}
         {hint && (
-          <span className="w-[18px] h-[18px] rounded-full border-[1.5px] border-lavender-deep text-purple text-[10px] font-bold grid place-items-center cursor-help" title={hint}>
+          <span className="w-[18px] h-[18px] rounded-full border-[1.5px] border-lavender-deep text-purple text-[10px] font-semibold grid place-items-center cursor-help" title={hint}>
             i
           </span>
         )}
@@ -163,15 +163,15 @@ function Card({ title, count, hint, right, children }: { title: string; icon?: s
 function Row({ k, v }: { k: React.ReactNode; v: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2 border-b border-[#f0eaf5] last:border-0 text-[13.5px]">
-      <span className="font-semibold text-body-soft">{k}</span>
-      <span className="font-bold text-body text-right">{v}</span>
+      <span className="font-medium text-body-soft">{k}</span>
+      <span className="font-semibold text-body text-right">{v}</span>
     </div>
   );
 }
 
 function Pill({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center text-[11px] font-extrabold px-2.5 py-1 rounded-full text-white leading-none whitespace-nowrap" style={{ background: colour }}>
+    <span className="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full text-white leading-none whitespace-nowrap" style={{ background: colour }}>
       {children}
     </span>
   );
@@ -439,8 +439,8 @@ export default function OrderEditor({ id }: { id: string }) {
               }
             : null;
 
-  const shareBtn = "h-[34px] px-3 rounded-[10px] bg-white text-purple text-[12.5px] font-bold inline-flex items-center gap-1.5 hover:bg-lavender";
-  const actBtn = "h-[40px] px-4 rounded-[11px] text-[13.5px] font-bold inline-flex items-center gap-2 disabled:opacity-50";
+  const shareBtn = "h-[34px] px-3 rounded-[10px] bg-white text-purple text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-lavender";
+  const actBtn = "h-[40px] px-4 rounded-[11px] text-[13.5px] font-semibold inline-flex items-center gap-2 disabled:opacity-50";
 
   return (
     <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
@@ -452,14 +452,14 @@ export default function OrderEditor({ id }: { id: string }) {
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="font-display font-extrabold text-[27px] text-white m-0 leading-none">{orderNo}</h1>
-              <span className="text-[10.5px] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full leading-none" style={o.isGift ? { background: SOLID.orchid, color: "#fff" } : { background: "rgba(255,255,255,.18)", color: "#fff" }}>
+              <h1 className="font-display font-semibold text-[27px] text-white m-0 leading-none">{orderNo}</h1>
+              <span className="text-[10.5px] font-bold tracking-[0.08em] px-2 py-[3px] rounded-full leading-none" style={o.isGift ? { background: SOLID.orchid, color: "#fff" } : { background: "rgba(255,255,255,.18)", color: "#fff" }}>
                 {o.isGift ? "GIFT" : "SELF"}
               </span>
             </div>
             {/* REV-M6: the channel name comes from the API, so a new/admin-created
                 channel (Shop, TikTok…) shows properly instead of blank */}
-            <p className="text-[13px] font-semibold text-[#d9c5e6] m-0 mt-1.5">
+            <p className="text-[13px] font-medium text-[#d9c5e6] m-0 mt-1.5">
               {shortDate(o.placedAt)}, {clockTime(o.placedAt)} · {channelName} · {o.methodLabel} · {custName}
             </p>
           </div>
@@ -477,7 +477,7 @@ export default function OrderEditor({ id }: { id: string }) {
               <Icon name="mail" size={14} /> Email
             </a>
             {!terminal && (
-              <Link href={`/orders/${o.id}/edit`} className="h-[34px] px-3.5 rounded-[10px] text-white text-[12.5px] font-bold inline-flex items-center gap-1.5" style={{ background: SOLID.orchid }}>
+              <Link href={`/orders/${o.id}/edit`} className="h-[34px] px-3.5 rounded-[10px] text-white text-[12.5px] font-semibold inline-flex items-center gap-1.5" style={{ background: SOLID.orchid }}>
                 <Icon name="edit" size={14} /> Edit order
               </Link>
             )}
@@ -504,7 +504,7 @@ export default function OrderEditor({ id }: { id: string }) {
           </button>
         )}
         {terminal && (
-          <span className="h-[40px] px-4 rounded-[11px] text-[13.5px] font-bold inline-flex items-center gap-2 bg-white border-[1.5px]" style={{ color: cancelled ? SOLID.red : SOLID.green, borderColor: cancelled ? SOLID.red : SOLID.green }}>
+          <span className="h-[40px] px-4 rounded-[11px] text-[13.5px] font-semibold inline-flex items-center gap-2 bg-white border-[1.5px]" style={{ color: cancelled ? SOLID.red : SOLID.green, borderColor: cancelled ? SOLID.red : SOLID.green }}>
             {cancelled ? "Cancelled — read-only" : "Completed — read-only"}
           </span>
         )}
@@ -527,10 +527,10 @@ export default function OrderEditor({ id }: { id: string }) {
            was pressed. This is usually a RULE, not a fault: "record the payment
            first", "items are locked once preparing starts". It reads as one.  */}
       {actErr && (
-        <div className="flex items-start gap-2.5 rounded-[12px] border-[1.5px] px-4 py-3 mb-4 text-[13px] font-semibold bg-white" style={{ borderColor: SOLID.amber, color: "#8a4b00" }}>
+        <div className="flex items-start gap-2.5 rounded-[12px] border-[1.5px] px-4 py-3 mb-4 text-[13px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "#8a4b00" }}>
           <Icon name="alert" size={16} />
           <span className="flex-1 min-w-0">{actErr}</span>
-          <button type="button" onClick={() => setActErr("")} className="font-bold shrink-0 opacity-70 hover:opacity-100">
+          <button type="button" onClick={() => setActErr("")} className="font-semibold shrink-0 opacity-70 hover:opacity-100">
             Dismiss
           </button>
         </div>
@@ -544,9 +544,9 @@ export default function OrderEditor({ id }: { id: string }) {
             const on = sec === sid;
             return (
               <button key={sid} type="button" onClick={() => setSec(sid)}
-                className={"w-full flex items-center justify-between gap-2 px-3 py-[10px] rounded-[11px] text-[13.5px] font-extrabold text-left " + (on ? "bg-white text-purple" : "text-[#e7d8f2] hover:bg-white/10")}>
+                className={"w-full flex items-center justify-between gap-2 px-3 py-[10px] rounded-[11px] text-[13.5px] font-bold text-left " + (on ? "bg-white text-purple" : "text-[#e7d8f2] hover:bg-white/10")}>
                 <span className="flex-1">{label}</span>
-                {b && <span className={"text-[11px] px-2 py-[2px] rounded-full font-extrabold " + (on ? "bg-lavender text-purple" : "bg-white/15 text-white")}>{b}</span>}
+                {b && <span className={"text-[11px] px-2 py-[2px] rounded-full font-bold " + (on ? "bg-lavender text-purple" : "bg-white/15 text-white")}>{b}</span>}
               </button>
             );
           })}
@@ -563,7 +563,7 @@ export default function OrderEditor({ id }: { id: string }) {
           {sec === "summary" && (
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title="Customer & recipient" hint="The account that placed the order. Lifetime value and order count are Sales-owned and update when the order is delivered." right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">More</button>}>
+                <Card title="Customer & recipient" hint="The account that placed the order. Lifetime value and order count are Sales-owned and update when the order is delivered." right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">More</button>}>
                   <div className="px-5 pb-4">
                     <Row k="Customer" v={<Link href={`/customers/${o.customerId}`} className="text-purple hover:underline">{custName}</Link>} />
                     <Row k="Phone" v={o.sender.phone} />
@@ -572,35 +572,35 @@ export default function OrderEditor({ id }: { id: string }) {
                     <Row k="Delivery" v={`${o.methodLabel}${o.date ? ` · ${o.date}` : ""}${o.slotLabel ? ` · ${o.slotLabel}` : ""}`} />
                   </div>
                 </Card>
-                <Card title="Items" count={o.lines.length} right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
+                <Card title="Items" count={o.lines.length} right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
                   <div className="px-5 pb-4">
                     {o.lines.map((l) => (
                       <div key={l.id} className="grid grid-cols-[44px_1fr_auto_auto] gap-3 items-center py-2 border-b border-[#f0eaf5] last:border-0">
                         <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: l.bg }} />
                         <div className="min-w-0">
-                          <div className="text-[13.5px] font-bold text-body truncate">{l.name}</div>
-                          <div className="text-[12px] font-semibold text-body-soft truncate">{[l.variantLabel, l.sizeLabel, l.bundleLabel].filter(Boolean).join(" · ")}</div>
+                          <div className="text-[13.5px] font-semibold text-body truncate">{l.name}</div>
+                          <div className="text-[12px] font-medium text-body-soft truncate">{[l.variantLabel, l.sizeLabel, l.bundleLabel].filter(Boolean).join(" · ")}</div>
                         </div>
-                        <div className="text-[13px] font-extrabold text-body-soft">× {l.qty}</div>
-                        <div className="font-display font-extrabold text-[15px] text-body">{formatTaka(l.linePaisa)}</div>
+                        <div className="text-[13px] font-bold text-body-soft">× {l.qty}</div>
+                        <div className="font-display font-semibold text-[15px] text-body">{formatTaka(l.linePaisa)}</div>
                       </div>
                     ))}
                     <div className="pt-2 mt-1 border-t-2 border-lavender-deep">
                       {o.couponCode ? <Row k={`Coupon (${o.couponCode})`} v={`− ${formatTaka(o.discountPaisa)}`} /> : null}
                       <Row k="Delivery" v={o.deliveryWaivedPaisa > 0 ? `${formatTaka(o.deliveryPaisa)} (waived ${formatTaka(o.deliveryWaivedPaisa)})` : formatTaka(o.deliveryPaisa)} />
                       <div className="flex justify-between items-center pt-2">
-                        <span className="text-[12px] font-extrabold uppercase tracking-[0.06em] text-body-soft">Total</span>
-                        <span className="font-display font-extrabold text-[22px] text-purple">{formatTaka(o.totalPaisa)}</span>
+                        <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-body-soft">Total</span>
+                        <span className="font-display font-semibold text-[22px] text-purple">{formatTaka(o.totalPaisa)}</span>
                       </div>
-                      <div className="flex justify-between text-[13px] font-bold"><span className="text-body-soft">Paid</span><span style={{ color: paidNet > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(paidNet)}</span></div>
-                      {due > 0 && <div className="flex justify-between text-[13px] font-bold"><span className="text-body-soft">Due</span><span style={{ color: SOLID.red }}>{formatTaka(due)}</span></div>}
+                      <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Paid</span><span style={{ color: paidNet > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(paidNet)}</span></div>
+                      {due > 0 && <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Due</span><span style={{ color: SOLID.red }}>{formatTaka(due)}</span></div>}
                     </div>
                   </div>
                 </Card>
               </div>
               {o.internalNote && (
                 <Card title="Internal note" hint="A private staff note — change it on the Edit order page.">
-                  <div className="px-5 pb-4 text-[13.5px] font-semibold text-body">{o.internalNote}</div>
+                  <div className="px-5 pb-4 text-[13.5px] font-medium text-body">{o.internalNote}</div>
                 </Card>
               )}
             </>
@@ -631,7 +631,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 </Card>
               ) : (
                 <Card title="Recipient">
-                  <div className="px-5 pb-4 text-[13.5px] font-semibold text-body-soft">Delivered to the customer directly.</div>
+                  <div className="px-5 pb-4 text-[13.5px] font-medium text-body-soft">Delivered to the customer directly.</div>
                 </Card>
               )}
             </>
@@ -653,7 +653,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     {o.giftMessage ? (
                       <>
                         <div className="rounded-[14px] border-[1.5px] border-lavender-deep p-5">
-                          <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-orchid">Radian</div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-orchid">Radian</div>
                           <p className="whitespace-pre-wrap font-display text-[16px] leading-[1.7] text-purple m-0 mt-3">{o.giftMessage}</p>
                         </div>
                         <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -664,19 +664,19 @@ export default function OrderEditor({ id }: { id: string }) {
                               setCopiedCard(true);
                               setTimeout(() => setCopiedCard(false), 1600);
                             }}
-                            className="text-[13px] font-bold px-4 py-2.5 rounded-[10px] border-2 border-purple text-purple"
+                            className="text-[13px] font-semibold px-4 py-2.5 rounded-[10px] border-2 border-purple text-purple"
                           >
                             {copiedCard ? "Copied" : "Copy the message"}
                           </button>
                           {o.anonymousGift && (
-                            <span className="text-[12.5px] font-bold" style={{ color: SOLID.amber }}>
+                            <span className="text-[12.5px] font-semibold" style={{ color: SOLID.amber }}>
                               Unsigned — the sender&apos;s name must not appear on the card
                             </span>
                           )}
                         </div>
                       </>
                     ) : (
-                      <p className="text-[13.5px] font-semibold text-body-soft m-0">No message — the card goes blank.</p>
+                      <p className="text-[13.5px] font-medium text-body-soft m-0">No message — the card goes blank.</p>
                     )}
                   </div>
                 </Card>
@@ -686,7 +686,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* ITEMS */}
           {sec === "items" && (
-            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price — change them on the Edit order page." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price — change them on the Edit order page." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-5 flex flex-col gap-3">
                 {o.lines.map((l) => {
                   const craftedLine = l.productType === "crafted";
@@ -695,7 +695,7 @@ export default function OrderEditor({ id }: { id: string }) {
                       <div className="w-[52px] h-[52px] rounded-[12px] shrink-0" style={{ background: l.bg }} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Link href={`/products/${l.productId}`} className="font-bold text-[14.5px] text-purple hover:underline">{l.name}</Link>
+                          <Link href={`/products/${l.productId}`} className="font-semibold text-[14.5px] text-purple hover:underline">{l.name}</Link>
                           <Pill colour={craftedLine ? SOLID.amber : SOLID.grey}>{craftedLine ? "Crafted · advance" : "Readymade"}</Pill>
                           <button type="button" onClick={() => setOpenMaterials((c) => (c === l.id ? null : l.id))} className="text-[11px] text-purple inline-flex items-center gap-1 hover:underline"><Icon name="box" size={13} /> {openMaterials === l.id ? "Hide details" : "Item details"}</button>
                         </div>
@@ -705,13 +705,13 @@ export default function OrderEditor({ id }: { id: string }) {
                             that says which one came off the shelf.  */}
                         <div className="text-[13px] text-body-soft mt-0.5">
                           {l.variantLabel && (
-                            <span className="inline-block text-[12px] font-bold px-2 py-0.5 rounded-full mr-1.5 align-middle" style={{ background: "#f7f1fb", color: "#470066" }}>
+                            <span className="inline-block text-[12px] font-semibold px-2 py-0.5 rounded-full mr-1.5 align-middle" style={{ background: "#f7f1fb", color: "#470066" }}>
                               {l.variantLabel}
                             </span>
                           )}
                           {l.sizeLabel}{l.bundleLabel ? ` · ${l.bundleLabel}` : ""}{l.addonLabels.length ? ` · + ${l.addonLabels.join(", ")}` : ""}{l.persoText ? ` · “${l.persoText}”` : ""}
                         </div>
-                        <div className="text-[13px] font-semibold text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-display font-extrabold text-[15px] text-purple">{formatTaka(l.linePaisa)}</b></div>
+                        <div className="text-[13px] font-medium text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-display font-semibold text-[15px] text-purple">{formatTaka(l.linePaisa)}</b></div>
                         {/*  DEC-PRD-061 — the customer's own photograph, and on
                             these products it is PRINTED ON THE GOODS (owner,
                             30 Aug). So it is shown at a size somebody can
@@ -722,7 +722,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: "#dfd3ea", background: `url(${l.persoImageUrl}) center/cover` }} />
                             <div>
                               <div className="text-[12px] font-medium uppercase tracking-[0.04em]" style={{ color: "#470066" }}>Customer&apos;s photo</div>
-                              <a href={l.persoImageUrl} download target="_blank" rel="noreferrer" className="text-[13px] font-bold text-purple inline-flex items-center gap-1.5 mt-1 hover:underline">
+                              <a href={l.persoImageUrl} download target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-purple inline-flex items-center gap-1.5 mt-1 hover:underline">
                                 <Icon name="download" size={14} /> Download full size
                               </a>
                             </div>
@@ -765,7 +765,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* DELIVERY */}
           {sec === "delivery" && (
-            <Card title="Delivery" hint="Executed by Delivery — Sales only holds the promise." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Delivery" hint="Executed by Delivery — Sales only holds the promise." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-4">
                 <Row k="Method" v={o.methodLabel} />
                 <Row k="Zone" v={o.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"} />
@@ -794,7 +794,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     <Row k="Tracking" v={assignment.trackingUrl ? <a href={assignment.trackingUrl} target="_blank" rel="noreferrer" className="text-purple underline">Open tracking</a> : "—"} />
                   </>
                 ) : (
-                  <p className="text-[13px] font-semibold text-body-soft mt-0 mb-3">Not with a carrier yet.</p>
+                  <p className="text-[13px] font-medium text-body-soft mt-0 mb-3">Not with a carrier yet.</p>
                 )}
 
                 {canAssign && (
@@ -807,7 +807,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             key={k}
                             type="button"
                             onClick={() => { setCarrierKind(k); setCarrierId(""); }}
-                            className="text-[13px] font-bold px-4 py-2 inline-flex items-center gap-1.5"
+                            className="text-[13px] font-semibold px-4 py-2 inline-flex items-center gap-1.5"
                             style={on ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#7b6b87" }}
                           >
                             <Icon name={k === "RIDER" ? "user" : "truck"} size={14} /> {k === "RIDER" ? "Own rider" : "Courier"}
@@ -853,7 +853,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             setActErr("Could not reach the clipboard — copy the details from the order instead.");
                           }
                         }}
-                        className="text-[13px] px-4 py-2.5 rounded-[10px] font-bold border-[1.5px] bg-white inline-flex items-center gap-1.5"
+                        className="text-[13px] px-4 py-2.5 rounded-[10px] font-semibold border-[1.5px] bg-white inline-flex items-center gap-1.5"
                         style={{ borderColor: SOLID.blue, color: SOLID.blue }}
                       >
                         <Icon name={copiedEntry ? "check" : "copy"} size={14} /> {copiedEntry ? "Copied" : "Copy data entry"}
@@ -872,7 +872,7 @@ export default function OrderEditor({ id }: { id: string }) {
                           setCarrierId("");
                           setConsignment("");
                         })}
-                        className="text-[13px] px-5 py-2.5 rounded-[10px] font-bold text-white disabled:opacity-50 inline-flex items-center gap-1.5"
+                        className="text-[13px] px-5 py-2.5 rounded-[10px] font-semibold text-white disabled:opacity-50 inline-flex items-center gap-1.5"
                         style={{ background: SOLID.blue }}
                       >
                         {/*  DEC-DLV-021 — the word changes with the situation.
@@ -898,7 +898,7 @@ export default function OrderEditor({ id }: { id: string }) {
             <Card title="Photos & proof" hint="Before it leaves the studio, and at the door. The customer is sent these when photo updates are on; off keeps them on the order as our own proof.">
               <div className="px-5 pb-5">
                 {photoErr && (
-                  <div className="mb-4 rounded-[12px] px-4 py-3 text-[13px] font-bold border-[1.5px] bg-white" style={{ borderColor: SOLID.red, color: SOLID.red }}>
+                  <div className="mb-4 rounded-[12px] px-4 py-3 text-[13px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.red, color: SOLID.red }}>
                     {photoErr}
                   </div>
                 )}
@@ -910,7 +910,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     const ph = photo as Order["prepPhoto"];
                     return (
                       <div key={label} className="border-[1.5px] border-[#dfd3ea] rounded-[14px] overflow-hidden bg-white">
-                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-extrabold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "#7b6b87" }}>
+                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-bold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "#7b6b87" }}>
                           {ph && <Icon name="check" size={13} />} {label}
                         </div>
                         {ph ? (
@@ -920,19 +920,19 @@ export default function OrderEditor({ id }: { id: string }) {
                               {ph.url && <img src={ph.url} alt={label} className="w-full h-full object-cover" />}
                               {ph.caption && <span className="absolute bottom-2 left-2 text-[11px] bg-white/90 text-purple px-2 py-0.5 rounded-full font-medium">{ph.caption}</span>}
                             </div>
-                            <div className="px-3.5 py-2.5 text-[12px] font-semibold text-body-soft flex items-center justify-between gap-2 flex-wrap">
+                            <div className="px-3.5 py-2.5 text-[12px] font-medium text-body-soft flex items-center justify-between gap-2 flex-wrap">
                               <span>{ph.by} · {shortDate(ph.at)}, {clockTime(ph.at)}</span>
-                              {ph.url && <a href={ph.url} target="_blank" rel="noreferrer" className="font-bold underline">Open</a>}
+                              {ph.url && <a href={ph.url} target="_blank" rel="noreferrer" className="font-semibold underline">Open</a>}
                             </div>
                           </>
                         ) : (
                           <div className="h-[170px] grid place-items-center text-center px-4 bg-[#f7f3fa]"><div>
                             <div className="w-10 h-10 rounded-full grid place-items-center mx-auto mb-2 bg-white text-purple border-[1.5px] border-[#dfd3ea]"><Icon name="photo" size={20} /></div>
-                            <p className="text-[12px] font-bold text-body-soft m-0">{empty}</p>
+                            <p className="text-[12px] font-semibold text-body-soft m-0">{empty}</p>
                           </div></div>
                         )}
                         <div className="px-3.5 pb-3.5 pt-1">
-                          <label className="inline-flex items-center gap-2 text-[13px] font-bold px-4 py-2.5 rounded-[10px] text-white cursor-pointer" style={{ background: SOLID.purple, opacity: uploading ? 0.5 : 1 }}>
+                          <label className="inline-flex items-center gap-2 text-[13px] font-semibold px-4 py-2.5 rounded-[10px] text-white cursor-pointer" style={{ background: SOLID.purple, opacity: uploading ? 0.5 : 1 }}>
                             <Icon name="photo" size={14} />
                             {uploading === kind ? "Uploading…" : ph ? "Replace photo" : "Add photo"}
                             <input
@@ -958,7 +958,7 @@ export default function OrderEditor({ id }: { id: string }) {
                      them — the shop keeps its own proof either way, which is
                      what the line under it says.  */}
                 <div className="mt-5 border-[1.5px] border-[#dfd3ea] rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap bg-white">
-                  <div className="text-[13.5px] font-bold text-purple">Send these photos to the customer</div>
+                  <div className="text-[13.5px] font-semibold text-purple">Send these photos to the customer</div>
                   <button
                     type="button"
                     disabled={busy}
@@ -987,7 +987,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 {/* record money in / out — cash collection lives here */}
                 {!cancelled && (
                   <div className="mt-4 rounded-[12px] border-[1.5px] border-[#dfd3ea] p-4 bg-white">
-                    <div className="text-[11.5px] font-extrabold uppercase tracking-[0.06em] mb-2.5 text-purple">Record a payment</div>
+                    <div className="text-[11.5px] font-bold uppercase tracking-[0.06em] mb-2.5 text-purple">Record a payment</div>
                     <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 items-end">
                       <div>
                         <label className="text-[13px] text-body-soft font-medium mb-1 block">What happened</label>
@@ -1010,19 +1010,19 @@ export default function OrderEditor({ id }: { id: string }) {
                           if (amt <= 0) { setActErr("Type how much first."); return; }
                           act(() => addOrderPayment(id, { kind: payKind, amountPaisa: amt }).then(() => setPayAmt(0)));
                         }}
-                        className="h-[42px] px-4 rounded-[11px] text-white text-[13px] font-bold disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                        className="h-[42px] px-4 rounded-[11px] text-white text-[13px] font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                         style={{ background: payKind === "REFUND" ? SOLID.red : SOLID.green }}
                       >
                         <Icon name="cash" size={15} /> Record
                       </button>
                     </div>
-                    {due > 0 && <p className="text-[12px] font-semibold text-body-soft mt-2 mb-0">Empty amount = the full due, {formatTaka(due)}.</p>}
+                    {due > 0 && <p className="text-[12px] font-medium text-body-soft mt-2 mb-0">Empty amount = the full due, {formatTaka(due)}.</p>}
                   </div>
                 )}
 
                 <div className="mt-4 flex flex-col gap-2">
-                  {codClosed && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-bold border-[1.5px] bg-white" style={{ borderColor: SOLID.amber, color: "#8a4b00" }}>{codClosed}</div>}
-                  {o.isGift && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-bold border-[1.5px] bg-white" style={{ borderColor: SOLID.orchid, color: SOLID.purple }}>Gift order — cash on delivery is never offered.</div>}
+                  {codClosed && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.amber, color: "#8a4b00" }}>{codClosed}</div>}
+                  {o.isGift && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.orchid, color: SOLID.purple }}>Gift order — cash on delivery is never offered.</div>}
                 </div>
               </div>
             </Card>
@@ -1035,7 +1035,7 @@ export default function OrderEditor({ id }: { id: string }) {
           {sec === "activity" && (
             <Card title="Activity log" hint="Who, when and what — written automatically, never editable.">
               <div className="px-5 pb-5">
-                {o.timeline.length === 0 ? <p className="text-[13px] font-semibold text-body-soft m-0">No activity recorded yet.</p> : (
+                {o.timeline.length === 0 ? <p className="text-[13px] font-medium text-body-soft m-0">No activity recorded yet.</p> : (
                   <div className="flex flex-col">
                     {o.timeline.map((e, i, arr) => {
                       return (
@@ -1045,9 +1045,9 @@ export default function OrderEditor({ id }: { id: string }) {
                             {i < arr.length - 1 && <span className="w-px flex-1 bg-lavender-deep my-1" />}
                           </div>
                           <div className="pb-4">
-                            <div className="text-[13.5px] font-bold text-body">{e.label}</div>
-                            <div className="text-[12.5px] font-semibold text-body-soft">{e.actor} · {shortDate(e.at)}, {clockTime(e.at)}</div>
-                            {e.note && <div className="text-[12.5px] font-semibold text-body-soft mt-0.5">{e.note}</div>}
+                            <div className="text-[13.5px] font-semibold text-body">{e.label}</div>
+                            <div className="text-[12.5px] font-medium text-body-soft">{e.actor} · {shortDate(e.at)}, {clockTime(e.at)}</div>
+                            {e.note && <div className="text-[12.5px] font-medium text-body-soft mt-0.5">{e.note}</div>}
                           </div>
                         </div>
                       );
@@ -1063,13 +1063,13 @@ export default function OrderEditor({ id }: { id: string }) {
         <aside className="w-[280px] shrink-0 sticky top-4 hidden xl:block">
           <div className="bg-white border-[1.5px] border-[#dfd3ea] rounded-[16px] overflow-hidden">
             <div className="px-5 pt-5 pb-6 text-white" style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}>
-              <div className="text-[11px] font-nav font-extrabold tracking-[0.08em] uppercase opacity-85">Customer sees</div>
-              <div className="font-display font-bold text-[18px] leading-tight mt-0.5">{cancelled ? "Order cancelled" : o.deliveryStatus === "delivered" ? "Delivered 🌸" : o.isGift ? "Your gift is on its way" : "Your order is on its way"}</div>
+              <div className="text-[11px] font-nav font-bold tracking-[0.08em] uppercase opacity-85">Customer sees</div>
+              <div className="font-display font-semibold text-[18px] leading-tight mt-0.5">{cancelled ? "Order cancelled" : o.deliveryStatus === "delivered" ? "Delivered 🌸" : o.isGift ? "Your gift is on its way" : "Your order is on its way"}</div>
               <div className="text-[12px] opacity-85 mt-1">{o.isGift ? `For ${o.recipient?.name} · ` : ""}{o.etaLabel}</div>
             </div>
             <div className="p-4">
               {cancelled ? (
-                <div className="text-[12.5px] font-bold" style={{ color: SOLID.red }}>This order was cancelled. Any eligible refund has been issued.</div>
+                <div className="text-[12.5px] font-semibold" style={{ color: SOLID.red }}>This order was cancelled. Any eligible refund has been issued.</div>
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {JOURNEY.map((s, i) => {
@@ -1078,7 +1078,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     return (
                       <div key={s} className="flex items-center gap-2 text-[12.5px]">
                         <span className="w-[18px] h-[18px] rounded-full grid place-items-center text-white text-[10px] shrink-0" style={{ background: done ? SOLID.green : now ? SOLID.purple : "#e9dcf5" }}>{done ? "✓" : ""}</span>
-                        <span className={now ? "text-purple font-bold" : done ? "text-body font-semibold" : "text-body-soft font-semibold"}>{s}</span>
+                        <span className={now ? "text-purple font-semibold" : done ? "text-body font-medium" : "text-body-soft font-medium"}>{s}</span>
                       </div>
                     );
                   })}
@@ -1125,15 +1125,15 @@ function OrderMessagesPanel({ orderId }: { orderId: string }) {
     <Card title="Messages to the customer" count={rows?.length}
       hint={`SMS for a Bangladeshi number, email for a foreign one, WhatsApp last. A failed one says why, and can be sent again.${failed ? ` ${failed} failed.` : ""}`}>
       <div className="px-5 pb-5">
-        {!rows ? <p className="text-[13px] font-semibold text-body-soft m-0">Loading…</p>
-          : rows.length === 0 ? <p className="text-[13px] font-semibold text-body-soft m-0">Nothing sent yet.</p> : (
+        {!rows ? <p className="text-[13px] font-medium text-body-soft m-0">Loading…</p>
+          : rows.length === 0 ? <p className="text-[13px] font-medium text-body-soft m-0">Nothing sent yet.</p> : (
           <div className="flex flex-col gap-2.5">
             {rows.map((m) => {
               return (
                 <div key={m.id} className="flex items-start gap-3 rounded-[12px] border-[1.5px] border-[#dfd3ea] bg-white px-3.5 py-2.5">
                   <Pill colour={MSG_COLOUR[m.status]}>{m.status}</Pill>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] text-body font-bold">
+                    <div className="text-[13.5px] text-body font-semibold">
                       {MSG_KIND[m.kind] ?? m.kind}
                       {m.attempt > 1 && <span className="text-body-soft font-normal"> · attempt {m.attempt}</span>}
                       <span className="text-body-soft font-normal"> · via {m.channel}</span>
@@ -1141,11 +1141,11 @@ function OrderMessagesPanel({ orderId }: { orderId: string }) {
                     <div className="text-[12.5px] text-body-soft">
                       {m.sentAt ? `sent ${shortDate(Date.parse(m.sentAt))}, ${clockTime(Date.parse(m.sentAt))}` : `due ${shortDate(Date.parse(m.dueAt))}, ${clockTime(Date.parse(m.dueAt))}`}
                     </div>
-                    {m.error && <div className="text-[12.5px] font-semibold mt-0.5" style={{ color: "#8a4b00" }}>{m.error}</div>}
+                    {m.error && <div className="text-[12.5px] font-medium mt-0.5" style={{ color: "#8a4b00" }}>{m.error}</div>}
                   </div>
                   {(m.status === "FAILED" || m.status === "SKIPPED") && (
                     <button type="button" disabled={busy === m.id} onClick={() => retry(m.id)}
-                      className="text-[12.5px] font-bold px-3 py-1.5 rounded-[9px] bg-purple text-white shrink-0 disabled:opacity-50">
+                      className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white shrink-0 disabled:opacity-50">
                       {busy === m.id ? "Sending…" : "Send again"}
                     </button>
                   )}

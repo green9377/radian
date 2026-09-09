@@ -72,14 +72,14 @@ function inSeg(r: ApiLostRow, seg: Seg): boolean {
 
 function Pill({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center text-[11px] font-extrabold px-2.5 py-1 rounded-full text-white leading-none whitespace-nowrap" style={{ background: colour }}>
+    <span className="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full text-white leading-none whitespace-nowrap" style={{ background: colour }}>
       {children}
     </span>
   );
 }
 function Tag({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-extrabold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
+    <span className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
       {children}
     </span>
   );
@@ -113,7 +113,7 @@ function draftLines(r: ApiLostRow): { k: string; v: string }[] {
 }
 
 const CELL = "px-3 py-3 align-top border-b border-r border-[#dfd3ea] last:border-r-0";
-const ACT = "h-[34px] rounded-[9px] px-3 inline-flex items-center gap-2 text-[12.5px] font-bold whitespace-nowrap";
+const ACT = "h-[34px] rounded-[9px] px-3 inline-flex items-center gap-2 text-[12.5px] font-semibold whitespace-nowrap";
 
 function copy(text: string) {
   try {
@@ -162,50 +162,50 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
       {/* ref */}
       <td className={`${CELL} w-[118px]`}>
         {r.orderId ? (
-          <Link href={`/orders/${r.orderId}`} className="font-nav font-extrabold text-[15px] text-purple whitespace-nowrap hover:underline">{r.ref}</Link>
+          <Link href={`/orders/${r.orderId}`} className="font-nav font-bold text-[15px] text-purple whitespace-nowrap hover:underline">{r.ref}</Link>
         ) : (
-          <span className="font-nav font-extrabold text-[15px] text-purple">Checkout</span>
+          <span className="font-nav font-bold text-[15px] text-purple">Checkout</span>
         )}
-        <span className="block text-[11.5px] font-semibold text-[#7b6b87] mt-1">{r.orderId ? "order placed" : "no order yet"}</span>
+        <span className="block text-[11.5px] font-medium text-[#7b6b87] mt-1">{r.orderId ? "order placed" : "no order yet"}</span>
       </td>
 
       {/* when */}
       <td className={`${CELL} w-[172px]`}>
-        <span className="block text-[11px] font-bold uppercase tracking-[0.05em] text-[#7b6b87]">Last seen</span>
-        <b className="block text-[12.5px] font-bold text-body">{fmtStamp(r.lastSeenAt)}</b>
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#7b6b87]">Last seen</span>
+        <b className="block text-[12.5px] font-semibold text-body">{fmtStamp(r.lastSeenAt)}</b>
         {r.messaged && <span className="inline-block mt-1.5"><Tag colour={SOLID.blue}>AUTO-MESSAGED</Tag></span>}
       </td>
 
       {/* who & what they left */}
       <td className={CELL}>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-display font-extrabold text-[18px] leading-tight text-purple">{r.name || "— no name —"}</span>
+          <span className="font-display font-semibold text-[18px] leading-tight text-purple">{r.name || "— no name —"}</span>
           {r.isGift && <Tag colour={SOLID.orchid}>GIFT</Tag>}
         </div>
         {phone ? (
-          <div className="flex items-center gap-1.5 mt-1 text-[14px] font-bold text-purple">
+          <div className="flex items-center gap-1.5 mt-1 text-[14px] font-semibold text-purple">
             {phone}
             <button type="button" title="Copy phone" className="text-body-soft hover:text-purple" onClick={() => copy(phone)}>
               <Icon name="copy" size={11} />
             </button>
           </div>
         ) : (
-          <div className="mt-1 text-[12.5px] font-bold" style={{ color: SOLID.red }}>no phone typed</div>
+          <div className="mt-1 text-[12.5px] font-semibold" style={{ color: SOLID.red }}>no phone typed</div>
         )}
-        {r.email && <div className="text-[12.5px] font-semibold text-body-soft">{r.email}</div>}
+        {r.email && <div className="text-[12.5px] font-medium text-body-soft">{r.email}</div>}
         {(lines.length > 0 || r.cartSummary.length > 0) && (
           <div className="mt-1.5 rounded-[10px] border border-[#dfd3ea] bg-[#faf7fc] px-2.5 py-2 text-[12.5px] leading-[1.5]">
             {lines.map((l, i) => (
               <span key={i}>
                 {i > 0 && " · "}
-                <span className="font-semibold text-[#7b6b87]">{l.k}</span> <b className="font-bold text-body">{l.v}</b>
+                <span className="font-medium text-[#7b6b87]">{l.k}</span> <b className="font-semibold text-body">{l.v}</b>
               </span>
             ))}
             {r.cartSummary.length > 0 && (
               <span>
                 {lines.length > 0 && " · "}
-                <span className="font-semibold text-[#7b6b87]">cart</span>{" "}
-                <b className="font-bold text-body">
+                <span className="font-medium text-[#7b6b87]">cart</span>{" "}
+                <b className="font-semibold text-body">
                   {r.cartSummary.map((c) => `${c.name ?? "item"}${c.qty && c.qty > 1 ? ` ×${c.qty}` : ""}`).join(", ")}
                 </b>
               </span>
@@ -221,19 +221,19 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
 
       {/* value */}
       <td className={`${CELL} w-[120px] whitespace-nowrap`}>
-        <span className="inline-block w-[40px] text-[11px] font-bold uppercase tracking-[0.04em] text-[#7b6b87]">{r.orderId ? "Order" : "Cart"}</span>
-        <b className="font-display font-extrabold text-[18px] text-body">{formatTaka(r.totalPaisa)}</b>
-        <span className="block text-[12px] font-semibold text-[#7b6b87] mt-0.5">{r.itemCount} item{r.itemCount === 1 ? "" : "s"}</span>
+        <span className="inline-block w-[40px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#7b6b87]">{r.orderId ? "Order" : "Cart"}</span>
+        <b className="font-display font-semibold text-[18px] text-body">{formatTaka(r.totalPaisa)}</b>
+        <span className="block text-[12px] font-medium text-[#7b6b87] mt-0.5">{r.itemCount} item{r.itemCount === 1 ? "" : "s"}</span>
       </td>
 
       {/* why it stopped */}
       <td className={`${CELL} w-[190px]`}>
         <div className="flex flex-col items-start gap-1.5">
           {r.bucket === "OPEN" ? <Pill colour={kind.colour}>{kind.label}</Pill> : <Pill colour={r.bucket === "RECOVERED" ? SOLID.green : SOLID.grey}>{r.bucket === "RECOVERED" ? "Recovered" : "Closed"}</Pill>}
-          <span className="text-[12.5px] font-bold leading-snug" style={{ color: r.bucket === "OPEN" ? SOLID.red : "#7b6b87" }}>{r.reason}</span>
+          <span className="text-[12.5px] font-semibold leading-snug" style={{ color: r.bucket === "OPEN" ? SOLID.red : "#7b6b87" }}>{r.reason}</span>
           {r.lastOutcome && (
-            <span className="text-[12px] font-semibold text-body-soft leading-snug">
-              <b className="font-bold" style={{ color: OUTCOME[r.lastOutcome.outcome].colour }}>{OUTCOME[r.lastOutcome.outcome].label}</b>
+            <span className="text-[12px] font-medium text-body-soft leading-snug">
+              <b className="font-semibold" style={{ color: OUTCOME[r.lastOutcome.outcome].colour }}>{OUTCOME[r.lastOutcome.outcome].label}</b>
               {" · "}{r.lastOutcome.actor} · {fmtStamp(r.lastOutcome.at)}
               {r.lastOutcome.note ? <> — {r.lastOutcome.note}</> : null}
             </span>
@@ -269,7 +269,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
               <input className="ipt h-[36px] text-[12.5px] mb-2" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(OUTCOME) as ApiRecoveryOutcome[]).map((k) => (
-                  <button key={k} type="button" disabled={busy} onClick={() => handle(k)} className="text-[11.5px] font-extrabold px-2.5 py-1.5 rounded-full text-white disabled:opacity-50" style={{ background: OUTCOME[k].colour }}>
+                  <button key={k} type="button" disabled={busy} onClick={() => handle(k)} className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full text-white disabled:opacity-50" style={{ background: OUTCOME[k].colour }}>
                     {OUTCOME[k].label}
                   </button>
                 ))}
@@ -293,24 +293,24 @@ function Band({ loading, s }: { loading: boolean; s: ApiLostList["stats"] | null
   return (
     <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
       <div className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="font-display font-bold text-[28px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
+        <h1 className="font-display font-semibold text-[28px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
           Lost orders
           <span
-            className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-bold grid place-items-center font-ui cursor-help"
+            className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-semibold grid place-items-center font-ui cursor-help"
             title="Everyone who started to buy and did not finish: typed something at checkout and left, pressed Place Order and the payment failed or was cancelled, or opened the gateway and closed the tab. Whatever they typed is on the row. Recovered = came back and ordered, or paid on a later attempt, or marked Ordered by staff."
           >
             i
           </span>
         </h1>
-        <Link href="/marketing/recovery" className="text-[12.5px] font-bold text-[#d9c5e6] hover:text-white inline-flex items-center gap-1">
+        <Link href="/marketing/recovery" className="text-[12.5px] font-semibold text-[#d9c5e6] hover:text-white inline-flex items-center gap-1">
           Rules · Recovery settings <Icon name="chevronRight" size={14} />
         </Link>
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {tiles.map((t) => (
           <div key={t.label} className="block rounded-[14px] px-4 py-3.5 border border-white/15 bg-white/[0.08]">
-            <span className="block text-[11.5px] font-extrabold tracking-[0.07em] uppercase text-[#d9c5e6]">{t.label}</span>
-            <span className="block font-display font-extrabold text-[28px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>{t.value}</span>
+            <span className="block text-[11.5px] font-bold tracking-[0.07em] uppercase text-[#d9c5e6]">{t.label}</span>
+            <span className="block font-display font-semibold text-[28px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>{t.value}</span>
           </div>
         ))}
       </div>
@@ -371,7 +371,7 @@ export default function LostOrdersView() {
           {SEGS.map(([val, label]) => {
             const on = seg === val;
             return (
-              <button key={val} type="button" onClick={() => setSeg(val)} className={`px-3.5 py-2 rounded-[9px] text-[13px] font-bold inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}>
+              <button key={val} type="button" onClick={() => setSeg(val)} className={`px-3.5 py-2 rounded-[9px] text-[13px] font-semibold inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}>
                 {label}
                 {!loading && val !== "RECOVERED" && val !== "CLOSED" && (
                   <em className={`not-italic text-[11px] px-1.5 py-[1px] rounded-full ${on ? "bg-white/20" : "bg-lavender-deep"}`}>{counts[val]}</em>
@@ -384,9 +384,9 @@ export default function LostOrdersView() {
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-body-soft">
             <Icon name="search" size={17} />
           </span>
-          <input className="ipt ipt-icon h-[42px] font-semibold" placeholder="Name, phone, order no, address" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="ipt ipt-icon h-[42px] font-medium" placeholder="Name, phone, order no, address" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <span className="text-[13px] font-bold text-body-soft">{loading ? "…" : `${rows.length} row${rows.length === 1 ? "" : "s"}`}</span>
+        <span className="text-[13px] font-semibold text-body-soft">{loading ? "…" : `${rows.length} row${rows.length === 1 ? "" : "s"}`}</span>
       </div>
 
       {error && <ErrorBox error={error} onRetry={load} />}
@@ -396,7 +396,7 @@ export default function LostOrdersView() {
           <thead>
             <tr>
               {HEADS.map((h, i) => (
-                <th key={h || "select"} className="text-left bg-lavender text-purple font-nav font-extrabold text-[12px] tracking-[0.05em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0">
+                <th key={h || "select"} className="text-left bg-lavender text-purple font-nav font-bold text-[12px] tracking-[0.05em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0">
                   {i === 0 ? <input type="checkbox" className="w-4 h-4 accent-purple" aria-label="Select all" /> : h}
                 </th>
               ))}
@@ -413,7 +413,7 @@ export default function LostOrdersView() {
             <span className="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2 bg-lavender text-purple">
               <Icon name="check" size={20} />
             </span>
-            <p className="text-[13.5px] font-semibold text-body-soft m-0">Nothing here.</p>
+            <p className="text-[13.5px] font-medium text-body-soft m-0">Nothing here.</p>
           </div>
         )}
       </div>
