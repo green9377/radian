@@ -110,17 +110,6 @@ export interface Order {
   anonymousGift: boolean;
   photoUpdates: boolean;
 
-  /**
-   * Was a verification code actually sent for this order (DEC-WA-010)?
-   *
-   * ⚠️ The success page used to show "Confirm your number — we sent a 6-digit
-   * code" to EVERYONE. A returning customer whose number was already proved
-   * gets no code, because checkout does not send one — so they sat waiting for
-   * a message that was never going to arrive (9 Sep 2026).
-   *
-   * `undefined` on a receipt saved before this existed: shown, as it was.
-   */
-  needsPhoneVerify?: boolean;
 
   zone: Zone;
   address: string;
@@ -349,8 +338,6 @@ export function buildOrder(args: {
    * either. The number on a receipt belongs to the shop, not the browser.
    */
   orderNo?: string;
-  /** the shop's answer: has this number still to be proved (DEC-WA-010) */
-  needsPhoneVerify?: boolean;
 }): Order {
   const { checkout: c } = args;
   const method = args.method;
@@ -362,7 +349,6 @@ export function buildOrder(args: {
   return {
     id: args.orderNo ?? makeOrderId(),
     placedAt: now,
-    needsPhoneVerify: args.needsPhoneVerify,
 
     /* A freshly placed order — at the first step (order-success stage=1). */
     status: "placed",

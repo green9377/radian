@@ -242,7 +242,6 @@ export interface PlacedOrder {
   /*  DEC-WA-010 — the order is already placed; this only says whether the
       success page should offer the code box. False for a number the shop has
       already proved, so regulars are never asked twice.  */
-  needsPhoneVerify?: boolean;
   senderPhone?: string;
   /** DEC-RTN-015 — what store credit actually came off this bill, and why not, when not */
   storeCreditUsedPaisa?: number;

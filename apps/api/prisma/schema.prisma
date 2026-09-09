@@ -2737,6 +2737,13 @@ model OrderMessage {
 enum OrderMessageKind {
   ORDER_CONFIRMATION
   ORDER_CONFIRMATION_COD
+  /// The shop accepted the order (owner, 9 Sep 2026). `confirm()` used to
+  /// change the status and tell the customer nothing at all.
+  ORDER_APPROVED
+  /// Money arrived but did not settle the bill - it says what was cleared and
+  /// what is still owed. Unlike every other kind this one can repeat, once per
+  /// payment, so its `attempt` counts the payments rather than the retries.
+  PAYMENT_RECEIVED
   ORDER_OUT_FOR_DELIVERY
   ORDER_DELIVERED
   /// The gateway said failed or cancelled, or the customer went to the
@@ -7530,13 +7537,13 @@ model MessagingSetting {
   paymentFailedEnabled Boolean @default(true)
   /// How many hours after the first before the second. 0 = no second one.
   paymentFailedRetryHours Int @default(24)
-  /// The customer who closed the gateway tab (owner, 9 Sep 2026). SSLCommerz
-  /// calls back for a success, a failure or a Cancel button - a closed tab
-  /// produces nothing at all, which is the commonest way to abandon a payment.
-  /// After this many minutes with the money still missing, the recovery
-  /// message goes anyway. The attempt itself is NOT closed: a payment that
-  /// lands late must still be taken.
-  unpaidAfterMinutes Int @default(15)
+  /// How long the shop waits before saying a payment did not arrive (owner,
+  /// 9 Sep 2026: *"agula sob 30 minit porer kahini"*). ONE number for both
+  /// roads - the customer who pressed Cancel, and the one who closed the tab
+  /// and produced no callback at all. If the money arrives inside the window
+  /// the message is dropped unsent. The payment attempt itself is never
+  /// closed: a payment that lands late must still be taken.
+  unpaidAfterMinutes Int @default(30)
 
   /// Abandoned checkout (DEC-WA-004) - Meta counts this as a MARKETING
   /// template, so the opt-out list MUST be honoured before sending

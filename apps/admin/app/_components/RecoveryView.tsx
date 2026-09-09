@@ -100,11 +100,11 @@ export default function RecoveryView() {
 
       {s && s.recoveryEnabled && !s.sweeperEnabled && (
         <Banner tone="sky" emoji="ⓘ" title="Scheduled runs are off (correct for Demo)">
-          Immediate messages still go out, but &ldquo;again after 24 hours&rdquo;
-          and &ldquo;15 minutes later&rdquo; will not fire on their own. That is
-          deliberate here — a timer waking the free database burns its monthly
-          quota. Use <strong>Run now</strong> below to test. Turn this on for the
-          real shop.
+          Every message about a payment that did not arrive now WAITS — the
+          wait is set below — so with the timer off none of them fire on their
+          own, nor does &ldquo;again after 24 hours&rdquo;. Use <strong>Run
+          now</strong> to send what is due. The reason it was left off — a timer
+          waking a free database — died with Neon; turn it on.
         </Banner>
       )}
 
@@ -143,17 +143,17 @@ export default function RecoveryView() {
                     </p>
                   </div>
                   <div>
-                    <Lbl>Treat as failed after (minutes)</Lbl>
+                    <Lbl>Wait before saying it failed (minutes)</Lbl>
                     <input
                       className={input} type="number" min={5} max={240}
                       value={s.unpaidAfterMinutes}
                       onChange={(e) => set("unpaidAfterMinutes", Number(e.target.value))}
                     />
                     <p className="text-[11px] text-body-soft mt-1">
-                      For the customer who closes the payment tab instead of
-                      pressing Cancel — the gateway tells us nothing at all about
-                      them. The attempt is not closed, so a late payment is still
-                      taken, and the message is dropped if the money arrives.
+                      One wait for both — the customer who pressed Cancel, and the
+                      one who closed the tab and told the gateway nothing. If the
+                      money arrives inside the window the message is dropped
+                      unsent, and a late payment is still taken either way.
                     </p>
                   </div>
                 </div>

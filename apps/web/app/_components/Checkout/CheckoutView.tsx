@@ -605,10 +605,6 @@ export default function CheckoutView() {
         /*  ⚠️ The receipt writes exactly the row `checkoutTotals` priced.  */
         method,
         orderNo: res.data.orderNo,
-        /*  Only a customer who is actually getting a code should be asked for
-            one — see `Order.needsPhoneVerify`. Undefined from an older API
-            means "unknown", and unknown is shown, as before.  */
-        needsPhoneVerify: res.data.needsPhoneVerify,
       }),
     );
     /*  The recipient goes into the address book — next time they come back in

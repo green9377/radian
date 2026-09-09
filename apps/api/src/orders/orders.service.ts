@@ -626,6 +626,19 @@ export class OrdersService {
     });
     await this.event(id, 'sales', `Order confirmed`, actorName);
 
+    /*  ═══ THE CUSTOMER IS TOLD — owner, 9 Sep 2026 ═══════════════════════
+
+        This step changed the status, wrote a timeline entry, took the
+        workshop's hours, and said NOTHING to the person waiting. His list of
+        when a message goes: *"order approved hole jabe."*
+
+        Fail-soft and unwaited, like every message on this path: a message
+        that will not send must never make an order impossible to confirm.  */
+    void this.orderMessages
+      .queue(id, OrderMessageKind.ORDER_APPROVED)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch(() => undefined);
+
     /*
       ⚠️ THE WORKSHOP'S DAY IS TAKEN HERE, AT CONFIRM — owner's ruling,
       1 Aug 2026, and he chose this moment deliberately over order-placed.
@@ -1232,13 +1245,40 @@ export class OrdersService {
       through the unique index, so the gateway's own queue and this one cannot
       both send.
     */
+    const settledNow = updated.paidPaisa - updated.refundPaisa;
+
     if (
       dto.kind !== 'REFUND' &&
       updated.paymentMethod !== PaymentMethod.cod &&
-      updated.paidPaisa - updated.refundPaisa >= updated.totalPaisa
+      settledNow >= updated.totalPaisa
     ) {
       void this.orderMessages
         .queueConfirmation(id, false)
+        .then(() => this.orderMessages.sendDue(5))
+        .catch(() => undefined);
+    }
+
+    /*  ═══ PART PAYMENT SAYS WHAT IS LEFT — owner, 9 Sep 2026 ═══════════════
+
+        > *"jodi kono ta particular payment dey tahole particular amount clear
+        >  kre due ta bole setaw sms jabe."*
+
+        Money that does not settle the bill said nothing at all before. It now
+        sends what has been cleared and what is still owed — the two numbers
+        the customer would otherwise ring up to ask for.
+
+        ⚠️ `attempt` COUNTS THE PAYMENTS, not the retries. Every other kind is
+        once per order and the unique index on (orderId, kind, attempt) is what
+        enforces it; a bill can be paid in three instalments, and each one has
+        something new to say. The amounts themselves are read at SEND time from
+        the order, so a second payment landing while the first message waits
+        cannot send a stale figure.  */
+    if (dto.kind !== 'REFUND' && settledNow > 0 && settledNow < updated.totalPaisa) {
+      void this.prisma.db.orderMessage
+        .count({ where: { orderId: id, kind: OrderMessageKind.PAYMENT_RECEIVED } })
+        .then((n) =>
+          this.orderMessages.queue(id, OrderMessageKind.PAYMENT_RECEIVED, { attempt: n + 1 }),
+        )
         .then(() => this.orderMessages.sendDue(5))
         .catch(() => undefined);
     }

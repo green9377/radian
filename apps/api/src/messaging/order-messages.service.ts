@@ -36,9 +36,20 @@ import { MessageTemplatesService, type TemplateKind } from './message-templates.
 */
 
 /** One place for the kind → template mapping. */
-const TEMPLATE_FOR: Record<OrderMessageKind, string> = {
+/*
+  ⚠️ A kind with NO WhatsApp template is deliberate, not an oversight.
+
+  WhatsApp only carries wording Meta has approved in advance, and the two kinds
+  added on 9 Sep have none — they are new. SMS and email carry the admin's own
+  words and need no approval, so those doors work today; the WhatsApp door is
+  skipped for these kinds rather than failed, and starts working by itself the
+  day a template with that name is approved.
+*/
+const TEMPLATE_FOR: Record<OrderMessageKind, string | null> = {
   ORDER_CONFIRMATION: TPL.confirm,
   ORDER_CONFIRMATION_COD: TPL.confirmCod,
+  ORDER_APPROVED: null,
+  PAYMENT_RECEIVED: null,
   ORDER_OUT_FOR_DELIVERY: TPL.out,
   ORDER_DELIVERED: TPL.delivered,
   PAYMENT_FAILED: TPL.paymentFailed,
@@ -84,7 +95,7 @@ export class OrderMessagesService {
           kind,
           attempt,
           dueAt: opts.dueAt ?? new Date(),
-          templateName: TEMPLATE_FOR[kind],
+          templateName: TEMPLATE_FOR[kind] ?? kind,
           status: OrderMessageStatus.QUEUED,
         },
       });
@@ -115,11 +126,24 @@ export class OrderMessagesService {
     const s = await this.settings.get();
     if (!s.recoveryEnabled || !s.paymentFailedEnabled) return null;
 
-    const first = await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 1 });
+    /*  ═══ IT WAITS — owner, 9 Sep 2026: *"agula sob 30 minit porer kahini"* ══
+
+        Pressing Cancel on the gateway used to fire this in the same second.
+        But a customer who cancels because the OTP was slow, or because they
+        wanted a different card, is usually back within minutes — and being
+        told "your payment failed" while you are typing your card number reads
+        as a shop that has already given up on you.
+
+        So both roads now wait the same `unpaidAfterMinutes`: the one who
+        pressed Cancel, and the one who closed the tab and produced no callback
+        at all. If the money arrives in between, `skipReason` throws the
+        message away unsent ("already paid"). Nothing is lost by waiting.  */
+    const dueAt = new Date(Date.now() + Math.max(1, s.unpaidAfterMinutes) * 60_000);
+    const first = await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 1, dueAt });
 
     if (s.paymentFailedRetryHours > 0) {
-      const dueAt = new Date(Date.now() + s.paymentFailedRetryHours * 3600_000);
-      await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 2, dueAt });
+      const retryAt = new Date(dueAt.getTime() + s.paymentFailedRetryHours * 3600_000);
+      await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 2, dueAt: retryAt });
     }
     return first;
   }
@@ -131,6 +155,9 @@ export class OrderMessagesService {
    * button is pressed. A closed tab produces NOTHING — so the commonest way to
    * walk away from a payment was the one way the shop never heard about, and
    * that customer got neither a message nor a chance to finish.
+   *
+   * The wait itself lives in `queuePaymentFailed` now, so this sweep and the
+   * gateway's own Cancel callback are governed by exactly one number.
    *
    * ⚠️ THIS DELIBERATELY DOES NOT TOUCH THE PAYMENT SESSION. Marking the
    * attempt FAILED would make `settle()` refuse the payment if it lands a
@@ -302,6 +329,12 @@ export class OrderMessagesService {
     for (const door of doors) {
       usedChannel = door;
       if (door === 'WHATSAPP') {
+        /*  No Meta template for this kind — the door is "not set up" for this
+            message, which lets the next one try instead of failing here.  */
+        if (!TEMPLATE_FOR[m.kind]) {
+          outcome = { ok: false, configured: false, error: 'no WhatsApp template for this kind' };
+          continue;
+        }
         let payload: Record<string, unknown>;
         try {
           payload = this.payloadFor(m.kind, o, supportPhone, invite);
@@ -349,7 +382,10 @@ export class OrderMessagesService {
   /** Re-checked at send time: the world moves between queueing and sending. */
   private async skipReason(
     kind: OrderMessageKind,
-    o: { id: string; senderPhone: string; salesStatus: string; paymentStatus: string; deletedAt: Date | null },
+    o: {
+      id: string; senderPhone: string; salesStatus: string; paymentStatus: string;
+      totalPaisa: number; paidPaisa: number; refundPaisa: number; deletedAt: Date | null;
+    },
   ): Promise<string | null> {
     if (o.deletedAt) return 'order deleted';
     if (!o.senderPhone?.trim()) return 'no phone on the order';
@@ -358,6 +394,14 @@ export class OrderMessagesService {
     // Telling someone who has paid that they have not is worse than silence.
     if (kind === OrderMessageKind.PAYMENT_FAILED && o.paymentStatus !== 'unpaid') {
       return 'already paid';
+    }
+    /*  "৳3,000 received, ৳2,000 still due" is wrong the moment the rest
+        arrives — and between queueing and sending it often does.  */
+    if (
+      kind === OrderMessageKind.PAYMENT_RECEIVED &&
+      Math.max(0, o.paidPaisa - o.refundPaisa) >= o.totalPaisa
+    ) {
+      return 'nothing is owed any more';
     }
     return null;
   }
@@ -370,7 +414,10 @@ export class OrderMessagesService {
   private async sendWorded(
     channel: OrderMessageChannel,
     kind: OrderMessageKind,
-    o: { id: string; orderNo: string; senderName: string; senderPhone: string; senderEmail: string | null; totalPaisa: number },
+    o: {
+      id: string; orderNo: string; senderName: string; senderPhone: string;
+      senderEmail: string | null; totalPaisa: number; paidPaisa: number; refundPaisa: number;
+    },
     supportPhone: string,
     invite?: { token: string; productName: string | null },
   ): Promise<{ ok: boolean; configured: boolean; error?: string; messageId?: string }> {
@@ -385,10 +432,17 @@ export class OrderMessagesService {
         : kind === OrderMessageKind.PAYMENT_FAILED
           ? `${base}/pay/${o.orderNo}`
           : `${base}/track?id=${encodeURIComponent(o.orderNo)}`;
+    /*  What has actually been collected, and what is left — read at SEND time
+        from the order itself, not stored on the message. A second payment
+        landing while this one waits in the queue must not send a stale
+        figure.  */
+    const settled = Math.max(0, o.paidPaisa - o.refundPaisa);
     const vars = {
       name: o.senderName,
       order: o.orderNo,
       total: taka(o.totalPaisa),
+      paid: taka(settled),
+      due: taka(Math.max(0, o.totalPaisa - settled)),
       link,
       product: invite?.productName ?? 'your order',
       shop,
@@ -462,8 +516,9 @@ export class OrderMessagesService {
         );
       }
       default:
-        // A new kind with no template lands here. Failing loudly beats silence.
-        throw new Error(`no template mapped for ${String(kind)}`);
+        /*  Only reachable if a kind gains a WhatsApp template name without a
+            payload being written for it. Failing loudly beats silence.  */
+        throw new Error(`no WhatsApp payload written for ${String(kind)}`);
     }
   }
 }

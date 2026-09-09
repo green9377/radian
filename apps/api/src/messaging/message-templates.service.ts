@@ -18,6 +18,8 @@ import { AuditService } from '../common/audit.service';
 export const TEMPLATE_KINDS = [
   'ORDER_CONFIRMATION',
   'ORDER_CONFIRMATION_COD',
+  'ORDER_APPROVED',
+  'PAYMENT_RECEIVED',
   'ORDER_OUT_FOR_DELIVERY',
   'ORDER_DELIVERED',
   'PAYMENT_FAILED',
@@ -31,6 +33,8 @@ export const PLACEHOLDERS: Record<string, string> = {
   name: "the customer's name",
   order: 'the order number',
   total: 'the order total, with the taka sign',
+  paid: 'how much has been paid so far, with the taka sign (part payment)',
+  due: 'how much is still owed, with the taka sign (part payment)',
   link: 'the link that matters for this message (track / pay / review)',
   product: 'the product being asked about (review request)',
   code: 'the one-time code (login code)',

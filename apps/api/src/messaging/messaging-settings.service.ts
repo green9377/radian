@@ -10,7 +10,7 @@ export interface RecoverySettings {
   recoveryEnabled: boolean;
   paymentFailedEnabled: boolean;
   paymentFailedRetryHours: number;
-  /** minutes a started gateway attempt waits before the money counts as missing */
+  /** how long the shop waits before saying a payment did not arrive */
   unpaidAfterMinutes: number;
   abandonedEnabled: boolean;
   abandonedAfterMinutes: number;
@@ -24,7 +24,7 @@ const FALLBACK: RecoverySettings = {
   recoveryEnabled: false,
   paymentFailedEnabled: true,
   paymentFailedRetryHours: 24,
-  unpaidAfterMinutes: 15,
+  unpaidAfterMinutes: 30,
   abandonedEnabled: true,
   abandonedAfterMinutes: 15,
   leadRetentionDays: 90,
