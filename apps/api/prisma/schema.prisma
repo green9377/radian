@@ -4547,11 +4547,16 @@ model AssemblyProductionLine {
 enum DeliveryMethodKind {
   RIDER // own delivery staff (Dhaka)
   COURIER // third-party parcel (nationwide)
-  /// Nobody carries it - the customer comes to the shop (owner, 9 Sep 2026).
-  /// It is a delivery METHOD and not a thing beside one, because price,
-  /// checkout, orders and reports all key off `deliveryMethodId` already; a
-  /// parallel concept would mean touching every one of them. The charge is
-  /// simply set to 0 in admin, and no rule about it is written in code.
+  /// ⚠️ NOT USED, and deliberately left here (9 Sep 2026).
+  ///
+  /// "Collect from shop" was built as a delivery method first - a kind the
+  /// owner had to create, price per zone and tick on every product - and he
+  /// threw it out: *"shop theke collect ato jamela kn kra lagbe. just easy
+  /// kro."* He was right; none of it earned its keep. Collecting is a switch
+  /// on the ORDER now (`FulfillmentType.PICKUP`), not a method.
+  ///
+  /// The value stays because dropping one from a Postgres enum means
+  /// rebuilding the type, which is real risk for no gain. Nothing reads it.
   PICKUP
 }
 

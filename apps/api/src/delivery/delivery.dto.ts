@@ -69,8 +69,7 @@ export interface SlotTemplateWriteDto {
 export interface TypeWriteDto {
   name: string;
   zone?: 'DHAKA' | 'BANGLADESH';
-  /** PICKUP = nobody carries it; the customer comes to the shop (9 Sep 2026) */
-  kind?: 'RIDER' | 'COURIER' | 'PICKUP';
+  kind?: 'RIDER' | 'COURIER';
   sortOrder?: number;
   isActive?: boolean;
   /** DEC-DLV-010 — which shape this delivery follows */

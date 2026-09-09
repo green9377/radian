@@ -65,7 +65,6 @@ export function Q3Where({
   heldCount,
   deliverableCount,
   allHeld,
-  canCollect = false,
   shop = null,
 }: {
   heldCount: number;
@@ -75,29 +74,27 @@ export function Q3Where({
   allHeld: boolean;
   /*  ═══ COLLECT FROM SHOP — owner, 9 Sep 2026 ══════════════════════════════
 
-      > *"amder kache order diye to shop aseo collect krte parbe so where
-      >  jekhane sekhane ata add krle amr kache mone hy valo hbe."*
+      > *"shop theke collect ato jamela kn kra lagbe. just easy kro — check out
+      >  jkhon shop collect dibe tkhonei tar delievry charge lagbe na. ar baki
+      >  sob akdom same vabei kaj krbe."*
 
-      It belongs in THIS step, and his instinct is right: "where" is the
-      question a collection answers differently, and asking for an address
-      first and taking it away later would be the screen changing its mind.
+      ⚠️ IT IS NOT A DELIVERY METHOD. It was built as one first — a kind the
+      owner had to create, price in a zone and tick on every product — and he
+      threw it out as *"duniar pecher ktha"*, which it was. Nothing has to be
+      set up for this switch to work.
 
-      ⚠️ Drawn only when the shop actually sells a collection method. Offering
-      it and then finding nothing under "When" would be worse than never
-      offering it, so the switch is absent rather than empty. */
-  canCollect?: boolean;
+      All it does: the delivery charge goes to zero and no address is asked
+      for. The method, the date and the slot are chosen exactly as they always
+      were, and the customer turns up at the shop at that time.  */
   shop?: ShopCard | null;
 }) {
   const s = useCheckoutStore();
   const { zone, setZone } = useZoneStore();
   const [errors, setErrors] = useState<StepErrors>({});
 
-  /*  Switching wipes the method: a rider method cannot carry a collection and
-      a collection cannot be delivered, so leaving the old choice standing
-      would take a contradiction into the next step.  */
-  function onCollect(next: boolean) {
-    s.patch({ collect: next, method: defaultMethod(zone), slotId: null, date: null });
-  }
+  /*  Nothing else moves — that is the point. The chosen method, date and slot
+      stand; only the charge and the address question change.  */
+  const onCollect = (next: boolean) => s.set("collect", next);
 
   function onZone(next: Zone) {
     setZone(next);
@@ -135,8 +132,7 @@ export function Q3Where({
       {/*  A two-way choice is a coloured switch (house rule 16): the live half
           carries the colour, an icon and a soft shadow, and which one is on
           reads across the room.  */}
-      {canCollect && (
-        <div className="mb-5 grid grid-cols-2 gap-2.5">
+      <div className="mb-5 grid grid-cols-2 gap-2.5">
           {([false, true] as const).map((v) => {
             const on = s.collect === v;
             return (
@@ -161,8 +157,7 @@ export function Q3Where({
               </button>
             );
           })}
-        </div>
-      )}
+      </div>
 
       {/*  ═══ COLLECTING — the shop, not a form ══════════════════════════════
           Nothing is typed here on purpose. Every field on a checkout loses
@@ -407,19 +402,7 @@ export function Q5When({
   const today = toISODate(now);
 
   /*  Whatever the delivery module says — the old list only until it answers. */
-  /*  ═══ ONE LIST OR THE OTHER, NEVER BOTH — owner, 9 Sep 2026 ═════════════
-
-      The customer already answered "delivered or collected" in the step
-      before. Showing a rider option to somebody who said they are coming to
-      the shop — or a collection to somebody who gave an address — is the
-      screen asking a question it has already been told the answer to.
-
-      Falling back to the built-in list when the module answers nothing: those
-      have no collection in them, so a collection choice with no live methods
-      correctly finds an empty list and says so, rather than quietly offering
-      a rider.  */
-  const all = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-  const methods = all.filter((m) => Boolean((m as LiveMethod).collect) === s.collect);
+  const methods = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
   /*  ⚠️ Exactly the same three steps as `CheckoutView`'s `method` memo.  */
   const method = methods.find((m) => m.id === s.method) ?? methods[0] ?? METHODS[1];
 

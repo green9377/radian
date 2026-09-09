@@ -135,8 +135,6 @@ const M_ROW = "grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_90px_70px_80px] i
 type TypeDraft = {
   id: string | null; name: string;
   timing: DeliveryTiming; minutes: string; fromMin: number | null; toMin: number | null;
-  /** nobody carries it — the customer comes to the shop (owner, 9 Sep 2026) */
-  collect: boolean;
 };
 
 /*  The owner never made "Inside Dhaka / Nationwide" — that pair is the system's
@@ -165,9 +163,8 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
     const meta = TIMING_META[dlg.timing];
     const body = {
       name: dlg.name.trim(),
-      /*  A collection is always the shop's own city — the customer walks in.  */
-      zone: dlg.collect ? "DHAKA" : reachOf(dlg.timing),
-      kind: dlg.collect ? "PICKUP" : dlg.timing === "LEAD_DAYS" ? "COURIER" : "RIDER",
+      zone: reachOf(dlg.timing),
+      kind: dlg.timing === "LEAD_DAYS" ? "COURIER" : "RIDER",
       timing: dlg.timing,
       promiseMinutes: meta.needsMinutes ? Number(dlg.minutes) || null : null,
       openFromMin: meta.needsWindow ? dlg.fromMin : null,
@@ -183,7 +180,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setDlg({ id: null, name: "", timing: "TODAY_SLOT", minutes: "120", fromMin: 600, toMin: 1260, collect: false })}
+        <button onClick={() => setDlg({ id: null, name: "", timing: "TODAY_SLOT", minutes: "120", fromMin: 600, toMin: 1260 })}
           className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2" style={{ background: ACCENT }}>
           <Icon name="plus" size={15} /> Add method
         </button>
@@ -194,9 +191,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
           <div key={t.id} className={M_ROW + " py-2.5 hover:bg-lavender/15"}>
             <span className="min-w-0">
               <span className="text-[13.5px] font-semibold text-purple block truncate">{t.name}</span>
-              <span className="text-[11.5px] text-body-soft">
-                {t.kind === "PICKUP" ? "Collected at the shop" : t.zone === "DHAKA" ? "Inside Dhaka" : "Nationwide"}
-              </span>
+              <span className="text-[11.5px] text-body-soft">{t.zone === "DHAKA" ? "Inside Dhaka" : "Nationwide"}</span>
             </span>
             <span className="min-w-0">
               <span className="text-[12.5px] font-medium text-body block truncate">{t.timing ? TIMING_META[t.timing].label : "—"}</span>
@@ -210,7 +205,6 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
               <IconBtn name="edit" title="Edit" onClick={() => setDlg({
                 id: t.id, name: t.name,
                 timing: t.timing ?? "TODAY_SLOT",
-                collect: t.kind === "PICKUP",
                 minutes: t.promiseMinutes != null ? String(t.promiseMinutes) : "120",
                 fromMin: t.openFromMin ?? 600, toMin: t.openToMin ?? 1260,
               })} />
@@ -232,36 +226,6 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })} />
             {dup && <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">That method already exists.</span>}
           </Field>
-          {/*  ⚠️ A two-way choice is a coloured switch (house rule 16): the live
-              half carries the colour and an icon, the other stays quiet, and
-              which one is on reads across the room.  */}
-          <Field label="Who takes it there">
-            <div className="grid grid-cols-2 gap-2">
-              {([false, true] as const).map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => setDlg({ ...dlg, collect: v })}
-                  className={
-                    "rounded-[12px] border-[1.5px] px-3 py-2.5 text-left transition-all " +
-                    (dlg.collect === v
-                      ? "border-transparent text-white shadow-soft"
-                      : "border-[#e6dcf3] bg-white text-body hover:border-[#d0bce8]")
-                  }
-                  style={dlg.collect === v ? { background: ACCENT } : undefined}
-                >
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold">
-                    <Icon name={v ? "store" : "truck"} size={14} />
-                    {v ? "They collect it" : "We deliver it"}
-                  </span>
-                  <span className={"block text-[11.5px] mt-0.5 " + (dlg.collect === v ? "text-white/80" : "text-body-soft")}>
-                    {v ? "From the shop — no address, no charge" : "A rider or a courier carries it"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Field>
-
           <Field label="How it works" required>
             <select className="ipt w-full" value={dlg.timing} onChange={(e) => setDlg({ ...dlg, timing: e.target.value as DeliveryTiming })}>
               {(Object.keys(TIMING_META) as DeliveryTiming[]).map((k) => (

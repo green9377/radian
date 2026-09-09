@@ -145,8 +145,6 @@ export const METHODS: DeliveryMethod[] = [
 export interface LiveMethod extends DeliveryMethod {
   /** id of the name in the delivery module — this is what a product is tied to */
   typeId: string | null;
-  /** nobody carries it — the customer comes to the shop (owner, 9 Sep 2026) */
-  collect: boolean;
   timing: DeliveryTiming;
   promiseMinutes: number | null;
   /** whether it is outside today's window at this moment */
@@ -170,7 +168,6 @@ export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
           areas, and what the screen is showing is what gets picked.  */
       id: o.rateId as MethodId,
       typeId: o.typeId,
-      collect: o.kind === "PICKUP",
       timing: t,
       promiseMinutes: o.promiseMinutes,
       label: o.name,
@@ -200,9 +197,6 @@ export function toLiveMethods(opts: DeliveryOption[]): LiveMethod[] {
           something the web app invented for itself.  */
       surchargePaisa: 0,
       zone: o.kind === "COURIER" ? "bangladesh" : "dhaka",
-      /*  ⚠️ The icon above is chosen from the timing, which is right for a
-          delivery and wrong for a collection — a shopfront is not a speed.  */
-      ...(o.kind === "PICKUP" ? { icon: "store" as const } : {}),
       slots: t === "TODAY_SLOT" || t === "PICK_DATE_SLOT",
       datePick: t === "PICK_DATE_SLOT" || t === "PICK_DATE_FIXED",
       todayOnly: t === "FROM_CONFIRM" || t === "TODAY_SLOT",

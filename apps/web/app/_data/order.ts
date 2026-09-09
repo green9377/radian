@@ -169,6 +169,17 @@ export function checkoutTotals(args: {
    */
   methodOverride?: DeliveryMethod;
   /**
+   * The customer is coming to the shop (owner, 9 Sep 2026).
+   *
+   * > *"check out jkhon shop collect dibe tkhonei tar delievry charge lagbe
+   * >  na. ar baki sob akdom same vabei kaj krbe."*
+   *
+   * That is the whole rule: the charge goes to zero and NOTHING else changes.
+   * The method, the date, the slot are picked exactly as they always were —
+   * this is not a delivery method of its own.
+   */
+  collect?: boolean;
+  /**
    * What the offer engine said — the answer from `POST /shop/checkout/quote`.
    *
    * ⚠️ `applyCoupon()` used to run here, against three codes written in
@@ -210,16 +221,21 @@ export function checkoutTotals(args: {
     Math.max(0, args.serverDiscount?.deliveryWaivedPaisa ?? 0),
     quote.grossPaisa,
   );
-  const deliveryPaisa = quote.grossPaisa - deliveryWaivedPaisa;
+  /*  Nobody is carrying it, so there is nothing to charge for carrying it.
+      Written here rather than inside `quoteDelivery` on purpose: the method's
+      own price is still the method's own price, and the receipt should show
+      that the charge was waived for collection rather than that the delivery
+      was free.  */
+  const deliveryPaisa = args.collect ? 0 : quote.grossPaisa - deliveryWaivedPaisa;
 
   return {
     subtotalPaisa,
     discountPaisa,
     couponCode: appliedCode,
     deliveryPaisa,
-    deliveryGrossPaisa: quote.grossPaisa,
-    deliveryWaivedPaisa,
-    freeDelivery: deliveryWaivedPaisa > 0,
+    deliveryGrossPaisa: args.collect ? 0 : quote.grossPaisa,
+    deliveryWaivedPaisa: args.collect ? 0 : deliveryWaivedPaisa,
+    freeDelivery: args.collect ? true : deliveryWaivedPaisa > 0,
     totalPaisa: Math.max(0, subtotalPaisa - discountPaisa) + deliveryPaisa,
   };
 }

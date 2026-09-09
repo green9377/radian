@@ -201,13 +201,11 @@ export default function CheckoutView() {
   const method = useMemo(() => {
     /*  The API has not answered yet → the old list holds the place so the
         screen is not empty. The real prices drop in the moment it answers.  */
-    const all = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
-    /*  ⚠️ `Q5When` does these exact same steps, INCLUDING this filter. If the
-        two differ, the screen shows one method while the price and the receipt
-        say another.  */
-    const allowed = all.filter((m) => Boolean((m as LiveMethod).collect) === c.collect);
+    const allowed = liveMethods && liveMethods.length > 0 ? liveMethods : methodsForZone(zone);
+    /*  ⚠️ `Q5When` does these exact same three steps. If the two differ, the
+        screen shows one method while the price/receipt says another.  */
     return allowed.find((m) => m.id === c.method) ?? allowed[0] ?? METHODS[1];
-  }, [zone, c.method, c.collect, liveMethods]);
+  }, [zone, c.method, liveMethods]);
 
   /*
     ═══ THE DISCOUNT, FROM THE SHOP — 3 Aug 2026 ═══
@@ -298,6 +296,8 @@ export default function CheckoutView() {
           zone,
           method: method.id,
           methodOverride: method,
+          /*  the only thing collecting changes on this screen (9 Sep 2026)  */
+          collect: c.collect,
           couponCode,
           serverDiscount: quote
             ? {
@@ -551,7 +551,10 @@ export default function CheckoutView() {
 
       /*  A collection sends no address: the server puts the shop's own on the
           order, because it is the only one that can be right (9 Sep 2026).  */
+      /*  The shop's own address goes on a collected order, and the server puts
+          it there — it is the only one that can be right.  */
       address: c.collect ? "" : c.address.trim(),
+      collect: c.collect,
       deliveryNotes: c.deliveryNotes.trim() || undefined,
       date: c.date ?? undefined,
 
@@ -700,8 +703,6 @@ export default function CheckoutView() {
           heldCount={cart.totals.heldQty}
           deliverableCount={cart.totals.activeQty}
           allHeld={allHeld}
-          /*  Offered only when the shop actually sells one — see Q3Where.  */
-          canCollect={(liveMethods ?? []).some((m) => m.collect)}
           shop={shop}
         />
         {!allHeld && c.isGift && <Q4Message />}

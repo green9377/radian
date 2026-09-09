@@ -10,7 +10,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { DeliveryMethodKind, DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { DeliveryZone, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -94,6 +94,19 @@ export interface QuoteIn {
   items: CheckoutItemIn[];
   zone?: 'DHAKA' | 'BANGLADESH' | 'dhaka' | 'bangladesh';
   deliveryMethodId?: string;
+  /**
+   * The customer is collecting from the shop (owner, 9 Sep 2026).
+   *
+   * > *"check out jkhon shop collect dibe tkhonei tar delievry charge lagbe
+   * >  na. ar baki sob akdom same vabei kaj krbe."*
+   *
+   * ⚠️ Trusting a flag from a browser is safe HERE and only here, because
+   * saying it changes the order into a collection: the charge goes, but so
+   * does the address, the shop's own goes on the row, and it leaves the
+   * delivery board. Nobody gets a free delivery by claiming it — they get no
+   * delivery.
+   */
+  collect?: boolean;
   deliverySlotId?: string;
   couponCode?: string;
   paymentMethod?: 'online' | 'cod';
@@ -594,7 +607,7 @@ export class CheckoutService {
     }
     const method = await this.prisma.db.deliveryMethod.findFirst({
       where: { id: methodId, isActive: true },
-      include: { type: { select: { id: true, timing: true, kind: true } } },
+      include: { type: { select: { id: true, timing: true } } },
     });
     if (!method) throw new BadRequestException('that delivery option is no longer available');
     if (method.zone !== zone)
@@ -722,6 +735,13 @@ export class CheckoutService {
       active.map((l) => l.slug), // DEC-DLV-011
     );
 
+    /*  The one thing collecting changes on the price: nothing is charged for
+        carrying it (owner, 9 Sep 2026). The method keeps its own price
+        everywhere else; only this cart's charge is zero — and the offer engine
+        is given the same number, or a free-delivery offer would waive a charge
+        that is not there.  */
+    const fee = dto.collect === true ? 0 : delivery.feePaisa;
+
     const orderLines = this.toOrderLines(active);
     const subtotalPaisa = orderLines.reduce(
       (n, l) => n + l.unitPaisa! * l.qty - (l.discountPaisa ?? 0),
@@ -761,7 +781,7 @@ export class CheckoutService {
             (l.unitPaisa * l.qty - (l.discountPaisa ?? 0)) / Math.max(1, l.qty),
           ),
         })),
-        deliveryPaisa: delivery.feePaisa,
+        deliveryPaisa: fee,
         paymentMethod: dto.paymentMethod ?? 'online',
         couponCode: dto.couponCode,
       });
@@ -778,7 +798,7 @@ export class CheckoutService {
 
     const totalPaisa = Math.max(
       0,
-      subtotalPaisa - discountPaisa + delivery.feePaisa - deliveryWaivedPaisa,
+      subtotalPaisa - discountPaisa + fee - deliveryWaivedPaisa,
     );
 
     return {
@@ -786,7 +806,7 @@ export class CheckoutService {
       held: held.map((l) => this.toQuoteLine(l)),
       missing,
       subtotalPaisa,
-      deliveryPaisa: delivery.feePaisa,
+      deliveryPaisa: fee,
       deliveryWaivedPaisa,
       discountPaisa,
       totalPaisa,
@@ -990,18 +1010,20 @@ export class CheckoutService {
 
     /*  ═══ COLLECT FROM SHOP — owner, 9 Sep 2026 ════════════════════════════
 
-        > *"order diye to shop aseo collect krte parbe … r ta select krle kon
-        >  charge delievry address kichu lagbe na."*
+        > *"shop theke collect ato jamela kn kra lagbe. just easy kro — check
+        >  out jkhon shop collect dibe tkhonei tar delievry charge lagbe na.
+        >  ar baki sob akdom same vabei kaj krbe."*
 
-        An address is only needed when somebody is carrying it. The question is
-        answered by the METHOD, never by a flag the browser sends: a request
-        that claimed to be a collection would otherwise place an addressless
-        order against a rider method.
+        ⚠️ IT IS NOT A DELIVERY METHOD, and it was built as one first — a kind
+        the owner had to create, price per zone and tick on every product. He
+        threw that out as *"duniar pecher ktha"*, and he was right: none of it
+        earned its keep.
 
-        The charge needs no rule here at all — a collection method's fee is
-        whatever the owner typed in admin, and he types 0.
+        The whole rule is three lines. No address is asked for, the charge is
+        zero, and the order leaves the delivery board. The method, the date and
+        the slot are chosen exactly as they always were.
     */
-    const collected = await this.isCollectionMethod(dto.deliveryMethodId);
+    const collected = dto.collect === true;
     if (!collected && !dto.address?.trim())
       throw new BadRequestException('delivery address required');
 
@@ -1171,7 +1193,8 @@ export class CheckoutService {
       etaLabel: delivery.eta ?? undefined,
       deliveryMethodId: delivery.method?.id,
       deliverySlotId: delivery.slot?.id,
-      deliveryPaisa: delivery.feePaisa,
+      /*  Nobody carries it, so nothing is charged for carrying it.  */
+      deliveryPaisa: collected ? 0 : delivery.feePaisa,
 
       paymentMethod: method,
       couponCode: dto.couponCode,
@@ -1410,14 +1433,6 @@ export class CheckoutService {
    * for a code on every order would be noise they learn to ignore, which is
    * how a verification step stops meaning anything.
    */
-  /**
-   * Is the chosen delivery a COLLECTION — nobody carries it?
-   *
-   * Read from the method's own type, never from anything the browser sends. A
-   * request that simply claimed "I am collecting" could otherwise place an
-   * addressless order against a rider method, and a rider would be sent to an
-   * empty line in the address column.
-   */
   /** The shop's own address, for an order that is being collected from it. */
   private async shopAddress(): Promise<string> {
     try {
@@ -1428,17 +1443,6 @@ export class CheckoutService {
     } catch {
       return '';
     }
-  }
-
-  private async isCollectionMethod(methodId?: string): Promise<boolean> {
-    if (!methodId) return false;
-    const m = await this.prisma.db.deliveryMethod
-      .findFirst({
-        where: { id: methodId, isActive: true },
-        select: { kind: true, type: { select: { kind: true } } },
-      })
-      .catch(() => null);
-    return m?.kind === DeliveryMethodKind.PICKUP || m?.type?.kind === DeliveryMethodKind.PICKUP;
   }
 
   private async phoneAlreadyVerified(phone: string) {

@@ -156,6 +156,12 @@ export interface PlaceOrderIn extends QuoteIn {
   anonymousGift?: boolean;
   photoUpdates?: boolean;
   address: string;
+  /**
+   * The customer is collecting from the shop (owner, 9 Sep 2026). The server
+   * zeroes the delivery charge, asks for no address, puts the SHOP's own
+   * address on the order and keeps it off the delivery board.
+   */
+  collect?: boolean;
   deliveryNotes?: string;
   date?: string;
   /** the total the customer pressed the button on — see `place()` below */
