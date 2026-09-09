@@ -130,7 +130,14 @@ export function CheckoutSummary({
           label={deliveryLabel}
           value={totals.freeDelivery ? "FREE" : formatTaka(totals.deliveryPaisa)}
           tone={totals.freeDelivery ? "save" : "normal"}
-          strike={totals.freeDelivery ? formatTaka(totals.deliveryGrossPaisa) : undefined}
+          /*  A struck-out price only means something when there WAS one. On a
+              collection there is no charge to cross out, and "৳0 FREE" read as
+              a mistake (caught on screen, 9 Sep 2026).  */
+          strike={
+            totals.freeDelivery && totals.deliveryGrossPaisa > 0
+              ? formatTaka(totals.deliveryGrossPaisa)
+              : undefined
+          }
         />
       </div>
 
