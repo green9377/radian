@@ -1,6 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import { OrderMessageChannel, OrderMessageKind, OrderMessageStatus, Prisma } from '@prisma/client';
+import {
+  OrderMessageChannel,
+  OrderMessageKind,
+  OrderMessageStatus,
+  PaymentSessionStatus,
+  PaymentStatus,
+  Prisma,
+  SalesStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TPL, WhatsAppCloudService } from '../common/whatsapp-cloud';
 import { routeFor } from '../common/notify-route';
@@ -99,17 +107,72 @@ export class OrderMessagesService {
   /**
    * Queues the immediate message and, if configured, one for later. The later
    * one is skipped at send time if the money has arrived by then.
+   *
+   * Returns the first row, or null when it was already queued or recovery is
+   * switched off — so a caller sweeping many orders can count what it did.
    */
   async queuePaymentFailed(orderId: string) {
     const s = await this.settings.get();
-    if (!s.recoveryEnabled || !s.paymentFailedEnabled) return;
+    if (!s.recoveryEnabled || !s.paymentFailedEnabled) return null;
 
-    await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 1 });
+    const first = await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 1 });
 
     if (s.paymentFailedRetryHours > 0) {
       const dueAt = new Date(Date.now() + s.paymentFailedRetryHours * 3600_000);
       await this.queue(orderId, OrderMessageKind.PAYMENT_FAILED, { attempt: 2, dueAt });
     }
+    return first;
+  }
+
+  /**
+   * The customer who simply closed the gateway tab (owner, 9 Sep 2026).
+   *
+   * SSLCommerz calls us back on a success, on a failure, and when the Cancel
+   * button is pressed. A closed tab produces NOTHING — so the commonest way to
+   * walk away from a payment was the one way the shop never heard about, and
+   * that customer got neither a message nor a chance to finish.
+   *
+   * ⚠️ THIS DELIBERATELY DOES NOT TOUCH THE PAYMENT SESSION. Marking the
+   * attempt FAILED would make `settle()` refuse the payment if it lands a
+   * minute later — gateways are slow, and turning away real money to be tidy
+   * is far worse than a message that arrives early. The attempt stays open;
+   * only the recovery message is queued, and `skipReason` throws it away at
+   * send time if the money has arrived by then ("already paid").
+   *
+   * The unique index does the rest: an order that already has a PAYMENT_FAILED
+   * row cannot get a second one, so a later real Cancel callback is silent.
+   */
+  async sweepUnpaidPayments() {
+    const s = await this.settings.get();
+    if (!s.recoveryEnabled || !s.paymentFailedEnabled) return { picked: 0, queued: 0 };
+
+    const minutes = Math.max(1, s.unpaidAfterMinutes);
+    const cutoff = new Date(Date.now() - minutes * 60_000);
+
+    const stale = await this.prisma.db.paymentSession.findMany({
+      where: {
+        status: PaymentSessionStatus.INITIATED,
+        createdAt: { lte: cutoff },
+        deletedAt: null,
+        /*  Still owing, still a live order. A part-paid or cancelled order has
+            nothing to recover, and telling either of those that their payment
+            failed is worse than silence.  */
+        order: {
+          paymentStatus: PaymentStatus.unpaid,
+          salesStatus: { not: SalesStatus.cancelled },
+          deletedAt: null,
+        },
+      },
+      select: { orderId: true },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+
+    let queued = 0;
+    for (const orderId of new Set(stale.map((x) => x.orderId))) {
+      if (await this.queuePaymentFailed(orderId)) queued++;
+    }
+    return { picked: stale.length, queued };
   }
 
   /**

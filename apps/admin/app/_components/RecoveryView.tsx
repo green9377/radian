@@ -129,17 +129,33 @@ export default function RecoveryView() {
                   title="Message when a payment fails"
                   sub="The order exists, only the money is missing — the easiest kind to win back"
                 />
-                <div className="max-w-[280px]">
-                  <Lbl>Send again after (hours)</Lbl>
-                  <input
-                    className={input} type="number" min={0} max={72}
-                    value={s.paymentFailedRetryHours}
-                    onChange={(e) => set("paymentFailedRetryHours", Number(e.target.value))}
-                  />
-                  <p className="text-[11px] text-body-soft mt-1">
-                    0 means no second message. If the money arrives first, it is
-                    skipped anyway.
-                  </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Lbl>Send again after (hours)</Lbl>
+                    <input
+                      className={input} type="number" min={0} max={72}
+                      value={s.paymentFailedRetryHours}
+                      onChange={(e) => set("paymentFailedRetryHours", Number(e.target.value))}
+                    />
+                    <p className="text-[11px] text-body-soft mt-1">
+                      0 means no second message. If the money arrives first, it is
+                      skipped anyway.
+                    </p>
+                  </div>
+                  <div>
+                    <Lbl>Treat as failed after (minutes)</Lbl>
+                    <input
+                      className={input} type="number" min={5} max={240}
+                      value={s.unpaidAfterMinutes}
+                      onChange={(e) => set("unpaidAfterMinutes", Number(e.target.value))}
+                    />
+                    <p className="text-[11px] text-body-soft mt-1">
+                      For the customer who closes the payment tab instead of
+                      pressing Cancel — the gateway tells us nothing at all about
+                      them. The attempt is not closed, so a late payment is still
+                      taken, and the message is dropped if the money arrives.
+                    </p>
+                  </div>
                 </div>
               </div>
 

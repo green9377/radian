@@ -72,6 +72,17 @@ export class MessagingSweeper implements OnModuleInit, OnModuleDestroy {
       this.log.warn(`sweepAbandoned failed: ${e instanceof Error ? e.message : e}`);
       out.abandoned = { error: true };
     }
+    /*  The gateway tab that was closed instead of cancelled (owner, 9 Sep
+        2026). Nothing else in the system ever hears about that customer.
+        Queued here, sent on the NEXT pass — which is why this runs after
+        `sendDue` and not before: a message queued and sent in the same second
+        would beat a slow payment that is still on its way.  */
+    try {
+      out.unpaidPayments = await this.orderMessages.sweepUnpaidPayments();
+    } catch (e) {
+      this.log.warn(`sweepUnpaidPayments failed: ${e instanceof Error ? e.message : e}`);
+      out.unpaidPayments = { error: true };
+    }
     // Purge once a day, not every cycle.
     if (Date.now() - this.lastPurge > 86_400_000) {
       this.lastPurge = Date.now();

@@ -433,6 +433,26 @@ export class SslCommerzService {
       actorName: 'SSLCommerz',
     });
 
+    /*
+      ═══ THE CONFIRMATION IS SENT HERE, NOT AT CHECKOUT — owner, 9 Sep 2026 ═══
+
+      The money has arrived, so now — and only now — the shop may tell the
+      customer the order is placed. Checkout used to say it the instant the
+      row was written; see `shop/checkout.ts` for why that was wrong.
+
+      ⚠️ Idempotent by the database, not by a check here. `OrderMessage` has a
+      unique index on (orderId, kind, attempt), so the browser redirect and the
+      IPN — which race each other by design, and which SSLCommerz retries —
+      cannot produce two confirmations.
+
+      Fail-soft and unwaited: the gateway callback must answer fast, and a
+      message that will not send must never make a settled payment look failed.
+    */
+    void this.orderMessages
+      .queueConfirmation(session.orderId, false)
+      .then(() => this.orderMessages.sendDue(5))
+      .catch(() => undefined);
+
     return PaymentSessionStatus.SUCCESS;
   }
 
@@ -556,11 +576,27 @@ export class SslCommerzService {
     return s?.order.orderNo ?? null;
   }
 
+  /**
+   * Where the customer's browser is put down after the gateway.
+   *
+   * ⚠️ A FAILED OR CANCELLED PAYMENT NO LONGER GOES BACK TO /checkout (owner,
+   * 9 Sep 2026): *"customer jkhon payment na kre ber hoye jabe tkhon amn akta
+   * page reload kre take nite hobe jekhane niye take dekhabe je payment kra
+   * lagbe. order hoy nai."*
+   *
+   * It went to `/checkout?payment=cancel`, and the checkout page did not read
+   * that parameter at all — worse, the cart had already been emptied when the
+   * order was written. So the customer landed on a blank form, with no word
+   * about the order or the money. `/pay/{orderNo}` is the page that says it:
+   * not confirmed, this much is owed, one button.
+   */
   redirect(kind: string, orderNo: string | null): string {
     const web = this.webBase();
     if (kind === 'success' && orderNo) return `${web}/order-success?id=${orderNo}`;
-    const q = orderNo ? `?id=${orderNo}` : '';
-    return `${web}/checkout${q}${q ? '&' : '?'}payment=${kind}`;
+    if (orderNo) return `${web}/pay/${encodeURIComponent(orderNo)}?from=${kind}`;
+    /*  No tran_id came back, so the order cannot be named. Checkout reads
+        `payment=` and says what happened rather than showing an empty form.  */
+    return `${web}/checkout?payment=${kind}`;
   }
 }
 

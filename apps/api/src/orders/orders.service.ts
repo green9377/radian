@@ -1213,6 +1213,36 @@ export class OrdersService {
 
     await this.book(id, `${dto.kind} on ${o.orderNo}`, () => this.finance.onPaymentRecorded(txn.id), actorName);
     await this.event(id, 'payment', `${dto.kind} ${dto.amountPaisa} paisa via ${method}`, actorName);
+
+    /*
+      ═══ MONEY IN, ORDER CONFIRMED — owner, 9 Sep 2026 ═══
+
+      A prepaid order says nothing to the customer until it is paid (see
+      `shop/checkout.ts`). The gateway queues the confirmation itself, but the
+      gateway is not the only way money arrives: the shop takes a bKash send
+      by hand, or records a bank transfer on the order screen. Without this,
+      that customer would be waiting for a confirmation that never comes.
+
+      ⚠️ NOT FOR COD. A cash-on-delivery order was confirmed at checkout —
+      there was nothing to wait for — and the rider handing over the parcel is
+      what triggers `addPayment` there. Confirming again at that moment would
+      tell someone holding their flowers that their order is placed.
+
+      ⚠️ Only when the bill is fully settled, and never on a refund. Idempotent
+      through the unique index, so the gateway's own queue and this one cannot
+      both send.
+    */
+    if (
+      dto.kind !== 'REFUND' &&
+      updated.paymentMethod !== PaymentMethod.cod &&
+      updated.paidPaisa - updated.refundPaisa >= updated.totalPaisa
+    ) {
+      void this.orderMessages
+        .queueConfirmation(id, false)
+        .then(() => this.orderMessages.sendDue(5))
+        .catch(() => undefined);
+    }
+
     return this.shape(updated);
   }
 

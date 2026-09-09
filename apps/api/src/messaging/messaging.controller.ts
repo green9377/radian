@@ -136,6 +136,10 @@ export class MessagingController {
         72,
         cur.paymentFailedRetryHours,
       ),
+      /*  The closed gateway tab (owner, 9 Sep 2026). Five minutes is the floor
+          for the same reason as the abandoned checkout below — anything
+          shorter messages somebody who is still typing an OTP.  */
+      unpaidAfterMinutes: num(dto.unpaidAfterMinutes, 5, 240, cur.unpaidAfterMinutes),
       abandonedEnabled: Boolean(dto.abandonedEnabled),
       // Five minutes is the floor: a bKash or card OTP takes longer than that.
       abandonedAfterMinutes: num(

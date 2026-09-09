@@ -7480,6 +7480,8 @@ export interface ApiRecoverySettings {
   recoveryEnabled: boolean;
   paymentFailedEnabled: boolean;
   paymentFailedRetryHours: number;
+  /** minutes a started gateway attempt waits before the money counts as missing */
+  unpaidAfterMinutes: number;
   abandonedEnabled: boolean;
   abandonedAfterMinutes: number;
   leadRetentionDays: number;

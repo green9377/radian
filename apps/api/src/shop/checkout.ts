@@ -1219,18 +1219,8 @@ export class CheckoutService {
       }
     }
 
-    /*  The site's promise — "confirmation on WhatsApp". Fail-soft: the message
-        is a courtesy, the order is the contract; no WhatsApp failure stops
-        checkout. `void` — not even waited on, the customer is already on the
-        success page.
-
-Queued rather than sent directly: COD and prepaid say different
-        things, and a queued row is the only record that the confirmation
-        was ever sent.  */
-    void this.orderMessages
-      .queueConfirmation(order.id, method === PaymentMethod.cod)
-      .then(() => this.orderMessages.sendDue(5))
-      .catch((e) => this.log?.warn?.(`confirmation queue failed for ${order.orderNo}: ${e}`));
+    /*  ⚠️ THE CONFIRMATION USED TO BE SENT HERE AND IS NOT ANY MORE — see the
+        block after the store credit below, where what is still owed is known.  */
 
     // Ordered inside the window, so never tell them their cart is waiting.
     void this.leads
@@ -1296,6 +1286,40 @@ Queued rather than sent directly: COD and prepaid say different
       }
     }
 
+    /*
+      ═══ THE CONFIRMATION WAITS FOR THE MONEY — owner, 9 Sep 2026 ═══
+
+      > *"amder place a click krlei sms jay … payment paid krle tar kache sms
+      >  jabe je payment paid hoiche order place hoiche."*
+
+      It used to fire the moment the row was written. So a customer who never
+      reached the gateway, or who pressed Cancel on it, was still told "your
+      order is confirmed" — the shop announcing an order it had not been paid
+      for, in writing, to the person who had not paid.
+
+      What decides it now is what is still OWED, not which button was pressed:
+
+        · nothing owed online — cash on delivery, or store credit covered the
+          whole bill — this IS the end of the checkout, so confirm here
+        · money owed at the gateway — say nothing at all. `SslCommerzService
+          .settle()` queues the confirmation when the payment actually lands,
+          and a cancelled or abandoned attempt gets PAYMENT_FAILED instead
+
+      ⚠️ It has to sit AFTER the store credit above, because credit is what can
+      turn an "online" order into one with nothing left to pay.
+
+      Fail-soft and unwaited, as it always was: the message is a courtesy, the
+      order is the contract.
+    */
+    const owedNow = Math.max(0, order.totalPaisa - (order.paidPaisa + storeCreditUsedPaisa));
+    const needsPayment = method === PaymentMethod.online && owedNow > 0;
+    if (!needsPayment) {
+      void this.orderMessages
+        .queueConfirmation(order.id, method === PaymentMethod.cod)
+        .then(() => this.orderMessages.sendDue(5))
+        .catch((e) => this.log?.warn?.(`confirmation queue failed for ${order.orderNo}: ${e}`));
+    }
+
     const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
     if (needsPhoneVerify) {
       void this.otp
@@ -1310,8 +1334,14 @@ Queued rather than sent directly: COD and prepaid say different
       totalPaisa: order.totalPaisa,
       paymentMethod: order.paymentMethod,
       /*  COD needs no gateway; online does, and that is the next step in the
-          caller's hands (`/shop/payment/session`).  */
-      needsPayment: method === PaymentMethod.online,
+          caller's hands (`/shop/payment/session`).
+
+          ⚠️ AND ONLY IF SOMETHING IS STILL OWED. Store credit can settle the
+          whole bill, and this used to say `true` anyway — the storefront then
+          asked for a gateway session, `createSession` answered "this order is
+          already paid", and a customer who owed nothing was shown "we couldn't
+          open the payment page".  */
+      needsPayment,
       /*  The success page shows the code box when this is true. It never
           blocks anything — the order is already placed either way.  */
       needsPhoneVerify,
