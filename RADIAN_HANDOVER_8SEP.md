@@ -248,3 +248,63 @@ four upright weights, with the italic on its own non-preloaded load, it is
 ```js
 performance.getEntriesByType("resource").filter(r => /woff2/.test(r.name))
 ```
+
+---
+
+## 8. THE CONFIRMATION WAITS FOR THE MONEY — 9 Sep
+
+The owner: *"checkout page a amra jkhon place order a click kri sathe sathei
+amder sms chole jay customer ar kache. ata thik kro."*
+
+**Proved with his own data before it was touched:** `RAD-70104` — online,
+**unpaid**, ৳64,055 — has an `OrderMessage` row `ORDER_CONFIRMATION · SMS ·
+SENT · 08 Sep 14:12`. The shop told a customer in writing that it had an
+order it had never been paid for.
+
+**What decides the confirmation now is what is OWED**, not which button was
+pressed:
+
+| situation | what the customer is told, and when |
+|---|---|
+| cash on delivery | confirmed at checkout — that IS the end of the checkout |
+| store credit covered the whole bill | confirmed at checkout, same reason |
+| online, money owed | **nothing at checkout.** `settle()` confirms when the payment lands |
+| online, paid by hand in the admin | `addPayment` confirms — never for COD, which was confirmed already and whose `addPayment` fires at the doorstep |
+| cancelled / declined / abandoned | `PAYMENT_FAILED`, with the `/pay/{orderNo}` link |
+
+**A failed payment no longer lands on `/checkout`.** It did, with
+`?payment=cancel`, and the checkout page read that parameter nowhere — and
+the cart had already been emptied when the order was written, so the customer
+stood in front of a blank form with no word about their money. It goes to
+**`/pay/{orderNo}?from=cancel`** now: "Your order isn't confirmed yet",
+the amount owed, one button.
+
+**The closed tab.** SSLCommerz calls back for a success, a failure and the
+Cancel button — a closed tab produces nothing at all, so the commonest way to
+abandon a payment was the one the shop never heard about. A sweep now queues
+the recovery message for an attempt open longer than **`unpaidAfterMinutes`
+(15, Admin → Recovery)**, and only for attempts started in the last 24 hours.
+
+⚠️ **The sweep does NOT close the payment attempt, on purpose.** Marking it
+FAILED would make `settle()` refuse a payment that lands a minute later —
+gateways are slow, and turning away real money to be tidy is far worse than a
+message that arrives early. `skipReason` drops the message anyway if the money
+has arrived ("already paid").
+
+### ⚠️ THREE SWITCHES ARE OFF ON DEV, AND TWO OF THEM GATE THIS WORK
+
+Read from `MessagingSetting` on 9 Sep, after deploying:
+
+| switch | state | what is dead while it is off |
+|---|---|---|
+| `smsEnabled` (Admin → Email & SMS) | **OFF** | every message. It was ON yesterday — that is how RAD-70104's SMS went |
+| `recoveryEnabled` (Admin → Recovery) | **OFF** | the payment-failed message, both from a real Cancel and from the sweep |
+| `sweeperEnabled` (Admin → Recovery) | **OFF** | the 15-minute catch for the closed tab. Its old reason — a timer waking a free Postgres — died with Neon |
+
+They were left OFF deliberately: turning `recoveryEnabled` on starts real
+outbound to real people, which is the owner's to approve, not a session's.
+
+Also fixed on the way past: `needsPayment` said `true` even when store credit
+had settled the whole bill, so the storefront asked for a gateway session, got
+"this order is already paid", and showed a customer who owed nothing "we
+couldn't open the payment page".
