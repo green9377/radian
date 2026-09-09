@@ -1313,19 +1313,34 @@ export class CheckoutService {
     */
     const owedNow = Math.max(0, order.totalPaisa - (order.paidPaisa + storeCreditUsedPaisa));
     const needsPayment = method === PaymentMethod.online && owedNow > 0;
+    const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
+
     if (!needsPayment) {
       void this.orderMessages
         .queueConfirmation(order.id, method === PaymentMethod.cod)
         .then(() => this.orderMessages.sendDue(5))
         .catch((e) => this.log?.warn?.(`confirmation queue failed for ${order.orderNo}: ${e}`));
-    }
 
-    const needsPhoneVerify = !(await this.phoneAlreadyVerified(order.senderPhone));
-    if (needsPhoneVerify) {
-      void this.otp
-        // the order's own email is on file now — OtpService finds it itself
-        .send({ phone: order.senderPhone, purpose: OtpPurpose.CHECKOUT })
-        .catch((e) => this.log?.warn?.(`otp send failed for ${order.orderNo}: ${e}`));
+      /*  ═══ THE CODE TRAVELS WITH THE CONFIRMATION — owner, 9 Sep 2026 ═══
+
+          It used to go the instant the row was written, whatever was still
+          owed. So every abandoned online checkout spent an SMS proving a
+          number that never became a customer — the same money the
+          confirmation had just been stopped from wasting, going out of the
+          door beside it.
+
+          Same moment as the confirmation now: here when nothing is owed, and
+          in `SslCommerzService.settle()` when the payment lands. The reason
+          for asking at all is unchanged (DEC-WA-010, the owner's ruling of
+          29 Aug): every message about this order goes to this number, so the
+          shop needs to know it is real. It still guards nothing — the order
+          stands whether or not the code is ever typed.  */
+      if (needsPhoneVerify) {
+        void this.otp
+          // the order's own email is on file now — OtpService finds it itself
+          .send({ phone: order.senderPhone, purpose: OtpPurpose.CHECKOUT })
+          .catch((e) => this.log?.warn?.(`otp send failed for ${order.orderNo}: ${e}`));
+      }
     }
 
     return {

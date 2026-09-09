@@ -383,7 +383,11 @@ export default function OrderSuccessView() {
           </span>
         </div>
 
-        <PhoneVerifyBlock phone={order.sender.phone} />
+        {/*  Only when a code was actually sent. This was drawn for every
+            order, so a customer whose number was already proved was told "we
+            sent you a code" and waited for a message nobody had sent
+            (9 Sep 2026).  */}
+        {order.needsPhoneVerify !== false && <PhoneVerifyBlock phone={order.sender.phone} />}
       </div>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start mt-9">

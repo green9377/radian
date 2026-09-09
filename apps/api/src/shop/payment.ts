@@ -12,7 +12,7 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { PaymentMethod, PaymentSessionStatus } from '@prisma/client';
+import { OtpPurpose, PaymentMethod, PaymentSessionStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -23,6 +23,7 @@ import { AdministrationModule } from '../administration/administration.module';
 import { IntegrationsService } from '../administration/integrations.service';
 import { MessagingModule } from '../messaging/messaging.controller';
 import { OrderMessagesService } from '../messaging/order-messages.service';
+import { OtpService } from '../messaging/otp.service';
 
 /*
   ═══════════════════════════════════════════════════════════════════════════
@@ -122,6 +123,7 @@ export class SslCommerzService {
     private readonly orders: OrdersService,
     private readonly integrations: IntegrationsService,
     private readonly orderMessages: OrderMessagesService,
+    private readonly otp: OtpService,
   ) {}
 
   /*
@@ -453,6 +455,21 @@ export class SslCommerzService {
       .then(() => this.orderMessages.sendDue(5))
       .catch(() => undefined);
 
+    /*  ═══ AND THE NUMBER IS PROVED HERE TOO — owner, 9 Sep 2026 ═══
+
+        The verification code used to go the moment Place Order was pressed,
+        so every abandoned online checkout spent an SMS on a number that never
+        became a customer. It travels with the confirmation now: at checkout
+        when nothing is owed, and here when the money lands.
+
+        The timing works because the customer is mid-redirect to
+        `/order-success` as this runs — the code is five minutes old at most
+        when the box asking for it appears. Deliberately NOT done in
+        `addPayment`: a payment the shop records by hand days later would send
+        a code to somebody who is not looking at a screen, and it would expire
+        unread.  */
+    void this.proveNumberIfNeeded(session.orderId).catch(() => undefined);
+
     return PaymentSessionStatus.SUCCESS;
   }
 
@@ -565,6 +582,30 @@ export class SslCommerzService {
       .queuePaymentFailed(s.orderId)
       .then(() => this.orderMessages.sendDue(5))
       .catch(() => undefined);
+  }
+
+  /**
+   * One code, only if this number has never been proved.
+   *
+   * Fail-soft throughout: a code that will not send must never make a settled
+   * payment look like a failure. The same rule the confirmation follows.
+   */
+  private async proveNumberIfNeeded(orderId: string) {
+    const o = await this.prisma.db.order.findFirst({
+      where: { id: orderId },
+      select: { senderPhone: true },
+    });
+    const phone = o?.senderPhone?.trim();
+    if (!phone) return;
+
+    /*  Raw client, as checkout does: `phone` is unique across soft-deleted
+        rows too, and a returning customer still counts as proved.  */
+    const c = await this.prisma.customer
+      .findUnique({ where: { phone }, select: { whatsappVerified: true } })
+      .catch(() => null);
+    if (c?.whatsappVerified === true) return;
+
+    await this.otp.send({ phone, purpose: OtpPurpose.CHECKOUT }).catch(() => undefined);
   }
 
   async orderNoFor(tranId?: string): Promise<string | null> {
