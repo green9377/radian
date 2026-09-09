@@ -393,12 +393,17 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                     <div className="flex items-start gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
                       <span className="text-orchid shrink-0 mt-0.5"><Icon name="upload" size={14} /></span>
                       <span className="text-[12px] text-body leading-relaxed">
-                        <b className="text-purple font-semibold">Draw it in the shop&rsquo;s purple —
-                        #470066</b> — on a see-through background, SVG or PNG.
+                        <b className="text-purple font-semibold">Draw it SQUARE, edge to edge, on a
+                        see-through background</b> — SVG or PNG.
                         <span className="block text-body-soft mt-0.5">
-                          Whatever you upload is shown exactly as it is: we never change its
-                          colours. A red icon stays red beside purple ones, and a photograph stays
-                          a photograph. Square · max 50 KB.
+                          Square is what makes it look big. A wide, short drawing is fitted by its
+                          width, so it ends up short in a square tile — the same drawing filling a
+                          square frame comes out about half as large again.
+                        </span>
+                        <span className="block text-body-soft mt-1">
+                          Want it in the brand colour? Draw it in <b className="text-purple">#470066</b> —
+                          whatever you upload is shown exactly as it is, we never change its colours.
+                          Max 50 KB.
                         </span>
                       </span>
                     </div>

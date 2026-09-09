@@ -101,6 +101,32 @@ const P: Record<string, React.ReactNode> = {
   artwork is software they cannot predict, and unpredictable is worse than
   imperfect.
 */
+/*
+  ═══ WHY AN UPLOAD LOOKS SMALLER THAN A DRAWN ONE — measured, 9 Sep 2026 ═══
+
+  The owner: *"other icon gula ja ache segula dile to boro hoy. upload dile kn
+  boro hoy na."* Both are given the same box, so the answer had to be measured
+  rather than guessed. Read off his own red-van file on the live page:
+
+    · the file is 160 × 160, and the drawing inside it is 153 × 106 — it fills
+      the width, but it is WIDE AND SHORT. `object-contain` fits the wider
+      side, so in a 24px box the van comes out 24 wide and only ~17 tall
+    · a built-in is line art with a 1.8px stroke. Strokes hold their weight
+      when they shrink; a filled illustration loses its wheels and windows to
+      a smudge, and the eye then reads a small blob instead of a shape
+
+  Two levers, and the FILE is the bigger one: the same van drawn to fill a
+  SQUARE frame renders 24 × 24 instead of 24 × 17 — about half as much icon
+  again, for no code at all. That belongs in the admin's guidance, not here.
+
+  The lever here is the second one: a filled picture needs more room than line
+  art to read at the same size, so an upload is given ~20% more. It is an
+  optical correction, applied to every upload the same way — not a judgement
+  about any one file, and it changes not one pixel of his artwork.
+
+  `tight` opts out where there is no room to grow into: a nav link, where the
+  icon sits on a text line and must not outgrow the words beside it.
+*/
 /**
  * A badge's icon — a built-in name, or an uploaded file.
  *
@@ -115,18 +141,26 @@ export default function ShopIcon({
   name,
   url,
   className = "w-9 h-9",
+  tight = false,
 }: {
   name?: string | null;
   url?: string | null;
   className?: string;
+  /** no optical growth — for an icon on a text line, where there is no room */
+  tight?: boolean;
 }) {
   if (url) {
-    /*  Kept inside the same box as every other icon, so an upload can never be
-        optically larger than its neighbours or run edge-to-edge in a tile that
-        is meant to have air around its symbol. That is the ONLY thing done to
-        it — see the note above.  */
+    /*  Same box as every other icon, so an upload can never run edge-to-edge
+        in a tile meant to have air around its symbol — plus the optical
+        correction explained above.  */
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" className={`${className} object-contain`} />;
+    return (
+      <img
+        src={url}
+        alt=""
+        className={`${className} object-contain${tight ? "" : " scale-[1.2]"}`}
+      />
+    );
   }
   const path = name ? P[name] : null;
   if (!path) return null;

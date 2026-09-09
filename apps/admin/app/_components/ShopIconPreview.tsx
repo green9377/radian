@@ -88,8 +88,19 @@ export default function ShopIconPreview({
   name, url, size = 22,
 }: { name?: string | null; url?: string | null; size?: number }) {
   if (url) {
+    /*  The same 20% optical growth the shop gives an upload — a filled picture
+        needs more room than line art to read at the same size. If this preview
+        did not do it too, the screen would once again show something the shop
+        does not (9 Sep 2026).  */
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt="" style={{ width: size, height: size }} className="object-contain" />;
+    return (
+      <img
+        src={url}
+        alt=""
+        style={{ width: size, height: size }}
+        className="object-contain scale-[1.2]"
+      />
+    );
   }
   const path = name ? P[name] : null;
   if (!path) return <span style={{ width: size, height: size }} className="inline-block" />;

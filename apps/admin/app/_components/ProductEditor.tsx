@@ -7000,12 +7000,13 @@ No bundle products yet — add them on{" "}
                                   <Icon name="upload" size={14} />
                                 </span>
                                 <span className="text-[12px] text-body leading-relaxed">
-                                  <b className="text-purple font-semibold">Draw it in the
-                                  shop&rsquo;s purple — #470066</b> — on a see-through background,
-                                  SVG or PNG.
+                                  <b className="text-purple font-semibold">Draw it SQUARE, edge to
+                                  edge, on a see-through background</b> — SVG or PNG.
                                   <span className="block text-body-soft mt-0.5">
-                                    Whatever you upload is shown exactly as it is; we never change
-                                    its colours. Square · max 50 KB.
+                                    Square is what makes it look big: a wide, short drawing is
+                                    fitted by its width and ends up short in a square tile. For the
+                                    brand colour, draw it in <b className="text-purple">#470066</b> —
+                                    we never change what you upload. Max 50 KB.
                                   </span>
                                 </span>
                               </div>

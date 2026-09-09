@@ -124,7 +124,7 @@ export default function CategoryNav({ zone }: { zone: Zone | null }) {
                 No alt — the name is right beside it, and a reader announcing
                 the image would only repeat the label.  */}
             {cat.iconUrl && (
-              <ShopIcon url={cat.iconUrl} className="w-[18px] h-[18px] shrink-0" />
+              <ShopIcon url={cat.iconUrl} className="w-[18px] h-[18px] shrink-0" tight />
             )}
             {cat.label}
           </Link>
