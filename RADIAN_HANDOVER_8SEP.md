@@ -370,3 +370,76 @@ see **`RADIAN_ENVIRONMENTS.md` §4b**, the stale single-file bind mount.
 The four badges that look wrong today still carry photographs. They are not
 tinted (correctly — they would become purple squares). Either pick a built-in
 symbol, or upload the same shape as an SVG.
+
+---
+
+## 10. THE SHOP'S MESSAGES, ON THE OWNER'S RULES — 9 Sep
+
+His list, given in his own words and confirmed point by point before a line
+was written. **Same rules for everyone — there is no new-customer or
+old-customer distinction any more.**
+
+| Moment | What goes |
+|---|---|
+| **Place Order pressed** | **Nothing.** No code, no message |
+| Customer reaches the confirmation page | "Order placed" — and for a prepaid order "payment received", because without the money he never reaches that page |
+| Order **approved** | a message (**new**) |
+| **Delivered** | a message — for COD this is also when the cash is taken |
+| **Part payment** | what was cleared and **what is still owed** (**new**) |
+| Payment failed / cancelled / walked away | a message, **30 minutes later** |
+| Payment succeeded | **at once**, not delayed |
+
+### What changed
+
+- **THE VERIFICATION CODE IS GONE** from checkout, and the "Confirm your
+  number" box with it. It cost an SMS on every first order — including the
+  ones nobody paid for — and it asked a favour of someone who had just
+  finished paying. The shop learns the number is real when its own messages
+  arrive. `OtpPurpose.CHECKOUT` stays for **store credit** and **signing in**:
+  those are the customer asking the shop for something, which is the right
+  moment to ask.
+- **`ORDER_APPROVED`** — new. `confirm()` changed the status, wrote a timeline
+  entry, took the workshop's hours, and told the person waiting nothing.
+- **`PAYMENT_RECEIVED`** — new. Money that lands without settling the bill
+  said nothing at all. ⚠️ It is the **only kind that repeats**: `attempt`
+  counts the payments, not the retries. The amounts are read at SEND time from
+  the order, so a second instalment landing while the first message waits
+  cannot send a stale figure, and the message is dropped if the bill is
+  settled by then.
+- **`PAYMENT_FAILED` waits.** Pressing Cancel used to fire it in the same
+  second — a customer whose OTP was slow, or who wanted another card, is
+  usually back within minutes and reads that as a shop that gave up on them.
+  Both roads (Cancel, and the closed tab that produces no callback) now share
+  **one** admin number, `unpaidAfterMinutes`, default **30**.
+
+⚠️ **The two new kinds have no Meta template**, because they are new. SMS and
+email carry the admin's own words and work today; the WhatsApp door is
+**skipped** for them rather than failed, and begins working by itself the day
+a template of that name is approved. Their wording is written in
+**Admin → Email & SMS → Templates** like every other, with two new
+placeholders: `{paid}` and `{due}`.
+
+⚠️ **Until the owner writes those two templates, both messages are SKIPPED**
+and the order's message log says so. That is the designed behaviour — nothing
+is hard-coded — but it means the feature is not visible until he types the
+words.
+
+### Still his to switch on (unchanged from §8)
+
+`smsEnabled`, `recoveryEnabled` and `sweeperEnabled` were all OFF when last
+read. The first two gate everything above; the third gates the 30-minute wait,
+which cannot fire without a timer.
+
+### Next, agreed but not started: COLLECT FROM SHOP
+
+The owner asked for a store-pickup delivery option. His rulings when asked:
+
+- **no separate payment rule** — whatever the product demands (advance or full)
+  still applies, and a COD product is simply paid in cash at the counter
+- **no separate timing rule** — the customer picks a time exactly as with any
+  other method and comes at that time
+
+So it is a third `DeliveryMethodKind` beside `RIDER` and `COURIER`, with the
+charge set to 0 in admin, the shop's own address and opening hours shown in
+place of the address form, and no rider ever assigned. Everything it needs —
+address, map link, photo, `ShopHour` — already exists.
