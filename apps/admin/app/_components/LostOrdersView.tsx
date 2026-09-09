@@ -79,7 +79,7 @@ function Pill({ colour, children }: { colour: string; children: React.ReactNode 
 }
 function Tag({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
+    <span className="text-[10.5px] font-bold tracking-[0.06em] px-1.5 py-[2px] rounded-[5px] text-white leading-none" style={{ background: colour }}>
       {children}
     </span>
   );
@@ -162,16 +162,16 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
       {/* ref */}
       <td className={`${CELL} w-[118px]`}>
         {r.orderId ? (
-          <Link href={`/orders/${r.orderId}`} className="font-nav font-bold text-[15px] text-purple whitespace-nowrap hover:underline">{r.ref}</Link>
+          <Link href={`/orders/${r.orderId}`} className="font-bold text-[15px] text-purple whitespace-nowrap hover:underline">{r.ref}</Link>
         ) : (
-          <span className="font-nav font-bold text-[15px] text-purple">Checkout</span>
+          <span className="font-bold text-[15px] text-purple">Checkout</span>
         )}
         <span className="block text-[11.5px] font-medium text-[#7b6b87] mt-1">{r.orderId ? "order placed" : "no order yet"}</span>
       </td>
 
       {/* when */}
       <td className={`${CELL} w-[172px]`}>
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#7b6b87]">Last seen</span>
+        <span className="block text-[11px] font-semibold text-[#7b6b87]">Last seen</span>
         <b className="block text-[12.5px] font-semibold text-body">{fmtStamp(r.lastSeenAt)}</b>
         {r.messaged && <span className="inline-block mt-1.5"><Tag colour={SOLID.blue}>AUTO-MESSAGED</Tag></span>}
       </td>
@@ -179,7 +179,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
       {/* who & what they left */}
       <td className={CELL}>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-display font-semibold text-[18px] leading-tight text-purple">{r.name || "— no name —"}</span>
+          <span className="font-semibold text-[15px] leading-tight text-purple">{r.name || "— no name —"}</span>
           {r.isGift && <Tag colour={SOLID.orchid}>GIFT</Tag>}
         </div>
         {phone ? (
@@ -221,8 +221,8 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
 
       {/* value */}
       <td className={`${CELL} w-[120px] whitespace-nowrap`}>
-        <span className="inline-block w-[40px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#7b6b87]">{r.orderId ? "Order" : "Cart"}</span>
-        <b className="font-display font-semibold text-[18px] text-body">{formatTaka(r.totalPaisa)}</b>
+        <span className="inline-block w-[40px] text-[11px] font-semibold text-[#7b6b87]">{r.orderId ? "Order" : "Cart"}</span>
+        <b className="font-semibold text-[15px] text-body">{formatTaka(r.totalPaisa)}</b>
         <span className="block text-[12px] font-medium text-[#7b6b87] mt-0.5">{r.itemCount} item{r.itemCount === 1 ? "" : "s"}</span>
       </td>
 
@@ -293,7 +293,7 @@ function Band({ loading, s }: { loading: boolean; s: ApiLostList["stats"] | null
   return (
     <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
       <div className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="font-display font-semibold text-[28px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
+        <h1 className="font-display font-semibold text-[24px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
           Lost orders
           <span
             className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-semibold grid place-items-center font-ui cursor-help"
@@ -309,8 +309,8 @@ function Band({ loading, s }: { loading: boolean; s: ApiLostList["stats"] | null
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {tiles.map((t) => (
           <div key={t.label} className="block rounded-[14px] px-4 py-3.5 border border-white/15 bg-white/[0.08]">
-            <span className="block text-[11.5px] font-bold tracking-[0.07em] uppercase text-[#d9c5e6]">{t.label}</span>
-            <span className="block font-display font-semibold text-[28px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>{t.value}</span>
+            <span className="block text-[11.5px] font-medium text-[#d9c5e6]">{t.label}</span>
+            <span className="block font-semibold text-[24px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>{t.value}</span>
           </div>
         ))}
       </div>
@@ -396,7 +396,7 @@ export default function LostOrdersView() {
           <thead>
             <tr>
               {HEADS.map((h, i) => (
-                <th key={h || "select"} className="text-left bg-lavender text-purple font-nav font-bold text-[12px] tracking-[0.05em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0">
+                <th key={h || "select"} className="text-left bg-lavender text-purple font-semibold text-[12px] tracking-[0.04em] uppercase px-3 py-2.5 border-b-[1.5px] border-r border-[#dfd3ea] last:border-r-0">
                   {i === 0 ? <input type="checkbox" className="w-4 h-4 accent-purple" aria-label="Select all" /> : h}
                 </th>
               ))}

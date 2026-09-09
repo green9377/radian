@@ -134,8 +134,8 @@ function Fact({ label, value, sub, colour, hot }: { label: string; value: string
   return (
     <div className="relative overflow-hidden rounded-[14px] px-4 py-3 pl-[18px] border border-white/15 bg-white/[0.08]">
       <span className="absolute left-0 top-[9px] bottom-[9px] w-[5px] rounded-r-[6px]" style={{ background: colour }} />
-      <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#d9c5e6]">{label}</div>
-      <div className="font-display font-semibold text-[21px] leading-tight mt-1" style={{ color: hot ? "#ffb4ad" : "#fff" }}>{value}</div>
+      <div className="text-[11px] font-medium text-[#d9c5e6]">{label}</div>
+      <div className="font-semibold text-[17px] leading-tight mt-1" style={{ color: hot ? "#ffb4ad" : "#fff" }}>{value}</div>
       {sub && <div className="text-[12px] font-semibold text-[#d9c5e6] mt-1">{sub}</div>}
     </div>
   );
@@ -146,10 +146,10 @@ function Card({ title, count, hint, right, children }: { title: string; icon?: s
   return (
     <div className="bg-white rounded-[16px] border-[1.5px] border-[#dfd3ea] mb-3">
       <div className="flex items-center gap-2 px-5 pt-4 pb-1">
-        <h3 className="font-display font-semibold text-[17px] text-purple m-0 leading-tight">{title}</h3>
+        <h3 className="font-semibold text-[17px] text-purple m-0 leading-tight">{title}</h3>
         {count !== undefined && <span className="text-[11px] font-bold px-2 py-[2px] rounded-full bg-lavender text-purple">{count}</span>}
         {hint && (
-          <span className="w-[18px] h-[18px] rounded-full border-[1.5px] border-lavender-deep text-purple text-[10px] font-semibold grid place-items-center cursor-help" title={hint}>
+          <span className="w-[18px] h-[18px] rounded-full border-[1.5px] border-lavender-deep text-purple text-[10.5px] font-semibold grid place-items-center cursor-help" title={hint}>
             i
           </span>
         )}
@@ -452,7 +452,7 @@ export default function OrderEditor({ id }: { id: string }) {
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="font-display font-semibold text-[27px] text-white m-0 leading-none">{orderNo}</h1>
+              <h1 className="font-display font-semibold text-[24px] text-white m-0 leading-none">{orderNo}</h1>
               <span className="text-[10.5px] font-bold tracking-[0.08em] px-2 py-[3px] rounded-full leading-none" style={o.isGift ? { background: SOLID.orchid, color: "#fff" } : { background: "rgba(255,255,255,.18)", color: "#fff" }}>
                 {o.isGift ? "GIFT" : "SELF"}
               </span>
@@ -538,7 +538,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
       <div className="flex gap-4 items-start">
         {/* section nav — the deep purple panel */}
-        <nav className="w-[220px] shrink-0 sticky top-4 hidden md:block rounded-[16px] p-2 font-nav" style={{ background: "#320049" }}>
+        <nav className="w-[220px] shrink-0 sticky top-4 hidden md:block rounded-[16px] p-2" style={{ background: "#320049" }}>
           {SECTIONS.filter(([sid]) => sid !== "card" || o.isGift).map(([sid, label]) => {
             const b = badge(sid);
             const on = sec === sid;
@@ -582,7 +582,7 @@ export default function OrderEditor({ id }: { id: string }) {
                           <div className="text-[12px] font-medium text-body-soft truncate">{[l.variantLabel, l.sizeLabel, l.bundleLabel].filter(Boolean).join(" · ")}</div>
                         </div>
                         <div className="text-[13px] font-bold text-body-soft">× {l.qty}</div>
-                        <div className="font-display font-semibold text-[15px] text-body">{formatTaka(l.linePaisa)}</div>
+                        <div className="font-semibold text-[15px] text-body">{formatTaka(l.linePaisa)}</div>
                       </div>
                     ))}
                     <div className="pt-2 mt-1 border-t-2 border-lavender-deep">
@@ -590,7 +590,7 @@ export default function OrderEditor({ id }: { id: string }) {
                       <Row k="Delivery" v={o.deliveryWaivedPaisa > 0 ? `${formatTaka(o.deliveryPaisa)} (waived ${formatTaka(o.deliveryWaivedPaisa)})` : formatTaka(o.deliveryPaisa)} />
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-body-soft">Total</span>
-                        <span className="font-display font-semibold text-[22px] text-purple">{formatTaka(o.totalPaisa)}</span>
+                        <span className="font-semibold text-[22px] text-purple">{formatTaka(o.totalPaisa)}</span>
                       </div>
                       <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Paid</span><span style={{ color: paidNet > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(paidNet)}</span></div>
                       {due > 0 && <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Due</span><span style={{ color: SOLID.red }}>{formatTaka(due)}</span></div>}
@@ -654,7 +654,7 @@ export default function OrderEditor({ id }: { id: string }) {
                       <>
                         <div className="rounded-[14px] border-[1.5px] border-lavender-deep p-5">
                           <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-orchid">Radian</div>
-                          <p className="whitespace-pre-wrap font-display text-[16px] leading-[1.7] text-purple m-0 mt-3">{o.giftMessage}</p>
+                          <p className="whitespace-pre-wrap text-[16px] leading-[1.7] text-purple m-0 mt-3">{o.giftMessage}</p>
                         </div>
                         <div className="mt-3 flex items-center gap-3 flex-wrap">
                           <button
@@ -711,7 +711,7 @@ export default function OrderEditor({ id }: { id: string }) {
                           )}
                           {l.sizeLabel}{l.bundleLabel ? ` · ${l.bundleLabel}` : ""}{l.addonLabels.length ? ` · + ${l.addonLabels.join(", ")}` : ""}{l.persoText ? ` · “${l.persoText}”` : ""}
                         </div>
-                        <div className="text-[13px] font-medium text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-display font-semibold text-[15px] text-purple">{formatTaka(l.linePaisa)}</b></div>
+                        <div className="text-[13px] font-medium text-body mt-1">{l.qty} × {formatTaka(l.unitPaisa)} = <b className="font-semibold text-[15px] text-purple">{formatTaka(l.linePaisa)}</b></div>
                         {/*  DEC-PRD-061 — the customer's own photograph, and on
                             these products it is PRINTED ON THE GOODS (owner,
                             30 Aug). So it is shown at a size somebody can
@@ -731,7 +731,7 @@ export default function OrderEditor({ id }: { id: string }) {
                         {l.refundNote && <div className="text-[12px] mt-1.5" style={{ color: SOLID.red }}>Refund: {formatTaka(l.refundPaisa ?? 0)} — {l.refundNote}</div>}
                         {openMaterials === l.id && (
                           <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: "#dfd3ea" }}>
-                            <div className="text-[11px] font-medium uppercase tracking-[0.04em] mb-1.5" style={{ color: "#470066" }}>What was ordered</div>
+                            <div className="text-[11px] font-medium mb-1.5" style={{ color: "#470066" }}>What was ordered</div>
                             <table className="w-full text-[12.5px]">
                               <tbody>
                                 {[
@@ -910,7 +910,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     const ph = photo as Order["prepPhoto"];
                     return (
                       <div key={label} className="border-[1.5px] border-[#dfd3ea] rounded-[14px] overflow-hidden bg-white">
-                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-bold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "#7b6b87" }}>
+                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-bold flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "#7b6b87" }}>
                           {ph && <Icon name="check" size={13} />} {label}
                         </div>
                         {ph ? (
@@ -987,7 +987,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 {/* record money in / out — cash collection lives here */}
                 {!cancelled && (
                   <div className="mt-4 rounded-[12px] border-[1.5px] border-[#dfd3ea] p-4 bg-white">
-                    <div className="text-[11.5px] font-bold uppercase tracking-[0.06em] mb-2.5 text-purple">Record a payment</div>
+                    <div className="text-[11.5px] font-bold mb-2.5 text-purple">Record a payment</div>
                     <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 items-end">
                       <div>
                         <label className="text-[13px] text-body-soft font-medium mb-1 block">What happened</label>
@@ -1063,8 +1063,8 @@ export default function OrderEditor({ id }: { id: string }) {
         <aside className="w-[280px] shrink-0 sticky top-4 hidden xl:block">
           <div className="bg-white border-[1.5px] border-[#dfd3ea] rounded-[16px] overflow-hidden">
             <div className="px-5 pt-5 pb-6 text-white" style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}>
-              <div className="text-[11px] font-nav font-bold tracking-[0.08em] uppercase opacity-85">Customer sees</div>
-              <div className="font-display font-semibold text-[18px] leading-tight mt-0.5">{cancelled ? "Order cancelled" : o.deliveryStatus === "delivered" ? "Delivered 🌸" : o.isGift ? "Your gift is on its way" : "Your order is on its way"}</div>
+              <div className="text-[11px] font-medium opacity-85">Customer sees</div>
+              <div className="font-semibold text-[15px] leading-tight mt-0.5">{cancelled ? "Order cancelled" : o.deliveryStatus === "delivered" ? "Delivered 🌸" : o.isGift ? "Your gift is on its way" : "Your order is on its way"}</div>
               <div className="text-[12px] opacity-85 mt-1">{o.isGift ? `For ${o.recipient?.name} · ` : ""}{o.etaLabel}</div>
             </div>
             <div className="p-4">
@@ -1077,7 +1077,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     const now = i === journeyIndex(o);
                     return (
                       <div key={s} className="flex items-center gap-2 text-[12.5px]">
-                        <span className="w-[18px] h-[18px] rounded-full grid place-items-center text-white text-[10px] shrink-0" style={{ background: done ? SOLID.green : now ? SOLID.purple : "#e9dcf5" }}>{done ? "✓" : ""}</span>
+                        <span className="w-[18px] h-[18px] rounded-full grid place-items-center text-white text-[10.5px] shrink-0" style={{ background: done ? SOLID.green : now ? SOLID.purple : "#e9dcf5" }}>{done ? "✓" : ""}</span>
                         <span className={now ? "text-purple font-semibold" : done ? "text-body font-medium" : "text-body-soft font-medium"}>{s}</span>
                       </div>
                     );
