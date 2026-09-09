@@ -308,3 +308,65 @@ Also fixed on the way past: `needsPayment` said `true` even when store credit
 had settled the whole bill, so the storefront asked for a gateway session, got
 "this order is already paid", and showed a customer who owed nothing "we
 couldn't open the payment page".
+
+---
+
+## 9. UPLOADED ICONS ARE PAINTED NOW — 9 Sep
+
+The owner: *"amder system readymade icon gula sundor kre show krche but ami
+icon bania upload dile sevabe sundor vabe show krche na … tmi je size blso se
+size upload dewar poreo ai kahini."*
+
+**Measured before touching anything:** his uploaded file and a built-in are
+drawn at the SAME 24px, inside the same 46px lavender tile, both
+`object-contain`. **The size was never the problem** — the file was. A
+photograph carries its own background and its own colours; no dimension fixes
+that.
+
+Three real defects sat behind it:
+
+1. **The admin promised tinting the shop never did.** "SVG takes the brand
+   colour" had been on that screen for weeks; every upload was a plain
+   `<img>`. Implemented now: a file that is a SHAPE is used as a CSS mask
+   filled with `currentColor`, so an upload is indistinguishable from a drawn
+   icon. Whether a file is a shape is decided **at upload, against the alpha
+   channel** (`media.ts`) and carried in the file name as `.icon.` — masking a
+   photograph would paint a solid purple square, which is exactly what the
+   proof below shows.
+2. **Two places bypassed `ShopIcon`** with their own `<img>`: the header
+   category nav and the PDP trust row. Worse, the PDP row drew built-ins
+   through **PdpIcons — a different set**, so a badge set to `flower`, `cake`,
+   `wallet` or `globe` showed on the homepage and rendered NOTHING on the
+   product page.
+3. **The admin preview was not the shop's tile** (30px on white vs 24px in a
+   lavender tile), so a bad upload looked fine until it was live. It is the
+   shop's own tile now, and every uploaded icon gets a plain verdict — this
+   one works, or this is a picture and here is why it will not.
+
+**And the root cause of the uploads themselves:** the built-in set had twenty
+symbols and none of them said midnight, same-day, refund, support,
+nationwide, photo or freshness — so he drew pictures. **Sixteen added** (36
+total), in both `ShopIcon.tsx` and `ShopIconPreview.tsx`, which must stay
+identical.
+
+### ⚠️ The media host had to start answering CORS
+
+Chrome fetches a CSS `mask-image` in **CORS mode** — unlike a background image
+or an `<img>`. With no `Access-Control-Allow-Origin` the masked element
+rendered EMPTY while a plain `<img>` beside it drew the same file. One line
+per media block in `Caddyfile`; safe, because everything under those roots is
+already a public URL.
+
+**Proved on DEV, not reasoned about:** a 56px span masked with an opaque
+uploaded WebP painted a solid brand-purple block, beside the same file as an
+`<img>`. Solid purple is the correct outcome for an opaque mask — and is
+precisely why the alpha check refuses to tint photographs.
+
+⚠️ Getting that line live needed `docker restart radian_caddy`, not a reload —
+see **`RADIAN_ENVIRONMENTS.md` §4b**, the stale single-file bind mount.
+
+### What is still the owner's to do
+
+The four badges that look wrong today still carry photographs. They are not
+tinted (correctly — they would become purple squares). Either pick a built-in
+symbol, or upload the same shape as an SVG.

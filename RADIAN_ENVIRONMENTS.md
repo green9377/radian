@@ -126,6 +126,31 @@ the owner's own Drive; that folder must not be shared.
 
 ---
 
+## 4b. ⚠️ THE CADDYFILE BIND MOUNT GOES STALE — 9 Sep 2026
+
+**A Caddyfile change that arrives through git does NOT reach Caddy, and
+nothing complains.** It cost an hour, so it is written down.
+
+`docker-compose.edge.yml` mounts a SINGLE FILE:
+`/root/apps/radian/Caddyfile → /etc/caddy/Caddyfile`. Docker binds a single
+file by its **inode**. `git merge` and `git checkout` do not edit a file in
+place — they write a new one and rename it over the old — so the inode
+changes and the container keeps reading the file that is no longer there.
+
+What it looks like: the host file is correct, `caddy validate` says "Valid
+configuration", `caddy reload` says "using config from file" and exits 0 —
+and the change is simply absent from the wire. Check it directly:
+
+```
+grep -c '<the new line>' /root/apps/radian/Caddyfile            # host
+docker exec radian_caddy grep -c '<the new line>' /etc/caddy/Caddyfile   # what Caddy sees
+```
+
+Different numbers = stale mount. **The fix is `docker restart radian_caddy`**,
+which re-resolves the mount. That is safe: the certificates live in the named
+volume `radian_caddy_data`, so nothing is reissued — the warning elsewhere in
+these documents is about REBUILDING the edge stack, not restarting it.
+
 ## 5. DNS — the fact that will bite
 
 `radianbd.com` is on Cloudflare (`pola` / `matteo.ns.cloudflare.com`).
