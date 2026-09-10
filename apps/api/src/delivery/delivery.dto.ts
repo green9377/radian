@@ -115,10 +115,19 @@ export interface CourierWriteDto {
 
 export interface AssignDto {
   orderId: string;
-  kind: 'RIDER' | 'COURIER';
+  kind: 'RIDER' | 'COURIER' | 'ONE_TIME';
   riderId?: string;
   courierId?: string;
   consignmentNo?: string;
+  /** ONE_TIME (owner, 10 Sep 2026): Pathao ride / Uber / other — no Rider row */
+  platform?: string;
+  riderPhone?: string;
+  /** what was paid for this trip, when known at assign time */
+  costPaisa?: number;
+  /** the fare was handed over in cash at the door */
+  paidCash?: boolean;
+  /** retry after a failure: staff decided the customer pays this fare */
+  chargeCustomer?: boolean;
   note?: string;
   actorName?: string;
 }
@@ -130,6 +139,8 @@ export interface AssignmentActionDto {
   /** the note typed with it; alone, it is the whole reason (older rows) */
   failReason?: string;
   consignmentNo?: string;
+  /** on fail (owner, 10 Sep 2026): what staff decided — RETRY | KEEP | CANCEL */
+  decision?: 'RETRY' | 'KEEP' | 'CANCEL';
 }
 
 /** What the fulfilment list is asking for. Everything optional — no filter

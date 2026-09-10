@@ -25,6 +25,8 @@ export const TEMPLATE_KINDS = [
   'PAYMENT_FAILED',
   'REVIEW_REQUEST',
   'LOGIN_OTP',
+  /** the gift photograph before it leaves — email carries the picture itself */
+  'PHOTO_UPDATE',
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
@@ -35,7 +37,7 @@ export const PLACEHOLDERS: Record<string, string> = {
   total: 'the order total, with the taka sign',
   paid: 'how much has been paid so far, with the taka sign (part payment)',
   due: 'how much is still owed, with the taka sign (part payment)',
-  link: 'the link that matters for this message (track / pay / review)',
+  link: 'the link that matters for this message (track / pay / review / the photo)',
   product: 'the product being asked about (review request)',
   code: 'the one-time code (login code)',
   minutes: 'how many minutes the code lives (login code)',

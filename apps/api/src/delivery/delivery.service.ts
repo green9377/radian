@@ -309,6 +309,12 @@ export class DeliveryService {
       if (!rider) throw new BadRequestException('rider not found');
       if (!rider.isActive) throw new BadRequestException('rider is inactive');
       riderName = rider.name;
+    } else if (kind === 'ONE_TIME') {
+      /*  Owner, 10 Sep 2026: a rider called for one trip is not a person the
+          shop keeps. Platform is the only thing that must be said; a phone
+          helps today and is forgotten with the parcel.  */
+      if (!dto.platform?.trim()) throw new BadRequestException('say where the one-time rider came from (Pathao ride, Uber, other)');
+      riderName = `${dto.platform.trim()} rider${dto.riderPhone ? ` ${dto.riderPhone}` : ''}`;
     } else {
       if (!dto.courierId) throw new BadRequestException('courierId is required for a courier assignment (DLV-R02)');
       const courier = await this.prisma.db.courierService.findFirst({ where: { id: dto.courierId, deletedAt: null } });
@@ -364,6 +370,13 @@ export class DeliveryService {
           trackingUrl,
           note: dto.note,
           actorName,
+          platform: kind === 'ONE_TIME' ? dto.platform?.trim() : null,
+          riderPhone: kind === 'ONE_TIME' ? dto.riderPhone?.trim() || null : null,
+          paidCash: kind === 'ONE_TIME' && !!dto.paidCash,
+          chargeCustomer: !!dto.chargeCustomer,
+          /*  A fare known at assign time is the cost — typed by a person, so
+              costRecordedAt is set (DEC-DLV-016). Left blank, Settle asks.  */
+          ...(dto.costPaisa && dto.costPaisa > 0 ? { costPaisa: Math.round(dto.costPaisa), costRecordedAt: new Date() } : {}),
           /*  R5 (4 Sep 2026) — a carrier given a parcel that is ALREADY on the
               road (a swap, or an order sent out before anyone was assigned)
               is carrying it now. Born ASSIGNED, this row could never be marked
@@ -393,7 +406,9 @@ export class DeliveryService {
     await this.audit.record({ entityType: ENTITY, entityId: created.id, action: 'CREATE', actorName });
     const who = kind === 'RIDER'
       ? `rider ${riderName}`
-      : `courier ${courierName}${dto.consignmentNo ? ` (${dto.consignmentNo})` : ''}`;
+      : kind === 'ONE_TIME'
+        ? `one-time ${riderName}${dto.costPaisa ? ` · paid ${(dto.costPaisa / 100).toFixed(0)}` : ''}`
+        : `courier ${courierName}${dto.consignmentNo ? ` (${dto.consignmentNo})` : ''}`;
     await this.audit.event({
       entityType: 'Order', entityId: dto.orderId, kind: 'delivery',
       /*  DEC-DLV-021 — the timeline says a swap out loud. Somebody reading an
@@ -470,11 +485,17 @@ export class DeliveryService {
       if (a.status === AssignmentStatus.OUT_FOR_DELIVERY) {
         await this.orders.failDelivery(a.orderId, actorName);
       }
-      return this.prisma.db.deliveryAssignment.update({
+      /*  Owner, 10 Sep 2026: what happens next is a staff decision, taken
+          here with the reason. RETRY = the order stays failed and waits for
+          a new carrier (DLV-R04); KEEP = same, nobody is retrying yet;
+          CANCEL = the order is cancelled through Sales, refund rules apply. */
+      const decision = dto.decision ?? 'KEEP';
+      const failed = await this.prisma.db.deliveryAssignment.update({
         where: { id },
         data: {
           status: AssignmentStatus.FAILED,
           failedAt: new Date(),
+          failDecision: decision,
           /*  DEC-DLV-022 — the reason comes from the list, and its label is
               snapshotted beside the id. Renaming a reason later must not
               rewrite what this parcel said, the same discipline as
@@ -484,6 +505,16 @@ export class DeliveryService {
         },
         include: { rider: true, courier: true },
       });
+      if (decision === 'CANCEL') {
+        await this.orders.cancel(a.orderId, { reason: `delivery failed: ${dto.failReason ?? 'no reason typed'}`, actorName });
+      } else {
+        await this.audit.event({
+          entityType: 'Order', entityId: a.orderId, kind: 'delivery',
+          label: decision === 'RETRY' ? 'Staff decided: retry delivery — assign a carrier again' : 'Staff decided: keep as failed for now',
+          actorName,
+        });
+      }
+      return failed;
     }
 
     // cancel
@@ -665,8 +696,14 @@ export class DeliveryService {
           ? Math.floor((Date.now() - a.deliveredAt.getTime()) / 86400000)
           : null,
         kind: a.kind,
-        carrier: a.rider ?? a.courier,
-        carrierId: a.riderId ?? a.courierId,
+        /*  ONE_TIME (owner, 10 Sep 2026) — no Rider row; the platform stands in
+            as the carrier name so the settle board can group by it.  */
+        carrier: a.rider ?? a.courier ?? (a.platform ? { id: `one-time:${a.platform}`, name: `${a.platform} rider${a.riderPhone ? ` · ${a.riderPhone}` : ''}` } : null),
+        carrierId: a.riderId ?? a.courierId ?? (a.platform ? `one-time:${a.platform}` : null),
+        platform: a.platform,
+        riderPhone: a.riderPhone,
+        paidCash: a.paidCash,
+        chargeCustomer: a.chargeCustomer,
         consignmentNo: a.consignmentNo,
         orderId: a.order?.id,
         orderNo: a.order?.orderNo,

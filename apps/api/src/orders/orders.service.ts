@@ -853,6 +853,32 @@ export class OrdersService {
       !swapping
     )
       throw new BadRequestException('order must be preparing (or a failed delivery) before out-for-delivery');
+    /*  TWO GATES BEFORE THE DOOR (owner, 10 Sep 2026).
+
+        1. A carrier. Nothing leaves the shop without somebody carrying it —
+           an own rider, a courier, or a one-time rider typed on the order.
+           The assignment is what the board, the settle sheet and the COD
+           reconciliation all read; an order that went out without one was
+           invisible to every one of them.
+        2. The customer's photograph, when they ticked "photo updates" at
+           checkout. That tick is a promise: they see the gift before it
+           goes. A PREP photo on the order is the proof the promise was kept;
+           whether the message reached them is a courtesy and never blocks.
+        The global prep-photo switch (DEC-DLV-020) is still honoured on the
+        assignment path; this is the customer's own ask, checked on both.  */
+    if (!swapping) {
+      const carrier = opts.viaAssignmentId
+        ? { id: opts.viaAssignmentId }
+        : await this.prisma.db.deliveryAssignment.findFirst({
+            where: { orderId: id, isActive: true, deletedAt: null, status: 'ASSIGNED' },
+            select: { id: true },
+          });
+      if (!carrier) throw new BadRequestException('Assign a carrier first — own rider, courier or a one-time rider');
+      if (o.photoUpdates) {
+        const prep = await this.prisma.db.orderPhoto.count({ where: { orderId: id, kind: 'PREP', deletedAt: null } });
+        if (prep === 0) throw new BadRequestException('The customer asked for a photo before delivery — add one on the order first');
+      }
+    }
     if (o.deliveryStatus === DeliveryStatus.failed) await this.event(id, 'delivery', `Retrying delivery`, actorName);
     const updated = await this.prisma.db.$transaction(async (tx) => {
       // R4 — one winner: the state read above must still be the state on the row
@@ -1361,12 +1387,24 @@ export class OrdersService {
 
   // proof photo — Delivery-owned; Sales only records and shows it
   async addPhoto(id: string, dto: AddPhotoDto) {
-    await this.ensureExists(id);
+    const o = await this.get(id);
     const actorName = dto.actorName ?? 'Delivery';
     const photo = await this.prisma.db.orderPhoto.create({
       data: { orderId: id, kind: dto.kind, url: dto.url, bg: dto.bg, caption: dto.caption, capturedBy: dto.capturedBy ?? actorName },
     });
     await this.event(id, 'delivery', `${dto.kind} photo added`, actorName);
+    /*  Owner, 10 Sep 2026: a PREP photo on an order whose customer ticked
+        "photo updates" goes to them the moment it is saved — WhatsApp first,
+        email when the number has no WhatsApp, and it is on their account
+        either way (the storefront reads OrderPhoto). Queued and swept like
+        every other message, so a send that fails is on the order's message
+        log with its reason, and the photo itself is never lost.  */
+    if (dto.kind === 'PREP' && o.photoUpdates && dto.url) {
+      void this.orderMessages
+        .queue(id, OrderMessageKind.PHOTO_UPDATE, { repeat: true })
+        .then(() => this.orderMessages.sendDue(5))
+        .catch(() => undefined);
+    }
     return photo;
   }
 

@@ -169,7 +169,7 @@ function BoardList({
                   <td className="px-3 py-2.5">
                     {o.assignment ? (
                       <span className="text-[12px] font-semibold text-purple">
-                        {o.assignment.kind === "RIDER" ? "🛵" : "📦"} {o.assignment.rider?.name ?? o.assignment.courier?.name}
+                        {o.assignment.kind === "RIDER" ? "🛵" : o.assignment.kind === "ONE_TIME" ? "⚡" : "📦"} {o.assignment.rider?.name ?? o.assignment.courier?.name ?? `${o.assignment.platform ?? "One-time"} rider`}
                       </span>
                     ) : (
                       <span className="text-[12px] text-body-soft">— none —</span>

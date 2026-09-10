@@ -4959,7 +4959,10 @@ export interface ApiCourierService {
   note?: string | null; sortOrder: number; isActive: boolean;
 }
 export interface ApiAssignment {
-  id: string; assignmentNo: string; orderId: string; kind: "RIDER" | "COURIER";
+  id: string; assignmentNo: string; orderId: string; kind: "RIDER" | "COURIER" | "ONE_TIME";
+  /** ONE_TIME (owner, 10 Sep 2026): Pathao ride / Uber / other — never a Rider row */
+  platform?: string | null; riderPhone?: string | null; paidCash?: boolean; chargeCustomer?: boolean;
+  failDecision?: string | null; costPaisa?: number;
   riderId?: string | null; courierId?: string | null;
   rider?: { id: string; name: string } | null; courier?: { id: string; name: string } | null;
   consignmentNo?: string | null; trackingUrl?: string | null;

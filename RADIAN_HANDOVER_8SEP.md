@@ -560,3 +560,21 @@ only moves on delivery, so every test customer reads REPEAT · 2.
 
 Next in the module, in the same language: Cancelled · Payments · Online
 payments · Reports · New order · Orders overview.
+
+## 13. Orders module v4/v5 — one type, one Payments page, Reports (9 Sep 2026, evening)
+
+Design: `design/orders-module-v4.html` (All orders + Lost orders, live layout kept, cleaned) and `design/orders-module-v5.html` (Payments + Reports). Owner asked for both to be coded straight after the mockups.
+
+**Shared UI** — `apps/admin/app/_components/OrdersUi.tsx`: SOLID colours + soft TINT, `Band` (gradient, tiles that filter the page or link only to pages in the Orders menu), `BandButton`, `Segs`, `Search`, `Count`, `Head`, `Empty`, `Pill` (soft-tinted), `Tag`, `ActButton` (primary / quiet / call / solid, one 30px height), `fmtStamp`, `fmtAgo`, `fmtDay`, `copy`, `CopyIcon`. Type rule: body 13px weight 400, emphasis weight 500 only, labels 11px grey, no vertical cell borders.
+
+**All orders** (`OrderListView.tsx`) — same eight columns. Segments: All · Needs action · Preparing / out · Confirmed · Delivered · Cancelled. Tiles: Needs action / Preparing-out / Delivered filter in place; Revenue → /orders/reports; To collect → /orders/payments. Cancelled page is gone (segment here).
+
+**Lost orders** (`LostOrdersView.tsx`) — Ref = order no + "Order placed" or "Checkout lead" + id + "No order yet". "Who & what they left" = fixed block Recipient / Address / Deliver / Message / Items (+ Notes, + any other typed key), "—" for empties, stage bar + label. Storefront `CheckoutView.tsx` now adds `slotLabel` and `giftMessage` to the lead draft.
+
+**Payments** (`PaymentsView.tsx`, /orders/payments) — one page, three tabs: Orders (Total/Paid/Due, latest transaction, Record cash / Record payment / Refund popover → `POST /orders/:id/payments`, Send pay link = WhatsApp with /pay/{orderNo}); Gateway attempts (`GET /orders/online-payments`, read-only, reason + tranId/bankTranId/valId, Send pay link when order still unpaid); Returns & refunds (`GET /returns?channel=online`, Approve / Reject inline via existing Returns API, Pay out / Open → /returns/[id]; New return → /returns/new). Tiles: Collected, To collect, Unpaid online, Gateway failed, Refunds pending. `listOrders` now includes the latest transaction (`transactions: take 1 desc`) — `orders.service.ts list()`.
+
+**Reports** (`ReportsView.tsx`) — range select (Today / 7d / 30d / month / all → from/to on `GET /orders/report`). API `report()` gained `method` (by methodLabel), `day` (per placedAt day: n, delivered, cancelled, delivered revenue) and `products` (top 8 order lines on non-cancelled orders: qty, linePaisa). Cards: Sales by day, By delivery type, By channel, By payment, Self vs gift, Top products, By zone.
+
+**Menu** — Orders: All orders · Lost orders · Payments · Reports. `registry.def.ts` regenerated (orders.cancelled and orders.online-payments removed; drift 6/6). Old routes redirect: /orders/online-payments, /orders/returns → /orders/payments; /orders/cancelled, /orders/action, /orders/scheduled → /orders/list; /orders/recovery → /orders/lost.
+
+**Not touched / open** — `OnlinePayments.tsx` and the old `OrdersPayments/OrdersReports/OrdersCancelled/OrdersReturns` views in `OrderViews.tsx` are now unused (left in place). Reports "Lost → recovered" and gateway fail-rate tiles from the mockup are not on the page (no endpoint in the report). Returns pay-out still happens on /returns/[id] (needs method + reference). Order page (`OrderEditor.tsx`) still uses the older bold type — not in this round.

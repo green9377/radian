@@ -54,6 +54,7 @@ const TEMPLATE_FOR: Record<OrderMessageKind, string | null> = {
   ORDER_DELIVERED: TPL.delivered,
   PAYMENT_FAILED: TPL.paymentFailed,
   REVIEW_REQUEST: TPL.review,
+  PHOTO_UPDATE: TPL.photo,
 };
 
 /*  DEC-WEB-008 — the review request goes out this long after delivery. Not a
@@ -85,9 +86,16 @@ export class OrderMessagesService {
   async queue(
     orderId: string,
     kind: OrderMessageKind,
-    opts: { attempt?: number; dueAt?: Date } = {},
+    opts: { attempt?: number; dueAt?: Date; repeat?: boolean } = {},
   ) {
-    const attempt = opts.attempt ?? 1;
+    /*  `repeat` — a kind that may go more than once (a replaced photograph is
+        a new message, not a retry of the old one): the next attempt number
+        is read from the rows already there.  */
+    let attempt = opts.attempt ?? 1;
+    if (opts.repeat && opts.attempt === undefined) {
+      const n = await this.prisma.db.orderMessage.count({ where: { orderId, kind, deletedAt: null } });
+      attempt = n + 1;
+    }
     try {
       return await this.prisma.db.orderMessage.create({
         data: {
@@ -321,7 +329,31 @@ export class OrderMessagesService {
 
     /*  The door, in the owner's order. A door that is not set up passes to
         the next; a door that is set up and fails stops here, as FAILED.  */
-    const doors = routeFor(o.senderPhone, o.senderEmail);
+    /*  Owner, 10 Sep 2026 — the photograph has its own route. SMS cannot
+        carry a picture, so: WhatsApp first; if the number has no WhatsApp
+        (Meta refuses it) the same picture goes by email; with neither, it
+        sits on the customer's account only and the log says so. The picture
+        is read at send time from the newest PREP photo on the order.  */
+    const isPhoto = m.kind === OrderMessageKind.PHOTO_UPDATE;
+    const doors: OrderMessageChannel[] = isPhoto
+      ? [OrderMessageChannel.WHATSAPP, OrderMessageChannel.EMAIL]
+      : routeFor(o.senderPhone, o.senderEmail);
+    let photoUrl: string | null = null;
+    if (isPhoto) {
+      const ph = await this.prisma.db.orderPhoto.findFirst({
+        where: { orderId: o.id, kind: 'PREP', deletedAt: null, url: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { url: true },
+      });
+      photoUrl = ph?.url ?? null;
+      if (!photoUrl) {
+        await this.prisma.db.orderMessage.update({
+          where: { id },
+          data: { status: OrderMessageStatus.SKIPPED, error: 'no photo with an address on the order' },
+        });
+        return 'SKIPPED';
+      }
+    }
     let outcome: { ok: boolean; configured: boolean; error?: string; messageId?: string } = {
       ok: false, configured: false, error: 'no channel could take this message',
     };
@@ -337,7 +369,7 @@ export class OrderMessagesService {
         }
         let payload: Record<string, unknown>;
         try {
-          payload = this.payloadFor(m.kind, o, supportPhone, invite);
+          payload = this.payloadFor(m.kind, o, supportPhone, invite, photoUrl);
         } catch (e) {
           await this.prisma.db.orderMessage.update({
             where: { id },
@@ -353,8 +385,13 @@ export class OrderMessagesService {
           kind: `order:${m.kind}`,
         });
         outcome = { ok: r.ok, configured: r.configured, error: r.error, messageId: r.messageId ?? undefined };
+        /*  The photograph: a WhatsApp refusal ("not a WhatsApp user", no
+            approved template yet) is the signal to try email, not the end.
+            The owner's rule is "no WhatsApp → email", and Meta's answer is
+            the only way to know.  */
+        if (isPhoto && !outcome.ok) outcome = { ...outcome, configured: false };
       } else {
-        outcome = await this.sendWorded(door, m.kind, o, supportPhone, invite);
+        outcome = await this.sendWorded(door, m.kind, o, supportPhone, invite, photoUrl);
       }
       if (outcome.ok || outcome.configured) break;
     }
@@ -420,8 +457,18 @@ export class OrderMessagesService {
     },
     supportPhone: string,
     invite?: { token: string; productName: string | null },
+    photoUrl?: string | null,
   ): Promise<{ ok: boolean; configured: boolean; error?: string; messageId?: string }> {
-    const tpl = await this.wording.pick(kind as TemplateKind, channel);
+    let tpl = await this.wording.pick(kind as TemplateKind, channel);
+    /*  The photograph email has a built-in wording so the picture reaches the
+        customer on day one; a row saved under Email & SMS → Templates for
+        PHOTO_UPDATE replaces it the moment it exists.  */
+    if (!tpl && kind === OrderMessageKind.PHOTO_UPDATE && channel === OrderMessageChannel.EMAIL) {
+      tpl = {
+        subject: '{shop} — a photo of your gift, order {order}',
+        body: 'Hi {name},\n\nHere is your gift for order {order}, photographed before it leaves us. Reply to this email if you would like anything changed.\n\n{shop} · {phone}',
+      } as NonNullable<typeof tpl>;
+    }
     if (!tpl) return { ok: false, configured: false, error: `no ${channel} wording for ${kind} (Admin → Email & SMS → Templates)` };
 
     const shop = await this.shopName();
@@ -431,7 +478,9 @@ export class OrderMessagesService {
         ? `${base}/review/${invite.token}`
         : kind === OrderMessageKind.PAYMENT_FAILED
           ? `${base}/pay/${o.orderNo}`
-          : `${base}/track?id=${encodeURIComponent(o.orderNo)}`;
+          : kind === OrderMessageKind.PHOTO_UPDATE && photoUrl
+            ? photoUrl
+            : `${base}/track?id=${encodeURIComponent(o.orderNo)}`;
     /*  What has actually been collected, and what is left — read at SEND time
         from the order itself, not stored on the message. A second payment
         landing while this one waits in the queue must not send a stale
@@ -459,7 +508,11 @@ export class OrderMessagesService {
       const r = await this.messaging.sendEmail({
         to: o.senderEmail,
         subject: this.wording.render(tpl.subject ?? `${shop} — ${o.orderNo}`, vars),
-        html: `<div style="font:15px/1.6 system-ui,sans-serif;color:#222;white-space:pre-wrap">${escapeHtml(body)}</div>`,
+        html:
+          `<div style="font:15px/1.6 system-ui,sans-serif;color:#222;white-space:pre-wrap">${escapeHtml(body)}</div>` +
+          (kind === OrderMessageKind.PHOTO_UPDATE && photoUrl
+            ? `<p style="margin:16px 0 0"><img src="${escapeHtml(photoUrl)}" alt="Your gift" style="max-width:100%;border-radius:12px"></p>`
+            : ''),
         origin: 'order-message',
         kind: `order:${kind}`,
       });
@@ -486,8 +539,12 @@ export class OrderMessagesService {
     o: { orderNo: string; senderName: string; totalPaisa: number },
     supportPhone: string,
     invite?: { token: string; productName: string | null },
+    photoUrl?: string | null,
   ) {
     switch (kind) {
+      case OrderMessageKind.PHOTO_UPDATE:
+        if (!photoUrl) throw new Error('photo update without a photo');
+        return this.wa.templateWithImage(TPL.photo, photoUrl, [o.senderName, o.orderNo]);
       case OrderMessageKind.ORDER_CONFIRMATION:
         return this.wa.template(TPL.confirm, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
       case OrderMessageKind.ORDER_CONFIRMATION_COD:

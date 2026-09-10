@@ -2750,6 +2750,10 @@ enum OrderMessageKind {
   /// gateway and never came back. Either way the order exists and only the
   /// money did not arrive.
   PAYMENT_FAILED
+  /// The photograph of the gift before it leaves (owner, 10 Sep 2026): the
+  /// customer ticked "photo updates" at checkout. WhatsApp first, email if
+  /// the number has no WhatsApp; the picture sits on the order either way.
+  PHOTO_UPDATE
   /// DEC-WEB-008 - delivered + 24h, the review invitation. The token lives on
   /// ReviewInvite.
   REVIEW_REQUEST
@@ -4944,6 +4948,10 @@ model CourierService {
 enum AssignmentKind {
   RIDER
   COURIER
+  /// A rider called for one trip (Pathao ride, Uber, a neighbour with a
+  /// bike) — owner, 10 Sep 2026. No name is kept: platform + optional phone
+  /// + what was paid. Never a Rider row, so the Riders list stays clean.
+  ONE_TIME
 }
 
 enum AssignmentStatus {
@@ -4985,6 +4993,19 @@ model DeliveryAssignment {
 
   consignmentNo String? // courier's parcel id (typed manually until P1 APIs)
   trackingUrl   String?
+
+  /// ONE_TIME only (owner, 10 Sep 2026): where the rider came from and how to
+  /// reach him today. `paidCash` = the fare was handed over at the door, so
+  /// the settle board has nothing left to pay on this parcel.
+  platform   String?
+  riderPhone String?
+  paidCash   Boolean @default(false)
+  /// A retry after a failed attempt where staff decided the customer pays
+  /// the second fare (owner, 10 Sep 2026). Settle adds the recorded cost to
+  /// the order's due when this is on.
+  chargeCustomer Boolean @default(false)
+  /// What staff decided when this attempt failed: RETRY | KEEP | CANCEL
+  failDecision String?
 
   status     AssignmentStatus @default(ASSIGNED)
   isActive   Boolean          @default(true) // false once superseded/terminal

@@ -18,6 +18,8 @@ import {
   listCourierServices,
   orderMessagesFor,
   retryOrderMessage,
+  listFailReasons,
+  type ApiFailReason,
   addOrderPhoto,
   editOrder,
   uploadItemImage,
@@ -218,9 +220,24 @@ export default function OrderEditor({ id }: { id: string }) {
       (POST /delivery/assignments), so the parcel reaches the board, analytics,
       cost posting and COD reconciliation. The old /orders/:id/courier wrote
       onto the Order and told Delivery nothing. */
-  const [carrierKind, setCarrierKind] = useState<"RIDER" | "COURIER">("COURIER");
+  const [carrierKind, setCarrierKind] = useState<"RIDER" | "COURIER" | "ONE_TIME">("RIDER");
   const [carrierId, setCarrierId] = useState("");
   const [consignment, setConsignment] = useState("");
+  /*  ONE_TIME (owner, 10 Sep 2026): a Pathao/Uber rider called for this trip.
+      No name is kept anywhere — platform, a phone for today, what was paid.  */
+  const [platform, setPlatform] = useState("Pathao ride");
+  const [riderPhone, setRiderPhone] = useState("");
+  const [fare, setFare] = useState("");
+  const [paidCash, setPaidCash] = useState(true);
+  const [chargeCustomer, setChargeCustomer] = useState(false);
+  /*  the failed-delivery box (owner, 10 Sep 2026): reason + what staff decided  */
+  const [failOpen, setFailOpen] = useState(false);
+  const [failReasons, setFailReasons] = useState<ApiFailReason[]>([]);
+  const [failReasonId, setFailReasonId] = useState("");
+  const [failNote, setFailNote] = useState("");
+  const [failDecision, setFailDecision] = useState<"RETRY" | "KEEP" | "CANCEL">("RETRY");
+  /*  the photograph's journey to the customer — newest PHOTO_UPDATE message  */
+  const [photoMsg, setPhotoMsg] = useState<ApiOrderMessage | null>(null);
   const [riders, setRiders] = useState<ApiRider[]>([]);
   const [couriers, setCouriers] = useState<ApiCourierService[]>([]);
   const [assignment, setAssignment] = useState<ApiAssignment | null>(null);
@@ -238,6 +255,9 @@ export default function OrderEditor({ id }: { id: string }) {
     setO(adapted);
     getCustomer(adapted.customerId).then(setCust).catch(() => setCust(null));
     orderAssignments(id).then((rows) => setAssignment(rows.find((a) => a.isActive) ?? null)).catch(() => setAssignment(null));
+    orderMessagesFor(id)
+      .then((rows) => setPhotoMsg(rows.filter((m) => m.kind === "PHOTO_UPDATE").sort((a, b) => b.attempt - a.attempt)[0] ?? null))
+      .catch(() => setPhotoMsg(null));
   }
   /**
    * Add (or replace) a proof photograph on this order.
@@ -253,6 +273,9 @@ export default function OrderEditor({ id }: { id: string }) {
       const url = await uploadItemImage(file, "delivery", 1400);
       await addOrderPhoto(id, { kind, url, capturedBy: "Admin" });
       await reload();
+      /*  the send is queued and swept within seconds — look again so the
+          card can say WhatsApp / email / profile-only without a refresh  */
+      if (kind === "PREP" && o?.photoUpdates) window.setTimeout(() => void reload(), 4000);
     } catch (e) {
       setPhotoErr(e instanceof Error ? e.message : "Could not upload that photo.");
     } finally {
@@ -278,6 +301,7 @@ export default function OrderEditor({ id }: { id: string }) {
   useEffect(() => {
     listRiders().then((r) => setRiders(r.filter((x) => x.isActive))).catch(() => setRiders([]));
     listCourierServices().then((c) => setCouriers(c.filter((x) => x.isActive))).catch(() => setCouriers([]));
+    listFailReasons().then(setFailReasons).catch(() => setFailReasons([]));
   }, []);
   useEffect(() => {
     setLoading(true);
@@ -414,20 +438,26 @@ export default function OrderEditor({ id }: { id: string }) {
       makes sure Delivery hears about it too. With no assignment there is
       nothing to tell, and the order action stands on its own.  */
   const live = assignment && assignment.isActive ? assignment : null;
-  const nextStep: { label: string; colour: string; run: () => Promise<unknown> } | null =
+  /*  THE TWO GATES BEFORE THE DOOR (owner, 10 Sep 2026). The next step is
+      never hidden: when it is locked, the button says what unlocks it and
+      takes you there — a carrier first, then the customer's photograph when
+      they ticked "photo updates" at checkout. The server refuses the same
+      two things, so a stale page cannot slip past.  */
+  const hasCarrier = !!live && live.status === "ASSIGNED";
+  const needsPhoto = o.photoUpdates && !o.prepPhoto;
+  const readyToGo = o.deliveryStatus === "preparing" || o.deliveryStatus === "failed";
+  type Step = { label: string; colour: string; run?: () => Promise<unknown>; go?: SecId; locked?: string };
+  const nextStep: Step | null =
     o.salesStatus === "placed"
       ? { label: "Confirm order", colour: SOLID.green, run: () => orderAction(id, "confirm") }
       : o.salesStatus === "confirmed" && o.deliveryStatus === "unassigned"
         ? { label: "Start preparing", colour: SOLID.amber, run: () => orderAction(id, "prepare") }
-        : o.deliveryStatus === "preparing"
-          ? {
-              label: "Out for delivery",
-              colour: SOLID.blue,
-              run: () =>
-                live && live.status === "ASSIGNED"
-                  ? assignmentAction(live.id, "out")
-                  : orderAction(id, "out-for-delivery"),
-            }
+        : readyToGo
+          ? !hasCarrier
+            ? { label: o.deliveryStatus === "failed" ? "Assign a carrier for the retry" : "Assign carrier", colour: SOLID.blue, go: "delivery", locked: "Out for delivery · needs a carrier" }
+            : needsPhoto
+              ? { label: "Add the customer's photo", colour: SOLID.blue, go: "photos", locked: "Out for delivery · needs the photo the customer asked for" }
+              : { label: "Out for delivery", colour: SOLID.orchid, run: () => assignmentAction(live!.id, "out") }
           : o.deliveryStatus === "out_for_delivery"
             ? {
                 label: "Mark delivered",
@@ -438,6 +468,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     : orderAction(id, "delivered"),
               }
             : null;
+  const canFail = !terminal && (o.deliveryStatus === "out_for_delivery" || (hasCarrier && o.deliveryStatus === "preparing"));
 
   const shareBtn = "h-[34px] px-3 rounded-[10px] bg-white text-purple text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-lavender";
   const actBtn = "h-[40px] px-4 rounded-[11px] text-[13.5px] font-semibold inline-flex items-center gap-2 disabled:opacity-50";
@@ -499,8 +530,24 @@ export default function OrderEditor({ id }: { id: string }) {
       {/* THE ACTION ROW — the one next step, then the things you reach for */}
       <div className="flex gap-2 flex-wrap items-center mb-4">
         {nextStep && !terminal && (
-          <button type="button" disabled={busy || cooldown} onClick={() => act(nextStep.run, { transition: true })} className={`${actBtn} text-white`} style={{ background: nextStep.colour }}>
-            <Icon name="check" size={16} /> {busy ? "Working…" : nextStep.label}
+          <button
+            type="button"
+            disabled={busy || cooldown}
+            onClick={() => (nextStep.run ? act(nextStep.run, { transition: true }) : setSec(nextStep.go!))}
+            className={`${actBtn} text-white`}
+            style={{ background: nextStep.colour }}
+          >
+            <Icon name={nextStep.run ? "check" : "chevronRight"} size={16} /> {busy ? "Working…" : nextStep.label}
+          </button>
+        )}
+        {nextStep?.locked && !terminal && (
+          <span className="h-[40px] px-4 rounded-[11px] text-[13px] font-medium inline-flex items-center gap-2 bg-[#f3eef7] text-[#8d7f98] border-[1.5px] border-[#e4dbec]" title="Locked until the step on the left is done">
+            {nextStep.locked}
+          </span>
+        )}
+        {canFail && (
+          <button type="button" disabled={busy} onClick={() => setFailOpen((v) => !v)} className={`${actBtn} bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
+            <Icon name="alert" size={15} /> Delivery failed
           </button>
         )}
         {terminal && (
@@ -533,6 +580,64 @@ export default function OrderEditor({ id }: { id: string }) {
           <button type="button" onClick={() => setActErr("")} className="font-semibold shrink-0 opacity-70 hover:opacity-100">
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/*  FAILED — the reason from the list and what staff decided (owner,
+           10 Sep 2026). Retry keeps the order, waiting for a new carrier;
+           Keep leaves it failed for now; Cancel goes through Sales with its
+           refund rules. Who pays a retry's fare is chosen when the retry is
+           assigned, on the carrier card.  */}
+      {failOpen && !terminal && (
+        <div className="rounded-[14px] border-[1.5px] bg-white px-5 py-4 mb-4" style={{ borderColor: "#f3c4c0" }}>
+          <div className="text-[13.5px] font-semibold mb-3" style={{ color: SOLID.red }}>Delivery failed — what happened, and what next?</div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+            <div>
+              <label className="text-[13px] text-body-soft font-medium mb-1 block">Why</label>
+              <select className="ipt h-[42px]" value={failReasonId} onChange={(e) => setFailReasonId(e.target.value)}>
+                <option value="">Pick a reason…</option>
+                {failReasons.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[13px] text-body-soft font-medium mb-1 block">Note</label>
+              <input className="ipt h-[42px]" value={failNote} onChange={(e) => setFailNote(e.target.value)} placeholder="optional" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-3 max-md:grid-cols-1">
+            {([
+              ["RETRY", "Retry", "assign a carrier again"],
+              ["KEEP", "Keep as failed", "no retry yet — stays on the board"],
+              ["CANCEL", "Cancel order", "goes to Cancelled · refund rules apply"],
+            ] as const).map(([k, t, sub]) => {
+              const on = failDecision === k;
+              return (
+                <button key={k} type="button" onClick={() => setFailDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-4 py-3 bg-white" style={{ borderColor: on ? SOLID.red : "#dfd3ea", background: on ? "#fff5f5" : "#fff" }}>
+                  <span className="block text-[13.5px] font-semibold" style={{ color: on ? SOLID.red : "#221733" }}>{t}</span>
+                  <span className="block text-[12px] text-body-soft">{sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 mt-3.5">
+            <button
+              type="button"
+              disabled={busy || (!failReasonId && !failNote.trim())}
+              onClick={() => act(async () => {
+                const body = { failReasonId: failReasonId || undefined, failReason: failNote.trim() || undefined, decision: failDecision };
+                if (live && (live.status === "OUT_FOR_DELIVERY" || live.status === "ASSIGNED")) await assignmentAction(live.id, "fail", body);
+                else await orderAction(id, "fail");
+                setFailOpen(false);
+                setFailReasonId("");
+                setFailNote("");
+              }, { transition: true })}
+              className={`${actBtn} text-white`}
+              style={{ background: SOLID.red }}
+            >
+              {busy ? "Working…" : failDecision === "CANCEL" ? "Mark failed and cancel the order" : failDecision === "RETRY" ? "Mark failed — I will retry" : "Mark failed"}
+            </button>
+            <button type="button" onClick={() => setFailOpen(false)} className={`${actBtn} bg-white border-[1.5px] border-[#dfd3ea] text-purple`}>Close</button>
+          </div>
         </div>
       )}
 
@@ -787,7 +892,7 @@ export default function OrderEditor({ id }: { id: string }) {
               <div className="px-5 pb-5">
                 {assignment ? (
                   <>
-                    <Row k="Carrier" v={<span className="font-medium text-purple">{assignment.kind === "RIDER" ? `Rider — ${assignment.rider?.name ?? "?"}` : `Courier — ${assignment.courier?.name ?? "?"}`}</span>} />
+                    <Row k="Carrier" v={<span className="font-medium text-purple">{assignment.kind === "RIDER" ? `Rider — ${assignment.rider?.name ?? "?"}` : assignment.kind === "ONE_TIME" ? `One-time — ${assignment.platform ?? "rider"}${assignment.riderPhone ? ` · ${assignment.riderPhone}` : ""}${assignment.costPaisa ? ` · paid ${formatTaka(assignment.costPaisa)}${assignment.paidCash ? " cash" : ""}` : ""}` : `Courier — ${assignment.courier?.name ?? "?"}`}</span>} />
                     <Row k="Assignment" v={assignment.assignmentNo} />
                     <Row k="Status" v={assignment.status.replace(/_/g, " ").toLowerCase()} />
                     <Row k="Consignment" v={assignment.consignmentNo || "—"} />
@@ -800,7 +905,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 {canAssign && (
                   <>
                     <div className="inline-flex rounded-[12px] border-[1.5px] border-[#dfd3ea] overflow-hidden mt-3 bg-white">
-                      {(["RIDER", "COURIER"] as const).map((k) => {
+                      {(["RIDER", "COURIER", "ONE_TIME"] as const).map((k) => {
                         const on = carrierKind === k;
                         return (
                           <button
@@ -810,27 +915,58 @@ export default function OrderEditor({ id }: { id: string }) {
                             className="text-[13px] font-semibold px-4 py-2 inline-flex items-center gap-1.5"
                             style={on ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#7b6b87" }}
                           >
-                            <Icon name={k === "RIDER" ? "user" : "truck"} size={14} /> {k === "RIDER" ? "Own rider" : "Courier"}
+                            <Icon name={k === "RIDER" ? "user" : k === "COURIER" ? "truck" : "bolt"} size={14} /> {k === "RIDER" ? "Own rider" : k === "COURIER" ? "Courier company" : "One-time rider"}
                           </button>
                         );
                       })}
                     </div>
 
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3 mt-3">
-                      <div>
-                        <label className="text-[13px] text-body-soft font-medium mb-1 block">{carrierKind === "RIDER" ? "Rider" : "Courier"}</label>
-                        <select className="ipt h-[42px]" value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
-                          <option value="">{carrierKind === "RIDER" ? "Select rider…" : "Select courier…"}</option>
-                          {(carrierKind === "RIDER" ? riders : couriers).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      </div>
-                      {carrierKind === "COURIER" && (
+                    {carrierKind !== "ONE_TIME" ? (
+                      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3 mt-3">
                         <div>
-                          <label className="text-[13px] text-body-soft font-medium mb-1 block">Consignment id</label>
-                          <input className="ipt h-[42px]" value={consignment} onChange={(e) => setConsignment(e.target.value)} placeholder="from the courier panel" />
+                          <label className="text-[13px] text-body-soft font-medium mb-1 block">{carrierKind === "RIDER" ? "Rider" : "Courier"}</label>
+                          <select className="ipt h-[42px]" value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
+                            <option value="">{carrierKind === "RIDER" ? "Select rider…" : "Select courier…"}</option>
+                            {(carrierKind === "RIDER" ? riders : couriers).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
                         </div>
-                      )}
-                    </div>
+                        {carrierKind === "COURIER" && (
+                          <div>
+                            <label className="text-[13px] text-body-soft font-medium mb-1 block">Consignment id</label>
+                            <input className="ipt h-[42px]" value={consignment} onChange={(e) => setConsignment(e.target.value)} placeholder="from the courier panel" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /*  Owner, 10 Sep 2026: "Uber ba Pathao theke je rider ashe, tar
+                          naam rakhar pokkhe ami na." Platform, a phone for today,
+                          the fare — nothing goes into the Riders list.  */
+                      <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 mt-3">
+                        <div>
+                          <label className="text-[13px] text-body-soft font-medium mb-1 block">Platform</label>
+                          <select className="ipt h-[42px]" value={platform} onChange={(e) => setPlatform(e.target.value)}>
+                            {["Pathao ride", "Uber", "Other"].map((p) => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[13px] text-body-soft font-medium mb-1 block">Rider phone (optional)</label>
+                          <input className="ipt h-[42px]" value={riderPhone} onChange={(e) => setRiderPhone(e.target.value)} placeholder="for today only" />
+                        </div>
+                        <div>
+                          <label className="text-[13px] text-body-soft font-medium mb-1 block">Fare ৳</label>
+                          <input type="number" min={0} className="ipt h-[42px]" value={fare} onChange={(e) => setFare(e.target.value)} placeholder="leave blank for Settle" />
+                        </div>
+                        <label className="flex items-center gap-2 text-[13px] font-medium text-body self-end h-[42px]">
+                          <input type="checkbox" className="w-4 h-4 accent-purple" checked={paidCash} onChange={(e) => setPaidCash(e.target.checked)} /> Paid in cash now
+                        </label>
+                      </div>
+                    )}
+                    {o.deliveryStatus === "failed" && (
+                      <label className="flex items-center gap-2 text-[13px] font-medium text-body mt-3">
+                        <input type="checkbox" className="w-4 h-4 accent-purple" checked={chargeCustomer} onChange={(e) => setChargeCustomer(e.target.checked)} />
+                        This retry&apos;s delivery cost is charged to the customer (added to due when the cost is recorded)
+                      </label>
+                    )}
 
                     <div className="flex gap-2 flex-wrap mt-3.5">
                       <button
@@ -860,17 +996,28 @@ export default function OrderEditor({ id }: { id: string }) {
                       </button>
                       <button
                         type="button"
-                        disabled={busy || !carrierId}
+                        disabled={busy || (carrierKind !== "ONE_TIME" && !carrierId)}
                         onClick={() => act(async () => {
                           await createAssignment({
                             orderId: id,
                             kind: carrierKind,
+                            chargeCustomer: o.deliveryStatus === "failed" ? chargeCustomer : false,
                             ...(carrierKind === "RIDER"
                               ? { riderId: carrierId }
-                              : { courierId: carrierId, consignmentNo: consignment.trim() || undefined }),
+                              : carrierKind === "COURIER"
+                                ? { courierId: carrierId, consignmentNo: consignment.trim() || undefined }
+                                : {
+                                    platform,
+                                    riderPhone: riderPhone.trim() || undefined,
+                                    costPaisa: fare ? Math.round(Number(fare) * 100) : undefined,
+                                    paidCash,
+                                  }),
                           });
                           setCarrierId("");
                           setConsignment("");
+                          setRiderPhone("");
+                          setFare("");
+                          setChargeCustomer(false);
                         })}
                         className="text-[13px] px-5 py-2.5 rounded-[10px] font-semibold text-white disabled:opacity-50 inline-flex items-center gap-1.5"
                         style={{ background: SOLID.blue }}
@@ -895,8 +1042,33 @@ export default function OrderEditor({ id }: { id: string }) {
               and the switch below said "photo updates are on" about photos
               that were never taken. Both are real controls now. */}
           {sec === "photos" && (
-            <Card title="Photos & proof" hint="Before it leaves the studio, and at the door. The customer is sent these when photo updates are on; off keeps them on the order as our own proof.">
+            <Card title="Photos & proof" hint="Before it leaves the studio, and at the door. When the customer ticked photo updates at checkout, the before-delivery photo goes to them the moment it is saved: WhatsApp first, email if the number has no WhatsApp, and it is on their account either way. Out for delivery stays locked until that photo exists.">
               <div className="px-5 pb-5">
+                {o.photoUpdates && (
+                  <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "#bfe3cd" : "#f5dcb0" }}>
+                    <span className="w-6 h-6 rounded-full grid place-items-center text-white text-[12px] shrink-0" style={{ background: o.prepPhoto ? SOLID.green : SOLID.amber }}>{o.prepPhoto ? "✓" : "!"}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-semibold text-body">{o.prepPhoto ? "Customer asked for a photo — done" : "Customer asked for a photo before delivery"}</div>
+                      <div className="text-[12.5px] text-body-soft">
+                        {!o.prepPhoto
+                          ? "Add the before-delivery photo below; it is sent by itself."
+                          : !photoMsg
+                            ? "Saved to their account. Sending…"
+                            : photoMsg.status === "SENT"
+                              ? `Sent on ${photoMsg.channel === "WHATSAPP" ? "WhatsApp" : photoMsg.channel === "EMAIL" ? "email" : photoMsg.channel}${photoMsg.sentAt ? ` · ${shortDate(Date.parse(photoMsg.sentAt))}, ${clockTime(Date.parse(photoMsg.sentAt))}` : ""} · also on their account`
+                              : photoMsg.status === "QUEUED"
+                                ? "Sending…"
+                                : `On their account only — ${photoMsg.error ?? "could not send"}`}
+                      </div>
+                    </div>
+                    {photoMsg && (photoMsg.status === "FAILED" || photoMsg.status === "SKIPPED") && (
+                      <button type="button" onClick={() => void retryOrderMessage(photoMsg.id).then(() => reload())} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white shrink-0">Send again</button>
+                    )}
+                    {o.prepPhoto && (
+                      <a href={waHref} target="_blank" rel="noreferrer" className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#dfd3ea] text-purple bg-white shrink-0">Reply on WhatsApp</a>
+                    )}
+                  </div>
+                )}
                 {photoErr && (
                   <div className="mb-4 rounded-[12px] px-4 py-3 text-[13px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.red, color: SOLID.red }}>
                     {photoErr}
@@ -1105,6 +1277,7 @@ const MSG_KIND: Record<string, string> = {
   ORDER_DELIVERED: "Delivered",
   PAYMENT_FAILED: "Payment failed",
   REVIEW_REQUEST: "Review request",
+  PHOTO_UPDATE: "Photo of the gift",
 };
 const MSG_COLOUR: Record<ApiOrderMessage["status"], string> = { SENT: SOLID.green, FAILED: SOLID.amber, SKIPPED: SOLID.grey, QUEUED: SOLID.blue };
 

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radian · Delivery flow v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#470066;--deep:#320049;--orchid:#cf43ea;--lav:#f7f1fb;--lavd:#e6d9f0;--line:#e4dbec;--ink:#221733;--mute:#7b6b87;--green:#0e8a44;--amber:#d97706;--red:#d92d20;--indigo:#4f46e5;--blue:#1d7fd6;--grey:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Jost,system-ui,sans-serif;font-size:13px;line-height:1.4;color:var(--ink);background:#f5f1f8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}b{font-weight:500}
+.wrap{max-width:1340px;margin:0 auto;padding:18px 22px 80px}
+.pagebar{display:flex;gap:6px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px;width:max-content;flex-wrap:wrap}
+.pagebar button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:500;color:var(--mute)}
+.pagebar button.on{background:var(--purple);color:#fff}
+.page{display:none}.page.on{display:block}
+.legend{font-size:12px;color:var(--mute);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin-bottom:12px}
+.legend b{color:var(--purple)}
+.band{border-radius:20px;padding:20px 24px 24px;margin-bottom:16px;color:#fff;background:linear-gradient(135deg,#320049 0%,#5a0a80 100%)}
+.band .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.band h1{font-family:Fraunces,serif;font-size:24px;font-weight:600;line-height:1}
+.band .sub{font-size:12.5px;color:#d9c5e6;margin-top:6px}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.tile{border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;text-align:left}
+.tile.on{background:#fff;color:var(--purple)}
+.tile .k{display:block;font-size:11.5px;font-weight:500;color:#d9c5e6}.tile.on .k{color:var(--mute)}
+.tile .v{display:block;font-size:22px;font-weight:500;margin-top:8px;line-height:1}
+.tile .v.hot{color:#ffb4ad}.tile.on .v.hot{color:var(--red)}
+.tile .s{display:block;font-size:11.5px;margin-top:6px;opacity:.75}
+.newbtn{background:#fff;color:var(--purple);font-weight:500;font-size:14px;padding:10px 20px;border-radius:12px;border:0}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.segs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:2px;flex-wrap:wrap}
+.segs button{border:0;background:transparent;padding:8px 13px;border-radius:9px;font-weight:500;font-size:13px;color:var(--mute)}
+.segs button.on{background:var(--purple);color:#fff}
+.segs button span{margin-left:5px;opacity:.7}
+.ipt{height:40px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;font:inherit;font-size:13px;color:var(--ink)}
+.search{flex:1;min-width:240px}.search .ipt{width:100%}
+.tbl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1080px}
+th{text-align:left;background:var(--lav);color:var(--purple);font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #efe9f4;vertical-align:top;font-size:13px;line-height:1.45}
+tr:last-child td{border-bottom:0}
+td.hot{box-shadow:inset 4px 0 0 var(--red)}
+.no{color:var(--purple);font-weight:500;white-space:nowrap}
+.name{color:var(--purple);font-weight:500}
+.lab{display:block;font-size:11px;color:var(--mute);font-weight:500;line-height:1.2;margin-top:1px}
+.val{display:block;font-weight:500}
+.val.red{color:var(--red)}.val.green{color:var(--green)}
+.soft{color:var(--mute)}
+.pill{display:inline-flex;align-items:center;font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:999px;white-space:nowrap;line-height:1.2}
+.p-amber{background:#fff3e0;color:var(--amber)}.p-indigo{background:#e8e7fd;color:var(--indigo)}.p-blue{background:#e3f0fb;color:var(--blue)}.p-orchid{background:#f9e3fb;color:#a11cc0}.p-green{background:#e3f4ea;color:var(--green)}.p-red{background:#fdeceb;color:var(--red)}.p-grey{background:#eeeeee;color:var(--grey)}.p-purple{background:#ece3f3;color:var(--purple)}
+.stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.acts{display:flex;flex-direction:column;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:500;color:var(--purple);white-space:nowrap;width:100%}
+.btn.p{background:var(--purple);border-color:var(--purple);color:#fff}
+.btn.indigo{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.orchid{background:var(--orchid);border-color:var(--orchid);color:#fff}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn.red{color:var(--red);border-color:#f3c9c6}
+.btn.lock{background:#f3eef7;color:#b8a9c5;border-color:#e4dbec;cursor:not-allowed}
+.btn.w{width:auto}
+.tag{display:inline-block;font-size:10.5px;font-weight:500;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:1px;color:#fff}
+.tag.gift{background:var(--orchid)}.tag.photo{background:var(--blue)}
+/* order page */
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.card h3{font-size:13px;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.card h3 span{font-size:11.5px;color:var(--mute);font-weight:400}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.journey{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px}
+.step{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.step .n{font-size:11px;color:var(--mute);font-weight:500}
+.step .t{font-weight:500;margin-top:2px}
+.step .w{font-size:11.5px;color:var(--mute);margin-top:2px}
+.step.done{border-color:#bfe3cd;background:#f2faf5}.step.done .t{color:var(--green)}
+.step.now{border-color:var(--purple);background:var(--purple);color:#fff}.step.now .n,.step.now .w{color:#d9c5e6}
+.step.gate{border-style:dashed}
+.gate{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:#fff8ee;border:1px solid #f5dcb0;margin-bottom:10px}
+.gate.ok{background:#f2faf5;border-color:#bfe3cd}
+.gate i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#fff;background:var(--amber);flex:none}
+.gate.ok i{background:var(--green)}
+.gate b{display:block}.gate span{font-size:12px;color:var(--mute)}
+.opt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.opt label{border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;display:block}
+.opt label.on{border-color:var(--purple);background:var(--lav)}
+.opt b{display:block}.opt span{font-size:12px;color:var(--mute)}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.frm label{font-size:11px;color:var(--mute);font-weight:500;display:block;margin-bottom:4px}
+.frm .ipt{width:100%;height:36px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.photo{display:grid;grid-template-columns:150px 1fr;gap:14px}
+.ph{height:150px;border-radius:12px;background:linear-gradient(135deg,#f3d7f7,#e6d9f0);display:grid;place-items:center;color:var(--purple);font-size:12px;border:1px solid var(--line)}
+.ph.empty{background:#faf7fc;border:1.5px dashed #c9b6d8;color:var(--mute)}
+.chan{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.thread{border:1px solid var(--line);border-radius:10px;padding:10px;background:#faf7fc;font-size:12.5px}
+.thread div{margin-bottom:6px}.thread div:last-child{margin-bottom:0}
+.thread .who{font-size:11px;color:var(--mute);font-weight:500}
+.dec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.dec label{border:1px solid var(--line);border-radius:12px;padding:12px;display:block}
+.dec label.on{border-color:var(--red);background:#fff5f5}
+.dec b{display:block}.dec span{font-size:12px;color:var(--mute)}
+.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:12px}
+.tabs button{border:0;background:transparent;padding:9px 14px;font-weight:500;font-size:13px;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1.5px}
+.tabs button.on{color:var(--purple);border-bottom-color:var(--purple)}
+.tabs button span{margin-left:6px;background:var(--lavd);color:var(--purple);border-radius:99px;padding:0 7px;font-size:11px}
+.sub{display:none}.sub.on{display:block}
+.r{text-align:right}
+.cell-in{height:30px;width:90px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font:inherit;font-size:12.5px}
+/* checkout preview */
+.co{max-width:520px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.co h4{font-family:Fraunces,serif;font-size:17px;font-weight:600;margin-bottom:4px;color:var(--purple)}
+.co p{font-size:12.5px;color:var(--mute);margin-bottom:10px}
+.co .row{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.co .row.on{border-color:var(--purple);background:var(--lav)}
+.co .row b{display:block}.co .row span{font-size:12px;color:var(--mute)}
+.co .sw{display:flex;gap:6px;margin-top:8px}.co .sw button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:4px 12px;font-size:12px}.co .sw button.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+.list{display:grid;gap:6px;font-size:12.5px}
+.list div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #efe9f4}
+.list div:last-child{border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pagebar">
+    <button class="on" data-p="flow" onclick="go('flow')">1 · Order page flow</button>
+    <button data-p="board" onclick="go('board')">2 · Fulfilment board</button>
+    <button data-p="settle" onclick="go('settle')">3 · Settle</button>
+    <button data-p="setup" onclick="go('setup')">4 · Delivery setup</button>
+    <button data-p="co" onclick="go('co')">5 · Checkout tick</button>
+  </div>
+
+  <!-- ================= 1. ORDER PAGE FLOW ================= -->
+  <section class="page on" id="p-flow">
+    <div class="legend">The whole circle on the order page. One next step at a time; a step that is not allowed yet is shown <b>locked with the reason</b>, never hidden. Gates: Out for delivery needs a carrier, and a "before" photo if the customer ticked it; Delivered needs an "after" photo if ticked. Photo never waits for the customer's approval.</div>
+
+    <div class="band"><div class="top"><div><h1>RAD-60885</h1><div class="sub">Nusrat Jahan · 01711-223344 · Today · Midnight · Banani <span class="tag gift">GIFT</span><span class="tag photo">PHOTO · BEFORE</span></div></div><div style="display:flex;gap:8px"><button class="newbtn" style="background:rgba(255,255,255,.12);color:#fff">Edit order</button><button class="newbtn">Call</button></div></div></div>
+
+    <div class="journey">
+      <div class="step done"><span class="n">1</span><span class="t">Placed</span><span class="w">09 Sep · 10:42 am</span></div>
+      <div class="step done"><span class="n">2</span><span class="t">Confirmed</span><span class="w">10:50 am · Rakib</span></div>
+      <div class="step done"><span class="n">3</span><span class="t">Preparing</span><span class="w">11:05 am · Rakib</span></div>
+      <div class="step now"><span class="n">4</span><span class="t">Carrier + photo</span><span class="w">now</span></div>
+      <div class="step gate"><span class="n">5</span><span class="t">Out for delivery</span><span class="w">locked</span></div>
+      <div class="step gate"><span class="n">6</span><span class="t">Delivered</span><span class="w">—</span></div>
+    </div>
+
+    <div class="g2">
+      <div>
+        <div class="card"><h3>Step 4a · Assign carrier <span>who takes it</span></h3>
+          <div class="opt">
+            <label class="on"><b>Own rider</b><span>from the Riders list</span></label>
+            <label><b>Courier company</b><span>Pathao, RedX, Steadfast…</span></label>
+            <label><b>One-time rider</b><span>Uber / Pathao ride, no name kept</span></label>
+          </div>
+          <div class="frm">
+            <div><label>Rider</label><select class="ipt"><option>Rahman</option><option>Deshi</option><option>Sumon</option></select></div>
+            <div><label>Delivery cost (optional now)</label><input class="ipt" placeholder="৳ · or leave for Settle"></div>
+          </div>
+          <div class="frm" style="display:none"></div>
+          <div style="font-size:12px;color:var(--mute);margin-bottom:10px">One-time rider form: Platform (Pathao ride / Uber / Other) · Phone (optional) · Paid ৳ · ☑ paid in cash now. Nothing is added to the Riders list.</div>
+          <button class="btn p w">Assign Rahman</button>
+        </div>
+
+        <div class="card"><h3>Step 4b · Photo for the customer <span>asked at checkout: before delivery</span></h3>
+          <div class="photo">
+            <div class="ph">gift-photo.jpg</div>
+            <div>
+              <div class="gate ok"><i>✓</i><div><b>01711-223344 has WhatsApp</b><span>Sent on WhatsApp · 11:32 am · delivered ✓✓. Also saved to her account → Orders → RAD-60885.</span></div></div>
+              <div class="chan"><span class="pill p-green">WhatsApp · sent</span><span class="pill p-grey">Email · not needed</span><span class="pill p-purple">Profile · saved</span></div>
+              <div class="thread">
+                <div><span class="who">Nusrat · WhatsApp · 11:36 am</span><br>Can you add a small card that says "Happy birthday Raisa"?</div>
+                <div><span class="who">Rakib · 11:40 am</span><br>Done — new photo sent.</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px"><button class="btn w">Upload new photo</button><button class="btn w">Reply on WhatsApp</button></div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--mute);margin-top:10px">If the number has no WhatsApp: the same photo goes by email. No WhatsApp and no email: profile only, and the row says so. Any reply from the customer lands here; staff decide what to do — the order never waits for an approval.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card"><h3>Next step</h3>
+          <div class="gate ok"><i>✓</i><div><b>Carrier assigned</b><span>Rahman · own rider</span></div></div>
+          <div class="gate ok"><i>✓</i><div><b>Photo sent</b><span>before delivery · WhatsApp</span></div></div>
+          <button class="btn orchid w" style="height:36px">Out for delivery</button>
+          <div style="font-size:12px;color:var(--mute);margin-top:10px">Before both ticks the button reads <span class="pill p-grey">Out for delivery · needs carrier</span> or <span class="pill p-grey">· needs photo</span> and does nothing.</div>
+        </div>
+
+        <div class="card"><h3>Step 6 · When it is out <span>what the row shows</span></h3>
+          <div class="list">
+            <div><span>Delivered</span><span>photo "after" if ticked → then <b>Delivered</b>. COD: cash moves to <b>with Rahman</b> until Settle.</span></div>
+            <div><span>Failed</span><span>opens the decision box below</span></div>
+          </div>
+        </div>
+
+        <div class="card"><h3>Failed · staff decides <span>DEC pending</span></h3>
+          <div class="frm"><div><label>Why</label><select class="ipt"><option>Customer not reachable</option><option>Wrong address</option><option>Recipient refused</option><option>Rider issue</option></select></div><div><label>Note</label><input class="ipt" placeholder="optional"></div></div>
+          <div class="dec">
+            <label class="on"><b>Retry</b><span>assign again · new attempt</span></label>
+            <label><b>Keep as failed</b><span>stays on the board, no retry yet</span></label>
+            <label><b>Cancel order</b><span>goes to Cancelled · refund rules apply</span></label>
+          </div>
+          <div class="frm" style="margin-top:10px"><div><label>Retry delivery cost paid by</label><select class="ipt"><option>Radian</option><option>Customer · add to due</option></select></div></div>
+          <button class="btn red w">Save decision</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2. FULFILMENT BOARD ================= -->
+  <section class="page" id="p-board">
+    <div class="legend">Board = today's parcels only, sorted by promise time. Same buttons as the order page, nothing else. Tiles filter the list. No Proof photos page: the photo state is a column here and a step on the order.</div>
+    <div class="band"><div class="top"><div><h1>Fulfilment board</h1><div class="sub">Wednesday 10 Sep · 23 parcels</div></div><div style="display:flex;gap:8px"><select class="ipt" style="height:38px"><option>Today</option><option>Tomorrow</option><option>Late only</option></select><button class="newbtn">Print run sheet</button></div></div>
+      <div class="tiles">
+        <button class="tile on"><span class="k">Needs carrier</span><span class="v hot">6</span><span class="s">preparing, nobody assigned</span></button>
+        <button class="tile"><span class="k">Needs photo</span><span class="v">3</span><span class="s">customer ticked "before"</span></button>
+        <button class="tile"><span class="k">Ready to go</span><span class="v">4</span><span class="s">carrier + photo done</span></button>
+        <button class="tile"><span class="k">On the road</span><span class="v">8</span><span class="s">3 Pathao · 5 own</span></button>
+        <button class="tile"><span class="k">Late</span><span class="v hot">2</span><span class="s">past promise</span></button>
+        <button class="tile"><span class="k">Failed · decide</span><span class="v">1</span><span class="s">waiting for staff</span></button>
+      </div></div>
+    <div class="tools"><div class="segs"><button class="on">All<span>23</span></button><button>Needs carrier<span>6</span></button><button>Needs photo<span>3</span></button><button>Ready<span>4</span></button><button>On the road<span>8</span></button><button>Failed<span>1</span></button><button>Delivered today<span>19</span></button></div>
+      <div class="search"><input class="ipt" placeholder="Order no, name, phone, area"></div>
+      <select class="ipt"><option>All carriers</option><option>Own riders</option><option>Courier companies</option><option>One-time</option></select></div>
+    <div class="tbl"><table>
+      <thead><tr><th><input type="checkbox"></th><th>Deliver by</th><th>Order No</th><th>Going to</th><th>Items</th><th>Carrier</th><th>Photo</th><th>COD</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+      <tr><td class="hot"><input type="checkbox"></td><td><span class="val red">2 h late</span><span class="lab">12:30 pm · 2 hour</span></td><td><span class="no">RAD-70592</span></td><td><span class="name">Tanvir Ahmed</span><span class="lab">Road 55, Gulshan 2</span></td><td>Blush Harmony ×1</td><td><span class="soft">— none —</span></td><td><span class="pill p-grey">not asked</span></td><td>—</td><td><span class="pill p-blue">Preparing</span></td><td><div class="acts"><button class="btn p">Assign carrier</button><button class="btn lock">Out · needs carrier</button></div></td></tr>
+      <tr><td><input type="checkbox"></td><td><span class="val">in 40 min</span><span class="lab">4:00 – 6:00 pm</span></td><td><span class="no">RAD-89455</span></td><td><span class="name">Sadia Islam</span><span class="lab">Sector 7, Uttara · to Ammu</span></td><td>Mother's Grace ×1, Cake</td><td><span class="val">Rahman</span><span class="lab">own rider</span></td><td><span class="pill p-amber">needed · before</span></td><td><span class="val">৳ 1,200</span></td><td><span class="pill p-blue">Preparing</span></td><td><div class="acts"><button class="btn blue">Upload photo</button><button class="btn lock">Out · needs photo</button></div></td></tr>
+      <tr><td><input type="checkbox"></td><td><span class="val">in 6 h</span><span class="lab">11:30 pm · Midnight</span></td><td><span class="no">RAD-60885</span></td><td><span class="name">Nusrat Jahan</span><span class="lab">Road 11, Banani · to Raisa</span></td><td>Crimson Devotion ×1</td><td><span class="val">Rahman</span><span class="lab">own rider</span></td><td><span class="pill p-green">sent · WhatsApp</span><span class="lab">1 reply</span></td><td><span class="val">৳ 3,450</span></td><td><span class="pill p-blue">Ready</span></td><td><div class="acts"><button class="btn orchid">Out for delivery</button><button class="btn">Open</button></div></td></tr>
+      <tr><td><input type="checkbox"></td><td><span class="val">in 1 h</span><span class="lab">by 6:00 pm · Nationwide</span></td><td><span class="no">RAD-77510</span></td><td><span class="name">Farhana Akter</span><span class="lab">Nasirabad, Chattogram</span></td><td>Everlasting ×1</td><td><span class="val">Pathao Courier</span><span class="lab">CN 88213 · track ↗</span></td><td><span class="pill p-grey">not asked</span></td><td>—</td><td><span class="pill p-orchid">On the road</span></td><td><div class="acts"><button class="btn green">Delivered</button><button class="btn red">Failed</button></div></td></tr>
+      <tr><td><input type="checkbox"></td><td><span class="val">in 2 h</span><span class="lab">5:00 – 7:00 pm</span></td><td><span class="no">RAD-71253</span></td><td><span class="name">Mehedi Hasan</span><span class="lab">Mirpur 10</span></td><td>Sunny Wishes ×1</td><td><span class="val">One-time · Pathao ride</span><span class="lab">paid ৳ 120 cash</span></td><td><span class="pill p-amber">needed · after</span></td><td><span class="val">৳ 1,850</span></td><td><span class="pill p-orchid">On the road</span></td><td><div class="acts"><button class="btn blue">Upload photo</button><button class="btn lock">Delivered · needs photo</button><button class="btn red">Failed</button></div></td></tr>
+      <tr><td><input type="checkbox"></td><td><span class="val red">yesterday</span><span class="lab">9 Sep · 4–6 pm</span></td><td><span class="no">RAD-85792</span></td><td><span class="name">Sobuj Gazi</span><span class="lab">Dhanmondi</span></td><td>Luxury Love Box ×1</td><td><span class="val">Deshi</span><span class="lab">own rider · attempt 1</span></td><td><span class="pill p-grey">not asked</span></td><td><span class="val">৳ 2,670</span></td><td><span class="pill p-red">Failed · not reachable</span></td><td><div class="acts"><button class="btn red">Decide · retry / cancel</button><button class="btn">Open</button></div></td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- ================= 3. SETTLE ================= -->
+  <section class="page" id="p-settle">
+    <div class="legend">One list of parcels whose money is not finished: delivery cost not typed, or COD cash still with the carrier. Three tabs by carrier kind. One-time riders never get a name — they are grouped by platform, cost was usually paid in cash at the door.</div>
+    <div class="band"><div class="top"><div><h1>Settle</h1><div class="sub">delivery cost + COD cash, per parcel</div></div><button class="newbtn">Export</button></div>
+      <div class="tiles" style="grid-template-columns:repeat(5,1fr)">
+        <button class="tile on"><span class="k">Cash with carriers</span><span class="v hot">৳ 21,450</span><span class="s">14 COD parcels delivered</span></button>
+        <button class="tile"><span class="k">Cost not recorded</span><span class="v">9</span><span class="s">parcels</span></button>
+        <button class="tile"><span class="k">Own riders</span><span class="v">৳ 12,300</span><span class="s">cash · 3 riders</span></button>
+        <button class="tile"><span class="k">Courier companies</span><span class="v">৳ 9,150</span><span class="s">Pathao 6 · RedX 2</span></button>
+        <button class="tile"><span class="k">One-time · this month</span><span class="v">৳ 4,680</span><span class="s">34 rides · Pathao 29 · Uber 5</span></button>
+      </div></div>
+    <div class="tabs"><button class="on" onclick="tab(this,'s-own')">Own riders<span>8</span></button><button onclick="tab(this,'s-cour')">Courier companies<span>8</span></button><button onclick="tab(this,'s-one')">One-time riders<span>7</span></button></div>
+    <div class="sub on" id="s-own">
+      <div class="tools"><select class="ipt"><option>Rahman · 5 parcels · ৳ 8,900 cash</option><option>Deshi</option><option>Sumon</option></select><div class="search"><input class="ipt" placeholder="Order no"></div><button class="btn p w" style="height:40px">Settle Rahman · 5 parcels</button></div>
+      <div class="tbl"><table>
+        <thead><tr><th><input type="checkbox" checked></th><th>Delivered</th><th>Order No</th><th>Customer</th><th>COD</th><th>Cash</th><th>Delivery cost</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr><td><input type="checkbox" checked></td><td><span class="val">Today · 1:10 pm</span></td><td><span class="no">RAD-60112</span></td><td><span class="name">Rafiq Corp.</span><span class="lab">Motijheel</span></td><td><span class="val">৳ 3,200</span></td><td><span class="pill p-amber">with Rahman</span></td><td><input class="cell-in" placeholder="৳"></td><td><span class="pill p-grey">open</span></td></tr>
+        <tr><td><input type="checkbox" checked></td><td><span class="val">Today · 12:05 pm</span></td><td><span class="no">RAD-60098</span></td><td><span class="name">Tanvir Ahmed</span><span class="lab">Gulshan 2</span></td><td><span class="soft">prepaid</span></td><td><span class="pill p-grey">—</span></td><td><input class="cell-in" placeholder="৳"></td><td><span class="pill p-grey">open</span></td></tr>
+        <tr><td><input type="checkbox" checked></td><td><span class="val">Yesterday · 6:40 pm</span></td><td><span class="no">RAD-59980</span></td><td><span class="name">Sadia Islam</span><span class="lab">Uttara</span></td><td><span class="val">৳ 1,200</span></td><td><span class="pill p-amber">with Rahman</span></td><td><input class="cell-in" value="80"></td><td><span class="pill p-grey">open</span></td></tr>
+        <tr><td></td><td><span class="val">Yesterday · 2:15 pm</span></td><td><span class="no">RAD-59901</span></td><td><span class="name">Mehedi Hasan</span><span class="lab">Mirpur</span></td><td><span class="val">৳ 1,850</span></td><td><span class="pill p-green">collected · 9 Sep</span></td><td><span class="val">৳ 80</span></td><td><span class="pill p-green">settled</span></td></tr>
+        </tbody></table></div>
+      <div style="font-size:12px;color:var(--mute);margin-top:8px">Settle = cash in hand becomes <b>collected</b> on every ticked parcel and the typed cost is expensed once (5200 Delivery cost). Nothing is pre-filled.</div>
+    </div>
+    <div class="sub" id="s-cour">
+      <div class="tools"><select class="ipt"><option>Pathao Courier · 6 parcels</option><option>RedX</option></select><div class="search"><input class="ipt" placeholder="Order no, CN"></div><button class="btn p w" style="height:40px">Settle from statement</button></div>
+      <div class="tbl"><table><thead><tr><th><input type="checkbox"></th><th>Delivered</th><th>Order No</th><th>CN</th><th>Customer</th><th>COD</th><th>Cash</th><th>Delivery charge</th><th>Status</th></tr></thead>
+        <tbody><tr><td><input type="checkbox"></td><td><span class="val">Today · 5:20 pm</span></td><td><span class="no">RAD-77510</span></td><td>88213</td><td><span class="name">Farhana Akter</span><span class="lab">Chattogram</span></td><td><span class="val">৳ 2,700</span></td><td><span class="pill p-amber">with Pathao</span></td><td><input class="cell-in" placeholder="৳"></td><td><span class="pill p-grey">open</span></td></tr></tbody></table></div>
+    </div>
+    <div class="sub" id="s-one">
+      <div class="tools"><div class="segs"><button class="on">This month<span>34</span></button><button>Pathao ride<span>29</span></button><button>Uber<span>5</span></button><button>Other<span>0</span></button></div><div class="search"><input class="ipt" placeholder="Order no, phone"></div></div>
+      <div class="tbl"><table><thead><tr><th>Delivered</th><th>Order No</th><th>Platform</th><th>Rider phone</th><th>Customer</th><th>COD</th><th>Cash</th><th>Paid to rider</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr><td><span class="val">Today · 3:05 pm</span></td><td><span class="no">RAD-71253</span></td><td><span class="val">Pathao ride</span></td><td>01700-556677</td><td><span class="name">Mehedi Hasan</span></td><td><span class="val">৳ 1,850</span></td><td><span class="pill p-green">collected at door · Rakib</span></td><td><span class="val">৳ 120</span><span class="lab">cash · at assign</span></td><td><span class="pill p-green">settled</span></td></tr>
+        <tr><td><span class="val">Today · 1:40 pm</span></td><td><span class="no">RAD-71190</span></td><td><span class="val">Uber</span></td><td><span class="soft">—</span></td><td><span class="name">Lubna Chowdhury</span></td><td><span class="soft">prepaid</span></td><td>—</td><td><input class="cell-in" placeholder="৳"></td><td><span class="pill p-grey">cost missing</span></td></tr>
+        </tbody></table></div>
+      <div style="font-size:12px;color:var(--mute);margin-top:8px">A one-time rider's COD: the rider hands the cash to staff at the shop the same trip, so the row is marked "collected at door" by whoever received it. If that is not how it happens, say so and the row keeps "with rider" until settled.</div>
+    </div>
+  </section>
+
+  <!-- ================= 4. DELIVERY SETUP ================= -->
+  <section class="page" id="p-setup">
+    <div class="legend">One module, four tabs, in the order you set things up. Methods & slots and Zone setup are the two rooms that already exist (make once, connect per zone); Riders & couriers brings the Riders page and Administration → Courier & delivery here; Rules holds the photo switch and blackout days.</div>
+    <div class="band"><div class="top"><div><h1>Delivery setup</h1><div class="sub">what Radian offers, where, for how much, and who carries it</div></div></div></div>
+    <div class="tabs"><button class="on" onclick="tab(this,'u-m')">1 · Methods &amp; slots</button><button onclick="tab(this,'u-z')">2 · Zones &amp; pricing</button><button onclick="tab(this,'u-r')">3 · Riders &amp; couriers</button><button onclick="tab(this,'u-rules')">4 · Rules</button></div>
+    <div class="sub on" id="u-m"><div class="g2">
+      <div class="card"><h3>Methods <span>the shapes customers pick</span></h3><div class="list">
+        <div><span><b>2 Hour Delivery</b> · Dhaka · rider</span><span class="soft">within 120 min from confirm · 10 am – 8 pm</span></div>
+        <div><span><b>Same Day</b> · Dhaka · rider</span><span class="soft">today, customer picks a slot</span></div>
+        <div><span><b>Midnight</b> · Dhaka · rider</span><span class="soft">any date · 11:30 pm – 12:00 am</span></div>
+        <div><span><b>Schedule it</b> · Dhaka · rider</span><span class="soft">any date + slot</span></div>
+        <div><span><b>Nationwide</b> · Bangladesh · courier</span><span class="soft">in 2–3 days · promise only</span></div>
+      </div><button class="btn w" style="margin-top:10px">+ Method</button></div>
+      <div class="card"><h3>Time slots <span>reused by every method</span></h3><div class="list">
+        <div><span>Morning</span><span class="soft">9:00 AM – 12:00 PM</span></div><div><span>Afternoon</span><span class="soft">12:00 – 3:00 PM</span></div><div><span>Evening</span><span class="soft">4:00 – 6:00 PM</span></div><div><span>Night</span><span class="soft">6:00 – 9:00 PM</span></div><div><span>Midnight</span><span class="soft">11:30 PM – 12:00 AM</span></div>
+      </div><button class="btn w" style="margin-top:10px">+ Slot</button></div>
+    </div></div>
+    <div class="sub" id="u-z"><div class="g2">
+      <div class="card"><h3>Zones</h3><div class="list"><div><span><b>Dhaka</b></span><span class="soft">Gulshan · Banani · Dhanmondi · Uttara · Mirpur · Motijheel</span></div><div><span><b>Bangladesh</b></span><span class="soft">Chattogram · Sylhet · everywhere else</span></div></div><button class="btn w" style="margin-top:10px">+ Area</button></div>
+      <div class="card"><h3>Gulshan · what is on <span>price · slots · capacity</span></h3><div class="list">
+        <div><span>2 Hour Delivery</span><span><b>৳ 150</b> · no slot</span></div>
+        <div><span>Same Day</span><span><b>৳ 100</b> · Morning 20 · Afternoon 20 · Evening 30</span></div>
+        <div><span>Midnight</span><span><b>৳ 250</b> · Midnight 15</span></div>
+        <div><span>Schedule it</span><span><b>৳ 80</b> · all slots</span></div>
+      </div><button class="btn w" style="margin-top:10px">+ Attach method</button></div>
+    </div></div>
+    <div class="sub" id="u-r"><div class="g2">
+      <div class="card"><h3>Own riders</h3><div class="list"><div><span><b>Rahman</b> · 01811-000111</span><span class="pill p-green">active</span></div><div><span><b>Deshi</b> · 01911-222333</span><span class="pill p-green">active</span></div><div><span><b>Sumon</b> · 01711-444555</span><span class="pill p-grey">off</span></div></div><button class="btn w" style="margin-top:10px">+ Rider</button></div>
+      <div class="card"><h3>Courier companies <span>API key lives here too</span></h3><div class="list"><div><span><b>Pathao Courier</b></span><span class="pill p-green">connected</span></div><div><span><b>RedX</b></span><span class="pill p-grey">manual · no API</span></div><div><span><b>Steadfast</b></span><span class="pill p-grey">off</span></div></div><button class="btn w" style="margin-top:10px">+ Courier</button>
+        <div style="font-size:12px;color:var(--mute);margin-top:10px">One-time riders (Pathao ride / Uber) are not set up anywhere — they are typed on the order at assign time and never saved as a person.</div></div>
+    </div></div>
+    <div class="sub" id="u-rules"><div class="g2">
+      <div class="card"><h3>Photo</h3><div class="list">
+        <div><span>Customer can ask for a photo at checkout</span><span class="pill p-green">on</span></div>
+        <div><span>Options offered</span><span class="soft">before delivery · after delivery · both</span></div>
+        <div><span>Send to</span><span class="soft">WhatsApp → email → profile only</span></div>
+        <div><span>Photo required before "Out for delivery" (when ticked "before")</span><span class="pill p-green">on</span></div>
+        <div><span>Photo required before "Delivered" (when ticked "after")</span><span class="pill p-green">on</span></div>
+      </div></div>
+      <div class="card"><h3>Blackout days</h3><div class="list"><div><span>21 Feb · all methods</span><span class="soft">holiday</span></div><div><span>14 Feb · 2 Hour only</span><span class="soft">Valentine rush</span></div></div><button class="btn w" style="margin-top:10px">+ Blackout</button></div>
+    </div></div>
+  </section>
+
+  <!-- ================= 5. CHECKOUT TICK ================= -->
+  <section class="page" id="p-co">
+    <div class="legend">Storefront checkout, delivery step. One tick, three choices. The tick is saved on the order and drives the gates on the admin side.</div>
+    <div class="co">
+      <h4>Want to see it before it goes?</h4>
+      <p>We photograph your gift and send it to you on WhatsApp (or email). You can reply with changes.</p>
+      <div class="row on"><input type="checkbox" checked style="margin-top:3px"><div><b>Yes, send me a photo</b><span>Free · saved to your account too</span>
+        <div class="sw"><button class="on">Before delivery</button><button>After delivery</button><button>Both</button></div></div></div>
+      <div class="row"><input type="checkbox" style="margin-top:3px"><div><b>No photo needed</b><span>We will just deliver on time</span></div></div>
+    </div>
+  </section>
+</div>
+<script>
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));document.querySelectorAll('.pagebar button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));window.scrollTo(0,0)}
+function tab(t,id){const wrap=t.parentElement;wrap.querySelectorAll('button').forEach(b=>b.classList.remove('on'));t.classList.add('on');const sec=wrap.parentElement;sec.querySelectorAll('.sub').forEach(s=>s.classList.toggle('on',s.id===id))}
+</script>
+</body>
+</html>

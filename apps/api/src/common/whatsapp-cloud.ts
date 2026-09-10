@@ -47,6 +47,8 @@ export const TPL = {
   abandoned: process.env.WA_TPL_CHECKOUT_ABANDONED || 'checkout_abandoned',
   /** DEC-WEB-008 — {{1}} name, {{2}} product, URL button = /review/{{token}} */
   review: process.env.WA_TPL_REVIEW_REQUEST || 'review_request',
+  /** Owner, 10 Sep 2026 — IMAGE header = the gift, {{1}} name, {{2}} order number */
+  photo: process.env.WA_TPL_PHOTO_UPDATE || 'order_photo_update',
   /**
    * The one-time code. Meta's AUTHENTICATION category, which is not a label we
    * choose — it has its own shape (a copy-code button, no free text) and its
@@ -204,6 +206,27 @@ export class WhatsAppCloudService {
       },
     };
   }
+  /**
+   * A template whose header is a picture (Meta: header component of type
+   * image, given by public URL). The gift photograph goes out this way —
+   * owner, 10 Sep 2026. Outside the 24-hour window Meta accepts nothing but
+   * a template, so a bare image message would be refused.
+   */
+  templateWithImage(name: string, imageUrl: string, params: string[], lang = 'en') {
+    return {
+      messaging_product: 'whatsapp',
+      type: 'template',
+      template: {
+        name,
+        language: { code: lang },
+        components: [
+          { type: 'header', parameters: [{ type: 'image', image: { link: imageUrl } }] },
+          { type: 'body', parameters: params.map((text) => ({ type: 'text', text })) },
+        ],
+      },
+    };
+  }
+
 
   /**
    * The one-time code (DEC-WA-010). An AUTHENTICATION template wants the same
