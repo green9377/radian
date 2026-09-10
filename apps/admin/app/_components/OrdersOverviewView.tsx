@@ -2,19 +2,39 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import Icon from "./Icon";
-import { WRAP, ErrorBox } from "./OrderViews";
+import { ErrorBox } from "./OrderViews";
 import { ordersOverview, deliveryMoney, formatTaka, type ApiOrdersOverview, type ApiOverviewWatch } from "../_data/api";
-import { SOLID, SOFT, Pill, ActButton, Empty } from "./OrdersUi";
 
 /*
-  Orders → Overview — design E, "Today's slots" (owner, 11 Sep 2026, chosen
-  from five). Delivery-first: the day laid out by delivery slot with what is
-  waiting, preparing and out in each; payment and gift mix as small donuts;
-  the month's money; and a watch list of the few orders a person should
-  open first. Everything is counted in the database (GET /orders/overview);
-  "Cash with rider" comes from Delivery money, which owns that number.
+  Orders → Overview — design E, "Today's slots", exactly as the owner chose
+  it (11 Sep 2026): the dark canvas, the framed page, four slot cards, three
+  small cards (payment, self vs gift, money) and the watch list. Nothing
+  added, nothing moved. Everything is counted in the database
+  (GET /orders/overview); "Cash with rider" comes from Delivery money, which
+  owns that number.
+
+  This page is the one dark screen in the admin — on purpose, it is the
+  design the owner approved from five. The colours below are that design's
+  dark tokens, kept here and nowhere else so the rest of the admin stays as
+  it is.
 */
+
+const T = {
+  bg: "#16101c",
+  card: "#1f1727",
+  line: "#3a2d45",
+  ink: "#f1eaf6",
+  grey: "#a79bb3",
+  lav: "#241a2c",
+  lav2: "#33263d",
+  purple: "#470066",
+  orchid: "#cf43ea",
+  green: "#3ddc84",
+  amber: "#f5a524",
+  red: "#ff6b60",
+  blue: "#5aa9f0",
+  tint: { g: "#12321f", a: "#3a2a10", r: "#3d1a17", b: "#14283b", p: "#2e1d3a", n: "#241a2c" },
+};
 
 const DHAKA = 6 * 3600_000;
 function dhakaToday(): string {
@@ -35,21 +55,37 @@ function dayName(date: string, style: "long" | "short"): string {
 }
 
 const WATCH_DOT: Record<ApiOverviewWatch["kind"], string> = {
-  LATE: SOLID.red,
-  FAILED: SOLID.red,
-  COD_CALL: SOLID.amber,
-  PHOTO: SOLID.amber,
-  UNCONFIRMED: SOLID.blue,
+  LATE: T.red,
+  FAILED: T.red,
+  COD_CALL: T.amber,
+  PHOTO: T.amber,
+  UNCONFIRMED: T.blue,
 };
 
-function Donut({ parts, size = 74 }: { parts: { value: number; colour: string }[]; size?: number }) {
+function Pill({ tone, children }: { tone: "g" | "a" | "r" | "b" | "p" | "n"; children: React.ReactNode }) {
+  const colour = { g: T.green, a: T.amber, r: T.red, b: T.blue, p: T.orchid, n: T.grey }[tone];
+  return (
+    <span className="inline-block rounded-full px-[9px] py-[2px] text-[11px] font-medium leading-[1.5] whitespace-nowrap" style={{ background: T.tint[tone], color: colour }}>
+      {children}
+    </span>
+  );
+}
+
+function Btn({ primary, onClick, href, children }: { primary?: boolean; onClick?: () => void; href?: string; children: React.ReactNode }) {
+  const cls = "inline-flex items-center gap-1.5 h-[36px] px-3.5 rounded-[10px] text-[12.5px] font-medium whitespace-nowrap border";
+  const style = primary ? { background: T.purple, borderColor: T.purple, color: "#fff" } : { background: T.card, borderColor: T.line, color: T.ink };
+  if (href) return <Link href={href} className={cls} style={style}>{children}</Link>;
+  return <button type="button" onClick={onClick} className={cls} style={style}>{children}</button>;
+}
+
+function Donut({ parts }: { parts: { value: number; colour: string }[] }) {
   const total = parts.reduce((s, p) => s + p.value, 0);
   const r = 14;
   const c = 2 * Math.PI * r;
   let offset = 0;
   return (
-    <svg viewBox="0 0 36 36" width={size} height={size} className="shrink-0" aria-hidden="true">
-      <circle cx="18" cy="18" r={r} fill="none" stroke="#e6d9f0" strokeWidth="6" />
+    <svg viewBox="0 0 36 36" width={74} height={74} className="shrink-0" aria-hidden="true">
+      <circle cx="18" cy="18" r={r} fill="none" stroke={T.lav2} strokeWidth="6" />
       {total > 0 &&
         parts.map((p, i) => {
           const len = (p.value / total) * c;
@@ -63,17 +99,30 @@ function Donut({ parts, size = 74 }: { parts: { value: number; colour: string }[
 
 function Legend({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
-    <span className="text-[12.5px] text-body flex items-center gap-2">
+    <span className="text-[12px] flex items-center gap-1.5" style={{ color: T.ink }}>
       <i className="inline-block w-[9px] h-[9px] rounded-[2px]" style={{ background: colour }} />
       {children}
     </span>
   );
 }
 
-const CARD = "bg-white border border-[#e4dbec] rounded-[14px] px-4 py-3.5";
-const H3 = "text-[13px] font-medium text-body mb-2.5";
-const HINT = "text-[11.5px] font-normal text-[#7b6b87] ml-1.5";
-const KV = "flex justify-between items-center py-[7px] border-b border-dashed border-[#e4dbec] last:border-0 text-[13px]";
+const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 16px" };
+function H3({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="text-[13px] font-semibold mb-2.5" style={{ color: T.ink }}>
+      {children}
+      {hint && <span className="text-[11px] font-normal ml-1.5" style={{ color: T.grey }}>{hint}</span>}
+    </div>
+  );
+}
+function KV({ label, value, colour }: { label: string; value: string; colour?: string }) {
+  return (
+    <div className="flex justify-between items-center py-[7px] text-[13px]" style={{ borderBottom: `1px dashed ${T.line}` }}>
+      <span style={{ color: T.ink }}>{label}</span>
+      <b className="font-medium tabular-nums" style={{ color: colour ?? T.ink }}>{value}</b>
+    </div>
+  );
+}
 
 export default function OrdersOverviewView() {
   const [date, setDate] = useState<string>(dhakaToday());
@@ -100,133 +149,112 @@ export default function OrdersOverviewView() {
   }, [date, load]);
 
   const c = data?.counts;
-  const v = (n: number | undefined) => (loading || n === undefined ? "…" : String(n));
   const money = (n: number | undefined) => (loading || n === undefined ? "…" : formatTaka(n));
   const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 100)}%` : "0%");
   const isToday = data ? data.isToday : date === dhakaToday();
 
   return (
-    <div className={WRAP}>
-      {/* head */}
-      <div className="flex justify-between items-end gap-3 flex-wrap mb-4">
-        <div>
-          <div className="text-[10.5px] font-medium tracking-[0.14em] uppercase" style={{ color: SOLID.orchid }}>
-            Sales · Orders · {isToday ? "Today" : "Day"}
-          </div>
-          <h1 className="font-display text-[26px] leading-[1.1] text-body mt-1">{dayName(date, "long")}</h1>
-          <div className={`${SOFT} text-[13px] mt-1`}>
-            {loading || !c ? "…" : `${c.toConfirm} waiting for a confirm · ${c.goingOutToday} going out ${isToday ? "today" : "that day"} · ${c.late} late`}
-          </div>
-        </div>
-        <div className="flex gap-2 items-center">
-          <div className="w-[84px]"><ActButton onClick={() => setDate(shift(date, -1))}>◀ {dayName(shift(date, -1), "short")}</ActButton></div>
-          {!isToday && <div className="w-[76px]"><ActButton onClick={() => setDate(dhakaToday())}>Today</ActButton></div>}
-          <div className="w-[84px]"><ActButton onClick={() => setDate(shift(date, 1))}>{dayName(shift(date, 1), "short")} ▶</ActButton></div>
-          <Link href="/orders/new" className="h-[36px] px-4 rounded-[10px] bg-purple text-white text-[12.5px] font-medium inline-flex items-center gap-1.5 hover:bg-purple-deep whitespace-nowrap">
-            <Icon name="plus" size={15} /> New order
-          </Link>
-        </div>
-      </div>
-      {error && <ErrorBox error={error} onRetry={() => void load(date)} />}
-
-      {/* slots */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {(data?.slots ?? []).map((s, i, all) => (
-          <div key={s.label + s.time} className={`${CARD} ${i === all.length - 1 && all.length > 1 ? "bg-lavender" : ""}`}>
-            <div className="flex justify-between items-center gap-2">
-              <b className="font-medium text-body">{s.label}</b>
-              <span className="text-[11px] text-[#7b6b87] whitespace-nowrap">{s.time}</span>
+    <div className="px-4 md:px-6 xl:px-8 pt-6 pb-16 w-full min-h-full" style={{ background: T.bg, color: T.ink, fontSize: 13 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22, boxShadow: "0 10px 30px rgba(0,0,0,.35)" }}>
+        {/* head */}
+        <div className="flex justify-between items-end gap-3 flex-wrap">
+          <div>
+            <div className="text-[10.5px] font-semibold tracking-[0.14em] uppercase" style={{ color: T.orchid }}>
+              Sales · Orders · {isToday ? "Today" : "Day"}
             </div>
-            <div className="text-[26px] leading-none font-medium text-body my-2">{s.total}</div>
-            <div className="flex gap-1.5 flex-wrap">
-              {s.toConfirm > 0 && <Pill colour={SOLID.amber}>{s.toConfirm} to confirm</Pill>}
-              {s.preparing > 0 && <Pill colour={SOLID.purple}>{s.preparing} preparing</Pill>}
-              {s.ready > 0 && <Pill colour={SOLID.green}>{s.ready} ready</Pill>}
-              {s.out > 0 && <Pill colour={SOLID.blue}>{s.out} on the road</Pill>}
-              {s.late > 0 && <Pill colour={SOLID.red}>{s.late} late</Pill>}
-              {s.delivered > 0 && <Pill colour={SOLID.green}>{s.delivered} delivered</Pill>}
-              {s.failed > 0 && <Pill colour={SOLID.red}>{s.failed} failed</Pill>}
+            <h1 className="text-[22px] leading-[1.1] font-semibold mt-1" style={{ color: T.ink }}>{dayName(date, "long")}</h1>
+            <div className="text-[13px] mt-1" style={{ color: T.grey }}>
+              {loading || !c ? "…" : `${c.toConfirm} waiting for a confirm · ${c.goingOutToday} going out ${isToday ? "today" : "that day"} · ${c.late} late`}
             </div>
           </div>
-        ))}
-        {!loading && data && data.slots.length === 0 && (
-          <div className={`${CARD} col-span-full`}>
-            <Empty text={isToday ? "Nothing scheduled for today yet." : "Nothing scheduled for this day."} />
-          </div>
-        )}
-        {loading && !data && [0, 1, 2, 3].map((i) => <div key={i} className={`${CARD} h-[104px] animate-pulse`} />)}
-      </div>
-
-      {/* counters that do not belong to a day */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-3">
-        {([
-          ["To confirm", v(c?.toConfirm), c ? `${c.toConfirmPaid} paid · ${c.toConfirmCod} COD` : "", "/orders/list", (c?.toConfirm ?? 0) > 0],
-          ["Not assigned", v(c?.notAssigned), "preparing, nobody carrying it", "/delivery", false],
-          ["Photo pending", v(c?.photoPending), "customer asked for one", "/delivery", false],
-          ["On the road", v(c?.onRoad), c ? `${c.late} late` : "", "/delivery", (c?.late ?? 0) > 0],
-          ["Failed", v(c?.failed), "waiting for a decision", "/delivery", (c?.failed ?? 0) > 0],
-          ["Delivered", v(c?.deliveredToday), isToday ? "today" : "that day", "/delivery", false],
-        ] as [string, string, string, string, boolean][]).map(([label, value, sub, href, hot]) => (
-          <Link key={label} href={href} className={`${CARD} hover:border-purple transition-colors`} style={hot ? { boxShadow: `inset 0 0 0 1.5px ${SOLID.orchid}` } : undefined}>
-            <div className="text-[11px] font-medium text-[#7b6b87]">{label}</div>
-            <div className="text-[22px] leading-none font-medium my-1.5" style={{ color: hot ? SOLID.orchid : undefined }}>{value}</div>
-            <div className="text-[11px] text-[#7b6b87]">{sub}</div>
-          </Link>
-        ))}
-      </div>
-
-      {/* mix + money */}
-      <div className="grid md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr] gap-3 mt-3">
-        <div className={CARD}>
-          <div className={H3}>Payment<span className={HINT}>this month</span></div>
-          <div className="flex items-center gap-4">
-            <Donut parts={[{ value: data?.mix.online ?? 0, colour: SOLID.purple }, { value: data?.mix.cod ?? 0, colour: SOLID.amber }]} />
-            <div className="grid gap-1">
-              <Legend colour={SOLID.purple}>Online · {data ? pct(data.mix.online, data.mix.total) : "…"}</Legend>
-              <Legend colour={SOLID.amber}>Cash on delivery · {data ? pct(data.mix.cod, data.mix.total) : "…"}</Legend>
-              <span className="text-[11px] text-[#7b6b87]">{data ? `${data.mix.total} orders placed` : ""}</span>
-            </div>
+          <div className="flex gap-2 items-center flex-wrap">
+            <Btn onClick={() => setDate(shift(date, -1))}>◀ {dayName(shift(date, -1), "short")}</Btn>
+            {!isToday && <Btn onClick={() => setDate(dhakaToday())}>Today</Btn>}
+            <Btn onClick={() => setDate(shift(date, 1))}>{dayName(shift(date, 1), "short")} ▶</Btn>
+            <Btn primary href="/orders/new">+ New order</Btn>
           </div>
         </div>
-        <div className={CARD}>
-          <div className={H3}>Self vs gift<span className={HINT}>this month</span></div>
-          <div className="flex items-center gap-4">
-            <Donut parts={[{ value: data?.mix.gift ?? 0, colour: SOLID.orchid }, { value: data?.mix.self ?? 0, colour: "#e6d9f0" }]} />
-            <div className="grid gap-1">
-              <Legend colour={SOLID.orchid}>Gift · {data ? pct(data.mix.gift, data.mix.total) : "…"}</Legend>
-              <Legend colour="#e6d9f0">Self · {data ? pct(data.mix.self, data.mix.total) : "…"}</Legend>
-              <span className="text-[11px] text-[#7b6b87]">Gift orders carry a card message</span>
-            </div>
-          </div>
-        </div>
-        <div className={CARD}>
-          <div className={H3}>Money<span className={HINT}>delivered only</span></div>
-          <div className={KV}><span>Revenue this month</span><b className="font-medium tabular-nums">{money(data?.money.revenueMonth)}</b></div>
-          <div className={KV}><span>Average order</span><b className="font-medium tabular-nums">{money(data?.money.aov)}</b></div>
-          <div className={KV}><span>Due from customer</span><b className="font-medium tabular-nums" style={{ color: SOLID.amber }}>{money(data?.money.dueFromCustomer)}</b></div>
-          <div className={KV}><span>Cash with rider</span><b className="font-medium tabular-nums">{withRider === null ? "—" : formatTaka(withRider)}</b></div>
-          <div className={KV}><span>Refunded</span><b className="font-medium tabular-nums" style={{ color: SOLID.red }}>{money(data?.money.refundedMonth)}</b></div>
-        </div>
-      </div>
+        {error && <div className="mt-3"><ErrorBox error={error} onRetry={() => void load(date)} /></div>}
 
-      {/* watch list */}
-      <div className={`${CARD} mt-3`}>
-        <div className={H3}>Watch list<span className={HINT}>open these first</span></div>
-        {data && data.watch.length === 0 && !loading && <div className={`${SOFT} text-[13px] py-2`}>Nothing needs a hand right now.</div>}
-        <ul className="m-0 p-0 list-none">
-          {(data?.watch ?? []).map((w) => (
-            <li key={w.id} className="flex gap-2.5 items-start py-2 border-b border-[#e4dbec] last:border-0">
-              <span className="w-2 h-2 rounded-full mt-[7px] shrink-0" style={{ background: WATCH_DOT[w.kind] }} />
-              <div className="min-w-0 flex-1">
-                <Link href={`/orders/${w.id}`} className="font-medium text-purple hover:underline">{w.orderNo}</Link>
-                {w.slot && <span className="text-body"> · {w.slot}</span>}
-                <span className="text-body"> · {w.title}</span>
-                <span className="text-[12px] text-[#7b6b87] ml-2">{w.detail}</span>
+        {/* slots */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+          {(data?.slots ?? []).map((s, i, all) => (
+            <div key={s.label + s.time} style={{ ...card, background: i === all.length - 1 && all.length > 1 ? T.lav : T.card, padding: "12px 14px" }}>
+              <div className="flex justify-between items-center gap-2">
+                <b className="font-semibold" style={{ color: T.ink }}>{s.label}</b>
+                <span className="text-[11px] whitespace-nowrap" style={{ color: T.grey }}>{s.time}</span>
               </div>
-              <div className="w-[76px] shrink-0"><ActButton href={`/orders/${w.id}`}>Open</ActButton></div>
-            </li>
+              <div className="text-[26px] leading-none font-semibold my-2 tabular-nums" style={{ color: T.ink }}>{s.total}</div>
+              <div className="flex gap-[5px] flex-wrap">
+                {s.toConfirm > 0 && <Pill tone="a">{s.toConfirm} to confirm</Pill>}
+                {s.preparing > 0 && <Pill tone="p">{s.preparing} preparing</Pill>}
+                {s.ready > 0 && <Pill tone="g">{s.ready} ready</Pill>}
+                {s.out > 0 && <Pill tone="b">{s.out} on the road</Pill>}
+                {s.late > 0 && <Pill tone="r">{s.late} late</Pill>}
+                {s.delivered > 0 && <Pill tone="g">{s.delivered} delivered</Pill>}
+                {s.failed > 0 && <Pill tone="r">{s.failed} failed</Pill>}
+              </div>
+            </div>
           ))}
-        </ul>
+          {!loading && data && data.slots.length === 0 && (
+            <div className="col-span-full text-[13px] py-3 text-center" style={{ ...card, color: T.grey }}>
+              {isToday ? "Nothing scheduled for today yet." : "Nothing scheduled for this day."}
+            </div>
+          )}
+          {loading && !data && [0, 1, 2, 3].map((i) => <div key={i} className="h-[104px] animate-pulse" style={card} />)}
+        </div>
+
+        {/* mix + money */}
+        <div className="grid md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr] gap-3 mt-3">
+          <div style={card}>
+            <H3 hint="this month">Payment</H3>
+            <div className="flex items-center gap-3.5">
+              <Donut parts={[{ value: data?.mix.online ?? 0, colour: T.purple }, { value: data?.mix.cod ?? 0, colour: T.amber }]} />
+              <div className="grid gap-1">
+                <Legend colour={T.purple}>Online {data ? pct(data.mix.online, data.mix.total) : "…"}</Legend>
+                <Legend colour={T.amber}>COD {data ? pct(data.mix.cod, data.mix.total) : "…"}</Legend>
+                <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${data.mix.total} orders placed` : ""}</span>
+              </div>
+            </div>
+          </div>
+          <div style={card}>
+            <H3>Self vs gift</H3>
+            <div className="flex items-center gap-3.5">
+              <Donut parts={[{ value: data?.mix.gift ?? 0, colour: T.orchid }, { value: data?.mix.self ?? 0, colour: T.lav2 }]} />
+              <div className="grid gap-1">
+                <Legend colour={T.orchid}>Gift {data ? pct(data.mix.gift, data.mix.total) : "…"}</Legend>
+                <Legend colour={T.lav2}>Self {data ? pct(data.mix.self, data.mix.total) : "…"}</Legend>
+                <span className="text-[11px]" style={{ color: T.grey }}>Gift orders carry a card message</span>
+              </div>
+            </div>
+          </div>
+          <div style={card}>
+            <H3 hint="delivered only">Money</H3>
+            <KV label="Revenue this month" value={money(data?.money.revenueMonth)} />
+            <KV label="Due from customer" value={money(data?.money.dueFromCustomer)} colour={T.amber} />
+            <KV label="Cash with rider" value={withRider === null ? "—" : formatTaka(withRider)} />
+            <KV label="Refunded" value={money(data?.money.refundedMonth)} colour={T.red} />
+          </div>
+        </div>
+
+        {/* watch list */}
+        <div className="mt-3" style={card}>
+          <H3>Watch list</H3>
+          {data && data.watch.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>Nothing needs a hand right now.</div>}
+          <ul className="m-0 p-0 list-none">
+            {(data?.watch ?? []).map((w, i, all) => (
+              <li key={w.id} className="flex gap-2.5 items-start py-2" style={{ borderBottom: i < all.length - 1 ? `1px solid ${T.line}` : "none" }}>
+                <span className="w-2 h-2 rounded-full mt-[7px] shrink-0" style={{ background: WATCH_DOT[w.kind] }} />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/orders/${w.id}`} className="font-semibold hover:underline" style={{ color: T.ink }}>
+                    {w.orderNo}{w.slot ? ` · ${w.slot}` : ""} · {w.title}
+                  </Link>
+                  <span className="text-[12px] ml-2" style={{ color: T.grey }}>{w.detail}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
