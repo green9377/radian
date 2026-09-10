@@ -85,7 +85,7 @@ function Carriers() {
           <button type="button" onClick={() => setRider({ name: "", phone: "", vehicle: "", isActive: true })} className="h-[32px] px-3 rounded-[9px] bg-purple text-white text-[12.5px] font-medium">+ Rider</button>
         </div>
         {rider && (
-          <div className="rounded-[12px] border border-[#e4dbec] bg-white p-3 mb-2 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2 items-end">
+          <div className="rounded-[12px] border border-[#3e3447] bg-white p-3 mb-2 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2 items-end">
             <div><span className={LABEL}>Name</span><input className={input} value={rider.name ?? ""} onChange={(e) => setRider({ ...rider, name: e.target.value })} /></div>
             <div><span className={LABEL}>Phone</span><input className={input} value={rider.phone ?? ""} onChange={(e) => setRider({ ...rider, phone: e.target.value })} /></div>
             <div><span className={LABEL}>Vehicle</span><input className={input} value={rider.vehicle ?? ""} onChange={(e) => setRider({ ...rider, vehicle: e.target.value })} placeholder="bike, cycle, van" /></div>
@@ -101,7 +101,7 @@ function Carriers() {
             <Head heads={["Rider", "Phone", "Vehicle", "Today", "Status", ""]} />
             <tbody>
               {(riders ?? []).map((r) => (
-                <tr key={r.id} className="hover:bg-[#fcfaff]">
+                <tr key={r.id} className="hover:bg-[#231538]">
                   <td className={CELL}><span className={NAME}>{r.name}</span></td>
                   <td className={CELL}><span className={SOFT}>{r.phone || "—"}</span></td>
                   <td className={CELL}><span className={SOFT}>{r.vehicle || "—"}</span></td>
@@ -128,7 +128,7 @@ function Carriers() {
           <button type="button" onClick={() => setCourier({ name: "", phone: "", trackingUrlTemplate: "", isActive: true })} className="h-[32px] px-3 rounded-[9px] bg-purple text-white text-[12.5px] font-medium">+ Courier</button>
         </div>
         {courier && (
-          <div className="rounded-[12px] border border-[#e4dbec] bg-white p-3 mb-2 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2 items-end">
+          <div className="rounded-[12px] border border-[#3e3447] bg-white p-3 mb-2 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2 items-end">
             <div><span className={LABEL}>Name</span><input className={input} value={courier.name ?? ""} onChange={(e) => setCourier({ ...courier, name: e.target.value })} placeholder="Pathao Courier, RedX…" /></div>
             <div><span className={LABEL}>Phone</span><input className={input} value={courier.phone ?? ""} onChange={(e) => setCourier({ ...courier, phone: e.target.value })} /></div>
             <div className="col-span-full"><span className={LABEL}>Tracking link · {"{cn}"} = consignment no</span><input className={input} value={courier.trackingUrlTemplate ?? ""} onChange={(e) => setCourier({ ...courier, trackingUrlTemplate: e.target.value })} placeholder="https://…/track/{cn}" /></div>
@@ -144,7 +144,7 @@ function Carriers() {
             <Head heads={["Courier", "Phone", "Tracking", "Status", ""]} />
             <tbody>
               {(couriers ?? []).map((c) => (
-                <tr key={c.id} className="hover:bg-[#fcfaff]">
+                <tr key={c.id} className="hover:bg-[#231538]">
                   <td className={CELL}><span className={NAME}>{c.name}</span></td>
                   <td className={CELL}><span className={SOFT}>{c.phone || "—"}</span></td>
                   <td className={CELL}><span className={SOFT}>{c.trackingUrlTemplate ? "link set" : "manual"}</span></td>
@@ -161,7 +161,7 @@ function Carriers() {
           </table>
           {couriers !== null && couriers.length === 0 && <Empty text="No courier companies yet." />}
         </div>
-        <div className="mt-2 text-[12px] text-[#7b6b87]">
+        <div className="mt-2 text-[12px] text-[#afa4b7]">
           API keys for a courier live in <Link href="/administration/integrations/courier" className="text-purple underline">Administration → Courier &amp; delivery</Link>. One-time riders (Pathao ride, Uber) are typed on the order at assign time — nothing to set up here.
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function DeliverySetupView() {
     <div>
       <div className={WRAP.replace("pb-16", "pb-0")}>
         <Band title="Delivery setup" help={HELP} tiles={[]} />
-        <div className="flex gap-0.5 border-b-[1.5px] border-[#e4dbec] mb-2 flex-wrap">
+        <div className="flex gap-0.5 border-b-[1.5px] border-[#3e3447] mb-2 flex-wrap">
           {TABS.map(([k, label]) => (
             <button key={k} type="button" onClick={() => setTab(k)} className={`px-3.5 py-2.5 text-[13px] font-medium -mb-[1.5px] border-b-2 ${tab === k ? "text-purple border-purple" : "text-body-soft border-transparent hover:text-purple"}`}>
               {label}

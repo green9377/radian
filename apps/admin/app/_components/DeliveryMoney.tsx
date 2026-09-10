@@ -190,7 +190,7 @@ export default function DeliveryMoney() {
               const st = STAGE[r.stage];
               const isOpen = open?.id === r.id;
               return (
-                <tr key={r.id} className="hover:bg-[#fcfaff]">
+                <tr key={r.id} className="hover:bg-[#231538]">
                   <td className={`${CELL} w-[130px]`}>
                     <Link href={`/orders/${r.id}`} className={NO}>{r.orderNo}</Link>
                     <span className={LABEL}>{r.deliveredAt ? `delivered ${fmtStamp(r.deliveredAt)}` : "on the road"}</span>
@@ -253,7 +253,7 @@ export default function DeliveryMoney() {
                           </ActButton>
                         )}
                         {isOpen && open?.what === "received" && (
-                          <div className="rounded-[12px] border border-[#e4dbec] bg-white p-2.5 flex flex-col gap-2">
+                          <div className="rounded-[12px] border border-[#3e3447] bg-white p-2.5 flex flex-col gap-2">
                             <span className={LABEL}>{formatTaka(r.codCollectedPaisa)} landed in</span>
                             <select className="ipt h-[34px] text-[12.5px]" value={account} onChange={(e) => setAccount(e.target.value)}>
                               <option value="">Pick an account…</option>
@@ -265,7 +265,7 @@ export default function DeliveryMoney() {
                           </div>
                         )}
                         {isOpen && open?.what === "paid" && (
-                          <div className="rounded-[12px] border border-[#e4dbec] bg-white p-2.5 flex flex-col gap-2">
+                          <div className="rounded-[12px] border border-[#3e3447] bg-white p-2.5 flex flex-col gap-2">
                             <span className={LABEL}>Paid to {c.name} for this parcel</span>
                             <input type="number" min={0} className="ipt h-[34px] text-[12.5px]" placeholder="৳" value={amount} onChange={(e) => setAmount(e.target.value)} />
                             <ActButton kind="primary" disabled={busy === r.id} onClick={() => act(r, "paid")}>{busy === r.id ? "…" : "Save"}</ActButton>
