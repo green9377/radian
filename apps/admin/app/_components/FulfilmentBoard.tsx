@@ -99,7 +99,10 @@ type PanelMode = "assign" | "photo" | "fail";
 function Row({ o, onChanged, onPanel }: { o: ApiBoardOrder; onChanged: () => void; onPanel: (mode: PanelMode) => void }) {
   const say = useSay();
   const [busy, setBusy] = useState(false);
-  const d = due(o.promisedBy);
+  const d =
+    o.deliveryStatus === "delivered"
+      ? { text: "Delivered", late: false, soon: false }
+      : due(o.promisedBy);
   const carrier = carrierText(o);
   const live = o.assignment && o.assignment.isActive ? o.assignment : null;
   const prep = o.deliveryStatus === "preparing" || o.deliveryStatus === "unassigned";

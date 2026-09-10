@@ -72,6 +72,12 @@ export class OrdersController {
     return this.svc.report({ from, to });
   }
 
+  /*  The overview page — same trap, same reason: above `:id`.  */
+  @Get('overview')
+  overview(@Query('date') date?: string) {
+    return this.svc.overview({ date });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);

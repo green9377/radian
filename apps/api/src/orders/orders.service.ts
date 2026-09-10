@@ -205,6 +205,157 @@ export class OrdersService {
    * Six grouped queries, no order rows crossing the wire. It stays one round
    * trip whether the shop has done 40 orders or 40,000.
    */
+  /*  The Orders overview (owner, 11 Sep 2026 — design E, "Today's slots"):
+      the day laid out by delivery slot, the month's money, and a short
+      watch list. Counted in the database, Dhaka's day (UTC+6). `date` is
+      YYYY-MM-DD; blank means today.  */
+  async overview(q: { date?: string }) {
+    const DHAKA = 6 * 3600_000;
+    const now = new Date();
+    const dhakaNow = new Date(now.getTime() + DHAKA);
+    let y = dhakaNow.getUTCFullYear(), m = dhakaNow.getUTCMonth(), d = dhakaNow.getUTCDate();
+    const mt = /^(\d{4})-(\d{2})-(\d{2})$/.exec(q.date ?? '');
+    if (mt) { y = Number(mt[1]); m = Number(mt[2]) - 1; d = Number(mt[3]); }
+    const dayStart = new Date(Date.UTC(y, m, d) - DHAKA);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 3600_000);
+    const monthStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), 1) - DHAKA);
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const web: Prisma.OrderWhereInput = {
+      deletedAt: null,
+      fulfillmentType: { in: [FulfillmentType.DELIVERY, FulfillmentType.PICKUP] },
+    };
+    const notCancelled: Prisma.OrderWhereInput = { ...web, salesStatus: { not: SalesStatus.cancelled } };
+
+    const sel = {
+      id: true, orderNo: true, placedAt: true, promisedBy: true, slotLabel: true, methodLabel: true,
+      salesStatus: true, deliveryStatus: true, paymentMethod: true, paymentStatus: true,
+      totalPaisa: true, duePaisa: true, isGift: true, photoUpdates: true, zone: true, address: true,
+      recipientName: true, senderName: true, deliveredAt: true,
+      photos: { where: { deletedAt: null, kind: 'PREP' as const }, select: { id: true }, take: 1 },
+      assignments: { where: { deletedAt: null, isActive: true }, select: { id: true, status: true, kind: true, platform: true, rider: { select: { name: true } }, courier: { select: { name: true } } }, take: 1 },
+    } satisfies Prisma.OrderSelect;
+
+    const [today, open, monthDelivered, monthAll, dueAgg, refundAgg] = await Promise.all([
+      /* the day's parcels: promised inside the day, or unscheduled and placed that day */
+      this.prisma.db.order.findMany({
+        where: {
+          ...notCancelled,
+          OR: [
+            { promisedBy: { gte: dayStart, lt: dayEnd } },
+            { promisedBy: null, placedAt: { gte: dayStart, lt: dayEnd } },
+          ],
+        },
+        select: sel,
+        orderBy: [{ promisedBy: { sort: 'asc', nulls: 'last' } }, { placedAt: 'asc' }],
+      }),
+      /* everything still moving, whatever its day — the counters and the watch list */
+      this.prisma.db.order.findMany({
+        where: {
+          ...notCancelled,
+          OR: [
+            { salesStatus: SalesStatus.placed },
+            { deliveryStatus: { in: [DeliveryStatus.unassigned, DeliveryStatus.preparing, DeliveryStatus.out_for_delivery, DeliveryStatus.failed] } },
+          ],
+        },
+        select: sel,
+        orderBy: { placedAt: 'asc' },
+        take: 500,
+      }),
+      this.prisma.db.order.aggregate({
+        where: { ...web, deliveryStatus: DeliveryStatus.delivered, deliveredAt: { gte: monthStart } },
+        _sum: { totalPaisa: true }, _count: { _all: true },
+      }),
+      this.prisma.db.order.groupBy({
+        by: ['paymentMethod', 'isGift'],
+        where: { ...notCancelled, placedAt: { gte: monthStart } },
+        _count: { _all: true },
+      }),
+      this.prisma.db.order.aggregate({ where: { ...notCancelled, duePaisa: { gt: 0 } }, _sum: { duePaisa: true }, _count: { _all: true } }),
+      this.prisma.db.order.aggregate({ where: { ...web, refundPaisa: { gt: 0 }, placedAt: { gte: monthStart } }, _sum: { refundPaisa: true }, _count: { _all: true } }),
+    ]);
+
+    type Row = (typeof today)[number];
+    const isOut = (o: Row) => o.deliveryStatus === DeliveryStatus.out_for_delivery;
+    const isLate = (o: Row) => isOut(o) && !!o.promisedBy && o.promisedBy.getTime() < now.getTime();
+    const isPrep = (o: Row) =>
+      o.salesStatus !== SalesStatus.placed &&
+      (o.deliveryStatus === DeliveryStatus.unassigned || o.deliveryStatus === DeliveryStatus.preparing);
+    const hasCarrier = (o: Row) => !!o.assignments[0] && o.assignments[0].status === AssignmentStatus.ASSIGNED;
+    const carrierName = (o: Row) => {
+      const a = o.assignments[0];
+      if (!a) return null;
+      return a.rider?.name ?? a.courier?.name ?? (a.platform ? `${a.platform} rider` : null);
+    };
+    const photoPending = (o: Row) => isPrep(o) && o.photoUpdates && o.photos.length === 0;
+
+    /* slots, in the order the day runs */
+    const slots = new Map<string, { label: string; time: string; first: number; total: number; toConfirm: number; preparing: number; ready: number; out: number; late: number; delivered: number; failed: number }>();
+    for (const o of today) {
+      const raw = (o.slotLabel ?? o.methodLabel ?? 'Unscheduled').trim();
+      const [label, ...rest] = raw.split(' · ');
+      const key = raw;
+      const g = slots.get(key) ?? { label, time: rest.join(' · '), first: o.promisedBy?.getTime() ?? Number.MAX_SAFE_INTEGER, total: 0, toConfirm: 0, preparing: 0, ready: 0, out: 0, late: 0, delivered: 0, failed: 0 };
+      g.total++;
+      if (o.salesStatus === SalesStatus.placed) g.toConfirm++;
+      else if (isPrep(o)) { if (hasCarrier(o) && !photoPending(o)) g.ready++; else g.preparing++; }
+      else if (isOut(o)) { g.out++; if (isLate(o)) g.late++; }
+      else if (o.deliveryStatus === DeliveryStatus.delivered) g.delivered++;
+      else if (o.deliveryStatus === DeliveryStatus.failed) g.failed++;
+      slots.set(key, g);
+    }
+
+    const counts = { toConfirm: 0, toConfirmPaid: 0, toConfirmCod: 0, preparing: 0, photoPending: 0, notAssigned: 0, onRoad: 0, late: 0, failed: 0, goingOutToday: 0, deliveredToday: 0 };
+    for (const o of open) {
+      if (o.salesStatus === SalesStatus.placed) { counts.toConfirm++; if (o.paymentMethod === PaymentMethod.cod) counts.toConfirmCod++; else counts.toConfirmPaid++; }
+      else if (isPrep(o)) { counts.preparing++; if (!hasCarrier(o)) counts.notAssigned++; if (photoPending(o)) counts.photoPending++; }
+      else if (isOut(o)) { counts.onRoad++; if (isLate(o)) counts.late++; }
+      else if (o.deliveryStatus === DeliveryStatus.failed) counts.failed++;
+    }
+    for (const o of today) {
+      if (o.deliveryStatus === DeliveryStatus.delivered) counts.deliveredToday++;
+      else if (o.salesStatus !== SalesStatus.placed && o.deliveryStatus !== DeliveryStatus.failed) counts.goingOutToday++;
+    }
+
+    /* watch list — the few orders a person should look at first */
+    const watch: { id: string; orderNo: string; kind: 'LATE' | 'FAILED' | 'COD_CALL' | 'PHOTO' | 'UNCONFIRMED'; title: string; detail: string; slot: string }[] = [];
+    const slotOf = (o: Row) => (o.slotLabel ?? o.methodLabel ?? '').split(' · ')[0];
+    const hrs = (from: Date) => Math.round((now.getTime() - from.getTime()) / 3600_000);
+    for (const o of open) {
+      if (isLate(o) && o.promisedBy) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'LATE', slot: slotOf(o), title: `${hrs(o.promisedBy)} h late`, detail: `${o.recipientName ?? o.senderName} · ${o.address.split(',')[0]}${carrierName(o) ? ` · ${carrierName(o)}` : ' · no carrier recorded'}` });
+    }
+    for (const o of open) if (o.deliveryStatus === DeliveryStatus.failed) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'FAILED', slot: slotOf(o), title: 'Failed — decide', detail: `${o.recipientName ?? o.senderName} · retry, keep or cancel` });
+    for (const o of open) if (o.salesStatus === SalesStatus.placed && o.paymentMethod === PaymentMethod.cod && now.getTime() - o.placedAt.getTime() > 30 * 60_000) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'COD_CALL', slot: slotOf(o), title: 'COD, not called', detail: `৳${(o.totalPaisa / 100).toLocaleString('en-IN')} · ${o.address.split(',')[0]} · ${hrs(o.placedAt)} h ago` });
+    for (const o of open) if (photoPending(o)) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'PHOTO', slot: slotOf(o), title: 'Photo pending', detail: `Customer asked for a photo before delivery${carrierName(o) ? ` · ${carrierName(o)} assigned` : ''}` });
+    for (const o of open) if (o.salesStatus === SalesStatus.placed && o.paymentMethod !== PaymentMethod.cod && now.getTime() - o.placedAt.getTime() > 3 * 3600_000) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'UNCONFIRMED', slot: slotOf(o), title: `Paid, unconfirmed ${hrs(o.placedAt)} h`, detail: `৳${(o.totalPaisa / 100).toLocaleString('en-IN')} · ${o.senderName}` });
+
+    const mix = { online: 0, cod: 0, gift: 0, self: 0, total: 0 };
+    for (const g of monthAll) {
+      const n = g._count._all;
+      mix.total += n;
+      if (g.paymentMethod === PaymentMethod.cod) mix.cod += n; else mix.online += n;
+      if (g.isGift) mix.gift += n; else mix.self += n;
+    }
+
+    return {
+      date: dateStr,
+      isToday: !mt || dateStr === `${dhakaNow.getUTCFullYear()}-${String(dhakaNow.getUTCMonth() + 1).padStart(2, '0')}-${String(dhakaNow.getUTCDate()).padStart(2, '0')}`,
+      slots: [...slots.values()].sort((a, b) => a.first - b.first).map(({ first: _f, ...g }) => g),
+      counts,
+      money: {
+        revenueMonth: monthDelivered._sum.totalPaisa ?? 0,
+        deliveredMonth: monthDelivered._count._all,
+        aov: monthDelivered._count._all ? Math.round((monthDelivered._sum.totalPaisa ?? 0) / monthDelivered._count._all) : 0,
+        dueFromCustomer: dueAgg._sum.duePaisa ?? 0,
+        dueOrders: dueAgg._count._all,
+        refundedMonth: refundAgg._sum.refundPaisa ?? 0,
+        refundedOrders: refundAgg._count._all,
+      },
+      mix,
+      watch: watch.slice(0, 10),
+    };
+  }
+
   async report(q: { from?: string; to?: string }) {
     const where: Prisma.OrderWhereInput = {
       // a collected order is still a web order — see the note above

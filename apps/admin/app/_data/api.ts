@@ -5118,6 +5118,25 @@ export interface ApiMoney {
 }
 export const deliveryMoney = (days = 30) => j<ApiMoney>(`/delivery/money?days=${days}`);
 
+/*  Orders overview (owner, 11 Sep 2026 — "Today's slots"). Counted in the
+    database; `date` is YYYY-MM-DD in Dhaka's day, blank = today.  */
+export interface ApiOverviewSlot {
+  label: string; time: string; total: number; toConfirm: number; preparing: number; ready: number; out: number; late: number; delivered: number; failed: number;
+}
+export interface ApiOverviewWatch {
+  id: string; orderNo: string; kind: "LATE" | "FAILED" | "COD_CALL" | "PHOTO" | "UNCONFIRMED"; title: string; detail: string; slot: string;
+}
+export interface ApiOrdersOverview {
+  date: string;
+  isToday: boolean;
+  slots: ApiOverviewSlot[];
+  counts: { toConfirm: number; toConfirmPaid: number; toConfirmCod: number; preparing: number; photoPending: number; notAssigned: number; onRoad: number; late: number; failed: number; goingOutToday: number; deliveredToday: number };
+  money: { revenueMonth: number; deliveredMonth: number; aov: number; dueFromCustomer: number; dueOrders: number; refundedMonth: number; refundedOrders: number };
+  mix: { online: number; cod: number; gift: number; self: number; total: number };
+  watch: ApiOverviewWatch[];
+}
+export const ordersOverview = (date?: string) => j<ApiOrdersOverview>(`/orders/overview${date ? `?date=${date}` : ""}`);
+
 export const listUnsettled = (carrierId?: string) =>
   j<ApiUnsettledParcel[]>(`/delivery/unsettled${carrierId ? `?carrierId=${encodeURIComponent(carrierId)}` : ""}`);
 

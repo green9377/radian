@@ -89,6 +89,7 @@ const GROUPS: Group[] = [
       {
         label: "Orders", href: "/orders", icon: "bag",
         subs: [
+          { label: "Overview", href: "/orders" },
           { label: "All orders", href: "/orders/list" },
           /*  Needs action, Scheduled and the old Recovery page left the menu on
               9 Sep 2026 (owner): All orders carries Confirm/Call on every row,
