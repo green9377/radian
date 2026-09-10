@@ -5098,6 +5098,26 @@ export interface ApiUnsettledParcel {
   costRecorded: boolean;
   codHandedOver: boolean;
 }
+/* ---- Delivery money (owner, 10 Sep 2026): cash stages + cost + profit per order ---- */
+export type MoneyStage = "TO_COLLECT" | "WITH_CARRIER" | "RECEIVED" | "PREPAID";
+export interface ApiMoneyRow {
+  id: string; orderNo: string; placedAt: string; deliveredAt: string | null; deliveryStatus: string;
+  customer: { id: string; name: string; phone: string } | null; isGift: boolean; recipientName: string | null; address: string;
+  paymentMethod: string; totalPaisa: number; deliveryPaisa: number; duePaisa: number; codCollectedPaisa: number;
+  stage: MoneyStage;
+  carrier: {
+    assignmentId: string; kind: "RIDER" | "COURIER" | "ONE_TIME"; carrierType: "RIDER" | "COURIER" | "ONE_TIME"; carrierId: string | null; name: string;
+    costPaisa: number; costRecorded: boolean; paidCash: boolean; chargeCustomer: boolean; codHandedOver: boolean;
+  } | null;
+  cogsPaisa: number; cogsFrom: "inventory" | "product cost"; carrierCostPaisa: number; profitPaisa: number; profitFinal: boolean;
+}
+export interface ApiMoney {
+  rows: ApiMoneyRow[];
+  totals: { toCollect: number; withCarrier: number; received: number; paidCarrier: number; costMissing: number; revenue: number; profit: number };
+  days: number;
+}
+export const deliveryMoney = (days = 30) => j<ApiMoney>(`/delivery/money?days=${days}`);
+
 export const listUnsettled = (carrierId?: string) =>
   j<ApiUnsettledParcel[]>(`/delivery/unsettled${carrierId ? `?carrierId=${encodeURIComponent(carrierId)}` : ""}`);
 

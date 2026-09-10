@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Said, useSay } from "./Said";
 import { WRAP, ErrorBox } from "./OrderViews";
-import { deliveryBoard, assignmentAction, formatTaka, type ApiBoardOrder } from "../_data/api";
+import {
+  deliveryBoard, assignmentAction, orderAction, createAssignment, addOrderPhoto, uploadItemImage, orderMessagesFor,
+  listRiders, listCourierServices, listFailReasons, formatTaka,
+  type ApiBoardOrder, type ApiRider, type ApiCourierService, type ApiFailReason, type ApiOrderMessage,
+} from "../_data/api";
+import Icon from "./Icon";
 import {
   SOLID, CELL, LABEL, VALUE, SOFT, NO, NAME, TABLE_WRAP, TABLE,
   Pill, Tag, ActButton, Band, BandButton, Segs, Search, Count, Head, Empty,
@@ -12,17 +17,17 @@ import {
 } from "./OrdersUi";
 
 /*
-  Delivery -> Fulfilment board (owner, 10 Sep 2026; design/delivery-flow-v1.html tab 2).
+  Delivery -> Delivery board (owner, 10 Sep 2026; design/delivery-flow-v1.html tab 2).
 
   Today's parcels, sorted by the promise. The SAME rules and the SAME words as
-  the order page — nothing moves here that could not move there:
-    Needs carrier  → "Assign carrier" opens the order's Delivery card
-    Needs photo    → "Upload photo" opens the order's Photos card
+  the order page, and — owner, later the same day — NOTHING LEAVES THIS PAGE:
+  every action opens a panel on the right, the list stays behind it.
+    Needs carrier  → Assign carrier (own rider / courier / one-time), in the panel
+    Needs photo    → Upload photo, sent to the customer, status in the panel
     Ready          → Out for delivery (through the assignment, so Delivery hears it)
-    On the road    → Delivered / Failed (Failed opens the order's decision box)
-    Failed         → "Decide" opens the order
-  No Proof photos page any more: the photo state is a column here and a step
-  on the order.
+    On the road    → Delivered / Failed (reason + decision, in the panel)
+    Failed         → Assign again (retry), in the panel
+  "Open" is there only for reading the whole order.
 */
 
 type Seg = "" | "carrier" | "photo" | "ready" | "out" | "late" | "failed";
@@ -86,7 +91,8 @@ function carrierText(o: ApiBoardOrder): { name: string; sub: string } | null {
   return { name: a.courier?.name ?? "Courier", sub: a.consignmentNo ? `CN ${a.consignmentNo}` : "courier" };
 }
 
-function Row({ o, onChanged }: { o: ApiBoardOrder; onChanged: () => void }) {
+type PanelMode = "assign" | "photo" | "fail";
+function Row({ o, onChanged, onPanel }: { o: ApiBoardOrder; onChanged: () => void; onPanel: (mode: PanelMode) => void }) {
   const say = useSay();
   const [busy, setBusy] = useState(false);
   const d = due(o.promisedBy);
@@ -171,8 +177,8 @@ function Row({ o, onChanged }: { o: ApiBoardOrder; onChanged: () => void }) {
       </td>
       <td className={`${CELL} w-[176px]`}>
         <div className="flex flex-col gap-1.5">
-          {prep && !hasCarrier(o) && <ActButton kind="primary" href={`/orders/${o.id}?sec=delivery`}>Assign carrier</ActButton>}
-          {prep && hasCarrier(o) && needsPhoto(o) && <ActButton kind="solid" colour={SOLID.blue} href={`/orders/${o.id}?sec=photos`}>Upload photo</ActButton>}
+          {prep && !hasCarrier(o) && <ActButton kind="primary" onClick={() => onPanel("assign")}>Assign carrier</ActButton>}
+          {prep && hasCarrier(o) && needsPhoto(o) && <ActButton kind="solid" colour={SOLID.blue} onClick={() => onPanel("photo")}>Upload photo</ActButton>}
           {prep && hasCarrier(o) && !needsPhoto(o) && (
             <ActButton kind="solid" colour={SOLID.orchid} disabled={busy} onClick={() => run(() => assignmentAction(live!.id, "out"), `Could not send ${o.orderNo} out.`)}>
               {busy ? "…" : "Out for delivery"}
@@ -183,12 +189,13 @@ function Row({ o, onChanged }: { o: ApiBoardOrder; onChanged: () => void }) {
               <ActButton kind="solid" colour={SOLID.green} disabled={busy} onClick={() => run(() => assignmentAction(live.id, "delivered"), `Could not mark ${o.orderNo} delivered.`)}>
                 {busy ? "…" : "Delivered"}
               </ActButton>
-              <ActButton href={`/orders/${o.id}?fail=1`} kind="quiet">
+              <ActButton onClick={() => onPanel("fail")} kind="quiet">
                 <span style={{ color: SOLID.red }}>Failed</span>
               </ActButton>
             </>
           )}
-          {o.deliveryStatus === "failed" && <ActButton kind="primary" href={`/orders/${o.id}?sec=delivery`}>Decide · retry / cancel</ActButton>}
+          {o.deliveryStatus === "failed" && <ActButton kind="primary" onClick={() => onPanel("assign")}>Assign again · retry</ActButton>}
+          {prep && hasCarrier(o) && <ActButton onClick={() => onPanel("assign")}>Change carrier</ActButton>}
           <ActButton href={`/orders/${o.id}`}>Open</ActButton>
         </div>
       </td>
@@ -208,6 +215,15 @@ export default function FulfilmentBoard() {
   const [seg, setSeg] = useState<Seg>("");
   const [q, setQ] = useState("");
   const [zone, setZone] = useState("");
+  const [panel, setPanel] = useState<{ o: ApiBoardOrder; mode: PanelMode } | null>(null);
+  const [riders, setRiders] = useState<ApiRider[]>([]);
+  const [couriers, setCouriers] = useState<ApiCourierService[]>([]);
+  const [reasons, setReasons] = useState<ApiFailReason[]>([]);
+  useEffect(() => {
+    listRiders().then((r) => setRiders(r.filter((x) => x.isActive))).catch(() => setRiders([]));
+    listCourierServices().then((c) => setCouriers(c.filter((x) => x.isActive))).catch(() => setCouriers([]));
+    listFailReasons().then(setReasons).catch(() => setReasons([]));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -259,7 +275,7 @@ export default function FulfilmentBoard() {
   return (
     <div className={WRAP}>
       <Band
-        title="Fulfilment board"
+        title="Delivery board"
         help={HELP}
         tiles={tiles}
         columns={6}
@@ -283,11 +299,208 @@ export default function FulfilmentBoard() {
           <Head heads={HEADS} />
           <tbody>
             {shown.map((o) => (
-              <Row key={o.id} o={o} onChanged={() => void load()} />
+              <Row key={o.id} o={o} onChanged={() => void load()} onPanel={(mode) => setPanel({ o, mode })} />
             ))}
           </tbody>
         </table>
         {!loading && shown.length === 0 && <Empty text="Nothing on the board." />}
+      </div>
+      {panel && (
+        <BoardPanel
+          o={panel.o}
+          mode={panel.mode}
+          riders={riders}
+          couriers={couriers}
+          reasons={reasons}
+          onClose={() => setPanel(null)}
+          onDone={() => {
+            setPanel(null);
+            void load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- the panel: the order page's three cards, without leaving the board ---------- */
+function BoardPanel({
+  o, mode, riders, couriers, reasons, onClose, onDone,
+}: {
+  o: ApiBoardOrder; mode: PanelMode; riders: ApiRider[]; couriers: ApiCourierService[]; reasons: ApiFailReason[];
+  onClose: () => void; onDone: () => void;
+}) {
+  const [kind, setKind] = useState<"RIDER" | "COURIER" | "ONE_TIME">("RIDER");
+  const [carrierId, setCarrierId] = useState("");
+  const [consignment, setConsignment] = useState("");
+  const [platform, setPlatform] = useState("Pathao ride");
+  const [riderPhone, setRiderPhone] = useState("");
+  const [fare, setFare] = useState("");
+  const [paidCash, setPaidCash] = useState(true);
+  const [chargeCustomer, setChargeCustomer] = useState(false);
+  const [reasonId, setReasonId] = useState("");
+  const [note, setNote] = useState("");
+  const [decision, setDecision] = useState<"RETRY" | "KEEP" | "CANCEL">("RETRY");
+  const [uploading, setUploading] = useState(false);
+  const [photoMsg, setPhotoMsg] = useState<ApiOrderMessage | null>(null);
+  const [photoDone, setPhotoDone] = useState(o.hasPrepPhoto);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const live = o.assignment && o.assignment.isActive ? o.assignment : null;
+  const name = o.isGift && o.recipientName ? o.recipientName : o.customer?.name;
+  const failed = o.deliveryStatus === "failed";
+
+  const loadMsg = useCallback(() => {
+    orderMessagesFor(o.id)
+      .then((rows) => setPhotoMsg(rows.filter((m) => m.kind === "PHOTO_UPDATE").sort((a, b) => b.attempt - a.attempt)[0] ?? null))
+      .catch(() => setPhotoMsg(null));
+  }, [o.id]);
+  useEffect(() => {
+    if (mode === "photo") loadMsg();
+  }, [mode, loadMsg]);
+
+  async function run(fn: () => Promise<unknown>, fail: string, close = true) {
+    setBusy(true);
+    setErr("");
+    try {
+      await fn();
+      if (close) onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : fail);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function upload(file: File) {
+    setUploading(true);
+    setErr("");
+    try {
+      const url = await uploadItemImage(file, "delivery", 1400);
+      await addOrderPhoto(o.id, { kind: "PREP", url, capturedBy: "Admin" });
+      setPhotoDone(true);
+      window.setTimeout(loadMsg, 4000);
+      loadMsg();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not upload that photo.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const title = mode === "assign" ? (failed ? "Assign again · retry" : live ? "Change carrier" : "Assign carrier") : mode === "photo" ? "Photo for the customer" : "Delivery failed";
+  const input = "ipt h-[38px]";
+  return (
+    <div className="fixed inset-0 z-40" onClick={onClose}>
+      <div className="absolute inset-0 bg-[#320049]/30" />
+      <div className="absolute right-0 top-0 h-full w-[440px] max-w-full bg-white shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 pt-5 pb-4 border-b border-[#e4dbec]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[15px] font-medium text-purple">{title}</div>
+              <div className={`${SOFT} truncate`}>{o.orderNo} · {name} · {o.address}</div>
+            </div>
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-[9px] border border-[#e4dbec] grid place-items-center text-[#7b6b87] hover:text-purple shrink-0" title="Close">×</button>
+          </div>
+        </div>
+        <div className="px-5 py-4 flex flex-col gap-3">
+          {err && <div className="rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "#8a4b00" }}>{err}</div>}
+
+          {mode === "assign" && (
+            <>
+              <div className="inline-flex rounded-[10px] border border-[#e4dbec] overflow-hidden">
+                {(["RIDER", "COURIER", "ONE_TIME"] as const).map((k) => (
+                  <button key={k} type="button" onClick={() => { setKind(k); setCarrierId(""); }} className="text-[12.5px] font-medium px-3 py-2" style={kind === k ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#7b6b87" }}>
+                    {k === "RIDER" ? "Own rider" : k === "COURIER" ? "Courier company" : "One-time rider"}
+                  </button>
+                ))}
+              </div>
+              {kind !== "ONE_TIME" ? (
+                <>
+                  <div><span className={LABEL}>{kind === "RIDER" ? "Rider" : "Courier"}</span>
+                    <select className={input} value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
+                      <option value="">Select…</option>
+                      {(kind === "RIDER" ? riders : couriers).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select></div>
+                  {kind === "COURIER" && <div><span className={LABEL}>Consignment id</span><input className={input} value={consignment} onChange={(e) => setConsignment(e.target.value)} placeholder="from the courier panel" /></div>}
+                </>
+              ) : (
+                <>
+                  <div><span className={LABEL}>Platform</span>
+                    <select className={input} value={platform} onChange={(e) => setPlatform(e.target.value)}>{["Pathao ride", "Uber", "Other"].map((p) => <option key={p}>{p}</option>)}</select></div>
+                  <div><span className={LABEL}>Rider phone (optional)</span><input className={input} value={riderPhone} onChange={(e) => setRiderPhone(e.target.value)} placeholder="for today only" /></div>
+                  <div><span className={LABEL}>Fare ৳</span><input type="number" min={0} className={input} value={fare} onChange={(e) => setFare(e.target.value)} placeholder="leave blank for Delivery money" /></div>
+                  <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" className="w-4 h-4 accent-purple" checked={paidCash} onChange={(e) => setPaidCash(e.target.checked)} /> Paid in cash now</label>
+                </>
+              )}
+              {failed && (
+                <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" className="w-4 h-4 accent-purple" checked={chargeCustomer} onChange={(e) => setChargeCustomer(e.target.checked)} /> This retry&apos;s fare is charged to the customer</label>
+              )}
+              <ActButton kind="primary" disabled={busy || (kind !== "ONE_TIME" && !carrierId)} onClick={() => run(() => createAssignment({
+                orderId: o.id, kind, chargeCustomer: failed ? chargeCustomer : false,
+                ...(kind === "RIDER" ? { riderId: carrierId } : kind === "COURIER" ? { courierId: carrierId, consignmentNo: consignment.trim() || undefined }
+                  : { platform, riderPhone: riderPhone.trim() || undefined, costPaisa: fare ? Math.round(Number(fare) * 100) : undefined, paidCash }),
+              }), "Could not assign.")}>
+                {busy ? "…" : "Assign"}
+              </ActButton>
+            </>
+          )}
+
+          {mode === "photo" && (
+            <>
+              <div className="rounded-[12px] border px-3.5 py-3 flex items-start gap-3" style={{ borderColor: photoDone ? "#bfe3cd" : "#f5dcb0", background: photoDone ? "#f2faf5" : "#fff8ee" }}>
+                <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px] shrink-0" style={{ background: photoDone ? SOLID.green : SOLID.amber }}>{photoDone ? "✓" : "!"}</span>
+                <div className="text-[12.5px]">
+                  <div className="font-medium text-body">{photoDone ? "Photo saved" : "Customer asked for a photo before delivery"}</div>
+                  <div className={SOFT}>
+                    {!photoDone ? "Upload it below — it is sent by itself: WhatsApp first, email if the number has no WhatsApp, and it is on their account either way."
+                      : !photoMsg ? "On their account. Sending…"
+                        : photoMsg.status === "SENT" ? `Sent on ${photoMsg.channel === "WHATSAPP" ? "WhatsApp" : photoMsg.channel === "EMAIL" ? "email" : photoMsg.channel} · also on their account`
+                          : photoMsg.status === "QUEUED" ? "Sending…" : `On their account only — ${photoMsg.error ?? "could not send"}`}
+                  </div>
+                </div>
+              </div>
+              <label className="inline-flex items-center justify-center gap-2 h-[38px] rounded-[9px] text-white text-[12.5px] font-medium cursor-pointer" style={{ background: SOLID.blue, opacity: uploading ? 0.6 : 1 }}>
+                <Icon name="photo" size={14} /> {uploading ? "Uploading…" : photoDone ? "Replace photo" : "Upload photo"}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void upload(f); }} />
+              </label>
+              {photoDone && live && live.status === "ASSIGNED" && (
+                <ActButton kind="solid" colour={SOLID.orchid} disabled={busy} onClick={() => run(() => assignmentAction(live.id, "out"), "Could not send it out.")}>
+                  {busy ? "…" : "Out for delivery"}
+                </ActButton>
+              )}
+              <ActButton onClick={onDone}>Done</ActButton>
+            </>
+          )}
+
+          {mode === "fail" && (
+            <>
+              <div><span className={LABEL}>Why</span>
+                <select className={input} value={reasonId} onChange={(e) => setReasonId(e.target.value)}>
+                  <option value="">Pick a reason…</option>
+                  {reasons.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                </select></div>
+              <div><span className={LABEL}>Note</span><input className={input} value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" /></div>
+              <div className="grid gap-2">
+                {([["RETRY", "Retry", "assign a carrier again"], ["KEEP", "Keep as failed", "no retry yet — stays on the board"], ["CANCEL", "Cancel order", "goes to Cancelled · refund rules apply"]] as const).map(([k, t, sub]) => (
+                  <button key={k} type="button" onClick={() => setDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-3.5 py-2.5" style={{ borderColor: decision === k ? SOLID.red : "#e4dbec", background: decision === k ? "#fff5f5" : "#fff" }}>
+                    <span className="block text-[13px] font-medium" style={{ color: decision === k ? SOLID.red : "#221733" }}>{t}</span>
+                    <span className={`block text-[12px] ${SOFT}`}>{sub}</span>
+                  </button>
+                ))}
+              </div>
+              <ActButton kind="solid" colour={SOLID.red} disabled={busy || (!reasonId && !note.trim())} onClick={() => run(async () => {
+                const body = { failReasonId: reasonId || undefined, failReason: note.trim() || undefined, decision };
+                if (live && (live.status === "OUT_FOR_DELIVERY" || live.status === "ASSIGNED")) await assignmentAction(live.id, "fail", body);
+                else await orderAction(o.id, "fail");
+              }, "Could not mark it failed.")}>
+                {busy ? "…" : decision === "CANCEL" ? "Mark failed and cancel" : decision === "RETRY" ? "Mark failed — I will retry" : "Mark failed"}
+              </ActButton>
+            </>
+          )}
+
+          <Link href={`/orders/${o.id}`} className={`text-[12.5px] ${SOFT} underline`}>Open the whole order</Link>
+        </div>
       </div>
     </div>
   );

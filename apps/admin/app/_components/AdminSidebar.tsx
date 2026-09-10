@@ -105,8 +105,8 @@ const GROUPS: Group[] = [
         subs: [
           /*  Owner, 10 Sep 2026: three pages. Proof photos left — the photo
               is a step on the order and a column on the board.  */
-          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Settle", href: "/delivery/settle" },
+          { label: "Delivery board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Delivery money", href: "/delivery/settle" },
           { label: "Reports", href: "/delivery/performance" },
           /*  Owner, 10 Sep 2026: the setup lives with the module, not under
               Settings — one place to look for anything delivery.  */

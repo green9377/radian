@@ -601,3 +601,10 @@ Next stages: 2 · Fulfilment board redesign (design tab 2), 3 · Settle with one
 - **Delivery setup** (`DeliverySetupView.tsx`, /delivery/setup, `?tab=`): 1 Methods & slots (DeliveryMasters) · 2 Zones & pricing (DeliveryConnections) · 3 Riders & couriers (new, both lists + link to Administration for API keys) · 4 Rules (BlackoutRules incl. photo switches). /delivery/zones, /delivery/riders redirect to the tabs; /delivery/proof → /delivery.
 - **Menu**: Delivery → Fulfilment board · Settle · Reports; Settings → Delivery setup (one entry). Registry regenerated, drift 6/6.
 - Unused now: `DeliveryLive.tsx` board/riders/proof screens, `DeliverySettle.tsx`, `DeliverySetup.tsx` (left in place).
+
+## 16. Board stays on the board · Delivery money · zebra (10 Sep 2026, later)
+
+- **Delivery board** (renamed from Fulfilment board): every action is a right-side panel (`BoardPanel` in `FulfilmentBoard.tsx`) — Assign carrier (own / courier / one-time, retry with "customer pays"), Upload photo (send status), Delivery failed (reason + Retry/Keep/Cancel). Nothing navigates away; "Open the whole order" is a link at the panel's foot.
+- **Delivery money** (`DeliveryMoney.tsx`, /delivery/settle, menu label changed): `GET /delivery/money?days=` — one line per parcel on the road / delivered: stage To collect → With carrier → Received (→ Prepaid), carrier fee (recorded / not), cost (Inventory AVCO on ORDER movements, else Product.costPaisa × qty), profit = total − cost − fee ("final" once the fee is recorded). Actions per row: Cash received (account → settle() with codPaisa), Paid to carrier (fee → settle() with chargePaisa; the recorded fee is re-sent on a Received-only call so it is never zeroed). Tiles: To collect · With carriers · Received · Paid to carriers (+ not recorded) · Delivered profit. Owner's rule: profit here is the WHOLE order's profit.
+- **Zebra rows**: `OrdersUi.TABLE` now stripes even rows (#faf7fc) — All orders, Lost orders, Payments, Board, Delivery money, Delivery setup carriers all get it. Older tables (Returns, Customers, Products…) still to be moved onto OrdersUi.
+- `SettleView.tsx` no longer routed (kept).

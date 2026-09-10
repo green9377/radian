@@ -52,7 +52,10 @@ export const ACT_PRIMARY = `${ACT} bg-purple border-purple text-white hover:bg-p
 export const ACT_QUIET = `${ACT} bg-white border-[#e4dbec] text-purple hover:border-purple`;
 export const ACT_CALL = `${ACT} bg-white border-[#bfe3cd] text-[#0e8a44] hover:border-[#0e8a44]`;
 export const TABLE_WRAP = "bg-white border border-[#e4dbec] rounded-[14px] overflow-x-auto";
-export const TABLE = "w-full border-collapse min-w-[1080px]";
+/*  Zebra rows everywhere (owner, 10 Sep 2026): one row white, the next on a
+    whisper of lavender, so the eye keeps its line. Applied here once; every
+    table built on this file gets it.  */
+export const TABLE = "w-full border-collapse min-w-[1080px] [&_tbody_tr:nth-child(even)]:bg-[#faf7fc]";
 
 export function Pill({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (

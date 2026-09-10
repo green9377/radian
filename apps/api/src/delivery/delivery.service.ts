@@ -746,6 +746,119 @@ export class DeliveryService {
    * rider's pocket, and subtracting it would leave him holding cash the board
    * says he does not have.
    */
+  /*  DELIVERY MONEY (owner, 10 Sep 2026) — one order, one line, the whole
+      story of its cash and its cost:
+
+        TO_COLLECT    out for delivery, the rider has to bring back ৳X
+        WITH_CARRIER  delivered, COD taken at the door, cash not with us yet
+        RECEIVED      the cash reached the shop (remittance) — or prepaid
+      plus what we paid the carrier, what the parcel cost us (Inventory's
+      AVCO on the ORDER movements; the product's cost price when stock was
+      never posted), and the order's profit after both. Reads only — the
+      writes stay where they are: settle() for cash and cost, Orders for the
+      order's own money.  */
+  async money(q: { days?: number } = {}) {
+    const days = Math.min(Math.max(q.days ?? 30, 1), 365);
+    const since = new Date(Date.now() - days * 86400000);
+    const orders = await this.prisma.db.order.findMany({
+      where: {
+        deletedAt: null,
+        fulfillmentType: FulfillmentType.DELIVERY,
+        salesStatus: { not: SalesStatus.cancelled },
+        deliveryStatus: { in: [DeliveryStatus.out_for_delivery, DeliveryStatus.delivered] },
+        placedAt: { gte: since },
+      },
+      orderBy: [{ deliveryStatus: 'asc' }, { placedAt: 'desc' }],
+      take: 500,
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        lines: { where: { deletedAt: null }, select: { qty: true, name: true, product: { select: { costPaisa: true } } } },
+        assignments: {
+          where: { deletedAt: null },
+          orderBy: { assignedAt: 'desc' },
+          take: 1,
+          include: { rider: { select: { id: true, name: true } }, courier: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    const ids = orders.map((o) => o.id);
+    const [collected, moved] = await Promise.all([
+      this.codCollectedFor(ids),
+      ids.length
+        ? this.prisma.db.inventoryMovement.groupBy({
+            by: ['refId'],
+            where: { refType: 'ORDER', refId: { in: ids } },
+            _sum: { valuePaisa: true },
+          })
+        : Promise.resolve([] as { refId: string | null; _sum: { valuePaisa: number | null } }[]),
+    ]);
+    const cogsByOrder = new Map<string, number>();
+    for (const m of moved) if (m.refId) cogsByOrder.set(m.refId, Math.abs(m._sum.valuePaisa ?? 0));
+
+    const totals = { toCollect: 0, withCarrier: 0, received: 0, paidCarrier: 0, costMissing: 0, revenue: 0, profit: 0 };
+    const rows = orders.map((o) => {
+      const a = o.assignments[0] ?? null;
+      const cod = collected.get(o.id) ?? 0;
+      const delivered = o.deliveryStatus === DeliveryStatus.delivered;
+      const stage = !delivered
+        ? o.duePaisa > 0 ? 'TO_COLLECT' : 'PREPAID'
+        : cod > 0
+          ? a?.codHandedOver ? 'RECEIVED' : 'WITH_CARRIER'
+          : 'PREPAID';
+      const cogsPosted = cogsByOrder.get(o.id);
+      const cogs = cogsPosted ?? o.lines.reduce((s, l) => s + (l.product?.costPaisa ?? 0) * l.qty, 0);
+      const costRecorded = !!a?.costRecordedAt;
+      const carrierCost = costRecorded ? (a?.costPaisa ?? 0) : 0;
+      const profit = o.totalPaisa - cogs - carrierCost;
+      if (stage === 'TO_COLLECT') totals.toCollect += o.duePaisa;
+      if (stage === 'WITH_CARRIER') totals.withCarrier += cod;
+      if (stage === 'RECEIVED') totals.received += cod;
+      if (costRecorded) totals.paidCarrier += carrierCost;
+      else if (delivered) totals.costMissing++;
+      if (delivered) {
+        totals.revenue += o.totalPaisa;
+        totals.profit += profit;
+      }
+      return {
+        id: o.id,
+        orderNo: o.orderNo,
+        placedAt: o.placedAt,
+        deliveredAt: a?.deliveredAt ?? null,
+        deliveryStatus: o.deliveryStatus,
+        customer: o.customer,
+        isGift: o.isGift,
+        recipientName: o.recipientName,
+        address: o.address,
+        paymentMethod: o.paymentMethod,
+        totalPaisa: o.totalPaisa,
+        deliveryPaisa: o.deliveryPaisa,
+        duePaisa: o.duePaisa,
+        codCollectedPaisa: cod,
+        stage,
+        carrier: a
+          ? {
+              assignmentId: a.id,
+              kind: a.kind,
+              carrierType: a.kind === 'ONE_TIME' ? 'ONE_TIME' : a.kind,
+              carrierId: a.riderId ?? a.courierId ?? (a.platform ? `one-time:${a.platform}` : null),
+              name: a.rider?.name ?? a.courier?.name ?? (a.platform ? `${a.platform} rider` : 'Carrier'),
+              costPaisa: a.costPaisa,
+              costRecorded,
+              paidCash: a.paidCash,
+              chargeCustomer: a.chargeCustomer,
+              codHandedOver: a.codHandedOver,
+            }
+          : null,
+        cogsPaisa: cogs,
+        cogsFrom: cogsPosted !== undefined ? 'inventory' : 'product cost',
+        carrierCostPaisa: carrierCost,
+        profitPaisa: profit,
+        profitFinal: costRecorded || (delivered && a?.kind === 'ONE_TIME' && a.paidCash),
+      };
+    });
+    return { rows, totals, days };
+  }
+
   private async codCollectedFor(orderIds: string[]): Promise<Map<string, number>> {
     const out = new Map<string, number>();
     if (orderIds.length === 0) return out;

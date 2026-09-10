@@ -308,6 +308,12 @@ export class DeliveryController {
     return this.delivery.removeSlotTemplate(id);
   }
 
+  /* ---- delivery money: cash stages + cost + profit per order (owner, 10 Sep 2026) ---- */
+  @Get('money')
+  money(@Query('days') days?: string) {
+    return this.delivery.money({ days: days ? Number(days) : undefined });
+  }
+
   /* ---- settling a carrier (DEC-DLV-016/017) ---- */
   @Get('unsettled')
   unsettled(@Query('carrierId') carrierId?: string) {

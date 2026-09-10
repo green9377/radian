@@ -1,8 +1,8 @@
-import SettleView from "../../_components/SettleView";
+import DeliveryMoney from "../../_components/DeliveryMoney";
 
-export const metadata = { title: "Settle — Radian Admin" };
+export const metadata = { title: "Delivery money — Radian Admin" };
 
-/* /delivery/settle — cost per parcel + COD cash, own riders / couriers / one-time riders (DEC-DLV-016/017). */
+/* /delivery/settle — cash stages, carrier fee and profit per order (owner, 10 Sep 2026). */
 export default function Page() {
-  return <SettleView />;
+  return <DeliveryMoney />;
 }
