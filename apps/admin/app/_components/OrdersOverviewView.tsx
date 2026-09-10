@@ -126,16 +126,17 @@ function KV({ label, value, colour }: { label: string; value: string; colour?: s
 
 export default function OrdersOverviewView() {
   const [date, setDate] = useState<string>(dhakaToday());
+  const [range, setRange] = useState<"today" | "7" | "30" | "90">("today");
   const [data, setData] = useState<ApiOrdersOverview | null>(null);
   const [withRider, setWithRider] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (d: string) => {
+  const load = useCallback(async (d: string, r: string) => {
     setLoading(true);
     setError(null);
     try {
-      const [o, m] = await Promise.all([ordersOverview(d), deliveryMoney(30).catch(() => null)]);
+      const [o, m] = await Promise.all([ordersOverview(d, r === "today" ? "" : r), deliveryMoney(30).catch(() => null)]);
       setData(o);
       setWithRider(m ? m.totals.withCarrier : null);
     } catch (e) {
@@ -145,13 +146,16 @@ export default function OrdersOverviewView() {
     }
   }, []);
   useEffect(() => {
-    void load(date);
-  }, [date, load]);
+    void load(date, range);
+  }, [date, range, load]);
 
   const c = data?.counts;
   const money = (n: number | undefined) => (loading || n === undefined ? "…" : formatTaka(n));
   const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 100)}%` : "0%");
   const isToday = data ? data.isToday : date === dhakaToday();
+  const rangeLabel = range === "today" ? "today" : `last ${range} days`;
+  const RANGES: ["today" | "7" | "30" | "90", string][] = [["today", "Today"], ["7", "7 days"], ["30", "30 days"], ["90", "90 days"]];
+  const maxBar = Math.max(1, ...(data?.daily ?? []).map((x) => x.n));
 
   return (
     <div className="px-4 md:px-6 xl:px-8 pt-6 pb-16 w-full min-h-full" style={{ background: T.bg, color: T.ink, fontSize: 13 }}>
@@ -167,17 +171,51 @@ export default function OrdersOverviewView() {
               {loading || !c ? "…" : `${c.toConfirm} waiting for a confirm · ${c.goingOutToday} going out ${isToday ? "today" : "that day"} · ${c.late} late`}
             </div>
           </div>
-          <div className="flex gap-2 items-center flex-wrap">
-            <Btn onClick={() => setDate(shift(date, -1))}>◀ {dayName(shift(date, -1), "short")}</Btn>
-            {!isToday && <Btn onClick={() => setDate(dhakaToday())}>Today</Btn>}
-            <Btn onClick={() => setDate(shift(date, 1))}>{dayName(shift(date, 1), "short")} ▶</Btn>
+          <div className="flex gap-2.5 items-center flex-wrap">
+            {/* day: previous · today · next */}
+            <div className="inline-flex items-center rounded-[10px] overflow-hidden" style={{ border: `1px solid ${T.line}`, background: T.card }}>
+              <button type="button" onClick={() => setDate(shift(date, -1))} title={dayName(shift(date, -1), "long")} className="h-[36px] w-[36px] grid place-items-center text-[13px]" style={{ color: T.ink, borderRight: `1px solid ${T.line}` }}>‹</button>
+              <button type="button" onClick={() => setDate(dhakaToday())} className="h-[36px] px-3.5 text-[12.5px] font-medium" style={{ color: isToday ? "#fff" : T.ink, background: isToday ? T.purple : "transparent" }}>
+                {isToday ? "Today" : dayName(date, "short") + " · back to today"}
+              </button>
+              <button type="button" onClick={() => setDate(shift(date, 1))} title={dayName(shift(date, 1), "long")} className="h-[36px] w-[36px] grid place-items-center text-[13px]" style={{ color: T.ink, borderLeft: `1px solid ${T.line}` }}>›</button>
+            </div>
+            {/* range for the numbers below */}
+            <div className="inline-flex items-center rounded-[10px] overflow-hidden" style={{ border: `1px solid ${T.line}`, background: T.card }}>
+              {RANGES.map(([k, label], i) => (
+                <button key={k} type="button" onClick={() => setRange(k)} className="h-[36px] px-3 text-[12.5px] font-medium" style={{ color: range === k ? "#fff" : T.grey, background: range === k ? T.purple : "transparent", borderLeft: i ? `1px solid ${T.line}` : "none" }}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <Btn primary href="/orders/new">+ New order</Btn>
           </div>
         </div>
-        {error && <div className="mt-3"><ErrorBox error={error} onRetry={() => void load(date)} /></div>}
+        {error && <div className="mt-3"><ErrorBox error={error} onRetry={() => void load(date, range)} /></div>}
+
+        {/* pipeline — where every open order is, left to right */}
+        <div className="grid grid-cols-1 md:grid-cols-5 mt-4 rounded-[14px] overflow-hidden" style={{ border: `1px solid ${T.line}` }}>
+          {([
+            ["Placed · to confirm", c?.toConfirm, c ? `${c.toConfirmPaid} paid · ${c.toConfirmCod} COD need a call` : "", "att", 70],
+            ["Preparing", c?.preparing, c ? `${c.photoPending} waiting for a photo` : "", "", 22],
+            ["Ready to go", c?.ready, "carrier + photo done", "", 8],
+            ["On the road", c?.onRoad, c ? `${c.late} late` : "", "late", 35],
+            ["Delivered " + (isToday ? "today" : "that day"), c?.deliveredToday, c ? `${c.failed} failed · ${c.cancelled} cancelled ${rangeLabel}` : "", "ok", 100],
+          ] as [string, number | undefined, string, string, number][]).map(([label, n, sub, kind, w], i) => (
+            <div key={label} className="relative px-4 py-3.5" style={{ background: kind === "att" ? T.tint.a : T.card, borderRight: i < 4 ? `1px solid ${T.line}` : "none" }}>
+              <div className="text-[11px] font-medium tracking-[0.06em] uppercase" style={{ color: T.grey }}>{label}</div>
+              <div className="text-[28px] leading-none font-semibold my-2 tabular-nums" style={{ color: kind === "att" ? T.amber : kind === "ok" ? T.green : T.ink }}>{loading || n === undefined ? "…" : n}</div>
+              <div className="text-[12px]" style={{ color: T.grey }}>{kind === "late" && (c?.late ?? 0) > 0 ? <Pill tone="r">{sub}</Pill> : sub}</div>
+              <div className="h-[4px] rounded-[4px] mt-2.5 overflow-hidden" style={{ background: T.lav2 }}>
+                <i className="block h-full" style={{ width: `${n ? Math.min(100, Math.max(w, Math.round((n / Math.max(1, c?.toConfirm ?? 1)) * 100))) : 0}%`, background: kind === "ok" ? T.green : T.orchid }} />
+              </div>
+              {i < 4 && <span className="hidden md:block absolute -right-[8px] top-1/2 -translate-y-1/2 rotate-45 w-[14px] h-[14px]" style={{ background: kind === "att" ? T.tint.a : T.card, borderRight: `1px solid ${T.line}`, borderTop: `1px solid ${T.line}`, zIndex: 1 }} />}
+            </div>
+          ))}
+        </div>
 
         {/* slots */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
           {(data?.slots ?? []).map((s, i, all) => (
             <div key={s.label + s.time} style={{ ...card, background: i === all.length - 1 && all.length > 1 ? T.lav : T.card, padding: "12px 14px" }}>
               <div className="flex justify-between items-center gap-2">
@@ -207,7 +245,7 @@ export default function OrdersOverviewView() {
         {/* mix + money */}
         <div className="grid md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr] gap-3 mt-3">
           <div style={card}>
-            <H3 hint="this month">Payment</H3>
+            <H3 hint={rangeLabel}>Payment</H3>
             <div className="flex items-center gap-3.5">
               <Donut parts={[{ value: data?.mix.online ?? 0, colour: T.purple }, { value: data?.mix.cod ?? 0, colour: T.amber }]} />
               <div className="grid gap-1">
@@ -218,7 +256,7 @@ export default function OrdersOverviewView() {
             </div>
           </div>
           <div style={card}>
-            <H3>Self vs gift</H3>
+            <H3 hint={rangeLabel}>Self vs gift</H3>
             <div className="flex items-center gap-3.5">
               <Donut parts={[{ value: data?.mix.gift ?? 0, colour: T.orchid }, { value: data?.mix.self ?? 0, colour: T.lav2 }]} />
               <div className="grid gap-1">
@@ -229,11 +267,125 @@ export default function OrdersOverviewView() {
             </div>
           </div>
           <div style={card}>
-            <H3 hint="delivered only">Money</H3>
-            <KV label="Revenue this month" value={money(data?.money.revenueMonth)} />
+            <H3 hint={`delivered only · ${rangeLabel}`}>Money</H3>
+            <KV label="Revenue" value={money(data?.money.revenueMonth)} />
             <KV label="Due from customer" value={money(data?.money.dueFromCustomer)} colour={T.amber} />
             <KV label="Cash with rider" value={withRider === null ? "—" : formatTaka(withRider)} />
             <KV label="Refunded" value={money(data?.money.refundedMonth)} colour={T.red} />
+          </div>
+        </div>
+
+        {/* orders per day */}
+        <div className="mt-3" style={card}>
+          <H3 hint={`last ${data?.daily.length ?? 14} days`}>Orders per day</H3>
+          <div className="flex items-end gap-[6px] h-[90px] mt-1">
+            {(data?.daily ?? []).map((d, i, all) => (
+              <div key={d.day} className="flex-1 relative rounded-t-[4px]" title={`${d.day} · ${d.n} order${d.n === 1 ? "" : "s"}`} style={{ height: `${Math.max(4, Math.round((d.n / maxBar) * 100))}%`, background: i === all.length - 1 ? T.purple : T.lav2 }}>
+                {all.length <= 31 && <span className="absolute top-full left-0 right-0 text-center text-[10px] mt-1" style={{ color: T.grey }}>{d.label}</span>}
+              </div>
+            ))}
+          </div>
+          <div className="h-[18px]" />
+        </div>
+
+        {/* top products + zones */}
+        <div className="grid md:grid-cols-[1.4fr_1fr] gap-3 mt-3">
+          <div style={card}>
+            <H3 hint={rangeLabel}>Top 10 products</H3>
+            {data && data.topProducts.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>Nothing sold in this range.</div>}
+            <ol className="m-0 p-0 list-none grid gap-1.5">
+              {(data?.topProducts ?? []).map((p, i) => (
+                <li key={p.productId ?? i} className="flex items-center gap-3 py-1.5" style={{ borderBottom: i < (data?.topProducts.length ?? 0) - 1 ? `1px dashed ${T.line}` : "none" }}>
+                  <span className="w-[18px] text-[11px] tabular-nums text-right" style={{ color: T.grey }}>{i + 1}</span>
+                  <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 grid place-items-center" style={{ background: T.lav2 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px]" style={{ color: T.grey }}>no photo</span>}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    {p.productId ? <Link href={`/products/${p.productId}`} className="font-medium hover:underline block truncate" style={{ color: T.ink }}>{p.name}</Link> : <span className="font-medium block truncate" style={{ color: T.ink }}>{p.name}</span>}
+                    <span className="text-[11.5px]" style={{ color: T.grey }}>{p.orders} order{p.orders === 1 ? "" : "s"}</span>
+                  </span>
+                  <span className="text-right shrink-0">
+                    <b className="block font-medium tabular-nums" style={{ color: T.ink }}>{p.qty} pcs</b>
+                    <span className="text-[11.5px] tabular-nums" style={{ color: T.grey }}>{formatTaka(p.paisa)}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="grid gap-3 content-start">
+            <div style={card}>
+              <H3 hint={rangeLabel}>Zone split</H3>
+              {(["DHAKA", "BANGLADESH"] as const).map((z) => {
+                const row = data?.zones.find((x) => x.zone === z);
+                const total = (data?.zones ?? []).reduce((s2, x) => s2 + x.orders, 0);
+                const n = row?.orders ?? 0;
+                return (
+                  <div key={z} className="py-1.5">
+                    <div className="flex justify-between text-[12.5px]"><span style={{ color: T.ink }}>{z === "DHAKA" ? "Inside Dhaka" : "Nationwide"}</span><b className="font-medium tabular-nums" style={{ color: T.ink }}>{n} · {pct(n, total)} · {formatTaka(row?.paisa ?? 0)}</b></div>
+                    <div className="h-[6px] rounded-[6px] mt-1.5 overflow-hidden" style={{ background: T.lav2 }}><i className="block h-full" style={{ width: pct(n, total), background: z === "DHAKA" ? T.orchid : T.blue }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={card}>
+              <H3 hint={rangeLabel}>Repeat vs new customers</H3>
+              <div className="flex items-center gap-3.5">
+                <Donut parts={[{ value: data?.customers.repeatCount ?? 0, colour: T.green }, { value: data?.customers.newCount ?? 0, colour: T.orchid }]} />
+                <div className="grid gap-1">
+                  <Legend colour={T.green}>Repeat · {data?.customers.repeatCount ?? "…"} customers · {money(data?.customers.repeatPaisa)}</Legend>
+                  <Legend colour={T.orchid}>New · {data?.customers.newCount ?? "…"} customers · {money(data?.customers.newPaisa)}</Legend>
+                  <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${pct(data.customers.repeatPaisa, data.customers.repeatPaisa + data.customers.newPaisa)} of revenue from people who came back` : ""}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* occasions + lost + returns */}
+        <div className="grid md:grid-cols-3 gap-3 mt-3">
+          <div style={card}>
+            <H3 hint="next 7 days">Upcoming occasions</H3>
+            {data && data.occasions.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>No saved birthdays or anniversaries this week.</div>}
+            <ul className="m-0 p-0 list-none">
+              {(data?.occasions ?? []).slice(0, 8).map((o, i, all) => (
+                <li key={`${o.date}-${o.recipient}-${i}`} className="py-1.5 text-[12.5px]" style={{ borderBottom: i < all.length - 1 ? `1px dashed ${T.line}` : "none" }}>
+                  <div className="flex justify-between gap-2">
+                    <span style={{ color: T.ink }}><b className="font-medium">{o.recipient}</b> · {o.type === "CUSTOM" ? (o.label ?? "occasion") : o.type === "BIRTHDAY" ? "Birthday" : "Anniversary"}</span>
+                    <Pill tone={o.inDays === 0 ? "r" : o.inDays <= 2 ? "a" : "n"}>{o.inDays === 0 ? "today" : o.inDays === 1 ? "tomorrow" : `in ${o.inDays} days`}</Pill>
+                  </div>
+                  <div className="text-[11.5px]" style={{ color: T.grey }}>
+                    {o.customer ? <>{o.relationship.toLowerCase()} of <Link href={`/customers/${o.customer.id}`} className="hover:underline" style={{ color: T.ink }}>{o.customer.name}</Link>{o.customer.phone ? ` · ${o.customer.phone}` : ""}</> : o.relationship.toLowerCase()}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div style={card}>
+            <H3 hint={rangeLabel}>Lost orders</H3>
+            <div className="text-[26px] leading-none font-semibold tabular-nums" style={{ color: (data?.lost.count ?? 0) > 0 ? T.amber : T.ink }}>{loading ? "…" : data?.lost.count ?? 0}</div>
+            <div className="text-[12px] mt-1.5" style={{ color: T.grey }}>checkouts left unfinished · {money(data?.lost.paisa)} in baskets</div>
+            <div className="text-[12px] mt-1" style={{ color: T.grey }}>{data ? `${data.lost.open} still open (inside the 15-minute window)` : ""}</div>
+            <div className="mt-3"><Btn href="/orders/lost">Open Lost orders</Btn></div>
+          </div>
+          <div style={card}>
+            <H3 hint="waiting for a decision">Returns &amp; refunds</H3>
+            {data && data.returns.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>No return is waiting.</div>}
+            <ul className="m-0 p-0 list-none">
+              {(data?.returns ?? []).map((r, i, all) => (
+                <li key={r.id} className="flex justify-between gap-2 py-1.5 text-[12.5px]" style={{ borderBottom: i < all.length - 1 ? `1px dashed ${T.line}` : "none" }}>
+                  <span className="min-w-0">
+                    <Link href={`/returns/${r.id}`} className="font-medium hover:underline" style={{ color: T.ink }}>{r.returnNo}</Link>
+                    <span style={{ color: T.grey }}> · {r.orderNo} · {r.customer}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <Pill tone={r.status === "pending_approval" ? "a" : r.status === "approved" ? "b" : "n"}>{r.status.replace("_", " ")}</Pill>
+                    <span className="block text-[11px] tabular-nums mt-0.5" style={{ color: T.grey }}>{formatTaka(r.valuePaisa)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {data && data.returns.length > 0 && <div className="mt-2"><Btn href="/returns">All returns</Btn></div>}
           </div>
         </div>
 

@@ -209,7 +209,7 @@ export class OrdersService {
       the day laid out by delivery slot, the month's money, and a short
       watch list. Counted in the database, Dhaka's day (UTC+6). `date` is
       YYYY-MM-DD; blank means today.  */
-  async overview(q: { date?: string }) {
+  async overview(q: { date?: string; range?: string }) {
     const DHAKA = 6 * 3600_000;
     const now = new Date();
     const dhakaNow = new Date(now.getTime() + DHAKA);
@@ -218,7 +218,13 @@ export class OrdersService {
     if (mt) { y = Number(mt[1]); m = Number(mt[2]) - 1; d = Number(mt[3]); }
     const dayStart = new Date(Date.UTC(y, m, d) - DHAKA);
     const dayEnd = new Date(dayStart.getTime() + 24 * 3600_000);
-    const monthStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), 1) - DHAKA);
+    /*  The range (owner, 11 Sep 2026): today · 7 · 30 · 90 days, for the
+        money, the mix, and the orders-per-day bars. The slots stay per day.  */
+    const rangeDays = q.range === '7' ? 7 : q.range === '30' ? 30 : q.range === '90' ? 90 : 1;
+    const todayStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), dhakaNow.getUTCDate()) - DHAKA);
+    const monthStart = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 3600_000);
+    const barDays = rangeDays === 1 ? 14 : rangeDays;
+    const barStart = new Date(todayStart.getTime() - (barDays - 1) * 24 * 3600_000);
     const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
     const web: Prisma.OrderWhereInput = {
@@ -236,7 +242,7 @@ export class OrdersService {
       assignments: { where: { deletedAt: null, isActive: true }, select: { id: true, status: true, kind: true, platform: true, rider: { select: { name: true } }, courier: { select: { name: true } } }, take: 1 },
     } satisfies Prisma.OrderSelect;
 
-    const [today, open, monthDelivered, monthAll, dueAgg, refundAgg] = await Promise.all([
+    const [today, open, monthDelivered, monthAll, dueAgg, refundAgg, cancelledAgg, placedRows] = await Promise.all([
       /* the day's parcels: promised inside the day, or unscheduled and placed that day */
       this.prisma.db.order.findMany({
         where: {
@@ -273,7 +279,20 @@ export class OrdersService {
       }),
       this.prisma.db.order.aggregate({ where: { ...notCancelled, duePaisa: { gt: 0 } }, _sum: { duePaisa: true }, _count: { _all: true } }),
       this.prisma.db.order.aggregate({ where: { ...web, refundPaisa: { gt: 0 }, placedAt: { gte: monthStart } }, _sum: { refundPaisa: true }, _count: { _all: true } }),
+      this.prisma.db.order.count({ where: { ...web, salesStatus: SalesStatus.cancelled, placedAt: { gte: monthStart } } }),
+      this.prisma.db.order.findMany({ where: { ...notCancelled, placedAt: { gte: barStart } }, select: { placedAt: true } }),
     ]);
+
+    /* orders per day — one bar a day, Dhaka's days, today last */
+    const daily: { day: string; label: string; n: number }[] = [];
+    for (let i = 0; i < barDays; i++) {
+      const t = new Date(barStart.getTime() + i * 24 * 3600_000 + DHAKA);
+      daily.push({ day: `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`, label: String(t.getUTCDate()), n: 0 });
+    }
+    for (const r of placedRows) {
+      const idx = Math.floor((r.placedAt.getTime() - barStart.getTime()) / (24 * 3600_000));
+      if (idx >= 0 && idx < barDays) daily[idx].n++;
+    }
 
     type Row = (typeof today)[number];
     const isOut = (o: Row) => o.deliveryStatus === DeliveryStatus.out_for_delivery;
@@ -305,10 +324,10 @@ export class OrdersService {
       slots.set(key, g);
     }
 
-    const counts = { toConfirm: 0, toConfirmPaid: 0, toConfirmCod: 0, preparing: 0, photoPending: 0, notAssigned: 0, onRoad: 0, late: 0, failed: 0, goingOutToday: 0, deliveredToday: 0 };
+    const counts = { toConfirm: 0, toConfirmPaid: 0, toConfirmCod: 0, preparing: 0, ready: 0, photoPending: 0, notAssigned: 0, onRoad: 0, late: 0, failed: 0, goingOutToday: 0, deliveredToday: 0, cancelled: cancelledAgg };
     for (const o of open) {
       if (o.salesStatus === SalesStatus.placed) { counts.toConfirm++; if (o.paymentMethod === PaymentMethod.cod) counts.toConfirmCod++; else counts.toConfirmPaid++; }
-      else if (isPrep(o)) { counts.preparing++; if (!hasCarrier(o)) counts.notAssigned++; if (photoPending(o)) counts.photoPending++; }
+      else if (isPrep(o)) { if (hasCarrier(o) && !photoPending(o)) counts.ready++; else { counts.preparing++; if (!hasCarrier(o)) counts.notAssigned++; if (photoPending(o)) counts.photoPending++; } }
       else if (isOut(o)) { counts.onRoad++; if (isLate(o)) counts.late++; }
       else if (o.deliveryStatus === DeliveryStatus.failed) counts.failed++;
     }
@@ -329,6 +348,77 @@ export class OrdersService {
     for (const o of open) if (photoPending(o)) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'PHOTO', slot: slotOf(o), title: 'Photo pending', detail: `Customer asked for a photo before delivery${carrierName(o) ? ` · ${carrierName(o)} assigned` : ''}` });
     for (const o of open) if (o.salesStatus === SalesStatus.placed && o.paymentMethod !== PaymentMethod.cod && now.getTime() - o.placedAt.getTime() > 3 * 3600_000) watch.push({ id: o.id, orderNo: o.orderNo, kind: 'UNCONFIRMED', slot: slotOf(o), title: `Paid, unconfirmed ${hrs(o.placedAt)} h`, detail: `৳${(o.totalPaisa / 100).toLocaleString('en-IN')} · ${o.senderName}` });
 
+    /*  Six more blocks the owner asked for (11 Sep 2026): top products,
+        repeat vs new, upcoming occasions, zone split, lost orders, returns
+        pending. Each is its own query so the page reads the same on a slow
+        day; all follow the range except occasions (next 7 days) and returns
+        (whatever is open).  */
+    const inRange: Prisma.OrderWhereInput = { ...notCancelled, placedAt: { gte: monthStart } };
+    const mmdd = (t: Date) => `${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`;
+    const next7 = Array.from({ length: 7 }, (_, i) => mmdd(new Date(todayStart.getTime() + i * 24 * 3600_000 + DHAKA)));
+    const [lineRows, rangeOrders, occasions, zoneRows, lostAgg, lostOpen, returnsPending] = await Promise.all([
+      this.prisma.db.orderLine.groupBy({
+        by: ['productId'],
+        where: { deletedAt: null, productId: { not: null }, order: inRange },
+        _sum: { qty: true, linePaisa: true },
+        _count: { _all: true },
+        orderBy: { _sum: { qty: 'desc' } },
+        take: 10,
+      }),
+      this.prisma.db.order.findMany({ where: inRange, select: { customerId: true, totalPaisa: true, placedAt: true } }),
+      this.prisma.db.recipientOccasion.findMany({
+        where: { deletedAt: null, date: { in: next7 }, recipient: { deletedAt: null } },
+        select: { type: true, date: true, label: true, recipient: { select: { name: true, relationship: true, customer: { select: { id: true, name: true, phone: true } } } } },
+        take: 50,
+      }),
+      this.prisma.db.order.groupBy({ by: ['zone'], where: inRange, _count: { _all: true }, _sum: { totalPaisa: true } }),
+      this.prisma.db.checkoutLead.aggregate({ where: { deletedAt: null, status: { not: 'CONVERTED' }, createdAt: { gte: monthStart } }, _count: { _all: true }, _sum: { totalPaisa: true } }),
+      this.prisma.db.checkoutLead.count({ where: { deletedAt: null, status: 'OPEN', createdAt: { gte: monthStart } } }),
+      this.prisma.db.salesReturn.findMany({
+        where: { deletedAt: null, status: { in: ['draft', 'pending_approval', 'approved'] } },
+        select: { id: true, returnNo: true, status: true, returnValuePaisa: true, refundPaisa: true, createdAt: true, order: { select: { orderNo: true, senderName: true } } },
+        orderBy: { createdAt: 'asc' },
+        take: 8,
+      }),
+    ]);
+
+    const productIds = lineRows.map((l) => l.productId).filter((x): x is string => !!x);
+    const products = productIds.length
+      ? await this.prisma.db.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' }, take: 1, select: { url: true } } },
+        })
+      : [];
+    const pmap = new Map(products.map((p) => [p.id, p]));
+    const topProducts = lineRows.map((l) => {
+      const p = l.productId ? pmap.get(l.productId) : undefined;
+      return { productId: l.productId, name: p?.name ?? 'Removed product', image: p?.images[0]?.url ?? null, qty: l._sum.qty ?? 0, orders: l._count._all, paisa: l._sum.linePaisa ?? 0 };
+    });
+
+    /* repeat vs new: a customer is new when their FIRST ever order sits inside the range */
+    const custIds = [...new Set(rangeOrders.map((o) => o.customerId))];
+    const firstOrders = custIds.length
+      ? await this.prisma.db.order.groupBy({ by: ['customerId'], where: { ...notCancelled, customerId: { in: custIds } }, _min: { placedAt: true } })
+      : [];
+    const firstAt = new Map(firstOrders.map((f) => [f.customerId, f._min.placedAt?.getTime() ?? 0]));
+    const customers = { newCount: 0, repeatCount: 0, newPaisa: 0, repeatPaisa: 0, newOrders: 0, repeatOrders: 0 };
+    const seen = new Set<string>();
+    for (const o of rangeOrders) {
+      const isNew = (firstAt.get(o.customerId) ?? 0) >= monthStart.getTime();
+      if (isNew) { customers.newPaisa += o.totalPaisa; customers.newOrders++; } else { customers.repeatPaisa += o.totalPaisa; customers.repeatOrders++; }
+      if (!seen.has(o.customerId)) { seen.add(o.customerId); if (isNew) customers.newCount++; else customers.repeatCount++; }
+    }
+
+    const occasionsOut = occasions
+      .map((oc) => ({
+        type: oc.type, date: oc.date, label: oc.label, inDays: next7.indexOf(oc.date),
+        recipient: oc.recipient.name, relationship: oc.recipient.relationship,
+        customer: oc.recipient.customer ? { id: oc.recipient.customer.id, name: oc.recipient.customer.name, phone: oc.recipient.customer.phone } : null,
+      }))
+      .sort((x, y) => x.inDays - y.inDays);
+
+    const zones = zoneRows.map((z) => ({ zone: z.zone, orders: z._count._all, paisa: z._sum.totalPaisa ?? 0 }));
+
     const mix = { online: 0, cod: 0, gift: 0, self: 0, total: 0 };
     for (const g of monthAll) {
       const n = g._count._all;
@@ -339,6 +429,8 @@ export class OrdersService {
 
     return {
       date: dateStr,
+      range: rangeDays,
+      daily,
       isToday: !mt || dateStr === `${dhakaNow.getUTCFullYear()}-${String(dhakaNow.getUTCMonth() + 1).padStart(2, '0')}-${String(dhakaNow.getUTCDate()).padStart(2, '0')}`,
       slots: [...slots.values()].sort((a, b) => a.first - b.first).map(({ first: _f, ...g }) => g),
       counts,
@@ -353,6 +445,12 @@ export class OrdersService {
       },
       mix,
       watch: watch.slice(0, 10),
+      topProducts,
+      customers,
+      occasions: occasionsOut,
+      zones,
+      lost: { count: lostAgg._count._all, paisa: lostAgg._sum.totalPaisa ?? 0, open: lostOpen },
+      returns: returnsPending.map((r) => ({ id: r.id, returnNo: r.returnNo, status: r.status, valuePaisa: r.returnValuePaisa, refundPaisa: r.refundPaisa, createdAt: r.createdAt, orderNo: r.order.orderNo, customer: r.order.senderName })),
     };
   }
 

@@ -5128,14 +5128,22 @@ export interface ApiOverviewWatch {
 }
 export interface ApiOrdersOverview {
   date: string;
+  range: number;
+  daily: { day: string; label: string; n: number }[];
   isToday: boolean;
   slots: ApiOverviewSlot[];
-  counts: { toConfirm: number; toConfirmPaid: number; toConfirmCod: number; preparing: number; photoPending: number; notAssigned: number; onRoad: number; late: number; failed: number; goingOutToday: number; deliveredToday: number };
+  counts: { toConfirm: number; toConfirmPaid: number; toConfirmCod: number; preparing: number; ready: number; photoPending: number; notAssigned: number; onRoad: number; late: number; failed: number; goingOutToday: number; deliveredToday: number; cancelled: number };
   money: { revenueMonth: number; deliveredMonth: number; aov: number; dueFromCustomer: number; dueOrders: number; refundedMonth: number; refundedOrders: number };
   mix: { online: number; cod: number; gift: number; self: number; total: number };
   watch: ApiOverviewWatch[];
+  topProducts: { productId: string | null; name: string; image: string | null; qty: number; orders: number; paisa: number }[];
+  customers: { newCount: number; repeatCount: number; newPaisa: number; repeatPaisa: number; newOrders: number; repeatOrders: number };
+  occasions: { type: "BIRTHDAY" | "ANNIVERSARY" | "CUSTOM"; date: string; label: string | null; inDays: number; recipient: string; relationship: string; customer: { id: string; name: string; phone: string | null } | null }[];
+  zones: { zone: "DHAKA" | "BANGLADESH"; orders: number; paisa: number }[];
+  lost: { count: number; paisa: number; open: number };
+  returns: { id: string; returnNo: string; status: string; valuePaisa: number; refundPaisa: number; createdAt: string; orderNo: string; customer: string }[];
 }
-export const ordersOverview = (date?: string) => j<ApiOrdersOverview>(`/orders/overview${date ? `?date=${date}` : ""}`);
+export const ordersOverview = (date?: string, range?: string) => j<ApiOrdersOverview>(`/orders/overview?date=${date ?? ""}&range=${range ?? ""}`);
 
 export const listUnsettled = (carrierId?: string) =>
   j<ApiUnsettledParcel[]>(`/delivery/unsettled${carrierId ? `?carrierId=${encodeURIComponent(carrierId)}` : ""}`);

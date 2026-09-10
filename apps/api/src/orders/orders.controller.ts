@@ -74,8 +74,8 @@ export class OrdersController {
 
   /*  The overview page — same trap, same reason: above `:id`.  */
   @Get('overview')
-  overview(@Query('date') date?: string) {
-    return this.svc.overview({ date });
+  overview(@Query('date') date?: string, @Query('range') range?: string) {
+    return this.svc.overview({ date, range });
   }
 
   @Get(':id')
