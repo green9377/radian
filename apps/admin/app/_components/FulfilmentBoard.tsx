@@ -13,7 +13,7 @@ import Icon from "./Icon";
 import {
   SOLID, CELL, LABEL, VALUE, SOFT, NO, NAME, TABLE_WRAP, TABLE,
   Pill, Tag, ActButton, Band, BandButton, Segs, Search, Count, Head, Empty,
-  fmtDay, type Tile,
+  fmtDay, fmtStamp, type Tile,
 } from "./OrdersUi";
 
 /*
@@ -30,15 +30,17 @@ import {
   "Open" is there only for reading the whole order.
 */
 
-type Seg = "" | "carrier" | "photo" | "ready" | "out" | "late" | "failed";
+type Seg = "" | "carrier" | "photo" | "ready" | "out" | "late" | "failed" | "done";
+/*  Names as the owner set them (10 Sep 2026).  */
 const SEGS: [Seg, string][] = [
-  ["", "All"],
-  ["carrier", "Needs carrier"],
-  ["photo", "Needs photo"],
-  ["ready", "Ready"],
+  ["", "All orders"],
+  ["carrier", "Not assigned"],
+  ["photo", "Photo pending"],
+  ["ready", "Ready to go"],
   ["out", "On the road"],
   ["late", "Late"],
   ["failed", "Failed"],
+  ["done", "Delivery successful"],
 ];
 
 function hasCarrier(o: ApiBoardOrder) {
@@ -48,7 +50,7 @@ function needsPhoto(o: ApiBoardOrder) {
   return o.photoUpdates && !o.hasPrepPhoto;
 }
 function isLate(o: ApiBoardOrder) {
-  return !!o.promisedBy && new Date(o.promisedBy).getTime() < Date.now() && o.deliveryStatus !== "failed";
+  return !!o.promisedBy && new Date(o.promisedBy).getTime() < Date.now() && o.deliveryStatus !== "failed" && o.deliveryStatus !== "delivered";
 }
 function inSeg(o: ApiBoardOrder, s: Seg): boolean {
   const prep = o.deliveryStatus === "preparing" || o.deliveryStatus === "unassigned";
@@ -67,6 +69,8 @@ function inSeg(o: ApiBoardOrder, s: Seg): boolean {
       return isLate(o);
     case "failed":
       return o.deliveryStatus === "failed";
+    case "done":
+      return o.deliveryStatus === "delivered";
   }
 }
 
@@ -100,15 +104,17 @@ function Row({ o, onChanged, onPanel }: { o: ApiBoardOrder; onChanged: () => voi
   const live = o.assignment && o.assignment.isActive ? o.assignment : null;
   const prep = o.deliveryStatus === "preparing" || o.deliveryStatus === "unassigned";
   const status =
-    o.deliveryStatus === "failed"
-      ? { label: `Failed${live?.failReason ? "" : ""}`, colour: SOLID.red }
-      : o.deliveryStatus === "out_for_delivery"
-        ? { label: "On the road", colour: SOLID.orchid }
-        : !hasCarrier(o)
-          ? { label: "Needs carrier", colour: SOLID.amber }
-          : needsPhoto(o)
-            ? { label: "Needs photo", colour: SOLID.amber }
-            : { label: "Ready", colour: SOLID.blue };
+    o.deliveryStatus === "delivered"
+      ? { label: "Delivery successful", colour: SOLID.green }
+      : o.deliveryStatus === "failed"
+        ? { label: "Failed", colour: SOLID.red }
+        : o.deliveryStatus === "out_for_delivery"
+          ? { label: "On the road", colour: SOLID.orchid }
+          : !hasCarrier(o)
+            ? { label: "Not assigned", colour: SOLID.amber }
+            : needsPhoto(o)
+              ? { label: "Photo pending", colour: SOLID.amber }
+              : { label: "Ready to go", colour: SOLID.blue };
 
   async function run(fn: () => Promise<unknown>, fail: string) {
     setBusy(true);
@@ -174,6 +180,7 @@ function Row({ o, onChanged, onPanel }: { o: ApiBoardOrder; onChanged: () => voi
       <td className={`${CELL} w-[130px]`}>
         <Pill colour={status.colour}>{status.label}</Pill>
         {o.deliveryStatus === "failed" && live?.failReason && <span className={`block ${SOFT} mt-1 leading-snug`}>{live.failReason}</span>}
+        {o.deliveryStatus === "delivered" && o.deliveredAt && <span className={`block ${SOFT} mt-1`}>{fmtStamp(o.deliveredAt)}</span>}
       </td>
       <td className={`${CELL} w-[176px]`}>
         <div className="flex flex-col gap-1.5">
@@ -205,7 +212,7 @@ function Row({ o, onChanged, onPanel }: { o: ApiBoardOrder; onChanged: () => voi
 
 const HEADS = ["", "Deliver by", "Order No", "Going to", "Items", "Carrier", "Photo", "COD", "Status", "Action"];
 const HELP =
-  "Every confirmed parcel that has not been delivered, sorted by the time we promised. The buttons are the order page's own: a parcel needs a carrier, then the customer's photo when they asked for one, then it can leave. " +
+  "Every confirmed parcel that has not been delivered, plus today's successful ones, sorted by the time we promised. The buttons are the order page's own: a parcel needs a carrier, then the customer's photo when they asked for one, then it can leave. " +
   "Delivered moves the COD cash to the carrier until Settle. Failed opens the decision on the order — retry, keep, or cancel.";
 
 export default function FulfilmentBoard() {
@@ -242,7 +249,7 @@ export default function FulfilmentBoard() {
   }, [load]);
 
   const counts = useMemo(() => {
-    const c: Record<Seg, number> = { "": rows.length, carrier: 0, photo: 0, ready: 0, out: 0, late: 0, failed: 0 };
+    const c: Record<Seg, number> = { "": rows.length, carrier: 0, photo: 0, ready: 0, out: 0, late: 0, failed: 0, done: 0 };
     for (const o of rows) for (const [k] of SEGS) if (k && inSeg(o, k)) c[k]++;
     return c;
   }, [rows]);
@@ -264,12 +271,13 @@ export default function FulfilmentBoard() {
 
   const v = (n: number) => (loading ? "…" : String(n));
   const tiles: Tile[] = [
-    { key: "carrier", label: "Needs carrier", value: v(counts.carrier), hot: counts.carrier > 0, sub: "preparing, nobody assigned" },
-    { key: "photo", label: "Needs photo", value: v(counts.photo), sub: "customer asked for one" },
+    { key: "carrier", label: "Not assigned", value: v(counts.carrier), hot: counts.carrier > 0, sub: "nobody carrying it yet" },
+    { key: "photo", label: "Photo pending", value: v(counts.photo), sub: "customer asked for one" },
     { key: "ready", label: "Ready to go", value: v(counts.ready), sub: "carrier + photo done" },
     { key: "out", label: "On the road", value: v(counts.out), sub: "out for delivery" },
     { key: "late", label: "Late", value: v(counts.late), hot: counts.late > 0, sub: "past the promise" },
-    { key: "failed", label: "Failed · decide", value: v(counts.failed), hot: counts.failed > 0, sub: "waiting for staff" },
+    { key: "failed", label: "Failed", value: v(counts.failed), hot: counts.failed > 0, sub: "waiting for a decision" },
+    { key: "done", label: "Delivery successful", value: v(counts.done), sub: "today" },
   ];
 
   return (
@@ -278,7 +286,7 @@ export default function FulfilmentBoard() {
         title="Delivery board"
         help={HELP}
         tiles={tiles}
-        columns={6}
+        columns={7}
         active={seg || undefined}
         onTile={(k) => setSeg(seg === k ? "" : (k as Seg))}
         right={<BandButton onClick={() => void load()} icon="clock">Refresh</BandButton>}

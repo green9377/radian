@@ -156,22 +156,36 @@ export class DeliveryService {
     const limit = Math.min(Math.max(q.limit ?? 50, 1), 200);
     const page = Math.max(q.page ?? 1, 1);
 
+    /*  Today's successful deliveries stay on the board until midnight
+        (owner, 10 Sep 2026: a "Delivery successful" tile) — the team sees
+        the day close out without leaving the page. Midnight is Dhaka's.  */
+    const dhakaNow = new Date(Date.now() + 6 * 3600_000);
+    const todayStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), dhakaNow.getUTCDate()) - 6 * 3600_000);
     const base: Prisma.OrderWhereInput = {
       deletedAt: null,
       fulfillmentType: FulfillmentType.DELIVERY,
       salesStatus: { in: [SalesStatus.confirmed, SalesStatus.completed] },
-      deliveryStatus: {
-        in: [
-          DeliveryStatus.unassigned,
-          DeliveryStatus.preparing,
-          DeliveryStatus.out_for_delivery,
-          DeliveryStatus.failed,
-        ],
-      },
+      OR: [
+        {
+          deliveryStatus: {
+            in: [
+              DeliveryStatus.unassigned,
+              DeliveryStatus.preparing,
+              DeliveryStatus.out_for_delivery,
+              DeliveryStatus.failed,
+            ],
+          },
+        },
+        { deliveryStatus: DeliveryStatus.delivered, deliveredAt: { gte: todayStart } },
+      ],
     };
 
     const where: Prisma.OrderWhereInput = { ...base };
-    if (q.status) where.deliveryStatus = q.status as DeliveryStatus;
+    if (q.status) {
+      delete where.OR;
+      where.deliveryStatus = q.status as DeliveryStatus;
+      if (q.status === 'delivered') where.deliveredAt = { gte: todayStart };
+    }
     if (q.zone) where.zone = q.zone as DeliveryZone;
     if (q.methodId) where.deliveryMethodId = q.methodId;
 
@@ -180,6 +194,8 @@ export class DeliveryService {
         clever would need explaining. */
     const term = q.q?.trim();
     if (term) {
+      where.AND = [...(where.OR ? [{ OR: where.OR }] : [])];
+      delete where.OR;
       where.OR = [
         { orderNo: { contains: term, mode: 'insensitive' } },
         { recipientPhone: { contains: term } },
@@ -197,7 +213,7 @@ export class DeliveryService {
       this.prisma.db.order.groupBy({ by: ['deliveryStatus'], where: base, _count: { _all: true } }),
     ]);
     const counts: Record<string, number> = {
-      unassigned: 0, preparing: 0, out_for_delivery: 0, failed: 0,
+      unassigned: 0, preparing: 0, out_for_delivery: 0, failed: 0, delivered: 0,
     };
     for (const g of grouped) counts[g.deliveryStatus as string] = g._count?._all ?? 0;
 
@@ -247,6 +263,7 @@ export class DeliveryService {
         totalPaisa: o.totalPaisa,
         duePaisa: o.duePaisa,
         paymentMethod: o.paymentMethod,
+        deliveredAt: o.deliveredAt,
         lineCount: o._count.lines,
         photoCount: o._count.photos,
         photoUpdates: o.photoUpdates,

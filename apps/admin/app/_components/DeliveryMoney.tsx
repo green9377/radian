@@ -24,9 +24,9 @@ import { SOLID, CELL, LABEL, VALUE, SOFT, NO, NAME, TABLE_WRAP, TABLE, Pill, Act
 type Seg = "" | MoneyStage | "COST" | "DONE";
 const SEGS: [Seg, string][] = [
   ["", "All"],
-  ["TO_COLLECT", "To collect"],
-  ["WITH_CARRIER", "With carrier"],
-  ["COST", "Carrier not paid"],
+  ["TO_COLLECT", "Due from customer"],
+  ["WITH_CARRIER", "Cash with rider"],
+  ["COST", "Rider or courier not paid"],
   ["RECEIVED", "Received"],
   ["DONE", "Finished"],
 ];
@@ -45,14 +45,14 @@ function inSeg(r: ApiMoneyRow, s: Seg): boolean {
   }
 }
 const STAGE: Record<MoneyStage, { label: string; colour: string }> = {
-  TO_COLLECT: { label: "To collect", colour: SOLID.amber },
-  WITH_CARRIER: { label: "With carrier", colour: SOLID.red },
+  TO_COLLECT: { label: "Due from customer", colour: SOLID.amber },
+  WITH_CARRIER: { label: "Cash with rider", colour: SOLID.red },
   RECEIVED: { label: "Received", colour: SOLID.green },
   PREPAID: { label: "Prepaid", colour: SOLID.grey },
 };
 
 const HELP =
-  "Every parcel on the road or delivered in the chosen period, one line each. Cash: To collect (still out) → With carrier (delivered, cash at the door) → Received (in our hands; the click writes the remittance). " +
+  "Every parcel on the road or delivered in the chosen period, one line each. Cash: Due from customer (still out) → Cash with rider (delivered, cash at the door) → Received (in our hands; the click writes the remittance). " +
   "Paid carrier = what we gave the rider or courier for this parcel (expensed once). Cost = Inventory's posted cost for the order, or the product's cost price when stock was never posted. Profit = order total − cost − carrier fee; it is final once the carrier fee is recorded.";
 
 export default function DeliveryMoney() {
@@ -141,11 +141,11 @@ export default function DeliveryMoney() {
   const t = data?.totals;
   const v = (s: string) => (data === null ? "…" : s);
   const tiles: Tile[] = [
-    { key: "TO_COLLECT", label: "To collect", value: v(formatTaka(t?.toCollect ?? 0)), sub: "parcels on the road" },
-    { key: "WITH_CARRIER", label: "With carriers", value: v(formatTaka(t?.withCarrier ?? 0)), hot: (t?.withCarrier ?? 0) > 0, sub: "delivered, cash not here yet" },
+    { key: "TO_COLLECT", label: "Due from customer", value: v(formatTaka(t?.toCollect ?? 0)), sub: "parcels on the road" },
+    { key: "WITH_CARRIER", label: "Cash with rider", value: v(formatTaka(t?.withCarrier ?? 0)), hot: (t?.withCarrier ?? 0) > 0, sub: "delivered, cash not here yet" },
     { key: "RECEIVED", label: "Received", value: v(formatTaka(t?.received ?? 0)), sub: `last ${days} days` },
-    { key: "COST", label: "Paid to carriers", value: v(formatTaka(t?.paidCarrier ?? 0)), sub: data ? `${t?.costMissing ?? 0} parcel${t?.costMissing === 1 ? "" : "s"} not recorded` : undefined, hot: (t?.costMissing ?? 0) > 0 },
-    { key: "profit", label: "Delivered profit", value: v(formatTaka(t?.profit ?? 0)), sub: data ? `on ${formatTaka(t?.revenue ?? 0)} delivered` : undefined },
+    { key: "COST", label: "Paid to rider or courier", value: v(formatTaka(t?.paidCarrier ?? 0)), sub: data ? `${t?.costMissing ?? 0} parcel${t?.costMissing === 1 ? "" : "s"} not recorded` : undefined, hot: (t?.costMissing ?? 0) > 0 },
+    { key: "profit", label: "Profit", value: v(formatTaka(t?.profit ?? 0)), sub: data ? `on ${formatTaka(t?.revenue ?? 0)} delivered` : undefined },
   ];
 
   return (
@@ -249,7 +249,7 @@ export default function DeliveryMoney() {
                         )}
                         {r.deliveryStatus === "delivered" && !c.costRecorded && (
                           <ActButton kind="primary" disabled={busy === r.id} onClick={() => { setOpen(isOpen && open?.what === "paid" ? null : { id: r.id, what: "paid" }); setAmount(""); }}>
-                            Paid to carrier
+                            Pay rider or courier
                           </ActButton>
                         )}
                         {isOpen && open?.what === "received" && (

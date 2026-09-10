@@ -4981,7 +4981,7 @@ export interface ApiBoardOrder {
   recipientName?: string | null; isGift: boolean; zone: string; address: string;
   methodLabel?: string | null; slotLabel?: string | null; date?: string | null;
   salesStatus: string; deliveryStatus: string; totalPaisa: number; duePaisa: number;
-  paymentMethod: string; lineCount: number; photoCount: number;
+  paymentMethod: string; deliveredAt?: string | null; lineCount: number; photoCount: number;
   /** owner, 10 Sep 2026 — the board's Photo column */
   photoUpdates: boolean; hasPrepPhoto: boolean;
   items: { name: string; qty: number }[];
