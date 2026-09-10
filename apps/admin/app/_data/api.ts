@@ -4982,6 +4982,9 @@ export interface ApiBoardOrder {
   methodLabel?: string | null; slotLabel?: string | null; date?: string | null;
   salesStatus: string; deliveryStatus: string; totalPaisa: number; duePaisa: number;
   paymentMethod: string; lineCount: number; photoCount: number;
+  /** owner, 10 Sep 2026 — the board's Photo column */
+  photoUpdates: boolean; hasPrepPhoto: boolean;
+  items: { name: string; qty: number }[];
   assignment: ApiAssignment | null;
 }
 
@@ -5084,9 +5087,10 @@ export const orderAssignments = (orderId: string) => j<ApiAssignment[]>(`/delive
 export interface ApiUnsettledParcel {
   assignmentId: string; assignmentNo: string;
   deliveredAt: string | null; daysSince: number | null;
-  kind: "RIDER" | "COURIER";
+  kind: "RIDER" | "COURIER" | "ONE_TIME";
   carrier: { id: string; name: string } | null;
   carrierId: string | null;
+  platform?: string | null; riderPhone?: string | null; paidCash?: boolean; chargeCustomer?: boolean;
   consignmentNo: string | null;
   orderId?: string; orderNo?: string; zone?: string; address?: string;
   codDuePaisa: number;

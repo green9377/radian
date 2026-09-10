@@ -1950,6 +1950,21 @@ export class OrdersService {
    * over-payment — it is surfaced as `overpaidPaisa` so staff can refund it,
    * instead of silently sitting in duePaisa = 0.
    */
+  /**
+   * Owner, 10 Sep 2026: a retry after a failed delivery where staff decided
+   * the customer pays the second fare. Called by Delivery when the cost is
+   * recorded at Settle — the fare lands on the order as an adjustment and
+   * the due is recomputed, so it is collected like any other balance.
+   */
+  async chargeDeliveryToCustomer(id: string, paisa: number, actorName = 'Delivery') {
+    if (!paisa || paisa <= 0) return;
+    const o = await this.prisma.db.order.findFirst({ where: { id, deletedAt: null }, select: { adjustmentPaisa: true, salesStatus: true } });
+    if (!o || o.salesStatus === SalesStatus.cancelled) return;
+    await this.prisma.db.order.update({ where: { id }, data: { adjustmentPaisa: o.adjustmentPaisa + Math.round(paisa) } });
+    await this.recomputeMoney(id);
+    await this.event(id, 'payment', `Retry delivery fee charged to the customer: ${Math.round(paisa)} paisa`, actorName);
+  }
+
   private async recomputeMoney(id: string) {
     const order = await this.prisma.db.order.findFirst({ where: { id }, include: { lines: { where: NOT_DELETED } } });
     if (!order) return;

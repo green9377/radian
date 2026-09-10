@@ -54,7 +54,7 @@ export interface LoanPaymentDto {
   actorName?: string;
 }
 export interface RemitDto {
-  carrierType?: 'RIDER' | 'COURIER';
+  carrierType?: 'RIDER' | 'COURIER' | 'ONE_TIME';
   carrierId?: string;
   carrierName?: string;
   grossPaisa?: number;
@@ -129,8 +129,10 @@ export class FinanceAssetsService {
       .filter((c) => c.paisa !== 0)
       .map((c) => ({
         ...c,
-        name: names.get(c.carrierId) ?? 'Not recorded against a carrier',
-        type: couriers.some((x) => x.id === c.carrierId) ? 'COURIER' : 'RIDER',
+        /*  ONE_TIME (owner, 10 Sep 2026): the id carries the platform, there is
+            no row to look up — "one-time:Pathao ride" reads as "Pathao ride". */
+        name: names.get(c.carrierId) ?? (c.carrierId.startsWith('one-time:') ? `${c.carrierId.slice(9)} · one-time riders` : 'Not recorded against a carrier'),
+        type: couriers.some((x) => x.id === c.carrierId) ? 'COURIER' : c.carrierId.startsWith('one-time:') ? 'ONE_TIME' : 'RIDER',
         daysHeld: Math.floor((Date.now() - new Date(c.oldest).getTime()) / 86400000),
       }))
       .sort((a, b) => b.paisa - a.paisa);
@@ -166,7 +168,7 @@ export class FinanceAssetsService {
       would be read as a preference; it is an accounting fact about whether an
       expense has been posted, and getting it wrong is silent.  */
   async remitWithLines(dto: {
-    carrierType: 'RIDER' | 'COURIER';
+    carrierType: 'RIDER' | 'COURIER' | 'ONE_TIME';
     carrierId: string;
     carrierName: string;
     intoAccountId: string;

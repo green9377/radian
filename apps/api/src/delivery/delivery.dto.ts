@@ -186,7 +186,7 @@ export interface SettleLineDto {
 }
 
 export interface SettleDto {
-  carrierType: 'RIDER' | 'COURIER';
+  carrierType: 'RIDER' | 'COURIER' | 'ONE_TIME';
   carrierId: string;
   /** where the net money landed — a Finance money account */
   intoAccountId?: string;

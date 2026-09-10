@@ -211,7 +211,16 @@ export class DeliveryService {
       take: limit,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
-        _count: { select: { lines: { where: { deletedAt: null } }, photos: { where: { deletedAt: null } } } },
+        _count: {
+          select: {
+            lines: { where: { deletedAt: null } },
+            photos: { where: { deletedAt: null } },
+          },
+        },
+        /*  the board's Photo column (owner, 10 Sep 2026): did the customer
+            ask, and is the before-delivery shot there yet  */
+        photos: { where: { deletedAt: null, kind: 'PREP' }, select: { id: true }, take: 1 },
+        lines: { where: { deletedAt: null }, select: { name: true, qty: true }, take: 3 },
         assignments: {
           where: { deletedAt: null, isActive: true },
           include: { rider: { select: { id: true, name: true } }, courier: { select: { id: true, name: true } } },
@@ -240,6 +249,9 @@ export class DeliveryService {
         paymentMethod: o.paymentMethod,
         lineCount: o._count.lines,
         photoCount: o._count.photos,
+        photoUpdates: o.photoUpdates,
+        hasPrepPhoto: o.photos.length > 0,
+        items: o.lines.map((l) => ({ name: l.name, qty: l.qty })),
         assignment: o.assignments[0] ?? null,
       })),
       total,
@@ -658,7 +670,11 @@ export class DeliveryService {
       where: {
         status: AssignmentStatus.DELIVERED,
         deletedAt: null,
-        ...(carrierId ? { OR: [{ riderId: carrierId }, { courierId: carrierId }] } : {}),
+        ...(carrierId
+          ? carrierId.startsWith('one-time:')
+            ? { kind: AssignmentKind.ONE_TIME, platform: carrierId.slice(9) }
+            : { OR: [{ riderId: carrierId }, { courierId: carrierId }] }
+          : {}),
         OR: [{ costRecordedAt: null }, { codHandedOver: false }],
       },
       orderBy: { deliveredAt: 'asc' },
@@ -809,7 +825,9 @@ export class DeliveryService {
     const carrierName =
       (dto.carrierType === 'RIDER'
         ? (await this.prisma.db.rider.findFirst({ where: { id: dto.carrierId } }))?.name
-        : (await this.prisma.db.courierService.findFirst({ where: { id: dto.carrierId } }))?.name) ?? 'Carrier';
+        : dto.carrierType === 'ONE_TIME'
+          ? `${dto.carrierId.replace(/^one-time:/, '')} · one-time riders`
+          : (await this.prisma.db.courierService.findFirst({ where: { id: dto.carrierId } }))?.name) ?? 'Carrier';
 
     /*  The expense goes on the parcel, one parcel at a time. This is the call
         that has been missing since `costPaisa` was added: the column existed,
@@ -818,6 +836,13 @@ export class DeliveryService {
         has read as pure profit. */
     for (const l of lines) {
       if ((l.chargePaisa ?? 0) > 0) await this.finance.onDeliveryCost(l.assignmentId);
+      /*  Owner, 10 Sep 2026: a retry whose fare the customer pays — the
+          recorded cost lands on the order as an adjustment (Sales owns the
+          order's money; this only asks).  */
+      const a = byId.get(l.assignmentId)!;
+      if (a.chargeCustomer && (l.chargePaisa ?? 0) > 0 && a.order?.id) {
+        await this.orders.chargeDeliveryToCustomer(a.order.id, Math.round(l.chargePaisa ?? 0), actorName);
+      }
     }
 
     /*  Only cash that actually came back becomes a remittance. A settlement of

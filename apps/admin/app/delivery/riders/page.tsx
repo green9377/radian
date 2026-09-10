@@ -1,6 +1,6 @@
-import { RidersLive } from "../../_components/DeliveryLive";
+import { redirect } from "next/navigation";
 
-/* /delivery/riders — Rider master (LIVE, DEC-DLV-004 adopt-later). */
-export default function RidersPage() {
-  return <RidersLive />;
+/* Riders became tab 3 of Delivery setup (owner, 10 Sep 2026). */
+export default function Page() {
+  redirect("/delivery/setup?tab=carriers");
 }

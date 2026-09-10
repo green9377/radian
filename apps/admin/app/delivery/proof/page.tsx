@@ -1,6 +1,6 @@
-import { ProofLive } from "../../_components/DeliveryLive";
+import { redirect } from "next/navigation";
 
-/* /delivery/proof — proof photo upload/gallery (LIVE, P4 done — DLV-R08). */
-export default function ProofPage() {
-  return <ProofLive />;
+/* Proof photos page left (owner, 10 Sep 2026): the photo is a step on the order and a column on the board. */
+export default function Page() {
+  redirect("/delivery");
 }

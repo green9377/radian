@@ -1,7 +1,6 @@
-import { DeliveryMasters } from "../../_components/ZonesAvailability";
+import { redirect } from "next/navigation";
 
-/* /delivery/zones — the delivery MASTERS: methods, time slots, zones.
-   Each is made once here; /delivery/setup connects them (DEC-DLV-018). */
-export default function MethodsPage() {
-  return <DeliveryMasters />;
+/* Methods & slots became tab 1 of Delivery setup (owner, 10 Sep 2026). */
+export default function Page() {
+  redirect("/delivery/setup?tab=methods");
 }

@@ -103,10 +103,11 @@ const GROUPS: Group[] = [
       {
         label: "Delivery", href: "/delivery", icon: "truck",
         subs: [
+          /*  Owner, 10 Sep 2026: three pages. Proof photos left — the photo
+              is a step on the order and a column on the board.  */
           { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Proof photos", href: "/delivery/proof" },
-          { label: "Settle a carrier", href: "/delivery/settle" },
-          { label: "Cost & performance", href: "/delivery/performance" },
+          { label: "Settle", href: "/delivery/settle" },
+          { label: "Reports", href: "/delivery/performance" },
         ],
       },
       {
@@ -381,9 +382,9 @@ const GROUPS: Group[] = [
           { label: "Company settings", href: "/administration/company", roles: ["OWNER"] },
           { label: "Sales channels", href: "/orders/channels" },
           { label: "Payment methods", href: "/administration/payment-methods", roles: ["OWNER", "MANAGER"] },
-          { label: "Delivery methods & slots", href: "/delivery/zones" },
+          /*  Owner, 10 Sep 2026: one module. Methods & slots, zones, riders and
+              couriers are its four tabs.  */
           { label: "Delivery setup", href: "/delivery/setup" },
-          { label: "Riders", href: "/delivery/riders" },
           { label: "Returns settings", href: "/returns/settings" },
           { label: "All settings", href: "/administration/settings", roles: ["OWNER"] },
         ],

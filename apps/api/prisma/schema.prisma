@@ -5438,6 +5438,8 @@ enum PostingState {
 enum CarrierType {
   RIDER
   COURIER
+  /// a rider called for one trip (owner, 10 Sep 2026) — carrierId is "one-time:<platform>"
+  ONE_TIME
 }
 
 enum LoanKind {

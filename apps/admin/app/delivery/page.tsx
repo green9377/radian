@@ -1,6 +1,6 @@
-import { DeliveryBoardLive } from "../_components/DeliveryLive";
+import FulfilmentBoard from "../_components/FulfilmentBoard";
 
-/* /delivery — fulfilment board (LIVE, DEC-DLV-001/003/006). */
+/* /delivery — the fulfilment board (owner, 10 Sep 2026): same buttons as the order page. */
 export default function DeliveryBoardPage() {
-  return <DeliveryBoardLive />;
+  return <FulfilmentBoard />;
 }

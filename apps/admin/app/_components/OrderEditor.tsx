@@ -306,6 +306,17 @@ export default function OrderEditor({ id }: { id: string }) {
   useEffect(() => {
     setLoading(true);
     reload().finally(() => setLoading(false));
+    /*  The board links straight to a card (?sec=delivery, ?sec=photos) or to
+        the failed box (?fail=1) — owner, 10 Sep 2026: same buttons, same
+        page, one click apart.  */
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const want = sp.get("sec");
+      if (want && SECTIONS.some(([k]) => k === want)) setSec(want as SecId);
+      if (sp.get("fail") === "1") setFailOpen(true);
+    } catch {
+      /* no window — nothing to read */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
