@@ -56,7 +56,7 @@ function ActivityCenterInner() {
                   className="flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-[9px] transition-colors"
                   style={{
                     background: on ? "#fff" : "transparent",
-                    color: on ? "#7a2ea8" : "rgba(255,255,255,0.85)",
+                    color: on ? "#b97fdc" : "rgba(255,255,255,0.85)",
                   }}>
                   <Icon name={t.icon} size={13} strokeWidth={2.4} />
                   {t.label}

@@ -209,7 +209,7 @@ export default function CategoryEditor({
           the hero's rounded corners and the gap below it; the backdrop is a
           solid wall the content slides cleanly under. `top-0` + `pt-3` puts
           the visible hero at 12px, aligned with the left tree card's top-3.  */}
-      <div className="sticky top-0 z-20 pt-3 pb-3 -mx-3.5 px-3.5" style={{ background: "#f5eefb" }}>
+      <div className="sticky top-0 z-20 pt-3 pb-3 -mx-3.5 px-3.5" style={{ background: "#2a1b36" }}>
         <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(120,40,140,0.22)]"
              style={{ background: "linear-gradient(135deg,#5b1670,#a021b8 55%,#c46aad)" }}>
           <div className="absolute -right-8 -top-16 w-48 h-48 rounded-full bg-white opacity-[0.10]" />
@@ -236,7 +236,7 @@ export default function CategoryEditor({
 
       <div className="space-y-4">
         {imgError && (
-          <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-xl px-4 py-3 text-[13px] text-[#a3261f]">
+          <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-xl px-4 py-3 text-[13px] text-[#e7847e]">
             <span className="mt-0.5 shrink-0"><Icon name="alert" size={15} /></span>
             <span>{imgError}</span>
           </div>
@@ -293,13 +293,13 @@ export default function CategoryEditor({
             text; now only the open one shows. Each editor still saves on its
             own — the tabs only decide what's visible.  */}
         {!isNew && node && (
-          <div className="bg-white border border-[#efe7f5] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
+          <div className="bg-white border border-[#3f314a] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
             {/*  Colourful pill tabs (owner, 6 Aug 2026). Each tab carries its own
                 brand-family colour when active, so the strip reads lively rather
                 than grey. Content area has a min-height so switching tabs does
                 not change the page height — which was making the sticky left
                 tree jump on every click.  */}
-            <div className="px-4 pt-3.5 pb-3.5 border-b border-[#f3eef8]" style={{ background: "linear-gradient(120deg,#faf5fc,#fdf1f6)" }}>
+            <div className="px-4 pt-3.5 pb-3.5 border-b border-[#3d304a]" style={{ background: "linear-gradient(120deg,#2d1c33,#391825)" }}>
               <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-body-soft mb-2.5">Applies to every product here</div>
               <div className="flex gap-2 flex-wrap">
                 {([
@@ -395,7 +395,7 @@ export default function CategoryEditor({
           {!isNew ? (
             <button onClick={onDelete} disabled={!canDelete}
                     title={canDelete ? "Delete category" : "Move its products & sub-categories first"}
-                    className={"text-[13px] font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-xl " + (canDelete ? "text-[#c0392b] hover:bg-[#fdecea]" : "text-body-soft/40 cursor-not-allowed")}>
+                    className={"text-[13px] font-semibold inline-flex items-center gap-1.5 px-3 py-2 rounded-xl " + (canDelete ? "text-[#e1837a] hover:bg-[#3b1a16]" : "text-body-soft/40 cursor-not-allowed")}>
               <Icon name="trash" size={15} /> Delete category
             </button>
           ) : (<span />)}
@@ -414,8 +414,8 @@ export default function CategoryEditor({
     page reads as a stack of calm cards instead of a wall of text.  */
 function Card({ title, sub, icon, children }: { title: string; sub?: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-[#efe7f5] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#f3eef8] bg-[#faf7fc]">
+    <div className="bg-white border border-[#3f314a] rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#3d304a] bg-[#291e31]">
         <span className="w-9 h-9 rounded-xl grid place-items-center text-white shrink-0 shadow-[0_2px_8px_rgba(160,33,184,0.25)]"
               style={{ background: "linear-gradient(135deg,#a021b8,#d98cb3)" }}>
           <Icon name={icon} size={16} />
@@ -437,7 +437,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
     <div className="block">
       <span className="text-[12px] font-bold text-body flex items-center gap-1 mb-1.5 uppercase tracking-[0.03em]">
         {label}
-        {required && <span className="text-[#c0392b]">*</span>}
+        {required && <span className="text-[#e1837a]">*</span>}
       </span>
       {children}
     </div>
@@ -452,7 +452,7 @@ function ToggleField({ label, hint, on, onToggle }: { label: string; hint: strin
   return (
     <button onClick={onToggle}
             className={"text-left rounded-xl px-4 py-3.5 border-2 transition-all " +
-              (on ? "border-orchid bg-[#fdf4fb]" : "border-[#ece5f2] bg-white hover:border-lavender-deep")}>
+              (on ? "border-orchid bg-[#371930]" : "border-[#3e3347] bg-white hover:border-lavender-deep")}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-[14px] font-bold text-purple">{label}</div>
         <span className={"relative rounded-full transition-colors shrink-0 " + (on ? "bg-orchid" : "bg-lavender-deep")} style={{ width: 44, height: 26 }}>
@@ -497,7 +497,7 @@ function Drop({ label, hint, value, busy, onFile, onClear, ratio }: { label: str
         )}
         <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
       </label>
-      {value && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
+      {value && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#e1837a] mt-1.5">Remove</button>}
     </div>
   );
 }

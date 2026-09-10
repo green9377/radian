@@ -313,7 +313,7 @@ export function MoneyBlock(p: MoneyBlockProps) {
   const rows = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
 
   const card = "rounded-[12px] px-3 py-3";
-  const cardBg = { background: p.tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" };
+  const cardBg = { background: p.tone === "light" ? "#281e32" : "rgba(255,255,255,.07)" };
   const editor = "pt-2 flex items-center gap-1.5 flex-wrap";
 
   return (
@@ -440,7 +440,7 @@ export function MoneyResult({ pay, totalPaisa, tone, dueLabel = "Due — collect
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" }}>
+      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "#281e32" : "rgba(255,255,255,.07)" }}>
         <div className={`text-[10.5px] uppercase tracking-[0.08em] font-medium ${t.label}`}>Paid</div>
         <div className={`text-[19px] font-semibold font-display ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(pay.paidPaisa)}
@@ -615,7 +615,7 @@ export function PayDialog({
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
             <button type="button" onClick={onConfirm} disabled={busy || taking <= 0 || tooMuch}
-              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              className="flex-1 bg-white hover:bg-[#2c1d35] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(taking)}`}
             </button>
           </div>
@@ -705,7 +705,7 @@ export function RefundDialog({
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
             <button type="button" onClick={onConfirm} disabled={busy}
-              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              className="flex-1 bg-white hover:bg-[#2c1d35] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(amountPaisa)}`}
             </button>
           </div>

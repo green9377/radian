@@ -42,10 +42,10 @@ import {
 type Tone = "brand" | "sky" | "emerald" | "amber";
 
 const TONE: Record<Tone, { grad: string; ring: string; text: string; soft: string }> = {
-  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#e6d3ee", text: "#6b2480", soft: "#f7f0fb" },
-  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#cfe0f2", text: "#1d5a96", soft: "#eef5fc" },
-  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#cfe9df", text: "#136b4a", soft: "#edf8f3" },
-  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#f0e0c2", text: "#8a5610", soft: "#fdf5e7" },
+  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#312238", text: "#ca88dd", soft: "#2c1b35" },
+  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#1f2d3b", text: "#7fb3e6", soft: "#192838" },
+  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#253730", text: "#7de8c0", soft: "#1f332a" },
+  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#3e331f", text: "#efbb76", soft: "#3c2e17" },
 };
 
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
@@ -181,7 +181,7 @@ export default function StorefrontOverview() {
         <span
           aria-hidden
           className="absolute -right-10 -top-14 w-[230px] h-[230px] rounded-[50%_50%_50%_0] -rotate-45 opacity-[0.13]"
-          style={{ background: "linear-gradient(150deg,#ffffff,#f0c9ff)" }}
+          style={{ background: "linear-gradient(150deg,#1f1727,#351840)" }}
         />
         <div className="relative flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
@@ -231,7 +231,7 @@ export default function StorefrontOverview() {
                 <div className="font-display text-[16px]" style={{ color: TONE[g.tone].text }}>{g.title}</div>
                 <div className="text-[11.5px] text-body-soft truncate">{g.blurb}</div>
               </div>
-              <span className="ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ color: TONE[g.tone].text, background: "#ffffff" }}>
+              <span className="ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ color: TONE[g.tone].text, background: "#1f1727" }}>
                 {g.rows.length} screens
               </span>
             </div>
@@ -250,7 +250,7 @@ export default function StorefrontOverview() {
                     <div className="text-[13.5px] font-medium text-purple group-hover:text-orchid flex items-center gap-2">
                       {r.label}
                       {r.alert && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#fdf0e2] text-[#8a5610]">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#3c2a17] text-[#efbb76]">
                           needs you
                         </span>
                       )}

@@ -61,7 +61,7 @@ function PageHead({ eyebrow, title, children }: { eyebrow: string; title: string
 }
 function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 bg-[#fff4e2] text-[#b45309] text-[12px] font-bold px-3 py-1.5 rounded-full">
+    <span className="inline-flex items-center gap-1.5 bg-[#3c2e17] text-[#f7a96e] text-[12px] font-bold px-3 py-1.5 rounded-full">
       <Icon name="bolt" size={13} /> API offline — nothing live on this screen
     </span>
   );
@@ -144,7 +144,7 @@ function BoardList({
             {(rows ?? []).map((o) => {
               const d = due(o.promisedBy);
               const out = o.deliveryStatus === "out_for_delivery";
-              const rowBg = d.late ? "bg-[#fdf0f0]" : d.tone === "soon" ? "bg-[#fff8ec]" : "";
+              const rowBg = d.late ? "bg-[#391717]" : d.tone === "soon" ? "bg-[#3a2d16]" : "";
               return (
                 <tr key={o.id} className={`border-t border-lavender-deep hover:bg-lavender/40 ${rowBg}`}>
                   <td className="px-3 py-2.5 text-center">
@@ -163,7 +163,7 @@ function BoardList({
                     <div className="text-[11.5px] text-body-soft truncate max-w-[280px]">{o.address}</div>
                   </td>
                   <td className="px-3 py-2.5">
-                    <span className={`text-[12.5px] font-semibold ${d.late ? "text-[#b91c1c]" : d.tone === "soon" ? "text-[#b45309]" : "text-body-soft"}`}>{d.text}</span>
+                    <span className={`text-[12.5px] font-semibold ${d.late ? "text-[#ea7171]" : d.tone === "soon" ? "text-[#f7a96e]" : "text-body-soft"}`}>{d.text}</span>
                     <div className="text-[11px] text-body-soft truncate">{o.methodLabel ?? o.zone}</div>
                   </td>
                   <td className="px-3 py-2.5">
@@ -176,7 +176,7 @@ function BoardList({
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    {o.duePaisa > 0 ? <span className="text-[12.5px] font-semibold text-[#b45309]">{formatTaka(o.duePaisa)}</span> : <span className="text-body-soft">—</span>}
+                    {o.duePaisa > 0 ? <span className="text-[12.5px] font-semibold text-[#f7a96e]">{formatTaka(o.duePaisa)}</span> : <span className="text-body-soft">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-right whitespace-nowrap">
                     {o.deliveryStatus === "unassigned" && (
@@ -195,8 +195,8 @@ function BoardList({
                     )}
                     {out && (
                       <>
-                        <button disabled={busy === o.id} onClick={() => onAct(o, "delivered")} className="text-[12.5px] font-semibold text-[#0f7d55] hover:underline mr-3">Delivered</button>
-                        <button disabled={busy === o.id} onClick={() => onAct(o, "fail")} className="text-[12.5px] font-semibold text-body-soft hover:text-[#b91c1c]">Fail</button>
+                        <button disabled={busy === o.id} onClick={() => onAct(o, "delivered")} className="text-[12.5px] font-semibold text-[#76efc3] hover:underline mr-3">Delivered</button>
+                        <button disabled={busy === o.id} onClick={() => onAct(o, "fail")} className="text-[12.5px] font-semibold text-body-soft hover:text-[#ea7171]">Fail</button>
                       </>
                     )}
                   </td>
@@ -238,10 +238,10 @@ function BoardList({
 
 /* ================= BOARD ================= */
 const COLS: { key: string; label: string; tone: string; hint: string }[] = [
-  { key: "unassigned", label: "Needs assignment", tone: "#b45309", hint: "confirmed — pick a rider/courier" },
-  { key: "preparing", label: "Preparing", tone: "#2563eb", hint: "stock committed" },
-  { key: "out_for_delivery", label: "Out for delivery", tone: "#a021b8", hint: "parcel on the road" },
-  { key: "failed", label: "Failed — retry", tone: "#b91c1c", hint: "assign again to retry" },
+  { key: "unassigned", label: "Needs assignment", tone: "#f7a96e", hint: "confirmed — pick a rider/courier" },
+  { key: "preparing", label: "Preparing", tone: "#6a94f1", hint: "stock committed" },
+  { key: "out_for_delivery", label: "Out for delivery", tone: "#d475e6", hint: "parcel on the road" },
+  { key: "failed", label: "Failed — retry", tone: "#ea7171", hint: "assign again to retry" },
 ];
 
 export function DeliveryBoardLive() {
@@ -466,14 +466,14 @@ export function DeliveryBoardLive() {
       {/*  A refusal reads as a rule saying no, beside the work it refused —
            never as a frozen screen. See the note on `boardErr`.  */}
       {boardErr && (
-        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#fdeef0", borderColor: "#f3c9cf", color: "#8c2f39" }}>
+        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#3a171b", borderColor: "#512a2f", color: "#d98c95" }}>
           <Icon name="shield" size={16} />
           <span className="flex-1">{boardErr}</span>
           <button onClick={() => setBoardErr("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
       {boardNote && (
-        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#e9f9ef", borderColor: "#c2ecd3", color: "#0e7a3d" }}>
+        <div className="flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px]" style={{ background: "#1c3626", borderColor: "#2d4d3a", color: "#76efab" }}>
           <Icon name="check" size={16} />
           <span className="flex-1">{boardNote}</span>
           <button onClick={() => setBoardNote("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
@@ -579,8 +579,8 @@ export function DeliveryBoardLive() {
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                     <span className="text-[11px] font-semibold bg-lavender text-purple px-2 py-0.5 rounded-[7px]">{o.methodLabel ?? o.zone}</span>
                     {o.slotLabel && <span className="text-[11px] bg-lavender text-body px-2 py-0.5 rounded-[7px]">{o.slotLabel}</span>}
-                    {o.duePaisa > 0 && <span className="text-[11px] font-semibold bg-[#fff4e2] text-[#b45309] px-2 py-0.5 rounded-[7px]">COD {formatTaka(o.duePaisa)}</span>}
-                    {o.photoCount > 0 && <span className="text-[11px] bg-[#e8f6ef] text-[#0f7d55] px-2 py-0.5 rounded-[7px]">📷 {o.photoCount}</span>}
+                    {o.duePaisa > 0 && <span className="text-[11px] font-semibold bg-[#3c2e17] text-[#f7a96e] px-2 py-0.5 rounded-[7px]">COD {formatTaka(o.duePaisa)}</span>}
+                    {o.photoCount > 0 && <span className="text-[11px] bg-[#20342a] text-[#76efc3] px-2 py-0.5 rounded-[7px]">📷 {o.photoCount}</span>}
                     {carrierChip(o.assignment)}
                   </div>
                   <div className="flex gap-1.5 mt-2.5 flex-wrap">
@@ -599,7 +599,7 @@ export function DeliveryBoardLive() {
                     {col.key === "out_for_delivery" && (
                       <>
                         <button disabled={busy === o.id} onClick={() => act(o, "delivered")} className="flex-1 bg-[#0f7d55] hover:bg-[#0b6142] text-white text-[12px] font-semibold py-2 rounded-[9px]">✓ Delivered</button>
-                        <button disabled={busy === o.id} onClick={() => act(o, "fail")} className="border-[1.5px] border-[#f0c0c0] text-[#b91c1c] text-[12px] font-semibold px-3 py-2 rounded-[9px]">Fail</button>
+                        <button disabled={busy === o.id} onClick={() => act(o, "fail")} className="border-[1.5px] border-[#502a2a] text-[#ea7171] text-[12px] font-semibold px-3 py-2 rounded-[9px]">Fail</button>
                       </>
                     )}
                   </div>
@@ -688,7 +688,7 @@ export function DeliveryBoardLive() {
                   <option value="">— pick a rider —</option>
                   {riders.map((r) => (<option key={r.id} value={r.id}>{r.name}{r.vehicle ? ` · ${r.vehicle}` : ""}</option>))}
                 </select>
-                {riders.length === 0 && <p className="text-[12px] text-[#b45309] mt-1.5 mb-0">No riders yet — add one in Delivery → Riders.</p>}
+                {riders.length === 0 && <p className="text-[12px] text-[#f7a96e] mt-1.5 mb-0">No riders yet — add one in Delivery → Riders.</p>}
               </div>
             ) : (
               <>
@@ -740,7 +740,7 @@ export function DeliveryBoardLive() {
               {failReasons.map((r) => (<option key={r.id} value={r.id}>{r.label}</option>))}
             </select>
             {failReasons.length === 0 && (
-              <p className="text-[12px] text-[#b45309] mt-1.5 mb-0">
+              <p className="text-[12px] text-[#f7a96e] mt-1.5 mb-0">
                 Add them in Delivery → Settings; the note below is recorded either way.
               </p>
             )}
@@ -831,12 +831,12 @@ export function RidersLive() {
                 <td className="px-4 py-3">{r.phone ? <a href={`tel:${r.phone}`} className="text-orchid hover:text-purple">{r.phone}</a> : "—"}</td>
                 <td className="px-4 py-3">{r.vehicle ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <span className="font-semibold text-purple">{r.today?.assigned ?? 0}</span> · <span className="text-[#a021b8] font-semibold">{r.today?.out ?? 0}</span> · <span className="text-[#0f7d55] font-semibold">{r.today?.delivered ?? 0}</span> · <span className="text-[#b91c1c] font-semibold">{r.today?.failed ?? 0}</span>
+                  <span className="font-semibold text-purple">{r.today?.assigned ?? 0}</span> · <span className="text-[#d475e6] font-semibold">{r.today?.out ?? 0}</span> · <span className="text-[#76efc3] font-semibold">{r.today?.delivered ?? 0}</span> · <span className="text-[#ea7171] font-semibold">{r.today?.failed ?? 0}</span>
                 </td>
-                <td className="px-4 py-3">{r.isActive ? <span className="text-[11px] font-semibold bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full">Active</span> : <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full">Off</span>}</td>
+                <td className="px-4 py-3">{r.isActive ? <span className="text-[11px] font-semibold bg-[#20342a] text-[#76efc3] px-2.5 py-1 rounded-full">Active</span> : <span className="text-[11px] font-semibold bg-[#29242f] text-body-soft px-2.5 py-1 rounded-full">Off</span>}</td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => setEditing(r)} className="text-[13px] font-medium text-orchid hover:text-purple mr-3">Edit</button>
-                  <button onClick={() => void remove(r)} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c]">Remove</button>
+                  <button onClick={() => void remove(r)} className="text-[13px] font-medium text-body-soft hover:text-[#ea7171]">Remove</button>
                 </td>
               </tr>
             ))}
@@ -942,7 +942,7 @@ export function ProofLive() {
           <input className="ipt ipt-icon h-[44px]" placeholder="RAD-no / customer / phone…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void search()} />
         </div>
         <button onClick={() => void search()} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px]">Find order</button>
-        {err && <span className="text-[13px] text-[#b45309] font-medium">{err}</span>}
+        {err && <span className="text-[13px] text-[#f7a96e] font-medium">{err}</span>}
       </div>
 
       {order && (
@@ -971,7 +971,7 @@ export function ProofLive() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.url} alt={p.kind} className="w-full h-[140px] object-cover" />
                 ) : (
-                  <div className="w-full h-[140px]" style={{ background: p.bg ?? "linear-gradient(135deg,#efd9f7,#cbb3e3)" }} />
+                  <div className="w-full h-[140px]" style={{ background: p.bg ?? "linear-gradient(135deg,#331c3b,#32253e)" }} />
                 )}
                 <div className="px-2.5 py-1.5 text-[11.5px] text-body-soft bg-white flex justify-between">
                   <span className="font-semibold text-purple">{p.kind}</span>

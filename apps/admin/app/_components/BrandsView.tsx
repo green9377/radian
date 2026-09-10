@@ -37,7 +37,7 @@ const rnd = () => Math.random().toString(36).slice(2, 9);
 
 // rosegold-forward accent — premium, and distinct from Category (purple) & Tags (orchid)
 const ACCENT = "#b76e79";
-const ACCENT_BG = "#f8eef0";
+const ACCENT_BG = "#322023";
 
 function LogoThumb({ b, size }: { b: ApiBrand; size: number }) {
   const r = Math.round(size * 0.28);
@@ -54,7 +54,7 @@ function LogoThumb({ b, size }: { b: ApiBrand; size: number }) {
       className="shrink-0 grid place-items-center font-display font-semibold text-white"
       style={{ width: size, height: size, borderRadius: r, background: genBg(b.slug || b.name), color: ACCENT, fontSize: size * 0.34 }}
     >
-      <span style={{ color: "#7a3f49" }}>{initials(b.name)}</span>
+      <span style={{ color: "#cb9aa2" }}>{initials(b.name)}</span>
     </span>
   );
 }
@@ -189,12 +189,12 @@ export default function BrandsView() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span>{err}</span><button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+        <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
           <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
             The API is not reachable, so nothing can be shown. Start it and
@@ -209,13 +209,13 @@ export default function BrandsView() {
            purple, orchid, rose gold, soft purple. One house, one look.  */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Brands", v: stats.total, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "tag" },
-          { l: "On products", v: stats.total - stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "star", tip: "Brands at least one product carries." },
-          { l: "Unused", v: stats.empty, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
-          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
+          { l: "Brands", v: stats.total, c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "tag" },
+          { l: "On products", v: stats.total - stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "star", tip: "Brands at least one product carries." },
+          { l: "Unused", v: stats.empty, c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
+          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
             <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
             <div className="flex items-center justify-between gap-2">
               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
@@ -272,7 +272,7 @@ export default function BrandsView() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{b.name}</span>
                       {!b.isActive && (
-                        <span className="shrink-0" style={{ color: on ? "#b45309" : "rgba(255,255,255,.5)" }} title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
+                        <span className="shrink-0" style={{ color: on ? "#f7a96e" : "rgba(255,255,255,.5)" }} title="Hidden from the storefront"><Icon name="eye" size={12} /></span>
                       )}
                     </div>
                     <div className={"text-[12.5px] truncate " + (on ? "text-body-soft" : "text-white/45")}>
@@ -299,7 +299,7 @@ export default function BrandsView() {
                       <Icon name="edit" size={14} />
                     </button>
                     <button onClick={() => remove(b)}
-                      className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center " + (on ? "text-[#b42318] hover:bg-[#fbecec]" : "text-[#f0a9a2] hover:bg-white/15")} title="Delete brand">
+                      className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center " + (on ? "text-[#ed8078] hover:bg-[#371a1a]" : "text-[#f0a9a2] hover:bg-white/15")} title="Delete brand">
                       <Icon name="trash" size={14} />
                     </button>
                   </div>
@@ -422,10 +422,10 @@ function BrandEditor({
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b border-lavender-deep" style={{ background: ACCENT_BG }}>
         <LogoThumb b={previewBrand} size={44} />
         <div className="min-w-0">
-          <div className="font-display text-[19px] leading-tight truncate" style={{ color: "#7a3f49" }}>{name || "Untitled brand"}</div>
+          <div className="font-display text-[19px] leading-tight truncate" style={{ color: "#cb9aa2" }}>{name || "Untitled brand"}</div>
           <div className="text-[13px] text-body-soft mt-0.5">{count} product{count === 1 ? "" : "s"}</div>
         </div>
-        <button onClick={onDelete} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#b42318] bg-white/70 hover:bg-white shrink-0" title="Delete brand"><Icon name="trash" size={15} /></button>
+        <button onClick={onDelete} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#ed8078] bg-white/70 hover:bg-white shrink-0" title="Delete brand"><Icon name="trash" size={15} /></button>
       </div>
 
       <div className="p-5 space-y-5">
@@ -437,13 +437,13 @@ function BrandEditor({
               <Info text="PNG or SVG on a transparent background looks best. Up to 10 MB." />
             </div>
             <button onClick={() => fileRef.current?.click()} className="w-[128px] h-[128px] rounded-[16px] border border-lavender-deep grid place-items-center overflow-hidden relative group bg-white" title={logoUrl ? "Click to replace" : "Click to upload a logo"} style={logoUrl ? { backgroundImage: `url(${logoUrl})`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" } : { background: genBg(slug || name) }}>
-              {!logoUrl && <span className="font-display text-[34px]" style={{ color: "#7a3f49" }}>{initials(name || "?")}</span>}
+              {!logoUrl && <span className="font-display text-[34px]" style={{ color: "#cb9aa2" }}>{initials(name || "?")}</span>}
               <span className={`absolute inset-0 grid place-items-center text-white transition ${imgBusy ? "bg-black/45 opacity-100" : "bg-black/0 group-hover:bg-black/30 opacity-0 group-hover:opacity-100"}`}>
                 {imgBusy ? <span className="text-[12px] font-semibold">Uploading…</span> : <Icon name="upload" size={22} />}
               </span>
             </button>
-            {logoUrl && <button onClick={() => setLogoUrl(null)} className="text-[11.5px] text-[#b42318] hover:underline mt-1.5 inline-flex items-center gap-1"><Icon name="trash" size={12} /> Remove</button>}
-            {imgErr && <div className="text-[11px] text-[#b42318] mt-1">{imgErr}</div>}
+            {logoUrl && <button onClick={() => setLogoUrl(null)} className="text-[11.5px] text-[#ed8078] hover:underline mt-1.5 inline-flex items-center gap-1"><Icon name="trash" size={12} /> Remove</button>}
+            {imgErr && <div className="text-[11px] text-[#ed8078] mt-1">{imgErr}</div>}
           </div>
 
           <div className="space-y-3.5">
@@ -476,7 +476,7 @@ function BrandEditor({
              text for a page nobody can open. The COLUMN stays — the day brand
              pages ship, the switch comes back and no data was lost.  */}
         <div className="grid grid-cols-1 gap-3">
-          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="In use" sub="Off — this brand stops being offered when you file a product under a brand. Nothing about brands reaches the shop yet." on={brand.isActive} onToggle={onToggleActive} />
+          <SwitchRow icon="eye" tint="#7a2ea8" bg="#2e1a38" title="In use" sub="Off — this brand stops being offered when you file a product under a brand. Nothing about brands reaches the shop yet." on={brand.isActive} onToggle={onToggleActive} />
         </div>
 
         {/*  The Search & social block is parked with the rest of the
@@ -513,7 +513,7 @@ function SwitchRow({ icon, tint, bg, title, sub, on, onToggle }: { icon: string;
   return (
     <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 rounded-[12px] border px-3.5 py-3 transition-colors"
       style={on ? { borderColor: tint, background: bg } : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
-      <span className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: on ? tint : "#c9b7d6" }}><Icon name={icon} size={16} /></span>
+      <span className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: on ? tint : "#342b3a" }}><Icon name={icon} size={16} /></span>
       <div className="text-[13.5px] font-bold" style={{ color: on ? tint : "var(--color-purple)" }}>{title}</div>
       <Info text={sub} />
       <Switch on={on} tint={tint} onClick={onToggle} />
@@ -524,7 +524,7 @@ function SwitchRow({ icon, tint, bg, title, sub, on, onToggle }: { icon: string;
 function Switch({ on, tint, onClick }: { on: boolean; tint?: string; onClick: () => void }) {
   const w = 36, h = 21, k = 15;
   return (
-    <button onClick={onClick} className="relative rounded-full transition-colors shrink-0" style={{ width: w, height: h, background: on ? (tint ?? "#cf43ea") : "#d9c9e6" }} title={on ? "On" : "Off"}>
+    <button onClick={onClick} className="relative rounded-full transition-colors shrink-0" style={{ width: w, height: h, background: on ? (tint ?? "#cf43ea") : "#302538" }} title={on ? "On" : "Off"}>
       <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: k, height: k, left: on ? w - k - 3 : 3 }} />
     </button>
   );

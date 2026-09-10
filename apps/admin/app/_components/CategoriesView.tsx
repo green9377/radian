@@ -197,13 +197,13 @@ export default function CategoriesView() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span>{err}</span>
           <button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+        <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
           <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
             The API is not reachable, so nothing can be shown. Start it and
@@ -221,15 +221,15 @@ export default function CategoriesView() {
           this screen wore was the old off-brand palette.  */}
       <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-6">
         {[
-          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "grid" },
-          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "layers", tip: "The aisles — what the storefront menu shows." },
-          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
-          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
-          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
-          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
+          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "grid" },
+          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "layers", tip: "The aisles — what the storefront menu shows." },
+          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
+          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
+          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
+          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
             <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
             <div className="flex items-center justify-between gap-2">
               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
@@ -373,7 +373,7 @@ export default function CategoriesView() {
              min-height keeps this column at least a full screen tall even when
              nothing is selected, so the left sticky card ALWAYS has room to
              travel and never scrolls away. (6 Aug 2026.)  */}
-        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "#f5eefb" }}>
+        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "#2a1b36" }}>
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}
@@ -421,7 +421,7 @@ function Switch({ on, onClick, small, dark }: { on: boolean; onClick: () => void
     <button
       onClick={onClick}
       className="relative rounded-full transition-colors shrink-0"
-      style={{ width: w, height: h, background: on ? "#A93FC9" : dark ? "rgba(255,255,255,0.16)" : "#d8c6ee" }}
+      style={{ width: w, height: h, background: on ? "#A93FC9" : dark ? "rgba(255,255,255,0.16)" : "#2d213c" }}
       title={on ? "Active — visible to customers" : "Hidden from customers"}
     >
       <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: k, height: k, left: on ? w - k - 3 : 3 }} />

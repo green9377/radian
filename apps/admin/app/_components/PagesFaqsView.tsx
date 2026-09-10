@@ -44,27 +44,27 @@ const KNOWN_SLUGS = [
 const SECTIONS = [
   {
     id: "pages", label: "All pages", blurb: "Terms, privacy, refund and more", icon: "grid",
-    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
-    ink: "#3b0b52", sub: "#816894", strong: "#470066",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
+    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "live", label: "Live", blurb: "On the storefront now", icon: "eye",
-    tint: "#e9f7ee", edge: "#c9e8d4", chip: "#c9e8d4",
-    ink: "#124f2e", sub: "#5c8f74", strong: "#0E7A3D",
-    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#a9e3c1",
+    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
+    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "drafts", label: "Drafts", blurb: "Built-in text still showing", icon: "clock",
-    tint: "#fdf4e5", edge: "#f0deb9", chip: "#f0deb9",
-    ink: "#6b4a08", sub: "#a5854a", strong: "#8a5a00",
-    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#f0d9a4",
+    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
+    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "faqs", label: "FAQ", blurb: "The questions on /faq", icon: "hash",
-    tint: "#e9f2fb", edge: "#c8ddf1", chip: "#c8ddf1",
-    ink: "#123f68", sub: "#5b82a8", strong: "#185FA5",
-    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#a9cdec",
+    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
+    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -132,11 +132,11 @@ export default function PagesFaqsView() {
     <div className={WRAP}>
       <SaveBar state={saveState} />
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
 
       <ModuleCard>
         <ModuleHeader
@@ -145,7 +145,7 @@ export default function PagesFaqsView() {
           title="Pages & FAQs"
           blurb="Terms, refund, privacy and the FAQ page — the storefront renders exactly what is published here"
           chips={counts.drafts > 0
-            ? [{ label: `${counts.drafts} unpublished`, bg: "#FBEAF0", color: "#6b2138" }]
+            ? [{ label: `${counts.drafts} unpublished`, bg: "#381a24", color: "#db8aa3" }]
             : []}
           action={sec === "faqs"
             ? { label: "＋ New question", onClick: () => setFaqDialog({ faq: null }) }
@@ -218,15 +218,15 @@ export default function PagesFaqsView() {
                 {/*  the storefront's own routes still on built-in text —
                     each chip opens the dialog pre-filled, creates nothing  */}
                 {sec === "pages" && missingKnown.length > 0 && (
-                  <div className="mb-3 rounded-[14px] border border-[#f0deb9] bg-[#fdf4e5] px-3.5 py-3">
-                    <p className="text-[12.5px] font-medium text-[#6b4a08] mb-2">
+                  <div className="mb-3 rounded-[14px] border border-[#514429] bg-[#3c2e17] px-3.5 py-3">
+                    <p className="text-[12.5px] font-medium text-[#f4c871] mb-2">
                       Storefront pages still on built-in text — create to take over:
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {missingKnown.map((k) => (
                         <button key={k.slug}
                           onClick={() => setPageDialog({ page: null, seed: k })}
-                          className="rounded-full border border-[#e3c27c] bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#6b4a08] hover:border-[#8a5a00] transition-colors">
+                          className="rounded-full border border-[#e3c27c] bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#f4c871] hover:border-[#8a5a00] transition-colors">
                           ＋ {k.title} <span className="font-normal opacity-60">(/{k.slug})</span>
                         </button>
                       ))}
@@ -249,15 +249,15 @@ export default function PagesFaqsView() {
                   ) : shownPages.map((p) => (
                     <div key={p.id}
                       className={"rounded-[16px] border px-4 py-3.5 " +
-                        (p.isPublished ? "border-lavender-deep bg-white" : "border-[#f0d5a8] bg-[#fffdf6]")}>
+                        (p.isPublished ? "border-lavender-deep bg-white" : "border-[#534328] bg-[#393116]")}>
                       <div className="flex items-center gap-3">
                         <span className="min-w-0 flex-1">
                           <span className="block text-[14px] font-medium text-purple">
                             {p.title}
                             {p.isPublished
-                              ? <Badge bg="#E8F9EE" color="#0E7A3D">live</Badge>
-                              : <Badge bg="#FFF4E6" color="#8a5a00">draft</Badge>}
-                            {p.showInFooter && <Badge bg="#f1f0fb" color="#4a4494">in footer</Badge>}
+                              ? <Badge bg="#1c3726" color="#76efab">live</Badge>
+                              : <Badge bg="#3b2b17" color="#f7c76e">draft</Badge>}
+                            {p.showInFooter && <Badge bg="#1e1b35" color="#948fcc">in footer</Badge>}
                           </span>
                           <span className="block text-[11.5px] text-body-soft">/{p.slug}</span>
                           {p.excerpt && <span className="block text-[12px] text-body-soft mt-0.5 truncate">{p.excerpt}</span>}
@@ -282,13 +282,13 @@ export default function PagesFaqsView() {
                 ) : faqs.map((f) => (
                   <div key={f.id}
                     className={"rounded-[16px] border px-4 py-3.5 " +
-                      (f.isPublished ? "border-lavender-deep bg-white" : "border-[#f0d5a8] bg-[#fffdf6]")}>
+                      (f.isPublished ? "border-lavender-deep bg-white" : "border-[#534328] bg-[#393116]")}>
                     <span className="block text-[14px] font-medium text-purple">
                       {f.question}
                       {f.isPublished
-                        ? <Badge bg="#E8F9EE" color="#0E7A3D">live</Badge>
-                        : <Badge bg="#FFF4E6" color="#8a5a00">draft</Badge>}
-                      <Badge bg="#E6F1FB" color="#185FA5">{f.groupName}</Badge>
+                        ? <Badge bg="#1c3726" color="#76efab">live</Badge>
+                        : <Badge bg="#3b2b17" color="#f7c76e">draft</Badge>}
+                      <Badge bg="#192a3a" color="#79b3ec">{f.groupName}</Badge>
                     </span>
                     <span className="block text-[11.5px] text-body-soft">order {f.sortOrder}</span>
                     <div className="flex items-center gap-2 mt-3 flex-wrap">
@@ -418,7 +418,7 @@ function PageDialog({ page, seed, onClose, onSaved, onError }: {
 
         <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-between gap-2">
           {page
-            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Delete this page</button>
+            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[#e1837a]">Delete this page</button>
             : <span />}
           <span className="flex items-center gap-2">
             <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
@@ -506,7 +506,7 @@ function FaqDialog({ faq, onClose, onSaved, onError }: {
 
         <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-between gap-2">
           {faq
-            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Delete this question</button>
+            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[#e1837a]">Delete this question</button>
             : <span />}
           <span className="flex items-center gap-2">
             <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>

@@ -41,45 +41,45 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "all", label: "All reviews", blurb: "Everything, newest first", icon: "grid",
-    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
-    ink: "#3b0b52", sub: "#816894", strong: "#470066",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
+    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "waiting", label: "Waiting", blurb: "Approve or reject", icon: "clock",
-    tint: "#fdf4e5", edge: "#f0deb9", chip: "#f0deb9",
-    ink: "#6b4a08", sub: "#a5854a", strong: "#8a5a00",
-    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#f0d9a4",
+    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
+    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "onsite", label: "On the site", blurb: "Live on the website", icon: "eye",
-    tint: "#e9f7ee", edge: "#c9e8d4", chip: "#c9e8d4",
-    ink: "#124f2e", sub: "#5c8f74", strong: "#0E7A3D",
-    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#a9e3c1",
+    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
+    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "hidden", label: "Hidden", blurb: "Taken off the site", icon: "box",
-    tint: "#f3eff8", edge: "#e4dcee", chip: "#e4dcee",
-    ink: "#453556", sub: "#8b7c9c", strong: "#5f4b73",
-    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#ded4ec",
+    tint: "#282032", edge: "#2b2434", chip: "#2b2434",
+    ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
+    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
   },
   {
     id: "website", label: "Website", blurb: "Customers wrote these", icon: "user",
-    tint: "#e9f2fb", edge: "#c8ddf1", chip: "#c8ddf1",
-    ink: "#123f68", sub: "#5b82a8", strong: "#185FA5",
-    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#a9cdec",
+    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
+    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },
   {
     id: "google", label: "Google", blurb: "Card, feature and reply", icon: "search",
-    tint: "#f9e9fd", edge: "#eecffa", chip: "#eecffa",
-    ink: "#5e1a5c", sub: "#96639a", strong: "#8c2d84",
-    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#f0c4ec",
+    tint: "#34163b", edge: "#351840", chip: "#351840",
+    ink: "#de87db", sub: "#bd9cbf", strong: "#da8bd3",
+    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#3e1f3b",
   },
   {
     id: "featured", label: "Homepage picks", blurb: "Four front-page spots", icon: "star",
-    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
-    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
+    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
+    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -184,20 +184,20 @@ export default function ReviewsView() {
     return (
       <div key={r.id}
         className={"rounded-[16px] border px-4 py-3.5 bg-white " +
-          (r.status === "PENDING" ? "border-[#f0d5a8] bg-[#fffdf6]" : "border-lavender-deep")}>
+          (r.status === "PENDING" ? "border-[#534328] bg-[#393116]" : "border-lavender-deep")}>
         <div className="flex items-center gap-3">
           <Avatar r={r} size={40} />
           <span className="min-w-0 flex-1">
             <span className="block text-[13.5px] font-medium text-purple">
               {r.authorName || "(no name)"}
-              {r.status === "PENDING" && <Badge bg="#FFF4E6" color="#8a5a00">waiting</Badge>}
-              {r.status === "REJECTED" && <Badge bg="#f4f2f7" color="#5f5a70">hidden</Badge>}
-              {r.source === "CUSTOMER" && <Badge bg="#E6F1FB" color="#185FA5">website</Badge>}
-              {r.source === "SHOP" && <Badge bg="#f9e9fd" color="#8c2d84">you added</Badge>}
-              {r.source === "GOOGLE" && <Badge bg="#f7f1fb" color="#5f4b73">Google</Badge>}
-              {r.verifiedPurchase && <Badge bg="#E8F9EE" color="#0E7A3D">✓ verified</Badge>}
-              {r.isFeatured && <Badge bg="#E8F9EE" color="#0E7A3D">on homepage</Badge>}
-              {r.imageUrl && <Badge bg="#f1f0fb" color="#4a4494">📷 photo</Badge>}
+              {r.status === "PENDING" && <Badge bg="#3b2b17" color="#f7c76e">waiting</Badge>}
+              {r.status === "REJECTED" && <Badge bg="#27232e" color="#dfd2e4">hidden</Badge>}
+              {r.source === "CUSTOMER" && <Badge bg="#192a3a" color="#79b3ec">website</Badge>}
+              {r.source === "SHOP" && <Badge bg="#34163b" color="#da8bd3">you added</Badge>}
+              {r.source === "GOOGLE" && <Badge bg="#2b1c35" color="#dfd2e4">Google</Badge>}
+              {r.verifiedPurchase && <Badge bg="#1c3726" color="#76efab">✓ verified</Badge>}
+              {r.isFeatured && <Badge bg="#1c3726" color="#76efab">on homepage</Badge>}
+              {r.imageUrl && <Badge bg="#1e1b35" color="#948fcc">📷 photo</Badge>}
             </span>
             <span className="block text-[11.5px] text-body-soft">
               {account ? `${account} · ` : ""}
@@ -260,11 +260,11 @@ export default function ReviewsView() {
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
 
       <ModuleCard>
         <ModuleHeader
@@ -272,13 +272,13 @@ export default function ReviewsView() {
           icon="star"
           title="Reviews"
           blurb="Nothing shows on the website until you publish it"
-          chips={counts.waiting > 0 ? [{ label: `⏳ ${counts.waiting} waiting`, bg: "#FBEAF0", color: "#6b2138" }] : []}
+          chips={counts.waiting > 0 ? [{ label: `⏳ ${counts.waiting} waiting`, bg: "#381a24", color: "#db8aa3" }] : []}
           action={{ label: "＋ Add a review", onClick: () => setComposerOpen(true) }}
         />
         <StatTiles tone="purple" stats={[
           { label: "On the site", value: counts.onsite },
           { label: "Waiting for you", value: counts.waiting },
-          { label: "Shop average", value: avg !== null ? <>{avg} <span style={{ color: "#b76e79" }}>★</span></> : "—" },
+          { label: "Shop average", value: avg !== null ? <>{avg} <span style={{ color: "#c9929a" }}>★</span></> : "—" },
           { label: "Verified", value: rows.filter((r) => r.verifiedPurchase).length },
         ]} />
 
@@ -341,14 +341,14 @@ export default function ReviewsView() {
             </div>
 
             {sec === "google" && (
-              <div className="flex items-center gap-3 px-3.5 py-3 mb-3 border border-lavender-deep rounded-[14px] bg-[#fdfbff] flex-wrap">
+              <div className="flex items-center gap-3 px-3.5 py-3 mb-3 border border-lavender-deep rounded-[14px] bg-[#271538] flex-wrap">
                 <span className="w-[38px] h-[38px] rounded-[11px] bg-lavender grid place-items-center font-display text-[18px] text-purple shrink-0">G</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] text-body">
                     Google card —{" "}
                     {g.googleRating
-                      ? <b className="text-[#0E7A3D]">showing: {g.googleRating.toFixed(1)} ★{g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}</b>
-                      : <b className="text-[#8a6414]">hidden — the stars box is empty</b>}
+                      ? <b className="text-[#76efab]">showing: {g.googleRating.toFixed(1)} ★{g.googleReviewCount ? ` from ${g.googleReviewCount} reviews` : ""}</b>
+                      : <b className="text-[#ecc779]">hidden — the stars box is empty</b>}
                   </span>
                   <span className="block text-[11.5px] text-body-soft">
                     Copy exactly what your Business Profile says · its own card on the site, never mixed into your shop average
@@ -369,7 +369,7 @@ export default function ReviewsView() {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {featured.map((r) => (
-                    <div key={r.id} className="rounded-[14px] border border-lavender-deep bg-gradient-to-br from-[#fdfbff] to-[#f9e9fd]/60 px-3.5 py-3 min-w-0">
+                    <div key={r.id} className="rounded-[14px] border border-lavender-deep bg-gradient-to-br from-[#271538] to-[#34163b]/60 px-3.5 py-3 min-w-0">
                       <div className="flex items-center gap-2.5">
                         <Avatar r={r} size={36} />
                         <span className="min-w-0 flex-1">
@@ -377,7 +377,7 @@ export default function ReviewsView() {
                           <span className="block text-rosegold text-[10.5px] tracking-[1px]">{"★".repeat(r.rating)}</span>
                         </span>
                         <button onClick={() => patch(r.id, { isFeatured: false })} title="Take it off the homepage"
-                          className="text-body-soft hover:text-[#c0392b] text-[14px] shrink-0 leading-none">×</button>
+                          className="text-body-soft hover:text-[#e1837a] text-[14px] shrink-0 leading-none">×</button>
                       </div>
                       <p className="text-[12px] text-body-soft mt-2 line-clamp-3">{r.body}</p>
                     </div>
@@ -491,7 +491,7 @@ function ActionBtn({ children, onClick, solid, danger, active }: {
   }
   if (danger) {
     return (
-      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#f3c9c3", color: "#c0392b" }}>
+      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#522e29", color: "#e1837a" }}>
         {children}
       </button>
     );
@@ -699,7 +699,7 @@ function EditDialog({ review, onClose, onSaved, onError }: {
       onClose={onClose}
       footer={
         <>
-          <button onClick={removeReview} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Remove this review</button>
+          <button onClick={removeReview} className="text-[12.5px] text-body-soft hover:text-[#e1837a]">Remove this review</button>
           <span className="flex items-center gap-2">
             <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
             {!locked && (
@@ -753,7 +753,7 @@ function PhotoField({ imageUrl, uploading, onPick, onRemove }: {
         <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }} />
       </label>
-      {imageUrl && <button onClick={onRemove} className="text-[12px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove photo</button>}
+      {imageUrl && <button onClick={onRemove} className="text-[12px] text-body-soft hover:text-[#e1837a] mt-1.5">Remove photo</button>}
     </L>
   );
 }
@@ -785,7 +785,7 @@ function CustomerPicker({ value, onPick }: { value: ApiCustomer | null; onPick: 
           <span className="block text-[13px] font-medium text-purple truncate">{value.name}</span>
           <span className="block text-[11.5px] text-body-soft">{value.phone}</span>
         </span>
-        <button onClick={() => onPick(null)} className="text-body-soft hover:text-[#c0392b] text-[13px] shrink-0">change</button>
+        <button onClick={() => onPick(null)} className="text-body-soft hover:text-[#e1837a] text-[13px] shrink-0">change</button>
       </div>
     );
   }
@@ -835,7 +835,7 @@ function ProductPicker({ value, onPick }: { value: { id: string; name: string } 
     return (
       <div className="flex items-center gap-2.5 border border-purple/40 bg-lavender/40 rounded-[12px] px-3 py-2">
         <span className="min-w-0 flex-1 text-[13px] font-medium text-purple truncate">{value.name}</span>
-        <button onClick={() => onPick(null)} className="text-body-soft hover:text-[#c0392b] text-[13px] shrink-0">change</button>
+        <button onClick={() => onPick(null)} className="text-body-soft hover:text-[#e1837a] text-[13px] shrink-0">change</button>
       </div>
     );
   }
@@ -868,7 +868,7 @@ function Avatar({ r, size }: { r: ApiReview; size: number }) {
   if (r.source === "GOOGLE" && !src) {
     return (
       <span className="rounded-full grid place-items-center shrink-0 text-[13px] font-semibold"
-        style={{ width: size, height: size, background: "#f7f1fb", color: "#470066" }}>G</span>
+        style={{ width: size, height: size, background: "#2b1c35", color: "#ce6ef7" }}>G</span>
     );
   }
   if (src) {
@@ -877,7 +877,7 @@ function Avatar({ r, size }: { r: ApiReview; size: number }) {
   }
   return (
     <span className="rounded-full grid place-items-center text-white font-semibold shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.3, background: "linear-gradient(135deg,#e9a8f5,#cf43ea)" }}>
+      style={{ width: size, height: size, fontSize: size * 0.3, background: "linear-gradient(135deg,#401c46,#cf43ea)" }}>
       {(r.authorName || "?").split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?"}
     </span>
   );
@@ -890,7 +890,7 @@ function CircleAvatar({ name, imageUrl, size }: { name: string; imageUrl: string
   }
   return (
     <span className="rounded-full grid place-items-center text-white font-semibold shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.32, background: "linear-gradient(135deg,#e9a8f5,#cf43ea)" }}>
+      style={{ width: size, height: size, fontSize: size * 0.32, background: "linear-gradient(135deg,#401c46,#cf43ea)" }}>
       {(name || "?").split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?"}
     </span>
   );

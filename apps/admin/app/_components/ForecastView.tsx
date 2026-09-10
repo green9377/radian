@@ -20,8 +20,8 @@ import { formatTaka, formatBp, getForecast, type ForecastResult, type Projection
     So the readiness bar is not decoration: it is the promise being kept in
     public, counting down where the reader can see it.  */
 
-const REAL_BG = "#e9f9ef", REAL_BORDER = "#c2ecd3", REAL_TEXT = "#0e7a3d";
-const DEMO_BG = "#f5eafb", DEMO_BORDER = "#e3c8f2", DEMO_TEXT = "#470066";
+const REAL_BG = "#1c3626", REAL_BORDER = "#213d2c", REAL_TEXT = "#0e7a3d";
+const DEMO_BG = "#2e1a38", DEMO_BORDER = "#321e3d", DEMO_TEXT = "#470066";
 
 export function ForecastView() {
   const [data, setData] = useState<ForecastResult | null>(null);
@@ -38,7 +38,7 @@ export function ForecastView() {
     return (
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Forecast & market" />
-        <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
+        <div className="rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px]">{err}</div>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function ForecastView() {
       )}
 
       {/* ---- the countdown: the promise, kept in public ---- */}
-      <div className="rounded-[16px] border border-[#eee6f4] bg-white px-4 py-3.5 mb-5">
+      <div className="rounded-[16px] border border-[#3f3149] bg-white px-4 py-3.5 mb-5">
         <div className="text-[13.5px] font-medium text-purple">How much history there is</div>
         <p className="text-[12px] text-body-soft mt-0.5 mb-3 leading-relaxed">
           Only days with actual trading count. A day recorded as zero teaches a forecast nothing,
@@ -97,11 +97,11 @@ export function ForecastView() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
         {data.market.items.map((m) => (
-          <div key={m.label} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
+          <div key={m.label} className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3">
             <div className="text-[12px] text-body-soft">{m.label}</div>
             <div
               className="font-display text-[20px] leading-none mt-1.5"
-              style={{ color: m.changeBp >= 0 ? "#0e7a3d" : "#b42318" }}
+              style={{ color: m.changeBp >= 0 ? "#76efab" : "#ed8078" }}
             >
               {m.changeBp >= 0 ? "+" : "−"}{formatBp(Math.abs(m.changeBp))}
             </div>
@@ -113,7 +113,7 @@ export function ForecastView() {
       {/*  Condition 5, said out loud. This module issues no buying advice at
           all — an over-forecast on flowers is money in a bin, and for a shop
           whose stock rots that is not a figure of speech. */}
-      <div className="rounded-[14px] border border-[#fadfb4] bg-[#fff7ec] text-[#b45309] px-4 py-3 text-[12.5px] leading-relaxed">
+      <div className="rounded-[14px] border border-[#534228] bg-[#3a2b16] text-[#f7a96e] px-4 py-3 text-[12.5px] leading-relaxed">
         <b>No buying suggestions are made here.</b> {data.recommendationNote}
       </div>
     </div>
@@ -122,9 +122,9 @@ export function ForecastView() {
 
 function Stat({ label, value, good }: { label: string; value: string; good?: boolean }) {
   return (
-    <div className="rounded-[12px] px-3 py-2.5" style={{ background: good ? REAL_BG : "#faf6fd" }}>
-      <div className="text-[11px]" style={{ color: good ? REAL_TEXT : "#6b6b76" }}>{label}</div>
-      <div className="font-display text-[17px] leading-none mt-1" style={{ color: good ? REAL_TEXT : "#470066" }}>{value}</div>
+    <div className="rounded-[12px] px-3 py-2.5" style={{ background: good ? REAL_BG : "#291a35" }}>
+      <div className="text-[11px]" style={{ color: good ? REAL_TEXT : "#a9a9b1" }}>{label}</div>
+      <div className="font-display text-[17px] leading-none mt-1" style={{ color: good ? REAL_TEXT : "#ce6ef7" }}>{value}</div>
     </div>
   );
 }

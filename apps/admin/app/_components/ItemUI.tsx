@@ -22,7 +22,7 @@ export const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
    house tokens from globals.css: purple #470066, orchid #cf43ea, lavender, rose gold. */
 export const ACCENT = "#470066";      // brand purple — headers, primary buttons
 export const ACCENT_SOFT = "#cf43ea"; // orchid — highlights
-export const ACCENT_BG = "#f7f1fb";   // lavender — tinted panels
+export const ACCENT_BG = "#2b1c35";   // lavender — tinted panels
 
 /** turns an API error string into something a shop owner can act on */
 export function msg(e: unknown, fallback: string): string {
@@ -62,21 +62,21 @@ export function ItemPageHead({
 
 export function ErrBar({ text, onClose }: { text: string; onClose: () => void }) {
   return (
-    <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
+    <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
       <span>{text}</span><button className="underline shrink-0" onClick={onClose}>Dismiss</button>
     </div>
   );
 }
 export function OkBar({ text, onClose }: { text: string; onClose: () => void }) {
   return (
-    <div className="bg-[#e8f7ef] border border-[#a9dcc0] text-[#0e7a3d] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
+    <div className="bg-[#1f3529] border border-[#304a3c] text-[#76efab] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
       <span>{text}</span><button className="underline shrink-0" onClick={onClose}>Dismiss</button>
     </div>
   );
 }
 export function DemoBar({ onRetry, what }: { onRetry: () => void; what: string }) {
   return (
-    <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+    <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
       <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
       <span className="flex-1 min-w-[240px]">
         The API is not reachable, so nothing can be shown. Start it and
@@ -160,7 +160,7 @@ export function ItemPhotoBox({
       {item.imageUrl && (
         <button type="button" onClick={() => onImage(null)} className="text-[13px] text-body-soft underline mt-1.5">remove photo</button>
       )}
-      {warn && <div className="text-[11px] text-[#c0392b] mt-1" style={{ maxWidth: size }}>{warn}</div>}
+      {warn && <div className="text-[11px] text-[#e1837a] mt-1" style={{ maxWidth: size }}>{warn}</div>}
       {hint && !warn && !item.imageUrl && (
         <p className="text-[13px] text-body-soft m-0 mt-1.5 leading-snug" style={{ maxWidth: size + 30 }}>
           Until you add one, the tile colour is fixed per SKU — so the list is still scannable.
@@ -403,7 +403,7 @@ export function Field({ label, required, children, hint }: { label: string; requ
 export function StatusPill({ active, onClick }: { active: boolean; onClick?: () => void }) {
   const style = active
     ? { background: "#12a172", color: "#fff" }
-    : { background: "#e5dced", color: "#6b5878" };
+    : { background: "#2d2434", color: "#b0a1ba" };
   const cls = "text-[11px] font-semibold px-2.5 py-1 rounded-full";
   return onClick
     ? <button onClick={onClick} className={cls} style={style}>{active ? "Active" : "Hidden"}</button>
@@ -413,19 +413,19 @@ export function StatusPill({ active, onClick }: { active: boolean; onClick?: () 
 /** the red "the API is not answering" box — every Item screen shows the same one */
 export function OfflineBox({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="bg-[#fdecea] border-2 border-[#e0a1a1] rounded-[14px] px-5 py-4 mb-5">
+    <div className="bg-[#3b1a16] border-2 border-[#4d2e2e] rounded-[14px] px-5 py-4 mb-5">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white" style={{ background: "#c0392b" }}>
           <Icon name="bolt" size={14} />
         </span>
-        <b className="text-[14px] text-[#c0392b]">Nothing can be saved yet</b>
+        <b className="text-[14px] text-[#e1837a]">Nothing can be saved yet</b>
       </div>
       <p className="text-[13px] text-body m-0 leading-relaxed">
         This page is fine — but the part of Radian that stores your data is not answering, so anything typed here
         would vanish. Nothing you did caused this.
       </p>
       <p className="text-[13px] text-body m-0 mt-2">
-        <b>One fix:</b> double-click <code className="bg-white px-1.5 py-0.5 rounded border border-[#e0a1a1]">D:\radian\FIX_ME.bat</code>,
+        <b>One fix:</b> double-click <code className="bg-white px-1.5 py-0.5 rounded border border-[#4d2e2e]">D:\radian\FIX_ME.bat</code>,
         let it finish, then <button className="underline font-medium" onClick={onRetry}>press here to retry</button>.
       </p>
     </div>
@@ -452,7 +452,7 @@ export function Flag({
   return (
     <button type="button" onClick={onClick} title={hint}
       className="text-[12px] px-2.5 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
-      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "#e3d7ec", color: "#8d7a97" }}>
+      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "#3f3248", color: "#b0a3b7" }}>
       <Icon name={on ? "check" : "plus"} size={11} /> {label}
     </button>
   );
@@ -469,16 +469,16 @@ export function TypeChip({ type }: { type: ItemType }) {
 /** the two-card strip that teaches the model — shown on Overview and on the create page */
 export function ModelExplainer({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="rounded-[16px] border px-5 py-4 mb-5 bg-white shadow-soft" style={{ borderColor: "#efe4f7" }}>
+    <div className="rounded-[16px] border px-5 py-4 mb-5 bg-white shadow-soft" style={{ borderColor: "#402d4e" }}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-center">
         <MiniCard
-          tone="#0e8f74" bg="#e7f5f1" title="Bought as it is"
+          tone="#0e8f74" bg="#20332e" title="Bought as it is"
           body="A teddy bear, a box of chocolates, a rose stem. One thing, one Item."
           foot="Teddy Bear → 1 Item"
         />
         <div className="hidden lg:block text-[22px] text-body-soft text-center">+</div>
         <MiniCard
-          tone="#7a2ea8" bg="#f5eafb" title="Built from several"
+          tone="#7a2ea8" bg="#2e1a38" title="Built from several"
           body="A bouquet is not a thing we buy — it is 24 roses + ribbon + paper. That combination is ALSO one Item, with a recipe inside it."
           foot="Bouquet → 1 Item, made of 4 Items"
         />
@@ -511,10 +511,10 @@ function MiniCard({ tone, bg, title, body, foot }: { tone: string; bg: string; t
 /** DEC-ITM-005 — the panel that explains why there is no stock number yet */
 export function StockNote() {
   return (
-    <div className="rounded-[16px] border px-4 py-3.5" style={{ background: "#fbf1e2", borderColor: "#f0dcb8" }}>
+    <div className="rounded-[16px] border px-4 py-3.5" style={{ background: "#3b2d18", borderColor: "#514329" }}>
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center text-white" style={{ background: "#b45309" }}><Icon name="box" size={12} /></span>
-        <span className="text-[12.5px] font-semibold" style={{ color: "#8a5209" }}>Where is stock?</span>
+        <span className="text-[12.5px] font-semibold" style={{ color: "#f6bb6f" }}>Where is stock?</span>
       </div>
       <p className="text-[12px] text-body m-0 leading-relaxed">
         The Stock column is here, but it is <b>read-only</b> — the number will be pulled from Inventory, which does not

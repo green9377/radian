@@ -134,7 +134,7 @@ export function ExpensesLive() {
       </div>
       <Flash ok={ok} err={err} />
 
-      <Card className="px-5 py-4 mb-6" tone="brand" style={{ background: "#fdfaff" }}>
+      <Card className="px-5 py-4 mb-6" tone="brand" style={{ background: "#2a1538" }}>
         <div className="grid md:grid-cols-6 gap-3 items-end">
           <div>
             <label className="text-[12px] font-semibold text-body-soft">Date</label>
@@ -185,7 +185,7 @@ export function ExpensesLive() {
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void save()} disabled={!form.accountId || !form.paidFromId || amountPaisa <= 0}>
               Record expense
             </button>
-            {willNeedApproval && <span className="text-[12px] text-[#b45309] font-semibold">Needs approval</span>}
+            {willNeedApproval && <span className="text-[12px] text-[#f7a96e] font-semibold">Needs approval</span>}
           </div>
         </div>
       </Card>
@@ -195,7 +195,7 @@ export function ExpensesLive() {
           <h2 className="font-display text-[19px] text-purple mb-3 flex items-center gap-2"><span className="w-1.5 h-5 rounded-full" style={{ background: "linear-gradient(180deg,#a021b8,#d98cb3)" }} />Waiting for approval</h2>
           <Card className="overflow-hidden mb-7">
             {pending.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#f6f2f9] last:border-0">
+              <div key={r.id} className="flex items-center justify-between gap-4 px-4 py-3 border-b border-[#3f3248] last:border-0">
                 <div>
                   <div className="font-semibold text-purple">{taka(r.amountPaisa)} · {r.account?.name}</div>
                   <div className="text-[12px] text-body-soft">
@@ -215,7 +215,7 @@ export function ExpensesLive() {
       <h2 className="font-display text-[19px] text-purple mb-3 flex items-center gap-2"><span className="w-1.5 h-5 rounded-full" style={{ background: "linear-gradient(180deg,#a021b8,#d98cb3)" }} />Recorded</h2>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#2c1b37", color: "#d47de8" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold w-[110px]">No</th>
               <th className="text-left px-4 py-2.5 font-semibold w-[100px]">Date</th>
@@ -228,7 +228,7 @@ export function ExpensesLive() {
           <tbody>
             {rows.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-body-soft">Nothing recorded yet</td></tr>}
             {rows.map((r) => (
-              <tr key={r.id} className="border-t border-[#f3eef7]">
+              <tr key={r.id} className="border-t border-[#3e3248]">
                 <td className="px-4 py-2.5 font-semibold text-purple">{r.expenseNo}</td>
                 <td className="px-4 py-2.5 text-body-soft">{r.spentAt.slice(0, 10)}</td>
                 <td className="px-4 py-2.5">
@@ -238,11 +238,11 @@ export function ExpensesLive() {
                 <td className="px-4 py-2.5 text-body-soft">{r.paidFrom?.name}</td>
                 <td className="px-4 py-2.5 text-right font-bold">{taka(r.amountPaisa)}</td>
                 <td className="px-4 py-2.5 text-right">
-                  {r.journalEntryId ? <span className="text-[#0f7d55] font-semibold">In the books</span>
-                    : r.approval === "PENDING" ? <span className="text-[#b45309] font-semibold">Waiting</span>
+                  {r.journalEntryId ? <span className="text-[#76efc3] font-semibold">In the books</span>
+                    : r.approval === "PENDING" ? <span className="text-[#f7a96e] font-semibold">Waiting</span>
                     : <span className="text-body-soft">{r.approval.toLowerCase()}</span>}
                   {!r.journalEntryId && r.approval !== "PENDING" && (
-                    <button className="ml-2 text-[12px] text-[#b91c1c] font-semibold"
+                    <button className="ml-2 text-[12px] text-[#ea7171] font-semibold"
                       onClick={async () => { if (!window.confirm("Remove this?")) return; try { await deleteFinanceExpense(r.id); await load(); } catch (e) { fail(e); } }}>
                       Remove
                     </button>
@@ -342,7 +342,7 @@ export function IncomeLive() {
           <table className="w-full text-[13px]">
             <tbody>
               {trs.map((t) => (
-                <tr key={t.id} className="border-b border-[#f6f2f9] last:border-0">
+                <tr key={t.id} className="border-b border-[#3f3248] last:border-0">
                   <td className="px-4 py-2.5 w-[110px] font-semibold text-purple">{t.transferNo}</td>
                   <td className="px-4 py-2.5 w-[100px] text-body-soft">{t.movedAt.slice(0, 10)}</td>
                   <td className="px-4 py-2.5">{t.from?.name} → <b>{t.to?.name}</b>{t.note ? <span className="text-[11.5px] text-body-soft ml-2">{t.note}</span> : null}</td>
@@ -356,7 +356,7 @@ export function IncomeLive() {
       )}
 
       <h2 className="font-display text-[19px] text-purple mb-3 flex items-center gap-2"><span className="w-1.5 h-5 rounded-full" style={{ background: "linear-gradient(180deg,#a021b8,#d98cb3)" }} />Other income</h2>
-      <Card className="px-5 py-4 mb-6" tone="brand" style={{ background: "#fdfaff" }}>
+      <Card className="px-5 py-4 mb-6" tone="brand" style={{ background: "#2a1538" }}>
         <div className="grid md:grid-cols-6 gap-3 items-end">
           <div>
             <label className="text-[12px] font-semibold text-body-soft">Date</label>
@@ -402,7 +402,7 @@ export function IncomeLive() {
           <tbody>
             {rows.length === 0 && <tr><td className="px-4 py-6 text-center text-body-soft">No other income yet</td></tr>}
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-[#f6f2f9] last:border-0">
+              <tr key={r.id} className="border-b border-[#3f3248] last:border-0">
                 <td className="px-4 py-2.5 w-[110px] font-semibold text-purple">{r.incomeNo}</td>
                 <td className="px-4 py-2.5 w-[100px] text-body-soft">{r.earnedAt.slice(0, 10)}</td>
                 <td className="px-4 py-2.5">{r.account?.name}{r.note ? <span className="text-[11.5px] text-body-soft ml-2">{r.note}</span> : null}</td>
@@ -539,7 +539,7 @@ export function PartnersLive() {
                   {p.monthlySalaryPaisa > 0 ? ` · salary ${taka(p.monthlySalaryPaisa)}/month` : ""}
                 </div>
               </div>
-              <select className="border border-[#e7dff0] rounded-lg px-2 py-1 text-[12px] bg-white"
+              <select className="border border-[#3d3248] rounded-lg px-2 py-1 text-[12px] bg-white"
                 value="" onChange={(e) => { if (e.target.value) { setTxn({ partner: p, kind: e.target.value }); setTAmount(""); setTNote(""); } }}>
                 <option value="">Record…</option>
                 <option value="CAPITAL_IN">Put money in</option>
@@ -556,7 +556,7 @@ export function PartnersLive() {
               </div>
               <div>
                 <div className="text-[11px] uppercase tracking-[0.04em] text-body-soft font-semibold">Still owed back</div>
-                <div className="text-[17px] font-bold" style={{ color: p.capitalOutstandingPaisa > 0 ? "#b45309" : "#0f7d55" }}>
+                <div className="text-[17px] font-bold" style={{ color: p.capitalOutstandingPaisa > 0 ? "#f7a96e" : "#0f7d55" }}>
                   {taka(p.capitalOutstandingPaisa)}
                 </div>
               </div>
@@ -571,7 +571,7 @@ export function PartnersLive() {
             </div>
 
             {p.transactions.length > 0 && (
-              <div className="mt-4 border-t border-[#f3eef7] pt-3">
+              <div className="mt-4 border-t border-[#3e3248] pt-3">
                 {p.transactions.slice(0, 5).map((t) => (
                   <div key={t.id} className="flex justify-between text-[12.5px] py-0.5">
                     <span className="text-body-soft">{t.happenedAt.slice(0, 10)} · {KIND_LABEL[t.kind] ?? t.kind}</span>
@@ -628,9 +628,9 @@ export function PartnersLive() {
           </div>
 
           {share && (
-            <div className="mt-4 border-t border-[#f3eef7] pt-4">
+            <div className="mt-4 border-t border-[#3e3248] pt-4">
               <div className="text-[13px] mb-2">
-                This month left over: <b style={{ color: share.profitPaisa < 0 ? "#b91c1c" : "#0f7d55" }}>{taka(share.profitPaisa)}</b>
+                This month left over: <b style={{ color: share.profitPaisa < 0 ? "#ea7171" : "#76efc3" }}>{taka(share.profitPaisa)}</b>
                 {share.profitPaisa > 0 && <> · in hand: <b>{taka(share.cashAvailablePaisa)}</b></>}
               </div>
               {share.profitPaisa <= 0 ? (
@@ -659,7 +659,7 @@ export function PartnersLive() {
                         } catch (e) { fail(e); }
                       }}>Pay it out</button>
                     <button className={btnGhost} onClick={() => setShare(null)}>Close</button>
-                    {!share.enoughCash && <span className="text-[12.5px] text-[#b91c1c] font-semibold">Not enough cash in hand to pay this</span>}
+                    {!share.enoughCash && <span className="text-[12.5px] text-[#ea7171] font-semibold">Not enough cash in hand to pay this</span>}
                   </div>
                 </>
               )}
@@ -669,7 +669,7 @@ export function PartnersLive() {
       )}
 
       {txn && (
-        <Card className="px-5 py-4 mt-5 border-[#e7dff0]">
+        <Card className="px-5 py-4 mt-5 border-[#3d3248]">
           <div className="font-semibold text-[14px] text-purple mb-1">
             {KIND_LABEL[txn.kind]} — {txn.partner.name}
           </div>

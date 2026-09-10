@@ -82,7 +82,7 @@ export function ChannelsView() {
       />
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
       {ok && (
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>{ok}</div>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium" style={{ background: "#1f3529", color: "#76efab" }}>{ok}</div>
       )}
 
       <DataTable
@@ -95,8 +95,8 @@ export function ChannelsView() {
             <span className="text-[12.5px] font-medium text-body">{c._count?.orders ?? 0}</span>
             <span>
               {c.isActive
-                ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>on</span>
-                : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#f1eef4", color: "#8a7b96" }}>off</span>}
+                ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#1f3529", color: "#76efab" }}>on</span>
+                : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#29242e", color: "#aea4b7" }}>off</span>}
             </span>
             {/*  DEC-CHN-001 — the website is the shop itself, not a channel
                  anybody set up. A channel answers "where did this hand-written
@@ -116,7 +116,7 @@ export function ChannelsView() {
                   {c.isActive ? "Switch off" : "Switch on"}
                 </button>
                 <button onClick={() => void remove(c)}
-                  className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Remove"><Icon name="trash" size={15} /></button>
+                  className="text-body-soft hover:text-[#e1837a] px-1.5 py-1" title="Remove"><Icon name="trash" size={15} /></button>
               </span>
             )}
           </div>
@@ -139,7 +139,7 @@ export function ChannelsView() {
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter" && dlg.name.trim() && !dup) add(); }} />
             {dup && (
-              <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">
+              <span className="block text-[12.5px] font-semibold text-[#e1837a] mt-1">
                 That channel already exists.
               </span>
             )}

@@ -110,12 +110,12 @@ export default function WarehousesView() {
               )}
             </span>
             <span className="text-[12px] font-semibold px-2 py-1 rounded-[7px] justify-self-start"
-              style={{ background: "#f5eafb", color: "#470066" }}>{w.code}</span>
+              style={{ background: "#2e1a38", color: "#ce6ef7" }}>{w.code}</span>
             <span className="text-[13px] text-body-soft min-w-0 truncate">{w.address || "—"}</span>
             <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start"
               style={w.isActive
-                ? { background: "#e7f5f1", color: "#0e8f74" }
-                : { background: "#f1eef4", color: "#7b6b88" }}>
+                ? { background: "#20332e", color: "#74f1d7" }
+                : { background: "#29242e", color: "#aea4b7" }}>
               {w.isActive ? "Open" : "Closed"}
             </span>
             <span className="flex gap-2 justify-self-end">
@@ -199,7 +199,7 @@ export default function WarehousesView() {
               `${edit.name} deleted.`,
             )}
             className="text-[12.5px] font-medium underline disabled:opacity-40"
-            style={{ color: "#c0392b" }}>
+            style={{ color: "#e1837a" }}>
             Delete this warehouse
           </button>
           <span className="block text-[12px] text-body-soft mt-1">

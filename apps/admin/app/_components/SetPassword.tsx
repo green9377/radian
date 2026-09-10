@@ -56,10 +56,10 @@ export default function SetPassword() {
 
   return (
     <div className="min-h-screen grid place-items-center px-4 py-12"
-         style={{ background: "linear-gradient(160deg,#faf6fc,#f3ecf7)" }}>
+         style={{ background: "linear-gradient(160deg,#2b1d32,#2c2032)" }}>
       <div className="w-full max-w-[420px]">
         <div className="text-center mb-6">
-          <div className="font-display text-[26px]" style={{ color: "#7c1a92" }}>Radian</div>
+          <div className="font-display text-[26px]" style={{ color: "#d47de8" }}>Radian</div>
           <div className="text-[12px] text-body-soft mt-0.5">Admin</div>
         </div>
 
@@ -119,7 +119,7 @@ export default function SetPassword() {
               </label>
               <input
                 type="password"
-                className="w-full rounded-xl border border-[#e7dff0] px-3 py-2 text-[13px] mb-3 outline-none focus:border-orchid"
+                className="w-full rounded-xl border border-[#3d3248] px-3 py-2 text-[13px] mb-3 outline-none focus:border-orchid"
                 value={pw}
                 autoFocus
                 autoComplete="new-password"
@@ -131,7 +131,7 @@ export default function SetPassword() {
               </label>
               <input
                 type="password"
-                className="w-full rounded-xl border border-[#e7dff0] px-3 py-2 text-[13px] outline-none focus:border-orchid"
+                className="w-full rounded-xl border border-[#3d3248] px-3 py-2 text-[13px] outline-none focus:border-orchid"
                 value={again}
                 autoComplete="new-password"
                 onChange={(e) => setAgain(e.target.value)}
@@ -140,7 +140,7 @@ export default function SetPassword() {
 
               {err && (
                 <div className="mt-3 text-[12px] rounded-lg px-3 py-2"
-                     style={{ background: "#fdecec", color: "#991b1b" }}>
+                     style={{ background: "#3b1717", color: "#e87d7d" }}>
                   {err}
                 </div>
               )}

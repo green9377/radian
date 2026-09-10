@@ -40,8 +40,8 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const rnd = () => Math.random().toString(36).slice(2, 9);
 
 const ACCENT = "#0e8f74";
-const ACCENT_BG = "#e7f5f1";
-const BASE_BG = "#eef2ff";
+const ACCENT_BG = "#20332e";
+const BASE_BG = "#161f3a";
 const BASE_FG = "#4f46e5";
 
 /* read-only list columns — CSS grid, never flex (truncate+flex overflow trap) */
@@ -261,17 +261,17 @@ export default function UnitsView() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span className="min-w-0 break-words">{err}</span><button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {note && (
-        <div className="rounded-[12px] px-4 py-2.5 mb-4 text-[13px] flex items-center justify-between gap-3" style={{ background: ACCENT_BG, color: "#0b6b57", border: "1px solid #bfe3d9" }}>
+        <div className="rounded-[12px] px-4 py-2.5 mb-4 text-[13px] flex items-center justify-between gap-3" style={{ background: ACCENT_BG, color: "#74f1d7", border: "1px solid #314943" }}>
           <span>{note}</span><button className="underline shrink-0" onClick={() => setNote(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+        <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
           <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
             The API is not reachable, so nothing can be shown. Start it and
@@ -284,10 +284,10 @@ export default function UnitsView() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { l: "Total units", v: String(stats.total), c: "#7a2ea8", bg: "#f5eafb", icon: "tag" },
+          { l: "Total units", v: String(stats.total), c: "#7a2ea8", bg: "#2e1a38", icon: "tag" },
           { l: "Base units (smallest)", v: String(stats.bases), c: BASE_FG, bg: BASE_BG, icon: "box" },
           { l: "With a conversion", v: String(stats.derived), c: ACCENT, bg: ACCENT_BG, icon: "check" },
-          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#b5642f" : "#12a172", bg: "#f6ece3", icon: "eye" },
+          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#b5642f" : "#12a172", bg: "#362a1e", icon: "eye" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}><Icon name={k.icon} size={13} /></span>
@@ -395,7 +395,7 @@ function UnitRow({
   const generic = looksGeneric(unit.name);
 
   return (
-    <div className={ROW + " px-4 py-3 " + (unit.isActive ? "hover:bg-lavender/25" : "bg-[#fbf5ef] hover:bg-[#f7efe7]")}>
+    <div className={ROW + " px-4 py-3 " + (unit.isActive ? "hover:bg-lavender/25" : "bg-[#36281b] hover:bg-[#352a1e]")}>
       <div className="flex md:flex-col items-center gap-0.5">
         <button onClick={() => onMove("up")} disabled={first || locked} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title={locked ? "Clear the search to reorder" : "Move up"}>
           <span className="rotate-180 inline-block"><Icon name="chevronDown" size={13} /></span>
@@ -409,11 +409,11 @@ function UnitRow({
         <span className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[14.5px] font-semibold text-purple truncate group-hover:text-orchid">{unit.name}</span>
           {generic && !isBase && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fff4e6] text-[#b45309]" title="A bare measure word — “Lily Stick” is safer, because a gypsy stick is a different number.">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#3b2b17] text-[#f7a96e]" title="A bare measure word — “Lily Stick” is safer, because a gypsy stick is a different number.">
               generic name
             </span>
           )}
-          {!unit.isActive && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Hidden</span>}
+          {!unit.isActive && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#402c18] text-[#f7a96e]">Hidden</span>}
         </span>
         <span className="block font-mono text-[13px] text-body-soft truncate">{unit.shortCode}</span>
       </button>
@@ -434,7 +434,7 @@ function UnitRow({
         ) : resolved.chainBroken || resolved.rootFactor == null ? (
           // never show a number we cannot stand behind — a wrong factor here quietly
           // corrupts every stock figure counted in this unit
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fdecea] text-[#b42318]" title="This unit's chain loops or is too deep — fix its “breaks into”.">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#3b1a16] text-[#ed8078]" title="This unit's chain loops or is too deep — fix its “breaks into”.">
             <Icon name="bolt" size={10} /> Chain broken
           </span>
         ) : (
@@ -471,7 +471,7 @@ function UnitRow({
         <button onClick={onEdit} className="w-[30px] h-[30px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender" title="Edit unit"><Icon name="edit" size={14} /></button>
         <button
           onClick={onDelete}
-          className={"w-[30px] h-[30px] rounded-[8px] grid place-items-center " + (usedTotal > 0 ? "text-[#c9a4a4] hover:bg-[#fbecec]" : "text-[#b42318] hover:bg-[#fbecec]")}
+          className={"w-[30px] h-[30px] rounded-[8px] grid place-items-center " + (usedTotal > 0 ? "text-[#c9a4a4] hover:bg-[#371a1a]" : "text-[#ed8078] hover:bg-[#371a1a]")}
           title={usedTotal > 0 ? "In use — click to see and move what depends on it" : "Delete unit"}
         >
           <Icon name="trash" size={14} />
@@ -620,13 +620,13 @@ function UnitPicker({
               type="button"
               onMouseEnter={() => setActive(matches.length)}
               onClick={() => choose(matches.length)}
-              className={"w-full text-left px-3.5 py-2.5 border-t border-lavender-deep flex items-center gap-2 " + (active === matches.length ? "bg-[#e7f5f1]" : "hover:bg-[#eef8f5]")}
+              className={"w-full text-left px-3.5 py-2.5 border-t border-lavender-deep flex items-center gap-2 " + (active === matches.length ? "bg-[#20332e]" : "hover:bg-[#20322d]")}
             >
               <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center text-white shrink-0" style={{ background: ACCENT }}>
                 <Icon name="plus" size={12} />
               </span>
               <span className="min-w-0">
-                <span className="block text-[13px] font-medium" style={{ color: "#0b6b57" }}>Create “{typed}”</span>
+                <span className="block text-[13px] font-medium" style={{ color: "#74f1d7" }}>Create “{typed}”</span>
                 <span className="block text-[13px] text-body-soft">Added as a new base unit</span>
               </span>
             </button>
@@ -695,9 +695,9 @@ function UnitDialog({
     onSave({ name: nm, shortCode: effCode, baseName, baseQty: n || 1 });
   }
 
-  const iptCls = (bad: boolean) => "ipt w-full mt-1" + (bad ? " !border-[#e0a1a1]" : "");
+  const iptCls = (bad: boolean) => "ipt w-full mt-1" + (bad ? " !border-[#4d2e2e]" : "");
   const FieldErr = ({ text }: { text: string | null }) =>
-    text ? <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">{text}</span> : null;
+    text ? <span className="block text-[12.5px] font-semibold text-[#e1837a] mt-1">{text}</span> : null;
 
   const title =
     mode === "edit" ? `Edit “${editing?.name}”`
@@ -765,18 +765,18 @@ function UnitDialog({
             </label>
           </div>
 
-          <div className="rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: preview ? ACCENT_BG : "#f6f4f9", color: preview ? "#0b6b57" : "#7a6b86" }}>
+          <div className="rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: preview ? ACCENT_BG : "#27222f", color: preview ? "#74f1d7" : "#aea4b7" }}>
             {preview ?? "Leave “breaks into” empty if this is the smallest thing you count in (papri, gram, piece)."}
           </div>
 
           {generic && typed && (
-            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#3b2b17", color: "#f7a96e", border: "1px solid #534028" }}>
               “{name}” alone is risky — put the flower in front: <b>“Lily {name}”</b>.
             </div>
           )}
 
           {willCreateBase && (
-            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+            <div className="rounded-[12px] px-3.5 py-2 text-[12.5px] font-medium" style={{ background: "#3b2b17", color: "#f7a96e", border: "1px solid #534028" }}>
               <b>“{typed}”</b> is new — it will be created as a base unit.
             </div>
           )}
@@ -932,7 +932,7 @@ function UsageDrawer({
         <div className="flex-1 overflow-y-auto">
           {loading && <div className="p-5 text-[13px] text-body-soft">Loading…</div>}
           {!loading && hidden > 0 && (
-            <div className="m-4 rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+            <div className="m-4 rounded-[12px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "#3b2b17", color: "#f7a96e", border: "1px solid #534028" }}>
               {isDemo
                 ? <>Demo mode — the {hidden} item/product record{hidden === 1 ? "" : "s"} are not real, so they can’t be listed. Units below are real.</>
                 : <>Couldn’t reach <span className="font-mono">/units/{unit.id}/usage</span>, so the {hidden} item/product record{hidden === 1 ? "" : "s"} aren’t listed. Rebuild the API to see them. Units below are accurate.</>}
@@ -942,7 +942,7 @@ function UsageDrawer({
             <div className="p-5 text-[13px] text-body-soft">Nothing uses this unit — it can be deleted safely.</div>
           )}
           {rows.map((r) => (
-            <label key={r.key} className={"grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-2.5 border-b border-lavender-deep " + (r.movable ? "hover:bg-lavender/25 cursor-pointer" : "bg-[#faf8fb]")}>
+            <label key={r.key} className={"grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-2.5 border-b border-lavender-deep " + (r.movable ? "hover:bg-lavender/25 cursor-pointer" : "bg-[#29222d]")}>
               <input type="checkbox" checked={picked.has(r.key)} disabled={!r.movable} onChange={() => toggle(r.key)} />
               <span className="min-w-0">
                 <span className="block text-[13.5px] text-purple truncate">{r.label}</span>
@@ -950,9 +950,9 @@ function UsageDrawer({
               </span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap" style={
                 r.kind === "item" ? { background: BASE_BG, color: BASE_FG }
-                  : r.kind === "product" ? { background: "#f5eafb", color: "#7a2ea8" }
-                    : r.kind === "recipe line" ? { background: "#f1eff5", color: "#6b6480" }
-                      : { background: ACCENT_BG, color: "#0b6b57" }
+                  : r.kind === "product" ? { background: "#2e1a38", color: "#b97fdc" }
+                    : r.kind === "recipe line" ? { background: "#27242e", color: "#a8a3b7" }
+                      : { background: ACCENT_BG, color: "#74f1d7" }
               }>{r.kind}</span>
             </label>
           ))}
@@ -979,10 +979,10 @@ function UsageDrawer({
             />
           </div>
           {!target && targetText.trim() && (
-            <p className="text-[11.5px] text-[#b45309] m-0">Pick a unit from the list — “{targetText.trim()}” is not one of them.</p>
+            <p className="text-[11.5px] text-[#f7a96e] m-0">Pick a unit from the list — “{targetText.trim()}” is not one of them.</p>
           )}
           {target && picked.size > 0 && (
-            <div className="rounded-[12px] px-3.5 py-2.5 text-[11.5px] leading-relaxed" style={{ background: "#fff4e6", color: "#b45309", border: "1px solid #fce4c4" }}>
+            <div className="rounded-[12px] px-3.5 py-2.5 text-[11.5px] leading-relaxed" style={{ background: "#3b2b17", color: "#f7a96e", border: "1px solid #534028" }}>
               <b>{picked.size} record{picked.size === 1 ? "" : "s"}</b> will point at <b>{targetName}</b> instead. Nothing is recalculated:
               <ul className="list-disc pl-4 mt-1 mb-0 space-y-0.5">
                 <li>Stock and quantity numbers are kept as-is — 200 {unit.shortCode} becomes 200 {targetName}.</li>
@@ -1012,7 +1012,7 @@ function UsageDrawer({
 function Switch({ on, tint, onClick }: { on: boolean; tint?: string; onClick: () => void }) {
   const w = 36, h = 21, k = 15;
   return (
-    <button onClick={onClick} className="relative rounded-full transition-colors shrink-0" style={{ width: w, height: h, background: on ? (tint ?? "#cf43ea") : "#d9c9e6" }} title={on ? "In use" : "Hidden"}>
+    <button onClick={onClick} className="relative rounded-full transition-colors shrink-0" style={{ width: w, height: h, background: on ? (tint ?? "#cf43ea") : "#302538" }} title={on ? "In use" : "Hidden"}>
       <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: k, height: k, left: on ? w - k - 3 : 3 }} />
     </button>
   );

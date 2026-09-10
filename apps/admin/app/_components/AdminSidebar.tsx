@@ -84,34 +84,29 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Sales", accent: "#f0a8b8", emblem: "bag",
+    title: "Sales", accent: "#451e27", emblem: "bag",
     items: [
       {
         label: "Orders", href: "/orders", icon: "bag",
         subs: [
-          { label: "Overview", href: "/orders" },
           { label: "All orders", href: "/orders/list" },
           /*  Needs action, Scheduled and the old Recovery page left the menu on
               9 Sep 2026 (owner): All orders carries Confirm/Call on every row,
               and Lost orders is where the unfinished ones live now.  */
           { label: "Lost orders", href: "/orders/lost" },
-          /*  Cancelled is a segment of All orders; Online payments and the
-              order-side Returns list are tabs of Payments (owner, 9 Sep 2026).  */
+          { label: "Cancelled", href: "/orders/cancelled" },
           { label: "Payments", href: "/orders/payments" },
+          { label: "Online payments", href: "/orders/online-payments" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },
       {
         label: "Delivery", href: "/delivery", icon: "truck",
         subs: [
-          /*  Owner, 10 Sep 2026: three pages. Proof photos left — the photo
-              is a step on the order and a column on the board.  */
-          { label: "Delivery board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Delivery money", href: "/delivery/settle" },
-          { label: "Reports", href: "/delivery/performance" },
-          /*  Owner, 10 Sep 2026: the setup lives with the module, not under
-              Settings — one place to look for anything delivery.  */
-          { label: "Delivery setup", href: "/delivery/setup" },
+          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Proof photos", href: "/delivery/proof" },
+          { label: "Settle a carrier", href: "/delivery/settle" },
+          { label: "Cost & performance", href: "/delivery/performance" },
         ],
       },
       {
@@ -361,7 +356,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Staff", accent: "#b9aecf", emblem: "user",
+    title: "Staff", accent: "#322d3c", emblem: "user",
     items: [
       {
         label: "Staff", href: "/employees", icon: "user",
@@ -378,7 +373,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Settings", accent: "#b9aecf", emblem: "gear",
+    title: "Settings", accent: "#322d3c", emblem: "gear",
     items: [
       {
         label: "Shop setup", icon: "gear",
@@ -386,6 +381,9 @@ const GROUPS: Group[] = [
           { label: "Company settings", href: "/administration/company", roles: ["OWNER"] },
           { label: "Sales channels", href: "/orders/channels" },
           { label: "Payment methods", href: "/administration/payment-methods", roles: ["OWNER", "MANAGER"] },
+          { label: "Delivery methods & slots", href: "/delivery/zones" },
+          { label: "Delivery setup", href: "/delivery/setup" },
+          { label: "Riders", href: "/delivery/riders" },
           { label: "Returns settings", href: "/returns/settings" },
           { label: "All settings", href: "/administration/settings", roles: ["OWNER"] },
         ],
@@ -663,7 +661,7 @@ export default function AdminSidebar() {
                         : "text-[#f1e6f8] hover:bg-white/[0.08]");
                 const rowStyle =
                   dashboards && parentActive
-                    ? { background: "#fff", color: "#470066", boxShadow: "0 10px 24px -10px rgba(0,0,0,.6)" }
+                    ? { background: "#fff", color: "#ce6ef7", boxShadow: "0 10px 24px -10px rgba(0,0,0,.6)" }
                     : open
                       ? { boxShadow: "0 8px 20px -12px rgba(0,0,0,.7)" }
                       : undefined;
@@ -672,8 +670,8 @@ export default function AdminSidebar() {
                     <span
                       className={(dashboards ? "w-[30px] h-[30px] rounded-[9px]" : "w-[26px] h-[26px] rounded-[8px]") + " grid place-items-center shrink-0"}
                       style={{
-                        background: dashboards && parentActive ? "#f6e6fb" : "rgba(255,255,255,.12)",
-                        color: dashboards && parentActive ? "#7d2ea8" : "#fff",
+                        background: dashboards && parentActive ? "#32193a" : "rgba(255,255,255,.12)",
+                        color: dashboards && parentActive ? "#bb7fdc" : "#fff",
                       }}
                     >
                       <Icon name={it.icon} size={dashboards ? 16 : 15} strokeWidth={2.4} />
@@ -727,7 +725,7 @@ export default function AdminSidebar() {
                               key={s.href}
                               href={s.href}
                               className={"block px-3 py-[7px] rounded-[9px] mb-0.5 text-[13.5px] font-bold transition-colors " +
-                                (on ? "text-[#470066] bg-white" : "text-[#e3cff0] hover:text-white hover:bg-white/[0.1]")}
+                                (on ? "text-[#ce6ef7] bg-white" : "text-[#e3cff0] hover:text-white hover:bg-white/[0.1]")}
                               style={on ? { boxShadow: "0 8px 18px -10px rgba(0,0,0,.7)" } : undefined}
                             >
                               {s.label}

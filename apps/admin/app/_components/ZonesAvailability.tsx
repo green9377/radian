@@ -57,7 +57,7 @@ const minToCut = (min: number | null): string | null =>
   min == null ? null : String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0");
 
 const ErrLine = ({ text, onClose }: { text: string; onClose: () => void }) => (
-  <div className="mb-4 rounded-[12px] border border-[#f0c9c9] bg-[#fdecee] px-4 py-3 text-[13px] font-medium text-[#b42318] flex items-center justify-between gap-3">
+  <div className="mb-4 rounded-[12px] border border-[#4e2c2c] bg-[#3b171b] px-4 py-3 text-[13px] font-medium text-[#ed8078] flex items-center justify-between gap-3">
     <span className="min-w-0 break-words">{text}</span>
     <button className="underline shrink-0" onClick={onClose}>Dismiss</button>
   </div>
@@ -65,7 +65,7 @@ const ErrLine = ({ text, onClose }: { text: string; onClose: () => void }) => (
 
 const IconBtn = ({ name, onClick, danger, title }: { name: string; onClick: () => void; danger?: boolean; title?: string }) => (
   <button title={title} onClick={(e) => { e.stopPropagation(); onClick(); }}
-    className={"w-7 h-7 grid place-items-center rounded-[8px] shrink-0 " + (danger ? "text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]" : "text-body-soft hover:text-purple hover:bg-lavender")}>
+    className={"w-7 h-7 grid place-items-center rounded-[8px] shrink-0 " + (danger ? "text-body-soft hover:text-[#e1837a] hover:bg-[#3b171b]" : "text-body-soft hover:text-purple hover:bg-lavender")}>
     <Icon name={name} size={14} />
   </button>
 );
@@ -114,7 +114,7 @@ export function DeliveryMasters() {
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
               className="px-4 py-2 rounded-full text-[13px] font-semibold border inline-flex items-center gap-2 transition-all"
-              style={on ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#6b5878", borderColor: "#e3d7ec" }}>
+              style={on ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#b0a1ba", borderColor: "#3f3248" }}>
               <Icon name={t.icon} size={15} /> {t.label}
             </button>
           );
@@ -224,7 +224,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
           <Field label="Name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. 2-Hour Express"
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })} />
-            {dup && <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">That method already exists.</span>}
+            {dup && <span className="block text-[12.5px] font-semibold text-[#e1837a] mt-1">That method already exists.</span>}
           </Field>
           <Field label="How it works" required>
             <select className="ipt w-full" value={dlg.timing} onChange={(e) => setDlg({ ...dlg, timing: e.target.value as DeliveryTiming })}>
@@ -236,7 +236,7 @@ function MethodsTab({ types, run, busy }: { types: ApiDeliveryType[]; run: (fn: 
           {TIMING_META[dlg.timing].needsMinutes && (
             <Field label="Promise">
               <div className="flex items-center gap-2.5">
-                <div className="inline-flex items-center border-[1.5px] border-[#d8c6ee] rounded-[12px] bg-white overflow-hidden">
+                <div className="inline-flex items-center border-[1.5px] border-[#3c2d4e] rounded-[12px] bg-white overflow-hidden">
                   <input className="outline-none text-[13.5px] font-semibold text-purple text-center py-2 pl-3" style={{ width: 70 }}
                     inputMode="numeric" value={dlg.minutes}
                     onChange={(e) => setDlg({ ...dlg, minutes: e.target.value.replace(/[^0-9]/g, "") })} />
@@ -335,7 +335,7 @@ function SlotsTab({ templates, run, busy }: { templates: ApiSlotTemplate[]; run:
           <Field label="Name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. Evening"
               value={dlg.label} onChange={(e) => setDlg({ ...dlg, label: e.target.value })} />
-            {dup && <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">That slot already exists.</span>}
+            {dup && <span className="block text-[12.5px] font-semibold text-[#e1837a] mt-1">That slot already exists.</span>}
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="From">
@@ -606,7 +606,7 @@ export function DeliveryConnections() {
                       </span>
                       <button onClick={() => setPriceDlg({ id: m.id, price: String(Math.round(m.feePaisa / 100)), eta: m.etaLabel ?? "", lead })}
                         className="text-[13.5px] font-bold px-3.5 py-1.5 rounded-full"
-                        style={{ background: "#f5eafb", color: ACCENT }} title="Change the charge">
+                        style={{ background: "#2e1a38", color: ACCENT }} title="Change the charge">
                         {formatTaka(m.feePaisa)}{lead && m.etaLabel ? ` · ${m.etaLabel}` : ""}
                       </button>
                       <Switch small on={m.isActive} onClick={() => void run(() => updateDeliveryMethod(m.id, { isActive: !m.isActive }))} />
@@ -629,7 +629,7 @@ export function DeliveryConnections() {
                             <span className="text-[12.5px] font-semibold text-purple shrink-0">{s.label}</span>
                             <span className="text-[12px] font-medium text-body min-w-0 truncate">{windowText(s.startMin, s.endMin)}</span>
                             <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-                              style={s.capacityPerDay != null ? { background: "#e7f5f1", color: "#0b6b57" } : { background: "#f1eef4", color: "#8a7b96" }}>
+                              style={s.capacityPerDay != null ? { background: "#20332e", color: "#74f1d7" } : { background: "#29242e", color: "#aea4b7" }}>
                               {s.capacityPerDay != null ? `${s.capacityPerDay}/day` : "unlimited"}
                             </span>
                             <IconBtn name="edit" title="Capacity for this zone"
@@ -642,11 +642,11 @@ export function DeliveryConnections() {
                           <button
                             onClick={() => setSlotDlg({ mode: "attach", methodId: m.id, templateId: freeTemplates[0].id, label: "", capacity: "" })}
                             className="w-full text-left px-3 py-2 text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-lavender/40"
-                            style={{ color: ACCENT, background: m.slots.length ? "#fff" : "#faf7fc" }}>
+                            style={{ color: ACCENT, background: m.slots.length ? "#fff" : "#291e31" }}>
                             <Icon name="plus" size={13} /> Add slot
                           </button>
                         ) : m.slots.length === 0 ? (
-                          <Link href="/delivery/zones" className="block px-3 py-2 text-[12.5px] font-semibold underline" style={{ color: "#b45309" }}>
+                          <Link href="/delivery/zones" className="block px-3 py-2 text-[12.5px] font-semibold underline" style={{ color: "#f7a96e" }}>
                             No slots made yet — make them on Methods &amp; slots →
                           </Link>
                         ) : null}
@@ -799,7 +799,7 @@ export function BlackoutRules() {
                 <span className="text-[13.5px] font-semibold text-purple w-[120px] shrink-0">{fmtDay(b.date)}</span>
                 <span className="text-[12.5px] font-medium text-body min-w-0 flex-1 truncate">{b.reason ?? ""}</span>
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-                  style={b.typeId ? { background: "#eef2ff", color: "#4f46e5" } : { background: "#fdecea", color: "#b42318" }}>
+                  style={b.typeId ? { background: "#161f3a", color: "#7770eb" } : { background: "#3b1a16", color: "#ed8078" }}>
                   {b.type?.name ?? "Every delivery"}
                 </span>
                 <IconBtn name="trash" danger title="Remove"

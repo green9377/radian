@@ -131,7 +131,7 @@ export function ChartOfAccountsLive() {
           const on = tab === t;
           return (
             <button key={t} onClick={() => { setTab(t); setAddingIn(null); }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold border transition-colors ${on ? "border-transparent text-white" : "bg-white border-[#e7dff0] text-purple hover:bg-[#faf7fc]"}`}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold border transition-colors ${on ? "border-transparent text-white" : "bg-white border-[#3d3248] text-purple hover:bg-[#291e31]"}`}
               style={on ? { background: TONE[TAB_TONE[t]].grad } : undefined}>
               {meta.label}
               <span className="text-[11.5px] font-bold px-1.5 py-0.5 rounded-full"
@@ -167,9 +167,9 @@ export function ChartOfAccountsLive() {
             </button>
           </div>
 
-          <div className="border border-[#efe9f3] rounded-b-2xl bg-white overflow-hidden">
+          <div className="border border-[#3f3446] rounded-b-2xl bg-white overflow-hidden">
             {addingIn === group && (
-              <div className="px-4 py-3 bg-[#fffdf7] border-b border-[#f3eef7]">
+              <div className="px-4 py-3 bg-[#393016] border-b border-[#3e3248]">
                 <div className="grid md:grid-cols-6 gap-2 items-end">
                   <div>
                     <label className="text-[11.5px] font-semibold text-body-soft">Code</label>
@@ -201,7 +201,7 @@ export function ChartOfAccountsLive() {
             )}
 
             {list.map((a) => (
-              <div key={a.id} className="flex items-start gap-4 px-4 py-3 border-b border-[#f6f2f9] last:border-0 hover:bg-[#fdfbfe]">
+              <div key={a.id} className="flex items-start gap-4 px-4 py-3 border-b border-[#3f3248] last:border-0 hover:bg-[#2b1a34]">
                 <span className="text-[12.5px] text-body-soft font-semibold w-[52px] shrink-0 pt-0.5">{a.code}</span>
 
                 <div className="flex-1 min-w-0">
@@ -216,15 +216,15 @@ export function ChartOfAccountsLive() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-purple text-[14px]">{a.name}</span>
                         {a.isMoneyAccount && (
-                          <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#e0f2fe] text-[#0369a1]">money sits here</span>
+                          <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#172e3d] text-[#6ec7f7]">money sits here</span>
                         )}
                         {a.costBehavior && (
                           <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full"
-                            style={a.costBehavior === "FIXED" ? { background: "#f3e8ff", color: "#7c3aed" } : { background: "#fff4e2", color: "#b45309" }}>
+                            style={a.costBehavior === "FIXED" ? { background: "#28163b", color: "#9c69f1" } : { background: "#3c2e17", color: "#f7a96e" }}>
                             {a.costBehavior === "FIXED" ? "fixed" : "variable"}
                           </span>
                         )}
-                        {!a.isActive && <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#f0edf4] text-[#6b6b6b]">off</span>}
+                        {!a.isActive && <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#29242f] text-[#adadad]">off</span>}
                       </div>
                       {a.note && <div className="text-[12.5px] text-body-soft mt-0.5">{a.note}</div>}
                     </>
@@ -232,14 +232,14 @@ export function ChartOfAccountsLive() {
                 </div>
 
                 <div className="text-right shrink-0 w-[120px] pt-0.5">
-                  <div className="font-bold text-[14px]" style={{ color: a.balancePaisa < 0 ? "#b91c1c" : "#3d2352" }}>
+                  <div className="font-bold text-[14px]" style={{ color: a.balancePaisa < 0 ? "#ea7171" : "#b694d1" }}>
                     {taka(a.balancePaisa)}
                   </div>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2 pt-0.5">
                   {a.costBehavior && editing !== a.id && (
-                    <select className="border border-[#e7dff0] rounded-lg px-2 py-1 text-[11.5px] bg-white"
+                    <select className="border border-[#3d3248] rounded-lg px-2 py-1 text-[11.5px] bg-white"
                       value={a.costBehavior}
                       onChange={async (e) => { try { await updateFinanceAccount(a.id, { costBehavior: e.target.value }); await load(); } catch (er) { fail(er); } }}>
                       <option value="FIXED">Fixed</option>
@@ -261,7 +261,7 @@ export function ChartOfAccountsLive() {
                         try { await updateFinanceAccount(a.id, { isActive: !a.isActive }); await load(); } catch (er) { fail(er); }
                       }}>{a.isActive ? "Turn off" : "Turn on"}</button>
                       {!a.isSystem && (
-                        <button className="text-[12px] font-semibold text-[#b91c1c]" onClick={async () => {
+                        <button className="text-[12px] font-semibold text-[#ea7171]" onClick={async () => {
                           if (!window.confirm(`Delete ${a.name}?`)) return;
                           try { await deleteFinanceAccount(a.id); await load(); flash("Removed"); } catch (er) { fail(er); }
                         }}>Delete</button>

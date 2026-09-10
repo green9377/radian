@@ -74,7 +74,7 @@ function WhPills({ whs, value, onChange, hideCodes }: {
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
           style={value === w.id
             ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+            : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
           {w.name}
         </button>
       ))}
@@ -265,7 +265,7 @@ export function AsmTemplatesView() {
                   className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border border-lavender-deep text-purple hover:border-orchid">
                   Edit
                 </button>
-                <button onClick={() => remove(t)} className="text-body-soft hover:text-[#c0392b] px-1" title="Delete">
+                <button onClick={() => remove(t)} className="text-body-soft hover:text-[#e1837a] px-1" title="Delete">
                   <Icon name="trash" size={14} />
                 </button>
               </span>
@@ -311,10 +311,10 @@ const dt = (s?: string | null) =>
 type StageState = "done" | "active" | "pending" | "cancelled";
 
 const STAGE_TONE: Record<StageState, { bg: string; border: string; head: string; circle: string }> = {
-  done:      { bg: "#f2faf5", border: "#c9ecd8", head: "#0e7a3d", circle: "#0e7a3d" },
-  active:    { bg: "#eef4fc", border: "#c7dcf5", head: "#2563a8", circle: "#2563a8" },
-  pending:   { bg: "#faf9fb", border: "#eae3f0", head: "#8d7a97", circle: "#c9bfd4" },
-  cancelled: { bg: "#fdf0ee", border: "#f7cdc7", head: "#c0392b", circle: "#c0392b" },
+  done:      { bg: "#1e3226", border: "#2f4c3b", head: "#0e7a3d", circle: "#0e7a3d" },
+  active:    { bg: "#192638", border: "#283b53", head: "#2563a8", circle: "#2563a8" },
+  pending:   { bg: "#27232c", border: "#3e3446", head: "#8d7a97", circle: "#3d3743" },
+  cancelled: { bg: "#3a1b17", border: "#532d28", head: "#c0392b", circle: "#c0392b" },
 };
 
 function StageCard({ n, state, title, children }: {
@@ -338,7 +338,7 @@ function StageCard({ n, state, title, children }: {
 const SRow = ({ l, v, strong, colour }: { l: string; v: React.ReactNode; strong?: boolean; colour?: string }) => (
   <div className="flex items-baseline justify-between gap-2 text-[12px]">
     <span className="text-body-soft shrink-0">{l}</span>
-    <span className={"text-right min-w-0 " + (strong ? "font-semibold" : "")} style={{ color: colour ?? "#3d2b4d" }}>{v}</span>
+    <span className={"text-right min-w-0 " + (strong ? "font-semibold" : "")} style={{ color: colour ?? "#dfd2e4" }}>{v}</span>
   </div>
 );
 
@@ -396,7 +396,7 @@ function StageTimeline({ p }: { p: AsmProduction }) {
             <SRow l="Cost" v={`${formatTaka(p.unitCostPaisa)}/pc`} />
           </>
         ) : finished ? (
-          <SRow l="Waiting" v={<Link href="/assembly/finished" className="underline font-semibold" style={{ color: "#b45309" }}>pick the item \u2192</Link>} />
+          <SRow l="Waiting" v={<Link href="/assembly/finished" className="underline font-semibold" style={{ color: "#f7a96e" }}>pick the item \u2192</Link>} />
         ) : (
           <SRow l="\u2014" v="after finishing" />
         )}
@@ -566,12 +566,12 @@ export function AsmPipelineView() {
                     ? { background: ACCENT, color: "#fff" }
                     : s.n < step
                       ? { background: "#0e7a3d", color: "#fff" }
-                      : { background: "#efe9f4", color: "#8d7a97" }}>
+                      : { background: "#2b2232", color: "#b0a3b7" }}>
                   {s.n < step ? "✓" : s.n}
                 </span>
-                <b className="text-[13px]" style={{ color: s.n === step ? ACCENT : s.n < step ? "#0e7a3d" : "#8d7a97" }}>{s.label}</b>
+                <b className="text-[13px]" style={{ color: s.n === step ? ACCENT : s.n < step ? "#76efab" : "#8d7a97" }}>{s.label}</b>
               </button>
-              {i < arr.length - 1 && <span className="w-10 h-px" style={{ background: "#e4d9ef" }} />}
+              {i < arr.length - 1 && <span className="w-10 h-px" style={{ background: "#2c2236" }} />}
             </span>
           ))}
         </div>
@@ -592,7 +592,7 @@ export function AsmPipelineView() {
               </Field>
             </div>
             {tpl && qtyN > 0 && (
-              <div className="rounded-[12px] border border-lavender-deep p-3.5 mb-4" style={{ background: "#faf7fd" }}>
+              <div className="rounded-[12px] border border-lavender-deep p-3.5 mb-4" style={{ background: "#271a34" }}>
                 <div className="flex items-center gap-3 mb-2">
                   <ItemThumb item={{ sku: tpl.name, name: tpl.name, imageUrl: tpl.imageUrl }} size={34} />
                   <b className="text-[13.5px] text-body">Will pull for {qtyN} × {tpl.name}</b>
@@ -616,7 +616,7 @@ export function AsmPipelineView() {
         {/* ------------------------------------------- step 2 — who & when */}
         {step === 2 && tpl && (
           <>
-            <div className="flex items-center gap-3 mb-4 rounded-[10px] px-3.5 py-2.5" style={{ background: "#f5eafb" }}>
+            <div className="flex items-center gap-3 mb-4 rounded-[10px] px-3.5 py-2.5" style={{ background: "#2e1a38" }}>
               <ItemThumb item={{ sku: tpl.name, name: tpl.name, imageUrl: tpl.imageUrl }} size={30} />
               <b className="text-[13px] text-body">{tpl.name} × {qtyN}</b>
               <span className="text-[12.5px] text-body-soft">est. {formatTaka(estCost)}</span>
@@ -632,9 +632,9 @@ export function AsmPipelineView() {
                   <button key={String(o.v)} type="button" onClick={() => setAlready(o.v)}
                     className="text-left rounded-[12px] border px-4 py-3 transition-all"
                     style={already === o.v
-                      ? { borderColor: ACCENT, background: "#f5eafb", boxShadow: `0 0 0 2px ${ACCENT}22` }
-                      : { borderColor: "#e4d9ef", background: "#fff" }}>
-                    <b className="block text-[13px]" style={{ color: already === o.v ? ACCENT : "#3d2b4d" }}>{o.t}</b>
+                      ? { borderColor: ACCENT, background: "#2e1a38", boxShadow: `0 0 0 2px ${ACCENT}22` }
+                      : { borderColor: "#3d314a", background: "#fff" }}>
+                    <b className="block text-[13px]" style={{ color: already === o.v ? ACCENT : "#dfd2e4" }}>{o.t}</b>
                     <span className="block text-[12px] text-body-soft">{o.d}</span>
                   </button>
                 ))}
@@ -685,7 +685,7 @@ export function AsmPipelineView() {
         {/* ------------------------------- step 3 — materials & wastage (already-made) */}
         {step === 3 && tpl && (
           <>
-            <div className="flex items-center gap-3 mb-4 rounded-[10px] px-3.5 py-2.5" style={{ background: "#f5eafb" }}>
+            <div className="flex items-center gap-3 mb-4 rounded-[10px] px-3.5 py-2.5" style={{ background: "#2e1a38" }}>
               <ItemThumb item={{ sku: tpl.name, name: tpl.name, imageUrl: tpl.imageUrl }} size={30} />
               <b className="text-[13px] text-body">{tpl.name} × {qtyN}</b>
               <span className="text-[12.5px] text-body-soft">
@@ -713,7 +713,7 @@ export function AsmPipelineView() {
                   <input className="ipt" inputMode="decimal" placeholder="0"
                     value={wasted[r.l.componentItemId] ?? ""}
                     onChange={(e) => setWasted({ ...wasted, [r.l.componentItemId]: e.target.value })} />
-                  <span className="text-right text-[12.5px] font-medium" style={{ color: r.wasteValue > 0 ? "#c0392b" : "#8d7a97" }}>
+                  <span className="text-right text-[12.5px] font-medium" style={{ color: r.wasteValue > 0 ? "#e1837a" : "#b0a3b7" }}>
                     {r.wasteValue > 0 ? formatTaka(r.wasteValue) : "—"}
                   </span>
                 </div>
@@ -725,7 +725,7 @@ export function AsmPipelineView() {
                 className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2.5 rounded-[10px]">← Back</button>
               <span className="flex items-center gap-4">
                 <span className="text-[13px] text-body">
-                  Wasted: <b style={{ color: wasteTotal > 0 ? "#c0392b" : "#5c4a6b" }}>{formatTaka(wasteTotal)}</b>
+                  Wasted: <b style={{ color: wasteTotal > 0 ? "#e1837a" : "#dfd2e4" }}>{formatTaka(wasteTotal)}</b>
                 </span>
                 <NextBtn label={listDemo ? "Demo — refresh for real data" : "Record build"}
                   onClick={submit} disabled={listDemo} />
@@ -748,7 +748,7 @@ export function AsmPipelineView() {
         )}
         {rows.map((p) => (
           <div key={p.id}>
-            <div className={LROW + (p.status === "FINISHED" ? " bg-[#fff4e6]/40" : "")}>
+            <div className={LROW + (p.status === "FINISHED" ? " bg-[#3b2b17]/40" : "")}>
               <button onClick={() => setOpen(open === p.id ? null : p.id)}
                 className="text-left text-[13px] font-semibold text-purple hover:underline">{p.productionNo}</button>
               <ItemThumb item={{ sku: p.templateName, name: p.templateName, imageUrl: p.template?.imageUrl }} size={34} />
@@ -773,7 +773,7 @@ export function AsmPipelineView() {
                       Finish
                     </button>
                     <button onClick={() => cancel(p)}
-                      className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border border-lavender-deep text-body-soft hover:text-[#c0392b]">
+                      className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border border-lavender-deep text-body-soft hover:text-[#e1837a]">
                       Cancel
                     </button>
                   </>
@@ -863,12 +863,12 @@ function FinishModal({ p, onClose, onDone }: { p: AsmProduction; onClose: () => 
           <input className="ipt" inputMode="decimal" placeholder="0"
             value={wasted[r.componentItemId] ?? ""}
             onChange={(e) => setWasted({ ...wasted, [r.componentItemId]: e.target.value })} />
-          <span className="text-right text-[12.5px]" style={{ color: r.leftoverMilli > 0 ? "#0e7a3d" : "#8d7a97" }}>
+          <span className="text-right text-[12.5px]" style={{ color: r.leftoverMilli > 0 ? "#76efab" : "#b0a3b7" }}>
             {r.leftoverMilli > 0 ? fmtQty(r.leftoverMilli) : "—"}
           </span>
         </div>
       ))}
-      <p className="text-[12.5px] mt-2 mb-0" style={{ color: wastedTotal > 0 ? "#c0392b" : "#5c4a6b" }}>
+      <p className="text-[12.5px] mt-2 mb-0" style={{ color: wastedTotal > 0 ? "#e1837a" : "#dfd2e4" }}>
         Wasted {formatTaka(wastedTotal)} — auto-recorded as WASTAGE (DEC-ASM-015). Leftovers go back to the shelf on their own.
       </p>
     </Modal>
@@ -931,7 +931,7 @@ export function AsmFinishedView() {
         </div>
       )}
       {rows.map((p) => (
-        <div key={p.id} className="bg-white border rounded-[16px] shadow-soft p-4 mb-3" style={{ borderColor: "#f5ddba" }}>
+        <div key={p.id} className="bg-white border rounded-[16px] shadow-soft p-4 mb-3" style={{ borderColor: "#534128" }}>
           <div className="flex flex-wrap items-center gap-3">
             <ItemThumb item={{ sku: p.templateName, name: p.templateName, imageUrl: p.template?.imageUrl }} size={44} />
             <span className="min-w-0">

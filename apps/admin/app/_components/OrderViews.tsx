@@ -42,12 +42,12 @@ export const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 /* ---------------- colour system ---------------- */
 export type Tone = "purple" | "green" | "amber" | "rose" | "blue" | "gold";
 export const TONE: Record<Tone, { bg: string; border: string; text: string; solid: string; soft: string }> = {
-  purple: { bg: "#f7f1fb", border: "#e4d3f2", text: "#470066", solid: "#7d2ea8", soft: "#efe4f7" },
-  green: { bg: "#e9f9ef", border: "#c2ecd3", text: "#0e7a3d", solid: "#149a52", soft: "#d7f2e2" },
-  amber: { bg: "#fff7ec", border: "#fadfb4", text: "#b45309", solid: "#e08a1e", soft: "#ffeed6" },
-  rose: { bg: "#fdeff0", border: "#f6cfd2", text: "#b42318", solid: "#d64550", soft: "#fbdfe1" },
-  blue: { bg: "#eaf5ff", border: "#c7e2fa", text: "#0b5f9e", solid: "#2b7fd4", soft: "#d9ecff" },
-  gold: { bg: "#fdf2f4", border: "#f0d6db", text: "#a2545f", solid: "#b76e79", soft: "#f8e4e8" },
+  purple: { bg: "#2b1c35", border: "#3f2d4e", text: "#ce6ef7", solid: "#7d2ea8", soft: "#2c1e37" },
+  green: { bg: "#1c3626", border: "#2d4d3a", text: "#76efab", solid: "#149a52", soft: "#20382a" },
+  amber: { bg: "#3a2b16", border: "#534228", text: "#f7a96e", solid: "#e08a1e", soft: "#3e2e18" },
+  rose: { bg: "#391719", border: "#52282b", text: "#ed8078", solid: "#d64550", soft: "#3c181b" },
+  blue: { bg: "#16293b", border: "#283e53", text: "#70bcf5", solid: "#2b7fd4", soft: "#172a3e" },
+  gold: { bg: "#38181e", border: "#4b2f34", text: "#c7949b", solid: "#b76e79", soft: "#381c22" },
 };
 
 /* ---------------- atoms ---------------- */

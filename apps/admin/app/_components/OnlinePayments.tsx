@@ -29,8 +29,8 @@ import { Info } from "./ItemEditor";
 import { Flash, Table, Td, Th, WRAP, input, taka } from "./FinanceUI";
 
 const BRAND = {
-  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
-  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
+  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#c07edd" },
+  rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
 } as const;
 
 /*  The gateway's four words, in the shop's own. `tone` inks the pill; the
@@ -38,8 +38,8 @@ const BRAND = {
 const STATE: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
   INITIATED: {
     label: "Went to pay",
-    bg: "#fff4e0",
-    fg: "#9a6218",
+    bg: "#3c2f17",
+    fg: "#eaba7b",
     hint:
       "They were sent to the gateway and it never came back to us. Usually they " +
       "changed their mind — but if the customer has a bank SMS, this is the row " +
@@ -48,22 +48,22 @@ const STATE: Record<string, { label: string; bg: string; fg: string; hint: strin
   },
   SUCCESS: {
     label: "Paid",
-    bg: "#e7f7ee",
-    fg: "#1c7a4a",
+    bg: "#1e3528",
+    fg: "#83e2b1",
     hint:
       "SSLCommerz confirmed it to us directly, on our own request — never from " +
       "the customer's browser. The money is real.",
   },
   FAILED: {
     label: "Refused",
-    bg: "#fdeaee",
-    fg: "#a42340",
+    bg: "#3b161e",
+    fg: "#e48197",
     hint: "The bank or the gateway refused it. Nothing was charged.",
   },
   CANCELLED: {
     label: "Backed out",
-    bg: "#f1eefb",
-    fg: "#5b4a86",
+    bg: "#211b36",
+    fg: "#a396c5",
     hint: "They closed the gateway page without paying. Nothing was charged.",
   },
 };
@@ -140,7 +140,7 @@ function Panel({
     >
       <header
         className="relative grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b"
-        style={{ background: `linear-gradient(135deg,${theme.wash},#ffffff)`, borderColor: `${theme.edge}2e` }}
+        style={{ background: `linear-gradient(135deg,${theme.wash},#1f1727)`, borderColor: `${theme.edge}2e` }}
       >
         <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
         <span
@@ -202,7 +202,7 @@ export function OnlinePaymentsLive() {
         }
       >
         {/* the filter row */}
-        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#efe9f5" }}>
+        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#3d3249" }}>
           <div className="flex flex-wrap gap-1.5">
             {TABS.map((t) => {
               const on = tab === t.key;
@@ -220,7 +220,7 @@ export function OnlinePaymentsLive() {
                           borderColor: BRAND.purple.ink,
                           boxShadow: "0 2px 8px rgba(122,46,168,0.25)",
                         }
-                      : { background: "#fff", color: "#6b6b6b", borderColor: "#e7dff0" }
+                      : { background: "#fff", color: "#adadad", borderColor: "#3d3248" }
                   }
                 >
                   {t.label}
@@ -343,7 +343,7 @@ function Ref({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[0.1em] text-body-soft uppercase mb-1">{label}</div>
-      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "#3d2352" : "#9a94a3" }}>
+      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "#b694d1" : "#aca7b4" }}>
         {value || "—"}
       </div>
     </div>

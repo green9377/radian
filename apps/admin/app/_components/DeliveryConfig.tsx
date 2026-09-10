@@ -35,22 +35,22 @@ export function CouriersMaster() {
   function remove(id: string) { setFleet((b) => b.filter((f) => f.id !== id)); setSel(null); }
 
   const stats = [
-    { l: "Riders (in-house)", v: String(riders.length), c: "#7a2ea8", bg: "#f5eafb", icon: "user" },
-    { l: "3PL couriers", v: String(couriers.length), c: "#3182c9", bg: "#e9f2fc", icon: "truck" },
-    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#12a172", bg: "#e6f7ef", icon: "check" },
-    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#d98a0f", bg: "#fbf1e2", icon: "bolt" },
-    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#8b3fb0", bg: "#f3e8fb", icon: "box" },
-    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#12a172", bg: "#e6f7ef", icon: "clock" },
+    { l: "Riders (in-house)", v: String(riders.length), c: "#7a2ea8", bg: "#2e1a38", icon: "user" },
+    { l: "3PL couriers", v: String(couriers.length), c: "#3182c9", bg: "#18283a", icon: "truck" },
+    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#12a172", bg: "#1e362b", icon: "check" },
+    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#d98a0f", bg: "#3b2d18", icon: "bolt" },
+    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#8b3fb0", bg: "#2c1939", icon: "box" },
+    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#12a172", bg: "#1e362b", icon: "clock" },
   ];
 
   const Rowlet = ({ f }: { f: FleetMember }) => {
     const on = sel === f.id;
     return (
-      <div className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[11px] px-3 py-2.5 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : f.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#f0dcc4]")} onClick={() => setSel(f.id)}>
+      <div className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[11px] px-3 py-2.5 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : f.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#4f3f2b]")} onClick={() => setSel(f.id)}>
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-8 h-8 rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: f.kind === "RIDER" ? TONE.purple.solid : TONE.blue.solid }}><Icon name={f.kind === "RIDER" ? "user" : "truck"} size={15} /></span>
           <div className="min-w-0">
-            <div className="text-[13.5px] font-medium text-purple truncate">{f.name}{!f.active && <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Off</span>}</div>
+            <div className="text-[13.5px] font-medium text-purple truncate">{f.name}{!f.active && <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#402c18] text-[#f7a96e]">Off</span>}</div>
             <div className="text-[13px] text-body-soft">{PROVIDER_LABEL[f.provider]} · {f.onTimePct}% · {formatTaka(f.baseCostPaisa)}</div>
           </div>
         </div>
@@ -135,7 +135,7 @@ function FleetEditor({ member, kind, onSave, onDelete, onCancel }: {
       onCancel={onCancel} onSave={submit} saveLabel={isNew ? "Add" : "Save"} canSave={!!name.trim()}
       footer={!isNew && onDelete ? (
         <div className="flex justify-between items-center pt-2 border-t border-lavender-deep">
-          <button onClick={onDelete} className="text-[13px] font-medium text-[#c0392b] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove</button>
+          <button onClick={onDelete} className="text-[13px] font-medium text-[#e1837a] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove</button>
           <button onClick={submit} disabled={!name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-6 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="check" size={15} /> Save</button>
         </div>
       ) : null}
@@ -173,7 +173,7 @@ function FleetEditor({ member, kind, onSave, onDelete, onCancel }: {
             </div>
           </Section>
           <Section title="Consignment API" icon="bolt">
-            <div className="rounded-[11px] bg-[#fff7ec] border border-[#fadfb4] px-3.5 py-2.5 text-[12px] text-[#b45309]">One-click consignment + auto tracking (P1). Fill these when the courier gives merchant API access. Keys are stored server-side, never shown to customers.</div>
+            <div className="rounded-[11px] bg-[#3a2b16] border border-[#534228] px-3.5 py-2.5 text-[12px] text-[#f7a96e]">One-click consignment + auto tracking (P1). Fill these when the courier gives merchant API access. Keys are stored server-side, never shown to customers.</div>
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="API base URL"><input className="ipt" placeholder="https://portal.courier.com/api/v1" value={apiBaseUrl} onChange={(e) => setApiBaseUrl(e.target.value)} /></Field>
               <Field label="Merchant / store ID"><input className="ipt" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} /></Field>
@@ -211,12 +211,12 @@ export function ZonesRates() {
   function removeZone(id: string) { setZones((b) => b.filter((z) => z.id !== id)); setRates((b) => b.filter((r) => r.zoneId !== id)); setSlots((b) => b.filter((s) => s.zoneId !== id)); setSel(null); }
 
   const stats = [
-    { l: "Zones", v: String(zones.length), c: "#7a2ea8", bg: "#f5eafb", icon: "pin" },
-    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#3182c9", bg: "#e9f2fc", icon: "bolt" },
-    { l: "Time slots", v: String(slots.length), c: "#8b3fb0", bg: "#f3e8fb", icon: "clock" },
-    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#12a172", bg: "#e6f7ef", icon: "cash" },
-    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#d98a0f", bg: "#fbf1e2", icon: "box" },
-    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#b5642f", bg: "#f6ece3", icon: "shield" },
+    { l: "Zones", v: String(zones.length), c: "#7a2ea8", bg: "#2e1a38", icon: "pin" },
+    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#3182c9", bg: "#18283a", icon: "bolt" },
+    { l: "Time slots", v: String(slots.length), c: "#8b3fb0", bg: "#2c1939", icon: "clock" },
+    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#12a172", bg: "#1e362b", icon: "cash" },
+    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#d98a0f", bg: "#3b2d18", icon: "box" },
+    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#b5642f", bg: "#362a1e", icon: "shield" },
   ];
 
   return (
@@ -233,11 +233,11 @@ export function ZonesRates() {
             const on = sel === z.id;
             const zt = rates.filter((r) => r.zoneId === z.id && r.active).length;
             return (
-              <div key={z.id} className={"rounded-[12px] px-3.5 py-3 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : z.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#f0dcc4]")} onClick={() => setSel(z.id)}>
+              <div key={z.id} className={"rounded-[12px] px-3.5 py-3 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : z.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#4f3f2b]")} onClick={() => setSel(z.id)}>
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: z.id === "z-dhaka" ? TONE.purple.solid : TONE.blue.solid }}><Icon name="pin" size={15} /></span>
                   <div className="min-w-0 flex-1"><div className="text-[14px] font-medium text-purple truncate">{z.name}</div><div className="text-[13px] text-body-soft capitalize">{z.kind.toLowerCase()} · {zt} type{zt === 1 ? "" : "s"} on</div></div>
-                  {!z.active && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Off</span>}
+                  {!z.active && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#402c18] text-[#f7a96e]">Off</span>}
                 </div>
               </div>
             );
@@ -311,7 +311,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
       onCancel={onCancel} onSave={submit} saveLabel={isNew ? "Add zone" : "Save"} canSave={!!name.trim()}
       footer={!isNew && onDelete ? (
         <div className="flex justify-between items-center pt-2 border-t border-lavender-deep">
-          <button onClick={onDelete} className="text-[13px] font-medium text-[#c0392b] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove zone</button>
+          <button onClick={onDelete} className="text-[13px] font-medium text-[#e1837a] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove zone</button>
           <button onClick={submit} disabled={!name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-6 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="check" size={15} /> Save</button>
         </div>
       ) : null}
@@ -329,7 +329,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
           {TYPES.map((t) => {
             const m = DELIVERY_TYPE_META[t]; const d = rd[t]; const tn = TONE[m.tone as Tone];
             return (
-              <div key={t} className="rounded-[12px] border px-3 py-2.5" style={{ borderColor: d.on ? tn.border : "#e6ddf0", background: d.on ? tn.bg : "#faf8fc" }}>
+              <div key={t} className="rounded-[12px] border px-3 py-2.5" style={{ borderColor: d.on ? tn.border : "#3d3149", background: d.on ? tn.bg : "#271f30" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Icon name={m.icon} size={14} /><span className="text-[13px] font-semibold" style={{ color: tn.text }}>{m.label}</span>
                   <div className="ml-auto"><Switch on={d.on} onClick={() => setR(t, { on: !d.on })} small /></div>
@@ -356,7 +356,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
               <input className="ipt" value={s.window} onChange={(e) => setSlot(s.id, { window: e.target.value })} placeholder="4pm-6pm" />
               <input className="ipt !w-[86px]" type="number" value={s.capacity} onChange={(e) => setSlot(s.id, { capacity: Number(e.target.value) })} title="capacity" />
               <div title="active"><Switch on={s.active} onClick={() => setSlot(s.id, { active: !s.active })} small /></div>
-              <button onClick={() => delSlot(s.id)} className="text-body-soft hover:text-[#c0392b]" title="remove"><Icon name="trash" size={16} /></button>
+              <button onClick={() => delSlot(s.id)} className="text-body-soft hover:text-[#e1837a]" title="remove"><Icon name="trash" size={16} /></button>
             </div>
           ))}
           <button onClick={addSlot} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-orchid hover:text-purple px-1 py-1"><Icon name="plus" size={14} /> Add time slot</button>

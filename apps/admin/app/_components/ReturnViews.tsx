@@ -151,11 +151,11 @@ export function ReturnsOverview() {
         <Kpi items={[
           /*  Named "All returns" behind a door so nobody reads the strip as the
               door's own count. The figure is the same on every door on purpose. */
-          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#470066", bg: "#f5eafb", icon: "box" },
-          { l: "Needs approval", v: stats.pending, c: "#c77700", bg: "#fff4e6", icon: "bolt" },
-          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#c0392b", bg: "#fdecea", icon: "cash" },
-          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#2563eb", bg: "#eaf1fd", icon: "star" },
-          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#0e7a3d", bg: "#e8f7ef", icon: "tag" },
+          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#470066", bg: "#2e1a38", icon: "box" },
+          { l: "Needs approval", v: stats.pending, c: "#c77700", bg: "#3b2b17", icon: "bolt" },
+          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#c0392b", bg: "#3b1a16", icon: "cash" },
+          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#2563eb", bg: "#16243b", icon: "star" },
+          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#0e7a3d", bg: "#1f3529", icon: "tag" },
         ]} />
       )}
 
@@ -182,7 +182,7 @@ export function ReturnsOverview() {
           <div className="px-4 py-6 text-[13px] text-body-soft">No returns yet. Start one from a delivered order.</div>}
         {rows.map((r) => (
           <Link key={r.id} href={`/returns/${r.id}`}
-            className="grid grid-cols-[130px_1fr_140px_120px_130px_110px] gap-3 px-4 py-3 items-center hover:bg-[#faf6fd]">
+            className="grid grid-cols-[130px_1fr_140px_120px_130px_110px] gap-3 px-4 py-3 items-center hover:bg-[#291a35]">
             <span className="font-semibold text-[13px]" style={{ color: ACCENT }}>{r.returnNo}</span>
             <span className="text-[13px]">
               <b>{r.customer?.name ?? "—"}</b>
@@ -192,7 +192,7 @@ export function ReturnsOverview() {
             <span className="text-right text-[13px]">{formatTaka(r.returnValuePaisa)}</span>
             <span className="text-right text-[13px]">
               {r.refundPaisa > 0 ? formatTaka(r.refundPaisa) : "—"}
-              {r.storeCreditPaisa > 0 && <span className="text-[11px] text-[#2563eb]"> +{formatTaka(r.storeCreditPaisa)} credit</span>}
+              {r.storeCreditPaisa > 0 && <span className="text-[11px] text-[#6a94f1]"> +{formatTaka(r.storeCreditPaisa)} credit</span>}
             </span>
             <StatusPill status={r.status} />
           </Link>
@@ -473,12 +473,12 @@ export function NewReturn() {
           <div className="mt-3 divide-y divide-lavender-deep">
             {orderHits.map((o) => (
               <button key={o.id} onClick={() => pickOrder(o.id)}
-                className="w-full text-left py-2.5 px-1 hover:bg-[#faf6fd] flex items-center justify-between gap-3">
+                className="w-full text-left py-2.5 px-1 hover:bg-[#291a35] flex items-center justify-between gap-3">
                 <span className="text-[13px]">
                   <b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}
                   <span className="text-body-soft"> · {o.senderPhone || "—"}</span>
                   {returnedIds.has(o.id) && (
-                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#fff4e6", color: "#b45309" }}>already returned once</span>
+                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#3b2b17", color: "#f7a96e" }}>already returned once</span>
                   )}
                 </span>
                 <span className="text-[12px] text-body-soft">{formatTaka(o.totalPaisa)} · paid {formatTaka(o.paidPaisa)}</span>
@@ -510,7 +510,7 @@ export function NewReturn() {
                       onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, checked: e.target.checked } }))} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium">{l.name}
-                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#fff4e6" : "#eef", color: l.productType === "CRAFTED" ? "#b45309" : "#3730a3" }}>{l.productType}</span>
+                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#3b2b17" : "#eef", color: l.productType === "CRAFTED" ? "#f7a96e" : "#3730a3" }}>{l.productType}</span>
                       </div>
                       <div className="text-[12px] text-body-soft">
                         {formatTaka(l.unitPaisa)} each · ordered {l.qty}
@@ -622,7 +622,7 @@ export function NewReturn() {
                 </div>
 
                 {pickOpen && (
-                  <div className="border border-lavender-deep rounded-[10px] p-2 mb-2 bg-[#faf6fd]">
+                  <div className="border border-lavender-deep rounded-[10px] p-2 mb-2 bg-[#291a35]">
                     <input className="ipt" autoFocus placeholder="Search the counter list…"
                       value={pickSearch} onChange={(e) => setPickSearch(e.target.value)} />
                     <div className="mt-1.5 max-h-[190px] overflow-y-auto">
@@ -666,7 +666,7 @@ export function NewReturn() {
                         <QtyStepper size="sm" value={r.qty} min={1}
                           onChange={(n) => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: n } : x)); }} />
                       </span>
-                      <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[#c0392b] shrink-0"
+                      <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[#e1837a] shrink-0"
                         onClick={() => { setReplTouched(true); setRepl((rows) => rows.filter((_, j) => j !== i)); }}>✕</button>
                     </div>
                   ))}
@@ -801,7 +801,7 @@ export function ReturnDetail({ id }: { id: string }) {
               <div key={l.id} className="px-4 py-3 border-b border-lavender-deep flex items-center justify-between gap-3">
                 <div className="text-[13.5px]">{l.name} <span className="text-body-soft">× {l.qty}</span></div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#e8f7ef" : "#f1eef4", color: l.restockAction === "RESTOCK" ? "#0e7a3d" : "#8a7b96" }}>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#1f3529" : "#29242e", color: l.restockAction === "RESTOCK" ? "#76efab" : "#8a7b96" }}>
                     {l.restockAction === "RESTOCK" ? "Restocked" : "Write-off"}
                   </span>
                   <span className="text-[13px] w-[90px] text-right">{formatTaka(l.valuePaisa)}</span>
@@ -850,7 +850,7 @@ export function ReturnDetail({ id }: { id: string }) {
             {r.compensationPaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Compensation</span><span>{formatTaka(r.compensationPaisa)}</span></div>}
             <div className="flex justify-between pt-1.5 border-t border-lavender-deep"><span className="text-body-soft">Order paid / refunded</span><span>{formatTaka(r.order?.paidPaisa ?? 0)} / {formatTaka(r.order?.refundPaisa ?? 0)}</span></div>
             {creditBalance !== null && (
-              <div className="flex justify-between"><span className="text-body-soft">Customer store credit</span><b style={{ color: "#2563eb" }}>{formatTaka(creditBalance)}</b></div>
+              <div className="flex justify-between"><span className="text-body-soft">Customer store credit</span><b style={{ color: "#6a94f1" }}>{formatTaka(creditBalance)}</b></div>
             )}
           </div>
 
@@ -882,12 +882,12 @@ export function ReturnDetail({ id }: { id: string }) {
 
           {canApprove && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
-              <div className="text-[13px] font-semibold" style={{ color: "#c77700" }}>Needs approval</div>
+              <div className="text-[13px] font-semibold" style={{ color: "#f7c06e" }}>Needs approval</div>
               <div className="flex gap-2">
                 <button disabled={busy} onClick={() => act(() => approveReturn(id), "Approved")}
                   className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>Approve</button>
                 <button disabled={busy} onClick={() => act(() => rejectReturn(id), "Rejected")}
-                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[#e0a1a1] text-[#c0392b]">Reject</button>
+                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[#4d2e2e] text-[#e1837a]">Reject</button>
               </div>
             </div>
           )}
@@ -912,7 +912,7 @@ export function ReturnDetail({ id }: { id: string }) {
           )}
           {r.status !== "completed" && (
             <button disabled={busy} onClick={() => act(async () => { await deleteReturn(id); router.push("/returns"); }, "Deleted")}
-              className="w-full text-[12px] px-4 py-2 rounded-[10px] text-[#c0392b]">Delete</button>
+              className="w-full text-[12px] px-4 py-2 rounded-[10px] text-[#e1837a]">Delete</button>
           )}
         </div>
       </div>
@@ -1017,7 +1017,7 @@ export function ReturnSettingsView() {
                 <button className="text-[11.5px] underline" onClick={() => updateReturnReason(r.id, { label: r.label, requiresApproval: !r.requiresApproval, defaultRefundMethod: r.defaultRefundMethod }).then(load)}>
                   {r.requiresApproval ? "approval off" : "approval on"}
                 </button>
-                <button className="text-[11.5px] text-[#c0392b] underline" onClick={() => deleteReturnReason(r.id).then(load)}>remove</button>
+                <button className="text-[11.5px] text-[#e1837a] underline" onClick={() => deleteReturnReason(r.id).then(load)}>remove</button>
               </div>
             </div>
           ))}
@@ -1141,7 +1141,7 @@ function CancelRules() {
         </div>
       </div>
 
-      {saved && <div className="text-[13px] font-semibold text-[#0f7d55] mt-3">Saved ✓</div>}
+      {saved && <div className="text-[13px] font-semibold text-[#76efc3] mt-3">Saved ✓</div>}
     </div>
   );
 }

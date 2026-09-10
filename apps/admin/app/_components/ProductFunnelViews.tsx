@@ -86,15 +86,15 @@ function SourceLegend({ demo }: { demo: boolean }) {
     <div className="flex gap-2.5 flex-wrap items-center text-[11.5px] mb-4">
       <span className="text-body-soft">Where the numbers come from:</span>
       {demo ? (
-        <span className="bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
+        <span className="bg-[#3a2d16] text-[#f7a96e] border border-[#f0c88a] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
           <Icon name="bolt" size={12} /> Demo data — no real orders yet
         </span>
       ) : (
         <>
-          <span className="bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[#20342a] text-[#76efc3] px-2.5 py-1 rounded-full font-semibold">
             Radian database — money, authoritative
           </span>
-          <span className="bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[#29242f] text-body-soft px-2.5 py-1 rounded-full font-semibold">
             Web analytics — not connected yet
           </span>
         </>
@@ -127,7 +127,7 @@ function Stage({
         <span className="flex items-center gap-2">
           <b className={tracked ? "text-purple" : "text-body-soft"}>{label}</b>
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"}`}
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[#20342a] text-[#76efc3]" : "bg-[#29242f] text-body-soft"}`}
           >
             {tracked ? "DB" : "not tracked"}
           </span>
@@ -253,7 +253,7 @@ export function CatalogFunnel() {
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}.{" "}
           <button className="underline" onClick={() => load(days)}>
             Retry
@@ -323,7 +323,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Margin earned</div>
-            <div className="text-[19px] font-medium text-[#0f7d55]">
+            <div className="text-[19px] font-medium text-[#76efc3]">
               {formatTaka(t?.marginPaisa ?? 0)}
             </div>
           </div>
@@ -333,7 +333,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Refunded</div>
-            <div className="text-[19px] font-medium text-[#c0392b]">
+            <div className="text-[19px] font-medium text-[#e1837a]">
               {formatTaka(t?.refundPaisa ?? 0)}
             </div>
           </div>
@@ -426,10 +426,10 @@ export function CatalogFunnel() {
                       r.conv === null
                         ? "text-body-soft"
                         : r.conv < 3
-                          ? "text-[#c0392b]"
+                          ? "text-[#e1837a]"
                           : r.conv < 6
-                            ? "text-[#b45309]"
-                            : "text-[#0f7d55]"
+                            ? "text-[#f7a96e]"
+                            : "text-[#76efc3]"
                     }`}
                   >
                     {r.conv === null ? "—" : `${r.conv.toFixed(1)}%`}
@@ -442,15 +442,15 @@ export function CatalogFunnel() {
                       <span
                         className={`text-[11.5px] font-semibold px-2.5 py-1 rounded-full ${
                           r.leak === "No orders at all" || r.leak === "View → cart"
-                            ? "bg-[#fdecea] text-[#c0392b]"
-                            : "bg-[#fff8ec] text-[#b45309]"
+                            ? "bg-[#3b1a16] text-[#e1837a]"
+                            : "bg-[#3a2d16] text-[#f7a96e]"
                         }`}
                       >
                         {r.leak}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-[#c0392b]">
+                  <td className="px-4 py-3 font-semibold text-[#e1837a]">
                     {r.lostPaisa > 0 ? formatTaka(r.lostPaisa) : "—"}
                   </td>
                 </tr>
@@ -470,8 +470,8 @@ export function CatalogFunnel() {
         </table>
       </div>
 
-      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mt-4 text-[12.5px] text-[#7a4b09]">
-        <span className="text-[#b45309] shrink-0">
+      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#3a2d16] px-4 py-3 mt-4 text-[12.5px] text-[#f4be71]">
+        <span className="text-[#f7a96e] shrink-0">
           <Icon name="bolt" size={18} />
         </span>
         <div>
@@ -577,7 +577,7 @@ export function ProductAnalysis({ slug }: { slug: string }) {
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}
         </div>
       )}

@@ -37,10 +37,10 @@ import { Flash, Lbl, Table, Td, Th, WRAP, btnPrimary, btnPrimaryStyle, input, ta
     the number and the icon, `wash` is the tint the panel sits on, `edge` is the
     spine down its left side.  */
 const BRAND = {
-  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
-  orchid: { ink: "#a4468f", wash: "#fbeef7", edge: "#c86bb0" },
-  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
-  lavender: { ink: "#5b4a86", wash: "#f0edfa", edge: "#8f7fc4" },
+  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#c07edd" },
+  orchid: { ink: "#ce8dc0", wash: "#fbeef7", edge: "#d388bf" },
+  rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
+  lavender: { ink: "#a396c5", wash: "#f0edfa", edge: "#8f7fc4" },
 } as const;
 
 interface Destination { id: string; code: string; name: string; balancePaisa: number }
@@ -130,7 +130,7 @@ function Panel({
     >
       <header
         className="relative grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b"
-        style={{ background: `linear-gradient(135deg,${theme.wash},#ffffff)`, borderColor: `${theme.edge}2e` }}
+        style={{ background: `linear-gradient(135deg,${theme.wash},#1f1727)`, borderColor: `${theme.edge}2e` }}
       >
         <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
         <span
@@ -155,7 +155,7 @@ function Step({ label, value, sign, info }: { label: string; value: string; sign
         {label}
         {info ? <Info text={info} /> : null}
       </span>
-      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "#3d2352" }}>
+      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "#b694d1" }}>
         {sign ? <span className="text-body-soft mr-1">{sign}</span> : null}
         {value}
       </span>

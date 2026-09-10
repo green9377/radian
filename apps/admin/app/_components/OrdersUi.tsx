@@ -29,33 +29,33 @@ export const SOLID = {
 
 /** soft tint behind each solid colour */
 const TINT: Record<string, string> = {
-  [SOLID.orchid]: "#f9e3fb",
-  [SOLID.indigo]: "#e8e7fd",
-  [SOLID.green]: "#e3f4ea",
-  [SOLID.amber]: "#fff3e0",
-  [SOLID.red]: "#fdeceb",
-  [SOLID.blue]: "#e3f0fb",
-  [SOLID.purple]: "#ece3f3",
-  [SOLID.grey]: "#eeeeee",
+  [SOLID.orchid]: "#38193b",
+  [SOLID.indigo]: "#18173c",
+  [SOLID.green]: "#203529",
+  [SOLID.amber]: "#3c2e17",
+  [SOLID.red]: "#3b1816",
+  [SOLID.blue]: "#192b3b",
+  [SOLID.purple]: "#2c2134",
+  [SOLID.grey]: "#241a2c",
 };
 
-export const CELL = "px-3.5 py-3.5 align-top border-b border-[#efe9f4] text-[13px] leading-[1.45]";
-export const TH = "text-left bg-lavender text-purple font-medium text-[11.5px] tracking-[0.05em] uppercase px-3.5 py-3 border-b border-[#e4dbec] whitespace-nowrap";
-export const LABEL = "block text-[11px] font-medium text-[#7b6b87] leading-[1.2] mt-px";
+export const CELL = "px-3.5 py-3.5 align-top border-b border-[#3e3347] text-[13px] leading-[1.45]";
+export const TH = "text-left bg-lavender text-purple font-medium text-[11.5px] tracking-[0.05em] uppercase px-3.5 py-3 border-b border-[#3e3447] whitespace-nowrap";
+export const LABEL = "block text-[11px] font-medium text-[#afa4b7] leading-[1.2] mt-px";
 export const VALUE = "block font-medium text-body";
-export const SOFT = "text-[#7b6b87]";
+export const SOFT = "text-[#afa4b7]";
 export const NO = "font-medium text-purple whitespace-nowrap hover:underline";
 export const NAME = "font-medium text-purple hover:underline";
-export const ICON_BTN = "w-[24px] h-[24px] rounded-[7px] border border-[#e4dbec] grid place-items-center text-body-soft hover:text-purple hover:border-purple bg-white";
+export const ICON_BTN = "w-[24px] h-[24px] rounded-[7px] border border-[#3e3447] grid place-items-center text-body-soft hover:text-purple hover:border-purple bg-white";
 export const ACT = "h-[30px] w-full rounded-[9px] px-3 inline-flex items-center justify-center gap-1.5 text-[12.5px] font-medium whitespace-nowrap border";
 export const ACT_PRIMARY = `${ACT} bg-purple border-purple text-white hover:bg-purple-deep`;
-export const ACT_QUIET = `${ACT} bg-white border-[#e4dbec] text-purple hover:border-purple`;
-export const ACT_CALL = `${ACT} bg-white border-[#bfe3cd] text-[#0e8a44] hover:border-[#0e8a44]`;
-export const TABLE_WRAP = "bg-white border border-[#e4dbec] rounded-[14px] overflow-x-auto";
+export const ACT_QUIET = `${ACT} bg-white border-[#3e3447] text-purple hover:border-purple`;
+export const ACT_CALL = `${ACT} bg-white border-[#31493b] text-[#74f1aa] hover:border-[#0e8a44]`;
+export const TABLE_WRAP = "bg-white border border-[#3e3447] rounded-[14px] overflow-x-auto";
 /*  Zebra rows everywhere (owner, 10 Sep 2026): one row white, the next on a
     whisper of lavender, so the eye keeps its line. Applied here once; every
     table built on this file gets it.  */
-export const TABLE = "w-full border-collapse min-w-[1080px] [&_tbody_tr:nth-child(even)]:bg-[#faf7fc]";
+export const TABLE = "w-full border-collapse min-w-[1080px] [&_tbody_tr:nth-child(even)]:bg-[#291e31]";
 
 export function Pill({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
@@ -170,11 +170,11 @@ export function Band({
           const on = active === t.key;
           const inner = (
             <>
-              <span className={`block text-[11.5px] font-medium ${on ? "text-[#7b6b87]" : "text-[#d9c5e6]"}`}>{t.label}</span>
+              <span className={`block text-[11.5px] font-medium ${on ? "text-[#afa4b7]" : "text-[#d9c5e6]"}`}>{t.label}</span>
               <span className="block font-medium text-[22px] leading-none mt-2" style={{ color: t.hot ? (on ? SOLID.red : "#ffb4ad") : on ? SOLID.purple : "#fff" }}>
                 {t.value}
               </span>
-              {t.sub && <span className={`block text-[11.5px] mt-1.5 ${on ? "text-[#7b6b87]" : "text-white/70"}`}>{t.sub}</span>}
+              {t.sub && <span className={`block text-[11.5px] mt-1.5 ${on ? "text-[#afa4b7]" : "text-white/70"}`}>{t.sub}</span>}
             </>
           );
           const cls = on ? `${base} bg-white border-white` : `${base} border-white/15 bg-white/[0.08] hover:bg-white/[0.14]`;
@@ -232,7 +232,7 @@ export function Segs<K extends string>({
   onChange: (k: K) => void;
 }) {
   return (
-    <div className="inline-flex bg-white border border-[#e4dbec] rounded-[12px] p-1 gap-0.5">
+    <div className="inline-flex bg-white border border-[#3e3447] rounded-[12px] p-1 gap-0.5">
       {items.map(([k, label]) => {
         const on = value === k;
         const n = counts?.[k];
@@ -244,7 +244,7 @@ export function Segs<K extends string>({
             className={`px-3.5 py-2 rounded-[9px] text-[13px] font-medium inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}
           >
             {label}
-            {n !== undefined && <span className={on ? "text-white/70" : "text-[#7b6b87]"}>{n}</span>}
+            {n !== undefined && <span className={on ? "text-white/70" : "text-[#afa4b7]"}>{n}</span>}
           </button>
         );
       })}

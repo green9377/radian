@@ -131,7 +131,7 @@ export function PosOverview() {
                 </div>
                 <div className="text-right">
                   <div className="text-[13.5px] font-medium">{formatTaka(s.totalPaisa)}</div>
-                  {s.duePaisa > 0 && <div className="text-[11.5px] text-[#b45309]">{formatTaka(s.duePaisa)} due</div>}
+                  {s.duePaisa > 0 && <div className="text-[11.5px] text-[#f7a96e]">{formatTaka(s.duePaisa)} due</div>}
                 </div>
               </div>
             ))}
@@ -144,8 +144,8 @@ export function PosOverview() {
             <h3 className="font-display text-[16px] text-purple m-0 mb-3">Quick actions</h3>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { href: "/pos/sell", label: "New sale", icon: "cash", from: "#7a2ea8", to: "#470066" },
-                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "#159b63", to: "#0e6e46" },
+                { href: "/pos/sell", label: "New sale", icon: "cash", from: "#b97fdc", to: "#470066" },
+                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "#78edbc", to: "#0e6e46" },
                 { href: "/pos/due", label: "Collect due", icon: "user", from: "#c98089", to: "#a85a64" },
               ].map((x) => (
                 <Link key={x.href} href={x.href} className="text-[13.5px] font-medium text-white rounded-[12px] px-3.5 py-3 inline-flex items-center gap-2.5 shadow-soft hover:opacity-90" style={{ background: `linear-gradient(145deg, ${x.from}, ${x.to})` }}>
@@ -289,7 +289,7 @@ function CashOutDialog({
         <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Note (optional)</label>
         <input className="ipt h-[44px]" placeholder="Anything to remember" value={note} onChange={(e) => setNote(e.target.value)} />
 
-        {err && <p className="text-[12px] text-[#c0392b] mt-3 mb-0">{err}</p>}
+        {err && <p className="text-[12px] text-[#e1837a] mt-3 mb-0">{err}</p>}
 
         <div className="flex gap-2 mt-5">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Cancel</button>
@@ -345,7 +345,7 @@ export function PosShiftBoard() {
             <button type="button" onClick={() => setCashOut(true)} className="w-full mt-4 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[13px] py-2.5 rounded-[11px] font-bold">
               Take cash out
             </button>
-            <Link href="/pos/day-close" className="block text-center mt-2 bg-white hover:bg-white/90 text-[#0d5f3f] text-[13.5px] py-2.5 rounded-[11px] font-bold">Start day-close</Link>
+            <Link href="/pos/day-close" className="block text-center mt-2 bg-white hover:bg-white/90 text-[#78edbf] text-[13.5px] py-2.5 rounded-[11px] font-bold">Start day-close</Link>
           </div>
         ) : (
           <div className={card + " p-5"}>
@@ -372,7 +372,7 @@ export function PosShiftBoard() {
                 <span className="text-body-soft">{fmtDateTime(s.placedAt)} · {s.customerName}</span>
                 <span className="font-medium">
                   {formatTaka(s.totalPaisa)}
-                  {s.duePaisa > 0 && <span className="text-[#b45309] font-normal"> · {formatTaka(s.duePaisa)} due</span>}
+                  {s.duePaisa > 0 && <span className="text-[#f7a96e] font-normal"> · {formatTaka(s.duePaisa)} due</span>}
                 </span>
               </div>
             ))}
@@ -434,7 +434,7 @@ export function PosSalesHistory() {
                 <td className="px-4 py-2.5">{s.customer?.name ?? s.senderName}</td>
                 <td className="px-4 py-2.5">{s._count?.lines ?? 0}</td>
                 <td className="px-4 py-2.5 text-body-soft">{methodLabel(s)}</td>
-                <td className="px-4 py-2.5 text-right font-medium">{formatTaka(s.totalPaisa)}{s.duePaisa > 0 && <span className="block text-[11px] text-[#b45309]">{formatTaka(s.duePaisa)} due</span>}</td>
+                <td className="px-4 py-2.5 text-right font-medium">{formatTaka(s.totalPaisa)}{s.duePaisa > 0 && <span className="block text-[11px] text-[#f7a96e]">{formatTaka(s.duePaisa)} due</span>}</td>
                 <td className="px-4 py-2.5 text-right"><button type="button" onClick={() => setRx(s)} className="text-[12px] text-purple font-medium inline-flex items-center gap-1 border border-lavender-deep rounded-[8px] px-2.5 py-1.5 hover:border-orchid-mid"><Icon name="hash" size={13} /> Reprint</button></td>
               </tr>
             ))}
@@ -456,7 +456,7 @@ export function PosSalesHistory() {
               <div className="flex justify-between"><span className="text-body-soft">Items</span><span>{rx._count?.lines ?? 0}</span></div>
               <div className="flex justify-between"><span className="text-body-soft">Payment</span><span>{methodLabel(rx)}</span></div>
               <div className="flex justify-between border-t border-lavender-deep pt-2 mt-2 font-medium text-purple"><span>Total</span><span>{rx.isGift ? "— (gift)" : formatTaka(rx.totalPaisa)}</span></div>
-              {rx.duePaisa > 0 && <div className="flex justify-between text-[#b45309]"><span>Due</span><span>{formatTaka(rx.duePaisa)}</span></div>}
+              {rx.duePaisa > 0 && <div className="flex justify-between text-[#f7a96e]"><span>Due</span><span>{formatTaka(rx.duePaisa)}</span></div>}
             </div>
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={() => window.print()} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-medium text-[13px] inline-flex items-center justify-center gap-1.5"><Icon name="hash" size={14} /> Print</button>
@@ -523,14 +523,14 @@ export function PosDayClose() {
           <h3 className="font-display text-[16px] text-purple m-0 mb-3">System expects{sum?.shiftNo ? ` · ${sum.shiftNo}` : ""}</h3>
           <div className="space-y-2 text-[13px]">
             <div className="flex justify-between"><span className="text-body-soft">Opening float</span><span>{formatTaka(shift.openingFloatPaisa)}</span></div>
-            <div className="flex justify-between"><span className="text-body-soft">Cash movements</span><span className="text-[#0e7a3d]">+ {formatTaka(expected - shift.openingFloatPaisa)}</span></div>
+            <div className="flex justify-between"><span className="text-body-soft">Cash movements</span><span className="text-[#76efab]">+ {formatTaka(expected - shift.openingFloatPaisa)}</span></div>
             <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Expected cash</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
           </div>
           {sum && (
             <div className="mt-3 pt-3 border-t border-lavender-deep space-y-2 text-[13px]">
               <div className="flex justify-between"><span className="text-body-soft">Bills on this shift</span><span>{sum.count}</span></div>
               <div className="flex justify-between"><span className="text-body-soft">Sales</span><span>{formatTaka(sum.salesPaisa)}</span></div>
-              {sum.duePaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Still owed on them</span><span className="text-[#b45309]">{formatTaka(sum.duePaisa)}</span></div>}
+              {sum.duePaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Still owed on them</span><span className="text-[#f7a96e]">{formatTaka(sum.duePaisa)}</span></div>}
               <div className="flex justify-between"><span className="text-body-soft">Open since</span><span>{fmtDateTime(sum.openedAt)}</span></div>
             </div>
           )}
@@ -547,12 +547,12 @@ export function PosDayClose() {
             onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
           />
           {counted && (
-            <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#e9f9ef] text-[#0e7a3d]" : over > 0 ? "bg-[#eef4ff] text-[#1d4ed8]" : "bg-[#fdecea] text-[#c0392b]")}>
+            <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#1c3626] text-[#76efab]" : over > 0 ? "bg-[#16233a] text-[#6f90ec]" : "bg-[#3b1a16] text-[#e1837a]")}>
               {over === 0 ? "Matches exactly ✓" : over > 0 ? `Excess: ${formatTaka(over)} (more in drawer)` : `Shortfall: ${formatTaka(-over)} (missing)`}
             </div>
           )}
           <button type="button" onClick={doClose} disabled={busy || closed} className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[14px] py-3 rounded-[12px] font-bold disabled:opacity-50">{closed ? "Shift closed ✓" : busy ? "Closing…" : "Close shift"}</button>
-          {err && <p className="text-[11.5px] text-[#c0392b] mt-2 mb-0">{err}</p>}
+          {err && <p className="text-[11.5px] text-[#e1837a] mt-2 mb-0">{err}</p>}
         </div>
       </div>
       )}
@@ -614,7 +614,7 @@ export function PosDueBoard() {
             {bills.map(({ row, o }) => {
               const age = days(o.placedAt);
               return (
-                <tr key={o.id} className={"border-t border-lavender-deep " + (age >= 7 ? "bg-[#fff7ec]" : "hover:bg-lavender/30")}>
+                <tr key={o.id} className={"border-t border-lavender-deep " + (age >= 7 ? "bg-[#3a2b16]" : "hover:bg-lavender/30")}>
                   <td className="px-4 py-2.5">
                     <Link href={`/orders/${o.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{o.orderNo}</Link>
                   </td>
@@ -627,9 +627,9 @@ export function PosDueBoard() {
                   </td>
                   <td className="px-4 py-2.5 text-body-soft">
                     {new Date(o.placedAt).toLocaleDateString()}
-                    <span className={age >= 7 ? "text-[#b45309] font-medium" : ""}> · {age === 0 ? "today" : `${age} days`}</span>
+                    <span className={age >= 7 ? "text-[#f7a96e] font-medium" : ""}> · {age === 0 ? "today" : `${age} days`}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-medium text-[#b45309]">{formatTaka(o.duePaisa)}</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#f7a96e]">{formatTaka(o.duePaisa)}</td>
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
                     <button type="button" onClick={() => setOpen({ row, only: o.id })}
                       className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5">Collect</button>
@@ -765,7 +765,7 @@ export function PosSettings() {
           <div className={card + " p-5"} key={s?.id ?? "loading"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-1">Cash &amp; receipt</h3>
             <p className="text-[12.5px] text-body-soft m-0 mb-3">
-              {s ? <>Saved as soon as you leave a box.{saved && <span className="text-[#0e7a3d] font-medium"> · saved</span>}</> : "Reading the shop's settings…"}
+              {s ? <>Saved as soon as you leave a box.{saved && <span className="text-[#76efab] font-medium"> · saved</span>}</> : "Reading the shop's settings…"}
             </p>
             <div className="space-y-3 text-[13px]">
               <div>
@@ -778,7 +778,7 @@ export function PosSettings() {
                    keep a second rate of its own.  */}
               <div>
                 <label className="lbl">VAT rate</label>
-                <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[12px] px-3.5 h-[40px] bg-[#faf8fc]">
+                <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[12px] px-3.5 h-[40px] bg-[#271f30]">
                   <span className="text-[13.5px] font-medium text-purple">
                     {(s?.defaultTaxRateBps ?? 0) === 0 ? "No VAT" : `${(s?.defaultTaxRateBps ?? 0) / 100}%`}
                   </span>
@@ -864,7 +864,7 @@ export function PosAdvanceOrders() {
               const late = d !== null && d < 0;
               const today = d === 0;
               return (
-                <tr key={r.id} className={"border-t border-lavender-deep " + (late ? "bg-[#fff4e2]" : today ? "bg-[#f2fbf5]" : "hover:bg-lavender/30")}>
+                <tr key={r.id} className={"border-t border-lavender-deep " + (late ? "bg-[#3c2e17]" : today ? "bg-[#1c3424]" : "hover:bg-lavender/30")}>
                   <td className="px-4 py-2.5">
                     <Link href={`/orders/${r.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{r.orderNo}</Link>
                     <div className="text-[11px] text-body-soft">ordered {new Date(r.placedAt).toLocaleDateString()}</div>
@@ -875,7 +875,7 @@ export function PosAdvanceOrders() {
                   </td>
                   <td className="px-4 py-2.5">
                     {r.promisedBy ? new Date(r.promisedBy).toLocaleDateString() : "—"}
-                    <div className={"text-[11.5px] " + (late ? "text-[#b45309] font-medium" : "text-body-soft")}>
+                    <div className={"text-[11.5px] " + (late ? "text-[#f7a96e] font-medium" : "text-body-soft")}>
                       {d === null ? "" : late ? `${-d} day${-d === 1 ? "" : "s"} overdue` : today ? "today" : `in ${d} day${d === 1 ? "" : "s"}`}
                     </div>
                   </td>
@@ -885,7 +885,7 @@ export function PosAdvanceOrders() {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div>{formatTaka(r.paidPaisa)} of {formatTaka(r.totalPaisa)}</div>
-                    {r.duePaisa > 0 && <div className="text-[12px] text-[#b45309] font-medium">{formatTaka(r.duePaisa)} to collect</div>}
+                    {r.duePaisa > 0 && <div className="text-[12px] text-[#f7a96e] font-medium">{formatTaka(r.duePaisa)} to collect</div>}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <button type="button" onClick={() => { setErr(null); setOpen(r); }}

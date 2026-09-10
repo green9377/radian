@@ -39,14 +39,14 @@ import Icon from "./Icon";
 /*  The brand family, one hue per section — same idea as the sidebar accents.
     soft = card wash · text = numbers and icons · grad = chips and bars  */
 const B = {
-  purple:   { soft: "#f5eafb", text: "#7a2ea8", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
-  orchid:   { soft: "#fbeafb", text: "#a021b8", grad: "linear-gradient(135deg,#a021b8,#e07be0)" },
-  pink:     { soft: "#fdeef7", text: "#c2419a", grad: "linear-gradient(135deg,#c2419a,#f08bc7)" },
-  lavender: { soft: "#f1edfb", text: "#6d5bb8", grad: "linear-gradient(135deg,#6d5bb8,#a794e8)" },
-  rosegold: { soft: "#fbf0ec", text: "#b76e79", grad: "linear-gradient(135deg,#b76e79,#e0a8a0)" },
-  emerald:  { soft: "#e6f7ef", text: "#12a172", grad: "linear-gradient(135deg,#12a172,#5ec9a8)" },
-  amber:    { soft: "#fdf3e2", text: "#b07818", grad: "linear-gradient(135deg,#d99a2b,#e9c46a)" },
-  rose:     { soft: "#fdecea", text: "#c0392b", grad: "linear-gradient(135deg,#c0392b,#e87a6e)" },
+  purple:   { soft: "#2e1a38", text: "#b97fdc", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
+  orchid:   { soft: "#381a38", text: "#d475e6", grad: "linear-gradient(135deg,#a021b8,#e07be0)" },
+  pink:     { soft: "#3a172c", text: "#d783bd", grad: "linear-gradient(135deg,#c2419a,#f08bc7)" },
+  lavender: { soft: "#231a37", text: "#9a8dce", grad: "linear-gradient(135deg,#6d5bb8,#a794e8)" },
+  rosegold: { soft: "#37221a", text: "#c9929a", grad: "linear-gradient(135deg,#b76e79,#432926)" },
+  emerald:  { soft: "#1e362b", text: "#75f0c7", grad: "linear-gradient(135deg,#12a172,#5ec9a8)" },
+  amber:    { soft: "#3c2f17", text: "#edc278", grad: "linear-gradient(135deg,#d99a2b,#e9c46a)" },
+  rose:     { soft: "#3b1a16", text: "#e1837a", grad: "linear-gradient(135deg,#c0392b,#e87a6e)" },
 } as const;
 type Hue = keyof typeof B;
 
@@ -286,7 +286,7 @@ export default function AdministrationOverview() {
             </>
           )}
           {company?.licence && (
-            <div className="mt-3 pt-3 border-t border-[#f6e9e4] flex items-center gap-2 text-[12.5px]">
+            <div className="mt-3 pt-3 border-t border-[#4d362e] flex items-center gap-2 text-[12.5px]">
               <span className="text-body-soft">Trade licence</span>
               <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full"
                 style={{
@@ -325,12 +325,12 @@ export default function AdministrationOverview() {
             {services.map((s) => (
               <Link key={s.kind + s.provider} href="/administration/integrations"
                 className="flex items-center gap-2 rounded-[10px] px-2.5 py-2 transition-colors"
-                style={{ background: s.isEnabled ? B.orchid.soft : "#faf8fc" }}>
+                style={{ background: s.isEnabled ? B.orchid.soft : "#271f30" }}>
                 <span className="w-[9px] h-[9px] rounded-full shrink-0"
-                  style={{ background: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#d8d2e2" }} />
+                  style={{ background: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#2d2934" }} />
                 <span className="text-[12.5px] font-medium text-body truncate">{s.label}</span>
                 <span className="ml-auto text-[10.5px] font-bold uppercase tracking-wide shrink-0"
-                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#a99fbb" }}>
+                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#37333e" }}>
                   {s.isEnabled ? (s.isLive ? "live" : "sandbox") : "off"}
                 </span>
               </Link>
@@ -377,7 +377,7 @@ export default function AdministrationOverview() {
                 <span className="inline-block text-[11.5px] font-semibold px-2.5 py-1 rounded-full transition-colors"
                   style={s.exists
                     ? { background: B.emerald.soft, color: B.emerald.text }
-                    : { background: "#f4f1f8", color: "#a99fbb" }}>
+                    : { background: "#272130", color: "#a99fbb" }}>
                   {s.label}
                 </span>
               </Link>
@@ -457,7 +457,7 @@ function Section({ hue, icon, title, sub, children }: {
     <div className="rounded-[18px] bg-white border overflow-hidden"
       style={{ borderColor: `${B[hue].text}1f`, boxShadow: `0 2px 10px ${B[hue].text}10` }}>
       <div className="flex items-center gap-3 px-4 py-3"
-        style={{ background: `linear-gradient(100deg, ${B[hue].soft}, #ffffff 85%)` }}>
+        style={{ background: `linear-gradient(100deg, ${B[hue].soft}, #1f1727 85%)` }}>
         <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
           style={{ background: B[hue].grad, boxShadow: `0 3px 9px ${B[hue].text}40` }}>
           <Icon name={icon} size={15} strokeWidth={2.2} />
@@ -501,7 +501,7 @@ export function AdminSoon({ slug }: { slug: string }) {
         <p className="text-[13px] text-body leading-relaxed mt-3">
           {part?.what ?? "This screen is planned but not built. It will say so here the day it exists."}
         </p>
-        <div className="mt-5 pt-4 border-t border-[#f0edf5]">
+        <div className="mt-5 pt-4 border-t border-[#3b3446]">
           <Link href="/administration" className="text-[12.5px] text-purple font-semibold">
             ← Back to Administration
           </Link>

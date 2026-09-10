@@ -64,10 +64,10 @@ export default function ItemsOverview() {
      and Costs boards were removed (21 Jul): they only repeated what the list already
      shows, and "assembled but no recipe" is an Assembly question, not an Item one. */
   const issues = [
-    { n: s.noPrice.length, label: "on sale with no price", tone: "#c0392b", bg: "#fdecea", icon: "cash", href: "/items/list?only=noPrice" },
-    { n: s.noCost.length, label: "no cost set", tone: "#b45309", bg: "#fff4e6", icon: "box", href: "/items/list?only=noCost" },
-    { n: s.noCat.length, label: "not in a category", tone: "#0e8f74", bg: "#e7f5f1", icon: "grid", href: "/items/list" },
-    { n: s.noPhoto.length, label: "no photo", tone: "#b76e79", bg: "#f6ece3", icon: "photo", href: "/items/list?only=noPhoto" },
+    { n: s.noPrice.length, label: "on sale with no price", tone: "#e1837a", bg: "#3b1a16", icon: "cash", href: "/items/list?only=noPrice" },
+    { n: s.noCost.length, label: "no cost set", tone: "#f7a96e", bg: "#3b2b17", icon: "box", href: "/items/list?only=noCost" },
+    { n: s.noCat.length, label: "not in a category", tone: "#74f1d7", bg: "#20332e", icon: "grid", href: "/items/list" },
+    { n: s.noPhoto.length, label: "no photo", tone: "#c9929a", bg: "#362a1e", icon: "photo", href: "/items/list?only=noPhoto" },
   ].filter((x) => x.n > 0);
 
   return (
@@ -92,15 +92,15 @@ export default function ItemsOverview() {
       {/* ---- the five numbers ---- */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-5">
         <BigKpi label="Total items" value={items.length} sub={s.hidden ? `${s.hidden} hidden` : "all visible"}
-          tone="#470066" bg="linear-gradient(140deg,#f5eafb,#efe0f8)" icon="box" href="/items/list" />
+          tone="#470066" bg="linear-gradient(140deg,#2e1a38,#2e1c39)" icon="box" href="/items/list" />
         <BigKpi label="Ingredients & packing" value={items.filter((i) => i.itemType === "RAW" || i.itemType === "PACKAGING").length}
-          sub="what goes into things" tone="#0e8f74" bg="linear-gradient(140deg,#e7f5f1,#d9efe8)" icon="layers" href="/items/list" />
+          sub="what goes into things" tone="#0e8f74" bg="linear-gradient(140deg,#20332e,#223630)" icon="layers" href="/items/list" />
         <BigKpi label="Assembled" value={s.assembled.length} sub="built from a recipe"
-          tone="#a020c9" bg="linear-gradient(140deg,#f9e9fd,#f3d9fa)" icon="sparkle" href="/items/list" />
+          tone="#a020c9" bg="linear-gradient(140deg,#34163b,#35193d)" icon="sparkle" href="/items/list" />
         <BigKpi label="Categories" value={cats.length} sub="stockroom tree"
-          tone="#b5642f" bg="linear-gradient(140deg,#f9efe6,#f4e3d3)" icon="grid" href="/items/categories" />
+          tone="#b5642f" bg="linear-gradient(140deg,#38291c,#3b2c1e)" icon="grid" href="/items/categories" />
         <BigKpi label="Cost of one of each" value={formatTaka(s.perUnit)} sub="not stock value"
-          tone="#0e7a3d" bg="linear-gradient(140deg,#e8f7ef,#d8f0e3)" icon="cash" href="/items/list?sort=cost" />
+          tone="#0e7a3d" bg="linear-gradient(140deg,#1f3529,#21372b)" icon="cash" href="/items/list?sort=cost" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">

@@ -293,7 +293,7 @@ export default function NewOrderForm() {
       </div>
 
       {placeErr && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {placeErr}
         </div>
       )}
@@ -322,11 +322,11 @@ export default function NewOrderForm() {
                 <>
                   <CustomerSelect selected={selected} onSelect={(c) => { setSelectedId(c.id); setNewMode(false); }} onCreateNew={() => { setNewMode(true); setSelectedId(null); }} />
                   {selected && (
-                    <div className="mt-2 flex items-center gap-2.5 flex-wrap bg-[#e6f4ec] border border-[#bfe3cd] rounded-[10px] px-3 py-2.5">
+                    <div className="mt-2 flex items-center gap-2.5 flex-wrap bg-[#213329] border border-[#31493b] rounded-[10px] px-3 py-2.5">
                       <Icon name="check" size={16} />
-                      <span className="text-[12.5px] text-[#2e7d5b]"><b className="font-medium">{selected.name}</b> · {selected.ordersCount} orders · LTV {formatTaka(selected.ltvPaisa)}</span>
+                      <span className="text-[12.5px] text-[#8fd6b7]"><b className="font-medium">{selected.name}</b> · {selected.ordersCount} orders · LTV {formatTaka(selected.ltvPaisa)}</span>
                       <div className="flex items-center gap-2 ml-auto">
-                        <a href={`tel:${selected.phone}`} className="inline-flex items-center gap-1.5 bg-white border border-[#bfe3cd] text-[#2e7d5b] text-[12.5px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#dff0e6]"><Icon name="phone" size={14} /> Call</a>
+                        <a href={`tel:${selected.phone}`} className="inline-flex items-center gap-1.5 bg-white border border-[#31493b] text-[#8fd6b7] text-[12.5px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#23342a]"><Icon name="phone" size={14} /> Call</a>
                         <Link href={`/customers/${selected.id}`} className="inline-flex items-center gap-1.5 bg-white border border-lavender-deep text-purple text-[12.5px] px-3 py-1.5 rounded-[9px] font-medium hover:border-orchid"><Icon name="user" size={14} /> Profile</Link>
                         <button type="button" onClick={() => setSelectedId(null)} className="text-[13px] text-body-soft underline">Change</button>
                       </div>
@@ -397,7 +397,7 @@ export default function NewOrderForm() {
                       </div>
                       <QtyStepper grow size="sm" value={l.qty} min={1} onChange={(n) => setLineQty(l.key, n)} />
                       <div className="text-right text-[13.5px] font-medium">{formatTaka(p.offerPricePaisa * l.qty)}</div>
-                      <button type="button" onClick={() => removeLine(l.key)} className="text-body-soft hover:text-[#c0392b] w-[34px] h-[34px] grid place-items-center rounded-[9px] border border-lavender-deep" title="Remove">
+                      <button type="button" onClick={() => removeLine(l.key)} className="text-body-soft hover:text-[#e1837a] w-[34px] h-[34px] grid place-items-center rounded-[9px] border border-lavender-deep" title="Remove">
                         <Icon name="trash" size={16} />
                       </button>
                     </div>
@@ -490,28 +490,28 @@ export default function NewOrderForm() {
               })}
             </div>
             {/* cash in hand right now — counter or phone order */}
-            <div className="rounded-[12px] border p-3.5 mb-3" style={{ background: "#e9f9ef", borderColor: "#c2ecd3" }}>
-              <label className={labelCls} style={{ color: "#0e7a3d" }}>Cash collected now ৳ (optional)</label>
+            <div className="rounded-[12px] border p-3.5 mb-3" style={{ background: "#1c3626", borderColor: "#2d4d3a" }}>
+              <label className={labelCls} style={{ color: "#76efab" }}>Cash collected now ৳ (optional)</label>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-[150px]">
                   <input type="number" min={0} className="ipt h-[42px]" value={cashPaisa ? Math.round(cashPaisa / 100) : ""} placeholder="0" onChange={(e) => setCashPaisa(Math.max(0, Number(e.target.value)) * 100)} />
                 </div>
-                <button type="button" onClick={() => setCashPaisa(total)} className="text-[12.5px] px-3 py-1.5 rounded-[9px] border bg-white font-medium" style={{ color: "#0e7a3d", borderColor: "#c2ecd3" }}>
+                <button type="button" onClick={() => setCashPaisa(total)} className="text-[12.5px] px-3 py-1.5 rounded-[9px] border bg-white font-medium" style={{ color: "#76efab", borderColor: "#2d4d3a" }}>
                   Full amount ({formatTaka(total)})
                 </button>
                 {cashPaisa > 0 && (
-                  <span className="text-[12.5px] font-medium" style={{ color: "#0e7a3d" }}>
+                  <span className="text-[12.5px] font-medium" style={{ color: "#76efab" }}>
                     Due after cash: {formatTaka(Math.max(0, total - cashPaisa))}
                   </span>
                 )}
               </div>
-              <p className="text-[11.5px] mt-1.5 mb-0" style={{ color: "#0e7a3d" }}>
+              <p className="text-[11.5px] mt-1.5 mb-0" style={{ color: "#76efab" }}>
                 Money taken in hand at the counter or against a phone order — recorded on the order straight away.
               </p>
             </div>
 
             {!codAllowed && (
-              <p className="text-[12px] text-[#b45309] mt-0 mb-3">
+              <p className="text-[12px] text-[#f7a96e] mt-0 mb-3">
                 Cash on delivery is off — {isGift ? "gift orders can't be COD" : "an item here is marked as needing payment up front"}.
               </p>
             )}
@@ -530,7 +530,7 @@ export default function NewOrderForm() {
             </div>
             <div className="flex justify-between py-1.5 text-[13.5px]">
               <span className="text-body-soft">Delivery · {activeMethod.label}</span>
-              <span>{offerWaived > 0 ? <><s className="text-body-soft">{formatTaka(deliveryFee)}</s> <span className="text-[#0f7d55] font-semibold">Free</span></> : formatTaka(deliveryFee)}</span>
+              <span>{offerWaived > 0 ? <><s className="text-body-soft">{formatTaka(deliveryFee)}</s> <span className="text-[#76efc3] font-semibold">Free</span></> : formatTaka(deliveryFee)}</span>
             </div>
             {/* DEC-OFR-003 — coupon + live engine preview */}
             <div className="py-1.5 border-t border-lavender-deep mt-1">
@@ -542,14 +542,14 @@ export default function NewOrderForm() {
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 />
                 {couponCode && (
-                  <button type="button" onClick={() => setCouponCode("")} className="text-[12px] font-semibold text-body-soft hover:text-[#c0392b]">×</button>
+                  <button type="button" onClick={() => setCouponCode("")} className="text-[12px] font-semibold text-body-soft hover:text-[#e1837a]">×</button>
                 )}
               </div>
-              {quote?.couponError && <div className="text-[11.5px] text-[#b91c1c] font-semibold mt-1.5">{quote.couponError}</div>}
+              {quote?.couponError && <div className="text-[11.5px] text-[#ea7171] font-semibold mt-1.5">{quote.couponError}</div>}
               {quote?.applied.map((a) => (
                 <div key={a.offerId} className="flex justify-between text-[12.5px] mt-1.5">
-                  <span className="text-[#0f7d55] font-medium">✓ {a.name}{a.code ? ` (${a.code})` : ""}</span>
-                  <span className="text-[#0f7d55] font-semibold">{a.freeDelivery ? "free delivery" : `−${formatTaka(a.discountPaisa)}`}</span>
+                  <span className="text-[#76efc3] font-medium">✓ {a.name}{a.code ? ` (${a.code})` : ""}</span>
+                  <span className="text-[#76efc3] font-semibold">{a.freeDelivery ? "free delivery" : `−${formatTaka(a.discountPaisa)}`}</span>
                 </div>
               ))}
             </div>
@@ -570,7 +570,7 @@ export default function NewOrderForm() {
               <Icon name="check" size={17} /> Create order
             </button>
             {errors.length > 0 && (
-              <ul className="text-[11.5px] text-[#b45309] mt-3 list-disc pl-4 space-y-0.5">
+              <ul className="text-[11.5px] text-[#f7a96e] mt-3 list-disc pl-4 space-y-0.5">
                 {errors.map((e) => (
                   <li key={e}>{e}</li>
                 ))}

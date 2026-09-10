@@ -237,7 +237,7 @@ export function LoyaltyView() {
             </button>
           </div>
 
-          <div className="md:col-span-4 border-t border-[#f1ecf6] pt-4 grid md:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-4 border-t border-[#3d3248] pt-4 grid md:grid-cols-4 gap-4 items-end">
             <div>
               <Lbl>Festival — multiply earning by</Lbl>
               <select className={input} value={mult} onChange={(e) => setMult(e.target.value)}>
@@ -263,7 +263,7 @@ export function LoyaltyView() {
           </div>
 
           {s?.loyaltyEnabled && (
-            <div className="md:col-span-4 border-t border-[#f1ecf6] pt-4">
+            <div className="md:col-span-4 border-t border-[#3d3248] pt-4">
               <button className={btnGhost} disabled={busy === "save"}
                 onClick={() => void save({ loyaltyEnabled: false }, "Switched off. Nothing is earned or spent from now on; balances stay where they are.")}>
                 Switch the scheme off
@@ -285,7 +285,7 @@ export function LoyaltyView() {
         ) : (
           <Table head={<><Th>Customer</Th><Th>Phone</Th><Th right>Orders</Th><Th right>Points</Th><Th right>Worth</Th></>}>
             {holders.map((h, i) => (
-              <tr key={h.customer?.id ?? i} className="border-t border-[#f1ecf6] hover:bg-[#fdfbff]">
+              <tr key={h.customer?.id ?? i} className="border-t border-[#3d3248] hover:bg-[#271538]">
                 <Td>
                   {h.customer ? (
                     <Link className="font-semibold text-purple hover:underline" href={`/customers/${h.customer.id}`}>
@@ -334,7 +334,7 @@ export function LoyaltyView() {
               {busy === "adj" ? "Saving…" : "Add the points"}
             </button>
           </div>
-          <div className="md:col-span-5 text-[12.5px] text-body-soft border-t border-[#f1ecf6] pt-3">
+          <div className="md:col-span-5 text-[12.5px] text-body-soft border-t border-[#3d3248] pt-3">
             <b>This writes to the ledger too.</b>{" "}Handing somebody 250 points costs ৳250 and the
             books will say so the moment you press the button — which is why the reason is not
             optional. It needs your PIN.

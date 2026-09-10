@@ -21,42 +21,42 @@ import Icon from "./Icon";
 export const MODULE_TONES = {
   purple: {
     fill: "linear-gradient(102deg,#470066,#7a1e86 68%,#b76e79)",
-    soft: "#e9a8f5",
+    soft: "#401c46",
     tiles: [
-      { bg: "#f9e9fd", label: "#96639a", value: "#5e1a5c" },
-      { bg: "#FBEAF0", label: "#a06a7c", value: "#6b2138" },
-      { bg: "#f8eef0", label: "#a5757e", value: "#6d3a43" },
-      { bg: "#f3eff8", label: "#8b7c9c", value: "#453556" },
+      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
+      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
+      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
+      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
     ],
   },
   orchid: {
     fill: "linear-gradient(102deg,#8c2d84,#b444ad)",
-    soft: "#f0c4ec",
+    soft: "#3e1f3b",
     tiles: [
-      { bg: "#f9e9fd", label: "#96639a", value: "#5e1a5c" },
-      { bg: "#f3eff8", label: "#8b7c9c", value: "#453556" },
-      { bg: "#FBEAF0", label: "#a06a7c", value: "#6b2138" },
-      { bg: "#f8eef0", label: "#a5757e", value: "#6d3a43" },
+      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
+      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
+      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
+      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
     ],
   },
   rose: {
     fill: "linear-gradient(102deg,#993556,#c25476)",
-    soft: "#f4c0d1",
+    soft: "#401c28",
     tiles: [
-      { bg: "#FBEAF0", label: "#a06a7c", value: "#6b2138" },
-      { bg: "#f8eef0", label: "#a5757e", value: "#6d3a43" },
-      { bg: "#f9e9fd", label: "#96639a", value: "#5e1a5c" },
-      { bg: "#f3eff8", label: "#8b7c9c", value: "#453556" },
+      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
+      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
+      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
+      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
     ],
   },
   rosegold: {
     fill: "linear-gradient(102deg,#98545f,#c07f8a)",
-    soft: "#eccdd2",
+    soft: "#392326",
     tiles: [
-      { bg: "#f8eef0", label: "#a5757e", value: "#6d3a43" },
-      { bg: "#FBEAF0", label: "#a06a7c", value: "#6b2138" },
-      { bg: "#f3eff8", label: "#8b7c9c", value: "#453556" },
-      { bg: "#f9e9fd", label: "#96639a", value: "#5e1a5c" },
+      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
+      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
+      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
+      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
     ],
   },
 } as const;
@@ -159,7 +159,7 @@ export function FilterChips<T extends string>({ value, onChange, options }: {
               ? { background: "#470066", color: "#fff", borderColor: "#470066" }
               : o.tint
                 ? { background: o.tint.bg, color: o.tint.color, borderColor: "transparent" }
-                : { background: "#fff", color: "#5c4a6b", borderColor: "#efe4f7" }}>
+                : { background: "#fff", color: "#dfd2e4", borderColor: "#402d4e" }}>
             {o.label}
             {o.count !== undefined && o.count > 0 && (
               <span className="text-[11px] rounded-full px-1.5"

@@ -189,7 +189,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
   const showMoney = c.booksPaisa !== null && c.realPaisa !== null;
 
   return (
-    <Card className="px-4 py-4" style={{ borderColor: c.severity === "ok" ? "#eee6f4" : t.ring }}>
+    <Card className="px-4 py-4" style={{ borderColor: c.severity === "ok" ? "#3f3149" : t.ring }}>
       <div className="flex items-start gap-3 flex-wrap">
         <div className="w-7 h-7 rounded-full grid place-items-center text-white text-[14px] font-bold shrink-0"
           style={{ background: t.grad }}>{look.emoji}</div>
@@ -204,7 +204,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
               <span className="text-body-soft">Shop says <b className="text-purple">{taka(c.realPaisa!)}</b></span>
               <span className="text-body-soft">
                 Difference{" "}
-                <b style={{ color: c.severity === "ok" ? "#0f7d55" : t.text }}>
+                <b style={{ color: c.severity === "ok" ? "#76efc3" : t.text }}>
                   {c.diffPaisa! > 0 ? "+" : ""}{taka(c.diffPaisa!)}
                 </b>
               </span>
@@ -213,7 +213,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
 
           {c.count !== undefined && (
             <div className="mt-3 text-[13px] text-body-soft">
-              <b style={{ color: c.count ? t.text : "#0f7d55" }}>{c.count}</b>{" "}
+              <b style={{ color: c.count ? t.text : "#76efc3" }}>{c.count}</b>{" "}
               {c.count === 1 ? "item" : "items"}
               {c.examples && c.examples.length > 0 && (
                 <span className="text-[12px]"> · {c.examples.join(" · ")}
@@ -223,7 +223,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
           )}
 
           <div className="mt-2.5 px-3 py-2 rounded-[10px] text-[12.5px]"
-            style={{ background: c.severity === "ok" ? "#f6fbf8" : t.soft, color: c.severity === "ok" ? "#0f7d55" : t.text }}>
+            style={{ background: c.severity === "ok" ? "#1f3026" : t.soft, color: c.severity === "ok" ? "#76efc3" : t.text }}>
             {c.advice}
           </div>
         </div>

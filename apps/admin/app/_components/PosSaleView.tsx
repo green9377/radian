@@ -86,13 +86,13 @@ export default function PosSaleView({ id }: { id: string }) {
             <Icon name="plus" size={14} /> New purchase
           </Link>
           <span className={"text-[12px] font-medium px-3 py-1.5 rounded-full " + (advance
-            ? "bg-[#fff4e2] text-[#b45309]"
-            : "bg-[#e9f9ef] text-[#0e7a3d]")}>
+            ? "bg-[#3c2e17] text-[#f7a96e]"
+            : "bg-[#1c3626] text-[#76efab]")}>
             {advance ? "Advance — not handed over" : "Completed"}
           </span>
           <span className={"text-[12px] font-medium px-3 py-1.5 rounded-full " + (due > 0
-            ? "bg-[#fff4e2] text-[#b45309]"
-            : "bg-[#e9f9ef] text-[#0e7a3d]")}>
+            ? "bg-[#3c2e17] text-[#f7a96e]"
+            : "bg-[#1c3626] text-[#76efab]")}>
             {due > 0 ? `Due ${formatTaka(due)}` : "Paid"}
           </span>
         </div>

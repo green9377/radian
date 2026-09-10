@@ -220,7 +220,7 @@ export function MessagingView() {
                 </p>
               )}
 
-              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+              <p className="text-[12px] text-body-soft border-t border-[#3e3248] pt-3 mb-0">
                 <strong>Worth knowing:</strong> the from-address has to be one the service has
                 verified. Sending as <code>@radianbd.com</code> means proving you own the domain —
                 a DNS record they will show you. Without it the mail goes to spam, or nowhere.
@@ -289,7 +289,7 @@ export function MessagingView() {
                 Send a test SMS
               </button>
 
-              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+              <p className="text-[12px] text-body-soft border-t border-[#3e3248] pt-3 mb-0">
                 <strong>Worth knowing:</strong> several gateways here answer with HTTP 200 and put
                 the failure in the body. So a test that says &ldquo;it went&rdquo; still deserves a
                 look at the handset — and the log below keeps the raw answer either way.

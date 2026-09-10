@@ -45,14 +45,14 @@ type Tag = UiTag;
     card sits on, `edge` is the coloured spine down its left side.  */
 type GroupTheme = { c: string; bg: string; edge: string; icon: string };
 const SYSTEM_THEME: Record<string, GroupTheme> = {
-  occasions: { c: "#7a2ea8", bg: "#f6ecfb", edge: "#a94fd0", icon: "sparkle" },
-  recipients: { c: "#a4566a", bg: "#fbeef0", edge: "#c9788a", icon: "user" },
+  occasions: { c: "#7a2ea8", bg: "#2e1a37", edge: "#a94fd0", icon: "sparkle" },
+  recipients: { c: "#a4566a", bg: "#361b1f", edge: "#c9788a", icon: "user" },
 };
 const CUSTOM_THEMES: GroupTheme[] = [
-  { c: "#470066", bg: "#f3ebf8", edge: "#6d3a9c", icon: "tag" },
-  { c: "#b76e79", bg: "#fbf0f1", edge: "#d29aa2", icon: "heart" },
-  { c: "#8b3fb0", bg: "#f7eafc", edge: "#cf43ea", icon: "star" },
-  { c: "#5c3b8a", bg: "#efebf9", edge: "#8b6fc4", icon: "grid" },
+  { c: "#470066", bg: "#2c1e34", edge: "#6d3a9c", icon: "tag" },
+  { c: "#b76e79", bg: "#351b1e", edge: "#d29aa2", icon: "heart" },
+  { c: "#8b3fb0", bg: "#30183a", edge: "#cf43ea", icon: "star" },
+  { c: "#5c3b8a", bg: "#241d35", edge: "#8b6fc4", icon: "grid" },
 ];
 
 /** background style for a tile/thumb — uploaded image if present, else gradient */
@@ -296,12 +296,12 @@ export default function TagsView() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span>{err}</span><button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+        <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
           <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
             The API is not reachable, so nothing can be shown. Start it and
@@ -320,13 +320,13 @@ export default function TagsView() {
            the ⓘ rather than as a second line of grey.  */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Groups", v: stats.groups, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "layers" },
-          { l: "Tags", v: stats.tags, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "tag" },
-          { l: "Unused", v: stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
-          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Groups and tags switched off. They stay here in the admin and disappear from the shop." },
+          { l: "Groups", v: stats.groups, c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
+          { l: "Tags", v: stats.tags, c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "tag" },
+          { l: "Unused", v: stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
+          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Groups and tags switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
+            style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
             <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
             <div className="flex items-center justify-between gap-2">
               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
@@ -381,7 +381,7 @@ export default function TagsView() {
                       <span className={"font-medium text-[14px] truncate " + (on ? "text-purple" : "text-white")}>{g.name}</span>
                       {!g.isActive && (
                         <span className="shrink-0" title="Hidden from the storefront">
-                          <Icon name="eye" size={12} className={on ? "text-[#b45309]" : "text-white/50"} />
+                          <Icon name="eye" size={12} className={on ? "text-[#f7a96e]" : "text-white/50"} />
                         </span>
                       )}
                     </div>
@@ -490,7 +490,7 @@ function GroupManager({
            the top, so the right pane and the chosen card on the left are
            visibly the same object.  */}
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b relative"
-        style={{ background: `linear-gradient(135deg,${theme.bg},#ffffff)`, borderColor: `${theme.edge}33` }}>
+        style={{ background: `linear-gradient(135deg,${theme.bg},#1f1727)`, borderColor: `${theme.edge}33` }}>
         <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
         <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0"
           style={{ background: theme.edge, boxShadow: `0 4px 12px ${theme.edge}45` }}><Icon name={theme.icon} size={19} /></span>
@@ -509,7 +509,7 @@ function GroupManager({
           {g.isSystem ? (
             <span className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-body-soft opacity-50" title="Built in — this group cannot be deleted"><Icon name="shield" size={15} /></span>
           ) : (
-            <button onClick={onDeleteGroup} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#b42318] bg-white/70 hover:bg-white" title="Delete group"><Icon name="trash" size={15} /></button>
+            <button onClick={onDeleteGroup} className="w-[34px] h-[34px] rounded-[9px] grid place-items-center text-[#ed8078] bg-white/70 hover:bg-white" title="Delete group"><Icon name="trash" size={15} /></button>
           )}
           {/*  The word beside the switch is gone — the switch already says it,
                and its title carries the meaning for anyone unsure.  */}
@@ -523,7 +523,7 @@ function GroupManager({
            behind it, so which one is on is obvious across the room. The
            sentence that used to explain each choice sits behind the ⓘ.  */}
       <div className="px-5 py-3.5 border-b border-lavender-deep flex items-center gap-3 flex-wrap"
-        style={{ background: "linear-gradient(180deg,#ffffff,#fdfaff)" }}>
+        style={{ background: "linear-gradient(180deg,#1f1727,#2a1538)" }}>
         <span className="text-[11px] font-bold tracking-[0.07em] uppercase text-purple/60 inline-flex items-center gap-1.5">
           Show as
           <Info text="Chips are small pill buttons and need no picture. Image cards show each tag as a photo tile — good for occasions a customer recognises by sight." />
@@ -545,7 +545,7 @@ function GroupManager({
       </div>
 
       {isCard && missingImages > 0 && (
-        <div className="mx-3.5 mt-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[10px] px-3 py-2 text-[12px] flex items-center gap-2">
+        <div className="mx-3.5 mt-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[10px] px-3 py-2 text-[12px] flex items-center gap-2">
           <Icon name="photo" size={14} /> {missingImages} tag{missingImages === 1 ? "" : "s"} without an image
           <Info text="Until a picture is uploaded, those tiles show a coloured placeholder on the storefront." />
         </div>
@@ -569,7 +569,7 @@ function GroupManager({
                   className={"group/tag grid items-center gap-2.5 rounded-[12px] border px-2.5 py-2 transition-colors " + (isCard ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}
                   style={t.isActive
                     ? { background: "#fff", borderColor: "var(--color-lavender-deep)" }
-                    : { background: "#fbf7fc", borderColor: "#ead9f2", opacity: 0.75 }}>
+                    : { background: "#2d1e31", borderColor: "#432e4c", opacity: 0.75 }}>
                   {isCard && (
                     <div className="relative shrink-0">
                       <button onClick={() => onPickImage(t)} disabled={uploadingId === t.id} className="w-[48px] h-[48px] rounded-[10px] relative overflow-hidden group border border-lavender-deep block" style={tileBg(t)} title={t.img ? "Click to replace image" : "Click to upload an image"}>
@@ -580,7 +580,7 @@ function GroupManager({
                         {!t.img && <span className="absolute bottom-0.5 right-0.5 w-[16px] h-[16px] rounded-full bg-white/90 grid place-items-center text-purple"><Icon name="plus" size={10} /></span>}
                       </button>
                       {t.img && (
-                        <button onClick={() => onClearImage(t)} className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full bg-white border border-lavender-deep grid place-items-center text-[#b42318] shadow-sm" title="Remove image">
+                        <button onClick={() => onClearImage(t)} className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full bg-white border border-lavender-deep grid place-items-center text-[#ed8078] shadow-sm" title="Remove image">
                           <Icon name="plus" size={11} className="rotate-45" />
                         </button>
                       )}
@@ -596,11 +596,11 @@ function GroupManager({
                         {/*  Just the number. "0 products" on every row of a new
                              shop was a wall of orange saying nothing useful.  */}
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
-                          style={t.products === 0 ? { background: "#f4eef8", color: "#8a7c94" } : { background: theme.bg, color: theme.c }}
+                          style={t.products === 0 ? { background: "#2b2032", color: "#afa5b6" } : { background: theme.bg, color: theme.c }}
                           title={`${t.products} product${t.products === 1 ? "" : "s"} carry this tag`}>
                           {t.products}
                         </span>
-                        {!t.isActive && <span className="shrink-0 text-[#b45309]" title="Hidden from the storefront"><Icon name="eye" size={12} /></span>}
+                        {!t.isActive && <span className="shrink-0 text-[#f7a96e]" title="Hidden from the storefront"><Icon name="eye" size={12} /></span>}
                       </div>
                     )}
                   </div>
@@ -617,7 +617,7 @@ function GroupManager({
                           <button onClick={() => onMoveTag(t, "down")} disabled={i === tags.length - 1} className="text-body-soft hover:text-purple disabled:opacity-25 leading-none" title="Move down"><Icon name="chevronDown" size={13} /></button>
                         </div>
                         <button onClick={() => onStartEdit(t.id, t.name)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender" title="Rename"><Icon name="edit" size={14} /></button>
-                        <button onClick={() => onRemoveTag(t)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-[#b42318] hover:bg-[#fbecec]" title="Delete"><Icon name="trash" size={14} /></button>
+                        <button onClick={() => onRemoveTag(t)} className="w-[28px] h-[28px] rounded-[8px] grid place-items-center text-[#ed8078] hover:bg-[#371a1a]" title="Delete"><Icon name="trash" size={14} /></button>
                       </div>
                       <Switch on={t.isActive} onClick={() => onToggleTag(t)} />
                     </div>
@@ -636,7 +636,7 @@ function GroupManager({
       </div>
 
       {/* storefront preview */}
-      <div className="border-t border-lavender-deep px-5 py-4" style={{ background: "linear-gradient(180deg,#faf6fd,#f4ecfa)" }}>
+      <div className="border-t border-lavender-deep px-5 py-4" style={{ background: "linear-gradient(180deg,#291a35,#2b1c36)" }}>
         <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] uppercase text-purple/70 mb-2.5">
           <Icon name="eye" size={13} /> On the site
         </div>

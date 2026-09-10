@@ -42,9 +42,9 @@ interface Notice {
 }
 
 const TONE = {
-  rose: { bg: "#fdecea", fg: "#c0392b" },
-  amber: { bg: "#fdf3e2", fg: "#b07818" },
-  sky: { bg: "#eef5fd", fg: "#3b76c4" },
+  rose: { bg: "#3b1a16", fg: "#e1837a" },
+  amber: { bg: "#3c2f17", fg: "#edc278" },
+  sky: { bg: "#17273a", fg: "#82a7d9" },
 } as const;
 
 export default function NotificationsBell() {
@@ -189,7 +189,7 @@ export default function NotificationsBell() {
           just to the right of it, bottom-aligned with the bell's home.  */}
       {open && (
         <div className="fixed left-[258px] bottom-[14px] w-[310px] z-50 rounded-[16px] overflow-hidden bg-white"
-          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #e9e2f2" }}>
+          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #3c3249" }}>
           <div className="px-3.5 py-2.5 flex items-center gap-2"
             style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Notifications</span>
@@ -204,7 +204,7 @@ export default function NotificationsBell() {
             <div className="max-h-[340px] overflow-y-auto">
               {notices.map((n) => (
                 <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
-                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[#f3eff8] last:border-0 hover:bg-[#faf7fd] transition-colors">
+                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[#3c3149] last:border-0 hover:bg-[#271a34] transition-colors">
                   <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center shrink-0 mt-[1px]"
                     style={{ background: TONE[n.tone].bg, color: TONE[n.tone].fg }}>
                     <Icon name={n.icon} size={13} strokeWidth={2.3} />

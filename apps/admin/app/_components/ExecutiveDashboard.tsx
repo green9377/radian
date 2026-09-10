@@ -51,7 +51,7 @@ function Jump({ id, label, icon }: { id: string; label: string; icon: string }) 
     <a
       href={`#${id}`}
       className="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-      style={{ borderColor: "#e4d3f2", color: "#470066", background: "#faf6fd" }}
+      style={{ borderColor: "#3f2d4e", color: "#ce6ef7", background: "#291a35" }}
     >
       <Icon name={icon} size={13} />
       {label}
@@ -164,7 +164,7 @@ export function ExecutiveDashboard() {
     return (
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Executive dashboard" />
-        <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
+        <div className="rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px]">{err}</div>
       </div>
     );
   }
@@ -186,17 +186,17 @@ export function ExecutiveDashboard() {
                 A summary with no door to the detail is a dead end. */}
             {data?.seesMoney && (
               <>
-                <Link href="/intelligence/analytics" className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]">
+                <Link href="/intelligence/analytics" className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]">
                   Analytics
                 </Link>
-                <Link href="/intelligence/reports" className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]">
+                <Link href="/intelligence/reports" className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]">
                   Reports
                 </Link>
               </>
             )}
             <button
               onClick={() => void load()}
-              className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]"
+              className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]"
             >
               <Icon name="clock" size={13} /> Refresh
             </button>
@@ -219,7 +219,7 @@ export function ExecutiveDashboard() {
       />
 
       {clear ? (
-        <div className="rounded-[16px] border border-[#c2ecd3] bg-[#e9f9ef] px-4 py-5 text-[13.5px] text-[#0e7a3d]">
+        <div className="rounded-[16px] border border-[#2d4d3a] bg-[#1c3626] px-4 py-5 text-[13.5px] text-[#76efab]">
           <Icon name="check" size={15} /> Nothing is waiting. Every order is packed, every delivery has a
           rider, and the books have nothing stuck in them.
         </div>
@@ -262,7 +262,7 @@ export function ExecutiveDashboard() {
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mt-3">
         {data.business.supporting.map((s) => (
-          <div key={s.key} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
+          <div key={s.key} className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3">
             <div className="font-display text-[21px] leading-none text-purple">{fmt(s.value, s.unit)}</div>
             <div className="text-[11.5px] text-body-soft mt-1.5">{s.label}</div>
           </div>
@@ -285,7 +285,7 @@ export function ExecutiveDashboard() {
 
         if (!data.meta.historyReady || active.length === 0) {
           return (
-            <div className="mt-3 rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple leading-relaxed">
+            <div className="mt-3 rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple leading-relaxed">
               <b>Nothing to chart yet.</b>{" "}
               {data.meta.snapshotDays === 0
                 ? "A day is recorded once it has closed, so the first row appears after tonight."
@@ -311,7 +311,7 @@ export function ExecutiveDashboard() {
                     className="flex-1 rounded-t-[3px] min-w-[4px]"
                     style={{
                       height: `${Math.max(2, (d.revenuePaisa / max) * 100)}%`,
-                      background: d.revenuePaisa > 0 ? "#2b7fd4" : "#d9ecff",
+                      background: d.revenuePaisa > 0 ? "#2b7fd4" : "#172a3e",
                     }}
                   />
                 ))}
@@ -335,7 +335,7 @@ export function ExecutiveDashboard() {
               <Link
                 key={f.key}
                 href={f.href}
-                className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3 transition-transform hover:-translate-y-0.5"
+                className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3 transition-transform hover:-translate-y-0.5"
               >
                 <div className="font-display text-[20px] leading-none text-purple">{fmt(f.value, "paisa")}</div>
                 <div className="text-[11.5px] text-body-soft mt-1.5 leading-snug">{f.label}</div>
@@ -344,14 +344,14 @@ export function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-            <div className="rounded-[14px] border border-[#eee6f4] bg-white px-4 py-3.5">
+            <div className="rounded-[14px] border border-[#3f3149] bg-white px-4 py-3.5">
               <div className="text-[12px] text-body-soft mb-1.5">Break-even this month</div>
               {data.money.breakEven.known ? (
                 <>
                   <div className="font-display text-[22px] leading-none text-purple">
                     {formatBp(data.money.breakEven.progressBp)} of {formatTaka(data.money.breakEven.targetPaisa)}
                   </div>
-                  <div className="mt-2.5 h-[6px] rounded-full overflow-hidden bg-[#efe4f7]">
+                  <div className="mt-2.5 h-[6px] rounded-full overflow-hidden bg-[#2c1e37]">
                     <div className="h-full rounded-full bg-[#7d2ea8]" style={{ width: `${Math.min(100, data.money.breakEven.progressBp / 100)}%` }} />
                   </div>
                 </>
@@ -365,7 +365,7 @@ export function ExecutiveDashboard() {
               )}
             </div>
 
-            <div className="rounded-[14px] border border-[#eee6f4] bg-white px-4 py-3.5">
+            <div className="rounded-[14px] border border-[#3f3149] bg-white px-4 py-3.5">
               <div className="text-[12px] text-body-soft mb-1.5">Runway at the current fixed costs</div>
               <div className="font-display text-[22px] leading-none text-purple">
                 {data.money.runwayDays == null ? "—" : `${data.money.runwayDays} days`}

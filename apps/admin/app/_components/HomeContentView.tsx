@@ -160,7 +160,7 @@ export default function HomeContentView() {
           <section key={g.key} className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
             <header
               className="px-5 py-4 border-b border-lavender-deep"
-              style={{ background: "linear-gradient(120deg,#f9f4fc 0%,#f5ecfa 60%,#fdf4f6 100%)" }}
+              style={{ background: "linear-gradient(120deg,#2b1b34 0%,#2d1c36 60%,#37191f 100%)" }}
             >
               <div className="flex items-baseline gap-2.5 flex-wrap">
                 <h3 className="font-display text-[18px] text-purple m-0 leading-tight">{g.title}</h3>
@@ -170,7 +170,7 @@ export default function HomeContentView() {
               </div>
               <p className="text-[12.5px] text-body-soft m-0 mt-1">{g.hint}</p>
               {g.warning && (
-                <p className="text-[12px] text-[#8a5a12] bg-[#fdf6e7] border border-[#f0dcae] rounded-[9px] px-3 py-1.5 m-0 mt-2.5">
+                <p className="text-[12px] text-[#edbe78] bg-[#3c3017] border border-[#524528] rounded-[9px] px-3 py-1.5 m-0 mt-2.5">
                   {g.warning}
                 </p>
               )}
@@ -284,7 +284,7 @@ function Row({
           width: size,
           height: size,
           backgroundImage: item.imageUrl ? `url(${item.imageUrl})` : undefined,
-          background: item.imageUrl ? undefined : "#f3ebf8",
+          background: item.imageUrl ? undefined : "#2c1e34",
           opacity: item.shown && !dead ? 1 : 0.5,
         }}
       >
@@ -357,7 +357,7 @@ function Note({ children, tone }: { children: React.ReactNode; tone?: "bad" }) {
       className={
         "text-[13px] rounded-[11px] px-4 py-3 m-0 " +
         (tone === "bad"
-          ? "text-[#b42318] bg-[#fdf3f2] border border-[#f1c9c4]"
+          ? "text-[#ed8078] bg-[#381b18] border border-[#502f2a]"
           : "text-body-soft")
       }
     >

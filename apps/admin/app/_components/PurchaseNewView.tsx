@@ -110,7 +110,7 @@ export function ItemPicker({
                 className="text-[12px] font-medium px-2.5 py-1.5 rounded-[9px] border"
                 style={tab === t
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                 {t === "ALL" ? "All" : ITEM_TYPE_META[t].short}
               </button>
             ))}
@@ -119,7 +119,7 @@ export function ItemPicker({
         </div>
 
         {/* the shelf */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ background: "#faf7fd" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ background: "#271a34" }}>
           {shown.length === 0 && (
             <p className="text-[13px] text-body-soft">Nothing matches. Items are created under <b>Items → New item</b>.</p>
           )}
@@ -134,7 +134,7 @@ export function ItemPicker({
                   onClick={() => { if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); }}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); } }}
                   className={`text-left bg-white rounded-[14px] border px-3.5 py-3 transition-all ${n > 0 ? "cursor-default" : "cursor-pointer"}`}
-                  style={{ borderColor: n > 0 ? ACCENT : "#e9def2", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
+                  style={{ borderColor: n > 0 ? ACCENT : "#3f304b", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
                   <span className="flex items-center gap-3">
                     {/* the photo, exactly as the Item module saved it (DEC-ITM-012) */}
                     <ItemThumb item={i} size={46} />
@@ -346,8 +346,8 @@ export default function PurchaseNewView() {
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
 
       {costJump && (
-        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Price looks unusual</b>
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#3b2b17", borderColor: "#f0b95e" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#f6bb6f" }}>⚠ Price looks unusual</b>
           <p className="text-[13px] text-body m-0 mb-3">{costJump}</p>
           <div className="flex gap-2">
             <button onClick={() => setCostJump(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
@@ -536,8 +536,8 @@ export default function PurchaseNewView() {
               {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}
 
               <button disabled={!ready || busy} onClick={() => save(false)}
-                className="w-full bg-white hover:bg-[#f4ecf9] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
-                style={{ color: advance ? "#b45309" : "#4a1268" }}>
+                className="w-full bg-white hover:bg-[#2c1d35] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
+                style={{ color: advance ? "#f7a96e" : "#c37de8" }}>
                 <Icon name="check" size={17} />
                 {busy ? "Saving…" : advance ? "Save advance order" : `Save purchase${grand > 0 ? " · " + formatTaka(grand) : ""}`}
               </button>

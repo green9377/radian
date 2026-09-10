@@ -34,10 +34,10 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 
 /*  Brand family only — deep purple, orchid, rose gold, soft purple (house
     rule 17). Never a rainbow.  */
-const P = { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" };
-const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" };
-const R = { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" };
-const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" };
+const P = { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" };
+const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" };
+const R = { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" };
+const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" };
 
 /** One number the owner types. Bold label, real field — house rule 16. */
 function RuleField({
@@ -160,7 +160,7 @@ export default function BadgeRulesView() {
         </div>
         <div className="flex items-center gap-2.5">
           {flash && (
-            <span className="text-[12.5px] font-semibold text-[#0E7A3D]">{flash}</span>
+            <span className="text-[12.5px] font-semibold text-[#76efab]">{flash}</span>
           )}
           <button
             type="button"
@@ -182,7 +182,7 @@ export default function BadgeRulesView() {
       </div>
 
       {err && (
-        <div className="mb-5 rounded-[14px] border border-[#f0c8c8] bg-[#fdf1f1] px-4 py-3 text-[13px] text-[#8a2b2b]">
+        <div className="mb-5 rounded-[14px] border border-[#4f2c2c] bg-[#391818] px-4 py-3 text-[13px] text-[#db8a8a]">
           {err}
         </div>
       )}
@@ -289,7 +289,7 @@ export default function BadgeRulesView() {
                 <thead>
                   <tr
                     className="text-left"
-                    style={{ background: `linear-gradient(135deg,${P.bg},#ffffff)` }}
+                    style={{ background: `linear-gradient(135deg,${P.bg},#1f1727)` }}
                   >
                     <th className="px-4 py-3 font-bold text-purple">Category</th>
                     <th className="px-3 py-3 font-bold text-purple text-right">Products</th>

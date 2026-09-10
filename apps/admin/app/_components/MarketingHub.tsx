@@ -515,7 +515,7 @@ export function CommissionsView() {
                 </tr>
               ))}
             </Table>
-            <div className="px-4 py-3 border-t border-[#f3eef7] flex items-center justify-between">
+            <div className="px-4 py-3 border-t border-[#3e3248] flex items-center justify-between">
               <span className="text-[12px] text-body-soft">{rows.length} rows shown</span>
               <span className="text-[14px] font-bold text-purple">{taka(total)}</span>
             </div>

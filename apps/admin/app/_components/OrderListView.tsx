@@ -118,7 +118,7 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#fcfaff]">
+    <tr className="hover:bg-[#231538]">
       <td className={`${CELL} w-[34px]`} style={hot ? { boxShadow: `inset 4px 0 0 ${SOLID.red}` } : undefined}>
         <Said say={say} />
         <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" aria-label={`Select ${o.orderNo}`} />
@@ -177,11 +177,11 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
       {/* total */}
       <td className={`${CELL} w-[136px] whitespace-nowrap`}>
         <div className="grid grid-cols-[40px_1fr] gap-x-1.5 gap-y-[3px]">
-          <span className="text-[11px] font-medium text-[#7b6b87] leading-[1.5]">Total</span>
+          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">Total</span>
           <span className="font-medium text-body">{formatTaka(o.totalPaisa)}</span>
-          <span className="text-[11px] font-medium text-[#7b6b87] leading-[1.5]">Paid</span>
+          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">Paid</span>
           <span className="font-medium" style={{ color: o.paidPaisa > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(o.paidPaisa)}</span>
-          <span className="text-[11px] font-medium text-[#7b6b87] leading-[1.5]">{refunded ? "Refund" : "Due"}</span>
+          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">{refunded ? "Refund" : "Due"}</span>
           {refunded ? (
             <span className="font-medium" style={{ color: SOLID.grey }}>{formatTaka(o.refundPaisa)}</span>
           ) : (

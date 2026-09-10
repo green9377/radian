@@ -184,7 +184,7 @@ export default function SettleView() {
         }
       />
 
-      <div className="flex gap-0.5 border-b-[1.5px] border-[#e4dbec] mb-3">
+      <div className="flex gap-0.5 border-b-[1.5px] border-[#3e3447] mb-3">
         {TABS.map(([k, label]) => (
           <button
             key={k}
@@ -209,7 +209,7 @@ export default function SettleView() {
         </select>
         <Search value={q} onChange={setQ} placeholder={tab === "COURIER" ? "Order no, CN" : "Order no, phone"} />
         {carrierId && shown.length > 0 && (
-          <button type="button" onClick={pickAll} className="h-[40px] px-3.5 rounded-[11px] border border-[#e4dbec] bg-white text-[13px] font-medium text-purple">
+          <button type="button" onClick={pickAll} className="h-[40px] px-3.5 rounded-[11px] border border-[#3e3447] bg-white text-[13px] font-medium text-purple">
             Tick all {shown.length}
           </button>
         )}
@@ -218,7 +218,7 @@ export default function SettleView() {
 
       {err && <ErrorBox error={err} onRetry={() => void load()} />}
       {ok && (
-        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "#bfe3cd", color: SOLID.green }}>
+        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "#31493b", color: SOLID.green }}>
           {ok}
         </div>
       )}
@@ -231,7 +231,7 @@ export default function SettleView() {
               const on = picked.has(r.assignmentId);
               const cashOpen = r.codDuePaisa > 0 && !r.codHandedOver;
               return (
-                <tr key={r.assignmentId} className="hover:bg-[#fcfaff]" style={on ? { background: "#faf7fc" } : undefined}>
+                <tr key={r.assignmentId} className="hover:bg-[#231538]" style={on ? { background: "#291e31" } : undefined}>
                   <td className={`${CELL} w-[34px]`}>
                     <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" checked={on} onChange={() => toggle(r.assignmentId)} disabled={!carrierId} aria-label={`Settle ${r.orderNo}`} />
                   </td>
@@ -298,7 +298,7 @@ export default function SettleView() {
       </div>
 
       {picked.size > 0 && (
-        <div className="mt-3 rounded-[14px] border border-[#e4dbec] bg-white px-5 py-4 flex gap-4 items-end flex-wrap">
+        <div className="mt-3 rounded-[14px] border border-[#3e3447] bg-white px-5 py-4 flex gap-4 items-end flex-wrap">
           <div>
             <span className={LABEL}>Settling with</span>
             <span className={VALUE}>{selected?.name ?? "—"} · {picked.size} parcel{picked.size === 1 ? "" : "s"}</span>

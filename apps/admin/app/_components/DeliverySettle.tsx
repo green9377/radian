@@ -153,8 +153,8 @@ export function DeliverySettle() {
         </p>
       </div>
 
-      {err && <div className="bg-[#fdeff0] text-[#b42318] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
-      {ok && <div className="bg-[#e9f9ef] text-[#0e7a3d] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
+      {err && <div className="bg-[#391719] text-[#ed8078] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
+      {ok && <div className="bg-[#1c3626] text-[#76efab] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
 
       <div className="flex items-end gap-3 flex-wrap mb-5">
         <div className="min-w-[220px]">
@@ -198,7 +198,7 @@ export function DeliverySettle() {
       {/*  Short payment is shown, never blocked. "They handed over less than was
           due" is a fact worth recording and chasing, not an input error. */}
       {picked.size > 0 && totals.gross > 0 && totals.gross < totals.expected && (
-        <div className="bg-[#fff4e2] text-[#b45309] text-[13px] px-4 py-3 rounded-[12px] mb-4">
+        <div className="bg-[#3c2e17] text-[#f7a96e] text-[13px] px-4 py-3 rounded-[12px] mb-4">
           {formatTaka(totals.expected - totals.gross)} less than was due on these parcels. That is recorded as it stands — the shortfall stays visible against this carrier.
         </div>
       )}
@@ -222,7 +222,7 @@ export function DeliverySettle() {
                 const stale = (r.daysSince ?? 0) >= 7 && r.codDuePaisa > 0;
                 const prepaid = r.codDuePaisa === 0;
                 return (
-                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[#fff4e2]" : "hover:bg-lavender/40"}`}>
+                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[#3c2e17]" : "hover:bg-lavender/40"}`}>
                     <td className="px-3 py-2.5 text-center">
                       <input type="checkbox" checked={picked.has(r.assignmentId)} onChange={() => toggle(r.assignmentId)} aria-label={`Select ${r.orderNo}`} />
                     </td>

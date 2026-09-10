@@ -244,7 +244,7 @@ function VarChips({
           >
             {g.label}
             {filled[g.id] && (
-              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#e9a8f5" : "#12a172" }} />
+              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#401c46" : "#12a172" }} />
             )}
           </button>
         );
@@ -300,7 +300,7 @@ function StoryChips({
           >
             {g.label}
             {filled[g.id] && (
-              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#e9a8f5" : "#12a172" }} />
+              <span className="w-[6px] h-[6px] rounded-full" style={{ background: on ? "#401c46" : "#12a172" }} />
             )}
           </button>
         );
@@ -407,7 +407,7 @@ function NatureChips({
   return (
     <div className="mt-4 pt-4 border-t border-lavender-deep">
       {err && (
-        <div className="mb-3 rounded-[10px] border border-[#e0a1a1] bg-[#fdecea] px-3 py-2 text-[12.5px] font-semibold text-[#c0392b]">
+        <div className="mb-3 rounded-[10px] border border-[#4d2e2e] bg-[#3b1a16] px-3 py-2 text-[12.5px] font-semibold text-[#e1837a]">
           {err}
         </div>
       )}
@@ -439,7 +439,7 @@ function NatureChips({
               style={on
                 ? { borderColor: "#6d3a9c", background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
                 : being
-                  ? { borderColor: "#6d3a9c", background: "#fff", boxShadow: "0 0 0 3px #f3ebf8" }
+                  ? { borderColor: "#6d3a9c", background: "#fff", boxShadow: "0 0 0 3px #2c1e34" }
                   : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
               <button
                 type="button"
@@ -503,8 +503,8 @@ function NatureChips({
             </button>
             {editing && (
               <button type="button" onClick={() => void remove(rows.find((r) => r.id === editing)!)}
-                className="ml-auto border-2 bg-white text-[13.5px] font-bold px-5 py-2.5 rounded-[11px] inline-flex items-center gap-2 hover:bg-[#fdecea]"
-                style={{ borderColor: "#f0c8c2", color: "#b42318" }}>
+                className="ml-auto border-2 bg-white text-[13.5px] font-bold px-5 py-2.5 rounded-[11px] inline-flex items-center gap-2 hover:bg-[#3b1a16]"
+                style={{ borderColor: "#50302b", color: "#ed8078" }}>
                 <Icon name="trash" size={15} /> Remove this kind
               </button>
             )}
@@ -566,7 +566,7 @@ function FromCategory({
   if (hasOwn) {
     return (
       <div className="flex items-center gap-2 flex-wrap mb-3 text-[12.5px]">
-        <span className="inline-flex items-center gap-1.5 bg-[#fff4e5] text-[#8a5a00] font-semibold rounded-full px-2.5 py-1">
+        <span className="inline-flex items-center gap-1.5 bg-[#3c2c17] text-[#f7c76e] font-semibold rounded-full px-2.5 py-1">
           This product&rsquo;s own
         </span>
         <span className="text-body-soft">
@@ -669,7 +669,7 @@ function Seg<T extends string>({
         one is on". It carries the brand purple now, with a shadow, exactly
         like the Chips / Image cards switch he approved.  */
     <div className="inline-flex self-start w-fit rounded-[12px] p-[4px] gap-[4px] flex-wrap"
-      style={{ background: "#f3ebf8", border: "1px solid #6d3a9c33" }}>
+      style={{ background: "#2c1e34", border: "1px solid #6d3a9c33" }}>
       {options.map((o) => {
         const on = value === o.v;
         return (
@@ -684,7 +684,7 @@ function Seg<T extends string>({
             }
             style={on && !o.disabled
               ? { background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
-              : { color: "#470066" }}
+              : { color: "#ce6ef7" }}
           >
             {o.label}
           </button>
@@ -712,7 +712,7 @@ function Sw({
       <span
         className={
           "w-[44px] h-[24px] rounded-full relative shrink-0 transition-colors " +
-          (on ? "bg-orchid" : "bg-[#d9cbe6]")
+          (on ? "bg-orchid" : "bg-[#2f2638]")
         }
       >
         <span
@@ -953,7 +953,7 @@ function HintDot({ children }: { children: React.ReactNode }) {
     <span className="relative inline-flex group align-middle">
       <span
         className="w-[16px] h-[16px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0"
-        style={{ background: "#efe4f7", color: "#7a5b8c" }}
+        style={{ background: "#2c1e37", color: "#b29cbf" }}
       >
         i
       </span>
@@ -985,7 +985,7 @@ function ImgBox({ bg }: { bg?: string }) {
   );
 }
 const delBtn =
-  "border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
+  "border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#4d2e2e] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
 const addBtn =
   "self-start mt-3 border border-lavender-deep bg-white text-[13px] px-3.5 py-2 rounded-[10px] hover:border-orchid text-purple font-medium inline-flex items-center gap-1.5 transition-colors";
 const gridCls =
@@ -1181,10 +1181,10 @@ function Where({
   children: React.ReactNode;
 }) {
   const style = {
-    live: "bg-[#e8f6ee] text-[#12693f] border-[#bfe3cd]",
-    partial: "bg-[#fff6e5] text-[#8a5a00] border-[#f0d9a8]",
+    live: "bg-[#203428] text-[#7ce9b4] border-[#31493b]",
+    partial: "bg-[#3c2f17] text-[#f7c76e] border-[#534528]",
     staff: "bg-lavender text-purple border-lavender-deep",
-    off: "bg-[#f4f4f6] text-[#6b6b76] border-[#dedee4]",
+    off: "bg-[#26262b] text-[#a9a9b1] border-[#3a3a40]",
   }[kind];
   /*  The chip carried a native `title` and a grey "?" — half a second of
       waiting, an OS-styled box, and nothing at all on a phone. It is the house
@@ -1210,7 +1210,7 @@ function Req() {
       meaning spelled out in the page header and in this tooltip.  */
   return (
     <span
-      className="text-[#c0392b] font-bold ml-0.5 text-[15px] leading-none"
+      className="text-[#e1837a] font-bold ml-0.5 text-[15px] leading-none"
       title="Publishing is blocked until this is filled in"
     >
       *
@@ -2973,7 +2973,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
     photos[0] ??
     detail?.gallery?.[0] ??
     src?.bg ??
-    "linear-gradient(160deg,#F8E4E8,#EFC5CF)";
+    "linear-gradient(160deg,#381c22,#3d2027)";
   const previewIsPhoto =
     previewBg.startsWith("data:") || previewBg.startsWith("http");
   /*  The live preview's small badge. After DEC-DLV-008 this also comes
@@ -3086,7 +3086,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                address; the owner moved it onto the Live Preview card
                instead (the preview's product name is the link now).  */}
           <p className="text-body-soft text-[12.5px] m-0">
-            <span className="text-[#c0392b] font-bold">*</span> required to publish
+            <span className="text-[#e1837a] font-bold">*</span> required to publish
           </p>
         </div>
         <button
@@ -3112,7 +3112,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           <Icon name="check" size={17} /> {saving ? "Saving…" : "Publish"}
         </button>
         {publishMissing.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#8a5a00] shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#f7c76e] shrink-0">
             <span className="w-[7px] h-[7px] rounded-full" style={{ background: "#f0a323" }} />
             {publishMissing.length} to go
             <Info text={`Publishing needs ${publishMissing.join(", ")}. The amber dots on the left show which section each one is in.`} />
@@ -3121,12 +3121,12 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       </div>
 
       {saveErr && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {saveErr}
         </div>
       )}
       {savedMsg && (
-        <div className="bg-[#eaf7ef] border border-[#a8d9bc] text-[#0f7d55] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-2">
+        <div className="bg-[#1f3427] border border-[#31493b] text-[#76efc3] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-2">
           {/*  The lecture that followed every save is gone (owner, 22 Aug
                2026). It appeared on EVERY save and told him where he already
                was.  */}
@@ -3192,7 +3192,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       title="Something here is still needed before this can be published" />
                   )}
                   {state === "done" && (
-                    <span className="shrink-0" style={{ color: on ? "#12a172" : "#7fd8b4" }} title="Ready to publish">
+                    <span className="shrink-0" style={{ color: on ? "#75f0c7" : "#7fd8b4" }} title="Ready to publish">
                       <Icon name="check" size={13} />
                     </span>
                   )}
@@ -3574,7 +3574,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     {bestMode === "AUTO" && (
                       <span
                         className="text-[12px] font-semibold mt-1.5"
-                        style={{ color: isBest ? "#8A5A00" : "#8b7a99" }}
+                        style={{ color: isBest ? "#f7c76e" : "#aea3b8" }}
                       >
                         {isBest ? "★ Earning the badge right now" : "Not in the top slice today"}
                       </span>
@@ -3600,7 +3600,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     {newMode === "AUTO" && (
                       <span
                         className="text-[12px] font-semibold mt-1.5"
-                        style={{ color: isNew ? "#8b3fb0" : "#8b7a99" }}
+                        style={{ color: isNew ? "#bb87d4" : "#aea3b8" }}
                       >
                         {isNew ? "Wearing the New tag right now" : "No longer new"}
                       </span>
@@ -3738,7 +3738,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                         because that variant genuinely sells at this price.  */}
                     <input
                       className={`ipt h-[52px] text-[17px] font-medium ${
-                        allVariantsPriced ? "opacity-50 cursor-not-allowed bg-[#f4f1f7]" : ""
+                        allVariantsPriced ? "opacity-50 cursor-not-allowed bg-[#29232f]" : ""
                       }`}
                       type="number"
                       value={sell}
@@ -3863,7 +3863,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                             when it isn't.  */}
                         <span
                           className={`text-[12.5px] font-semibold pb-2.5 ${
-                            discLive.on ? "text-[#0f7d55]" : "text-[#b45309]"
+                            discLive.on ? "text-[#76efc3]" : "text-[#f7a96e]"
                           }`}
                         >
                           {discLive.text}
@@ -3911,7 +3911,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       <span className="text-[17px] line-through text-body-soft">
                         {taka(sellN)}
                       </span>
-                      <span className="text-[12.5px] font-bold text-[#12693f] bg-[#e8f6ee] border border-[#bfe3cd] rounded-full px-2.5 py-1">
+                      <span className="text-[12.5px] font-bold text-[#7ce9b4] bg-[#203428] border border-[#31493b] rounded-full px-2.5 py-1">
                         saves {taka(saved)}
                         {discType === "PCT" ? ` · ${dv || 0}%` : ""}
                       </span>
@@ -3926,7 +3926,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                       <div
                         className={
                           "text-[19px] font-medium mt-0.5 " +
-                          (margin < 0 ? "text-[#c0392b]" : "text-[#12693f]")
+                          (margin < 0 ? "text-[#e1837a]" : "text-[#7ce9b4]")
                         }
                       >
                         {taka(margin)} · {marginPct}%
@@ -3939,7 +3939,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
                     decoration; one that appears the moment you price below
                     cost is a warning.  */}
                 {costN > 0 && margin < 0 && (
-                  <div className="mt-3 flex items-start gap-2 text-[13px] text-[#c0392b]">
+                  <div className="mt-3 flex items-start gap-2 text-[13px] text-[#e1837a]">
                     <span className="mt-[1px] shrink-0">
                       <Icon name="alert" size={15} />
                     </span>
@@ -4202,7 +4202,7 @@ No bundle products yet — add them on{" "}
                             {taka(bunAfter)}
                           </div>
                           {bunSave > 0 && (
-                            <div className="text-[12.5px] text-[#0f7d55] font-semibold mt-0.5">
+                            <div className="text-[12.5px] text-[#76efc3] font-semibold mt-0.5">
                               saves {taka(bunSave)}
                             </div>
                           )}
@@ -4220,7 +4220,7 @@ No bundle products yet — add them on{" "}
                             </div>
                             <div
                               className={`font-display text-[24px] leading-[1.1] font-medium mt-1 ${
-                                bunProfit >= 0 ? "text-[#0f7d55]" : "text-[#c0392b]"
+                                bunProfit >= 0 ? "text-[#76efc3]" : "text-[#e1837a]"
                               }`}
                             >
                               {taka(bunProfit)}
@@ -4357,7 +4357,7 @@ No bundle products yet — add them on{" "}
                                   unconverted this printed ৳45,000 for a ৳450
                                   price (owner, 9 Aug 2026).  */}
                               {v.discType !== "NONE" && (
-                                <span className="text-[12.5px] font-medium text-[#0f7d55]">
+                                <span className="text-[12.5px] font-medium text-[#76efc3]">
                                   customer pays {taka(variantPays(v) / 100)}
                                 </span>
                               )}
@@ -4445,7 +4445,7 @@ No bundle products yet — add them on{" "}
                       </select>
                     </Field>
 
-                    <div className="mt-4 flex items-start gap-2.5 rounded-[12px] bg-[#fff6e5] border border-[#f0d9a8] px-4 py-3 text-[13px] text-[#8a5a00]">
+                    <div className="mt-4 flex items-start gap-2.5 rounded-[12px] bg-[#3c2f17] border border-[#534528] px-4 py-3 text-[13px] text-[#f7c76e]">
                       <span className="mt-[1px] shrink-0">
                         <Icon name="alert" size={15} />
                       </span>
@@ -4660,7 +4660,7 @@ No bundle products yet — add them on{" "}
                               setLinkedItem(null);
                               setItemQ("");
                             }}
-                            className="text-[13px] text-body-soft hover:text-[#c0392b] border border-lavender-deep bg-white rounded-[10px] px-3 py-2"
+                            className="text-[13px] text-body-soft hover:text-[#e1837a] border border-lavender-deep bg-white rounded-[10px] px-3 py-2"
                           >
                             Change
                           </button>
@@ -4671,7 +4671,7 @@ No bundle products yet — add them on{" "}
                             never a second thing to choose.  */}
                         {linkedItem.supplier && (
                           <div className="mt-3.5 pt-3.5 border-t border-lavender-deep flex items-center gap-2.5 flex-wrap text-[13px]">
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-[3px] rounded-full border bg-[#fff6e5] text-[#8a5a00] border-[#f0d9a8]">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-[3px] rounded-full border bg-[#3c2f17] text-[#f7c76e] border-[#534528]">
                               Vendor product
                             </span>
                             <b className="font-medium text-purple">
@@ -4793,7 +4793,7 @@ No bundle products yet — add them on{" "}
                                 </div>
                               </div>
                               {it.supplier && (
-                                <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full border bg-[#fff6e5] text-[#8a5a00] border-[#f0d9a8] shrink-0">
+                                <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full border bg-[#3c2f17] text-[#f7c76e] border-[#534528] shrink-0">
                                   {it.supplier.nickname || it.supplier.name}
                                 </span>
                               )}
@@ -4862,7 +4862,7 @@ No bundle products yet — add them on{" "}
                                 : Number(stock);
                             if (!Number.isFinite(n) || n <= 0)
                               return (
-                                <span className="text-[#8a5a00]">
+                                <span className="text-[#f7c76e]">
                                   At 0 the badge disappears
                                 </span>
                               );
@@ -4870,7 +4870,7 @@ No bundle products yet — add them on{" "}
                               return (
                                 <>
                                   Page shows{" "}
-                                  <b className="font-semibold text-[#8a5a00]">
+                                  <b className="font-semibold text-[#f7c76e]">
                                     &ldquo;Only {n} left&rdquo;
                                   </b>
                                 </>
@@ -4878,7 +4878,7 @@ No bundle products yet — add them on{" "}
                             return (
                               <>
                                 Page shows{" "}
-                                <b className="font-semibold text-[#12693f]">
+                                <b className="font-semibold text-[#7ce9b4]">
                                   &ldquo;{n} in stock&rdquo;
                                 </b>
                               </>
@@ -4934,7 +4934,7 @@ No bundle products yet — add them on{" "}
                       }
                       hint={
                         allowOrderAtZero ? (
-                          <span className="text-[#8a5a00]">
+                          <span className="text-[#f7c76e]">
                             Orders keep coming at 0 — the page never says Out of stock
                           </span>
                         ) : (
@@ -4978,7 +4978,7 @@ No bundle products yet — add them on{" "}
                           ) : (
                             <>
                               Page shows{" "}
-                              <b className="font-semibold text-[#8a5a00]">
+                              <b className="font-semibold text-[#f7c76e]">
                                 &ldquo;Out of stock&rdquo;
                               </b>
                             </>
@@ -5014,7 +5014,7 @@ No bundle products yet — add them on{" "}
                                 silence. Said here so it is never a surprise.  */
                             preorderDate &&
                             new Date(preorderDate).getTime() <= Date.now() ? (
-                              <span className="text-[#8a5a00]">
+                              <span className="text-[#f7c76e]">
                                 That date has passed — it will be hidden
                               </span>
                             ) : preorderDate ? (
@@ -5100,7 +5100,7 @@ No bundle products yet — add them on{" "}
                                     ),
                                   )
                                 }
-                                className="text-[12.5px] text-body-soft hover:text-[#c0392b]"
+                                className="text-[12.5px] text-body-soft hover:text-[#e1837a]"
                               >
                                 Unlink
                               </button>
@@ -5142,8 +5142,8 @@ No bundle products yet — add them on{" "}
                       {/*  DEC-PRD-015 — the Item search, at full width. Inside a
                           row an item's name would not even be readable.  */}
                       {vItemFor && (
-                        <div className="rounded-[14px] border-2 border-plum bg-white overflow-hidden shadow-[0_0_0_3px_#f3ebf8]">
-                          <div className="flex items-center gap-3 px-3.5 py-3 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
+                        <div className="rounded-[14px] border-2 border-plum bg-white overflow-hidden shadow-[0_0_0_3px_#2c1e34]">
+                          <div className="flex items-center gap-3 px-3.5 py-3 bg-[linear-gradient(135deg,#2b1d34,#fff)] border-b border-lavender-deep">
                             <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white bg-plum shrink-0">
                               <Icon name="box" size={14} />
                             </span>
@@ -5223,7 +5223,7 @@ No bundle products yet — add them on{" "}
                                     </span>
                                   </span>
                                   {it.supplier && (
-                                    <span className="text-[11px] font-bold px-2 py-[3px] rounded-full border bg-[#fff6e5] text-[#8a5a00] border-[#f0d9a8] shrink-0">
+                                    <span className="text-[11px] font-bold px-2 py-[3px] rounded-full border bg-[#3c2f17] text-[#f7c76e] border-[#534528] shrink-0">
                                       {it.supplier.nickname || it.supplier.name}
                                     </span>
                                   )}
@@ -5333,12 +5333,12 @@ No bundle products yet — add them on{" "}
                   }
                   hint={
                     leadN > 0 ? (
-                      <span className="text-[#8a5a00]">
+                      <span className="text-[#f7c76e]">
                         Checkout closes the first {leadN} day
                         {leadN === 1 ? "" : "s"}
                       </span>
                     ) : (
-                      <span className="text-[#12693f]">
+                      <span className="text-[#7ce9b4]">
                         Ready today — can go out the same day
                       </span>
                     )
@@ -5490,10 +5490,10 @@ No bundle products yet — add them on{" "}
                 </div>
 
                 {photoErr && (
-                  <p className="text-[12.5px] text-[#b42318] mt-3 mb-0">{photoErr}</p>
+                  <p className="text-[12.5px] text-[#ed8078] mt-3 mb-0">{photoErr}</p>
                 )}
                 {photoNote && (
-                  <p className="text-[12.5px] text-[#8a5a00] mt-3 mb-0">{photoNote}</p>
+                  <p className="text-[12.5px] text-[#f7c76e] mt-3 mb-0">{photoNote}</p>
                 )}
 
                 <span className="flex items-center gap-1.5 text-[13px] text-body-soft mt-3">
@@ -5535,7 +5535,7 @@ No bundle products yet — add them on{" "}
                                 style={
                                   shown
                                     ? { backgroundImage: `url(${shown})` }
-                                    : { background: v.swatch || "#f6f2fa" }
+                                    : { background: v.swatch || "#281e32" }
                                 }
                               >
                                 {vBusy === v.key ? (
@@ -5585,7 +5585,7 @@ No bundle products yet — add them on{" "}
                                     ),
                                   )
                                 }
-                                className="text-[11.5px] text-body-soft hover:text-[#c0392b]"
+                                className="text-[11.5px] text-body-soft hover:text-[#e1837a]"
                               >
                                 Remove
                               </button>
@@ -5687,7 +5687,7 @@ No bundle products yet — add them on{" "}
                            grey words that used to sit beside it ("always on")
                            are the ⓘ now.  */}
                       <div className="rounded-[16px] border-2 p-4"
-                        style={{ borderColor: "#6d3a9c", background: "linear-gradient(135deg,#f6f0fa,#fff)" }}>
+                        style={{ borderColor: "#6d3a9c", background: "linear-gradient(135deg,#2b1d34,#fff)" }}>
                         <div className="flex items-center gap-2.5 mb-3.5">
                           <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-white shrink-0"
                             style={{ background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }}>
@@ -5695,7 +5695,7 @@ No bundle products yet — add them on{" "}
                           </span>
                           <span className="font-display font-bold text-[17px] text-purple">Inside Dhaka</span>
                           <Info text="Every product sells inside Dhaka — this is home, and it cannot be switched off." />
-                          <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#6d3a9c" }}>
+                          <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#af88d3" }}>
                             {dhakaTypes.filter((t) => delivTypeIds.includes(t.id)).length}/{dhakaTypes.length}
                           </span>
                         </div>
@@ -5710,8 +5710,8 @@ No bundle products yet — add them on{" "}
                       <div
                         className="rounded-[16px] border-2 p-4 transition-colors"
                         style={outsideOn
-                          ? { borderColor: "#b76e79", background: "linear-gradient(135deg,#fbeef0,#fff)" }
-                          : { borderColor: "var(--color-lavender-deep)", borderStyle: "dashed", background: "#fcfaff" }}
+                          ? { borderColor: "#b76e79", background: "linear-gradient(135deg,#361b1f,#fff)" }
+                          : { borderColor: "var(--color-lavender-deep)", borderStyle: "dashed", background: "#231538" }}
                       >
                         <div className="flex items-center gap-2.5 mb-3.5">
                           <button
@@ -5737,12 +5737,12 @@ No bundle products yet — add them on{" "}
                             <Icon name={outsideOn ? "check" : "plus"} size={17} />
                           </button>
                           <span className="font-display font-bold text-[17px]"
-                            style={{ color: outsideOn ? "#8a4350" : "var(--color-purple)" }}>
+                            style={{ color: outsideOn ? "#ca919b" : "var(--color-purple)" }}>
                             All Bangladesh
                           </span>
                           <Info text="Tick this when a courier can carry the product. Fresh cream, live plants and inflated balloons do not survive a two-day run — leave it off for those." />
                           {outsideOn && (
-                            <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#8a4350" }}>
+                            <span className="ml-auto text-[12.5px] font-bold" style={{ color: "#ca919b" }}>
                               {courierTypes.filter((t) => delivTypeIds.includes(t.id)).length}/{courierTypes.length}
                             </span>
                           )}
@@ -5772,7 +5772,7 @@ No bundle products yet — add them on{" "}
                   owner would think everything is fine.
                 */}
                 {delivTypeIds.some((id) => !delivTypes.some((t) => t.id === id)) && (
-                  <div className="rounded-[12px] px-4 py-3 text-[13px] mt-4 border border-[#f0d9a8] bg-[#fff6e5] text-[#8a5a00]">
+                  <div className="rounded-[12px] px-4 py-3 text-[13px] mt-4 border border-[#534528] bg-[#3c2f17] text-[#f7c76e]">
                     One of the deliveries picked here has no charge set in any
                     zone, so customers will never be offered it. Set a charge in{" "}
                     <Link href="/delivery/setup" className="font-semibold hover:underline">
@@ -5811,13 +5811,13 @@ No bundle products yet — add them on{" "}
                   if (!dead.length) return null;
                   return (
                     <div className="rounded-[12px] px-4 py-3 mt-4 flex items-start gap-2.5"
-                      style={{ background: "#fff6e5", border: "1px solid #f0d9a8" }}>
-                      <Icon name="clock" size={15} className="shrink-0 mt-[2px]" style={{ color: "#8a5a00" }} />
+                      style={{ background: "#3c2f17", border: "1px solid #534528" }}>
+                      <Icon name="clock" size={15} className="shrink-0 mt-[2px]" style={{ color: "#f7c76e" }} />
                       <div className="min-w-0">
-                        <div className="text-[13px] font-bold" style={{ color: "#8a5a00" }}>
+                        <div className="text-[13px] font-bold" style={{ color: "#f7c76e" }}>
                           {dead.map((t) => t.name).join(" · ")} will not be offered
                         </div>
-                        <div className="text-[12.5px] mt-0.5" style={{ color: "#8a5a00", opacity: 0.85 }}>
+                        <div className="text-[12.5px] mt-0.5" style={{ color: "#f7c76e", opacity: 0.85 }}>
                           {preorder
                             ? "This is a pre-order, so nothing can go out the same day."
                             : `This takes ${waitDays} day${waitDays === 1 ? "" : "s"} to make, so nothing can go out the same day.`}
@@ -5834,12 +5834,12 @@ No bundle products yet — add them on{" "}
                      and that only shows up at checkout much later.  */}
                 <div className="rounded-[12px] px-4 py-3 mt-4 flex items-center gap-2.5 flex-wrap"
                   style={delivTypeIds.length === 0
-                    ? { background: "#fff6e5", border: "1px solid #f0d9a8" }
+                    ? { background: "#3c2f17", border: "1px solid #534528" }
                     : { background: "var(--color-lavender)" }}>
                   {delivTypeIds.length === 0 ? (
                     <>
                       <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: "#f0a323" }} />
-                      <span className="text-[13px] font-bold" style={{ color: "#8a5a00" }}>Scheduled day only</span>
+                      <span className="text-[13px] font-bold" style={{ color: "#f7c76e" }}>Scheduled day only</span>
                       <Info text="Nothing is ticked, so the fast options never appear at checkout. The product still publishes — it just goes out on a chosen day." />
                     </>
                   ) : (
@@ -5985,7 +5985,7 @@ No bundle products yet — add them on{" "}
                               <button
                                 type="button"
                                 onClick={() => applyPicks({ ...axisPicks, [a.id]: [] })}
-                                className="ml-auto text-[12.5px] font-bold text-body-soft hover:text-[#c0392b]"
+                                className="ml-auto text-[12.5px] font-bold text-body-soft hover:text-[#e1837a]"
                               >
                                 Clear {a.name}
                               </button>
@@ -6071,7 +6071,7 @@ No bundle products yet — add them on{" "}
                               <div
                                 key={v.key}
                                 className={`flex items-center gap-3 flex-wrap rounded-[14px] border-2 border-lavender-deep px-3 py-2.5 ${
-                                  v.isActive ? "bg-white" : "bg-[#faf8fb]"
+                                  v.isActive ? "bg-white" : "bg-[#29222d]"
                                 }`}
                               >
                                 {/*  Its own photo first, then the master value's,
@@ -6127,8 +6127,8 @@ No bundle products yet — add them on{" "}
                                   }
                                   className={`text-[11px] font-extrabold px-2.5 py-1.5 rounded-full ${
                                     v.isActive
-                                      ? "bg-[#e8f6ef] text-[#0f7d55]"
-                                      : "bg-[#eae6ef] text-body-soft"
+                                      ? "bg-[#20342a] text-[#76efc3]"
+                                      : "bg-[#2a2630] text-body-soft"
                                   }`}
                                 >
                                   {v.isActive ? "ON" : "OFF"}
@@ -6225,7 +6225,7 @@ No bundle products yet — add them on{" "}
                                 onClick={() =>
                                   setPendingBundles((cur) => cur.filter((x) => x.id !== p.id))
                                 }
-                                className="w-[26px] h-[26px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#c0392b] shrink-0"
+                                className="w-[26px] h-[26px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#e1837a] shrink-0"
                               >
                                 <Icon name="trash" size={13} />
                               </button>
@@ -6300,14 +6300,14 @@ No bundle products yet — add them on{" "}
                         <ProductThumb slug={u.slug} imageUrl={u.images?.[0]?.url} size={30} />
                         <span className="text-[13.5px] text-purple font-medium flex-1 min-w-0 truncate">{u.name}</span>
                         {pendingUp.some((x) => x.id === u.id) && (
-                          <span className="text-[10px] font-bold uppercase bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-1.5 py-0.5 rounded-full">links on save</span>
+                          <span className="text-[10px] font-bold uppercase bg-[#3a2d16] text-[#f7a96e] border border-[#f0c88a] px-1.5 py-0.5 rounded-full">links on save</span>
                         )}
                         <span className="text-[13px] text-body-soft">{formatTaka(u.offerPricePaisa)}</span>
                         <button
                           type="button"
                           onClick={() => unlinkUpgrade(u)}
                           title="Remove as upgrade (the product stays in your catalog)"
-                          className="text-body-soft hover:text-[#c0392b] shrink-0"
+                          className="text-body-soft hover:text-[#e1837a] shrink-0"
                         >
                           <Icon name="trash" size={16} />
                         </button>
@@ -6406,7 +6406,7 @@ No bundle products yet — add them on{" "}
                       return (
                         <span key={gid} className="inline-flex items-center gap-1.5 bg-orchid-soft border border-orchid-mid text-purple rounded-full pl-2.5 pr-1.5 py-1 text-[12.5px] font-medium">
                           {g.name}
-                          <button type="button" onClick={() => setManualGroupIds((p) => p.filter((x) => x !== gid))} className="hover:text-[#c0392b]">✕</button>
+                          <button type="button" onClick={() => setManualGroupIds((p) => p.filter((x) => x !== gid))} className="hover:text-[#e1837a]">✕</button>
                         </span>
                       );
                     })}
@@ -6519,13 +6519,13 @@ No bundle products yet — add them on{" "}
                               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0"
                                 style={picked
                                   ? { background: "#6d3a9c", color: "#fff" }
-                                  : { background: "#f3ebf8", color: "#6d3a9c" }}>
+                                  : { background: "#2c1e34", color: "#af88d3" }}>
                                 <Icon name="hash" size={14} />
                               </span>
                               <span className="text-[14px] font-bold text-purple truncate">{g.name}</span>
                               {picked > 0 && (
                                 <span className="text-[11.5px] font-bold px-2 py-[2px] rounded-full tabular-nums"
-                                  style={{ background: "#f3ebf8", color: "#6d3a9c" }}>{picked}</span>
+                                  style={{ background: "#2c1e34", color: "#af88d3" }}>{picked}</span>
                               )}
                             </div>
                             <Chips
@@ -6930,7 +6930,7 @@ No bundle products yet — add them on{" "}
                   ))}
                 </FromCategory>
                 {iconErr && (
-                  <div className="text-[13px] text-[#c0392b] mb-2">{iconErr}</div>
+                  <div className="text-[13px] text-[#e1837a] mb-2">{iconErr}</div>
                 )}
                 <div className="flex flex-col gap-2.5">
                   {trust.map((r, i) => {
@@ -6981,7 +6981,7 @@ No bundle products yet — add them on{" "}
                               setTrust(trust.filter((_, j) => j !== i));
                               setIconPick(null);
                             }}
-                            className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors shrink-0"
+                            className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a] transition-colors shrink-0"
                           >
                             <Icon name="trash" size={14} />
                           </button>
@@ -7005,7 +7005,7 @@ No bundle products yet — add them on{" "}
                                   <span className="block text-body-soft mt-0.5">
                                     Square is what makes it look big: a wide, short drawing is
                                     fitted by its width and ends up short in a square tile. For the
-                                    brand colour, draw it in <b className="text-purple">#470066</b> —
+                                    brand colour, draw it in <b className="text-purple">#ce6ef7</b> —
                                     we never change what you upload. Max 50 KB.
                                   </span>
                                 </span>
@@ -7079,7 +7079,7 @@ No bundle products yet — add them on{" "}
                                   <button
                                     type="button"
                                     onClick={() => setRow({ iconUrl: null, icon: "shield" })}
-                                    className="text-[12.5px] text-body-soft hover:text-[#c0392b]"
+                                    className="text-[12.5px] text-body-soft hover:text-[#e1837a]"
                                   >
                                     Remove my picture
                                   </button>
@@ -7401,14 +7401,14 @@ No bundle products yet — add them on{" "}
 
                   {/* the actual search result, as it will appear */}
                   <div className="rounded-[12px] border border-lavender-deep bg-white p-4">
-                    <div className="text-[12px] text-[#4d5156] truncate">
+                    <div className="text-[12px] text-[#dfd2e4] truncate">
                       {WEB_HOST} › {slugV || "product-address"}
                     </div>
-                    <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#1a0dab" }}>
+                    <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#7c71f4" }}>
                       {(metaTitle || name || "Product name").slice(0, 60)}
                       {(metaTitle || name || "").length > 60 && "…"}
                     </div>
-                    <div className="text-[13px] leading-snug mt-1 text-[#4d5156]">
+                    <div className="text-[13px] leading-snug mt-1 text-[#dfd2e4]">
                       {(metaDescription || shortDesc || "Google will pick a line out of the page itself.").slice(0, 160)}
                       {(metaDescription || shortDesc || "").length > 160 && "…"}
                     </div>
@@ -7472,7 +7472,7 @@ No bundle products yet — add them on{" "}
                         <button
                           type="button"
                           onClick={() => setOgImageUrl("")}
-                          className="text-[13px] text-body-soft hover:text-[#c0392b]"
+                          className="text-[13px] text-body-soft hover:text-[#e1837a]"
                         >
                           Remove
                         </button>
@@ -7603,7 +7603,7 @@ No bundle products yet — add them on{" "}
             <div className="p-4">
               <Hot on={sec === "story" && storyGroup === "nature"} onPick={() => goto("story", "nature")}>
                 {natureLabel ? (
-                  <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#f6ecfb", color: "#7a2ea8" }}>
+                  <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#2e1a37", color: "#b97fdc" }}>
                     {natureLabel}
                   </span>
                 ) : (
@@ -7696,7 +7696,7 @@ No bundle products yet — add them on{" "}
                     return shown.length > 0 ? (
                       <span className="flex gap-1 flex-wrap">
                         {shown.slice(0, 3).map((label, i) => (
-                          <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#fbeef0", color: "#8a4350" }}>{label}</span>
+                          <span key={i} className="text-[10.5px] font-semibold px-2 py-[3px] rounded-full" style={{ background: "#361b1f", color: "#ca919b" }}>{label}</span>
                         ))}
                       </span>
                     ) : (
@@ -7753,7 +7753,7 @@ No bundle products yet — add them on{" "}
           <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft mt-3 p-3.5 text-[12.5px]">
             <div className="flex justify-between py-1.5 border-b border-lavender-deep">
               <span className="text-body-soft">Margin</span>
-              <span className={margin < 0 ? "text-[#c0392b]" : "text-purple"}>
+              <span className={margin < 0 ? "text-[#e1837a]" : "text-purple"}>
                 {costN > 0 ? `${taka(margin)} · ${marginPct}%` : "—"}
               </span>
             </div>

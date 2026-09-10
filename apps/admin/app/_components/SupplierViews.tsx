@@ -37,8 +37,8 @@ export function SupplierAvatar({ s, size = 34 }: { s: { name: string; photoUrl?:
 
 export function StatusPill({ status }: { status: "ACTIVE" | "INACTIVE" }) {
   return status === "ACTIVE"
-    ? <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>Active</span>
-    : <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start" style={{ background: "#f1eef4", color: "#8a7b96" }}>Inactive</span>;
+    ? <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start" style={{ background: "#1f3529", color: "#76efab" }}>Active</span>
+    : <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start" style={{ background: "#29242e", color: "#aea4b7" }}>Inactive</span>;
 }
 
 const NewBtn = () => (
@@ -86,10 +86,10 @@ export function SuppliersOverview() {
 
       {stats && (
         <Kpi items={[
-          { l: "Suppliers", v: supplierRows.length, c: "#470066", bg: "#f5eafb", icon: "user" },
-          { l: "Total due", v: formatTaka(supplierRows.reduce((s, r) => s + r.duePaisa, 0)), c: supplierRows.some((r) => r.duePaisa > 0) ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "cash" },
-          { l: "With due", v: supplierRows.filter((r) => r.duePaisa > 0).length, c: "#b45309", bg: "#fff4e6", icon: "bolt" },
-          { l: "Credit we hold", v: formatTaka(supplierRows.reduce((s, r) => s + r.creditPaisa, 0)), c: "#0e8f74", bg: "#e7f5f1", icon: "check" },
+          { l: "Suppliers", v: supplierRows.length, c: "#470066", bg: "#2e1a38", icon: "user" },
+          { l: "Total due", v: formatTaka(supplierRows.reduce((s, r) => s + r.duePaisa, 0)), c: supplierRows.some((r) => r.duePaisa > 0) ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
+          { l: "With due", v: supplierRows.filter((r) => r.duePaisa > 0).length, c: "#b45309", bg: "#3b2b17", icon: "bolt" },
+          { l: "Credit we hold", v: formatTaka(supplierRows.reduce((s, r) => s + r.creditPaisa, 0)), c: "#0e8f74", bg: "#20332e", icon: "check" },
         ]} />
       )}
 
@@ -114,11 +114,11 @@ export function SuppliersOverview() {
 
       {/* DEC-SUP-007 — free-text purchases still unlinked → the settings tool */}
       {stats && stats.unlinkedNameCount > 0 && (
-        <div className="rounded-[14px] border px-5 py-3.5 mb-5 flex items-center justify-between gap-3 flex-wrap" style={{ background: "#fff4e6", borderColor: "#fce4c4" }}>
-          <span className="text-[13px]" style={{ color: "#8a5209" }}>
+        <div className="rounded-[14px] border px-5 py-3.5 mb-5 flex items-center justify-between gap-3 flex-wrap" style={{ background: "#3b2b17", borderColor: "#534028" }}>
+          <span className="text-[13px]" style={{ color: "#f6bb6f" }}>
             <b>{stats.unlinkedNameCount}</b> purchase name(s) are not linked to any supplier yet — their dues sit outside this board.
           </span>
-          <Link href="/suppliers/settings" className="text-[12.5px] font-medium underline" style={{ color: "#8a5209" }}>Link them →</Link>
+          <Link href="/suppliers/settings" className="text-[12.5px] font-medium underline" style={{ color: "#f6bb6f" }}>Link them →</Link>
         </div>
       )}
 
@@ -147,18 +147,18 @@ export function SuppliersOverview() {
                   {b.name}{b.nickname ? <span className="text-body-soft"> ({b.nickname})</span> : null}
                   {/* review fix — inactive with unfinished money stays visible, flagged */}
                   {b.status === "INACTIVE" && (
-                    <span className="ml-2 text-[10.5px] px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#f1eef4", color: "#8a7b96" }}>inactive</span>
+                    <span className="ml-2 text-[10.5px] px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#29242e", color: "#aea4b7" }}>inactive</span>
                   )}
                 </span>
                 <span className="block text-[11.5px] text-body-soft">{b.typeName}</span>
               </span>
             </span>
             <span className="text-right shrink-0">
-              <span className="block text-[13.5px] font-semibold" style={{ color: b.duePaisa > 0 ? "#c0392b" : "#0e7a3d" }}>
+              <span className="block text-[13.5px] font-semibold" style={{ color: b.duePaisa > 0 ? "#e1837a" : "#76efab" }}>
                 {formatTaka(b.duePaisa)}
               </span>
               {b.creditPaisa > 0 && (
-                <span className="block text-[11.5px]" style={{ color: "#0e8f74" }}>credit {formatTaka(b.creditPaisa)}</span>
+                <span className="block text-[11.5px]" style={{ color: "#74f1d7" }}>credit {formatTaka(b.creditPaisa)}</span>
               )}
             </span>
           </Link>
@@ -233,10 +233,10 @@ export function SupplierListView() {
       {failed && <DemoBar what="the supplier book (API offline?)" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Suppliers (filtered)", v: filtered.length, c: "#470066", bg: "#f5eafb", icon: "user" },
-        { l: "Bought (all time)", v: formatTaka(totals.bought), c: "#2563a8", bg: "#e8f0fa", icon: "box" },
-        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "cash" },
-        { l: "Credit we hold", v: formatTaka(totals.credit), c: "#0e8f74", bg: "#e7f5f1", icon: "check" },
+        { l: "Suppliers (filtered)", v: filtered.length, c: "#470066", bg: "#2e1a38", icon: "user" },
+        { l: "Bought (all time)", v: formatTaka(totals.bought), c: "#2563a8", bg: "#1b2838", icon: "box" },
+        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
+        { l: "Credit we hold", v: formatTaka(totals.credit), c: "#0e8f74", bg: "#20332e", icon: "check" },
       ]} />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -245,7 +245,7 @@ export function SupplierListView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
             style={status === s
               ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-              : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+              : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
             {s === "ACTIVE" ? "Active" : s === "INACTIVE" ? "Inactive" : "All"}
           </button>
         ))}
@@ -300,10 +300,10 @@ export function SupplierListView() {
             <span className="text-[12.5px] text-body-soft truncate">{s.type?.name ?? "—"}</span>
             <span className="text-[12.5px] text-body">{s.phone ?? "—"}</span>
             <span className="text-[13px] text-right">{s.totalBoughtPaisa > 0 ? formatTaka(s.totalBoughtPaisa) : "—"}</span>
-            <span className="text-[13px] font-semibold text-right" style={{ color: s.duePaisa > 0 ? "#c0392b" : "#9b8aa6" }}>
+            <span className="text-[13px] font-semibold text-right" style={{ color: s.duePaisa > 0 ? "#e1837a" : "#b0a2b8" }}>
               {s.duePaisa > 0 ? formatTaka(s.duePaisa) : "—"}
             </span>
-            <span className="text-[13px] text-right" style={{ color: s.creditPaisa > 0 ? "#0e8f74" : "#9b8aa6" }}>
+            <span className="text-[13px] text-right" style={{ color: s.creditPaisa > 0 ? "#74f1d7" : "#b0a2b8" }}>
               {s.creditPaisa > 0 ? formatTaka(s.creditPaisa) : "—"}
             </span>
             <span className="text-[12.5px] text-body-soft">{fmtDate(s.lastPurchaseAt)}</span>

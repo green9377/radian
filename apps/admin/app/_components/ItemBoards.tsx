@@ -96,7 +96,7 @@ export function ItemTrashView() {
           {filtered.map((i) => {
             const open = purging?.id === i.id;
             return (
-              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#d8cfe0"}` }}>
+              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#3e3744"}` }}>
                 <div className="grid grid-cols-[44px_88px_minmax(0,1fr)_110px_100px_auto] items-center gap-2 px-4 py-2.5">
                   <ItemThumb item={i} />
                   <TypeChip type={i.itemType} />
@@ -120,7 +120,7 @@ export function ItemTrashView() {
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
                       style={open
                         ? { background: "#c0392b", borderColor: "#c0392b", color: "#fff" }
-                        : { background: "#fff", borderColor: "#f0d4d0", color: "#c0392b" }}>
+                        : { background: "#fff", borderColor: "#4d312d", color: "#e1837a" }}>
                       <Icon name="trash" size={13} /> {open ? "Cancel" : "Destroy"}
                     </button>
                   </span>
@@ -129,15 +129,15 @@ export function ItemTrashView() {
                 {/* ITM-R14 — the confirm step. Inline rather than a modal: the row you
                     are about to destroy stays visible right above the question. */}
                 {open && (
-                  <div className="px-4 pb-4 pt-1" style={{ background: "#fdf4f3" }}>
-                    <div className="rounded-[12px] border p-4" style={{ borderColor: "#f0c8c2", background: "#fff" }}>
+                  <div className="px-4 pb-4 pt-1" style={{ background: "#371b18" }}>
+                    <div className="rounded-[12px] border p-4" style={{ borderColor: "#50302b", background: "#fff" }}>
                       <div className="flex items-start gap-3">
                         <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
                           style={{ background: "#c0392b" }}>
                           <Icon name="bolt" size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13.5px] font-bold" style={{ color: "#c0392b" }}>
+                          <div className="text-[13.5px] font-bold" style={{ color: "#e1837a" }}>
                             This cannot be undone
                           </div>
                           <p className="text-[13px] text-body m-0 mt-1">

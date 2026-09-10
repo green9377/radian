@@ -128,7 +128,7 @@ function StatCards({ items }: { items: Stat[] }) {
         <div
           key={i}
           className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-          style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}
+          style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}
         >
           <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
           <div className="flex items-center justify-between gap-2">
@@ -151,22 +151,22 @@ function StatCards({ items }: { items: Stat[] }) {
 /*  The brand family — deep purple, orchid, rose gold, soft purple. Green and
     amber are kept ONLY where they carry a meaning money screens already use
     (live / waiting), never as decoration.  */
-const P = { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" };
-const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" };
-const R = { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" };
-const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" };
-const GO = { c: "#0f7d55", edge: "#1d9d77", bg: "#e8f6ef" };
-const AM = { c: "#b45309", edge: "#d99026", bg: "#fff4e2" };
+const P = { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" };
+const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" };
+const R = { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" };
+const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" };
+const GO = { c: "#0f7d55", edge: "#1d9d77", bg: "#20342a" };
+const AM = { c: "#b45309", edge: "#d99026", bg: "#3c2e17" };
 function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 bg-[#fff4e2] text-[#b45309] text-[12px] font-bold px-3 py-1.5 rounded-full">
+    <span className="inline-flex items-center gap-1.5 bg-[#3c2e17] text-[#f7a96e] text-[12px] font-bold px-3 py-1.5 rounded-full">
       <Icon name="bolt" size={13} /> Demo data — API offline or empty
     </span>
   );
 }
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button type="button" onClick={() => onChange(!on)} className={`w-[38px] h-[22px] rounded-full relative transition-colors ${on ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}>
+    <button type="button" onClick={() => onChange(!on)} className={`w-[38px] h-[22px] rounded-full relative transition-colors ${on ? "bg-[#0f7d55]" : "bg-[#322a39]"}`}>
       <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${on ? "left-[18px]" : "left-[2px]"}`} />
     </button>
   );
@@ -287,7 +287,7 @@ export function OffersListLive() {
        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13.5px]">
           <thead>
-            <tr className="text-purple text-[11px] uppercase tracking-[0.05em]" style={{ background: `linear-gradient(135deg,${P.bg},#ffffff)` }}>
+            <tr className="text-purple text-[11px] uppercase tracking-[0.05em]" style={{ background: `linear-gradient(135deg,${P.bg},#1f1727)` }}>
               <th className="text-left font-bold px-4 py-3.5">Offer</th>
               <th className="text-left font-bold px-4 py-3.5">Type</th>
               <th className="text-left font-bold px-4 py-3.5">Benefit</th>
@@ -306,7 +306,7 @@ export function OffersListLive() {
                 <td className="px-4 py-3 align-top">
                   <div className="font-medium text-purple leading-snug">{o.name}</div>
                   <div className="text-body-soft text-[11.5px]">{o.offerNo}{o.internalNote ? ` · ${o.internalNote}` : ""}</div>
-                  {o.belowCostFlag && <div className="text-[11px] text-[#b45309] font-semibold mt-0.5">⚠ below-cost somewhere in target</div>}
+                  {o.belowCostFlag && <div className="text-[11px] text-[#f7a96e] font-semibold mt-0.5">⚠ below-cost somewhere in target</div>}
                   {/*  ⚠️ The whole reason the owner asked. An offer with no
                        wording is live and invisible, and until now the list
                        showed it exactly like one that works — same green
@@ -318,7 +318,7 @@ export function OffersListLive() {
                   )}
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <span className={`inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full ${o.mechanism === "AUTOMATIC" ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-orchid-soft text-[#a021b8]"}`}>{o.mechanism === "AUTOMATIC" ? "Automatic" : "Coupon"}</span>
+                  <span className={`inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full ${o.mechanism === "AUTOMATIC" ? "bg-[#20342a] text-[#76efc3]" : "bg-orchid-soft text-[#d475e6]"}`}>{o.mechanism === "AUTOMATIC" ? "Automatic" : "Coupon"}</span>
                   <span className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full bg-lavender text-purple ml-1.5">{SHAPES_LIVE.find((s) => s.val === o.shape)?.label ?? o.shape}</span>
                 </td>
                 <td className="px-4 py-3 align-top">{benefitText(o)}{o.minSpendPaisa ? <div className="text-[11.5px] text-body-soft">min spend {taka(o.minSpendPaisa)}</div> : null}</td>
@@ -493,7 +493,7 @@ export function OfferEditorLive({ id }: { id: string }) {
       {offer && offer.liveState !== "draft" && (
         <div className="mt-4"><LiveChip s={offer.liveState} />{offer.approvedBy && <span className="text-[12.5px] text-body-soft ml-2">approved by {offer.approvedBy}</span>}</div>
       )}
-      {err && <div className="mb-4 text-[13px] font-semibold text-[#b91c1c] bg-[#fdecec] border border-[#f5c6c6] rounded-[12px] px-4 py-3">{err}</div>}
+      {err && <div className="mb-4 text-[13px] font-semibold text-[#ea7171] bg-[#3b1717] border border-[#532828] rounded-[12px] px-4 py-3">{err}</div>}
 
       {/*  The preview column grows with the screen now (340 → 400px) and the
            form takes the rest. On a wide monitor the two cards used to sit in
@@ -544,7 +544,7 @@ export function OfferEditorLive({ id }: { id: string }) {
                   {form.productIds.map((pid) => (
                     <span key={pid} className="inline-flex items-center gap-2 bg-white border-[1.5px] border-lavender-deep rounded-[11px] px-3 py-1.5 text-[12.5px] font-medium text-purple">
                       {prodNames[pid] ?? pid}
-                      <button onClick={() => set({ productIds: form.productIds.filter((x) => x !== pid) })} className="text-body-soft hover:text-[#c0392b] font-bold">×</button>
+                      <button onClick={() => set({ productIds: form.productIds.filter((x) => x !== pid) })} className="text-body-soft hover:text-[#e1837a] font-bold">×</button>
                     </span>
                   ))}
                 </div>
@@ -662,7 +662,7 @@ export function OfferEditorLive({ id }: { id: string }) {
                 {form.bonusLines.map((b, i) => (
                   <span key={i} className="inline-flex items-center gap-2 bg-white border-[1.5px] border-lavender-deep rounded-[11px] px-3 py-1.5 text-[12.5px] font-medium text-purple">
                     ＋ <input className="bg-transparent outline-none w-[160px]" value={b} onChange={(e) => set({ bonusLines: form.bonusLines.map((x, j) => (j === i ? e.target.value : x)) })} />
-                    <button onClick={() => set({ bonusLines: form.bonusLines.filter((_, j) => j !== i) })} className="text-body-soft hover:text-[#c0392b] font-bold">×</button>
+                    <button onClick={() => set({ bonusLines: form.bonusLines.filter((_, j) => j !== i) })} className="text-body-soft hover:text-[#e1837a] font-bold">×</button>
                   </span>
                 ))}
                 <button onClick={() => set({ bonusLines: [...form.bonusLines, "Free greeting card"] })} className="inline-flex items-center bg-white border-[1.5px] border-dashed border-lavender-deep hover:border-orchid rounded-[11px] px-3 py-2 text-[13px] text-body-soft hover:text-purple">＋ Add bonus</button>
@@ -675,14 +675,14 @@ export function OfferEditorLive({ id }: { id: string }) {
             <button disabled={saving} onClick={() => save(true)} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-6 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft transition-colors"><Icon name="check" size={17} /> {saving ? "Saving…" : "Submit (go live / to approval)"}</button>
             <button disabled={saving} onClick={() => save(false)} className="bg-white border-[1.5px] border-lavender-deep text-purple text-[14px] font-medium px-5 py-3 rounded-[12px]">Save draft</button>
             {!isNew && offer && (
-              <button disabled={saving} onClick={async () => { if (confirm("Archive this offer?")) { await offerAction(id, "archive"); window.location.href = "/marketing/offers/list"; } }} className="text-[13px] font-medium text-body-soft hover:text-[#b91c1c] ml-auto">Archive</button>
+              <button disabled={saving} onClick={async () => { if (confirm("Archive this offer?")) { await offerAction(id, "archive"); window.location.href = "/marketing/offers/list"; } }} className="text-[13px] font-medium text-body-soft hover:text-[#ea7171] ml-auto">Archive</button>
             )}
           </div>
         </div>
 
         {/* live preview */}
         <div className="lg:sticky lg:top-4">
-          <div className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft mb-2.5 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#0f7d55] ring-4 ring-[#d6f2e5]" /> Live storefront preview</div>
+          <div className="text-[11px] font-bold tracking-[0.06em] uppercase text-body-soft mb-2.5 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#0f7d55] ring-4 ring-[#20392d]" /> Live storefront preview</div>
           {/*  ── THE PREVIEW USED TO LIE — 24 Aug 2026 ──────────────────────
                The owner made three offers and only one reached the shop:
                *"offer create krlm 3 ta but show kre akta frontend a."*
@@ -713,10 +713,10 @@ export function OfferEditorLive({ id }: { id: string }) {
               </div>
             </div>
           ) : (
-          <div className="rounded-[28px] border border-lavender-deep bg-gradient-to-b from-[#fbf5ff] to-[#f4ecfa] p-4">
-            <div className="relative bg-white border border-[#efe1f6] rounded-[20px] p-4 shadow-soft overflow-hidden">
+          <div className="rounded-[28px] border border-lavender-deep bg-gradient-to-b from-[#2b1639] to-[#2b1c36] p-4">
+            <div className="relative bg-white border border-[#432d4e] rounded-[20px] p-4 shadow-soft overflow-hidden">
               <span className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orchid to-rosegold" />
-              <span className="inline-block text-[11px] font-bold uppercase tracking-[0.03em] text-[#a021b8] bg-orchid-soft px-2.5 py-1 rounded-full">{form.mechanism === "COUPON" ? "Coupon" : "Automatic"} · {SHAPES_LIVE.find((s) => s.val === form.shape)?.label}</span>
+              <span className="inline-block text-[11px] font-bold uppercase tracking-[0.03em] text-[#d475e6] bg-orchid-soft px-2.5 py-1 rounded-full">{form.mechanism === "COUPON" ? "Coupon" : "Automatic"} · {SHAPES_LIVE.find((s) => s.val === form.shape)?.label}</span>
               {/*  ⚠️ `form.name` is NOT a fallback here any more. The internal
                    name never reaches a customer, and printing it in a preview
                    is how two live offers looked fine and showed nothing.  */}
@@ -725,14 +725,14 @@ export function OfferEditorLive({ id }: { id: string }) {
                 {form.benefitLine || form.publicTitle}
               </div>
               {form.description && <p className="text-[13px] text-body-soft m-0 mb-3 leading-relaxed">{form.description}</p>}
-              {form.bonusLines.length > 0 && (<div className="mb-3 flex flex-col gap-1">{form.bonusLines.map((b, i) => (<div key={i} className="text-[11.5px] text-[#0f7d55] flex items-center gap-1.5"><Icon name="check" size={12} /> {b}</div>))}</div>)}
+              {form.bonusLines.length > 0 && (<div className="mb-3 flex flex-col gap-1">{form.bonusLines.map((b, i) => (<div key={i} className="text-[11.5px] text-[#76efc3] flex items-center gap-1.5"><Icon name="check" size={12} /> {b}</div>))}</div>)}
               {form.mechanism === "COUPON" && form.code && (
-                <div className="flex items-center justify-between border-[1.5px] border-dashed border-orchid-mid rounded-[11px] px-3 py-2 mb-3 bg-[#fdf6ff]"><b className="font-mono text-[15px] tracking-[0.06em] text-purple">{form.code}</b><span className="text-[11px] font-semibold text-orchid flex items-center gap-1.5"><Icon name="copy" size={13} /> Copy</span></div>
+                <div className="flex items-center justify-between border-[1.5px] border-dashed border-orchid-mid rounded-[11px] px-3 py-2 mb-3 bg-[#311639]"><b className="font-mono text-[15px] tracking-[0.06em] text-purple">{form.code}</b><span className="text-[11px] font-semibold text-orchid flex items-center gap-1.5"><Icon name="copy" size={13} /> Copy</span></div>
               )}
               {form.guaranteeText && <div className="text-[11.5px] text-body-soft mb-2">🛡 {form.guaranteeText}</div>}
-              {form.scarcity && <div className="text-[11px] text-[#c0392b] font-semibold mb-2">🔥 Only a few claimed today</div>}
-              <div className="flex items-center justify-between gap-2 border-t border-[#f2ebf8] pt-2.5">
-                <span className="text-[11px] text-[#b45309] font-semibold flex items-center gap-1"><Icon name="clock" size={12} /> {form.endsAt ? `Ends ${form.endsAt.replace("T", " ")}` : "Ongoing"}</span>
+              {form.scarcity && <div className="text-[11px] text-[#e1837a] font-semibold mb-2">🔥 Only a few claimed today</div>}
+              <div className="flex items-center justify-between gap-2 border-t border-[#3e2e4c] pt-2.5">
+                <span className="text-[11px] text-[#f7a96e] font-semibold flex items-center gap-1"><Icon name="clock" size={12} /> {form.endsAt ? `Ends ${form.endsAt.replace("T", " ")}` : "Ongoing"}</span>
                 <span className="text-[12px] font-bold text-purple flex items-center gap-1">Shop now →</span>
               </div>
             </div>
@@ -788,11 +788,11 @@ export function OffersApprovalsLive() {
             <div className="flex-1 min-w-[220px]">
               <div className="font-medium text-purple">{o.name} <span className="text-body-soft text-[12px]">· {o.offerNo}</span></div>
               <div className="text-[12.5px] text-body-soft mt-0.5">
-                {benefitText(o)}{o.belowCostFlag && <span className="text-[#b91c1c] font-semibold"> · ⚠ below cost somewhere in target</span>}
+                {benefitText(o)}{o.belowCostFlag && <span className="text-[#ea7171] font-semibold"> · ⚠ below cost somewhere in target</span>}
               </div>
             </div>
             <Link href={`/marketing/offers/${o.id}`} className="text-[13px] font-medium text-orchid hover:text-purple">Inspect</Link>
-            <button onClick={() => act(o, "decline")} className="border-[1.5px] border-lavender-deep hover:border-[#e39c9c] text-body-soft hover:text-[#b91c1c] text-[13px] font-medium px-4 py-2.5 rounded-[11px]">Decline → draft</button>
+            <button onClick={() => act(o, "decline")} className="border-[1.5px] border-lavender-deep hover:border-[#4e2c2c] text-body-soft hover:text-[#ea7171] text-[13px] font-medium px-4 py-2.5 rounded-[11px]">Decline → draft</button>
             <button onClick={() => act(o, "approve")} className="bg-purple hover:bg-purple-deep text-white text-[13px] font-medium px-5 py-2.5 rounded-[11px] inline-flex items-center gap-1.5"><Icon name="check" size={15} /> Approve</button>
           </div>
         ))}
@@ -871,7 +871,7 @@ export function OffersSettingsLive() {
               <Guide tip="Whether a brand-new offer starts life able to stack with others. Off is the safe answer: one offer at a time, and the customer gets whichever is worth most — free delivery counted at the delivery fee.">New offers combine by default</Guide>
               <div className="flex items-center gap-3" style={{ minHeight: 42 }}>
                 <Toggle on={defCombinable} onChange={setDefCombinable} />
-                <span className="text-[13px] font-semibold" style={{ color: defCombinable ? GO.c : "#8b7a99" }}>
+                <span className="text-[13px] font-semibold" style={{ color: defCombinable ? GO.c : "#aea3b8" }}>
                   {defCombinable ? "They can stack" : "One offer at a time"}
                 </span>
               </div>
@@ -880,7 +880,7 @@ export function OffersSettingsLive() {
 
           <div className="flex items-center gap-3 mt-5">
             <button onClick={save} className="bg-purple hover:bg-purple-deep text-white text-[14px] font-bold px-6 py-3 rounded-full inline-flex items-center gap-2 shadow-soft"><Icon name="check" size={16} /> Save settings</button>
-            {saved && <span className="text-[13px] font-semibold text-[#0f7d55]">Saved ✓</span>}
+            {saved && <span className="text-[13px] font-semibold text-[#76efc3]">Saved ✓</span>}
           </div>
         </>
       )}
@@ -923,7 +923,7 @@ export function OffersOverviewLive() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-semibold">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-semibold">
           {err}
         </div>
       )}
@@ -938,7 +938,7 @@ export function OffersOverviewLive() {
       />
 
       <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
-        <div className="px-4 py-3.5 text-[11px] uppercase tracking-[0.05em] text-purple font-bold flex items-center gap-2" style={{ background: `linear-gradient(135deg,${P.bg},#ffffff)` }}>
+        <div className="px-4 py-3.5 text-[11px] uppercase tracking-[0.05em] text-purple font-bold flex items-center gap-2" style={{ background: `linear-gradient(135deg,${P.bg},#1f1727)` }}>
           Leaderboard <Info text="Ordered by what each offer gave away against what it brought in. An offer near the bottom is costing more than it earns." />
         </div>
         <table className="w-full border-collapse text-[13.5px]">
@@ -958,7 +958,7 @@ export function OffersOverviewLive() {
                 <td className="px-4 py-3 font-medium text-purple">{r.name}{r.code ? <span className="font-mono text-[11px] text-body-soft ml-1.5">({r.code})</span> : null}</td>
                 <td className="px-4 py-3 text-right">{r.redemptions}</td>
                 <td className="px-4 py-3 text-right">{taka(r.revenuePaisa)}</td>
-                <td className="px-4 py-3 text-right text-[#b45309]">{taka(r.discountPaisa)}</td>
+                <td className="px-4 py-3 text-right text-[#f7a96e]">{taka(r.discountPaisa)}</td>
                 <td className="px-4 py-3 text-right">{r.newCustomers}</td>
                 <td className="px-4 py-3 text-right font-semibold text-purple">{r.discountPaisa > 0 ? `৳${(r.revenuePaisa / r.discountPaisa).toFixed(1)}` : "—"}</td>
               </tr>

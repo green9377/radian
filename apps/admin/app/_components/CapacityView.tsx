@@ -134,7 +134,7 @@ export default function CapacityView() {
       </p>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
           {err}
         </div>
       )}
@@ -198,7 +198,7 @@ export default function CapacityView() {
                 <div
                   className={
                     "font-display text-[30px] font-medium mt-3 leading-none " +
-                    (over ? "text-[#c0392b]" : tight ? "text-[#b45309]" : "text-[#12693f]")
+                    (over ? "text-[#e1837a]" : tight ? "text-[#f7a96e]" : "text-[#7ce9b4]")
                   }
                 >
                   {r.freeLabel}
@@ -220,7 +220,7 @@ export default function CapacityView() {
 
                 <div className="text-[12.5px] text-body-soft mt-3">
                   {r.categories.length === 0 ? (
-                    <span className="text-[#b45309]">
+                    <span className="text-[#f7a96e]">
                       No categories — nothing draws on this team yet
                     </span>
                   ) : (
@@ -299,7 +299,7 @@ export default function CapacityView() {
                 type="button"
                 title="Remove this team"
                 onClick={() => void deleteCapacityGroup(g.id).then(reload)}
-                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#c0392b] transition-colors"
+                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#c0392b] transition-colors"
               >
                 <Icon name="trash" size={16} />
               </button>

@@ -136,7 +136,7 @@ export default function CategoryStoryEditor({
 
   return (
     <div className="space-y-6">
-      {err && <div className="text-[13px] text-[#c0392b]">{err}</div>}
+      {err && <div className="text-[13px] text-[#e1837a]">{err}</div>}
 
       {/* ─────────────── TRUST BADGES ─────────────── */}
       {(!only || only === "badges") && (
@@ -193,7 +193,7 @@ export default function CategoryStoryEditor({
                       "w-[32px] h-[32px] rounded-[9px] grid place-items-center transition-colors " +
                       (b.isActive
                         ? "bg-lavender text-purple hover:bg-purple hover:text-white"
-                        : "bg-[#f0e8f6] text-body-soft")
+                        : "bg-[#2b2034] text-body-soft")
                     }
                   >
                     <Icon name="eye" size={14} />
@@ -204,7 +204,7 @@ export default function CategoryStoryEditor({
                       setBadges((r) => r.filter((x) => x.id !== b.id));
                       removeCategoryBadge(b.id).catch(() => {});
                     }}
-                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
+                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a] transition-colors"
                   >
                     <Icon name="trash" size={14} />
                   </button>
@@ -236,7 +236,7 @@ export default function CategoryStoryEditor({
                           square frame comes out about half as large again.
                         </span>
                         <span className="block text-body-soft mt-1">
-                          Want it in the brand colour? Draw it in <b className="text-purple">#470066</b> —
+                          Want it in the brand colour? Draw it in <b className="text-purple">#ce6ef7</b> —
                           whatever you upload is shown exactly as it is, we never change its colours.
                           Max 50 KB.
                         </span>
@@ -294,7 +294,7 @@ export default function CategoryStoryEditor({
                           real colour. If it does not read there, it will not read on the shop.
                         </p>
                       ) : (
-                        <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                        <p className="mt-2.5 text-[12px] text-[#f7c76e] bg-[#3b2e16] border border-[#534428] rounded-[9px] px-3 py-2">
                           <b>This file has no see-through background.</b> On the shop it shows as a
                           small picture inside its own square, beside symbols that have none. Pick
                           a symbol above, or upload the same shape with a transparent background.
@@ -383,7 +383,7 @@ export default function CategoryStoryEditor({
 
         {open && (
           <div className="rounded-[14px] border-2 border-lavender-deep bg-white overflow-hidden">
-            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#2b1d34,#fff)] border-b border-lavender-deep">
               <input
                 className="ipt font-bold text-purple flex-1 min-w-0"
                 style={{ minHeight: 40 }}
@@ -414,7 +414,7 @@ export default function CategoryStoryEditor({
                   setOpenList(null);
                   removeCategorySpecList(id).catch((e: Error) => setErr(e.message));
                 }}
-                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#e0a1a1] hover:text-[#c0392b] shrink-0"
+                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#4d2e2e] hover:text-[#e1837a] shrink-0"
               >
                 Remove list
               </button>
@@ -456,7 +456,7 @@ export default function CategoryStoryEditor({
                         dropRow(open.id, s.id);
                         removeCategorySpec(s.id).catch(() => {});
                       }}
-                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#c0392b] shrink-0"
+                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#e1837a] shrink-0"
                     >
                       <Icon name="trash" size={14} />
                     </button>
@@ -561,7 +561,7 @@ export default function CategoryStoryEditor({
                     setFaqs((r) => r.filter((x) => x.id !== f.id));
                     removeCategoryFaq(f.id).catch(() => {});
                   }}
-                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
+                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a] transition-colors"
                 >
                   <Icon name="trash" size={14} />
                 </button>

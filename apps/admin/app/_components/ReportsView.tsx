@@ -44,14 +44,14 @@ function bounds(r: Range): { from?: string; to?: string } {
   }
 }
 
-const CARD = "bg-white border border-[#e4dbec] rounded-[14px] px-4 py-3.5";
+const CARD = "bg-white border border-[#3e3447] rounded-[14px] px-4 py-3.5";
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className={CARD}>
-      <span className="block text-[11px] font-medium text-[#7b6b87] uppercase tracking-[0.04em]">{label}</span>
+      <span className="block text-[11px] font-medium text-[#afa4b7] uppercase tracking-[0.04em]">{label}</span>
       <span className="block text-[20px] font-medium text-body mt-1 leading-none">{value}</span>
-      {sub && <span className="block text-[11.5px] text-[#7b6b87] mt-1.5">{sub}</span>}
+      {sub && <span className="block text-[11.5px] text-[#afa4b7] mt-1.5">{sub}</span>}
     </div>
   );
 }
@@ -61,7 +61,7 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
     <div className={CARD}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-[13px] font-medium text-body">{title}</span>
-        {hint && <span className="text-[11.5px] text-[#7b6b87]">{hint}</span>}
+        {hint && <span className="text-[11.5px] text-[#afa4b7]">{hint}</span>}
       </div>
       {children}
     </div>
@@ -77,7 +77,7 @@ function short(paisa: number): string {
 
 function Bars({ rows, by = "n" }: { rows: ApiOrderReportRow[]; by?: "n" | "revenuePaisa" }) {
   const max = Math.max(1, ...rows.map((r) => r[by]));
-  if (rows.length === 0) return <span className="text-[12.5px] text-[#7b6b87]">No data in this range.</span>;
+  if (rows.length === 0) return <span className="text-[12.5px] text-[#afa4b7]">No data in this range.</span>;
   return (
     <div className="grid gap-2">
       {rows.map((r) => (
@@ -86,7 +86,7 @@ function Bars({ rows, by = "n" }: { rows: ApiOrderReportRow[]; by?: "n" | "reven
           <div className="h-[8px] rounded-full bg-lavender-deep overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${Math.round((r[by] / max) * 100)}%`, background: SOLID.purple }} />
           </div>
-          <span className="text-right text-[#7b6b87] whitespace-nowrap">
+          <span className="text-right text-[#afa4b7] whitespace-nowrap">
             <span className="font-medium text-body">{r.n}</span> · {short(r.revenuePaisa)}
           </span>
         </div>
@@ -96,7 +96,7 @@ function Bars({ rows, by = "n" }: { rows: ApiOrderReportRow[]; by?: "n" | "reven
 }
 
 function DayChart({ days }: { days: ApiOrderReport["day"] }) {
-  if (days.length === 0) return <span className="text-[12.5px] text-[#7b6b87]">No data in this range.</span>;
+  if (days.length === 0) return <span className="text-[12.5px] text-[#afa4b7]">No data in this range.</span>;
   const shown = days.slice(-31);
   const max = Math.max(1, ...shown.map((d) => d.revenuePaisa));
   const best = shown.reduce((a, b) => (b.revenuePaisa > a.revenuePaisa ? b : a), shown[0]);
@@ -106,7 +106,7 @@ function DayChart({ days }: { days: ApiOrderReport["day"] }) {
   };
   return (
     <>
-      <div className="flex items-end gap-[5px] h-[130px] border-b border-[#e4dbec]">
+      <div className="flex items-end gap-[5px] h-[130px] border-b border-[#3e3447]">
         {shown.map((d) => (
           <div
             key={d.date}
@@ -114,11 +114,11 @@ function DayChart({ days }: { days: ApiOrderReport["day"] }) {
             style={{ height: `${Math.max(2, Math.round((d.revenuePaisa / max) * 100))}%`, background: d === best ? SOLID.orchid : SOLID.purple, opacity: 0.9 }}
             title={`${d.date}: ${d.n} orders · ${d.delivered} delivered · ${formatTaka(d.revenuePaisa)}`}
           >
-            <span className="absolute top-full left-0 right-0 text-center text-[10px] text-[#7b6b87] mt-1 whitespace-nowrap">{label(d.date)}</span>
+            <span className="absolute top-full left-0 right-0 text-center text-[10px] text-[#afa4b7] mt-1 whitespace-nowrap">{label(d.date)}</span>
           </div>
         ))}
       </div>
-      <span className="block text-[12px] text-[#7b6b87] mt-6">
+      <span className="block text-[12px] text-[#afa4b7] mt-6">
         Best day {new Date(best.date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} · {best.n} orders · {formatTaka(best.revenuePaisa)}
       </span>
     </>

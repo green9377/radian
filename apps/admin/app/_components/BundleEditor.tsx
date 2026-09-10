@@ -180,7 +180,7 @@ export default function BundleEditor({
               {/*  ⚠️ যে জিনিসটা website-এ আসবে না সেটা এখানেই বলা হয়। নাহলে
                   মালিক তালিকা বানিয়ে page-এ কিছু না দেখে ধরে নেন ভাঙা।  */}
               {it.hiddenReason && (
-                <span className="text-[11.5px] text-[#b45309] shrink-0">
+                <span className="text-[11.5px] text-[#f7a96e] shrink-0">
                   {it.hiddenReason === "draft" ? "draft — hidden" : "out of stock — hidden"}
                 </span>
               )}
@@ -191,7 +191,7 @@ export default function BundleEditor({
                 type="button"
                 title="Take this one off the list"
                 onClick={() => save({ ...list, items: list.items.filter((x) => x.id !== it.id) }, 0)}
-                className="w-[28px] h-[28px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#c0392b] shrink-0"
+                className="w-[28px] h-[28px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#e1837a] shrink-0"
               >
                 <Icon name="trash" size={14} />
               </button>
@@ -200,7 +200,7 @@ export default function BundleEditor({
         </div>
       )}
 
-      {err && <div className="text-[13px] text-[#c0392b] mb-2.5">{err}</div>}
+      {err && <div className="text-[13px] text-[#e1837a] mb-2.5">{err}</div>}
 
       {picking ? (
         <div className="border border-lavender-deep rounded-[12px] p-3 mb-3">
@@ -265,7 +265,7 @@ export default function BundleEditor({
             </div>
             {list.savePaisa > 0 ? (
               <div className="flex justify-between gap-3">
-                <span className="font-semibold text-[#0f7d55]">
+                <span className="font-semibold text-[#76efc3]">
                   Bundle price — customer saves {formatTaka(list.savePaisa)}
                 </span>
                 <span className="font-display font-semibold text-[15px] text-purple">

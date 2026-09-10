@@ -17,17 +17,17 @@ import { formatTaka } from "../_data/api";
 /* ------------------------------------------------- method colours (GBL-006) */
 
 const METHOD_LOOK: Record<string, { deep: string; tint: string }> = {
-  CASH:  { deep: "#0e7a3d", tint: "#eaf7ef" },
-  BKASH: { deep: "#d6146a", tint: "#fdeef5" },
-  NAGAD: { deep: "#e05a10", tint: "#fdf1e8" },
-  CARD:  { deep: "#2563a8", tint: "#ecf3fa" },
-  BANK:  { deep: "#4633a5", tint: "#efedfa" },
-  ONLINE:{ deep: "#2563a8", tint: "#ecf3fa" },
-  COD:   { deep: "#0e7a3d", tint: "#eaf7ef" },
+  CASH:  { deep: "#0e7a3d", tint: "#1f3427" },
+  BKASH: { deep: "#d6146a", tint: "#3a1727" },
+  NAGAD: { deep: "#e05a10", tint: "#3b2617" },
+  CARD:  { deep: "#2563a8", tint: "#1c2936" },
+  BANK:  { deep: "#4633a5", tint: "#201c35" },
+  ONLINE:{ deep: "#2563a8", tint: "#1c2936" },
+  COD:   { deep: "#0e7a3d", tint: "#1f3427" },
 };
 
 export function MethodChip({ method }: { method: string }) {
-  const look = METHOD_LOOK[method.toUpperCase()] ?? { deep: "#7a2ea8", tint: "#f3e8fa" };
+  const look = METHOD_LOOK[method.toUpperCase()] ?? { deep: "#7a2ea8", tint: "#2d1b38" };
   const label = method.length <= 4 ? method.toUpperCase() : method[0].toUpperCase() + method.slice(1).toLowerCase();
   return (
     <span className="text-[10.5px] font-bold tracking-[0.04em] px-2.5 py-1 rounded-full shrink-0"
@@ -65,7 +65,7 @@ export function PaymentsCard({ rows, action, emptyText = "Nothing paid yet." }: 
       </div>
       {rows.length === 0 && <p className="text-[13px] text-body-soft px-4 py-4 m-0">{emptyText}</p>}
       {rows.map((x) => {
-        const look = METHOD_LOOK[x.method.toUpperCase()] ?? { deep: "#7a2ea8", tint: "#f3e8fa" };
+        const look = METHOD_LOOK[x.method.toUpperCase()] ?? { deep: "#7a2ea8", tint: "#2d1b38" };
         return (
           <div key={x.id} className="flex items-center gap-3 px-4 py-2.5 border-t border-lavender-deep/60 first:border-0">
             <span className="w-[32px] h-[32px] rounded-full grid place-items-center shrink-0"
@@ -79,7 +79,7 @@ export function PaymentsCard({ rows, action, emptyText = "Nothing paid yet." }: 
               </span>
               <span className="block text-[11.5px] text-body-soft mt-0.5">{x.when}{x.by ? ` · ${x.by}` : ""}</span>
             </span>
-            <b className="text-[14.5px] shrink-0" style={{ color: x.out ? "#c0392b" : "#0e7a3d", fontVariantNumeric: "tabular-nums" }}>
+            <b className="text-[14.5px] shrink-0" style={{ color: x.out ? "#e1837a" : "#76efab", fontVariantNumeric: "tabular-nums" }}>
               {x.out ? "− " : ""}{formatTaka(x.amountPaisa)}
             </b>
           </div>
@@ -100,10 +100,10 @@ export interface BillEvent {
 }
 
 const EVENT_LOOK: Record<string, { icon: string; deep: string; tint: string }> = {
-  payment:  { icon: "cash",    deep: "#0e7a3d", tint: "#eaf7ef" },
-  system:   { icon: "gear",    deep: "#6d6478", tint: "#f1eef4" },
-  delivery: { icon: "truck",   deep: "#2563a8", tint: "#ecf3fa" },
-  sales:    { icon: "tag",     deep: "#d6146a", tint: "#fdeef5" },
+  payment:  { icon: "cash",    deep: "#0e7a3d", tint: "#1f3427" },
+  system:   { icon: "gear",    deep: "#6d6478", tint: "#29242e" },
+  delivery: { icon: "truck",   deep: "#2563a8", tint: "#1c2936" },
+  sales:    { icon: "tag",     deep: "#d6146a", tint: "#3a1727" },
 };
 
 export function BillTimeline({ events }: { events: BillEvent[] }) {
@@ -117,12 +117,12 @@ export function BillTimeline({ events }: { events: BillEvent[] }) {
       </div>
       <div className="px-4 py-4">
         {events.map((e, i) => {
-          const look = EVENT_LOOK[e.kind] ?? { icon: "sparkle", deep: "#7a2ea8", tint: "#f3e8fa" };
+          const look = EVENT_LOOK[e.kind] ?? { icon: "sparkle", deep: "#7a2ea8", tint: "#2d1b38" };
           return (
             <div key={e.id} className="relative flex gap-3 pb-4 last:pb-0">
               {/*  the thread — stops at the last bead  */}
               {i < events.length - 1 && (
-                <span aria-hidden className="absolute left-[15px] top-[32px] bottom-0 w-[2px]" style={{ background: "#efe4f7" }} />
+                <span aria-hidden className="absolute left-[15px] top-[32px] bottom-0 w-[2px]" style={{ background: "#2c1e37" }} />
               )}
               <span className="relative w-[32px] h-[32px] rounded-full grid place-items-center shrink-0"
                 style={{ background: look.tint, color: look.deep }}>

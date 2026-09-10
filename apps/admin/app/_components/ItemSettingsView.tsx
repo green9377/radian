@@ -63,7 +63,7 @@ export default function ItemSettingsView() {
             <input className="ipt w-full text-right" inputMode="decimal" style={{ paddingRight: 30 }}
               value={text} onChange={(e) => setText(e.target.value)} placeholder="20" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold pointer-events-none"
-              style={{ color: "#8b7a95" }}>%</span>
+              style={{ color: "#b0a4b7" }}>%</span>
           </div>
           <button onClick={save} disabled={!dirty || busy}
             className="text-white text-[13px] font-medium px-5 py-2.5 rounded-[10px] disabled:opacity-40"
@@ -74,15 +74,15 @@ export default function ItemSettingsView() {
 
         {exampleSell !== null && (
           <div className="mt-3.5 rounded-[12px] px-4 py-3 flex items-center gap-3 flex-wrap"
-            style={{ background: "linear-gradient(120deg,#f3fbf6,#e6f6ee)" }}>
+            style={{ background: "linear-gradient(120deg,#1d3325,#1f352a)" }}>
             <span className="text-[13px] text-body">
               {formatTaka(example)} <span className="text-body-soft">cost</span>
             </span>
             <span className="text-body-soft">→</span>
-            <b className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
+            <b className="font-display text-[22px] leading-none" style={{ color: "#76efab" }}>
               {formatTaka(exampleSell)}
             </b>
-            <span className="text-[12.5px] font-semibold" style={{ color: "#0e7a3d" }}>counter price</span>
+            <span className="text-[12.5px] font-semibold" style={{ color: "#76efab" }}>counter price</span>
           </div>
         )}
       </div>

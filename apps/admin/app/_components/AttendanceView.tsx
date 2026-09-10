@@ -265,7 +265,7 @@ export function AttendanceView() {
                 </span>
               </Td>
               <Td>
-                <div className="inline-flex rounded-xl overflow-hidden border border-[#e7dff0]">
+                <div className="inline-flex rounded-xl overflow-hidden border border-[#3d3248]">
                   {OPTIONS.map((o) => {
                     const on = r.status === o.key;
                     return (
@@ -273,7 +273,7 @@ export function AttendanceView() {
                         key={o.key}
                         disabled={locked}
                         onClick={() => setStatus(r, o.key)}
-                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[#e7dff0] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[#fdfaff]"}`}
+                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[#3d3248] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[#2a1538]"}`}
                         style={on ? { background: TONE[o.tone].bg } : undefined}
                       >
                         {o.label}

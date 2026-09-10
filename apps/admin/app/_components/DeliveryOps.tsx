@@ -21,7 +21,7 @@ import {
    Delivery-owned data only. Colourful, decision-first (§4 DESIGN RULE). Demo data. */
 
 const DemoBar = ({ text }: { text: string }) => (
-  <div className="flex items-center gap-3 bg-[#f5eafb] border border-[#e3c8f2] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+  <div className="flex items-center gap-3 bg-[#2e1a38] border border-[#432a50] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
     <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-purple text-white px-2 py-1 rounded-full shrink-0">Offline</span>
     <span className="flex-1 min-w-[220px]">{text}</span>
   </div>
@@ -300,7 +300,7 @@ export function ProofOfDelivery() {
           <div key={p.orderNo} className="bg-white rounded-[16px] border shadow-soft overflow-hidden" style={{ borderColor: TONE.purple.border }}>
             <div className="grid grid-cols-2 gap-0.5">
               {[["Prep", p.prepBg], ["Delivery", p.deliveryBg]].map(([label, bg]) => (
-                <div key={label as string} className="aspect-[4/3] relative grid place-items-center" style={{ background: (bg as string) || "#f4eefb" }}>
+                <div key={label as string} className="aspect-[4/3] relative grid place-items-center" style={{ background: (bg as string) || "#271b36" }}>
                   <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-[0.05em] bg-white/80 text-purple px-1.5 py-0.5 rounded-full">{label}</span>
                   {!bg && <span className="text-[13px] text-body-soft flex flex-col items-center gap-1"><Icon name="photo" size={20} /> not yet</span>}
                 </div>

@@ -61,9 +61,9 @@ function nextOccurrence(raw: string): { label: string; daysAway: number } | null
 }
 
 const OCC_META: Record<string, { label: string; c: string; icon: string }> = {
-  BIRTHDAY: { label: "Birthday", c: "#c01fd8", icon: "sparkle" },
-  ANNIVERSARY: { label: "Anniversary", c: "#d64fa0", icon: "heart" },
-  CUSTOM: { label: "Special day", c: "#3182c9", icon: "star" },
+  BIRTHDAY: { label: "Birthday", c: "#db70eb", icon: "sparkle" },
+  ANNIVERSARY: { label: "Anniversary", c: "#e07bb8", icon: "heart" },
+  CUSTOM: { label: "Special day", c: "#7cb1df", icon: "star" },
 };
 
 function Chip({ icon, c, sm }: { icon: string; c: string; sm?: boolean }) {
@@ -207,12 +207,12 @@ export default function CustomerOverview() {
   }, [all]);
 
   const HERO = [
-    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "#7a2ea8", bg: "#f5eafb" },
-    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "#12a172", bg: "#e6f7ef" },
-    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "#c07a2b", bg: "#fbf1e2" },
-    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "#3182c9", bg: "#e9f1fb" },
-    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "#c01fd8", bg: "#fbe8fe" },
-    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "#c0567a", bg: "#fbecf1" },
+    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "#7a2ea8", bg: "#2e1a38" },
+    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "#12a172", bg: "#1e362b" },
+    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "#c07a2b", bg: "#3b2d18" },
+    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "#3182c9", bg: "#192739" },
+    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "#c01fd8", bg: "#36163b" },
+    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "#c0567a", bg: "#371a24" },
   ];
 
   const SECOND = [
@@ -272,7 +272,7 @@ export default function CustomerOverview() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running?{" "}
           <button className="underline" onClick={load}>Retry</button>
         </div>
@@ -329,7 +329,7 @@ export default function CustomerOverview() {
                 const meta = OCC_META[u.occ.type] ?? OCC_META.CUSTOM;
                 const soon = u.daysAway <= 7;
                 return (
-                  <div key={i} className={"flex items-center gap-3 border rounded-[12px] px-3 py-2.5 " + (soon ? "bg-[#fff8fd] border-[#f0cdef]" : "bg-lavender/40 border-lavender-deep")}>
+                  <div key={i} className={"flex items-center gap-3 border rounded-[12px] px-3 py-2.5 " + (soon ? "bg-[#39152f] border-[#4e2d4d]" : "bg-lavender/40 border-lavender-deep")}>
                     <Chip icon={meta.icon} c={meta.c} sm />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium text-purple truncate">
@@ -344,7 +344,7 @@ export default function CustomerOverview() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-[13px] font-semibold" style={{ color: meta.c }}>{u.label}</div>
-                      <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 " + (soon ? "bg-[#fdecf5] text-[#c0287f]" : "bg-lavender-deep/60 text-body-soft")}>
+                      <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 " + (soon ? "bg-[#3b172a] text-[#e378b5]" : "bg-lavender-deep/60 text-body-soft")}>
                         {u.daysAway === 0 ? "today" : u.daysAway === 1 ? "tomorrow" : `in ${u.daysAway}d`}
                       </div>
                     </div>
@@ -489,7 +489,7 @@ export default function CustomerOverview() {
               <Link
                 key={c.id}
                 href={`/customers/${c.id}`}
-                className="flex items-center gap-3 border border-[#f0d9a8] bg-[#fffaf0] rounded-[12px] px-3 py-2.5 hover:border-orchid"
+                className="flex items-center gap-3 border border-[#534528] bg-[#3a2e16] rounded-[12px] px-3 py-2.5 hover:border-orchid"
               >
                 <span
                   className="w-[30px] h-[30px] rounded-full grid place-items-center text-white text-[11px] font-medium font-display shrink-0"

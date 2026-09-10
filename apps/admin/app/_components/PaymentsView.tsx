@@ -130,7 +130,7 @@ function OrderRow({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#fcfaff]">
+    <tr className="hover:bg-[#231538]">
       <td className={`${CELL} w-[34px]`}>
         <Said say={say} />
         <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" aria-label={`Select ${o.orderNo}`} />
@@ -181,7 +181,7 @@ function OrderRow({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
           )}
           <ActButton href={`/orders/${o.id}`}>Open</ActButton>
           {open && (
-            <div className="mt-1 rounded-[12px] border border-[#e4dbec] bg-white p-2.5 w-[220px] flex flex-col gap-2">
+            <div className="mt-1 rounded-[12px] border border-[#3e3447] bg-white p-2.5 w-[220px] flex flex-col gap-2">
               <select className="ipt h-[34px] text-[12.5px]" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
                 {KINDS.map(([k, l]) => (
                   <option key={k} value={k}>{l}</option>
@@ -242,7 +242,7 @@ function GatewayRow({ p, order }: { p: ApiOnlinePayment; order: ApiOrder | undef
       ? `https://wa.me/${order.senderPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi ${name}, this is Radian. Your order ${order.orderNo} is waiting for payment — pay here: ${payLink}`)}`
       : null;
   return (
-    <tr className="hover:bg-[#fcfaff]">
+    <tr className="hover:bg-[#231538]">
       <td className={`${CELL} w-[140px]`}>
         <span className={VALUE}>{fmtStamp(p.createdAt)}</span>
         {p.settledAt && <span className={LABEL}>settled {fmtStamp(p.settledAt)}</span>}
@@ -266,7 +266,7 @@ function GatewayRow({ p, order }: { p: ApiOnlinePayment; order: ApiOrder | undef
       </td>
       <td className={`${CELL} w-[190px]`}>
         <Pill colour={s.colour}>{s.label}</Pill>
-        {p.gatewayReason && <span className="block mt-1 font-medium leading-snug" style={{ color: p.status === "FAILED" ? SOLID.red : "#7b6b87" }}>{p.gatewayReason}</span>}
+        {p.gatewayReason && <span className="block mt-1 font-medium leading-snug" style={{ color: p.status === "FAILED" ? SOLID.red : "#afa4b7" }}>{p.gatewayReason}</span>}
       </td>
       <td className={`${CELL} w-[110px] text-right whitespace-nowrap`}>
         <span className="font-medium">{formatTaka(p.amountPaisa)}</span>
@@ -347,7 +347,7 @@ function ReturnRow({ r, onChanged }: { r: ApiReturn; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#fcfaff]">
+    <tr className="hover:bg-[#231538]">
       <td className={`${CELL} w-[34px]`}>
         <Said say={say} />
         <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" aria-label={`Select ${r.returnNo}`} />
@@ -538,7 +538,7 @@ export default function PaymentsView() {
     <div className={WRAP}>
       <Band title="Payments" help={HELP} tiles={tiles} active={active} onTile={onTile} right={<BandButton href="/returns/new" icon="plus">New return</BandButton>} />
 
-      <div className="flex gap-0.5 border-b-[1.5px] border-[#e4dbec] mb-3">
+      <div className="flex gap-0.5 border-b-[1.5px] border-[#3e3447] mb-3">
         {TABS.map(([k, label]) => {
           const on = tab === k;
           const n = k === "orders" ? orders.length : k === "gateway" ? (gw?.counts.ALL ?? 0) : rets.length;

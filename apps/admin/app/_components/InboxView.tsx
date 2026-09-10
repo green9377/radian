@@ -73,10 +73,10 @@ function displayName(c: { customer?: { name: string } | null; guestName?: string
   by its tile before the text is read.
 */
 const AVATAR_TONES = [
-  { bg: "#f3e8ff", fg: "#6b21a8" }, // brand purple
-  { bg: "#fce7f3", fg: "#9d174d" }, // brand pink
-  { bg: "#ede9fe", fg: "#5b21b6" }, // soft lavender
-  { bg: "#fdf0e3", fg: "#9a5b21" }, // rose gold
+  { bg: "#28163b", fg: "#b77fe6" }, // brand purple
+  { bg: "#3b182c", fg: "#eb7aa7" }, // brand pink
+  { bg: "#1d163b", fg: "#a175e6" }, // soft lavender
+  { bg: "#3c2a17", fg: "#e4b081" }, // rose gold
 ];
 
 function initials(name: string): string {
@@ -179,7 +179,7 @@ function Avatar({
       style={{
         width: size,
         height: size,
-        background: showPhoto ? "#f1f5f9" : tone.bg,
+        background: showPhoto ? "#202831" : tone.bg,
         color: tone.fg,
         fontSize: Math.round(size * 0.36),
       }}
@@ -210,11 +210,11 @@ function Avatar({
   by channel.
 */
 const CHANNELS = {
-  WEB_CHAT:  { label: "Web chat",  short: "Web", bg: "#ede9fe", fg: "#5b21b6", dot: "#7c3aed" },
-  WHATSAPP:  { label: "WhatsApp",  short: "WA",  bg: "#dcfce7", fg: "#166534", dot: "#25d366" },
-  MESSENGER: { label: "Messenger", short: "FB",  bg: "#dbeafe", fg: "#1e40af", dot: "#0084ff" },
-  INSTAGRAM: { label: "Instagram", short: "IG",  bg: "#fce7f3", fg: "#9d174d", dot: "#e1306c" },
-  SMS:       { label: "SMS",       short: "SMS", bg: "#f1f5f9", fg: "#334155", dot: "#64748b" },
+  WEB_CHAT:  { label: "Web chat",  short: "Web", bg: "#1d163b", fg: "#a175e6", dot: "#7c3aed" },
+  WHATSAPP:  { label: "WhatsApp",  short: "WA",  bg: "#173e24", fg: "#81e4a7", dot: "#25d366" },
+  MESSENGER: { label: "Messenger", short: "FB",  bg: "#17283d", fg: "#748fe7", dot: "#0084ff" },
+  INSTAGRAM: { label: "Instagram", short: "IG",  bg: "#3b182c", fg: "#eb7aa7", dot: "#e1306c" },
+  SMS:       { label: "SMS",       short: "SMS", bg: "#202831", fg: "#dfd2e4", dot: "#64748b" },
 } as const;
 
 type ChannelKey = keyof typeof CHANNELS;
@@ -580,7 +580,7 @@ export default function InboxView() {
               {/* the coloured spine — the channel is legible before the number is read */}
               <span
                 className="absolute left-0 top-0 bottom-0 w-1.5"
-                style={{ background: on ? "rgba(255,255,255,.55)" : idle ? "#e5e7eb" : c.dot }}
+                style={{ background: on ? "rgba(255,255,255,.55)" : idle ? "#282a2e" : c.dot }}
               />
               <p
                 className="text-[12px] font-extrabold truncate"
@@ -590,7 +590,7 @@ export default function InboxView() {
               </p>
               <p
                 className="text-[28px] font-extrabold leading-none mt-1"
-                style={{ color: on ? "#fff" : idle ? "#c3c9d4" : "#111827" }}
+                style={{ color: on ? "#fff" : idle ? "#c3c9d4" : "#f1eaf6" }}
               >
                 {st.total}
               </p>
@@ -608,8 +608,8 @@ export default function InboxView() {
       {/* ── the two panes. This row owns the rest of the screen and no more. ── */}
       <div className="flex-1 min-h-0 flex gap-5 mt-5">
         {/* left: the thread list */}
-        <div className="w-[360px] shrink-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
-          <div className="shrink-0 p-3.5 border-b-2 border-[#f6f4f9]">
+        <div className="w-[360px] shrink-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#3b3446] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
+          <div className="shrink-0 p-3.5 border-b-2 border-[#3b3446]">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -629,7 +629,7 @@ export default function InboxView() {
                     className={`px-3 py-1.5 rounded-full text-[12px] font-extrabold transition ${
                       tab === t.key
                         ? "bg-[#470066] text-white shadow-[0_4px_12px_rgba(70,0,102,0.25)]"
-                        : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
+                        : "bg-[#27222f] text-gray-500 hover:bg-[#2a2331]"
                     }`}
                   >
                     {t.label}
@@ -644,7 +644,7 @@ export default function InboxView() {
               className={`mt-2.5 w-full h-10 rounded-2xl text-[12.5px] font-extrabold transition ${
                 unreadOnly
                   ? "bg-[#cf43ea] text-white shadow-[0_4px_14px_rgba(207,67,234,0.35)]"
-                  : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
+                  : "bg-[#27222f] text-gray-500 hover:bg-[#2a2331]"
               }`}
             >
               {unreadOnly ? "Showing unread only" : `Unread only${unreadAll ? ` (${unreadAll})` : ""}`}
@@ -658,7 +658,7 @@ export default function InboxView() {
                   setUnreadOnly(false);
                   setSearch("");
                 }}
-                className="mt-2 w-full text-[11.5px] font-bold text-gray-400 hover:text-[#cf43ea]"
+                className="mt-2 w-full text-[11.5px] font-bold text-gray-400 hover:text-[#da6cef]"
               >
                 Clear filters
               </button>
@@ -666,7 +666,7 @@ export default function InboxView() {
           </div>
 
           {/* the first of the two things that scroll */}
-          <div className="flex-1 min-h-0 overflow-y-auto divide-y-2 divide-[#faf8fc]">
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y-2 divide-[#271f30]">
             {items === null && <p className="p-5 text-[13px] font-bold text-gray-300">Loading…</p>}
             {items?.length === 0 && (
               <p className="p-5 text-[13px] font-bold text-gray-300">
@@ -684,7 +684,7 @@ export default function InboxView() {
                   setDetail(null);
                 }}
                 className={`w-full text-left px-4 py-3.5 transition ${
-                  openId === c.id ? "bg-[#f7f0fb]" : "hover:bg-[#fbf9fd]"
+                  openId === c.id ? "bg-[#2c1b35]" : "hover:bg-[#271c32]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -755,7 +755,7 @@ export default function InboxView() {
         </div>
 
         {/* right: the open conversation */}
-        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#3b3446] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
           {!openId ? (
             <div className="flex-1 grid place-items-center">
               <p className="text-[14px] font-bold text-gray-300">Pick a conversation from the left</p>
@@ -767,7 +767,7 @@ export default function InboxView() {
           ) : (
             <>
               {/* header — pinned */}
-              <div className="shrink-0 px-5 py-3.5 border-b-2 border-[#f6f4f9] flex items-center gap-2.5 flex-wrap">
+              <div className="shrink-0 px-5 py-3.5 border-b-2 border-[#3b3446] flex items-center gap-2.5 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span
@@ -838,7 +838,7 @@ export default function InboxView() {
               {/* the second of the two things that scroll */}
               <div
                 ref={listRef}
-                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-3 bg-[#FBF9FD]"
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-3 bg-[#271c32]"
               >
                 {detail.messages.map((m) => {
                   const fromCustomer = m.authorType === "CUSTOMER";
@@ -854,7 +854,7 @@ export default function InboxView() {
                             ? "mx-auto text-center text-[11.5px] font-bold text-gray-400 bg-white border-2 border-gray-100 rounded-full px-4 py-1.5"
                             : `max-w-[72%] min-w-0 break-words rounded-3xl px-4 py-3 text-[14px] leading-snug ${
                                 fromCustomer
-                                  ? "bg-white text-gray-800 border-2 border-[#f0edf5] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
+                                  ? "bg-white text-gray-800 border-2 border-[#3b3446] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
                                   : m.authorType === "AI"
                                     ? "bg-purple-100 text-purple-900 rounded-br-lg"
                                     : "bg-[#470066] text-white rounded-br-lg shadow-[0_4px_14px_rgba(70,0,102,0.25)]"
@@ -898,7 +898,7 @@ export default function InboxView() {
               </div>
 
               {/* composer — pinned, and it never walks off the bottom again */}
-              <div className="shrink-0 border-t-2 border-[#f6f4f9] p-3.5">
+              <div className="shrink-0 border-t-2 border-[#3b3446] p-3.5">
                 {error && <p className="text-[12px] font-bold text-rose-500 px-1 pb-1.5">{error}</p>}
                 <div className="flex items-end gap-2.5">
                   <textarea

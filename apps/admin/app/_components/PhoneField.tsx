@@ -89,7 +89,7 @@ export default function PhoneField({
           title="Country code — click to search"
         >
           <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] shrink-0"
-            style={{ background: "#f9e9fd", color: "#470066", letterSpacing: ".02em" }}>
+            style={{ background: "#34163b", color: "#ce6ef7", letterSpacing: ".02em" }}>
             {current.iso}
           </span>
           <span className="truncate font-medium">{current.dial}</span>
@@ -125,7 +125,7 @@ export default function PhoneField({
                   }
                 >
                   <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] shrink-0 w-[30px] text-center"
-                    style={{ background: "#f9e9fd", color: "#470066" }}>{c.iso}</span>
+                    style={{ background: "#34163b", color: "#ce6ef7" }}>{c.iso}</span>
                   <span className="flex-1 truncate">{c.name}</span>
                   <span className="text-body-soft">{c.dial}</span>
                 </button>

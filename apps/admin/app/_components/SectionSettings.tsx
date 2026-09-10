@@ -97,7 +97,7 @@ function BestSellerSettings({ c, save }: { c: Cfg; save: Save }) {
         {tabs.length > 0 && (
           <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
             {tabs.map((slug, i) => (
-              <div key={slug} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
+              <div key={slug} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
                 <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
                 <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{nameOf(slug)}</span>
                 <Arrow onClick={() => moveTab(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -177,13 +177,13 @@ function ProductPicker({ picked, onChange }: { picked: string[]; onChange: (next
   return (
     <F label="Your list" hint="click a product to add it — the order here is the order on the page; a tab shows the picks from its own category">
       {picked.length === 0 ? (
-        <p className="text-[11.5px] text-[#8a6414] m-0 mb-2">
+        <p className="text-[11.5px] text-[#ecc779] m-0 mb-2">
           Nothing picked yet, so the grid is still filling itself automatically.
         </p>
       ) : (
         <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
           {picked.map((s, i) => (
-            <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
+            <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
               <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
               <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{known[s] ?? s}</span>
               <Arrow onClick={() => move(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -245,7 +245,7 @@ function BlogSettings({ c, save }: { c: Cfg; save: Save }) {
         {picked.length > 0 && (
           <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
             {picked.map((s, i) => (
-              <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
+              <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
                 <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
                 <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{nameOf(s)}</span>
                 <Arrow onClick={() => move(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -318,7 +318,7 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
                   : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
               </label>
-              {panelImage && !uploading && <button onClick={() => save({ panelImageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+              {panelImage && !uploading && <button onClick={() => save({ panelImageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>}
             </div>
           </div>
         </div>
@@ -387,7 +387,7 @@ function IconRows({ rows, max, onChange, placeholderTitle, placeholderSub }: {
           </select>
           <TextBox value={r.title} placeholder={placeholderTitle} onCommit={(v) => set(i, { title: v })} />
           <TextBox value={r.sub} placeholder={placeholderSub} onCommit={(v) => set(i, { sub: v })} />
-          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="text-[13px] text-body-soft hover:text-[#c0392b] px-1" title="Remove">✕</button>
+          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="text-[13px] text-body-soft hover:text-[#e1837a] px-1" title="Remove">✕</button>
         </div>
       ))}
       {rows.length < max && (
@@ -471,7 +471,7 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
               : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
           </label>
-          {image && !uploading && <button onClick={() => save({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+          {image && !uploading && <button onClick={() => save({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>}
         </div>
       </F>
       <F label="Beside the picture" hint="the handwritten line on top, the three little cards, the caption at the bottom">
@@ -577,7 +577,7 @@ function Arrow({ children, onClick, disabled, title, danger }: {
       disabled={disabled}
       title={title}
       className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center bg-lavender transition-colors text-[13px] disabled:opacity-30 " +
-        (danger ? "text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b]" : "text-purple hover:bg-purple hover:text-white disabled:hover:bg-lavender disabled:hover:text-purple")}
+        (danger ? "text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a]" : "text-purple hover:bg-purple hover:text-white disabled:hover:bg-lavender disabled:hover:text-purple")}
     >
       {children}
     </button>

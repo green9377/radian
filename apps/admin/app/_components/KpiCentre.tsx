@@ -113,7 +113,7 @@ export function KpiCentre() {
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Analytics & KPIs" />
         {err ? (
-          <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
+          <div className="rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px]">{err}</div>
         ) : (
           <p className="text-body-soft text-[13.5px]">Loading…</p>
         )}
@@ -135,9 +135,9 @@ export function KpiCentre() {
                 onClick={() => setYear(y)}
                 className="rounded-[10px] border px-3 py-1.5 text-[12.5px]"
                 style={{
-                  borderColor: y === year ? "#7d2ea8" : "#e4d3f2",
+                  borderColor: y === year ? "#7d2ea8" : "#3f2d4e",
                   background: y === year ? "#7d2ea8" : "#fff",
-                  color: y === year ? "#fff" : "#470066",
+                  color: y === year ? "#fff" : "#ce6ef7",
                 }}
               >
                 {y}
@@ -148,14 +148,14 @@ export function KpiCentre() {
       />
 
       {err && (
-        <div className="rounded-[12px] border border-[#e4d3f2] bg-[#faf6fd] text-purple px-4 py-2.5 text-[12.5px] mb-4">{err}</div>
+        <div className="rounded-[12px] border border-[#3f2d4e] bg-[#291a35] text-purple px-4 py-2.5 text-[12.5px] mb-4">{err}</div>
       )}
 
       {/* ---------------- the grid: target vs actual, month by month ---------------- */}
-      <div className="rounded-[16px] border border-[#eee6f4] bg-white overflow-hidden mb-6">
+      <div className="rounded-[16px] border border-[#3f3149] bg-white overflow-hidden mb-6">
         <table className="w-full text-[12.5px]" style={{ tableLayout: "fixed" }}>
           <thead>
-            <tr className="bg-[#faf6fd] text-purple">
+            <tr className="bg-[#291a35] text-purple">
               <th className="text-left font-medium px-3 py-2.5 w-[110px]">Month</th>
               {(Object.keys(KPI_META) as KpiName[]).map((k) => (
                 <th key={k} className="text-left font-medium px-3 py-2.5" title={KPI_META[k].hint}>
@@ -200,7 +200,7 @@ export function KpiCentre() {
       </p>
 
       {movement && !movement.known ? (
-        <div className="rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple mb-6">
+        <div className="rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple mb-6">
           {movement.why}
         </div>
       ) : movement && movement.known ? (
@@ -233,7 +233,7 @@ export function KpiCentre() {
       </p>
 
       {weekdays && !weekdays.known ? (
-        <div className="rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple">
+        <div className="rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple">
           No sales recorded in the last 90 days, so there is no pattern to report. Saying every day
           is equally quiet would be true and useless.
         </div>
@@ -242,10 +242,10 @@ export function KpiCentre() {
           {weekdays.weekdays.map((d) => {
             const max = Math.max(1, ...weekdays.weekdays.map((x) => x.avgRevenuePaisa));
             return (
-              <div key={d.name} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
+              <div key={d.name} className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3">
                 <div className="text-[11.5px] text-body-soft">{d.name.slice(0, 3)}</div>
                 <div className="font-display text-[17px] leading-none text-purple mt-1.5">{formatTaka(d.avgRevenuePaisa)}</div>
-                <div className="mt-2 h-[5px] rounded-full bg-[#efe4f7] overflow-hidden">
+                <div className="mt-2 h-[5px] rounded-full bg-[#2c1e37] overflow-hidden">
                   <div className="h-full rounded-full bg-[#7d2ea8]" style={{ width: `${(d.avgRevenuePaisa / max) * 100}%` }} />
                 </div>
                 <div className="text-[11px] text-body-soft mt-1.5">{d.avgOrders} orders / day</div>
@@ -286,7 +286,7 @@ function MonthRow({
   const noData = m.actual.daysRecorded === 0 && !m.actual.isCurrentMonth && !m.inFuture;
 
   return (
-    <tr className="border-t border-[#f2ecf7]" style={{ background: isCurrent ? "#faf6fd" : undefined }}>
+    <tr className="border-t border-[#3e314a]" style={{ background: isCurrent ? "#291a35" : undefined }}>
       <td className="px-3 py-2.5">
         <span className="text-purple">{MONTH_NAMES[m.month - 1]}</span>
         {isCurrent && <span className="ml-1.5 text-[10px] uppercase tracking-[0.05em] text-orchid">now</span>}
@@ -304,7 +304,7 @@ function MonthRow({
             <div className="flex items-baseline gap-2 flex-wrap">
               <span
                 className="font-medium"
-                style={{ color: cell.rag === "none" ? "#5b5b66" : t.text }}
+                style={{ color: cell.rag === "none" ? "#dfd2e4" : t.text }}
               >
                 {show(cell.actual, meta.unit)}
               </span>
@@ -320,7 +320,7 @@ function MonthRow({
                       if (e.key === "Escape") onCancel();
                     }}
                     placeholder={meta.unit === "paisa" ? "৳" : "%"}
-                    className="w-[86px] rounded-[8px] border border-[#c9a6e0] px-2 py-1 text-[12px] outline-none"
+                    className="w-[86px] rounded-[8px] border border-[#402e4c] px-2 py-1 text-[12px] outline-none"
                     autoComplete="off"
                   />
                   <button onClick={() => onCommit(m.month, cell.kpi)} disabled={busy}

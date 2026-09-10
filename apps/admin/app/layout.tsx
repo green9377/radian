@@ -48,7 +48,7 @@ export default function RootLayout({
       >
         {/* DEC-FIN-028 — nothing inside is reachable without signing in */}
         <AuthGate>
-          <div className="min-h-screen flex bg-lavender text-body">
+          <div className="min-h-screen flex bg-canvas text-body">
             <AdminSidebar />
             <div className="flex-1 min-w-0">
               {/*  a pasted URL must meet the same door the menu shows —

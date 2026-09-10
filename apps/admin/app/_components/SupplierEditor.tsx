@@ -163,8 +163,8 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
       {/* SUP-R01 — duplicate phone warns, never blocks */}
       {dupWarn && (
-        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Same phone, different supplier</b>
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#3b2b17", borderColor: "#f0b95e" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#f6bb6f" }}>⚠ Same phone, different supplier</b>
           <p className="text-[13px] text-body m-0 mb-3">{dupWarn}</p>
           <div className="flex gap-2">
             <button onClick={() => setDupWarn(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
@@ -251,7 +251,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
             {/* DEC-SUP-005 — opening due */}
             {openingLocked ? (
-              <div className="rounded-[12px] px-4 py-3 mt-1 text-[12.5px]" style={{ background: "#f5f1f9", color: "#6b5878" }}>
+              <div className="rounded-[12px] px-4 py-3 mt-1 text-[12.5px]" style={{ background: "#282031", color: "#b0a1ba" }}>
                 Opening due is set: <b>{formatTaka(loaded!.openingDuePaisa)}</b>
                 {loaded!.openingNote ? <> · {loaded!.openingNote}</> : null} — locked (SUP-R04).
                 Wrong figure? Use an <b>Adjustment entry</b> on the supplier page; history stays honest.
@@ -292,7 +292,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyChannel === c
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                       {c === "WHATSAPP" ? "WhatsApp" : c === "SMS" ? "SMS" : "Off"}
                     </button>
                   ))}
@@ -305,7 +305,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyMode === m
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                       {m === "MANUAL" ? "Manual" : "Auto (later)"}
                     </button>
                   ))}
@@ -329,7 +329,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={status === s
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                       {s === "ACTIVE" ? "Active" : "Inactive"}
                     </button>
                   ))}

@@ -34,7 +34,7 @@ function Toggle({ on, onClick, c }: { on: boolean; onClick: () => void; c: strin
       type="button"
       onClick={onClick}
       className="w-[40px] h-[22px] rounded-full relative transition-colors shrink-0"
-      style={{ background: on ? c : "#d9cbe6" }}
+      style={{ background: on ? c : "#2f2638" }}
       aria-pressed={on}
     >
       <span className="absolute top-[2px] w-[18px] h-[18px] bg-white rounded-full shadow transition-all" style={{ left: on ? 20 : 2 }} />
@@ -139,7 +139,7 @@ export default function CustomerConsent() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -233,7 +233,7 @@ export default function CustomerConsent() {
       </div>
 
       {!isDemo && (
-        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
+        <div className="bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
           <b>These are placeholder values.</b> Consent is not stored on the Customer API yet, so nothing here reflects what
           your real customers actually agreed to. Real consent gets captured at checkout, from the account page, from a
           &ldquo;STOP&rdquo; reply, or by staff — after the WhatsApp Business API is connected.

@@ -33,12 +33,12 @@ const tkToPaisa = (v: string): number => {
 };
 
 const KIND_META: Record<string, { icon: string; color: string; bg: string }> = {
-  OPENING:      { icon: "book",  color: "#6b5878", bg: "#f1eef4" },
-  PURCHASE:     { icon: "box",   color: "#470066", bg: "#f5eafb" },
-  PAYMENT:      { icon: "cash",  color: "#0e7a3d", bg: "#e8f7ef" },
-  BILL_PAYMENT: { icon: "cash",  color: "#0e7a3d", bg: "#e8f7ef" },
-  RETURN:       { icon: "truck", color: "#b45309", bg: "#fff4e6" },
-  ADJUSTMENT:   { icon: "edit",  color: "#2563a8", bg: "#e8f0fa" },
+  OPENING:      { icon: "book",  color: "#b0a1ba", bg: "#29242e" },
+  PURCHASE:     { icon: "box",   color: "#ce6ef7", bg: "#2e1a38" },
+  PAYMENT:      { icon: "cash",  color: "#76efab", bg: "#1f3529" },
+  BILL_PAYMENT: { icon: "cash",  color: "#76efab", bg: "#1f3529" },
+  RETURN:       { icon: "truck", color: "#f7a96e", bg: "#3b2b17" },
+  ADJUSTMENT:   { icon: "edit",  color: "#79abe2", bg: "#1b2838" },
 };
 
 export default function SupplierDetailView({ supplierId }: { supplierId: string }) {
@@ -100,10 +100,10 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
       {/* ---------------- balance strip ---------------- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#c0392b" : "#0e7a3d", bg: s.duePaisa > 0 ? "#fdecea" : "#eaf7ef", icon: "wallet" },
-          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#0e8f74", bg: "#e7f5f1", icon: "gem" },
-          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#470066", bg: "#f5eafb", icon: "cart" },
-          { l: "Purchases", v: String(s.purchaseCount), sub: s.lastPurchaseAt ? `last ${fmtDate(s.lastPurchaseAt)}` : "", c: "#2563a8", bg: "#e8f0fa", icon: "box" },
+          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#c0392b" : "#0e7a3d", bg: s.duePaisa > 0 ? "#3b1a16" : "#1f3427", icon: "wallet" },
+          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#0e8f74", bg: "#20332e", icon: "gem" },
+          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#470066", bg: "#2e1a38", icon: "cart" },
+          { l: "Purchases", v: String(s.purchaseCount), sub: s.lastPurchaseAt ? `last ${fmtDate(s.lastPurchaseAt)}` : "", c: "#2563a8", bg: "#1b2838", icon: "box" },
         ].map((k) => (
           <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
             <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
@@ -132,7 +132,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                 className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                 style={tab === id
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                 {label}
               </button>
             ))}
@@ -180,8 +180,8 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                         {showDay && (
                           <div className={"flex items-center gap-2 " + (i === 0 ? "pt-1" : "pt-3")}>
                             <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full"
-                              style={{ background: "#f7f1fb", color: "#470066" }}>{day}</span>
-                            <span className="flex-1 h-px" style={{ background: "#efe4f7" }} />
+                              style={{ background: "#2b1c35", color: "#ce6ef7" }}>{day}</span>
+                            <span className="flex-1 h-px" style={{ background: "#2c1e37" }} />
                           </div>
                         )}
                         <div className="flex items-center gap-3 py-2.5 border-b border-lavender-deep/50 last:border-0">
@@ -208,7 +208,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                             )}
                           </span>
                           <span className="text-right shrink-0">
-                            <b className="block text-[14px]" style={{ color: e.amountPaisa >= 0 ? "#c0392b" : "#0e7a3d", fontVariantNumeric: "tabular-nums" }}>
+                            <b className="block text-[14px]" style={{ color: e.amountPaisa >= 0 ? "#e1837a" : "#76efab", fontVariantNumeric: "tabular-nums" }}>
                               {e.amountPaisa >= 0 ? "+" : "−"}{formatTaka(Math.abs(e.amountPaisa))}
                             </b>
                             <span className="block text-[10.5px] text-body-soft" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -223,20 +223,20 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
               </div>
 
               {ledger.months.length > 0 && (
-                <div className="px-4 py-3 border-t border-lavender-deep bg-[#fbf9fd]">
+                <div className="px-4 py-3 border-t border-lavender-deep bg-[#271c32]">
                   <b className="text-[11px] font-semibold uppercase tracking-[0.05em] text-purple block mb-2">Month by month</b>
                   {ledger.months.map((m) => (
                     <div key={m.month} className="flex items-center justify-between text-[12px] py-1">
                       <span className="font-semibold text-purple">{m.month}</span>
                       <span className="flex gap-2">
-                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#f5eafb", color: "#470066" }}>
+                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#2e1a38", color: "#ce6ef7" }}>
                           bought <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.bought)}</b>
                         </span>
-                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#eaf7ef", color: "#0e7a3d" }}>
+                        <span className="px-2 py-0.5 rounded-full" style={{ background: "#1f3427", color: "#76efab" }}>
                           paid <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.paid)}</b>
                         </span>
                         {m.returned > 0 && (
-                          <span className="px-2 py-0.5 rounded-full" style={{ background: "#fdf1e8", color: "#b45309" }}>
+                          <span className="px-2 py-0.5 rounded-full" style={{ background: "#3b2617", color: "#f7a96e" }}>
                             returned <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.returned)}</b>
                           </span>
                         )}
@@ -338,7 +338,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                         <span className="text-[13px] text-right">{formatTaka(it.standardCostPaisa)}</span>
                         <span className="text-[13px] text-right">{selling != null ? formatTaka(selling) : "—"}</span>
                         <span className="text-[13px] font-semibold text-right"
-                          style={{ color: margin == null ? "#9b8aa6" : margin >= 0 ? "#0e7a3d" : "#c0392b" }}>
+                          style={{ color: margin == null ? "#b0a2b8" : margin >= 0 ? "#0e7a3d" : "#c0392b" }}>
                           {margin != null ? formatTaka(margin) : "—"}
                         </span>
                       </Link>
@@ -361,7 +361,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                       <span className="block text-[11.5px] text-body-soft">{fmtDate(c.createdAt)}{consumed ? " · consumed" : " · open"}</span>
                     </span>
                     <span className="flex items-center gap-2 shrink-0">
-                      <b className="text-[13px]" style={{ color: consumed ? "#9b8aa6" : "#0e8f74" }}>{formatTaka(c.amountPaisa)}</b>
+                      <b className="text-[13px]" style={{ color: consumed ? "#b0a2b8" : "#74f1d7" }}>{formatTaka(c.amountPaisa)}</b>
                       {!consumed && (
                         <button
                           onClick={async () => {
@@ -506,8 +506,8 @@ function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () =>
     <Modal title={`Pay ${s.nickname || s.name}`} onClose={onClose}>
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-        Current due <b style={{ color: "#c0392b" }}>{formatTaka(s.duePaisa)}</b>
-        {s.creditPaisa > 0 && <> · credit already held <b style={{ color: "#0e8f74" }}>{formatTaka(s.creditPaisa)}</b></>}
+        Current due <b style={{ color: "#e1837a" }}>{formatTaka(s.duePaisa)}</b>
+        {s.creditPaisa > 0 && <> · credit already held <b style={{ color: "#74f1d7" }}>{formatTaka(s.creditPaisa)}</b></>}
         {s.payoutInfo && <> · payout: <b>{s.payoutInfo}</b></>}
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
@@ -522,7 +522,7 @@ function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () =>
                 className="text-[12px] font-medium px-3 py-1.5 rounded-[9px] border"
                 style={method === m.id
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
                 {m.label}
               </button>
             ))}
@@ -556,8 +556,8 @@ function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () =>
             ))}
             <div className="flex items-center justify-between pt-2 mt-1 border-t border-lavender-deep/60 text-[12.5px]">
               <span className="text-body-soft">Allocated {formatTaka(allocated)} of {formatTaka(amount)}</span>
-              {excess > 0 && <b style={{ color: "#0e8f74" }}>{formatTaka(excess)} → credit (no cash back)</b>}
-              {allocated > amount && <b style={{ color: "#c0392b" }}>over by {formatTaka(allocated - amount)}</b>}
+              {excess > 0 && <b style={{ color: "#74f1d7" }}>{formatTaka(excess)} → credit (no cash back)</b>}
+              {allocated > amount && <b style={{ color: "#e1837a" }}>over by {formatTaka(allocated - amount)}</b>}
             </div>
           </div>
           <button onClick={confirmPay} disabled={busy || amount <= 0 || allocated > amount}
@@ -601,7 +601,7 @@ function AdjustModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: ()
           {([-1, 1] as const).map((v) => (
             <button key={v} type="button" onClick={() => setSign(v)}
               className="px-3.5 py-2 text-[14px] font-bold"
-              style={sign === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#6b5878" }}>
+              style={sign === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#b0a1ba" }}>
               {v === -1 ? "−" : "+"}
             </button>
           ))}
@@ -681,7 +681,7 @@ function OrderMessageModal({ s, onClose }: { s: ApiSupplierDetail; onClose: () =
       <Field label="Extra note">
         <input className="ipt w-full" placeholder="Write 'Happy Birthday' on top" value={extra} onChange={(e) => setExtra(e.target.value)} />
       </Field>
-      <div className="rounded-[12px] px-4 py-3 mb-3 text-[12.5px] text-body" style={{ background: "#f5f1f9" }}>{text}</div>
+      <div className="rounded-[12px] px-4 py-3 mb-3 text-[12.5px] text-body" style={{ background: "#282031" }}>{text}</div>
       <a href={href} target="_blank" rel="noreferrer"
         className="block text-center text-white text-[13.5px] font-semibold px-4 py-3 rounded-[12px]"
         style={{ background: s.notifyChannel === "WHATSAPP" ? "#25D366" : ACCENT }}>

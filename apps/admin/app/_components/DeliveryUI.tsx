@@ -28,7 +28,7 @@ export function Header({
 
 export function DemoBadge({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-3 bg-[#f5eafb] border border-[#e3c8f2] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+    <div className="flex items-center gap-3 bg-[#2e1a38] border border-[#432a50] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
       <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-purple text-white px-2 py-1 rounded-full shrink-0">Offline</span>
       <span className="flex-1 min-w-[220px]">{text}</span>
     </div>
@@ -65,7 +65,7 @@ export function Field({ label, required, hint, children }: { label: string; requ
   return (
     <label className="block">
       <span className="text-[12.5px] font-medium text-body flex items-center gap-1.5 mb-1.5">
-        {label}{required && <span className="text-[#c0392b]">*</span>}
+        {label}{required && <span className="text-[#e1837a]">*</span>}
       </span>
       {children}
       {hint && <div className="text-[13px] text-body-soft mt-1.5">{hint}</div>}
@@ -119,7 +119,7 @@ export function TimeSelect({ value, onChange, allowEmpty }: {
   const inner = "bg-transparent outline-none cursor-pointer text-[13.5px] font-semibold text-purple text-center py-2 disabled:opacity-40";
 
   return (
-    <div className="inline-flex items-center border-[1.5px] border-[#d8c6ee] rounded-[12px] bg-white overflow-hidden hover:border-[#c6a9e8] transition-colors">
+    <div className="inline-flex items-center border-[1.5px] border-[#3c2d4e] rounded-[12px] bg-white overflow-hidden hover:border-[#3c2c4f] transition-colors">
       <select className={inner + " pl-3 pr-1"}
         value={h12 ?? ""}
         onChange={(e) => commit(e.target.value === "" ? null : Number(e.target.value), mm, pm)}>

@@ -110,10 +110,10 @@ export function RecurringLive() {
       )}
 
       {due.length > 0 && (
-        <Card className="px-5 py-4 mb-6 border-[#f5d9a8] bg-[#fffdf7]">
+        <Card className="px-5 py-4 mb-6 border-[#534328] bg-[#393016]">
           <div className="font-semibold text-[14px] text-purple mb-2">{due.length} due this month</div>
           {due.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-4 py-2 border-b border-[#f6f2f9] last:border-0">
+            <div key={r.id} className="flex items-center justify-between gap-4 py-2 border-b border-[#3f3248] last:border-0">
               <div>
                 <div className="font-semibold text-purple">{r.name} · {taka(r.amountPaisa)}</div>
                 <div className="text-[12px] text-body-soft">due on day {r.dayOfMonth}</div>
@@ -129,7 +129,7 @@ export function RecurringLive() {
 
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#2c1b37", color: "#d47de8" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">Name</th>
               <th className="text-left px-4 py-2.5 font-semibold">Day</th>
@@ -140,18 +140,18 @@ export function RecurringLive() {
           <tbody>
             {rows.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-body-soft">Nothing set up yet</td></tr>}
             {rows.map((r) => (
-              <tr key={r.id} className="border-t border-[#f3eef7]">
+              <tr key={r.id} className="border-t border-[#3e3248]">
                 <td className="px-4 py-2.5 font-semibold text-purple">{r.name}{!r.isActive && <span className="text-body-soft font-normal"> · off</span>}</td>
                 <td className="px-4 py-2.5 text-body-soft">{r.dayOfMonth}</td>
                 <td className="px-4 py-2.5 text-right font-bold">{taka(r.amountPaisa)}</td>
                 <td className="px-4 py-2.5 text-right">
-                  {r.postedThisMonth ? <span className="text-[#0f7d55] font-semibold">Posted</span>
-                    : r.isDue ? <span className="text-[#b45309] font-semibold">Due</span>
+                  {r.postedThisMonth ? <span className="text-[#76efc3] font-semibold">Posted</span>
+                    : r.isDue ? <span className="text-[#f7a96e] font-semibold">Due</span>
                     : <span className="text-body-soft">Not yet</span>}
                   <button className="ml-3 text-[12px] text-purple font-semibold" onClick={async () => {
                     try { await updateFinanceRecurring(r.id, { isActive: !r.isActive }); await load(); } catch (e) { fail(e); }
                   }}>{r.isActive ? "Turn off" : "Turn on"}</button>
-                  <button className="ml-2 text-[12px] text-[#b91c1c] font-semibold" onClick={async () => {
+                  <button className="ml-2 text-[12px] text-[#ea7171] font-semibold" onClick={async () => {
                     if (!window.confirm(`Remove ${r.name}?`)) return;
                     try { await deleteFinanceRecurring(r.id); await load(); } catch (e) { fail(e); }
                   }}>Remove</button>
@@ -288,7 +288,7 @@ export function StaffMoneyLive() {
             </div>
           )}
           {chosen && outstanding > 0 && (
-            <div className="text-[12px] text-[#b45309] font-semibold mt-1">Advance outstanding: {taka(outstanding)}</div>
+            <div className="text-[12px] text-[#f7a96e] font-semibold mt-1">Advance outstanding: {taka(outstanding)}</div>
           )}
           <div className="grid grid-cols-3 gap-3 mt-3">
             <div>
@@ -346,7 +346,7 @@ export function StaffMoneyLive() {
               <Td right className="text-body-soft">{taka(r.givenPaisa)}</Td>
               <Td right className="text-body-soft">{taka(r.recoveredPaisa)}</Td>
               <Td right>
-                <b style={{ color: r.outstandingPaisa > 0 ? "#b45309" : "#0f7d55" }}>{taka(r.outstandingPaisa)}</b>
+                <b style={{ color: r.outstandingPaisa > 0 ? "#f7a96e" : "#76efc3" }}>{taka(r.outstandingPaisa)}</b>
               </Td>
             </tr>
           ))}
@@ -433,7 +433,7 @@ export function AccountantJournalLive() {
           </button>
           <div className="text-[13px]">
             Debit <b>{taka(debit)}</b> · Credit <b>{taka(credit)}</b>{" "}
-            <span className="ml-2 font-semibold" style={{ color: balanced ? "#0f7d55" : "#b91c1c" }}>
+            <span className="ml-2 font-semibold" style={{ color: balanced ? "#76efc3" : "#ea7171" }}>
               {balanced ? "balanced" : `out by ${taka(Math.abs(debit - credit))}`}
             </span>
           </div>
