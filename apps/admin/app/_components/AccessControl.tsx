@@ -386,8 +386,8 @@ export default function AccessControl() {
                   disabled={busy === `cost:${position.id}`}
                   className="text-[12px] font-bold px-3.5 py-1.5 rounded-full border-2 disabled:opacity-50"
                   style={position.canSeeCost
-                    ? { background: "#0e8f74", borderColor: "#0e8f74", color: "#fff" }
-                    : { background: "#fff", borderColor: "#3c3248", color: "#a8a1ba" }}>
+                    ? { background: "#0e8f74", borderColor: "#74f1d7", color: "#fff" }
+                    : { background: "#fff", borderColor: "#e0d7ec", color: "#a8a1ba" }}>
                   {position.canSeeCost ? "On" : "Off"}
                 </button>
               )}
@@ -539,9 +539,9 @@ function TriState({
     v: Verdict; label: string;
     on: string; onText: string; offBg: string; offText: string;
   }[] = [
-    { v: true,  label: "Allow",   on: "linear-gradient(135deg,#73f2c6,#22c08b)", onText: "#fff",    offBg: "#1c3629", offText: "#0e9767" },
-    { v: null,  label: "Auto", on: "#dfd2e4",                                  onText: "#fff",    offBg: "#272131", offText: "#6f677f" },
-    { v: false, label: "Block",   on: "linear-gradient(135deg,#e87d73,#e8604f)",  onText: "#fff",    offBg: "#3b1b17", offText: "#c62f20" },
+    { v: true,  label: "Allow",   on: "linear-gradient(135deg,#73f2c6,#74e6c0)", onText: "#fff",    offBg: "#1c3629", offText: "#73f2c6" },
+    { v: null,  label: "Auto", on: "#dfd2e4",                                  onText: "#fff",    offBg: "#272131", offText: "#aba5b6" },
+    { v: false, label: "Block",   on: "linear-gradient(135deg,#e87d73,#ec7d6f)",  onText: "#fff",    offBg: "#3b1b17", offText: "#e87d73" },
   ];
   return (
     <div className="flex rounded-[9px] overflow-hidden shrink-0 gap-[3px] p-[3px]"

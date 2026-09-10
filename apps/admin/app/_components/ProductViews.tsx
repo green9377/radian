@@ -213,14 +213,14 @@ const HUE: Record<string, string> = {
     here. Hues map into the brand family — red and amber stay warnings,
     because "selling at a loss" must look like one.  */
 const KPI_TONE: Record<string, { c: string; edge: string; bg: string }> = {
-  purple: { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" },
-  orchid: { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" },
-  rose:   { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" },
-  green:  { c: "#0f7d55", edge: "#37a97c", bg: "#20332a" },
-  teal:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" },
-  blue:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" },
-  amber:  { c: "#b45309", edge: "#e29a34", bg: "#3c2d17" },
-  red:    { c: "#c0392b", edge: "#e0705f", bg: "#3b1b17" },
+  purple: { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" },
+  orchid: { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" },
+  rose:   { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" },
+  green:  { c: "#76efc3", edge: "#37a97c", bg: "#20332a" },
+  teal:   { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" },
+  blue:   { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" },
+  amber:  { c: "#f7a96e", edge: "#e29a34", bg: "#3c2d17" },
+  red:    { c: "#e1837a", edge: "#e0705f", bg: "#3b1b17" },
 };
 function Kpi({
   n,
@@ -1816,10 +1816,10 @@ export function VariantAttributes() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Lists", v: attrs.length, c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
-          { l: "Options", v: totalValues, c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "grid" },
-          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
-          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
+          { l: "Lists", v: attrs.length, c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
+          { l: "Options", v: totalValues, c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "grid" },
+          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
+          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
@@ -2638,7 +2638,7 @@ export function UpgradeProducts() {
                   key={i}
                   className="rounded-[16px] border-[1.5px] shadow-soft px-5 py-4"
                   style={{
-                    borderColor: tone === "good" ? "#9fd8bf" : "#522e28",
+                    borderColor: tone === "good" ? "#9fd8bf" : "#f0b8b0",
                     background: tone === "good" ? "linear-gradient(135deg,#1c3429,#1f1727)" : "linear-gradient(135deg,#391c17,#1f1727)",
                   }}
                 >

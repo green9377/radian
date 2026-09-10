@@ -61,8 +61,8 @@ export function Said({ say, className = "" }: { say: Say; className?: string }) 
       className={`flex items-start gap-2.5 rounded-[12px] border px-4 py-3 mb-4 text-[13px] ${className}`}
       style={
         bad
-          ? { background: "#3a171b", borderColor: "#512a2f", color: "#d98c95" }
-          : { background: "#1c3626", borderColor: "#2d4d3a", color: "#76efab" }
+          ? { background: "#3a171b", borderColor: "#f3c9cf", color: "#d98c95" }
+          : { background: "#1c3626", borderColor: "#c2ecd3", color: "#76efab" }
       }
     >
       <Icon name={bad ? "shield" : "check"} size={16} />

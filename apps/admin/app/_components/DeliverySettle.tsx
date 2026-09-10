@@ -182,10 +182,10 @@ export function DeliverySettle() {
       {picked.size > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
-            { l: "Parcels", v: String(picked.size), c: "#7d2ea8" },
-            { l: "Cash expected", v: formatTaka(totals.expected), c: "#0b5f9e" },
-            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "#b42318" : "#0e7a3d" },
-            { l: "Their charge", v: formatTaka(totals.charge), c: "#b45309" },
+            { l: "Parcels", v: String(picked.size), c: "#bb7fdc" },
+            { l: "Cash expected", v: formatTaka(totals.expected), c: "#70bcf5" },
+            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "#ed8078" : "#76efab" },
+            { l: "Their charge", v: formatTaka(totals.charge), c: "#f7a96e" },
           ].map((s) => (
             <div key={s.l} className="bg-white border border-lavender-deep rounded-[13px] px-4 py-3">
               <div className="text-[12px] text-body-soft">{s.l}</div>

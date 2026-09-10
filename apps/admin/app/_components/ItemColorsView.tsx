@@ -237,7 +237,7 @@ export default function ItemColorsView() {
                 </div>
                 {dlg.hex.trim() !== "" && !isHex(dlg.hex) && (
                   <p className="text-[11.5px] text-[#e1837a] m-0 mt-1">
-                    That is not a colour code. It should look like <b>#e0203c</b> — a # and six letters/numbers.
+                    That is not a colour code. It should look like <b>#eb7082</b> — a # and six letters/numbers.
                   </p>
                 )}
               </Field>
@@ -267,7 +267,7 @@ export default function ItemColorsView() {
                   }}
                   title={`${c.label} · ${c.hex}`}
                   className="w-[30px] h-[30px] rounded-full border-2"
-                  style={{ background: c.hex, borderColor: dlg.hex.toLowerCase() === c.hex ? ACCENT : "#2c1e37" }} />
+                  style={{ background: c.hex, borderColor: dlg.hex.toLowerCase() === c.hex ? ACCENT : "#efe4f7" }} />
               ))}
             </div>
           </div>

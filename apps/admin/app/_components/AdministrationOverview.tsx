@@ -330,7 +330,7 @@ export default function AdministrationOverview() {
                   style={{ background: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#2d2934" }} />
                 <span className="text-[12.5px] font-medium text-body truncate">{s.label}</span>
                 <span className="ml-auto text-[10.5px] font-bold uppercase tracking-wide shrink-0"
-                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#37333e" }}>
+                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#a99fbb" }}>
                   {s.isEnabled ? (s.isLive ? "live" : "sandbox") : "off"}
                 </span>
               </Link>

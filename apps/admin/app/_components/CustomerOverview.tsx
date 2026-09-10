@@ -207,27 +207,27 @@ export default function CustomerOverview() {
   }, [all]);
 
   const HERO = [
-    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "#7a2ea8", bg: "#2e1a38" },
-    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "#12a172", bg: "#1e362b" },
-    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "#c07a2b", bg: "#3b2d18" },
-    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "#3182c9", bg: "#192739" },
-    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "#c01fd8", bg: "#36163b" },
-    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "#c0567a", bg: "#371a24" },
+    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "#b97fdc", bg: "#2e1a38" },
+    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "#75f0c7", bg: "#1e362b" },
+    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "#e1b17a", bg: "#3b2d18" },
+    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "#7cb1df", bg: "#192739" },
+    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "#db70eb", bg: "#36163b" },
+    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "#d388a1", bg: "#371a24" },
   ];
 
   const SECOND = [
-    { l: "Avg order value", v: takaShort(s.aov), icon: "bag", c: "#7a2ea8" },
-    { l: "Orders (all time)", v: String(s.orders), icon: "bag", c: "#8a6aa3" },
-    { l: "Avg orders / customer", v: s.avgOrders, icon: "layers", c: "#3182c9" },
-    { l: "One-time buyers", v: String(s.onetime), icon: "user", c: "#d98a0f" },
-    { l: "WhatsApp verified", v: s.verifiedPct + "%", icon: "shield", c: "#12a172" },
-    { l: "Favourite recipients", v: String(s.favourites), icon: "star", c: "#b76e79" },
-    { l: "Dhaka recipients", v: String(s.dhaka), icon: "pin", c: "#8b3fb0" },
-    { l: "Nationwide recipients", v: String(s.nationwide), icon: "truck", c: "#b5642f" },
-    { l: "No recipient yet", v: String(s.noRecipients), icon: "hash", c: "#8a6aa3" },
-    { l: "Quiet 90+ days", v: String(s.churn), icon: "clock", c: s.churn > 0 ? "#c0392b" : "#12a172" },
-    { l: "Unverified phone", v: String(s.noPhoneVerify), icon: "phone", c: s.noPhoneVerify > 0 ? "#d98a0f" : "#12a172" },
-    { l: "Blocked", v: String(s.blocked), icon: "trash", c: s.blocked > 0 ? "#c0392b" : "#12a172" },
+    { l: "Avg order value", v: takaShort(s.aov), icon: "bag", c: "#b97fdc" },
+    { l: "Orders (all time)", v: String(s.orders), icon: "bag", c: "#b09ac1" },
+    { l: "Avg orders / customer", v: s.avgOrders, icon: "layers", c: "#7cb1df" },
+    { l: "One-time buyers", v: String(s.onetime), icon: "user", c: "#f4bd66" },
+    { l: "WhatsApp verified", v: s.verifiedPct + "%", icon: "shield", c: "#75f0c7" },
+    { l: "Favourite recipients", v: String(s.favourites), icon: "star", c: "#c9929a" },
+    { l: "Dhaka recipients", v: String(s.dhaka), icon: "pin", c: "#bb87d4" },
+    { l: "Nationwide recipients", v: String(s.nationwide), icon: "truck", c: "#dda37d" },
+    { l: "No recipient yet", v: String(s.noRecipients), icon: "hash", c: "#b09ac1" },
+    { l: "Quiet 90+ days", v: String(s.churn), icon: "clock", c: s.churn > 0 ? "#e1837a" : "#75f0c7" },
+    { l: "Unverified phone", v: String(s.noPhoneVerify), icon: "phone", c: s.noPhoneVerify > 0 ? "#f4bd66" : "#75f0c7" },
+    { l: "Blocked", v: String(s.blocked), icon: "trash", c: s.blocked > 0 ? "#e1837a" : "#75f0c7" },
   ];
 
   const mixTotal = s.total || 1;
@@ -370,9 +370,9 @@ export default function CustomerOverview() {
             <div style={{ width: `${(s.neu / mixTotal) * 100}%`, background: "linear-gradient(90deg,#470066,#cf43ea)" }} />
           </div>
           {[
-            { l: "Repeat (2+ orders)", v: s.repeat, c: "#12a172" },
-            { l: "One-time", v: s.onetime, c: "#d98a0f" },
-            { l: "Yet to order", v: s.neu, c: "#8b3fb0" },
+            { l: "Repeat (2+ orders)", v: s.repeat, c: "#75f0c7" },
+            { l: "One-time", v: s.onetime, c: "#f4bd66" },
+            { l: "Yet to order", v: s.neu, c: "#bb87d4" },
           ].map((r) => (
             <div key={r.l} className="flex items-center justify-between py-1.5 text-[13px]">
               <span className="flex items-center gap-2 text-body">

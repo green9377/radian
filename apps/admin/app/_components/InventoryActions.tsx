@@ -78,7 +78,7 @@ function WhPills({ whs, value, onChange, exclude }: {
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
           style={value === w.id
             ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+            : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
           {w.name}
         </button>
       ))}
@@ -674,7 +674,7 @@ export function InvIssueView() {
             className="text-[13px] font-medium px-4 py-2 rounded-[10px] border"
             style={tab === id
               ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-              : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+              : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
             {label}
           </button>
         ))}
@@ -694,7 +694,7 @@ export function InvIssueView() {
                     className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
                     style={kind === k
                       ? { background: k === "WASTAGE" ? "#c0392b" : "#cf43ea", color: "#fff", borderColor: "transparent" }
-                      : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+                      : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
                     {k === "WASTAGE" ? "Wastage" : "Gift (free out)"}
                   </button>
                 ))}
@@ -724,7 +724,7 @@ export function InvIssueView() {
                   <span key={r.id} className="group inline-flex items-center rounded-full border transition-colors"
                     style={reason === r.label
                       ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                      : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+                      : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
                     <button type="button" onClick={() => setReason(r.label)}
                       className="text-[12.5px] font-medium pl-3 pr-1.5 py-1.5">{r.label}</button>
                     <span className="hidden group-hover:inline-flex items-center pr-1.5 gap-0.5">
@@ -799,7 +799,7 @@ export function InvIssueView() {
             className="text-[12px] font-medium px-3 py-1.5 rounded-full border transition-colors"
             style={histKind === k
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
             {k === "" ? "All" : k === "WASTAGE" ? "Wastage" : "Gift"}
           </button>
         ))}
@@ -880,7 +880,7 @@ function IssueAnalysisView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border"
             style={days === d
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
             {d === 365 ? "1 year" : `${d} days`}
           </button>
         ))}
@@ -891,8 +891,8 @@ function IssueAnalysisView() {
         {[
           { l: "Wasted", v: formatTaka(a.totalWastagePaisa), c: W_RED, bg: "#3b1a16", icon: "trash" },
           { l: "Gifted", v: formatTaka(a.totalGiftPaisa), c: G_PINK, bg: "#35163b", icon: "heart" },
-          { l: "Total lost", v: formatTaka(total), c: "#470066", bg: "#2e1a38", icon: "chart" },
-          { l: "Entries", v: String(a.entryCount), c: "#2563a8", bg: "#1b2838", icon: "layers" },
+          { l: "Total lost", v: formatTaka(total), c: "#ce6ef7", bg: "#2e1a38", icon: "chart" },
+          { l: "Entries", v: String(a.entryCount), c: "#79abe2", bg: "#1b2838", icon: "layers" },
         ].map((k) => (
           <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
             <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
@@ -1087,7 +1087,7 @@ export function InvAdjustModal({ row, whs, onClose, onDone }: {
           value={counted} onChange={(e) => setCounted(e.target.value)} />
       </Field>
       {counted !== "" && (
-        <p className="text-[13px] mb-3" style={{ color: delta === 0 ? "#dfd2e4" : delta > 0 ? "#76efab" : "#c0392b" }}>
+        <p className="text-[13px] mb-3" style={{ color: delta === 0 ? "#dfd2e4" : delta > 0 ? "#76efab" : "#e1837a" }}>
           {delta === 0 ? "No difference — nothing to post."
             : `Adjustment: ${delta > 0 ? "+" : ""}${fmtQty(delta)} ${row.unitShort} (ADJUSTMENT movement, audited)`}
         </p>
@@ -1257,11 +1257,11 @@ export function InvStocktakeView() {
                   <input className="ipt" inputMode="decimal" placeholder="—" value={v}
                     onChange={(e) => setCounts({ ...counts, [r.itemId]: e.target.value })} />
                   <span className="text-right text-[13px] font-semibold"
-                    style={{ color: diff === null || diff === 0 ? "#b0a3b7" : diff > 0 ? "#0e7a3d" : "#c0392b" }}>
+                    style={{ color: diff === null || diff === 0 ? "#b0a3b7" : diff > 0 ? "#76efab" : "#e1837a" }}>
                     {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtQty(diff)}`}
                   </span>
                   <span className="text-right text-[13px]"
-                    style={{ color: diffPaisa === null || diffPaisa === 0 ? "#b0a3b7" : diffPaisa > 0 ? "#0e7a3d" : "#c0392b" }}>
+                    style={{ color: diffPaisa === null || diffPaisa === 0 ? "#b0a3b7" : diffPaisa > 0 ? "#76efab" : "#e1837a" }}>
                     {diffPaisa === null ? "—" : formatTaka(diffPaisa)}
                   </span>
                 </div>
@@ -1341,7 +1341,7 @@ export function InvStocktakeView() {
                   {s.lines.length} counted · {diffCount} differ{s.note ? ` · ${s.note}` : ""}
                 </span>
                 <span className="text-right text-[13px] font-semibold"
-                  style={{ color: net === 0 ? "#b0a3b7" : net > 0 ? "#76efab" : "#c0392b" }}>
+                  style={{ color: net === 0 ? "#b0a3b7" : net > 0 ? "#76efab" : "#e1837a" }}>
                   {formatTaka(net)}
                 </span>
                 <span className="text-right text-[12px] text-body-soft">
@@ -1366,7 +1366,7 @@ export function InvStocktakeView() {
                       <span className="text-right text-body-soft">ledger {fmtQty(l.ledgerQtyMilli)}</span>
                       <span className="text-right text-body">counted {fmtQty(l.countedQtyMilli)}</span>
                       <span className="text-right font-medium"
-                        style={{ color: l.diffValuePaisa === 0 ? "#b0a3b7" : l.diffValuePaisa > 0 ? "#0e7a3d" : "#c0392b" }}>
+                        style={{ color: l.diffValuePaisa === 0 ? "#b0a3b7" : l.diffValuePaisa > 0 ? "#76efab" : "#e1837a" }}>
                         {formatTaka(l.diffValuePaisa)}
                       </span>
                     </div>

@@ -89,24 +89,29 @@ const GROUPS: Group[] = [
       {
         label: "Orders", href: "/orders", icon: "bag",
         subs: [
+          { label: "Overview", href: "/orders" },
           { label: "All orders", href: "/orders/list" },
           /*  Needs action, Scheduled and the old Recovery page left the menu on
               9 Sep 2026 (owner): All orders carries Confirm/Call on every row,
               and Lost orders is where the unfinished ones live now.  */
           { label: "Lost orders", href: "/orders/lost" },
-          { label: "Cancelled", href: "/orders/cancelled" },
+          /*  Cancelled is a segment of All orders; Online payments and the
+              order-side Returns list are tabs of Payments (owner, 9 Sep 2026).  */
           { label: "Payments", href: "/orders/payments" },
-          { label: "Online payments", href: "/orders/online-payments" },
           { label: "Reports", href: "/orders/reports" },
         ],
       },
       {
         label: "Delivery", href: "/delivery", icon: "truck",
         subs: [
-          { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
-          { label: "Proof photos", href: "/delivery/proof" },
-          { label: "Settle a carrier", href: "/delivery/settle" },
-          { label: "Cost & performance", href: "/delivery/performance" },
+          /*  Owner, 10 Sep 2026: three pages. Proof photos left — the photo
+              is a step on the order and a column on the board.  */
+          { label: "Delivery board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Delivery money", href: "/delivery/settle" },
+          { label: "Reports", href: "/delivery/performance" },
+          /*  Owner, 10 Sep 2026: the setup lives with the module, not under
+              Settings — one place to look for anything delivery.  */
+          { label: "Delivery setup", href: "/delivery/setup" },
         ],
       },
       {
@@ -381,9 +386,6 @@ const GROUPS: Group[] = [
           { label: "Company settings", href: "/administration/company", roles: ["OWNER"] },
           { label: "Sales channels", href: "/orders/channels" },
           { label: "Payment methods", href: "/administration/payment-methods", roles: ["OWNER", "MANAGER"] },
-          { label: "Delivery methods & slots", href: "/delivery/zones" },
-          { label: "Delivery setup", href: "/delivery/setup" },
-          { label: "Riders", href: "/delivery/riders" },
           { label: "Returns settings", href: "/returns/settings" },
           { label: "All settings", href: "/administration/settings", roles: ["OWNER"] },
         ],

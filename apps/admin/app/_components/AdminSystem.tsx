@@ -113,10 +113,10 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
                 {!s.isYou && (
                   <div className="flex gap-1 shrink-0">
                     <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
-                      style={{ borderColor: "#3b3248", color: "#b97fdc" }}
+                      style={{ borderColor: "#e4ddef", color: "#b97fdc" }}
                       disabled={busy === s.id} onClick={() => void drop(s)}>Sign out</button>
                     <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
-                      style={{ borderColor: "#512e29", color: "#e1837a" }}
+                      style={{ borderColor: "#f2c8c2", color: "#e1837a" }}
                       disabled={busy === s.id} onClick={() => void dropAll(s)}>All devices</button>
                   </div>
                 )}
@@ -321,7 +321,7 @@ export function SettingsMapScreen() {
                 {list.map((r) => (
                   <Link key={r.key} href={r.href}
                     className="rounded-[13px] border bg-white p-3 transition-all hover:-translate-y-[1px]"
-                    style={{ borderColor: "#3c3347", boxShadow: "0 1px 4px rgba(70,0,102,0.05)" }}>
+                    style={{ borderColor: "#eee9f4", boxShadow: "0 1px 4px rgba(70,0,102,0.05)" }}>
                     <div className="flex items-center gap-2.5">
                       <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0"
                         style={{ background: meta.grad }}>

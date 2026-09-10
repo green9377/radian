@@ -292,7 +292,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyChannel === c
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                       {c === "WHATSAPP" ? "WhatsApp" : c === "SMS" ? "SMS" : "Off"}
                     </button>
                   ))}
@@ -305,7 +305,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyMode === m
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                       {m === "MANUAL" ? "Manual" : "Auto (later)"}
                     </button>
                   ))}
@@ -329,7 +329,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={status === s
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                        : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                       {s === "ACTIVE" ? "Active" : "Inactive"}
                     </button>
                   ))}

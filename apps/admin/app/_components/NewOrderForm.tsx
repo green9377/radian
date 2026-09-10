@@ -490,13 +490,13 @@ export default function NewOrderForm() {
               })}
             </div>
             {/* cash in hand right now — counter or phone order */}
-            <div className="rounded-[12px] border p-3.5 mb-3" style={{ background: "#1c3626", borderColor: "#2d4d3a" }}>
+            <div className="rounded-[12px] border p-3.5 mb-3" style={{ background: "#1c3626", borderColor: "#c2ecd3" }}>
               <label className={labelCls} style={{ color: "#76efab" }}>Cash collected now ৳ (optional)</label>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-[150px]">
                   <input type="number" min={0} className="ipt h-[42px]" value={cashPaisa ? Math.round(cashPaisa / 100) : ""} placeholder="0" onChange={(e) => setCashPaisa(Math.max(0, Number(e.target.value)) * 100)} />
                 </div>
-                <button type="button" onClick={() => setCashPaisa(total)} className="text-[12.5px] px-3 py-1.5 rounded-[9px] border bg-white font-medium" style={{ color: "#76efab", borderColor: "#2d4d3a" }}>
+                <button type="button" onClick={() => setCashPaisa(total)} className="text-[12.5px] px-3 py-1.5 rounded-[9px] border bg-white font-medium" style={{ color: "#76efab", borderColor: "#c2ecd3" }}>
                   Full amount ({formatTaka(total)})
                 </button>
                 {cashPaisa > 0 && (

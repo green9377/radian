@@ -114,7 +114,7 @@ export function DeliveryMasters() {
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
               className="px-4 py-2 rounded-full text-[13px] font-semibold border inline-flex items-center gap-2 transition-all"
-              style={on ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#b0a1ba", borderColor: "#3f3248" }}>
+              style={on ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#b0a1ba", borderColor: "#e3d7ec" }}>
               <Icon name={t.icon} size={15} /> {t.label}
             </button>
           );

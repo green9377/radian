@@ -120,11 +120,11 @@ export default function PurchaseReportsView() {
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "#470066", bg: "#2e1a38", icon: "box" },
-        { l: "Paid", v: formatTaka(totals.paid), c: "#0e7a3d", bg: "#1f3529", icon: "check" },
-        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
-        { l: "Purchases", v: live.length, c: "#2563a8", bg: "#1b2838", icon: "grid" },
-        { l: "Suppliers", v: supplierBoard.length, c: "#b5642f", bg: "#38291c", icon: "user" },
+        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+        { l: "Paid", v: formatTaka(totals.paid), c: "#76efab", bg: "#1f3529", icon: "check" },
+        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
+        { l: "Purchases", v: live.length, c: "#79abe2", bg: "#1b2838", icon: "grid" },
+        { l: "Suppliers", v: supplierBoard.length, c: "#dda37d", bg: "#38291c", icon: "user" },
       ]} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">

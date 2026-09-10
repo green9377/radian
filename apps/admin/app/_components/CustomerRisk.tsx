@@ -126,11 +126,11 @@ export default function CustomerRisk() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
-          { l: "High risk", v: String(stats.high), c: "#c0392b", bg: "#3b1717", icon: "shield" },
-          { l: "Watch list", v: String(stats.med), c: "#d98a0f", bg: "#3a2d16", icon: "bolt" },
-          { l: "Blocked", v: String(stats.blocked), c: "#b42318", bg: "#371a1a", icon: "trash" },
-          { l: "Fake COD (total)", v: String(stats.fake), c: "#8b3fb0", bg: "#2e1a38", icon: "cash" },
-          { l: "Failed deliveries", v: String(stats.failed), c: "#3182c9", bg: "#192739", icon: "truck" },
+          { l: "High risk", v: String(stats.high), c: "#e1837a", bg: "#3b1717", icon: "shield" },
+          { l: "Watch list", v: String(stats.med), c: "#f4bd66", bg: "#3a2d16", icon: "bolt" },
+          { l: "Blocked", v: String(stats.blocked), c: "#ed8078", bg: "#371a1a", icon: "trash" },
+          { l: "Fake COD (total)", v: String(stats.fake), c: "#bb87d4", bg: "#2e1a38", icon: "cash" },
+          { l: "Failed deliveries", v: String(stats.failed), c: "#7cb1df", bg: "#192739", icon: "truck" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>

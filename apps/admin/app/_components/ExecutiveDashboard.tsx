@@ -51,7 +51,7 @@ function Jump({ id, label, icon }: { id: string; label: string; icon: string }) 
     <a
       href={`#${id}`}
       className="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-      style={{ borderColor: "#3f2d4e", color: "#ce6ef7", background: "#291a35" }}
+      style={{ borderColor: "#e4d3f2", color: "#ce6ef7", background: "#291a35" }}
     >
       <Icon name={icon} size={13} />
       {label}

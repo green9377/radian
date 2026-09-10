@@ -34,10 +34,10 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 
 /*  Brand family only — deep purple, orchid, rose gold, soft purple (house
     rule 17). Never a rainbow.  */
-const P = { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" };
-const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" };
-const R = { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" };
-const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" };
+const P = { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" };
+const O = { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" };
+const R = { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" };
+const S = { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" };
 
 /** One number the owner types. Bold label, real field — house rule 16. */
 function RuleField({

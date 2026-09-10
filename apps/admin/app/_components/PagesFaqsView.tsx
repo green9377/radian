@@ -44,25 +44,25 @@ const KNOWN_SLUGS = [
 const SECTIONS = [
   {
     id: "pages", label: "All pages", blurb: "Terms, privacy, refund and more", icon: "grid",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "live", label: "Live", blurb: "On the storefront now", icon: "eye",
-    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
     ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
     fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "drafts", label: "Drafts", blurb: "Built-in text still showing", icon: "clock",
-    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    tint: "#3c2e17", edge: "#514429", chip: "#41351f",
     ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
     fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "faqs", label: "FAQ", blurb: "The questions on /faq", icon: "hash",
-    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    tint: "#192939", edge: "#2b3e4f", chip: "#1f2e3d",
     ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
     fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },

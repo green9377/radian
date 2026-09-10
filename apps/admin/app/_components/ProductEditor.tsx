@@ -239,7 +239,7 @@ function VarChips({
               (on ? "text-white" : "bg-white hover:bg-lavender/60")
             }
             style={on
-              ? { background: "#3b1152", borderColor: "#3b1152", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
+              ? { background: "#3b1152", borderColor: "#c180e5", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
               : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
           >
             {g.label}
@@ -295,7 +295,7 @@ function StoryChips({
               (on ? "text-white" : "bg-white hover:bg-lavender/60")
             }
             style={on
-              ? { background: "#3b1152", borderColor: "#3b1152", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
+              ? { background: "#3b1152", borderColor: "#c180e5", boxShadow: "0 4px 14px rgba(59,17,82,.3)" }
               : { borderColor: "var(--color-lavender-deep)", color: "var(--color-purple)" }}
           >
             {g.label}
@@ -437,9 +437,9 @@ function NatureChips({
             <span key={n.id}
               className="group/nat inline-flex items-stretch rounded-[11px] border-2 overflow-hidden transition-all"
               style={on
-                ? { borderColor: "#6d3a9c", background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                ? { borderColor: "#af88d3", background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
                 : being
-                  ? { borderColor: "#6d3a9c", background: "#fff", boxShadow: "0 0 0 3px #2c1e34" }
+                  ? { borderColor: "#af88d3", background: "#fff", boxShadow: "0 0 0 3px #2c1e34" }
                   : { borderColor: "var(--color-lavender-deep)", background: "#fff" }}>
               <button
                 type="button"
@@ -504,7 +504,7 @@ function NatureChips({
             {editing && (
               <button type="button" onClick={() => void remove(rows.find((r) => r.id === editing)!)}
                 className="ml-auto border-2 bg-white text-[13.5px] font-bold px-5 py-2.5 rounded-[11px] inline-flex items-center gap-2 hover:bg-[#3b1a16]"
-                style={{ borderColor: "#50302b", color: "#ed8078" }}>
+                style={{ borderColor: "#f0c8c2", color: "#ed8078" }}>
                 <Icon name="trash" size={15} /> Remove this kind
               </button>
             )}
@@ -753,7 +753,7 @@ function Chips({
             used to be a medium-weight pill that only changed colour, so a
             picked tag and an unpicked one read almost the same from a step
             back — on a row of twelve, that is the whole point of the row.  */
-        const ink = gold ? "#b76e79" : "#6d3a9c";
+        const ink = gold ? "#c9929a" : "#af88d3";
         return (
           <button
             key={c}
@@ -5658,7 +5658,7 @@ No bundle products yet — add them on{" "}
                           (on ? "text-white" : "bg-white text-purple hover:border-orchid-mid")
                         }
                         style={on
-                          ? { background: "#6d3a9c", borderColor: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
+                          ? { background: "#6d3a9c", borderColor: "#af88d3", boxShadow: "0 3px 10px #6d3a9c55" }
                           : { borderColor: "var(--color-lavender-deep)" }}
                       >
                         {on && <Icon name="check" size={14} />}
@@ -5687,7 +5687,7 @@ No bundle products yet — add them on{" "}
                            grey words that used to sit beside it ("always on")
                            are the ⓘ now.  */}
                       <div className="rounded-[16px] border-2 p-4"
-                        style={{ borderColor: "#6d3a9c", background: "linear-gradient(135deg,#2b1d34,#fff)" }}>
+                        style={{ borderColor: "#af88d3", background: "linear-gradient(135deg,#2b1d34,#fff)" }}>
                         <div className="flex items-center gap-2.5 mb-3.5">
                           <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-white shrink-0"
                             style={{ background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }}>
@@ -5710,7 +5710,7 @@ No bundle products yet — add them on{" "}
                       <div
                         className="rounded-[16px] border-2 p-4 transition-colors"
                         style={outsideOn
-                          ? { borderColor: "#b76e79", background: "linear-gradient(135deg,#361b1f,#fff)" }
+                          ? { borderColor: "#c9929a", background: "linear-gradient(135deg,#361b1f,#fff)" }
                           : { borderColor: "var(--color-lavender-deep)", borderStyle: "dashed", background: "#231538" }}
                       >
                         <div className="flex items-center gap-2.5 mb-3.5">

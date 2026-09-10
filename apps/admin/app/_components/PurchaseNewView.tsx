@@ -110,7 +110,7 @@ export function ItemPicker({
                 className="text-[12px] font-medium px-2.5 py-1.5 rounded-[9px] border"
                 style={tab === t
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                  : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                 {t === "ALL" ? "All" : ITEM_TYPE_META[t].short}
               </button>
             ))}
@@ -134,7 +134,7 @@ export function ItemPicker({
                   onClick={() => { if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); }}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (single) onDone([{ item: i, qty: 1 }]); else if (n === 0) bump(i.id, +1); } }}
                   className={`text-left bg-white rounded-[14px] border px-3.5 py-3 transition-all ${n > 0 ? "cursor-default" : "cursor-pointer"}`}
-                  style={{ borderColor: n > 0 ? ACCENT : "#3f304b", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
+                  style={{ borderColor: n > 0 ? ACCENT : "#e9def2", boxShadow: n > 0 ? `0 0 0 2px ${ACCENT}22` : undefined }}>
                   <span className="flex items-center gap-3">
                     {/* the photo, exactly as the Item module saved it (DEC-ITM-012) */}
                     <ItemThumb item={i} size={46} />

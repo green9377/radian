@@ -218,7 +218,7 @@ export default function SettleView() {
 
       {err && <ErrorBox error={err} onRetry={() => void load()} />}
       {ok && (
-        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "#31493b", color: SOLID.green }}>
+        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "#bfe3cd", color: SOLID.green }}>
           {ok}
         </div>
       )}

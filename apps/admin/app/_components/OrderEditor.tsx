@@ -557,7 +557,7 @@ export default function OrderEditor({ id }: { id: string }) {
           </span>
         )}
         {canFail && (
-          <button type="button" disabled={busy} onClick={() => setFailOpen((v) => !v)} className={`${actBtn} bg-white border-[1.5px]`} style={{ borderColor: "#522c28", color: SOLID.red }}>
+          <button type="button" disabled={busy} onClick={() => setFailOpen((v) => !v)} className={`${actBtn} bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
             <Icon name="alert" size={15} /> Delivery failed
           </button>
         )}
@@ -575,7 +575,7 @@ export default function OrderEditor({ id }: { id: string }) {
           </button>
         )}
         {!terminal && (
-          <button type="button" disabled={busy} onClick={() => { if (confirm("Cancel this order? Per-line refund (readymade full, crafted advance forfeit) will be applied.")) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "#522c28", color: SOLID.red }}>
+          <button type="button" disabled={busy} onClick={() => { if (confirm("Cancel this order? Per-line refund (readymade full, crafted advance forfeit) will be applied.")) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
             Cancel order
           </button>
         )}
@@ -600,7 +600,7 @@ export default function OrderEditor({ id }: { id: string }) {
            refund rules. Who pays a retry's fare is chosen when the retry is
            assigned, on the carrier card.  */}
       {failOpen && !terminal && (
-        <div className="rounded-[14px] border-[1.5px] bg-white px-5 py-4 mb-4" style={{ borderColor: "#522c28" }}>
+        <div className="rounded-[14px] border-[1.5px] bg-white px-5 py-4 mb-4" style={{ borderColor: "#f3c4c0" }}>
           <div className="text-[13.5px] font-semibold mb-3" style={{ color: SOLID.red }}>Delivery failed — what happened, and what next?</div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
             <div>
@@ -623,7 +623,7 @@ export default function OrderEditor({ id }: { id: string }) {
             ] as const).map(([k, t, sub]) => {
               const on = failDecision === k;
               return (
-                <button key={k} type="button" onClick={() => setFailDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-4 py-3 bg-white" style={{ borderColor: on ? SOLID.red : "#3e3248", background: on ? "#391616" : "#fff" }}>
+                <button key={k} type="button" onClick={() => setFailDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-4 py-3 bg-white" style={{ borderColor: on ? SOLID.red : "#dfd3ea", background: on ? "#391616" : "#fff" }}>
                   <span className="block text-[13.5px] font-semibold" style={{ color: on ? SOLID.red : "#f1eaf6" }}>{t}</span>
                   <span className="block text-[12px] text-body-soft">{sub}</span>
                 </button>
@@ -834,8 +834,8 @@ export default function OrderEditor({ id }: { id: string }) {
                             actually judge and offered for download at the size
                             it arrived, not squeezed into a 40px square.  */}
                         {l.persoImageUrl && (
-                          <div className="mt-2.5 inline-flex items-center gap-3 border rounded-[12px] p-2.5" style={{ borderColor: "#3e3248", background: "#fff" }}>
-                            <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: "#3e3248", background: `url(${l.persoImageUrl}) center/cover` }} />
+                          <div className="mt-2.5 inline-flex items-center gap-3 border rounded-[12px] p-2.5" style={{ borderColor: "#dfd3ea", background: "#fff" }}>
+                            <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: "#dfd3ea", background: `url(${l.persoImageUrl}) center/cover` }} />
                             <div>
                               <div className="text-[12px] font-medium uppercase tracking-[0.04em]" style={{ color: "#ce6ef7" }}>Customer&apos;s photo</div>
                               <a href={l.persoImageUrl} download target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-purple inline-flex items-center gap-1.5 mt-1 hover:underline">
@@ -846,7 +846,7 @@ export default function OrderEditor({ id }: { id: string }) {
                         )}
                         {l.refundNote && <div className="text-[12px] mt-1.5" style={{ color: SOLID.red }}>Refund: {formatTaka(l.refundPaisa ?? 0)} — {l.refundNote}</div>}
                         {openMaterials === l.id && (
-                          <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: "#3e3248" }}>
+                          <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: "#dfd3ea" }}>
                             <div className="text-[11px] font-medium mb-1.5" style={{ color: "#ce6ef7" }}>What was ordered</div>
                             <table className="w-full text-[12.5px]">
                               <tbody>
@@ -1056,7 +1056,7 @@ export default function OrderEditor({ id }: { id: string }) {
             <Card title="Photos & proof" hint="Before it leaves the studio, and at the door. When the customer ticked photo updates at checkout, the before-delivery photo goes to them the moment it is saved: WhatsApp first, email if the number has no WhatsApp, and it is on their account either way. Out for delivery stays locked until that photo exists.">
               <div className="px-5 pb-5">
                 {o.photoUpdates && (
-                  <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "#31493b" : "#534328" }}>
+                  <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "#bfe3cd" : "#f5dcb0" }}>
                     <span className="w-6 h-6 rounded-full grid place-items-center text-white text-[12px] shrink-0" style={{ background: o.prepPhoto ? SOLID.green : SOLID.amber }}>{o.prepPhoto ? "✓" : "!"}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13.5px] font-semibold text-body">{o.prepPhoto ? "Customer asked for a photo — done" : "Customer asked for a photo before delivery"}</div>

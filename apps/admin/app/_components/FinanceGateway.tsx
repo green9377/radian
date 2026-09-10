@@ -37,8 +37,8 @@ import { Flash, Lbl, Table, Td, Th, WRAP, btnPrimary, btnPrimaryStyle, input, ta
     the number and the icon, `wash` is the tint the panel sits on, `edge` is the
     spine down its left side.  */
 const BRAND = {
-  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#c07edd" },
-  orchid: { ink: "#ce8dc0", wash: "#fbeef7", edge: "#d388bf" },
+  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#a94fd0" },
+  orchid: { ink: "#ce8dc0", wash: "#fbeef7", edge: "#c86bb0" },
   rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
   lavender: { ink: "#a396c5", wash: "#f0edfa", edge: "#8f7fc4" },
 } as const;
@@ -212,7 +212,7 @@ export function GatewaySettlementLive() {
           {/* left: the number */}
           <div
             className="relative px-8 py-9"
-            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, #b558d6 100%)` }}
+            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, #c57cdf 100%)` }}
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11.5px] font-bold tracking-[0.14em] text-white/70 uppercase">

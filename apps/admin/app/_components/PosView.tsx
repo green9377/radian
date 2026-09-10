@@ -919,7 +919,7 @@ export default function PosSellView() {
               {/*  Tiles are fine for twenty things and useless for four hundred; rows
                    fit more on the screen and put stock, price and cost in columns you
                    can read down (owner, 20 Aug). The choice is remembered.  */}
-              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#3f3248" }}>
+              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#e3d7ec" }}>
                 {([["grid", "Tiles"], ["rows", "Rows"]] as const).map(([k, label], i) => (
                   <button key={k} type="button" onClick={() => setView(k)}
                     className="text-[12px] font-semibold px-3 py-1.5"
@@ -951,7 +951,7 @@ export default function PosSellView() {
                     </span>
                     <span className="text-[12.5px] text-body-soft truncate">{p.categoryName ?? "—"}</span>
                     <span className="text-right text-[12.5px]"
-                      style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
+                      style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#76efab" : "#e1837a" }}>
                       {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""}`.trim() : "out of stock"}
                     </span>
                     <span className="text-right">
@@ -1011,7 +1011,7 @@ export default function PosSellView() {
                   {/*  what is actually on the shelf — a till that hides a shortage makes
                        the cashier promise something the shop cannot hand over  */}
                   <div className="text-[11.5px] mt-0.5"
-                    style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#0e7a3d" : "#c0392b" }}>
+                    style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#76efab" : "#e1837a" }}>
                     {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""} in stock`.replace("  ", " ") : "out of stock"}
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">

@@ -121,10 +121,10 @@ export default function CustomerDuplicates() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "#d98a0f" : "#12a172", bg: groups.length ? "#3a2d16" : "#1e362b", icon: "copy" },
-          { l: "Profiles involved", v: String(dupCount), c: "#8b3fb0", bg: "#2e1a38", icon: "user" },
-          { l: "Merged this session", v: String(merged.length), c: "#12a172", bg: "#1e362b", icon: "check" },
-          { l: "Total customers", v: String(all.length), c: "#3182c9", bg: "#192739", icon: "grid" },
+          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "#f4bd66" : "#75f0c7", bg: groups.length ? "#3a2d16" : "#1e362b", icon: "copy" },
+          { l: "Profiles involved", v: String(dupCount), c: "#bb87d4", bg: "#2e1a38", icon: "user" },
+          { l: "Merged this session", v: String(merged.length), c: "#75f0c7", bg: "#1e362b", icon: "check" },
+          { l: "Total customers", v: String(all.length), c: "#7cb1df", bg: "#192739", icon: "grid" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>

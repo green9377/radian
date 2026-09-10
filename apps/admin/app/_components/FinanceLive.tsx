@@ -334,7 +334,7 @@ export function AccountsLive() {
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void doCount()}>Record count</button>
             <button className={btnGhost} onClick={() => setCounting(null)}>Cancel</button>
             <span className="text-[13px] text-body-soft">
-              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "#0f7d55" : "#b45309" }}>
+              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "#76efc3" : "#f7a96e" }}>
                 {taka(toPaisa(countValue) - counting.balancePaisa)}
               </b>
             </span>

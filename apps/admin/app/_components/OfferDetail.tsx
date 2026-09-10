@@ -139,12 +139,12 @@ export default function OfferDetail({ id }: { id: string }) {
       {/* the four counts, in the house shape */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Times used", v: String(offer.redeemedCount), c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "bolt" },
-          { l: "Revenue", v: taka(money.revenuePaisa), c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "cash",
+          { l: "Times used", v: String(offer.redeemedCount), c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "bolt" },
+          { l: "Revenue", v: taka(money.revenuePaisa), c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "cash",
             tip: "What the orders carrying this offer were worth in total." },
-          { l: "Given away", v: taka(money.discountPaisa), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "tag",
+          { l: "Given away", v: taka(money.discountPaisa), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "tag",
             tip: "The discount this offer handed out. Free delivery is counted by the Delivery module, not here." },
-          { l: "New customers", v: String(money.newCustomers), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "user",
+          { l: "New customers", v: String(money.newCustomers), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "user",
             tip: "People whose first or second order carried this offer." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"

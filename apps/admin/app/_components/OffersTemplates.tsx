@@ -101,10 +101,10 @@ type Preset = {
   body: Record<string, unknown>;
 };
 
-const PURPLE = { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" };
-const ORCHID = { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" };
-const ROSE = { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" };
-const SOFT = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" };
+const PURPLE = { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" };
+const ORCHID = { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" };
+const ROSE = { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" };
+const SOFT = { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" };
 
 /*  Two lines every flower shop repeats, kept in one place so twenty presets
     cannot drift into twenty slightly different promises. Both are the OWNER's

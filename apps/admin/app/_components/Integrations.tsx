@@ -617,7 +617,7 @@ function ServiceCard({
     <div
       className="rounded-2xl bg-white p-5 transition-shadow h-full flex flex-col"
       style={{
-        border: s.isEnabled ? `2px solid ${brand.ring}` : "1px solid #2b2432",
+        border: s.isEnabled ? `2px solid ${brand.ring}` : "1px solid #3d3446",
         boxShadow: s.isEnabled ? `0 6px 22px ${brand.glow}` : "0 2px 10px rgba(40,20,50,0.05)",
       }}
     >
@@ -630,7 +630,7 @@ function ServiceCard({
           <div className="min-w-0">
             <div className="font-display font-bold text-[15.5px] leading-tight truncate">{s.label}</div>
             <div className="text-[10.5px] font-bold tracking-[0.1em] uppercase mt-0.5"
-                 style={{ color: s.isEnabled ? (s.hasSandbox && !s.isLive ? TONE.rose.text : "#16a34a") : "#38353d" }}>
+                 style={{ color: s.isEnabled ? (s.hasSandbox && !s.isLive ? TONE.rose.text : "#78eda3") : "#a79fb5" }}>
               {s.isEnabled ? (s.hasSandbox && !s.isLive ? "Sandbox" : "Live") : "Off"}
               <span className="ml-2 font-extrabold" style={{ color: complete ? "#a79fb5" : TONE.amber.text }}>
                 {s.fieldsFilled}/{s.fieldsTotal}
@@ -716,7 +716,7 @@ function ServiceCard({
                       e.currentTarget.select();
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#3d3447";
+                      e.currentTarget.style.borderColor = "#e6dfee";
                       e.currentTarget.style.boxShadow = "none";
                     }}
                     type={f.secret && !isRevealed ? "password" : "text"}
@@ -856,9 +856,9 @@ function MessagingTestRow({
       <div className="flex flex-wrap gap-1.5 items-center">
         <input
           className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#271f30] transition-all focus:bg-white"
-          style={{ borderColor: "#3e3347" }}
+          style={{ borderColor: "#ece5f2" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#3e3347"; e.currentTarget.style.boxShadow = "none"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
           placeholder={sms ? "01712345678" : "you@example.com"}
           value={to}
           inputMode={sms ? "tel" : "email"}
@@ -1259,9 +1259,9 @@ function WhatsAppTestRow({
       <div className="flex flex-wrap gap-1.5 items-center">
         <input
           className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#271f30] transition-all focus:bg-white"
-          style={{ borderColor: "#3e3347" }}
+          style={{ borderColor: "#ece5f2" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#3e3347"; e.currentTarget.style.boxShadow = "none"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
           placeholder="01712345678"
           value={to}
           inputMode="tel"

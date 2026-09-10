@@ -86,10 +86,10 @@ export function SuppliersOverview() {
 
       {stats && (
         <Kpi items={[
-          { l: "Suppliers", v: supplierRows.length, c: "#470066", bg: "#2e1a38", icon: "user" },
-          { l: "Total due", v: formatTaka(supplierRows.reduce((s, r) => s + r.duePaisa, 0)), c: supplierRows.some((r) => r.duePaisa > 0) ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
-          { l: "With due", v: supplierRows.filter((r) => r.duePaisa > 0).length, c: "#b45309", bg: "#3b2b17", icon: "bolt" },
-          { l: "Credit we hold", v: formatTaka(supplierRows.reduce((s, r) => s + r.creditPaisa, 0)), c: "#0e8f74", bg: "#20332e", icon: "check" },
+          { l: "Suppliers", v: supplierRows.length, c: "#ce6ef7", bg: "#2e1a38", icon: "user" },
+          { l: "Total due", v: formatTaka(supplierRows.reduce((s, r) => s + r.duePaisa, 0)), c: supplierRows.some((r) => r.duePaisa > 0) ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
+          { l: "With due", v: supplierRows.filter((r) => r.duePaisa > 0).length, c: "#f7a96e", bg: "#3b2b17", icon: "bolt" },
+          { l: "Credit we hold", v: formatTaka(supplierRows.reduce((s, r) => s + r.creditPaisa, 0)), c: "#74f1d7", bg: "#20332e", icon: "check" },
         ]} />
       )}
 
@@ -114,7 +114,7 @@ export function SuppliersOverview() {
 
       {/* DEC-SUP-007 — free-text purchases still unlinked → the settings tool */}
       {stats && stats.unlinkedNameCount > 0 && (
-        <div className="rounded-[14px] border px-5 py-3.5 mb-5 flex items-center justify-between gap-3 flex-wrap" style={{ background: "#3b2b17", borderColor: "#534028" }}>
+        <div className="rounded-[14px] border px-5 py-3.5 mb-5 flex items-center justify-between gap-3 flex-wrap" style={{ background: "#3b2b17", borderColor: "#fce4c4" }}>
           <span className="text-[13px]" style={{ color: "#f6bb6f" }}>
             <b>{stats.unlinkedNameCount}</b> purchase name(s) are not linked to any supplier yet — their dues sit outside this board.
           </span>
@@ -233,10 +233,10 @@ export function SupplierListView() {
       {failed && <DemoBar what="the supplier book (API offline?)" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Suppliers (filtered)", v: filtered.length, c: "#470066", bg: "#2e1a38", icon: "user" },
-        { l: "Bought (all time)", v: formatTaka(totals.bought), c: "#2563a8", bg: "#1b2838", icon: "box" },
-        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
-        { l: "Credit we hold", v: formatTaka(totals.credit), c: "#0e8f74", bg: "#20332e", icon: "check" },
+        { l: "Suppliers (filtered)", v: filtered.length, c: "#ce6ef7", bg: "#2e1a38", icon: "user" },
+        { l: "Bought (all time)", v: formatTaka(totals.bought), c: "#79abe2", bg: "#1b2838", icon: "box" },
+        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
+        { l: "Credit we hold", v: formatTaka(totals.credit), c: "#74f1d7", bg: "#20332e", icon: "check" },
       ]} />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -245,7 +245,7 @@ export function SupplierListView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
             style={status === s
               ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-              : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+              : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
             {s === "ACTIVE" ? "Active" : s === "INACTIVE" ? "Inactive" : "All"}
           </button>
         ))}

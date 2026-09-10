@@ -452,7 +452,7 @@ export function Flag({
   return (
     <button type="button" onClick={onClick} title={hint}
       className="text-[12px] px-2.5 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
-      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "#3f3248", color: "#b0a3b7" }}>
+      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a3b7" }}>
       <Icon name={on ? "check" : "plus"} size={11} /> {label}
     </button>
   );
@@ -469,7 +469,7 @@ export function TypeChip({ type }: { type: ItemType }) {
 /** the two-card strip that teaches the model — shown on Overview and on the create page */
 export function ModelExplainer({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="rounded-[16px] border px-5 py-4 mb-5 bg-white shadow-soft" style={{ borderColor: "#402d4e" }}>
+    <div className="rounded-[16px] border px-5 py-4 mb-5 bg-white shadow-soft" style={{ borderColor: "#efe4f7" }}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-center">
         <MiniCard
           tone="#0e8f74" bg="#20332e" title="Bought as it is"
@@ -511,7 +511,7 @@ function MiniCard({ tone, bg, title, body, foot }: { tone: string; bg: string; t
 /** DEC-ITM-005 — the panel that explains why there is no stock number yet */
 export function StockNote() {
   return (
-    <div className="rounded-[16px] border px-4 py-3.5" style={{ background: "#3b2d18", borderColor: "#514329" }}>
+    <div className="rounded-[16px] border px-4 py-3.5" style={{ background: "#3b2d18", borderColor: "#f0dcb8" }}>
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center text-white" style={{ background: "#b45309" }}><Icon name="box" size={12} /></span>
         <span className="text-[12.5px] font-semibold" style={{ color: "#f6bb6f" }}>Where is stock?</span>

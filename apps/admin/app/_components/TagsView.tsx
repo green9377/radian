@@ -45,14 +45,14 @@ type Tag = UiTag;
     card sits on, `edge` is the coloured spine down its left side.  */
 type GroupTheme = { c: string; bg: string; edge: string; icon: string };
 const SYSTEM_THEME: Record<string, GroupTheme> = {
-  occasions: { c: "#7a2ea8", bg: "#2e1a37", edge: "#a94fd0", icon: "sparkle" },
-  recipients: { c: "#a4566a", bg: "#361b1f", edge: "#c9788a", icon: "user" },
+  occasions: { c: "#b97fdc", bg: "#2e1a37", edge: "#a94fd0", icon: "sparkle" },
+  recipients: { c: "#c794a1", bg: "#361b1f", edge: "#c9788a", icon: "user" },
 };
 const CUSTOM_THEMES: GroupTheme[] = [
-  { c: "#470066", bg: "#2c1e34", edge: "#6d3a9c", icon: "tag" },
-  { c: "#b76e79", bg: "#351b1e", edge: "#d29aa2", icon: "heart" },
-  { c: "#8b3fb0", bg: "#30183a", edge: "#cf43ea", icon: "star" },
-  { c: "#5c3b8a", bg: "#241d35", edge: "#8b6fc4", icon: "grid" },
+  { c: "#ce6ef7", bg: "#2c1e34", edge: "#6d3a9c", icon: "tag" },
+  { c: "#c9929a", bg: "#351b1e", edge: "#d29aa2", icon: "heart" },
+  { c: "#bb87d4", bg: "#30183a", edge: "#cf43ea", icon: "star" },
+  { c: "#ad94d1", bg: "#241d35", edge: "#8b6fc4", icon: "grid" },
 ];
 
 /** background style for a tile/thumb — uploaded image if present, else gradient */
@@ -320,10 +320,10 @@ export default function TagsView() {
            the ⓘ rather than as a second line of grey.  */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Groups", v: stats.groups, c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
-          { l: "Tags", v: stats.tags, c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "tag" },
-          { l: "Unused", v: stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
-          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Groups and tags switched off. They stay here in the admin and disappear from the shop." },
+          { l: "Groups", v: stats.groups, c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
+          { l: "Tags", v: stats.tags, c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "tag" },
+          { l: "Unused", v: stats.empty, c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Tags no product carries yet. Harmless — but a tag nobody uses is a filter that leads nowhere." },
+          { l: "Hidden", v: stats.hidden, c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Groups and tags switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
@@ -569,7 +569,7 @@ function GroupManager({
                   className={"group/tag grid items-center gap-2.5 rounded-[12px] border px-2.5 py-2 transition-colors " + (isCard ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}
                   style={t.isActive
                     ? { background: "#fff", borderColor: "var(--color-lavender-deep)" }
-                    : { background: "#2d1e31", borderColor: "#432e4c", opacity: 0.75 }}>
+                    : { background: "#2d1e31", borderColor: "#ead9f2", opacity: 0.75 }}>
                   {isCard && (
                     <div className="relative shrink-0">
                       <button onClick={() => onPickImage(t)} disabled={uploadingId === t.id} className="w-[48px] h-[48px] rounded-[10px] relative overflow-hidden group border border-lavender-deep block" style={tileBg(t)} title={t.img ? "Click to replace image" : "Click to upload an image"}>

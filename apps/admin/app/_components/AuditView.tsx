@@ -206,15 +206,15 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           18 Aug 2026: system notices collect in one place, never on top of a
           working page). The KPI tile below still shows the state in colour.  */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#7a2ea8"
+        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#b97fdc"
           label="Recorded today" value={String(stats?.today ?? 0)} />
-        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#3b76c4"
+        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#82a7d9"
           label="This week" value={String(stats?.week ?? 0)} />
-        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#b07818"
+        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#edc278"
           label="Money actions · 7d" value={String(stats?.money7 ?? 0)} />
         <StatTile icon="download"
           grad={stats?.backupStale ? "linear-gradient(135deg,#c62f20,#e8604f)" : "linear-gradient(135deg,#0e9767,#22c08b)"}
-          fg={stats?.backupStale ? "#c0392b" : "#0e9767"}
+          fg={stats?.backupStale ? "#e1837a" : "#73f2c6"}
           label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"} />
       </div>
 
@@ -228,7 +228,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-[13px] text-[12.5px] font-bold border transition-all"
               style={on
                 ? { background: t.grad, color: "#fff", borderColor: "transparent", boxShadow: `0 4px 14px ${t.fg}55` }
-                : { background: "#fff", color: "#dfd2e4", borderColor: "#3c3249" }}>
+                : { background: "#fff", color: "#dfd2e4", borderColor: "#e9e2f2" }}>
               <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center"
                 style={on ? { background: "rgba(255,255,255,0.22)", color: "#fff" } : { background: t.bg, color: t.fg }}>
                 <Icon name={t.icon} size={12} strokeWidth={2.4} />
@@ -422,7 +422,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                              this one.  */}
                         <button
                           className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white whitespace-nowrap"
-                          style={{ borderColor: "#3b3248", color: "#b97fdc" }}
+                          style={{ borderColor: "#e4ddef", color: "#b97fdc" }}
                           onClick={(e) => { e.stopPropagation(); void openTrace(r.entityType, r.entityId); }}
                         >
                           Full history

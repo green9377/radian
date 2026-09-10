@@ -151,12 +151,12 @@ function StatCards({ items }: { items: Stat[] }) {
 /*  The brand family — deep purple, orchid, rose gold, soft purple. Green and
     amber are kept ONLY where they carry a meaning money screens already use
     (live / waiting), never as decoration.  */
-const P = { c: "#470066", edge: "#6d3a9c", bg: "#2c1e34" };
-const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a" };
-const R = { c: "#a4566a", edge: "#c9788a", bg: "#361b1f" };
-const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35" };
-const GO = { c: "#0f7d55", edge: "#1d9d77", bg: "#20342a" };
-const AM = { c: "#b45309", edge: "#d99026", bg: "#3c2e17" };
+const P = { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" };
+const O = { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" };
+const R = { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" };
+const S = { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" };
+const GO = { c: "#76efc3", edge: "#1d9d77", bg: "#20342a" };
+const AM = { c: "#f7a96e", edge: "#d99026", bg: "#3c2e17" };
 function DemoBadge() {
   return (
     <span className="inline-flex items-center gap-1.5 bg-[#3c2e17] text-[#f7a96e] text-[12px] font-bold px-3 py-1.5 rounded-full">

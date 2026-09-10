@@ -144,9 +144,9 @@ export function PosOverview() {
             <h3 className="font-display text-[16px] text-purple m-0 mb-3">Quick actions</h3>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { href: "/pos/sell", label: "New sale", icon: "cash", from: "#b97fdc", to: "#470066" },
-                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "#78edbc", to: "#0e6e46" },
-                { href: "/pos/due", label: "Collect due", icon: "user", from: "#c98089", to: "#a85a64" },
+                { href: "/pos/sell", label: "New sale", icon: "cash", from: "#b97fdc", to: "#ce6ef7" },
+                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "#78edbc", to: "#77eebc" },
+                { href: "/pos/due", label: "Collect due", icon: "user", from: "#c98089", to: "#c7949b" },
               ].map((x) => (
                 <Link key={x.href} href={x.href} className="text-[13.5px] font-medium text-white rounded-[12px] px-3.5 py-3 inline-flex items-center gap-2.5 shadow-soft hover:opacity-90" style={{ background: `linear-gradient(145deg, ${x.from}, ${x.to})` }}>
                   <span className="w-[28px] h-[28px] rounded-[9px] bg-white/20 grid place-items-center"><Icon name={x.icon} size={15} /></span>

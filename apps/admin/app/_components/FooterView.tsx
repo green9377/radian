@@ -39,31 +39,31 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "footer", label: "Footer columns", blurb: "Link columns at the bottom", icon: "grid",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "menu", label: "The ☰ menu", blurb: "The slide-out panel", icon: "hash",
-    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    tint: "#192939", edge: "#2b3e4f", chip: "#1f2e3d",
     ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
     fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },
   {
     id: "social", label: "Social profiles", blurb: "Only filled ones show", icon: "heart",
-    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
     ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
     fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },
   {
     id: "badges", label: "We accept", blurb: "Payment method badges", icon: "bag",
-    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
     ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
     fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "wording", label: "Wording", blurb: "Tagline and the legal line", icon: "tag",
-    tint: "#282032", edge: "#2b2434", chip: "#2b2434",
+    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
     ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
     fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
   },

@@ -34,37 +34,37 @@ import HomeContentView from "./HomeContentView";
 const SECTIONS = [
   {
     id: "layout", label: "Layout", blurb: "Which sections, in what order", icon: "grid",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "contents", label: "Contents", blurb: "What goes inside each section", icon: "box",
-    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    tint: "#192939", edge: "#2b3e4f", chip: "#1f2e3d",
     ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
     fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },
   {
     id: "banners", label: "Banners", blurb: "The big picture and the promo strip", icon: "photo",
-    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
     ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
     fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },
   {
     id: "trust", label: "Trust strip", blurb: "The promises under the banner", icon: "shield",
-    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
     ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
     fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "budget", label: "Budget cards", blurb: "Gifts for Every Budget", icon: "cash",
-    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    tint: "#3c2e17", edge: "#514429", chip: "#41351f",
     ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
     fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "wording", label: "Wording", blurb: "The three lines above every section", icon: "tag",
-    tint: "#282032", edge: "#2b2434", chip: "#2b2434",
+    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
     ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
     fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
   },

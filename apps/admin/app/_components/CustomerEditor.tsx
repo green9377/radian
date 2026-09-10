@@ -57,31 +57,31 @@ import SpecialDateField from "./SpecialDateField";
 const SECTIONS = [
   {
     id: "profile", label: "Profile", blurb: "Name, phone, photo", icon: "user",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "recipients", label: "Recipients", blurb: "Who they send to", icon: "pin",
-    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
     ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
     fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },
   {
     id: "segments", label: "Segments", blurb: "Tags and notes", icon: "hash",
-    tint: "#34163b", edge: "#351840", chip: "#351840",
+    tint: "#34163b", edge: "#472853", chip: "#351840",
     ink: "#de87db", sub: "#bd9cbf", strong: "#da8bd3",
     fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#3e1f3b",
   },
   {
     id: "orders", label: "Orders", blurb: "Value and history", icon: "bag",
-    tint: "#322023", edge: "#392428", chip: "#392428",
+    tint: "#322023", edge: "#4a3135", chip: "#392428",
     ink: "#ca9ba3", sub: "#bf9ca3", strong: "#c5969d",
     fill: "linear-gradient(100deg,#98545f,#c07f8a)", glow: "rgba(152,84,95,.26)", soft: "#392326",
   },
   {
     id: "activity", label: "Activity", blurb: "Every change, logged", icon: "clock",
-    tint: "#282032", edge: "#2b2434", chip: "#2b2434",
+    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
     ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
     fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
   },

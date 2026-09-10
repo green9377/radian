@@ -507,9 +507,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           ]).map((o) => (
             <button key={o.k} onClick={() => setMode(o.k)}
               className="text-left rounded-[18px] border-2 bg-white p-6 hover:shadow-lift transition-all"
-              style={{ borderColor: "#402d4e" }}
+              style={{ borderColor: "#efe4f7" }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#402d4e")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#efe4f7")}
             >
               <span className="w-[48px] h-[48px] rounded-[14px] grid place-items-center text-white mb-4" style={{ background: ACCENT }}>
                 <Icon name={o.icon} size={23} />
@@ -572,7 +572,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {!isNew && (
             <button onClick={removeThis} disabled={saving}
               className="text-[13.5px] font-semibold px-4 py-2.5 rounded-[11px] border inline-flex items-center gap-2 disabled:opacity-50"
-              style={{ background: "#fff", borderColor: "#4d312d", color: "#e1837a" }}>
+              style={{ background: "#fff", borderColor: "#f0d4d0", color: "#e1837a" }}>
               <Icon name="trash" size={14} /> Delete
             </button>
           )}
@@ -642,7 +642,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 transition-colors"
                         style={on
                           ? { background: tone, borderColor: tone, color: "#fff" }
-                          : { background: "#fff", borderColor: "#403149", color: tone }}>
+                          : { background: "#fff", borderColor: "#e8dcf0", color: tone }}>
                         {t.name}
                       </button>
                     );
@@ -743,7 +743,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         onErr={setErr}
                       />
                     </Row>
-                    <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#3f3149" }}>
+                    <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c7e6" }}>
                       <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
                         <span className="text-[13.5px] font-bold text-white">
                           {variantPreview.length} photo{variantPreview.length === 1 ? "" : "s"} — one per variant
@@ -911,9 +911,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           });
                           return (
                             <div key={a.id} className="rounded-[14px] border overflow-hidden"
-                              style={{ borderColor: picked.length ? "#402e4c" : "#403149" }}>
+                              style={{ borderColor: picked.length ? "#d9c0ea" : "#e8dcf0" }}>
                               <div className="px-3.5 py-2.5 flex items-center gap-2 border-b"
-                                style={{ background: picked.length ? "#2e1a38" : "#291a35", borderColor: "#403149" }}>
+                                style={{ background: picked.length ? "#2e1a38" : "#291a35", borderColor: "#e8dcf0" }}>
                                 <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                                 <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                                 <span className="ml-auto text-[12px] font-semibold"
@@ -951,7 +951,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                           className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                           style={on
                                             ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                            : { background: "#fff", borderColor: "#403149", color: "#dfd2e4" }}>
+                                            : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
                                           {v.label}
                                         </button>
                                       );
@@ -969,7 +969,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           Photos are NOT here: the Photos tab asks for them, one per
                           variant, after this list exists (owner, 20 Aug). */}
                       {variantPreview.length > 0 && (
-                        <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#402e4c" }}>
+                        <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c0ea" }}>
                           <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
                             <span className="w-[24px] h-[24px] rounded-full grid place-items-center text-[12px] font-bold"
                               style={{ background: "rgba(255,255,255,.2)", color: "#fff" }}>
@@ -1023,8 +1023,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           return { ...d, attributeValueIds: already ? others : [...others, id] };
                         });
                       return (
-                        <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#403149" }}>
-                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#403149" }}>
+                        <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
                             <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                             <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                             <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "#b0a4b7" }}>
@@ -1065,7 +1065,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                       className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                       style={on
                                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                        : { background: "#fff", borderColor: "#403149", color: "#dfd2e4" }}>
+                                        : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
                                       {v.label}
                                     </button>
                                   );
@@ -1101,7 +1101,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   soon as it has a price.
                 </Note>
               ) : (
-                <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#403149", borderTopColor: "#403149" }}>
+                <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
                   <SwitchRow on={draft.isPurchasable} onClick={() => set("isPurchasable", !draft.isPurchasable)}
                     icon="download" tone="#0e8f74"
                     title="We buy it" sub="Can go on a purchase order" />
@@ -1158,12 +1158,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                    counter, services included. The price follows the cost by default;
                    fixing it by hand is the exception, and it says so.  */}
               {(draft.isSaleable || draft.itemType === "SERVICE") && (
-                <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#403149" }}>
-                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#403149" }}>
+                <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
                     <Icon name="cash" size={13} />
                     <span className="text-[13px] font-bold text-purple">Counter price</span>
                     <Info text="What the till charges. It follows the cost automatically; a website product may price differently." />
-                    <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#3f3149" }}>
+                    <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
                       {([
                         { k: false, label: "Automatic" },
                         { k: true, label: "Fixed price" },
@@ -1173,7 +1173,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           className="text-[12.5px] font-bold px-3.5 py-1"
                           style={{
                             background: (draft.sellTaka.trim() !== "") === o.k ? ACCENT : "#fff",
-                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#6b5077",
+                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#dfd2e4",
                             borderLeft: i ? "1px solid #403149" : undefined,
                           }}>
                           {o.label}
@@ -1235,12 +1235,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               )}
 
               {/* the minimum-profit rule the owner asked for */}
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#403149" }}>
-                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
                   <Icon name="shield" size={13} />
                   <span className="text-[13px] font-bold text-purple">Minimum profit</span>
                   <Info text="The lowest this may ever be sold for. The till refuses to go under it, however the price was worked out." />
-                  <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#3f3149" }}>
+                  <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
                     {([
                       { k: "none" as const, label: "Off" },
                       { k: "percent" as const, label: "%" },
@@ -1306,7 +1306,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               the count itself belongs to Inventory and is only ever read from there. */}
           {section === "stock" && (
             <Sect title="Stock & alerts">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={draft.isStockTracked} onClick={() => set("isStockTracked", !draft.isStockTracked)}
                   icon="box" tone="#2563a8"
                   title="Track inventory" sub="Count it in and out, and warn when it runs low" />
@@ -1345,10 +1345,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             <Sect title="Sell online">
               {/*  DEC-ITM-024 — its own switch, not the counter's. Off = it never
                    appears on the product page; the till is untouched either way.  */}
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={draft.isOnline && draft.isSaleable}
                   onClick={() => draft.isSaleable && set("isOnline", !draft.isOnline)}
-                  icon="link" tone="#8b21c9"
+                  icon="link" tone="#bd73e8"
                   title="Sell online" sub="Off keeps it off the product page — the counter still sells it" />
               </div>
 
@@ -1378,7 +1378,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   <Link href="/products" className="underline ml-2 font-semibold">open products</Link>
                 </Note>
               ) : (
-                <div className="rounded-[16px] border p-5" style={{ borderColor: "#403149", background: "linear-gradient(140deg,#291a35,#2c1b37)" }}>
+                <div className="rounded-[16px] border p-5" style={{ borderColor: "#e8dcf0", background: "linear-gradient(140deg,#291a35,#2c1b37)" }}>
                   <div className="font-display text-[17px] text-purple">Not on the website yet</div>
                   <p className="text-[13px] text-body m-0 mt-1.5 max-w-[440px]">
                     Creating a product from this item copies the code <b className="font-mono">{item?.sku}</b> across.
@@ -1669,7 +1669,7 @@ export function SwitchRow({
   return (
     <button type="button" onClick={onClick}
       className="w-full text-left px-4 py-3 grid grid-cols-[34px_minmax(0,1fr)_44px] items-center gap-3 hover:bg-lavender/25 transition-colors"
-      style={{ borderColor: "#403149" }}>
+      style={{ borderColor: "#e8dcf0" }}>
       <span className="w-[32px] h-[32px] rounded-[10px] grid place-items-center transition-colors"
         style={{ background: on ? tone : "#2b2034", color: on ? "#fff" : "#a08fb0" }}>
         <Icon name={icon} size={15} />
@@ -1768,7 +1768,7 @@ export function PhotoDrop({
         onDrop={(e) => { e.preventDefault(); setOver(false); take(e.dataTransfer.files?.[0]); }}
         className="relative w-[300px] max-w-full h-[190px] rounded-[16px] border-2 border-dashed grid place-items-center cursor-pointer transition-colors overflow-hidden"
         style={{
-          borderColor: over ? ACCENT : "#3e3248",
+          borderColor: over ? ACCENT : "#ddcfe8",
           background: over ? "#2b1c35" : "#2a1e30",
         }}
       >
@@ -1870,7 +1870,7 @@ export function TypeKindFields({
                 className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                 style={on
                   ? { background: m.colour, borderColor: m.colour, color: "#fff" }
-                  : { background: "#fff", borderColor: "#403149", color: m.colour }}>
+                  : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
                 {m.label}
               </button>
             );
@@ -1909,7 +1909,7 @@ function NewTypeButton({
       <button type="button"
         onClick={() => { setName(""); setKind("own"); setCounted(true); setRecipe(false); setBehaviour("RAW"); setOpen(true); }}
         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
-        style={{ borderColor: "#3f3149", color: ACCENT }}>
+        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
         <Icon name="plus" size={13} /> New type
       </button>
     );
@@ -2098,7 +2098,7 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
   }
 
   return (
-    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "#2b1c35", borderColor: "#402d4e" }}>
+    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "#2b1c35", borderColor: "#efe4f7" }}>
       <div className="text-[13px] font-semibold mb-1" style={{ color: "#ce6ef7" }}>No labels yet</div>
       <p className="text-[13px] text-body m-0 mb-2.5 leading-relaxed">
         Labels are how you tell a red rose from a white one. Create them right here — you do not have to leave this page.
@@ -2107,7 +2107,7 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
         {["Colour", "Size"].map((n) => (
           <button key={n} type="button" onClick={() => one(n)} disabled={!!busy}
             className="text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] border bg-white disabled:opacity-60"
-            style={{ borderColor: "#402d4e", color: ACCENT }}>
+            style={{ borderColor: "#efe4f7", color: ACCENT }}>
             {busy === n ? "…" : `just ${n}`}
           </button>
         ))}
@@ -2149,14 +2149,14 @@ function InlineValueAdd({
     return (
       <button type="button" onClick={() => setOpen(true)}
         className="text-[12.5px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
-        style={{ borderColor: "#3f3149", color: ACCENT }}>
+        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
         <Icon name="plus" size={13} /> New {attrName.toLowerCase()}
       </button>
     );
   }
 
   return (
-    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#3f3149", background: "#291a35" }}>
+    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#d9c7e6", background: "#291a35" }}>
       <div className="flex items-center gap-2 mb-2.5">
         <span className="text-[12.5px] font-bold text-purple">New {attrName.toLowerCase()}</span>
         <button type="button" onClick={() => setOpen(false)}
@@ -2175,7 +2175,7 @@ function InlineValueAdd({
               {QUICK_SWATCHES.map((c) => (
                 <button key={c} type="button" onClick={() => setSwatch(swatch === c ? null : c)} title={c}
                   className="w-[26px] h-[26px] rounded-full border-2 shrink-0 transition-transform hover:scale-110"
-                  style={{ background: c, borderColor: swatch === c ? "#2c0f3d" : "#3f3248" }} />
+                  style={{ background: c, borderColor: swatch === c ? "#f1eaf6" : "#e3d7ec" }} />
               ))}
             </span>
             <input className="ipt font-mono" style={{ minHeight: 38, width: 110 }}

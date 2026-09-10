@@ -139,10 +139,10 @@ export default function CustomerSegments() {
       {/* summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Segments", v: String(segs.length), c: "#7a2ea8", bg: "#2e1a38", icon: "hash" },
-          { l: "Tagged customers", v: String(customers.length - untagged), c: "#12a172", bg: "#1e362b", icon: "user" },
-          { l: "Untagged", v: String(untagged), c: untagged ? "#d98a0f" : "#12a172", bg: "#3b2d18", icon: "bolt" },
-          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "#c01fd8", bg: "#36163b", icon: "cash" },
+          { l: "Segments", v: String(segs.length), c: "#b97fdc", bg: "#2e1a38", icon: "hash" },
+          { l: "Tagged customers", v: String(customers.length - untagged), c: "#75f0c7", bg: "#1e362b", icon: "user" },
+          { l: "Untagged", v: String(untagged), c: untagged ? "#f4bd66" : "#75f0c7", bg: "#3b2d18", icon: "bolt" },
+          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "#db70eb", bg: "#36163b", icon: "cash" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>

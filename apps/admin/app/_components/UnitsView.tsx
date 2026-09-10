@@ -284,10 +284,10 @@ export default function UnitsView() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { l: "Total units", v: String(stats.total), c: "#7a2ea8", bg: "#2e1a38", icon: "tag" },
+          { l: "Total units", v: String(stats.total), c: "#b97fdc", bg: "#2e1a38", icon: "tag" },
           { l: "Base units (smallest)", v: String(stats.bases), c: BASE_FG, bg: BASE_BG, icon: "box" },
           { l: "With a conversion", v: String(stats.derived), c: ACCENT, bg: ACCENT_BG, icon: "check" },
-          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#b5642f" : "#12a172", bg: "#362a1e", icon: "eye" },
+          { l: "Hidden", v: String(stats.hidden), c: stats.hidden ? "#dda37d" : "#75f0c7", bg: "#362a1e", icon: "eye" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}><Icon name={k.icon} size={13} /></span>

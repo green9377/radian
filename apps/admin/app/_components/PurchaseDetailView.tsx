@@ -212,7 +212,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
                     </span>
                     <span className="text-[13px] text-right">{fmtQty(l.qtyMilli)} {l.unit?.name}</span>
                     <span className="text-[13px] text-right font-medium"
-                      style={{ color: l.receivedQtyMilli >= l.qtyMilli ? "#76efab" : l.receivedQtyMilli > 0 ? "#b45309" : "#9b8aa6" }}>
+                      style={{ color: l.receivedQtyMilli >= l.qtyMilli ? "#76efab" : l.receivedQtyMilli > 0 ? "#f7a96e" : "#9b8aa6" }}>
                       {fmtQty(l.receivedQtyMilli)}
                     </span>
                     <span className="text-[13px] text-right">{formatTaka(l.unitPricePaisa)}</span>

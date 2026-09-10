@@ -118,7 +118,7 @@ export function AnalyticsLenses() {
               onClick={() => setLens(l.key)}
               className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] border transition-colors"
               style={{
-                borderColor: on ? "#7d2ea8" : "#3f2d4e",
+                borderColor: on ? "#bb7fdc" : "#e4d3f2",
                 background: on ? "#7d2ea8" : "#fff",
                 color: on ? "#fff" : "#ce6ef7",
               }}
@@ -146,7 +146,7 @@ export function AnalyticsLenses() {
               disabled={dead}
               className="rounded-[9px] px-3 py-1 text-[11.5px] border disabled:cursor-not-allowed"
               style={{
-                borderColor: on && !dead ? "#283e53" : "#3f3149",
+                borderColor: on && !dead ? "#c7e2fa" : "#eee6f4",
                 background: on && !dead ? "#16293b" : "#fff",
                 color: dead ? "#b3b3bb" : on ? "#70bcf5" : "#a9a9b1",
               }}
@@ -271,7 +271,7 @@ function Bars({ rows, unit }: { rows: { label: string; value: number; sub?: stri
 
 function Split({ parts, unit }: { parts: { label: string; value: number }[]; unit: LensUnit }) {
   const total = parts.reduce((n, p) => n + Math.abs(p.value), 0) || 1;
-  const colours = [BAR, SERIES, "#e08a1e", "#149a52"];
+  const colours = [BAR, SERIES, "#ecb46f", "#78edae"];
   return (
     <div className="mt-3">
       <div className="flex h-[10px] rounded-full overflow-hidden bg-[#2a1f33]">

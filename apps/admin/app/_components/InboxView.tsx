@@ -584,7 +584,7 @@ export default function InboxView() {
               />
               <p
                 className="text-[12px] font-extrabold truncate"
-                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#c3c9d4" : "#6b7280" }}
+                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#c3c9d4" : "#a6abb5" }}
               >
                 {c.label}
               </p>

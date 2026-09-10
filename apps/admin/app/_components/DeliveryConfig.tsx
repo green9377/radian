@@ -35,12 +35,12 @@ export function CouriersMaster() {
   function remove(id: string) { setFleet((b) => b.filter((f) => f.id !== id)); setSel(null); }
 
   const stats = [
-    { l: "Riders (in-house)", v: String(riders.length), c: "#7a2ea8", bg: "#2e1a38", icon: "user" },
-    { l: "3PL couriers", v: String(couriers.length), c: "#3182c9", bg: "#18283a", icon: "truck" },
-    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#12a172", bg: "#1e362b", icon: "check" },
-    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#d98a0f", bg: "#3b2d18", icon: "bolt" },
-    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#8b3fb0", bg: "#2c1939", icon: "box" },
-    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#12a172", bg: "#1e362b", icon: "clock" },
+    { l: "Riders (in-house)", v: String(riders.length), c: "#b97fdc", bg: "#2e1a38", icon: "user" },
+    { l: "3PL couriers", v: String(couriers.length), c: "#7cb1df", bg: "#18283a", icon: "truck" },
+    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#75f0c7", bg: "#1e362b", icon: "check" },
+    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#f4bd66", bg: "#3b2d18", icon: "bolt" },
+    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#bb87d4", bg: "#2c1939", icon: "box" },
+    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#75f0c7", bg: "#1e362b", icon: "clock" },
   ];
 
   const Rowlet = ({ f }: { f: FleetMember }) => {
@@ -211,12 +211,12 @@ export function ZonesRates() {
   function removeZone(id: string) { setZones((b) => b.filter((z) => z.id !== id)); setRates((b) => b.filter((r) => r.zoneId !== id)); setSlots((b) => b.filter((s) => s.zoneId !== id)); setSel(null); }
 
   const stats = [
-    { l: "Zones", v: String(zones.length), c: "#7a2ea8", bg: "#2e1a38", icon: "pin" },
-    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#3182c9", bg: "#18283a", icon: "bolt" },
-    { l: "Time slots", v: String(slots.length), c: "#8b3fb0", bg: "#2c1939", icon: "clock" },
-    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#12a172", bg: "#1e362b", icon: "cash" },
-    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#d98a0f", bg: "#3b2d18", icon: "box" },
-    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#b5642f", bg: "#362a1e", icon: "shield" },
+    { l: "Zones", v: String(zones.length), c: "#b97fdc", bg: "#2e1a38", icon: "pin" },
+    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#7cb1df", bg: "#18283a", icon: "bolt" },
+    { l: "Time slots", v: String(slots.length), c: "#bb87d4", bg: "#2c1939", icon: "clock" },
+    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#75f0c7", bg: "#1e362b", icon: "cash" },
+    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#f4bd66", bg: "#3b2d18", icon: "box" },
+    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#dda37d", bg: "#362a1e", icon: "shield" },
   ];
 
   return (

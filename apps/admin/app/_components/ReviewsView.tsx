@@ -41,43 +41,43 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "all", label: "All reviews", blurb: "Everything, newest first", icon: "grid",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "waiting", label: "Waiting", blurb: "Approve or reject", icon: "clock",
-    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    tint: "#3c2e17", edge: "#514429", chip: "#41351f",
     ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
     fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "onsite", label: "On the site", blurb: "Live on the website", icon: "eye",
-    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
     ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
     fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "hidden", label: "Hidden", blurb: "Taken off the site", icon: "box",
-    tint: "#282032", edge: "#2b2434", chip: "#2b2434",
+    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
     ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
     fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
   },
   {
     id: "website", label: "Website", blurb: "Customers wrote these", icon: "user",
-    tint: "#192939", edge: "#1f2e3d", chip: "#1f2e3d",
+    tint: "#192939", edge: "#2b3e4f", chip: "#1f2e3d",
     ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
     fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
   },
   {
     id: "google", label: "Google", blurb: "Card, feature and reply", icon: "search",
-    tint: "#34163b", edge: "#351840", chip: "#351840",
+    tint: "#34163b", edge: "#472853", chip: "#351840",
     ink: "#de87db", sub: "#bd9cbf", strong: "#da8bd3",
     fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#3e1f3b",
   },
   {
     id: "featured", label: "Homepage picks", blurb: "Four front-page spots", icon: "star",
-    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
     ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
     fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },
@@ -491,7 +491,7 @@ function ActionBtn({ children, onClick, solid, danger, active }: {
   }
   if (danger) {
     return (
-      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#522e29", color: "#e1837a" }}>
+      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#f3c9c3", color: "#e1837a" }}>
         {children}
       </button>
     );

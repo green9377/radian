@@ -211,11 +211,11 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft p-5">
           {section === "basics" && (
             <Sect title="Basics" hint="Names and codes belong to each variant — open one to rename it.">
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
                 {members.map((m) => (
                   <Link key={m.id} href={`/items/${m.id}`}
                     className="px-3.5 py-2.5 flex items-center gap-3 border-b last:border-0 hover:bg-lavender/30"
-                    style={{ borderColor: "#3f304b" }}>
+                    style={{ borderColor: "#f0e8f6" }}>
                     <ItemThumb item={m} size={34} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-semibold text-body truncate">{m.name}</span>
@@ -294,7 +294,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                   onErr={setErr}
                 />
               </Row>
-              <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#402e4c" }}>
+              <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c0ea" }}>
                 <div className="px-4 py-3" style={{ background: ACCENT }}>
                   <span className="text-[13.5px] font-bold text-white">{members.length} variants</span>
                 </div>
@@ -325,7 +325,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
 
           {section === "behaviour" && (
             <Sect title="How it is used" hint="Applied to every variant at once.">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={val(isPurchasable, cur.isPurchasable) ?? false}
                   onClick={() => setIsPurchasable(!(val(isPurchasable, cur.isPurchasable) ?? false))}
                   icon="download" tone="#0e8f74"
@@ -354,7 +354,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                       style={priceMode === k
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#403149", color: "#dfd2e4" }}>
+                        : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
                       {label}
                     </button>
                   ))}
@@ -376,8 +376,8 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                 </div>
               </Row>
 
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#403149" }}>
-                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "#291a35", borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
                   What each one costs and sells for now
                 </div>
                 <div className="divide-y divide-lavender-deep">
@@ -385,7 +385,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                     <div key={m.id} className="px-4 py-2 grid grid-cols-[minmax(0,1fr)_100px_120px] gap-3 items-center text-[13px]">
                       <span className="truncate text-body">{m.name}</span>
                       <span className="text-right text-body-soft">{formatTaka(m.effectiveCostPaisa ?? 0)}</span>
-                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#e1837a" : "#0e7a3d" }}>
+                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#e1837a" : "#76efab" }}>
                         {m.effectiveSellPricePaisa == null ? "no price" : formatTaka(m.effectiveSellPricePaisa)}
                         {m.sellPriceIsManual && <span className="text-[11px] font-normal text-body-soft"> fixed</span>}
                       </span>
@@ -411,10 +411,10 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
 
           {section === "connect" && (
             <Sect title="Sell online" hint="Whether these variants may sit behind a product page.">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#403149" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={val(isOnline, cur.isOnline) ?? false}
                   onClick={() => setIsOnline(!(val(isOnline, cur.isOnline) ?? false))}
-                  icon="link" tone="#8b21c9"
+                  icon="link" tone="#bd73e8"
                   title="Sell online" sub={cur.isOnline === null && isOnline === null ? "they differ — one press sets them all" : "Off keeps them off the product page; the counter still sells them"} />
               </div>
             </Sect>

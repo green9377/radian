@@ -34,25 +34,25 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "all", label: "All articles", blurb: "Everything you have written", icon: "grid",
-    tint: "#2d1c37", edge: "#301f3a", chip: "#301f3a",
+    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
     ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
     fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
   },
   {
     id: "published", label: "Published", blurb: "Live on the website", icon: "eye",
-    tint: "#1f3427", edge: "#24392c", chip: "#24392c",
+    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
     ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
     fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
   },
   {
     id: "drafts", label: "Drafts", blurb: "Only you can see these", icon: "clock",
-    tint: "#3c2e17", edge: "#41351f", chip: "#41351f",
+    tint: "#3c2e17", edge: "#514429", chip: "#41351f",
     ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
     fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
   },
   {
     id: "homepage", label: "On the homepage", blurb: "The newest three", icon: "star",
-    tint: "#381a24", edge: "#3c1f2a", chip: "#3c1f2a",
+    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
     ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
     fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
   },

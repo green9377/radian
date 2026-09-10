@@ -182,11 +182,11 @@ export default function CustomerOccasions() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
-          { l: "This week", v: String(within7), c: "#c0287f", bg: "#3b172a", icon: "bolt" },
-          { l: "Next 30 days", v: String(within30), c: "#7a2ea8", bg: "#2e1a38", icon: "clock" },
-          { l: "Birthdays", v: String(birthdays), c: "#c01fd8", bg: "#36163b", icon: "sparkle" },
-          { l: "Anniversaries", v: String(annivs), c: "#d64fa0", bg: "#371a24", icon: "heart" },
-          { l: "Total saved dates", v: String(allRows.length), c: "#12a172", bg: "#1e362b", icon: "star" },
+          { l: "This week", v: String(within7), c: "#e378b5", bg: "#3b172a", icon: "bolt" },
+          { l: "Next 30 days", v: String(within30), c: "#b97fdc", bg: "#2e1a38", icon: "clock" },
+          { l: "Birthdays", v: String(birthdays), c: "#db70eb", bg: "#36163b", icon: "sparkle" },
+          { l: "Anniversaries", v: String(annivs), c: "#e07bb8", bg: "#371a24", icon: "heart" },
+          { l: "Total saved dates", v: String(allRows.length), c: "#75f0c7", bg: "#1e362b", icon: "star" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>

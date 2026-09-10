@@ -229,7 +229,7 @@ export default function PeopleAccess() {
                       <div key={emp.id} className="rounded-[11px] border border-[#3c304a]">
                         <div className="flex items-center gap-2.5 px-2.5 py-2">
                           <span className="w-[28px] h-[28px] rounded-full grid place-items-center text-[12px] font-bold text-white shrink-0"
-                            style={{ background: linked ? "linear-gradient(135deg,#12a172,#5ec9a8)" : GRAD }}>
+                            style={{ background: linked ? "linear-gradient(135deg,#75f0c7,#85d6bd)" : GRAD }}>
                             {emp.name.slice(0, 1).toUpperCase()}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -320,7 +320,7 @@ export default function PeopleAccess() {
       {/* ── the one-time link, whichever door made it ────────────────── */}
       {link && (
         <div className="rounded-[16px] bg-white border overflow-hidden mb-4"
-          style={{ borderColor: "#314943", boxShadow: "0 2px 10px rgba(18,161,114,0.10)" }}>
+          style={{ borderColor: "#bfe3d9", boxShadow: "0 2px 10px rgba(18,161,114,0.10)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5"
             style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
             <span className="text-white"><Icon name="check" size={15} strokeWidth={2.6} /></span>
@@ -436,7 +436,7 @@ function RowBtn({ label, onClick, disabled, tone }: {
     <button
       className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border transition-colors disabled:opacity-40"
       style={{
-        borderColor: tone === "danger" ? "#512e29" : "#3b3248",
+        borderColor: tone === "danger" ? "#f2c8c2" : "#e4ddef",
         color: tone === "danger" ? "#e1837a" : "#b97fdc",
         background: "#fff",
       }}

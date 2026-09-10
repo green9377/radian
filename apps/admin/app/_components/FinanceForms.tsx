@@ -556,7 +556,7 @@ export function PartnersLive() {
               </div>
               <div>
                 <div className="text-[11px] uppercase tracking-[0.04em] text-body-soft font-semibold">Still owed back</div>
-                <div className="text-[17px] font-bold" style={{ color: p.capitalOutstandingPaisa > 0 ? "#f7a96e" : "#0f7d55" }}>
+                <div className="text-[17px] font-bold" style={{ color: p.capitalOutstandingPaisa > 0 ? "#f7a96e" : "#76efc3" }}>
                   {taka(p.capitalOutstandingPaisa)}
                 </div>
               </div>

@@ -148,7 +148,7 @@ export default function ItemTypesView() {
                 {!t.isSystem && (
                   <button onClick={() => setConfirming(t)} disabled={busy}
                     className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border text-[#e1837a] disabled:opacity-40"
-                    style={{ borderColor: "#4d312d" }}>
+                    style={{ borderColor: "#f0d4d0" }}>
                     Delete
                   </button>
                 )}
@@ -194,7 +194,7 @@ export default function ItemTypesView() {
                         className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                         style={on
                           ? { background: m.colour, borderColor: m.colour, color: "#fff" }
-                          : { background: "#fff", borderColor: "#403149", color: m.colour }}>
+                          : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
                         {m.label}
                       </button>
                     );
@@ -208,7 +208,7 @@ export default function ItemTypesView() {
               {SWATCHES.map((c) => (
                 <button key={c} type="button" onClick={() => setDlg({ ...dlg, colour: dlg.colour === c ? null : c })}
                   className="w-[26px] h-[26px] rounded-full border-2"
-                  style={{ background: c, borderColor: dlg.colour === c ? "#2c0f3d" : "#3f3248" }} />
+                  style={{ background: c, borderColor: dlg.colour === c ? "#f1eaf6" : "#e3d7ec" }} />
               ))}
             </div>
           </Field>

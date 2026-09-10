@@ -24,12 +24,12 @@ export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1600px] mx-auto w-full";
 export type Tone = "brand" | "emerald" | "amber" | "rose" | "sky" | "slate";
 
 export const TONE: Record<Tone, { bg: string; soft: string; text: string; ring: string; grad: string }> = {
-  brand:   { bg: "#a021b8", soft: "#301c36", text: "#d47de8", ring: "#eeddf4", grad: "linear-gradient(135deg,#a021b8,#d98cb3)" },
-  emerald: { bg: "#0f7d55", soft: "#20342a", text: "#75f0c5", ring: "#cdeade", grad: "linear-gradient(135deg,#0f7d55,#4fbf8b)" },
-  amber:   { bg: "#b45309", soft: "#3c2e17", text: "#f2a373", ring: "#f7e0bd", grad: "linear-gradient(135deg,#d97706,#f0b76a)" },
-  rose:    { bg: "#b91c1c", soft: "#3b1717", text: "#e87d7d", ring: "#f6cfcf", grad: "linear-gradient(135deg,#b91c1c,#ef7c7c)" },
-  sky:     { bg: "#0369a1", soft: "#172e3d", text: "#6ec7f7", ring: "#c3e5f7", grad: "linear-gradient(135deg,#0369a1,#5eb7e8)" },
-  slate:   { bg: "#5b5468", soft: "#27232e", text: "#dfd2e4", ring: "#e7e3ee", grad: "linear-gradient(135deg,#5b5468,#38353e)" },
+  brand:   { bg: "#a021b8", soft: "#301c36", text: "#d47de8", ring: "#452e4d", grad: "linear-gradient(135deg,#a021b8,#d98cb3)" },
+  emerald: { bg: "#0f7d55", soft: "#20342a", text: "#75f0c5", ring: "#314a3f", grad: "linear-gradient(135deg,#0f7d55,#4fbf8b)" },
+  amber:   { bg: "#b45309", soft: "#3c2e17", text: "#f2a373", ring: "#534228", grad: "linear-gradient(135deg,#d97706,#f0b76a)" },
+  rose:    { bg: "#b91c1c", soft: "#3b1717", text: "#e87d7d", ring: "#522828", grad: "linear-gradient(135deg,#b91c1c,#ef7c7c)" },
+  sky:     { bg: "#0369a1", soft: "#172e3d", text: "#6ec7f7", ring: "#284453", grad: "linear-gradient(135deg,#0369a1,#5eb7e8)" },
+  slate:   { bg: "#5b5468", soft: "#27232e", text: "#dfd2e4", ring: "#3b3645", grad: "linear-gradient(135deg,#5b5468,#38353e)" },
 };
 
 export const taka = (p: number) => formatTaka(p);

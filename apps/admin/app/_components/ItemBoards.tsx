@@ -119,8 +119,8 @@ export function ItemTrashView() {
                       title="Remove from the database for good"
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
                       style={open
-                        ? { background: "#c0392b", borderColor: "#c0392b", color: "#fff" }
-                        : { background: "#fff", borderColor: "#4d312d", color: "#e1837a" }}>
+                        ? { background: "#c0392b", borderColor: "#e1837a", color: "#fff" }
+                        : { background: "#fff", borderColor: "#f0d4d0", color: "#e1837a" }}>
                       <Icon name="trash" size={13} /> {open ? "Cancel" : "Destroy"}
                     </button>
                   </span>
@@ -130,7 +130,7 @@ export function ItemTrashView() {
                     are about to destroy stays visible right above the question. */}
                 {open && (
                   <div className="px-4 pb-4 pt-1" style={{ background: "#371b18" }}>
-                    <div className="rounded-[12px] border p-4" style={{ borderColor: "#50302b", background: "#fff" }}>
+                    <div className="rounded-[12px] border p-4" style={{ borderColor: "#f0c8c2", background: "#fff" }}>
                       <div className="flex items-start gap-3">
                         <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
                           style={{ background: "#c0392b" }}>

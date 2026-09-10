@@ -235,7 +235,7 @@ export default function ItemSizesView() {
               ))}
               <button type="button" onClick={() => setDlg({ ...dlg, lines: [...dlg.lines, { label: "" }] })}
                 className="self-start text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
-                style={{ borderColor: "#402d4e", color: ACCENT }}>
+                style={{ borderColor: "#efe4f7", color: ACCENT }}>
                 <Icon name="plus" size={13} /> Add size
               </button>
             </div>

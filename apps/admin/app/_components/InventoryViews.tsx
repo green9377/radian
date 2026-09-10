@@ -89,17 +89,17 @@ export function InventoryOverview() {
 
       {ov && (
         <Kpi items={[
-          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "#470066", bg: "#2e1a38", icon: "box" },
-          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "bolt" },
-          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "#b45309", bg: "#3b2b17", icon: "cash" },
-          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "#cf43ea", bg: "#35163b", icon: "heart" },
-          { l: "Movements today", v: ov.kpis.movementsToday, c: "#2563a8", bg: "#1b2838", icon: "clock" },
+          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "bolt" },
+          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "#f7a96e", bg: "#3b2b17", icon: "cash" },
+          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "#da6cef", bg: "#35163b", icon: "heart" },
+          { l: "Movements today", v: ov.kpis.movementsToday, c: "#79abe2", bg: "#1b2838", icon: "clock" },
         ]} />
       )}
 
       {/* needs attention — the reason this screen exists */}
       {att && attentionCount > 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#3b1a16", borderColor: "#532d28" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#3b1a16", borderColor: "#f7cdc7" }}>
           <div className="flex items-center gap-2 mb-2.5">
             <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#c0392b" }}><Icon name="bolt" size={13} /></span>
             <b className="text-[14px]" style={{ color: "#e38c82" }}>Needs attention ({attentionCount})</b>
@@ -143,7 +143,7 @@ export function InventoryOverview() {
       )}
 
       {!loading && att && attentionCount === 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "#1f3529", borderColor: "#2f4c3b" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "#1f3529", borderColor: "#c9ecd8" }}>
           <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#0e7a3d" }}><Icon name="check" size={13} /></span>
           <b className="text-[14px]" style={{ color: "#76efab" }}>All clear — no negative stock, nothing low, no expiry alarms.</b>
         </div>
@@ -261,7 +261,7 @@ export function InvStockBoard() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={filter === k
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
             {label}
           </button>
         ))}
@@ -296,7 +296,7 @@ export function InvStockBoard() {
               return (
                 <div key={r.itemId}
                   className="bg-white rounded-[14px] shadow-soft overflow-hidden border-2 flex flex-col"
-                  style={{ borderColor: r.isNegative ? "#522929" : r.isLow ? "#45381e" : "#2c1e37" }}>
+                  style={{ borderColor: r.isNegative ? "#f0b4b4" : r.isLow ? "#f0d9a8" : "#efe4f7" }}>
                   <div className="flex items-center gap-2.5 px-3 pt-3">
                     <ItemThumb item={r} size={44} />
                     <span className="min-w-0">
@@ -308,7 +308,7 @@ export function InvStockBoard() {
                     <span>
                       <span className="block text-[10px] uppercase tracking-[0.06em] text-body-soft font-semibold">In stock</span>
                       <b className="block text-[20px] leading-[1.1] font-display"
-                        style={{ color: r.isNegative ? "#e1837a" : r.isLow ? "#f7a96e" : "#470066", fontVariantNumeric: "tabular-nums" }}>
+                        style={{ color: r.isNegative ? "#e1837a" : r.isLow ? "#f7a96e" : "#ce6ef7", fontVariantNumeric: "tabular-nums" }}>
                         {mto ? "—" : fmtQty(r.totalQtyMilli)}
                       </b>
                       <span className="block text-[10.5px] text-body-soft">{mto ? "made to order" : r.unitName}</span>
@@ -452,7 +452,7 @@ export function InvMovementsView() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button onClick={() => setReason("")}
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
-          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
           All
         </button>
         {reasons.map((k) => (
@@ -460,7 +460,7 @@ export function InvMovementsView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={reason === k
               ? { background: INV_REASON_META[k].colour, color: "#fff", borderColor: INV_REASON_META[k].colour }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
             {INV_REASON_META[k].label}
           </button>
         ))}

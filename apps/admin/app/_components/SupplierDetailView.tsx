@@ -100,10 +100,10 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
       {/* ---------------- balance strip ---------------- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#c0392b" : "#0e7a3d", bg: s.duePaisa > 0 ? "#3b1a16" : "#1f3427", icon: "wallet" },
-          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#0e8f74", bg: "#20332e", icon: "gem" },
-          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#470066", bg: "#2e1a38", icon: "cart" },
-          { l: "Purchases", v: String(s.purchaseCount), sub: s.lastPurchaseAt ? `last ${fmtDate(s.lastPurchaseAt)}` : "", c: "#2563a8", bg: "#1b2838", icon: "box" },
+          { l: "Due (we owe)", v: formatTaka(s.duePaisa), c: s.duePaisa > 0 ? "#e1837a" : "#76efab", bg: s.duePaisa > 0 ? "#3b1a16" : "#1f3427", icon: "wallet" },
+          { l: "Credit we hold", v: formatTaka(s.creditPaisa), c: "#74f1d7", bg: "#20332e", icon: "gem" },
+          { l: "Bought (all time)", v: formatTaka(s.totalBoughtPaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "cart" },
+          { l: "Purchases", v: String(s.purchaseCount), sub: s.lastPurchaseAt ? `last ${fmtDate(s.lastPurchaseAt)}` : "", c: "#79abe2", bg: "#1b2838", icon: "box" },
         ].map((k) => (
           <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
             <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
@@ -132,7 +132,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                 className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                 style={tab === id
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                  : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                 {label}
               </button>
             ))}
@@ -338,7 +338,7 @@ export default function SupplierDetailView({ supplierId }: { supplierId: string 
                         <span className="text-[13px] text-right">{formatTaka(it.standardCostPaisa)}</span>
                         <span className="text-[13px] text-right">{selling != null ? formatTaka(selling) : "—"}</span>
                         <span className="text-[13px] font-semibold text-right"
-                          style={{ color: margin == null ? "#b0a2b8" : margin >= 0 ? "#0e7a3d" : "#c0392b" }}>
+                          style={{ color: margin == null ? "#b0a2b8" : margin >= 0 ? "#76efab" : "#e1837a" }}>
                           {margin != null ? formatTaka(margin) : "—"}
                         </span>
                       </Link>
@@ -522,7 +522,7 @@ function PayModal({ s, onClose, onDone }: { s: ApiSupplierDetail; onClose: () =>
                 className="text-[12px] font-medium px-3 py-1.5 rounded-[9px] border"
                 style={method === m.id
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#3f3248", color: "#b0a1ba" }}>
+                  : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
                 {m.label}
               </button>
             ))}

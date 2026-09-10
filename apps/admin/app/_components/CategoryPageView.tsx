@@ -154,7 +154,7 @@ const SECTION_TINT: Record<string, string> = {
   attributeGrid: "linear-gradient(135deg,#5C2A96,#9B6BE0)",
   occasionGrid: "linear-gradient(135deg,#8E2D6B,#D45BA0)",
   readyToday: "linear-gradient(135deg,#4A1259,#7B2D8E)",
-  colourGrid: "linear-gradient(135deg,#9B3FC4,#CE86E8)",
+  colourGrid: "linear-gradient(135deg,#be82d9,#CE86E8)",
   budgetRail: "linear-gradient(135deg,#6E3AA8,#A87BE0)",
   productGrid: "linear-gradient(135deg,#7B2D8E,#B76E79)",
   comboRail: "linear-gradient(135deg,#B76E79,#432629)",

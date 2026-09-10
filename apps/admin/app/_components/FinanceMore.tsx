@@ -660,7 +660,7 @@ export function ReportsLive() {
           <Panel title="Goods that left but never arrived" emoji="📦" tone={leak.goodsStuckOut.overdueCount > 0 ? "rose" : "slate"}
             sub="out of the warehouse, not delivered and not returned">
             <div className="px-5 py-4">
-              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "#3d2352" }}>
+              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "#b694d1" }}>
                 {taka(leak.goodsStuckOut.totalPaisa)}
                 <span className="text-[12px] font-normal text-body-soft ml-2">{leak.goodsStuckOut.overdueCount} over a week</span>
               </div>

@@ -42,10 +42,10 @@ import {
 type Tone = "brand" | "sky" | "emerald" | "amber";
 
 const TONE: Record<Tone, { grad: string; ring: string; text: string; soft: string }> = {
-  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#312238", text: "#ca88dd", soft: "#2c1b35" },
-  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#1f2d3b", text: "#7fb3e6", soft: "#192838" },
-  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#253730", text: "#7de8c0", soft: "#1f332a" },
-  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#3e331f", text: "#efbb76", soft: "#3c2e17" },
+  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#43304b", text: "#ca88dd", soft: "#2c1b35" },
+  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#2c3d4f", text: "#7fb3e6", soft: "#192838" },
+  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#324940", text: "#7de8c0", soft: "#1f332a" },
+  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#50432b", text: "#efbb76", soft: "#3c2e17" },
 };
 
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";

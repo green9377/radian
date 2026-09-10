@@ -209,10 +209,10 @@ export default function BrandsView() {
            purple, orchid, rose gold, soft purple. One house, one look.  */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Brands", v: stats.total, c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "tag" },
-          { l: "On products", v: stats.total - stats.empty, c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "star", tip: "Brands at least one product carries." },
-          { l: "Unused", v: stats.empty, c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
-          { l: "Hidden", v: stats.hidden, c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
+          { l: "Brands", v: stats.total, c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "tag" },
+          { l: "On products", v: stats.total - stats.empty, c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "star", tip: "Brands at least one product carries." },
+          { l: "Unused", v: stats.empty, c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "bolt", tip: "Brands no product carries yet. Harmless — but a brand nobody uses is a page with nothing on it." },
+          { l: "Hidden", v: stats.hidden, c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Brands switched off. They stay here in the admin and disappear from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>

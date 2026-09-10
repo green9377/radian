@@ -550,7 +550,7 @@ export default function ItemListView() {
                     style={{
                       background: on ? ACCENT : "#fff",
                       color: on ? "#fff" : ACCENT,
-                      borderLeft: idx ? `1px solid ${on ? "rgba(255,255,255,.35)" : "#302337"}` : undefined,
+                      borderLeft: idx ? `1px solid ${on ? "rgba(255,255,255,.35)" : "#40314a"}` : undefined,
                     }}>
                     {o.label}
                     <span className="text-[11.5px] font-bold px-1.5 py-[1px] rounded-full"
@@ -796,7 +796,7 @@ export default function ItemListView() {
                       className="text-[13px] font-semibold min-w-[32px] h-[32px] rounded-[8px] border"
                       style={n === current
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#402d4e", color: "#ce6ef7" }}>
+                        : { background: "#fff", borderColor: "#efe4f7", color: "#ce6ef7" }}>
                       {n}
                     </button>
                   </span>
@@ -816,7 +816,7 @@ export default function ItemListView() {
             const { colour: col, size } = labelsOf(i);
             const recipeCount = i._count?.components ?? i.components?.length ?? 0;
             return (
-              <div key={i.id} style={{ borderLeft: `4px solid ${i.isActive ? m.colour : "#2d2434"}` }}>
+              <div key={i.id} style={{ borderLeft: `4px solid ${i.isActive ? m.colour : "#e5dced"}` }}>
                 {/* the WHOLE row opens the item (sobuj, 21 Jul). The two action buttons
                     stop the click from bubbling so they still do their own job. */}
                 <div

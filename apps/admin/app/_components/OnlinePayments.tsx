@@ -29,7 +29,7 @@ import { Info } from "./ItemEditor";
 import { Flash, Table, Td, Th, WRAP, input, taka } from "./FinanceUI";
 
 const BRAND = {
-  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#c07edd" },
+  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#a94fd0" },
   rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
 } as const;
 
@@ -202,7 +202,7 @@ export function OnlinePaymentsLive() {
         }
       >
         {/* the filter row */}
-        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#3d3249" }}>
+        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#efe9f5" }}>
           <div className="flex flex-wrap gap-1.5">
             {TABS.map((t) => {
               const on = tab === t.key;
@@ -220,7 +220,7 @@ export function OnlinePaymentsLive() {
                           borderColor: BRAND.purple.ink,
                           boxShadow: "0 2px 8px rgba(122,46,168,0.25)",
                         }
-                      : { background: "#fff", color: "#adadad", borderColor: "#3d3248" }
+                      : { background: "#fff", color: "#adadad", borderColor: "#e7dff0" }
                   }
                 >
                   {t.label}

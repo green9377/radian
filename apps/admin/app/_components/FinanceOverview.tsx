@@ -150,8 +150,8 @@ export function FinanceOverviewLive() {
               <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#2a2131]">
                 {[
                   { label: "Earned", value: o.incomePaisa, tone: TONE.emerald.text },
-                  { label: "Cost of goods", value: o.cogsPaisa, tone: "#6b6b6b" },
-                  { label: "All costs", value: o.expensePaisa, tone: "#6b6b6b" },
+                  { label: "Cost of goods", value: o.cogsPaisa, tone: "#adadad" },
+                  { label: "All costs", value: o.expensePaisa, tone: "#adadad" },
                   { label: "Left over", value: o.profitPaisa, tone: o.profitPaisa < 0 ? TONE.rose.text : TONE.emerald.text },
                 ].map((x) => (
                   <div key={x.label} className="px-5 py-4">

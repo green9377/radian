@@ -367,7 +367,7 @@ export function PayrollDetailView({ id }: { id: string }) {
                         disabled={l.advanceOutstandingPaisa <= 0}
                         onChange={(e) => set({ advance: e.target.value })} />
                       <span className="block text-[11px] mt-1"
-                        style={{ color: l.advanceOutstandingPaisa > 0 ? TONE.amber.text : "#342c3a" }}>
+                        style={{ color: l.advanceOutstandingPaisa > 0 ? TONE.amber.text : "#c9b8d4" }}>
                         {l.advanceOutstandingPaisa > 0 ? `owes ${formatTaka(l.advanceOutstandingPaisa)}` : "owes nothing"}
                       </span>
                     </>

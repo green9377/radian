@@ -45,11 +45,11 @@ export default function PurchaseReturnsView() {
       {isDemo && <DemoBar what="sample returns" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total returned", v: formatTaka(total), c: "#470066", bg: "#2e1a38", icon: "box" },
-        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#b45309", bg: "#3b2b17", icon: "cash" },
-        { l: "Became credit", v: formatTaka(credit), c: "#0e8f74", bg: "#20332e", icon: "check" },
-        { l: "Returns", v: rows.length, c: "#2563a8", bg: "#1b2838", icon: "grid" },
-        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#b5642f", bg: "#38291c", icon: "user" },
+        { l: "Total returned", v: formatTaka(total), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#f7a96e", bg: "#3b2b17", icon: "cash" },
+        { l: "Became credit", v: formatTaka(credit), c: "#74f1d7", bg: "#20332e", icon: "check" },
+        { l: "Returns", v: rows.length, c: "#79abe2", bg: "#1b2838", icon: "grid" },
+        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#dda37d", bg: "#38291c", icon: "user" },
       ]} />
 
       <DataTable head={

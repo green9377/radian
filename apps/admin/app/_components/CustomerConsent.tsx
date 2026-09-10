@@ -21,11 +21,11 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 type Key = keyof Pick<Consent, "orderUpdates" | "marketingWhatsapp" | "occasionReminders" | "email" | "sms">;
 
 const CHANNELS: { k: Key; label: string; hint: string; c: string; icon: string }[] = [
-  { k: "orderUpdates", label: "Order updates", hint: "transactional — order confirmed, out for delivery", c: "#12a172", icon: "bag" },
-  { k: "marketingWhatsapp", label: "WhatsApp promos", hint: "campaigns, offers, festival blasts", c: "#c01fd8", icon: "phone" },
-  { k: "occasionReminders", label: "Occasion reminders", hint: "“Meem's birthday is in 3 days”", c: "#d64fa0", icon: "sparkle" },
-  { k: "email", label: "Email", hint: "receipts, newsletters", c: "#3182c9", icon: "mail" },
-  { k: "sms", label: "SMS", hint: "fallback when WhatsApp fails", c: "#b5642f", icon: "phone" },
+  { k: "orderUpdates", label: "Order updates", hint: "transactional — order confirmed, out for delivery", c: "#75f0c7", icon: "bag" },
+  { k: "marketingWhatsapp", label: "WhatsApp promos", hint: "campaigns, offers, festival blasts", c: "#db70eb", icon: "phone" },
+  { k: "occasionReminders", label: "Occasion reminders", hint: "“Meem's birthday is in 3 days”", c: "#e07bb8", icon: "sparkle" },
+  { k: "email", label: "Email", hint: "receipts, newsletters", c: "#7cb1df", icon: "mail" },
+  { k: "sms", label: "SMS", hint: "fallback when WhatsApp fails", c: "#dda37d", icon: "phone" },
 ];
 
 function Toggle({ on, onClick, c }: { on: boolean; onClick: () => void; c: string }) {

@@ -189,7 +189,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
   const showMoney = c.booksPaisa !== null && c.realPaisa !== null;
 
   return (
-    <Card className="px-4 py-4" style={{ borderColor: c.severity === "ok" ? "#3f3149" : t.ring }}>
+    <Card className="px-4 py-4" style={{ borderColor: c.severity === "ok" ? "#eee6f4" : t.ring }}>
       <div className="flex items-start gap-3 flex-wrap">
         <div className="w-7 h-7 rounded-full grid place-items-center text-white text-[14px] font-bold shrink-0"
           style={{ background: t.grad }}>{look.emoji}</div>

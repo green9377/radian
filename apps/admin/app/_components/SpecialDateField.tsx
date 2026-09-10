@@ -94,7 +94,7 @@ export default function SpecialDateField({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="ipt h-[40px] flex items-center justify-between gap-2 flex-1 min-w-0 text-left"
-        style={open ? { borderColor: "#cf43ea", boxShadow: "0 0 0 3px #34163b" } : undefined}
+        style={open ? { borderColor: "#da6cef", boxShadow: "0 0 0 3px #34163b" } : undefined}
       >
         <span className="truncate text-[13px]">
           {readDate(date, year)}

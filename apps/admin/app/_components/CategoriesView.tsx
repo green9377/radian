@@ -221,12 +221,12 @@ export default function CategoriesView() {
           this screen wore was the old off-brand palette.  */}
       <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-6">
         {[
-          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#2c1e34", icon: "grid" },
-          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "layers", tip: "The aisles — what the storefront menu shows." },
-          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#30183a", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
-          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
-          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
-          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
+          { l: "Categories", v: String(stats.total), c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "grid" },
+          { l: "Top-level", v: String(stats.tops), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "layers", tip: "The aisles — what the storefront menu shows." },
+          { l: "Sub-categories", v: String(stats.subs), c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
+          { l: "Products classified", v: String(stats.classified), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
+          { l: "Empty categories", v: String(stats.empty), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
+          { l: "Hidden", v: String(stats.inactive), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>

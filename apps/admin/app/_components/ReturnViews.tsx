@@ -151,11 +151,11 @@ export function ReturnsOverview() {
         <Kpi items={[
           /*  Named "All returns" behind a door so nobody reads the strip as the
               door's own count. The figure is the same on every door on purpose. */
-          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#470066", bg: "#2e1a38", icon: "box" },
-          { l: "Needs approval", v: stats.pending, c: "#c77700", bg: "#3b2b17", icon: "bolt" },
-          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#c0392b", bg: "#3b1a16", icon: "cash" },
-          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#2563eb", bg: "#16243b", icon: "star" },
-          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#0e7a3d", bg: "#1f3529", icon: "tag" },
+          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+          { l: "Needs approval", v: stats.pending, c: "#f7c06e", bg: "#3b2b17", icon: "bolt" },
+          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#e1837a", bg: "#3b1a16", icon: "cash" },
+          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#6a94f1", bg: "#16243b", icon: "star" },
+          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#76efab", bg: "#1f3529", icon: "tag" },
         ]} />
       )}
 
@@ -510,7 +510,7 @@ export function NewReturn() {
                       onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, checked: e.target.checked } }))} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium">{l.name}
-                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#3b2b17" : "#eef", color: l.productType === "CRAFTED" ? "#f7a96e" : "#3730a3" }}>{l.productType}</span>
+                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#3b2b17" : "#eef", color: l.productType === "CRAFTED" ? "#f7a96e" : "#8681da" }}>{l.productType}</span>
                       </div>
                       <div className="text-[12px] text-body-soft">
                         {formatTaka(l.unitPaisa)} each · ordered {l.qty}
@@ -801,7 +801,7 @@ export function ReturnDetail({ id }: { id: string }) {
               <div key={l.id} className="px-4 py-3 border-b border-lavender-deep flex items-center justify-between gap-3">
                 <div className="text-[13.5px]">{l.name} <span className="text-body-soft">× {l.qty}</span></div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#1f3529" : "#29242e", color: l.restockAction === "RESTOCK" ? "#76efab" : "#8a7b96" }}>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#1f3529" : "#29242e", color: l.restockAction === "RESTOCK" ? "#76efab" : "#aea4b7" }}>
                     {l.restockAction === "RESTOCK" ? "Restocked" : "Write-off"}
                   </span>
                   <span className="text-[13px] w-[90px] text-right">{formatTaka(l.valuePaisa)}</span>

@@ -84,10 +84,10 @@ export function VendorBoard() {
       {failed && <DemoBar what="the vendor board (API offline?)" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Vendors", v: filtered.length, c: "#b5642f", bg: "#38291c", icon: "truck" },
-        { l: "Their products listed", v: totals.items, c: "#470066", bg: "#2e1a38", icon: "box" },
-        { l: "Notify ready", v: `${totals.ready} of ${filtered.length}`, c: "#0e8f74", bg: "#20332e", icon: "mail" },
-        { l: "Due to vendors", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#3b1a16", icon: "cash" },
+        { l: "Vendors", v: filtered.length, c: "#dda37d", bg: "#38291c", icon: "truck" },
+        { l: "Their products listed", v: totals.items, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+        { l: "Notify ready", v: `${totals.ready} of ${filtered.length}`, c: "#74f1d7", bg: "#20332e", icon: "mail" },
+        { l: "Due to vendors", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
       ]} />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">

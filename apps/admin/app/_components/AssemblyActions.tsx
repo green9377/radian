@@ -74,7 +74,7 @@ function WhPills({ whs, value, onChange, hideCodes }: {
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
           style={value === w.id
             ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+            : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
           {w.name}
         </button>
       ))}
@@ -361,7 +361,7 @@ function StageTimeline({ p }: { p: AsmProduction }) {
       <StageCard n={2} state={cancelled ? "cancelled" : "done"} title="Assigned & started">
         <SRow l="Who" v={p.assignedTo ?? p.actor ?? "\u2014"} strong />
         <SRow l="Started" v={dt(p.startedAt)} />
-        {cancelled && <SRow l="Status" v="Cancelled \u2014 stock returned" colour="#c0392b" strong />}
+        {cancelled && <SRow l="Status" v="Cancelled \u2014 stock returned" colour="#e1837a" strong />}
       </StageCard>
 
       <StageCard n={3} state={cancelled ? "pending" : finished ? "done" : "active"} title="Finished & wastage">
@@ -371,20 +371,20 @@ function StageTimeline({ p }: { p: AsmProduction }) {
             <SRow l="Took" v={p.durationMin ? `${p.durationMin} min` : "\u2014"} />
             <SRow l="Made" v={`${fmtQty(p.finishedQtyMilli)} pc \u00b7 ${formatTaka(p.totalUsedValuePaisa)}`} strong />
             {wastedLines.length === 0 ? (
-              <SRow l="Wasted" v="nothing" colour="#0e7a3d" />
+              <SRow l="Wasted" v="nothing" colour="#76efab" />
             ) : (
               <>
                 {wastedLines.map((l) => (
                   <SRow key={l.id} l={l.componentItem.name}
                     v={`\u00d7${fmtQty(l.wastedQtyMilli)} \u00b7 ${formatTaka(l.wastedValuePaisa)}`}
-                    colour="#c0392b" />
+                    colour="#e1837a" />
                 ))}
-                <SRow l="Wasted total" v={formatTaka(p.totalWastedValuePaisa)} colour="#c0392b" strong />
+                <SRow l="Wasted total" v={formatTaka(p.totalWastedValuePaisa)} colour="#e1837a" strong />
               </>
             )}
           </>
         ) : (
-          <SRow l="Now" v={cancelled ? "\u2014" : "on the Assembly floor\u2026"} colour="#2563a8" />
+          <SRow l="Now" v={cancelled ? "\u2014" : "on the Assembly floor\u2026"} colour="#79abe2" />
         )}
       </StageCard>
 
@@ -569,7 +569,7 @@ export function AsmPipelineView() {
                       : { background: "#2b2232", color: "#b0a3b7" }}>
                   {s.n < step ? "✓" : s.n}
                 </span>
-                <b className="text-[13px]" style={{ color: s.n === step ? ACCENT : s.n < step ? "#76efab" : "#8d7a97" }}>{s.label}</b>
+                <b className="text-[13px]" style={{ color: s.n === step ? ACCENT : s.n < step ? "#76efab" : "#b0a3b7" }}>{s.label}</b>
               </button>
               {i < arr.length - 1 && <span className="w-10 h-px" style={{ background: "#2c2236" }} />}
             </span>
@@ -633,7 +633,7 @@ export function AsmPipelineView() {
                     className="text-left rounded-[12px] border px-4 py-3 transition-all"
                     style={already === o.v
                       ? { borderColor: ACCENT, background: "#2e1a38", boxShadow: `0 0 0 2px ${ACCENT}22` }
-                      : { borderColor: "#3d314a", background: "#fff" }}>
+                      : { borderColor: "#e4d9ef", background: "#fff" }}>
                     <b className="block text-[13px]" style={{ color: already === o.v ? ACCENT : "#dfd2e4" }}>{o.t}</b>
                     <span className="block text-[12px] text-body-soft">{o.d}</span>
                   </button>
@@ -931,7 +931,7 @@ export function AsmFinishedView() {
         </div>
       )}
       {rows.map((p) => (
-        <div key={p.id} className="bg-white border rounded-[16px] shadow-soft p-4 mb-3" style={{ borderColor: "#534128" }}>
+        <div key={p.id} className="bg-white border rounded-[16px] shadow-soft p-4 mb-3" style={{ borderColor: "#f5ddba" }}>
           <div className="flex flex-wrap items-center gap-3">
             <ItemThumb item={{ sku: p.templateName, name: p.templateName, imageUrl: p.template?.imageUrl }} size={44} />
             <span className="min-w-0">

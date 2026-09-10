@@ -156,10 +156,10 @@ export function FilterChips<T extends string>({ value, onChange, options }: {
           <button key={o.v} type="button" onClick={() => onChange(o.v)}
             className="text-[12.5px] font-medium px-3.5 py-1.5 rounded-full border transition-colors inline-flex items-center gap-1.5"
             style={on
-              ? { background: "#470066", color: "#fff", borderColor: "#470066" }
+              ? { background: "#470066", color: "#fff", borderColor: "#ce6ef7" }
               : o.tint
                 ? { background: o.tint.bg, color: o.tint.color, borderColor: "transparent" }
-                : { background: "#fff", color: "#dfd2e4", borderColor: "#402d4e" }}>
+                : { background: "#fff", color: "#dfd2e4", borderColor: "#efe4f7" }}>
             {o.label}
             {o.count !== undefined && o.count > 0 && (
               <span className="text-[11px] rounded-full px-1.5"

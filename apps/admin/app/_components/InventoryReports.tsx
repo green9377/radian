@@ -67,7 +67,7 @@ export function InvReportsView() {
                 className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
                 style={days === r
                   ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                  : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+                  : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
                 {r} days
               </button>
             ))}
@@ -78,11 +78,11 @@ export function InvReportsView() {
 
       {report && valuation && (
         <Kpi items={[
-          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "#c0392b", bg: "#3b1a16", icon: "bolt" },
-          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "#cf43ea", bg: "#35163b", icon: "heart" },
-          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "#470066", bg: "#2e1a38", icon: "box" },
+          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "#e1837a", bg: "#3b1a16", icon: "bolt" },
+          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "#da6cef", bg: "#35163b", icon: "heart" },
+          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
           {
-            l: "Worst day", c: "#b45309", bg: "#3b2b17", icon: "clock",
+            l: "Worst day", c: "#f7a96e", bg: "#3b2b17", icon: "clock",
             v: worstDay
               ? `${new Date(worstDay.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${formatTaka(worstDay.wastagePaisa + worstDay.giftPaisa)}`
               : "—",
@@ -222,7 +222,7 @@ export function InvSettingsView() {
       className="text-[12.5px] font-medium px-4 py-2 rounded-full border transition-colors disabled:opacity-60"
       style={on
         ? { background: tone, color: "#fff", borderColor: tone }
-        : { background: "#fff", color: "#dfd2e4", borderColor: "#3d314a" }}>
+        : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
       {children}
     </button>
   );

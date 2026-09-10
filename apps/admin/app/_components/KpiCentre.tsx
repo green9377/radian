@@ -135,7 +135,7 @@ export function KpiCentre() {
                 onClick={() => setYear(y)}
                 className="rounded-[10px] border px-3 py-1.5 text-[12.5px]"
                 style={{
-                  borderColor: y === year ? "#7d2ea8" : "#3f2d4e",
+                  borderColor: y === year ? "#bb7fdc" : "#e4d3f2",
                   background: y === year ? "#7d2ea8" : "#fff",
                   color: y === year ? "#fff" : "#ce6ef7",
                 }}
