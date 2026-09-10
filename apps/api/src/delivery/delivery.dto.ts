@@ -146,7 +146,7 @@ export interface AssignmentActionDto {
 /** What the fulfilment list is asking for. Everything optional — no filter
  *  chosen means the whole queue, which is what the screen opens on. */
 export interface BoardQuery {
-  status?: 'unassigned' | 'preparing' | 'out_for_delivery' | 'failed';
+  status?: 'unassigned' | 'preparing' | 'out_for_delivery' | 'failed' | 'delivered';
   zone?: 'DHAKA' | 'BANGLADESH';
   methodId?: string;
   /** order number, phone, recipient, address or customer name */
