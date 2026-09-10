@@ -55,6 +55,7 @@ const TEMPLATE_FOR: Record<OrderMessageKind, string | null> = {
   PAYMENT_FAILED: TPL.paymentFailed,
   REVIEW_REQUEST: TPL.review,
   PHOTO_UPDATE: TPL.photo,
+  DELIVERY_PHOTO: TPL.deliveredPhoto,
 };
 
 /*  DEC-WEB-008 — the review request goes out this long after delivery. Not a
@@ -334,14 +335,15 @@ export class OrderMessagesService {
         (Meta refuses it) the same picture goes by email; with neither, it
         sits on the customer's account only and the log says so. The picture
         is read at send time from the newest PREP photo on the order.  */
-    const isPhoto = m.kind === OrderMessageKind.PHOTO_UPDATE;
+    const isPhoto = m.kind === OrderMessageKind.PHOTO_UPDATE || m.kind === OrderMessageKind.DELIVERY_PHOTO;
+    const photoKind = m.kind === OrderMessageKind.DELIVERY_PHOTO ? 'DELIVERY' : 'PREP';
     const doors: OrderMessageChannel[] = isPhoto
       ? [OrderMessageChannel.WHATSAPP, OrderMessageChannel.EMAIL]
       : routeFor(o.senderPhone, o.senderEmail);
     let photoUrl: string | null = null;
     if (isPhoto) {
       const ph = await this.prisma.db.orderPhoto.findFirst({
-        where: { orderId: o.id, kind: 'PREP', deletedAt: null, url: { not: null } },
+        where: { orderId: o.id, kind: photoKind, deletedAt: null, url: { not: null } },
         orderBy: { createdAt: 'desc' },
         select: { url: true },
       });
@@ -469,6 +471,12 @@ export class OrderMessagesService {
         body: 'Hi {name},\n\nHere is your gift for order {order}, photographed before it leaves us. Reply to this email if you would like anything changed.\n\n{shop} · {phone}',
       } as NonNullable<typeof tpl>;
     }
+    if (!tpl && kind === OrderMessageKind.DELIVERY_PHOTO && channel === OrderMessageChannel.EMAIL) {
+      tpl = {
+        subject: '{shop} — delivered, order {order}',
+        body: 'Hi {name},\n\nYour order {order} has been delivered. Here is the photo taken at the door.\n\nThank you for choosing {shop} · {phone}',
+      } as NonNullable<typeof tpl>;
+    }
     if (!tpl) return { ok: false, configured: false, error: `no ${channel} wording for ${kind} (Admin → Email & SMS → Templates)` };
 
     const shop = await this.shopName();
@@ -478,7 +486,7 @@ export class OrderMessagesService {
         ? `${base}/review/${invite.token}`
         : kind === OrderMessageKind.PAYMENT_FAILED
           ? `${base}/pay/${o.orderNo}`
-          : kind === OrderMessageKind.PHOTO_UPDATE && photoUrl
+          : (kind === OrderMessageKind.PHOTO_UPDATE || kind === OrderMessageKind.DELIVERY_PHOTO) && photoUrl
             ? photoUrl
             : `${base}/track?id=${encodeURIComponent(o.orderNo)}`;
     /*  What has actually been collected, and what is left — read at SEND time
@@ -510,7 +518,7 @@ export class OrderMessagesService {
         subject: this.wording.render(tpl.subject ?? `${shop} — ${o.orderNo}`, vars),
         html:
           `<div style="font:15px/1.6 system-ui,sans-serif;color:#222;white-space:pre-wrap">${escapeHtml(body)}</div>` +
-          (kind === OrderMessageKind.PHOTO_UPDATE && photoUrl
+          ((kind === OrderMessageKind.PHOTO_UPDATE || kind === OrderMessageKind.DELIVERY_PHOTO) && photoUrl
             ? `<p style="margin:16px 0 0"><img src="${escapeHtml(photoUrl)}" alt="Your gift" style="max-width:100%;border-radius:12px"></p>`
             : ''),
         origin: 'order-message',
@@ -545,6 +553,9 @@ export class OrderMessagesService {
       case OrderMessageKind.PHOTO_UPDATE:
         if (!photoUrl) throw new Error('photo update without a photo');
         return this.wa.templateWithImage(TPL.photo, photoUrl, [o.senderName, o.orderNo]);
+      case OrderMessageKind.DELIVERY_PHOTO:
+        if (!photoUrl) throw new Error('delivery photo without a photo');
+        return this.wa.templateWithImage(TPL.deliveredPhoto, photoUrl, [o.senderName, o.orderNo]);
       case OrderMessageKind.ORDER_CONFIRMATION:
         return this.wa.template(TPL.confirm, [o.senderName, o.orderNo, taka(o.totalPaisa)]);
       case OrderMessageKind.ORDER_CONFIRMATION_COD:

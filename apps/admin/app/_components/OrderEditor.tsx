@@ -1289,6 +1289,7 @@ const MSG_KIND: Record<string, string> = {
   PAYMENT_FAILED: "Payment failed",
   REVIEW_REQUEST: "Review request",
   PHOTO_UPDATE: "Photo of the gift",
+  DELIVERY_PHOTO: "Photo at the door",
 };
 const MSG_COLOUR: Record<ApiOrderMessage["status"], string> = { SENT: SOLID.green, FAILED: SOLID.amber, SKIPPED: SOLID.grey, QUEUED: SOLID.blue };
 

@@ -49,6 +49,7 @@ export const TPL = {
   review: process.env.WA_TPL_REVIEW_REQUEST || 'review_request',
   /** Owner, 10 Sep 2026 — IMAGE header = the gift, {{1}} name, {{2}} order number */
   photo: process.env.WA_TPL_PHOTO_UPDATE || 'order_photo_update',
+  deliveredPhoto: process.env.WA_TPL_DELIVERY_PHOTO || 'order_delivered_photo',
   /**
    * The one-time code. Meta's AUTHENTICATION category, which is not a label we
    * choose — it has its own shape (a copy-code button, no free text) and its

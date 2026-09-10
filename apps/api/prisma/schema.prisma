@@ -2754,6 +2754,9 @@ enum OrderMessageKind {
   /// customer ticked "photo updates" at checkout. WhatsApp first, email if
   /// the number has no WhatsApp; the picture sits on the order either way.
   PHOTO_UPDATE
+  /// The photograph at the door (owner, 10 Sep 2026): the DELIVERY photo,
+  /// sent the same way as PHOTO_UPDATE once the parcel is handed over.
+  DELIVERY_PHOTO
   /// DEC-WEB-008 - delivered + 24h, the review invitation. The token lives on
   /// ReviewInvite.
   REVIEW_REQUEST

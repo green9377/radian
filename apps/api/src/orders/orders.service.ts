@@ -1399,9 +1399,12 @@ export class OrdersService {
         either way (the storefront reads OrderPhoto). Queued and swept like
         every other message, so a send that fails is on the order's message
         log with its reason, and the photo itself is never lost.  */
-    if (dto.kind === 'PREP' && o.photoUpdates && dto.url) {
+    /*  The DELIVERY photo goes the same road once the parcel is handed over
+        (owner, 10 Sep 2026) — same tick, same doors, its own template.  */
+    if ((dto.kind === 'PREP' || dto.kind === 'DELIVERY') && o.photoUpdates && dto.url) {
+      const kind = dto.kind === 'PREP' ? OrderMessageKind.PHOTO_UPDATE : OrderMessageKind.DELIVERY_PHOTO;
       void this.orderMessages
-        .queue(id, OrderMessageKind.PHOTO_UPDATE, { repeat: true })
+        .queue(id, kind, { repeat: true })
         .then(() => this.orderMessages.sendDue(5))
         .catch(() => undefined);
     }

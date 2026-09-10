@@ -27,6 +27,8 @@ export const TEMPLATE_KINDS = [
   'LOGIN_OTP',
   /** the gift photograph before it leaves — email carries the picture itself */
   'PHOTO_UPDATE',
+  /** the photograph at the door, after hand-over */
+  'DELIVERY_PHOTO',
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 

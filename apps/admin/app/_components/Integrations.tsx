@@ -1399,7 +1399,7 @@ function WhatsAppTemplateRow({
       {open && (
         <div className="mt-2.5">
           <p className="text-[11px] text-body-soft mb-2">
-            The wording lives in the code — one click submits all six to Meta.
+            The wording lives in the code — one click submits {rows ? `all ${rows.length}` : "all of them"} to Meta. The two photo ones carry the order&apos;s picture as the header.
           </p>
           {rows && (
             <div className="flex flex-wrap gap-1.5 mb-2.5">
