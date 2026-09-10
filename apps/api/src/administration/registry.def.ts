@@ -149,6 +149,16 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 10
   },
   {
+    "key": "delivery.setup",
+    "parentKey": "delivery",
+    "kind": "SCREEN",
+    "label": "Delivery setup",
+    "domain": "Sales",
+    "href": "/delivery/setup",
+    "legacyRoles": null,
+    "sortOrder": 11
+  },
+  {
     "key": "returns",
     "parentKey": null,
     "kind": "MODULE",
@@ -156,7 +166,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Sales",
     "href": "/returns",
     "legacyRoles": null,
-    "sortOrder": 11
+    "sortOrder": 12
   },
   {
     "key": "returns.overview",
@@ -166,7 +176,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Sales",
     "href": "/returns",
     "legacyRoles": null,
-    "sortOrder": 12
+    "sortOrder": 13
   },
   {
     "key": "returns.new",
@@ -176,7 +186,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Sales",
     "href": "/returns/new",
     "legacyRoles": null,
-    "sortOrder": 13
+    "sortOrder": 14
   },
   {
     "key": "inbox",
@@ -186,7 +196,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Sales",
     "href": "/inbox",
     "legacyRoles": null,
-    "sortOrder": 14
+    "sortOrder": 15
   },
   {
     "key": "pos",
@@ -196,7 +206,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos",
     "legacyRoles": null,
-    "sortOrder": 15
+    "sortOrder": 16
   },
   {
     "key": "pos.sell",
@@ -206,7 +216,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/sell",
     "legacyRoles": null,
-    "sortOrder": 16
+    "sortOrder": 17
   },
   {
     "key": "pos.shift",
@@ -216,7 +226,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/shift",
     "legacyRoles": null,
-    "sortOrder": 17
+    "sortOrder": 18
   },
   {
     "key": "pos.day-close",
@@ -226,7 +236,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/day-close",
     "legacyRoles": null,
-    "sortOrder": 18
+    "sortOrder": 19
   },
   {
     "key": "pos.sales",
@@ -236,7 +246,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/sales",
     "legacyRoles": null,
-    "sortOrder": 19
+    "sortOrder": 20
   },
   {
     "key": "pos.advance",
@@ -246,7 +256,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/advance",
     "legacyRoles": null,
-    "sortOrder": 20
+    "sortOrder": 21
   },
   {
     "key": "pos.due",
@@ -256,7 +266,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/due",
     "legacyRoles": null,
-    "sortOrder": 21
+    "sortOrder": 22
   },
   {
     "key": "pos.settings",
@@ -266,7 +276,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Shop",
     "href": "/pos/settings",
     "legacyRoles": null,
-    "sortOrder": 22
+    "sortOrder": 23
   },
   {
     "key": "products",
@@ -276,7 +286,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products",
     "legacyRoles": null,
-    "sortOrder": 23
+    "sortOrder": 24
   },
   {
     "key": "products.list",
@@ -286,7 +296,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/list",
     "legacyRoles": null,
-    "sortOrder": 24
+    "sortOrder": 25
   },
   {
     "key": "products.stock",
@@ -296,7 +306,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/stock",
     "legacyRoles": null,
-    "sortOrder": 25
+    "sortOrder": 26
   },
   {
     "key": "products.margin",
@@ -306,7 +316,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/margin",
     "legacyRoles": null,
-    "sortOrder": 26
+    "sortOrder": 27
   },
   {
     "key": "products.health",
@@ -316,7 +326,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/health",
     "legacyRoles": null,
-    "sortOrder": 27
+    "sortOrder": 28
   },
   {
     "key": "products.funnel",
@@ -326,7 +336,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/funnel",
     "legacyRoles": null,
-    "sortOrder": 28
+    "sortOrder": 29
   },
   {
     "key": "products.addons",
@@ -336,7 +346,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/addons",
     "legacyRoles": null,
-    "sortOrder": 29
+    "sortOrder": 30
   },
   {
     "key": "products.upgrades",
@@ -346,7 +356,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/upgrades",
     "legacyRoles": null,
-    "sortOrder": 30
+    "sortOrder": 31
   },
   {
     "key": "products.badges",
@@ -356,7 +366,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/badges",
     "legacyRoles": null,
-    "sortOrder": 31
+    "sortOrder": 32
   },
   {
     "key": "products.bulk",
@@ -366,7 +376,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/bulk",
     "legacyRoles": null,
-    "sortOrder": 32
+    "sortOrder": 33
   },
   {
     "key": "products.trash",
@@ -376,7 +386,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/trash",
     "legacyRoles": null,
-    "sortOrder": 33
+    "sortOrder": 34
   },
   {
     "key": "categories-tags",
@@ -386,7 +396,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": null,
     "legacyRoles": null,
-    "sortOrder": 34
+    "sortOrder": 35
   },
   {
     "key": "categories",
@@ -396,7 +406,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/categories",
     "legacyRoles": null,
-    "sortOrder": 35
+    "sortOrder": 36
   },
   {
     "key": "tags",
@@ -406,7 +416,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/tags",
     "legacyRoles": null,
-    "sortOrder": 36
+    "sortOrder": 37
   },
   {
     "key": "brands",
@@ -416,7 +426,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/brands",
     "legacyRoles": null,
-    "sortOrder": 37
+    "sortOrder": 38
   },
   {
     "key": "products.variants",
@@ -426,7 +436,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/products/variants",
     "legacyRoles": null,
-    "sortOrder": 38
+    "sortOrder": 39
   },
   {
     "key": "storefront",
@@ -436,7 +446,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront",
     "legacyRoles": null,
-    "sortOrder": 39
+    "sortOrder": 40
   },
   {
     "key": "storefront.layout",
@@ -446,7 +456,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/layout",
     "legacyRoles": null,
-    "sortOrder": 40
+    "sortOrder": 41
   },
   {
     "key": "storefront.category-page",
@@ -456,7 +466,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/category-page",
     "legacyRoles": null,
-    "sortOrder": 41
+    "sortOrder": 42
   },
   {
     "key": "storefront.pages",
@@ -466,7 +476,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/pages",
     "legacyRoles": null,
-    "sortOrder": 42
+    "sortOrder": 43
   },
   {
     "key": "storefront.reviews",
@@ -476,7 +486,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/reviews",
     "legacyRoles": null,
-    "sortOrder": 43
+    "sortOrder": 44
   },
   {
     "key": "storefront.journal",
@@ -486,7 +496,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/journal",
     "legacyRoles": null,
-    "sortOrder": 44
+    "sortOrder": 45
   },
   {
     "key": "storefront.hours",
@@ -496,7 +506,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/hours",
     "legacyRoles": null,
-    "sortOrder": 45
+    "sortOrder": 46
   },
   {
     "key": "storefront.footer",
@@ -506,7 +516,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Catalog",
     "href": "/storefront/footer",
     "legacyRoles": null,
-    "sortOrder": 46
+    "sortOrder": 47
   },
   {
     "key": "marketing.seo",
@@ -519,7 +529,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 47
+    "sortOrder": 48
   },
   {
     "key": "inventory",
@@ -529,7 +539,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory",
     "legacyRoles": null,
-    "sortOrder": 48
+    "sortOrder": 49
   },
   {
     "key": "inventory.stock",
@@ -539,7 +549,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/stock",
     "legacyRoles": null,
-    "sortOrder": 49
+    "sortOrder": 50
   },
   {
     "key": "inventory.opening",
@@ -549,7 +559,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/opening",
     "legacyRoles": null,
-    "sortOrder": 50
+    "sortOrder": 51
   },
   {
     "key": "inventory.transfer",
@@ -559,7 +569,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/transfer",
     "legacyRoles": null,
-    "sortOrder": 51
+    "sortOrder": 52
   },
   {
     "key": "inventory.issue",
@@ -569,7 +579,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/issue",
     "legacyRoles": null,
-    "sortOrder": 52
+    "sortOrder": 53
   },
   {
     "key": "inventory.stocktake",
@@ -579,7 +589,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/stocktake",
     "legacyRoles": null,
-    "sortOrder": 53
+    "sortOrder": 54
   },
   {
     "key": "inventory.movements",
@@ -589,7 +599,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/movements",
     "legacyRoles": null,
-    "sortOrder": 54
+    "sortOrder": 55
   },
   {
     "key": "inventory.reports",
@@ -599,7 +609,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/reports",
     "legacyRoles": null,
-    "sortOrder": 55
+    "sortOrder": 56
   },
   {
     "key": "inventory.warehouses",
@@ -609,7 +619,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/warehouses",
     "legacyRoles": null,
-    "sortOrder": 56
+    "sortOrder": 57
   },
   {
     "key": "inventory.settings",
@@ -619,7 +629,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/inventory/settings",
     "legacyRoles": null,
-    "sortOrder": 57
+    "sortOrder": 58
   },
   {
     "key": "purchases",
@@ -632,7 +642,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 58
+    "sortOrder": 59
   },
   {
     "key": "purchases.list",
@@ -642,7 +652,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/purchases/list",
     "legacyRoles": null,
-    "sortOrder": 59
+    "sortOrder": 60
   },
   {
     "key": "purchases.new",
@@ -652,7 +662,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/purchases/new",
     "legacyRoles": null,
-    "sortOrder": 60
+    "sortOrder": 61
   },
   {
     "key": "purchases.returns",
@@ -662,7 +672,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/purchases/returns",
     "legacyRoles": null,
-    "sortOrder": 61
+    "sortOrder": 62
   },
   {
     "key": "purchases.reports",
@@ -672,7 +682,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/purchases/reports",
     "legacyRoles": null,
-    "sortOrder": 62
+    "sortOrder": 63
   },
   {
     "key": "suppliers",
@@ -685,7 +695,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 63
+    "sortOrder": 64
   },
   {
     "key": "suppliers.list",
@@ -695,7 +705,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/suppliers/list",
     "legacyRoles": null,
-    "sortOrder": 64
+    "sortOrder": 65
   },
   {
     "key": "suppliers.vendors",
@@ -705,7 +715,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/suppliers/vendors",
     "legacyRoles": null,
-    "sortOrder": 65
+    "sortOrder": 66
   },
   {
     "key": "suppliers.settings",
@@ -715,7 +725,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/suppliers/settings",
     "legacyRoles": null,
-    "sortOrder": 66
+    "sortOrder": 67
   },
   {
     "key": "items",
@@ -725,7 +735,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items",
     "legacyRoles": null,
-    "sortOrder": 67
+    "sortOrder": 68
   },
   {
     "key": "items.list",
@@ -735,7 +745,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/list",
     "legacyRoles": null,
-    "sortOrder": 68
+    "sortOrder": 69
   },
   {
     "key": "items.new",
@@ -745,7 +755,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/new",
     "legacyRoles": null,
-    "sortOrder": 69
+    "sortOrder": 70
   },
   {
     "key": "items.categories",
@@ -755,7 +765,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/categories",
     "legacyRoles": null,
-    "sortOrder": 70
+    "sortOrder": 71
   },
   {
     "key": "items.types",
@@ -765,7 +775,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/types",
     "legacyRoles": null,
-    "sortOrder": 71
+    "sortOrder": 72
   },
   {
     "key": "items.pricing",
@@ -775,7 +785,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/pricing",
     "legacyRoles": null,
-    "sortOrder": 72
+    "sortOrder": 73
   },
   {
     "key": "items.colors",
@@ -785,7 +795,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/colors",
     "legacyRoles": null,
-    "sortOrder": 73
+    "sortOrder": 74
   },
   {
     "key": "items.sizes",
@@ -795,7 +805,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/sizes",
     "legacyRoles": null,
-    "sortOrder": 74
+    "sortOrder": 75
   },
   {
     "key": "items.units",
@@ -805,7 +815,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/units",
     "legacyRoles": null,
-    "sortOrder": 75
+    "sortOrder": 76
   },
   {
     "key": "items.trash",
@@ -815,7 +825,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/items/trash",
     "legacyRoles": null,
-    "sortOrder": 76
+    "sortOrder": 77
   },
   {
     "key": "assembly",
@@ -825,7 +835,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly",
     "legacyRoles": null,
-    "sortOrder": 77
+    "sortOrder": 78
   },
   {
     "key": "assembly.templates",
@@ -835,7 +845,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly/templates",
     "legacyRoles": null,
-    "sortOrder": 78
+    "sortOrder": 79
   },
   {
     "key": "assembly.pipeline",
@@ -845,7 +855,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly/pipeline",
     "legacyRoles": null,
-    "sortOrder": 79
+    "sortOrder": 80
   },
   {
     "key": "assembly.finished",
@@ -855,7 +865,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly/finished",
     "legacyRoles": null,
-    "sortOrder": 80
+    "sortOrder": 81
   },
   {
     "key": "assembly.wastage",
@@ -865,7 +875,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly/wastage",
     "legacyRoles": null,
-    "sortOrder": 81
+    "sortOrder": 82
   },
   {
     "key": "products.capacity",
@@ -875,7 +885,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/products/capacity",
     "legacyRoles": null,
-    "sortOrder": 82
+    "sortOrder": 83
   },
   {
     "key": "assembly.settings",
@@ -885,7 +895,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Stock",
     "href": "/assembly/settings",
     "legacyRoles": null,
-    "sortOrder": 83
+    "sortOrder": 84
   },
   {
     "key": "finance.accounts",
@@ -895,7 +905,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/accounts",
     "legacyRoles": null,
-    "sortOrder": 84
+    "sortOrder": 85
   },
   {
     "key": "finance.income",
@@ -905,7 +915,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/income",
     "legacyRoles": null,
-    "sortOrder": 85
+    "sortOrder": 86
   },
   {
     "key": "finance.expenses",
@@ -915,7 +925,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/expenses",
     "legacyRoles": null,
-    "sortOrder": 86
+    "sortOrder": 87
   },
   {
     "key": "finance.recurring",
@@ -925,7 +935,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/recurring",
     "legacyRoles": null,
-    "sortOrder": 87
+    "sortOrder": 88
   },
   {
     "key": "finance.partners",
@@ -935,7 +945,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/partners",
     "legacyRoles": null,
-    "sortOrder": 88
+    "sortOrder": 89
   },
   {
     "key": "finance.carrier",
@@ -945,7 +955,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/carrier",
     "legacyRoles": null,
-    "sortOrder": 89
+    "sortOrder": 90
   },
   {
     "key": "finance.gateway",
@@ -955,7 +965,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/gateway",
     "legacyRoles": null,
-    "sortOrder": 90
+    "sortOrder": 91
   },
   {
     "key": "finance.assets",
@@ -965,7 +975,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/assets",
     "legacyRoles": null,
-    "sortOrder": 91
+    "sortOrder": 92
   },
   {
     "key": "finance.staff",
@@ -975,7 +985,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/staff",
     "legacyRoles": null,
-    "sortOrder": 92
+    "sortOrder": 93
   },
   {
     "key": "finance.settings",
@@ -985,7 +995,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/settings",
     "legacyRoles": null,
-    "sortOrder": 93
+    "sortOrder": 94
   },
   {
     "key": "books-reports",
@@ -998,7 +1008,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 94
+    "sortOrder": 95
   },
   {
     "key": "finance.ledger",
@@ -1008,7 +1018,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/ledger",
     "legacyRoles": null,
-    "sortOrder": 95
+    "sortOrder": 96
   },
   {
     "key": "finance.journal",
@@ -1018,7 +1028,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/journal",
     "legacyRoles": null,
-    "sortOrder": 96
+    "sortOrder": 97
   },
   {
     "key": "finance.chart",
@@ -1028,7 +1038,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/chart",
     "legacyRoles": null,
-    "sortOrder": 97
+    "sortOrder": 98
   },
   {
     "key": "finance.reports",
@@ -1038,7 +1048,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/reports",
     "legacyRoles": null,
-    "sortOrder": 98
+    "sortOrder": 99
   },
   {
     "key": "finance.drift",
@@ -1048,7 +1058,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/drift",
     "legacyRoles": null,
-    "sortOrder": 99
+    "sortOrder": 100
   },
   {
     "key": "finance.vat",
@@ -1058,7 +1068,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/finance/vat",
     "legacyRoles": null,
-    "sortOrder": 100
+    "sortOrder": 101
   },
   {
     "key": "analytics",
@@ -1071,7 +1081,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 101
+    "sortOrder": 102
   },
   {
     "key": "intelligence.analytics",
@@ -1081,7 +1091,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/intelligence/analytics",
     "legacyRoles": null,
-    "sortOrder": 102
+    "sortOrder": 103
   },
   {
     "key": "intelligence.reports",
@@ -1091,7 +1101,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/intelligence/reports",
     "legacyRoles": null,
-    "sortOrder": 103
+    "sortOrder": 104
   },
   {
     "key": "intelligence.kpis",
@@ -1101,7 +1111,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/intelligence/kpis",
     "legacyRoles": null,
-    "sortOrder": 104
+    "sortOrder": 105
   },
   {
     "key": "intelligence.forecast",
@@ -1111,7 +1121,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Accounts",
     "href": "/intelligence/forecast",
     "legacyRoles": null,
-    "sortOrder": 105
+    "sortOrder": 106
   },
   {
     "key": "customers",
@@ -1121,7 +1131,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers",
     "legacyRoles": null,
-    "sortOrder": 106
+    "sortOrder": 107
   },
   {
     "key": "customers.list",
@@ -1131,7 +1141,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/list",
     "legacyRoles": null,
-    "sortOrder": 107
+    "sortOrder": 108
   },
   {
     "key": "customers.segments",
@@ -1141,7 +1151,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/segments",
     "legacyRoles": null,
-    "sortOrder": 108
+    "sortOrder": 109
   },
   {
     "key": "customers.occasions",
@@ -1151,7 +1161,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/occasions",
     "legacyRoles": null,
-    "sortOrder": 109
+    "sortOrder": 110
   },
   {
     "key": "customers.risk",
@@ -1161,7 +1171,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/risk",
     "legacyRoles": null,
-    "sortOrder": 110
+    "sortOrder": 111
   },
   {
     "key": "customers.consent",
@@ -1171,7 +1181,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/consent",
     "legacyRoles": null,
-    "sortOrder": 111
+    "sortOrder": 112
   },
   {
     "key": "customers.duplicates",
@@ -1181,7 +1191,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/customers/duplicates",
     "legacyRoles": null,
-    "sortOrder": 112
+    "sortOrder": 113
   },
   {
     "key": "marketing",
@@ -1194,7 +1204,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 113
+    "sortOrder": 114
   },
   {
     "key": "marketing.campaigns",
@@ -1204,7 +1214,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/campaigns",
     "legacyRoles": null,
-    "sortOrder": 114
+    "sortOrder": 115
   },
   {
     "key": "marketing.campaigns.sources",
@@ -1214,7 +1224,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/campaigns/sources",
     "legacyRoles": null,
-    "sortOrder": 115
+    "sortOrder": 116
   },
   {
     "key": "marketing.ads",
@@ -1224,7 +1234,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/ads",
     "legacyRoles": null,
-    "sortOrder": 116
+    "sortOrder": 117
   },
   {
     "key": "marketing.tracking",
@@ -1234,7 +1244,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/tracking",
     "legacyRoles": null,
-    "sortOrder": 117
+    "sortOrder": 118
   },
   {
     "key": "marketing.settings",
@@ -1244,7 +1254,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/settings",
     "legacyRoles": null,
-    "sortOrder": 118
+    "sortOrder": 119
   },
   {
     "key": "marketing.offers",
@@ -1257,7 +1267,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 119
+    "sortOrder": 120
   },
   {
     "key": "marketing.offers.list",
@@ -1267,7 +1277,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/offers/list",
     "legacyRoles": null,
-    "sortOrder": 120
+    "sortOrder": 121
   },
   {
     "key": "marketing.offers.coupons",
@@ -1277,7 +1287,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/offers/coupons",
     "legacyRoles": null,
-    "sortOrder": 121
+    "sortOrder": 122
   },
   {
     "key": "marketing.offers.templates",
@@ -1287,7 +1297,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/offers/templates",
     "legacyRoles": null,
-    "sortOrder": 122
+    "sortOrder": 123
   },
   {
     "key": "marketing.offers.approvals",
@@ -1297,7 +1307,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/offers/approvals",
     "legacyRoles": null,
-    "sortOrder": 123
+    "sortOrder": 124
   },
   {
     "key": "marketing.offers.settings",
@@ -1307,7 +1317,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/offers/settings",
     "legacyRoles": null,
-    "sortOrder": 124
+    "sortOrder": 125
   },
   {
     "key": "outreach-loyalty",
@@ -1320,7 +1330,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 125
+    "sortOrder": 126
   },
   {
     "key": "marketing.occasions",
@@ -1330,7 +1340,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/occasions",
     "legacyRoles": null,
-    "sortOrder": 126
+    "sortOrder": 127
   },
   {
     "key": "marketing.outreach",
@@ -1340,7 +1350,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/outreach",
     "legacyRoles": null,
-    "sortOrder": 127
+    "sortOrder": 128
   },
   {
     "key": "marketing.outreach.optouts",
@@ -1350,7 +1360,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/outreach/optouts",
     "legacyRoles": null,
-    "sortOrder": 128
+    "sortOrder": 129
   },
   {
     "key": "marketing.recovery",
@@ -1360,7 +1370,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/recovery",
     "legacyRoles": null,
-    "sortOrder": 129
+    "sortOrder": 130
   },
   {
     "key": "marketing.referral",
@@ -1370,7 +1380,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/referral",
     "legacyRoles": null,
-    "sortOrder": 130
+    "sortOrder": 131
   },
   {
     "key": "marketing.loyalty",
@@ -1380,7 +1390,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/loyalty",
     "legacyRoles": null,
-    "sortOrder": 131
+    "sortOrder": 132
   },
   {
     "key": "messaging",
@@ -1393,7 +1403,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 132
+    "sortOrder": 133
   },
   {
     "key": "marketing.whatsapp",
@@ -1403,7 +1413,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/whatsapp",
     "legacyRoles": null,
-    "sortOrder": 133
+    "sortOrder": 134
   },
   {
     "key": "marketing.messaging",
@@ -1413,7 +1423,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/messaging",
     "legacyRoles": null,
-    "sortOrder": 134
+    "sortOrder": 135
   },
   {
     "key": "marketing.affiliates",
@@ -1426,7 +1436,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 135
+    "sortOrder": 136
   },
   {
     "key": "marketing.affiliates.list",
@@ -1436,7 +1446,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/affiliates/list",
     "legacyRoles": null,
-    "sortOrder": 136
+    "sortOrder": 137
   },
   {
     "key": "marketing.affiliates.commissions",
@@ -1446,7 +1456,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/affiliates/commissions",
     "legacyRoles": null,
-    "sortOrder": 137
+    "sortOrder": 138
   },
   {
     "key": "marketing.affiliates.payouts",
@@ -1456,7 +1466,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Customers & Marketing",
     "href": "/marketing/affiliates/payouts",
     "legacyRoles": null,
-    "sortOrder": 138
+    "sortOrder": 139
   },
   {
     "key": "employees",
@@ -1469,7 +1479,7 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 139
+    "sortOrder": 140
   },
   {
     "key": "employees.overview",
@@ -1479,7 +1489,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees",
     "legacyRoles": null,
-    "sortOrder": 140
+    "sortOrder": 141
   },
   {
     "key": "employees.new",
@@ -1489,7 +1499,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees/new",
     "legacyRoles": null,
-    "sortOrder": 141
+    "sortOrder": 142
   },
   {
     "key": "employees.roles",
@@ -1499,7 +1509,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees/roles",
     "legacyRoles": null,
-    "sortOrder": 142
+    "sortOrder": 143
   },
   {
     "key": "employees.attendance",
@@ -1509,7 +1519,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees/attendance",
     "legacyRoles": null,
-    "sortOrder": 143
+    "sortOrder": 144
   },
   {
     "key": "employees.payroll",
@@ -1519,7 +1529,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees/payroll",
     "legacyRoles": null,
-    "sortOrder": 144
+    "sortOrder": 145
   },
   {
     "key": "employees.trash",
@@ -1529,7 +1539,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Staff",
     "href": "/employees/trash",
     "legacyRoles": null,
-    "sortOrder": 145
+    "sortOrder": 146
   },
   {
     "key": "shop-setup",
@@ -1539,7 +1549,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Settings",
     "href": null,
     "legacyRoles": null,
-    "sortOrder": 146
+    "sortOrder": 147
   },
   {
     "key": "administration.company",
@@ -1551,7 +1561,7 @@ export const REGISTRY: RegistryNode[] = [
     "legacyRoles": [
       "OWNER"
     ],
-    "sortOrder": 147
+    "sortOrder": 148
   },
   {
     "key": "orders.channels",
@@ -1561,7 +1571,7 @@ export const REGISTRY: RegistryNode[] = [
     "domain": "Settings",
     "href": "/orders/channels",
     "legacyRoles": null,
-    "sortOrder": 148
+    "sortOrder": 149
   },
   {
     "key": "administration.payment-methods",
@@ -1574,16 +1584,6 @@ export const REGISTRY: RegistryNode[] = [
       "OWNER",
       "MANAGER"
     ],
-    "sortOrder": 149
-  },
-  {
-    "key": "delivery.setup",
-    "parentKey": "shop-setup",
-    "kind": "SCREEN",
-    "label": "Delivery setup",
-    "domain": "Settings",
-    "href": "/delivery/setup",
-    "legacyRoles": null,
     "sortOrder": 150
   },
   {

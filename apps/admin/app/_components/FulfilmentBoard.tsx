@@ -262,6 +262,7 @@ export default function FulfilmentBoard() {
         title="Fulfilment board"
         help={HELP}
         tiles={tiles}
+        columns={6}
         active={seg || undefined}
         onTile={(k) => setSeg(seg === k ? "" : (k as Seg))}
         right={<BandButton onClick={() => void load()} icon="clock">Refresh</BandButton>}

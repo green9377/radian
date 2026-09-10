@@ -108,6 +108,9 @@ const GROUPS: Group[] = [
           { label: "Fulfilment board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
           { label: "Settle", href: "/delivery/settle" },
           { label: "Reports", href: "/delivery/performance" },
+          /*  Owner, 10 Sep 2026: the setup lives with the module, not under
+              Settings — one place to look for anything delivery.  */
+          { label: "Delivery setup", href: "/delivery/setup" },
         ],
       },
       {
@@ -382,9 +385,6 @@ const GROUPS: Group[] = [
           { label: "Company settings", href: "/administration/company", roles: ["OWNER"] },
           { label: "Sales channels", href: "/orders/channels" },
           { label: "Payment methods", href: "/administration/payment-methods", roles: ["OWNER", "MANAGER"] },
-          /*  Owner, 10 Sep 2026: one module. Methods & slots, zones, riders and
-              couriers are its four tabs.  */
-          { label: "Delivery setup", href: "/delivery/setup" },
           { label: "Returns settings", href: "/returns/settings" },
           { label: "All settings", href: "/administration/settings", roles: ["OWNER"] },
         ],

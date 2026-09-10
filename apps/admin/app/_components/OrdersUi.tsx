@@ -147,10 +147,10 @@ export function Band({
   /** key of the tile that is currently filtering the page */
   active?: string;
   onTile?: (key: string) => void;
-  columns?: 4 | 5;
+  columns?: 4 | 5 | 6;
 }) {
   const base = "block rounded-[14px] px-4 py-3.5 border text-left w-full";
-  const cols = columns === 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5";
+  const cols = columns === 4 ? "grid-cols-2 xl:grid-cols-4" : columns === 6 ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-6" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5";
   return (
     <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
       <div className="flex items-center justify-between gap-4 mb-4">
