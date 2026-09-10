@@ -119,10 +119,10 @@ export default function OrdersOverviewView() {
           </div>
         </div>
         <div className="flex gap-2 items-center">
-          <ActButton onClick={() => setDate(shift(date, -1))}>◀ {dayName(shift(date, -1), "short")}</ActButton>
-          {!isToday && <ActButton onClick={() => setDate(dhakaToday())}>Today</ActButton>}
-          <ActButton onClick={() => setDate(shift(date, 1))}>{dayName(shift(date, 1), "short")} ▶</ActButton>
-          <Link href="/orders/new" className="h-[36px] px-4 rounded-[10px] bg-purple text-white text-[12.5px] font-medium inline-flex items-center gap-1.5 hover:bg-purple-deep">
+          <div className="w-[84px]"><ActButton onClick={() => setDate(shift(date, -1))}>◀ {dayName(shift(date, -1), "short")}</ActButton></div>
+          {!isToday && <div className="w-[76px]"><ActButton onClick={() => setDate(dhakaToday())}>Today</ActButton></div>}
+          <div className="w-[84px]"><ActButton onClick={() => setDate(shift(date, 1))}>{dayName(shift(date, 1), "short")} ▶</ActButton></div>
+          <Link href="/orders/new" className="h-[36px] px-4 rounded-[10px] bg-purple text-white text-[12.5px] font-medium inline-flex items-center gap-1.5 hover:bg-purple-deep whitespace-nowrap">
             <Icon name="plus" size={15} /> New order
           </Link>
         </div>
@@ -223,7 +223,7 @@ export default function OrdersOverviewView() {
                 <span className="text-body"> · {w.title}</span>
                 <span className="text-[12px] text-[#7b6b87] ml-2">{w.detail}</span>
               </div>
-              <ActButton href={`/orders/${w.id}`}>Open</ActButton>
+              <div className="w-[76px] shrink-0"><ActButton href={`/orders/${w.id}`}>Open</ActButton></div>
             </li>
           ))}
         </ul>
