@@ -1221,6 +1221,16 @@ export function PosSettings() {
   const [giftPreview, setGiftPreview] = useState(false);
 
   async function save(patch: Partial<ApiPosSettings>) {
+    /*  A BLUR MUST NEVER WRITE WHAT THE SCREEN HAS NOT READ YET.
+        The card remounts the moment the real settings land (`key` below), and
+        a field that still holds its pre-load placeholder would otherwise blur
+        a zero straight over the shop's opening float. Write only once the
+        settings are in hand, and only when the value actually changed.  */
+    if (!s) return;
+    const unchanged = (Object.keys(patch) as (keyof ApiPosSettings)[]).every(
+      (k) => patch[k] === s[k],
+    );
+    if (unchanged) return;
     try {
       await updatePosSettings(patch);
       /*  PATCH answers with the raw PosSetting row, which has the till's own
